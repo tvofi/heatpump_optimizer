@@ -1,145 +1,110 @@
-Fix review: blocked 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687 head-moved: measured 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687, head is 294bf66ffb463faf842f6a0f43c119b27005b558
+Fix review: merge 294bf66ffb463faf842f6a0f43c119b27005b558
 
-Round: 1 at the dispatched head. The PR's earlier review rounds were round 1 at
-345cdf58 (blocked carry-missing), rounds 2 and 3 at afabd5b6 (blocked, then
-merge). This is not a fourth repair round of one head: I measured a head none of
-those reviewed, and the fixer added two test-and-ledger commits since round 3.
+Round: 2 of R10-SETPOINT-BOOST at this head. Round 1 was blocked `head-moved` at
+44ea3af3 and confirmed as bus commit 04d553dc; the move landed on this head, and
+this round measures it. Not the fourth round.
 
-## Head, and what the move costs
+Head measured: 294bf66ffb463faf842f6a0f43c119b27005b558. Re-read immediately
+before posting: unchanged.
 
-Measured: 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687, the head my nonce
-da4664480025ee08a56aadf47e523638 was dispatched at. Before posting I re-read
-the head and it had moved: 294bf66ffb463faf842f6a0f43c119b27005b558.
+## The eight `killed_by` re-derivations (round 1's gap, now closed)
 
-I checked the delta rather than assuming it (`git diff 44ea3af3..294bf66f`):
-294bf66f is the merge of origin/main d99b400a5 (PR #2480,
-fix/r10-follower-debounce) into 44ea3af3, and the five files it moves are
-`.github/workflows/pr-contract-rerun.yml`, `dev/audit/harnesses/follower_debounce.py`,
-`dev/programme/delivery/2480.md`, `tests/closures.json` and `tests/entities.py`.
-Only `tests/closures.json` is a path this PR also touches, and the merged file
-carries both harness entries (`follower_debounce.py` at closure line 3444,
-`r10_setpoint_boost.py` at 3476). **Every number below survives the delta**: no
-production line, check, mutation-ledger row, harness or delivery row of #2465
-moves between the two heads. What does not survive is CI: the runs at 44ea3af3
-were cancelled as superseded when the new head arrived (`fast (3.14)`,
-`mutation`, `closures`, `lane-proofs`, `composed-proof`, `mutation-pins` all
-`cancelled`), so the heavy lanes are unmeasured at both heads and must run at
-294bf66f. The body also changed after my first read (three lines: the head line,
-the `ci_predict` figure, and the `pr-contract` answer, which now states the
-current 6/6 routing); I re-read it and the figures below are against the
-corrected body.
+Round 1's in-tree `--anchor` drive refused with `1 mutant(s) timed out` under a
+machine load of 40-80. This round I re-derived each of the nine sites at this
+head with the tree as cwd, using the operator the body names: the ledger's `old`
+line replaced by the mutant text its table states (CONST values 96 / 1.0 / 0.5,
+each comparison bound inverted as listed, the guard taken to `False`, the CLAMP
+min dropped). My runner is `rev-2465-r2/run_block_mutant.py`, named as mine: it
+executes **the PR's own R10-SETPOINT-BOOST block of `tests/features.py`
+unmodified**, in the features.py header namespace, with the four helper names the
+block takes from the SETPOINT-POWER block (`_dr`, `_DrCoord`, `_dr_entry`,
+`_dr_params`) supplied verbatim; the tree is restored after each run and
+`git status` is clean. It is the block, not the whole 4258-check driver, and I
+say so: the block reddens the named check, which is the property the `killed_by`
+row asserts. The whole-driver runs of the same nine mutants and the baseline are
+reported below.
 
-## The brief's core: the nine added-site dispositions
+RESULT block at BASE, no mutation: `ALL 26 FEATURES BLOCK PASSED`, rc 0 (ev/block_BASE.txt)
+RESULT S1 `draw_range.py:<module> CONST 3b4c559c` `IDLE_WINDOW = 96`: rc 1, 1 of 26 failed -- `FAIL the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn the newest 48 (0.30), not the whole 96 (0.20)` (ev/block_S1.txt)
+RESULT S2 `draw_range.py:<module> CONST 9b5abfbf` `CEILING_TOLERANCE_K = 1.0`: rc 1 -- `FAIL a set-point 0.9 K under the ceiling is not full-power evidence ...` (ev/block_S2.txt)
+RESULT S3 `draw_range.py:<module> CONST 56bfbaa7` `GATE_TOLERANCE_K = 0.5`: rc 1 -- `FAIL a set-point 0.4 K above the gate is not a gate-held interval ...` (ev/block_S3.txt)
+RESULT S4 `DrawRange._evidence CMP_BOUND 3a7f8343` `>=` -> `>`: rc 1, 2 of 26 failed -- the sub-ceiling check and `FAIL a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full (the test is inclusive)` (ev/block_S4.txt)
+RESULT S5 `DrawRange._evidence CMP_BOUND 3e86f7a9` `>` -> `>=`: rc 1 -- `FAIL a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run (the test is strict)` (ev/block_S5.txt)
+RESULT S6 `_stored_idle CMP_BOUND d95cb3ca` `>=` -> `>`: rc 1 -- `FAIL a stored idle reading of 0.0 is a reading: six of twelve, the median is 0.15` (ev/block_S6.txt)
+RESULT S7 `inputs.py:_on_step CMP_BOUND 94ce3139` `<` -> `<=`: rc 1 -- `FAIL a set-point exactly one millionth of a step above a multiple is not snapped to it (the snap is strict)` (ev/block_S7.txt)
+RESULT S8 `pump_arbiter.py:_flow_command GUARD_OFF ec595179`: rc 1 -- `FAIL the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing` (ev/block_S8.txt)
+RESULT S9 `pump_arbiter.py:_flow_target CLAMP_DROP 38a077e7` `lo=floor_c`: `ALL 26 FEATURES BLOCK PASSED`, rc 0 -- the site survives, as its `survivor_triage equivalent` says (ev/block_S9.txt)
 
-The body claims 9 added unpinned sites disposed: 8 `killed_by tests/features.py`
-rows and 1 `survivor_triage equivalent` (`pump_arbiter.py:_flow_target
-CLAMP_DROP 38a077e7`). I did not take that on its word.
+The eighth row is a real kill, not a triage: each of S1-S8 reddens the check its
+ledger row names, and the baseline is green. The ninth I re-derived as equivalent
+analytically as well: `quantise_setpoint_c` applies `max(out, ceil_step(lo))`
+then `min(..., floor_step(hi))` with `hi=heat_c`, so for `floor_c > heat_c` the
+mutant's higher `lo` is cut back to `floor_step(heat_c)`, the value the original's
+`ceil_step(heat_c)` also reaches (`ceil_step(heat_c) >= floor_step(heat_c)`), and
+the Fahrenheit path is a monotone affine map of the same comparison. A triage on
+a killable mutant would have reddened the block; it does not.
 
-**Re-derived by the in-tree instrument: 1 of 9 attempted, and it REFUSED on
-this seat.** `python3 tests/mutation_table.py --anchor '<anchor>' --scripts
-tests/features.py` drives the recorded driver; the first anchor
-(`draw_range.py:<module> CONST 3b4c559c`) refused:
+RESULT CI's own mutation lane at this head (`MUTATION TABLE PASSED`, 12:54:13Z) re-drove the same nine sites itself: `PIN RE-VERIFICATION: 9 reproduced, 0 not reproduced, 0 not re-verified`, `1 survivor(s) of 10 evaluated = 0.0% (1 triaged equivalent, raw 10.0%), cap 20.0%` (ev/mutation_log.txt). This is the in-tree re-verification round 1 could not run, and it agrees with the block above.
+RESULT CI's `mutation` green is not the `MUTATION TABLE INCONCLUSIVE` kind: its log counts `1 survivor(s) of 10 evaluated`, and the per-driver lines read `LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline` (`tests/stress.py`: `DEFERRED AND NEVER RUN`), which is the evaluated pass, not the inconclusive arm (ev/mutation_log.txt).
 
-    MUTATION TABLE REFUSED -- nothing was measured: 1 mutant(s) timed out
+The whole-driver runs of S1-S9 and the unmutated baseline (`tests/features.py`,
+the recorded driver) were started at this head; at the shared machine's load
+(80-120 from other seats) they would have needed about another hour, so I
+stopped them at posting and do not report their outcome. CI's own unmutated
+driver run at this head is green (`ALL 4258 FEATURE CHECKS PASSED`, above), so
+the driver baseline is confirmed from CI, and the block below is the driver's own
+text for the named checks. Round 1's nine in-tree `--anchor` attempts each ran
+the tool's comment-only null control and it survived every driver
+(rev-2465/ev/anchor_*.txt), so the null control holds too.
 
-(ev/anchor_const_3b4c559c.txt). The seat was running nine drives at once on a
-shared machine at load 40-80; `tests/features.py` in this tree spawns its own
-sub-scripts (`tests/dst_checks.py` and others), so a single driver run exceeded
-the tool's timeout. I stopped the other eight drives rather than queue more
-timeouts and re-ran this anchor at a 40-minute floor; its mutant run, baseline
-and null control are still in flight at posting. **The 8 `killed_by` rows are
-therefore not re-derived by their driver in this verdict, and round 2 at
-294bf66f owes that measurement.** What I can say without overclaiming: I read
-each of the eight checks against its mutant's operator text and each would
-redden for the reason named; the first null control survived every driver in
-every run (ev/anchor_*.txt), so the driver's green baseline is not in doubt.
+## The carried numbers, re-taken at this head (not assumed)
 
-**The ninth, re-derived and sound.** The `CLAMP_DROP` mutant prints `lo=floor_c`
-for `lo=min(floor_c, heat_c)` in `_flow_target`'s `_bounded` call. I re-derived
-the equivalence myself: `quantise_setpoint_c` applies `max(out, ceil_step(lo))`
-then `min(..., floor_step(hi))` with `hi=heat_c`. With `floor_c <= heat_c` both
-texts pass the same `lo`. With `floor_c > heat_c`, the mutant raises `out` to at
-least `ceil_step(floor_c)`, which is above `heat_c`, and the following cap
-returns `floor_step(heat_c)`; the original's `ceil_step(heat_c)` also reaches
-that cap, and `ceil_step(heat_c) >= floor_step(heat_c)`, so it returns the same
-`floor_step(heat_c)`. The unit conversion is a monotone affine map, so the
-Fahrenheit path is equal too. This is an honest `equivalent`, not a triage on a
-killable mutant. The fixer's 7680-cell scratch probe and its `lo=None` null
-control are named in the ledger but not committed, so I did not re-run them; the
-ledger's `--anchor` re-verification is the in-tree check, and it is part of what
-round 2 owes.
+RESULT `mutation_table.py --pin-killed --base origin/main`: `4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base d99b400a5986a206e3a2bc0c2943967ce27b8adc; the ledger agrees with the deterministic inventory` and `PIN KILLED -- 0 new unpinned site(s)`, `PIN KILLED: nothing to pin`, rc 0 (ev/pin_killed.txt). The absolute number depends on the base read: CI's lane reads the same sentence as `4126 ... 4126 at the ratchet base a2b25bbc5` (main's tip, which carries more pinned rows than the merge base). Every read shows unpinned equal to its base, which is the claim: this diff adds none.
+RESULT `carry_audit.py check --body`: `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`, rc 0 (ev/carry_audit_body.txt)
+RESULT `env_drift.py --claims-only <merge-base d99b400a5>`: `claims hygiene: d99b400a5986a206e3a2bc0c2943967ce27b8adc ok`, rc 0 (ev/env_drift_claims_only.txt)
+RESULT `env_drift.py --all` at this head, completed: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`; `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`; rc 0 (ev/env_drift_all.txt). The same run at 44ea3af3 read the same two lines, rc 0.
+RESULT `git merge-tree --write-tree origin/main(a2b25bbc5) 294bf66f`: exit 0, tree `012b1f16ad2e80bc36a8b16663e1b8cdb9522699`, the same tree measured at 44ea3af3 before the move; `LEDGER-MERGE: resolved tests/closures.json` (ev/merge_tree.txt)
+RESULT harness at this head (`--no-solves`): `floor: cells 155 heating floor at or below the gate 0`; `window plan ... engaged False observed (0.8999999999999999, None) idle 0.3 planned None`; `window probe ... engaged True observed (2.9399999999999995, 3.0)`; `failures 0` (ev/harness_head_nosolves.txt)
+RESULT harness at the merge base d99b400a5 (run from that tree's cwd): `floor ... 63`; `window plan ... engaged True observed (0.8999999999999999, 2.034) idle None planned (0.8999999999999999, 2.034)`; `failures 0` (ev/harness_base_nosolves.txt)
+RESULT harness with solves, both trees: 32 plan sha1 lines identical; `spread: lower 8 higher 0 identical plan 8`; `flat: lower 0 higher 0 identical plan 16`; `failures 0` at both (ev/harness_head_solves.txt, ev/harness_base_solves.txt)
 
-## The harness, both ends
+## CI at this head
 
-The finding is the owner's v7.0.1 report; it has no committed finder harness,
-and the body does not claim one. `dev/audit/harnesses/r10_setpoint_boost.py` is
-this PR's own instrument (added by the diff), so this is the fixer's harness at
-both trees and I name it as such.
+RESULT CI at this head, `fast (3.14)` success (11:31:35Z start, 12:00:45Z end): its own log reads `ALL 4258 FEATURE CHECKS PASSED` (`python3 tests/features.py`, 635 s), `STRUCTURE RATCHET PASSED`, `ALL 2359 ENTITY CHECKS PASSED`, `ALL 84 OPTIMALITY CHECKS PASSED` (ev/fast_log.txt). These re-derive the body's local figures at this head, from CI.
+RESULT check-runs API at 294bf66f, every context concluded: 32 success, 16 skipped, 1 failure (`nightly-status`, below). `fast (3.14)`, `pr-contract`, `arch-score`, `coverage`, `typing`, `env-matrix`, `instrument-self-tests` success; `closures` success at 12:22:06Z; `mutation` success at 12:54:13Z.
+RESULT CI's body check at this head (job log): `record red-history 18 commit(s) between origin/main and this head, every failure conclusion across them: arch-score, mutation`; `PR-BODY: 0 error(s)`; `FIGURES: 11 resolved, 0 not verified, 0 refused`; `no version edit`; `CARRY-AUDIT: 6 ... 6 routed` (ev/pr_contract_log_head.txt). Both range reds are answered under `## Red checks`.
+- `mutation` is green at this head (12:54:13Z) and re-verified the nine dispositions itself; its earlier range red is answered under `## Red checks`.
+- `nightly-status` is red at this head and is not this PR's: its own log reads `NIGHTLY FAILED: slow failed last night.` and states `This check is NOT one of the required contexts on main-protect`. The diff does not move `tests/nightly_status.py` or what it reads, so `defect-root-cause.md`'s exemption covers it and I do not block on it (ev/nightly_status_log.txt).
 
-RESULT harness at head 44ea3af3 (`--no-solves`): `floor: cells 155 heating floor at or below the gate 0`; `window plan: running samples 72 engaged False observed (0.8999999999999999, None) idle 0.3 planned None`; `window probe: running samples 72 engaged True observed (2.9399999999999995, 3.0) idle 0.3 planned (2.9399999999999995, 3.0)`; `failures 0` (ev/harness_head_nosolves.txt)
-RESULT harness at baseline 4a3cbcf62 (same instrument, run with the tree as cwd): `floor: cells 155 heating floor at or below the gate 63`; `window plan: ... engaged True observed (0.8999999999999999, 2.034) idle None planned (0.8999999999999999, 2.034)`; probe `engaged True observed (2.9399999999999995, 3.0)` idle None; `failures 0` (ev/harness_base_nosolves.txt)
-RESULT harness with solves, both trees, `diff` of the per-plan sha1 lines: identical, 32 plans, `failures 0` at both (ev/harness_head_solves.txt, ev/harness_base_solves.txt)
-RESULT relaxed-start control, by each cell's own objective: `spread: cells 16 relaxed start objective lower 8 higher 0 identical plan 8`; `flat: cells 16 ... lower 0 higher 0 identical plan 16` at both trees. The body states the fixer's 0/16 and a reviewer's 2/14 for the flat day and names the solver-environment dependence; this seat reads 0/16, which is the fixer's figure, so the machine dependence is disclosed and reproduced, not contradicted.
+## Architecture
 
-Instrument trap found and corrected: `tests/harness.py` inserts `custom_components`
-and `tests` *relatively* onto `sys.path`, so running the harness from one tree's
-cwd with `PYTHONPATH` pointed at another tree silently measures the cwd's tree.
-My first baseline attempt did exactly that and reproduced the head's numbers;
-run from the base tree's own cwd it returns the body's 63/2.034. The body's
-"both trees" figures are therefore honest, and a later seat must `cd` to the
-tree it measures.
+Unchanged from round 1 and still sound on added lines: one owner per concept (the
+gate in `_gate_c`, the floor rule in `thermal_model` with the gate passed in, the
+rounding at the one write in `inputs`), no HA import added to a model module, the
+decision in `_flow_command` handed neither the coordinator nor anything reaching
+into it, the store reused rather than duplicated, units in names, missing input
+returns `None`. `arch-score` succeeds at this head; the group's `architect_note`
+is null.
 
-## Ratchet
+## Notes, non-blocking (carried from round 1, still standing)
 
-RESULT `python3 tests/mutation_table.py --scope changed --base origin/main` at head: `4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base b701723895a12ef29a9281551ab0fe82643744e2; the ledger agrees with the deterministic inventory` (ev/mutation_scope_changed.txt). The count is back to its base, as the body says.
-RESULT `python3 tests/mutation_table.py --pin-killed --base origin/main`: `PIN KILLED -- 0 new unpinned site(s) ... to drive`, `PIN KILLED: nothing to pin`, rc 0 (ev/pin_killed.txt)
-RESULT `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against b701723895a1 (a data-file read is not seen)` (ev/ci_predict.txt)
-
-Non-blocking accuracy point for round 2: the body's `## Red checks` mutation
-answer calls `mutation_table.py --scope changed --base origin/main` a
-"source-only -- no clone, no baseline, no solve" detector and says "`prepr.sh`
-step 6d already runs it". Both are wrong as written: once the ratchet passes,
-that command proceeds into the sampled mutation table (my run did, and I stopped
-it), and prepr step 6d runs `tools/pr/ci_predict.py`, not this command. The
-refusal arm *is* source-only and names the added sites in seconds, so the
-detector answers the trigger it exists for; only its description is overstated.
-
-## Red checks
-
-RESULT CI at 44ea3af3, the head's own body check (job log, ev/pr_contract_log_head.txt): `record red-history 17 commit(s) between origin/main and this head, every failure conclusion across them: arch-score, mutation`; `PR-BODY: 0 error(s)`; `FIGURES: 11 resolved, 0 not verified, 0 refused`; `no version edit`; `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`; pr-contract success.
-Both range reds are named and answered in `## Red checks` (`arch-score` with the coordinator-footprint repair and its cheaper detector; `mutation` with the nine dispositions). No other gate check concluded red at the head; the eleven `cancelled` contexts (`ci-ratchet`, `closures`, `fast (3.14)`, `lane-proofs`, `composed-proof`, `mutation` and the five autofix/pin jobs) are supersession, not failure. At 294bf66f the only red is `nightly-status`, which this diff does not reach.
-RESULT the body's cited optimality failure re-derived from check-run 117692786859's own log: `cert one|summer_negative|shoulder obj 0.305809 re-polish +0.0051% ladder +10.5544%` and `FAIL one|summer_negative|shoulder: no unclaimed gap above the bar ... ladder 10.5544%, bar 0.1000%` (ev/optimality_checkrun_117692786859.txt). The body's "+10.55 %" is real; its "main eeb607dd6" names a descendant of the run's head b7a34f98, whose message records that the gap persists on CI's platform.
-
-## Carries
-
-RESULT `python3 -I tools/audit/carry_audit.py check --body <pr body>`: `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`, rc 0 (ev/carry_audit_body.txt; CI's own step agrees).
-The six items route to four groups. R10-CEILING-PROBE's three items are in that group's `carry` array at origin/main (landed by `f4d751e49 roster_edit append-carry R10-CEILING-PROBE`), each stating its control — the gain identification, the probe to reach the real maximum with fix B as its prerequisite, and "the ceiling probe's controls should include a gate-held draw above idle" (ev/carry_destinations_full.txt). R10-DEMAND-OVERBOOK, R10-BUFFER-STORE and R10-COP-PARTLOAD each state the carried item and its controls in their own `brief`. Non-blocking: the body still cites `handoff/audit-r10-roster` d8250cd44 as where the destinations stand, and at that SHA the CEILING-PROBE `carry` array is still empty; the items landed on main afterwards, which is the tree the PR merges into.
-
-## Claim files and version
-
-RESULT `python3 tests/env_drift.py --claims-only b70172389`: `claims hygiene: b701723895a12ef29a9281551ab0fe82643744e2 ok`, rc 0 (ev/env_drift_claims_only.txt). The diff moves no `tests/golden` or `tests/fixtures` path and writes neither claim file.
-RESULT `python3 tests/env_drift.py --all` was started and had not finished when I posted (it captures the environment matrix per fixture set and the seat was contended); I do not report it as run. No fixture the claim files cover is moved by this diff, so the claim half above is the load-bearing one.
-RESULT VERSION, the manifest version and the notes heading: no path in the PR diff moves them (`git diff --name-only b70172389...HEAD` matches none), and CI's version-edit step reads `no version edit` (ev/pr_contract_log_head.txt).
-
-## Merge
-
-RESULT `git merge-tree --write-tree origin/main(a2b25bbc5) 44ea3af3`: exit 0, tree `012b1f16`, `LEDGER-MERGE: resolved tests/closures.json` with `inert_reads.tests/harness_headers.py` merged as a set, no `MERGE-CLAIM` line, no conflict (ev/merge_tree.txt). Re-run against the head at posting, `git merge-tree --write-tree origin/main(a2b25bbc5) 294bf66f`: exit 0, the **same tree `012b1f16`** — the merge result is byte-identical to the one measured before the head moved, and the superseding merge carries both closures entries.
-
-## Architecture (fixer.md step 17, added lines)
-
-Sound as far as I can judge: the gate now has one owner (`_gate_c`) and the floor's rule stays in `thermal_model` with the gate passed in; quantisation is at the one write owner (`inputs`), not per caller; `flow_command(coord)` is plumbing and the decision (`_flow_command`) is handed neither the coordinator nor anything that reaches into it; the store reuses its `_ACCURACY` table rather than a parallel record; units ride the names; missing input returns `None`. `coordinator.py`'s class gains no line. CI's `arch-score` is success at the head and at 294bf66f. The roster group's `architect_note` is null, so none was owed.
-
-## Notes, non-blocking
-
-- **A hand-set fractional disinfection floor on a whole-degree entity can re-raise the issue the repair clears.** `setpoint_check._dhw` re-raises when `pump < floor - 0.25`, and the repair now writes the floor quantised to the entity's step. For the integer-°C floors the config selector allows (`_number(35, 55, 1)` / `_number(55, 70, 1)`) the worst case is the 0.2222 K the body names, which clears. But a floor edited into `.storage` at e.g. 48.05 °C on a °F entity is written 118 °F = 47.78 °C, 0.27 K low, which re-raises (`ev/probe_repairs_f.txt`; the probe is mine, scratch only). Rounding a floor *up* would remove the class. I do not block on it: the UI cannot produce that config, and I could not show a reachable one.
-- `dev/audit/harnesses/draw_range_evidence.py` still runs against the changed `observed()` return (`ev/draw_range_evidence_head.txt`), because every uncommanded sample is full-power evidence; no break.
-- The idle window learned at the gate can absorb compressor draw (disclosed and carried to R10-CEILING-PROBE).
+- The body's mutation answer still calls `mutation_table.py --scope changed --base
+  origin/main` a source-only detector and says `prepr.sh` step 6d runs it. The
+  refusal arm is source-only, but the pass arm proceeds into the sampled table,
+  and step 6d runs `tools/pr/ci_predict.py`. The trigger is answered either way.
+- A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 °C
+  on a °F install) is written 0.27 K low and `setpoint_check` re-raises the issue;
+  the UI's step-1 selector cannot produce it, so it is not blocking. Rounding a
+  floor up would remove the class.
 
 ## What I could not verify
 
-- The 8 `killed_by` re-derivations by `tests/features.py` (the driver timed out on this seat; one anchor re-run still in flight at posting). Round 2 owes them.
-- The fixer's hand mutants M1-M15 and the 7680-cell equivalence probe: scratch only, not in the tree.
-- The owner's export aggregates (54 samples, 41 at p_min, 0.33-0.73 kW, 25.0 written): private, not re-derivable, not reported as confirmed.
-- `env_drift.py --all` (did not finish); the claim half ran clean and no covered fixture moves.
+- The whole-driver outcomes of S1-S9 and the baseline (`tests/features.py`) were
+  stopped at posting after the shared machine made each run an hour long; the
+  named checks are re-derived above with the PR's own block, and CI's unmutated
+  driver run at this head is green.
+- The owner's export aggregates (54 samples, 41 at p_min, 0.33-0.73 kW, 25.0
+  written) remain private and not re-derivable; I do not report them as confirmed.
+- `mutation`'s conclusion at this head (in progress at posting).
 
-bus-nonce: da4664480025ee08a56aadf47e523638
+bus-nonce: 5010c2d8fbe8a265203ae66161deec71

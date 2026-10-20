@@ -1,5 +1,0 @@
-over        cfg=(1.0, 10.0) engaged 3/3 seeds; last seed observed=(1.267, 1.737) switch+setpoint: (1.267, 1.737); duty-cycling: (1.0, 1.737); frequency write: None
-null        cfg=(1.0, 10.0) engaged 0/3 seeds; last seed observed=(1.945, 9.105) switch+setpoint: None; duty-cycling: None; frequency write: None
-mild        cfg=(1.0, 6.0) engaged 0/3 seeds; last seed observed=(1.083, 1.923) switch+setpoint: None; duty-cycling: None; frequency write: None
-mild-indep  cfg=(1.0, 6.0) engaged 3/3 seeds; last seed observed=(1.112, 1.895) switch+setpoint: (1.0, 1.895); duty-cycling: (1.0, 1.895); frequency write: None
-RC=0

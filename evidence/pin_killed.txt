@@ -1,6 +1,6 @@
-  4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base b701723895a12ef29a9281551ab0fe82643744e2; the ledger agrees with the deterministic inventory
+  4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base d99b400a5986a206e3a2bc0c2943967ce27b8adc; the ledger agrees with the deterministic inventory
 MUTATION TABLE -- scope changed: 7 production file(s) whose code this diff adds or modifies
-PIN KILLED -- 0 new unpinned site(s) against b701723895a12ef29a9281551ab0fe82643744e2 to drive
+PIN KILLED -- 0 new unpinned site(s) against d99b400a5986a206e3a2bc0c2943967ce27b8adc to drive
 
 PIN KILLED: nothing to pin
 RC=0

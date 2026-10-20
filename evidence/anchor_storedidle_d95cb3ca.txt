@@ -1,7 +1,0 @@
-  4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base b701723895a12ef29a9281551ab0fe82643744e2; the ledger agrees with the deterministic inventory
-MUTATION TABLE -- scope changed: 7 production file(s) whose code this diff adds or modifies
-ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/draw_range.py:_stored_idle CMP_BOUND d95cb3ca
-  1 mutant(s) over 1 file(s); drivers in play: tests/features.py
-  null control: custom_components/heatpump_optimizer/draw_range.py:57 NULL_COMMENT, a comment-only edit every driver in play must let survive
-  tests/features.py: baseline and null control deferred until a mutant run of it is red
-  null control custom_components/heatpump_optimizer/draw_range.py:57 NULL_COMMENT survived every driver
