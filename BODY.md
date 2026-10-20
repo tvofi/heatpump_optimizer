@@ -62,7 +62,7 @@ none
 
 ## Forward-carry
 
-none — the ops are documented where seats look for them: `tools/audit/seat/INSTRUMENTS.md`'s `roster_edit.py` entry and the module docstring.
+none
 
 ## Friction
 
