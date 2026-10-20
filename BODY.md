@@ -1,6 +1,6 @@
 plan: the schedule model behind the round-10 page, mechanically re-derivable
 
-The page's schedule lived inside the out-of-tree renderer, which both computed and drew it. This adds `tools/plan/replan.py` as the one schedule model: it reads the roster at its ref, the owner's caps and a measured durations file, then writes `plan.json`; the renderer, edited in place out of tree, now draws only what `plan.json` emits and refuses a roster that has moved past it. At roster branch tip `e3010676747126df614e595ae43477db7d32e7b9` (roster blob `277cdd3591938af542a3f72510389f9bc3378429`) and a replan instant of `2026-10-20T17:00Z`, the plan closes `2026-10-30T03:17Z`: 226.28 h, which equals the 226.28 h dependency chain, so capacity adds no queueing. It merges in 44 batches and pays 51 gate runs (44 batches + 7 stamps) for 5778.4 gate minutes.
+The page's schedule lived inside the out-of-tree renderer, which both computed and drew it. This adds `tools/plan/replan.py` as the one schedule model: it reads the roster at its ref, the owner's caps and a measured durations file, then writes `plan.json`; the renderer, edited in place out of tree, now draws only what `plan.json` emits and refuses a roster that has moved past it. At roster branch tip `e3010676747126df614e595ae43477db7d32e7b9` (roster blob `277cdd3591938af542a3f72510389f9bc3378429`) and a replan instant of `2026-10-20T17:00Z`, the plan closes `2026-10-30T03:17Z`: 226.28 h, which equals the 226.28 h dependency chain, so capacity adds no queueing. It merges in 44 batches and pays 51 gate runs (44 batches + 7 stamps) for 5737.5 gate minutes.
 
 `tools/plan/` is on `tests/closure.py`'s INERT list and in `tests/entities.py`'s `_INERT_TOOL_HOMES`: no gate script opens the model, and the must-classify set was checked with `closure.is_inert` (no file outside the inert homes is inert, and `tools/plan/` is in no recorded closure).
 
@@ -8,7 +8,7 @@ Three groups touching `coordinator.py` are in progress at the replan instant (`F
 
 ## Head
 
-f031946e7fe5a3a0430b29d251119c1c46735644
+2275ba66cf98aafa169797235acfd930464e0b3a
 
 ## Mutation proof
 
@@ -22,10 +22,10 @@ The unmodified renderer's model starts all eleven in-progress groups at the repl
 
 All schedule figures are taken at roster commit `e3010676747126df614e595ae43477db7d32e7b9` (blob `277cdd359193`), start `2026-10-20T17:00Z`; the command below pins that commit, so a later branch tip cannot move the numbers.
 
-- closure `2026-10-30T03:17Z`, wall 226.28 h, 44 batches, 7 stamps, 5778.4 CI minutes: `python3 -I tools/plan/replan.py --roster-ref e3010676747126df614e595ae43477db7d32e7b9 --start 2026-10-20T17:00:00Z --out /tmp/plan.json`.
+- closure `2026-10-30T03:17Z`, wall 226.28 h, 44 batches, 7 stamps, 5737.5 CI minutes: `python3 -I tools/plan/replan.py --roster-ref e3010676747126df614e595ae43477db7d32e7b9 --start 2026-10-20T17:00:00Z --out /tmp/plan.json`.
 - dependency chain 226.28 h over 12 links: `python3 -I tools/plan/replan.py --check --plan /tmp/plan.json` plus the per-group `duration_minutes` in `/tmp/plan.json`.
-- CI medians and samples: `python3 -I tools/plan/replan.py --measure-ci --out-durations /tmp/durations.json`; fast (3.14) 55.2 min (n=28, IQR 41.5-56.7), closures 29.4 (n=29, IQR 21.8-30.0), Analyze (python) 26.9 (n=30, IQR 21.0-27.9, 2 cancelled, rate 0.067), gate 113.3 min. The cancelled rate's denominator is the Analyze rows, not the commits whose three legs had all completed: the previous recording divided 1 cancelled by 26 complete triples where the Analyze rows held 2 cancelled of 29 (the missing one is `575dad30`, whose fast leg finished after that read). `tools/plan/durations.json` carries the shas and job ids. The medians are an instant's: they were measured at `2026-10-20T16:52Z`, and a later read includes check runs that completed after that instant (the committed file's `measured_at` names it).
-- batch-window trade at the same blob: `--batch-window-minutes 20` prints 228.28 h / 44 batches / 5778.4; `--batch-window-minutes 120` prints 238.28 h / 44.
+- CI medians and samples: `python3 -I tools/plan/replan.py --measure-ci --out-durations /tmp/durations.json`; fast (3.14) 55.2 min (n=29, IQR 41.2-56.7), closures 28.4 (n=30, IQR 21.7-30.1), Analyze (python) 27.1 (n=30, IQR 21.5-27.9, 2 cancelled, rate 0.067), gate 112.5 min. The cancelled rate's denominator is the Analyze rows, not the commits whose three legs had all completed: the previous recording divided 1 cancelled by 26 complete triples where the Analyze rows held 2 cancelled of 29 (the missing one is `575dad30`, whose fast leg finished after that read). `tools/plan/durations.json` carries the shas and job ids. The medians are an instant's: they were measured at `2026-10-20T17:53Z`, and a later read includes check runs that completed after that instant (the committed file's `measured_at` names it).
+- batch-window trade at the same blob: `--batch-window-minutes 20` prints 228.28 h / 44 batches / 5737.5; `--batch-window-minutes 120` prints 238.28 h / 44.
 
 ## Red checks
 
@@ -34,9 +34,9 @@ none
 ## Forward-carry
 
 Carried in the tree at `dev/programme/carries/carry-201.json` (entries 13-16, issue #201); `node tools/policy/brief_lint.mjs dev/programme/carries/carry-201.json` reports 0 errors. The four findings, each routed:
-- WAVES.md's wave table and critical path are stale (7 of its wave-1 groups are done; 6 wave-2 groups are in progress) and lose to the roster's `after` edges. Carry: #201
-- WAVES.json names 39 of the roster's groups and leaves 18 open groups in no wave; it is retired, not regenerated. Carry: #201
-- DRAIN.md's 16 open pull requests: one was open at the plan's measurement instant (2026-10-20T16:52Z, #2491; #2490 and #2488 merged at 16:21Z). Its schedule loses, its merge-mechanism rules stand. Carry: #201
+- The retired wave-table document's waves and critical path are stale (7 of its wave-1 groups are done; 6 wave-2 groups are in progress) and lose to the roster's `after` edges. Carry: #201
+- The retired hand-cut wave JSON names 39 of the roster's groups and leaves 18 open groups in no wave; it is retired, not regenerated. Carry: #201
+- The drain document's 16 open pull requests: one was open at the plan's measurement instant (2026-10-20T17:53Z, #2510; #2491 had merged at 17:19Z). Its schedule loses, its merge-mechanism rules stand. Carry: #201
 - The roster's `wave` field disagrees with the depth derived from `after` for 40 of the 45 open groups that store one (the other five store none); it needs a re-record on the roster branch. Carry: #201
 
 ## Friction
