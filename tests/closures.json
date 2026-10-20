@@ -1540,12 +1540,15 @@
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/seat/handover_prompt.py",
+   "tools/audit/seat/merge_train.py",
    "tools/audit/seat/plan_table.py",
+   "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/ref_privacy.py",
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/state_docs.py",
+   "tools/audit/seat/tmp_paths.py",
    "tools/coverage/composed_proof.sh",
    "tools/coverage/coverage_tree.sh",
    "tools/merge/ledger_merge.py",
@@ -3416,8 +3419,11 @@
   "tests/entities.py": [
    "LICENSE",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/tmp_paths.py",
    "tools/coverage/composed_proof.sh",
    "tools/policy/figure_lint.mjs"
   ],
@@ -4275,7 +4281,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 324.8
+   "seconds": 2033.6
   },
   "tests/env_drift.py": {
    "rc": 0,
