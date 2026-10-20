@@ -171,8 +171,10 @@ def window_entries(payload, run_id, limit: int = WINDOW_LIMIT) -> list[dict]:
         rows.append({"id": art.get("id"), "run": run, "name": name,
                      "at": art.get("created_at")})
     # Newest first, then one artifact per (run, name): the newest, which is
-    # the copy the step always downloaded.
-    rows.sort(key=lambda r: (r["at"] is None, r["at"] or ""), reverse=True)
+    # the copy the step always downloaded. An artifact with no created_at
+    # sorts LAST, as jq's `sort_by(.at) | reverse` put it (null sorts first
+    # ascending, so it lands last once reversed).
+    rows.sort(key=lambda r: r["at"] or "", reverse=True)
     seen, unique = set(), []
     for row in rows:
         key = (row["run"], row["name"])
@@ -515,6 +517,7 @@ def self_test() -> int:
         _art(6, "ci-metrics-fast", 77, "2026-10-20T15:00:00Z"),
         _art(7, "ci-metrics-closures", 7, "2026-10-20T09:00:00Z",
              fallback_only=True),
+        _art(8, "ci-metrics-fast", 8, None),
     ]})
     got, msg = safe(lambda: window_entries(good, "77"))
     ids = [e["id"] for e in got or []]
@@ -522,6 +525,8 @@ def self_test() -> int:
        got is not None and ids == [7, 3, 1], msg or f"got {ids}, want [7, 3, 1]")
     ck("a duplicate (run, name) keeps the newest copy",
        2 not in ids and 3 in ids, f"got {ids}")
+    ck("an artifact with no created_at does not outrank a dated copy",
+       8 not in ids and 3 in ids, f"got {ids}")
     ck("an expired artifact, another name and THIS run are all out",
        {4, 5, 6}.isdisjoint(ids), f"got {ids}")
     ck("the .run_id fallback attributes a null .workflow_run",
