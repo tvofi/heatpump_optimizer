@@ -63729,6 +63729,101 @@ R.check(
     f"{_bst_tank20}",
 )
 
+# The window's own constants and guards: each check pins one mutation site of
+# the diff (the mutation table's added sites), through the production symbol.
+_bst_idle_day = _dr.DrawRange()
+for _v in [0.20] * 60 + [0.30] * 36:
+    _bst_idle_day.observe_idle(_v)
+R.check(
+    "the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn "
+    "the newest 48 (0.30), not the whole 96 (0.20); null: 20 readings learn "
+    "their own value",
+    len(_bst_idle_day.idle) == 48 and _bst_idle_day.idle_kw() == 0.30
+    and _dr.DrawRange.from_dict(
+        {"config": [1.5, 5.5], "idle": [0.20] * 20}).idle_kw() == 0.20,
+    f"{len(_bst_idle_day.idle)} {_bst_idle_day.idle_kw()}",
+)
+_bst_sub = _bst_window(
+    [(3.0, 5.5, _BST_CEIL)] * 10 + [(1.0, 5.5, (54.1, 55.0))] * 90,
+    idle=[0.30] * 12,
+)
+R.check(
+    "a set-point 0.9 K under the ceiling is not full-power evidence: ten "
+    "ceiling-commanded draws learn no maximum beside ninety sub-ceiling ones; "
+    "null: a set-point exactly 0.5 K under the ceiling is full",
+    _bst_sub.observed() is not None and _bst_sub.observed()[1] is None
+    and _bst_window([(3.0, 5.5, (54.5, 55.0))] * 48,
+                    idle=[0.30] * 12).observed()[1] == 3.0,
+    f"{_bst_sub.observed()}",
+)
+_bst_edge = _bst_window([(3.0, 5.5, (54.5, 55.0))] * 48, idle=[0.30] * 12)
+R.check(
+    "a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full "
+    "(the test is inclusive): 48 of them learn their 90th percentile as the "
+    "maximum",
+    _bst_edge.observed() is not None and _bst_edge.observed()[1] == 3.0,
+    f"{_bst_edge.observed()}",
+)
+_bst_at_idle = _bst_window([(0.5, 1.5, _BST_CEIL)] * 48, idle=[0.4] * 12)
+R.check(
+    "a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a "
+    "run (the test is strict): 48 of them are no evidence at all",
+    _bst_at_idle.idle_kw() == 0.4 and _bst_at_idle.observed() is None,
+    f"{_bst_at_idle.idle_kw()} {_bst_at_idle.observed()}",
+)
+_bst_zero_idle = _dr.DrawRange.from_dict(
+    {"config": [1.5, 5.5], "idle": [0.0] * 6 + [0.3] * 6})
+R.check(
+    "a stored idle reading of 0.0 is a reading: six of twelve, the median is "
+    "0.15; null: a negative, a NaN and a non-number are dropped",
+    _bst_zero_idle.idle_kw() == 0.15
+    and _dr._stored_idle([-0.1, float("nan"), "0.2", 0.3]) == [0.3],
+    f"{_bst_zero_idle.idle_kw()} {_dr._stored_idle([0.0, -0.1, float('nan')])}",
+)
+R.check(
+    "a set-point exactly one millionth of a step above a multiple is not "
+    "snapped to it (the snap is strict), so a floor of it rounds up: one "
+    "millionth of a whole degree writes 1; null: zero snaps to the multiple",
+    _bst_in._on_step(1e-6, 1.0, "up") == 1.0
+    and _bst_in._on_step(0.0, 1.0, "up") == 0.0,
+    f"{_bst_in._on_step(1e-6, 1.0, 'up')} {_bst_in._on_step(0.0, 1.0, 'up')}",
+)
+R.check(
+    "a set-point 0.4 K above the gate is not a gate-held interval, so its draw "
+    "is no idle reading; null: one exactly GATE_TOLERANCE_K above the gate is",
+    _bst_fold(_BstNS(written_c=25.4, gate_c=25.0, ceiling_c=55.0)) == []
+    and _bst_fold(_BstNS(written_c=25.25, gate_c=25.0, ceiling_c=55.0)) == [0.31],
+    f"{_bst_fold(_BstNS(written_c=25.4, gate_c=25.0, ceiling_c=55.0))}",
+)
+
+
+def _bst_flow_of(written, states=None):
+    """What ``_flow_command`` publishes for a held ``written`` set-point."""
+    states = ({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+              if states is None else states)
+    coord = _DrCoord(FakeHass(states), _dr_entry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY,
+        "pump_duty_mode": "control", "space_setpoint_unit": "flow"}))
+    coord._current_action = {"power": 6.0, "dhw_power": 0.0}
+    coord._measured_power = 2.3
+    _bst_pa.state_for(coord).written["space_setpoint"] = written
+    return _bst_pa._flow_command(
+        coord.arbiter_inputs(), _bst_pa.state_for(coord))
+
+
+_bst_held = _bst_flow_of((40.0, _BST_T0))
+R.check(
+    "the guard: a written set-point that is not a number, or an entity range "
+    "that does not read, commands nothing -- no FlowCommand with a missing end "
+    "-- and a readable one publishes the held command",
+    _bst_held is not None and _bst_held.written_c == 40.0
+    and _bst_flow_of(("40", _BST_T0)) is None
+    and _bst_flow_of((40.0, _BST_T0), states={}) is None,
+    f"{_bst_held} {_bst_flow_of(('40', _BST_T0))} "
+    f"{_bst_flow_of((40.0, _BST_T0), states={})}",
+)
+
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
 # The probe is #1955's own: power and frequency come from ``probe_install``;
 # the energy and flow entities are the classes the probe does not carry. The
