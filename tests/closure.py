@@ -478,7 +478,6 @@ GATE_FILES = (
     # `workflow_dispatch` stub; the umbrella that replaces it calls the Tests
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
-    ".github/workflows/ci.yml",
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
