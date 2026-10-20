@@ -4081,7 +4081,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "fix/r10-stamp",
-    "commit": null,
+    "commit": "478cc27efd03d59d97899cff0d67f2e912ce7918",
     "last_step": null,
     "next_step": "after the wave-1 drain, run the stamp (web-stamp)",
     "note": null
