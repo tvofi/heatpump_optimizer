@@ -22,6 +22,14 @@ Alternatives, and why each lost:
 
 ## Head
 
+`294bf66ffb463faf842f6a0f43c119b27005b558` merges the authored code head `132a80b651471d2f77c63dd7987dee31e6bd2dc0` and then merges origin/main `d99b400a5` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`132a80b651471d2f77c63dd7987dee31e6bd2dc0` merges main `a25de7a686767cedd5071ba7ccf3f323c3050804` into the previous head: an automatic merge by the orchestrator, no resolution. The review delta under it is the mutation dispositions -- `tests/features.py`'s new checks and the ledger rows -- described in the unpinned-sites section below; no production line moves.
+
+`f2f29733475c3694b6c84e71808530cf16b30d3b` merges main `a65438c` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`6400c3a176cc95e304a13e30f1a8ce5e857f67f0` merges main `52011c6` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
 `afabd5b6a6e2da5bb42eaad5f6697837491c5556` merges the authored code head `f7e98dbe17c1b6370c5783008aac9f1a502024e4` and then merges origin/main `d1db05dfc` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `f7e98dbe17c1b6370c5783008aac9f1a502024e4`, branched from origin/main `4a3cbcf62e6f5e7b6594d376d714388caf2915cf` (v7.0.1 plus #2460). Every figure below was taken at the head unless a line says merge base, which is a `git archive` of `4a3cbcf62` in seat scratch. `date -u`: 2026-10-20T00:09Z.
@@ -48,7 +56,25 @@ Hand mutants, `$SCRATCH/mut/mutants.py` (sha1 4dc199600a1fa65347571d51683d15414a
 | M14 | commands are not stored | "the commands and the idle readings survive the store ..." |
 | M15 | `_flow_target` drops `lo=min(floor_c, heat_c)`, so the arbiter's floor is no longer a minimum (the reviewer's R16 survivor) | "a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 ..." |
 
-The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/ci-autofix.md`). The 20 STALE PINs `ci_predict.py` names (the edited lines in `draw_range.py`, `inputs.py`, `pump_arbiter.py`, `thermal_model.py` and `_valve_write_problem`) are deleted by hand in this diff, so the bot pins the edited lines afresh.
+The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/ci-autofix.md`): the lane pins what a driver kills, and it pins no survivor. The 20 STALE PINs `ci_predict.py` named (the edited lines in `draw_range.py`, `inputs.py`, `pump_arbiter.py`, `thermal_model.py` and `_valve_write_problem`) were deleted by hand in this diff, and the lane re-pinned the edited lines it could kill. Nine added sites survived every driver in play and were left for a human; each is dispositioned in the unpinned-sites section below.
+
+### The added sites' own mutants
+
+The nine sites the ratchet counted as added are each mutated by the mutation table's own operator text, in a `git archive` copy of the head (`$SCRATCH/mut/mutants.py`, sha1 dc58abffb3bbdf4776a83c678157b38158f7246c), and run through the same block harness over the draw_range 7a block and this group's block. M0 (no mutation) is `ALL 77 FEATURES BLOCK PASSED`; every mutant below exits 1.
+
+| Mutant | Site, and the operator's own text | Goes red |
+|---|---|---|
+| S1 | `draw_range.py:77` `CONST`: `IDLE_WINDOW = 96` | "the idle window is one day of readings ..." |
+| S2 | `draw_range.py:85` `CONST`: `CEILING_TOLERANCE_K = 1.0` | "a set-point 0.9 K under the ceiling is not full-power evidence ..." |
+| S3 | `draw_range.py:87` `CONST`: `GATE_TOLERANCE_K = 0.5` | "a set-point 0.4 K above the gate is not a gate-held interval ..." |
+| S4 | `draw_range.py:138` `CMP_BOUND`: `>=` -> `>` | "a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full ..." |
+| S5 | `draw_range.py:140` `CMP_BOUND`: `>` -> `>=` | "a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run ..." |
+| S6 | `draw_range.py:292` `CMP_BOUND`: `>=` -> `>` | "a stored idle reading of 0.0 is a reading ..." |
+| S7 | `inputs.py:457` `CMP_BOUND`: `<` -> `<=` | "a set-point exactly one millionth of a step above a multiple is not snapped to it ..." |
+| S8 | `pump_arbiter.py:587` `GUARD_OFF`: the test -> `False` | "the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing ..." |
+| S9 | `pump_arbiter.py:622` `CLAMP_DROP`: `min(floor_c, heat_c)` -> `floor_c` | nothing: measured equivalent, in the unpinned-sites section |
+
+The instrument's own kill rule is the record: `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py` read baseline `tests/features.py` `rc=0 failed=0` (1020 s), let the comment-only null control survive, and recorded eight `killed_by` rows: seven from `rc=0 failed=0` to `rc=1 failed=2`, and the `>=` bound at `draw_range.py:138` to `rc=1 failed=3`.
 
 ## Null control
 
@@ -75,10 +101,10 @@ The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/
   - the written set-point is 25.0, equal to `FLOW_GATE_C`;
   - the samples carry no timestamp or set-point, so pairing a draw with its write was not possible from the export.
 - Local green at the head:
-  - `tests/features.py`: `ALL 4248 FEATURE CHECKS PASSED`;
+  - `tests/features.py`: `ALL 4258 FEATURE CHECKS PASSED`;
   - `tests/structure.py`: `STRUCTURE RATCHET PASSED`;
-  - the light scripts `scope.run` names: each exits 0, `tests/entities.py` reads `ALL 2351 ENTITY CHECKS PASSED` and the typing ruler `ALL 9 typing-ruler checks PASSED` / `ALL 12 typing-ruler source checks PASSED`;
-  - `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against 4a3cbcf62e6f`.
+  - the light scripts `scope.run` names: each exits 0, `tests/entities.py` reads `ALL 2358 ENTITY CHECKS PASSED` and the typing ruler `ALL 9 typing-ruler checks PASSED` / `ALL 12 typing-ruler source checks PASSED`;
+  - `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against a25de7a68676 (a data-file read is not seen)`.
   - `tests/backtest.py`, `tests/golden.py`, `tests/stress.py`, `tests/optimality.py`, `tests/arch_score_head.py` and the two `card*.mjs` are CI's.
 
 ## Measured limitation (not fixed here)
@@ -93,8 +119,8 @@ n/a: no gate metric rises. `python3 tools/audit/archscore/vector.py` at the merg
 ## Red checks
 
 - `arch-score`: red at the earlier pushed head `a3aee5945`, "coord_footprint 2498->2505". The new `pump_arbiter.flow_command(coord)` was handed the coordinator and held 7 logic statements. Repaired at this head: `flow_command(coord)` is plumbing only (an alias of `coord.arbiter_inputs()`, an alias of `state_for(coord)`, and a delegating return), and the decision moved to `_flow_command(inp, state)`, which is handed neither. `python3 tools/audit/archscore/vector.py` at the merge base and at this head reads `coord_footprint` 2498 at both, and no key of the vector differs. Cheaper detector: none is missing, because `vector.py` runs locally and I had not run it before the first push. Standing cost: one local run per head that touches a function the coordinator is handed.
-- `pr-contract`: red at the PR head `345cdf586`. `carry_audit.py` read 3 unrouted items: the two under `## Measured limitation` and a `## Forward-carry` that said "none" while naming owner decisions. Each item now ends in `Carry: <group>`. Measured on this body: against `origin/handoff/audit-r10-roster` (`d8250cd44`) it reads `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`. Against `origin/main` it reads `CARRY-AUDIT: 6 finding item(s): 0 routed, 0 unrouted, 6 bad destination(s)`, because none of the four groups is on main's roster yet. So `pr-contract` stays red until the roster PR merges. Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body` runs locally in seconds. prepr did not run it on this body, so the standing cost is one local run per body.
-- `mutation`: red at `a3aee5945` and predicted red at this head, because the added sites under `## Unpinned sites` have no ledger pin until `mutation-autofix` pins them on CI's run after the push. Cheaper detector: none is missing, because `tools/pr/ci_predict.py` already names every one locally before the push, at the cost of one local run. The hand mutants M1-M15 above kill each function's behaviour in this group's block. The red clears when the autofix pins land (`dev/governance/rules/ci-autofix.md`).
+- `pr-contract`: red at the PR head `345cdf586`. `carry_audit.py` read 3 unrouted items: the two under `## Measured limitation` and a `## Forward-carry` that said "none" while naming owner decisions. Each item now ends in `Carry: <group>`. Measured on this body: against `origin/handoff/audit-r10-roster` (`d8250cd44`) it reads `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`. Against `origin/main` it read `CARRY-AUDIT: 6 finding item(s): 0 routed, 0 unrouted, 6 bad destination(s)` while none of the four groups was on main's roster. The roster PR #2475 has since merged: at this head the same command against `origin/main` reads `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`, and `pr-contract` is success at `f2f29733` (check run, 07:08Z). Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body` runs locally in seconds. prepr did not run it on this body, so the standing cost is one local run per body.
+- `mutation`: red at the head `f2f29733`: `MUTATION TABLE REFUSED -- 4156 unpinned site(s) against 4147 at the ratchet base 0c298f6b542e6efa4c93941700b3a23b859f3f9a, 9 of them added by this diff.` The answer written here at the time -- "the red clears when the autofix pins land" -- was wrong, and the lane's own runs falsify it: `mutation-pins (2)` succeeded at 06:43Z, `mutation-pins (1)` at 07:07Z and `mutation-autofix` at 07:07Z, and the head did not move: the nine sites survived every driver in play, and the lane never writes a survivor. Each of the nine now carries a disposition, and eight a check that reddens under the site's own mutant (the added-sites table under `## Mutation proof`). At this head `python3 tests/mutation_table.py --scope changed --base origin/main` reads `4147 unpinned site(s) of 6264 candidate sites, 4147 at the ratchet base a25de7a686767cedd5071ba7ccf3f323c3050804; the ledger agrees with the deterministic inventory`, and `--pin-killed` reads `0 new unpinned site(s)` and `nothing to pin`. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main` is source-only -- no clone, no baseline, no solve -- and names every added unpinned site in seconds; `tools/pr/prepr.sh` step 6d already runs it. Standing cost: nothing added; one local source-only run per head when run by hand.
 
 ## Forward-carry
 
@@ -107,63 +133,23 @@ The destinations are groups in `dev/programme/rosters/wave-r10-groups.json` as i
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py --base origin/main` lists 56 added lines, which are 59 mutation sites: three `CMP_BOUND*2` lines count twice. CI's `mutation` job at the earlier head `a3aee5945` counted 58 over 55 lines. The extra line here is the `RETURN_DEL` on `flow_command`'s plumbing return, added by the arch-score repair below. `mutation-autofix` pins each one on CI's run. The hand mutants above show that this group's block kills each function's behaviour; M6 covers the plumbing return as well, and M15 is the `pump_arbiter.py` `CLAMP_DROP` on `lo=min(floor_c, heat_c)`, which the reviewer found surviving (R16) and the fractional-inlet check now kills:
-- `custom_components/heatpump_optimizer/coordinator.py:669 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:77 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:79 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:82 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:85 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:87 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:123 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:123 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:138 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:140 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:145 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:154 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:154 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:159 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:160 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:170 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:170 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:185 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:186 CMP_BOUND*2`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:188 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:188 CMP_BOUND*2`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:188 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:201 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:202 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:210 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:273 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:273 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:292 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:302 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:302 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:317 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:317 CMP_BOUND*2`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:385 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/draw_range.py:385 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:432 CONST`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:446 BOOLOP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:446 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:446 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:457 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:458 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:490 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:491 CLAMP_DROP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:492 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:493 CLAMP_DROP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:495 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/inputs.py:532 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:539 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:560 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:587 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:589 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:622 CLAMP_DROP`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:711 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/pump_arbiter.py:718 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1469 GUARD_OFF`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1472 CMP_BOUND`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1472 RETURN_DEL`: pinned by `mutation-autofix`
+The ratchet refuses a diff that adds an inventory site without a disposition, keyed by content anchor (`FILE:SCOPE KIND DIGEST`). At the head `f2f29733` it read `MUTATION TABLE REFUSED -- 4156 unpinned site(s) against 4147 at the ratchet base 0c298f6b542e6efa4c93941700b3a23b859f3f9a, 9 of them added by this diff.` Those nine are the survivors the autofix lane left, since it pins only what a driver kills; the diff's other added sites already carry the lane's `killed_by` rows in `tests/mutation_ledger/`. Each of the nine now has a disposition, and the count is back to its base:
+
+| site (content anchor) | disposition |
+|---|---|
+| `draw_range.py:<module> CONST 3b4c559c` -- `IDLE_WINDOW = 48` | `killed_by tests/features.py` -- "the idle window is one day of readings ..." |
+| `draw_range.py:<module> CONST 9b5abfbf` -- `CEILING_TOLERANCE_K = 0.5` | `killed_by tests/features.py` -- "a set-point 0.9 K under the ceiling is not full-power evidence ..." |
+| `draw_range.py:<module> CONST 56bfbaa7` -- `GATE_TOLERANCE_K = 0.25` | `killed_by tests/features.py` -- "a set-point 0.4 K above the gate is not a gate-held interval ..." |
+| `draw_range.py:DrawRange._evidence CMP_BOUND 3a7f8343` -- `cmd[0] >= cmd[1] - CEILING_TOLERANCE_K` | `killed_by tests/features.py` -- "a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full ..." |
+| `draw_range.py:DrawRange._evidence CMP_BOUND 3e86f7a9` -- `if d > above` | `killed_by tests/features.py` -- "a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run ..." |
+| `draw_range.py:_stored_idle CMP_BOUND d95cb3ca` -- `v >= 0.0` | `killed_by tests/features.py` -- "a stored idle reading of 0.0 is a reading ..." |
+| `inputs.py:_on_step CMP_BOUND 94ce3139` -- `abs(ratio - near) < 1e-6` | `killed_by tests/features.py` -- "a set-point exactly one millionth of a step above a multiple is not snapped to it ..." |
+| `pump_arbiter.py:_flow_command GUARD_OFF ec595179` -- the `gate is None or ceiling is None or not isinstance(...)` guard | `killed_by tests/features.py` -- "the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing ..." |
+| `pump_arbiter.py:_flow_target CLAMP_DROP 38a077e7` -- `lo=min(floor_c, heat_c),` | `survivor_triage equivalent`, measured below |
+
+Each `killed_by` row was recorded by `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py` at this head: baseline `tests/features.py` `rc=0 failed=0`, the comment-only null control survived, and every mutant reddened it (seven `rc=1 failed=2`, the `draw_range.py:138` bound `rc=1 failed=3`). The drive is narrowed to `tests/features.py` because `tests/optimality.py`'s baseline is red on this arm64 seat -- its `one|summer_negative|shoulder` certificate claim reads a 0.0000% gap here and still has one on CI's platform (main `eeb607dd6`: "CI's fast (3.14) lane measures one|summer_negative|shoulder at ladder +10.55 % (check-run 117692786859) where the arm64 seat measured 0.0000 %") -- so a drive over every driver in play refuses INCONCLUSIVE before any verdict. The checks that kill are in `tests/features.py`'s R10-SETPOINT-BOOST block; each site's mutant and the check it reddens are the second table under `## Mutation proof`.
+
+**The ninth is equivalent, measured.** `CLAMP_DROP` prints `lo=(floor_c)` for `lo=min(floor_c, heat_c)`. The argument reaches nothing but `_bounded`'s `lo`, which `quantise_setpoint_c` applies as `max(out, _on_step(lo, "up"))` and then bounds by the same call's `hi=heat_c`. With `floor_c <= heat_c` both texts pass the same number. With `floor_c > heat_c` the original passes `heat_c` and the mutant `floor_c`, whose `max(out, ceil-step(floor_c))` is at least `floor_c > heat_c`, so the following `min(..., floor-step(heat_c))` returns `floor-step(heat_c)` -- the value the original's `max(out, ceil-step(heat_c))` also returns, because `ceil-step(heat_c) >= floor-step(heat_c)`. Equal on both branches, and the unit conversion is monotone, so the Fahrenheit path is equal too. Measured: `_flow_target` over 7680 cells (entity ranges with and without a min/max, steps 1.0/0.5/0.1, degC and degF; configured heating ceiling absent and 30-60 degC; inlets 5-65 degC and an unmeasured one; levels at p_min/mid/max; the heating and idle duties) differs on 0 cells between the head and the mutant, while the probe's null control -- the same line's other mutant, the `lo=None` deletion the review measured at R16 -- differs on 21 (a 25.3 degC tank at the floor writes 31.0 at the head, 30.0 under `lo=None`). Probe: `$SCRATCH/mut/eqprobe.py` (sha1 c035d11b3a900642cc478a1a3ef1ab28c4016cfb) with `$SCRATCH/mut/grid.py` (sha1 c10409a553f148215f700bc542d345a9f40a0c6c). The in-tree re-verification is `python3 tests/mutation_table.py --anchor 'custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target CLAMP_DROP 38a077e7'`, which drives the site with the drivers in play.
 
 ## Approval
 
@@ -172,3 +158,4 @@ Merged under the mandate on #201, comment 6175172275, quoted verbatim: "MANDATE:
 ## Friction
 
 none
+

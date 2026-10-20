@@ -1,0 +1,39 @@
+floor: cells 155 heating floor at or below the gate 63 (first [(10, None), (10, 20), (10, 25)])
+window plan: running samples 72 engaged True observed (0.8999999999999999, 2.034) idle None planned (0.8999999999999999, 2.034)
+window probe: running samples 72 engaged True observed (2.9399999999999995, 3.0) idle None planned (2.9399999999999995, 3.0)
+  spread (0.6, 750.0, False, True) plan 649d52626d83 relaxed-delta -0.913 near-floor-dear 0.000 cheap-quarter 1.000 savings 8.95
+  spread (0.6, 750.0, False, False) plan f18bac1bd7c8 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 1.000 savings 8.93
+  spread (0.6, 750.0, True, True) plan 0942ca8a4be4 relaxed-delta -0.340 near-floor-dear 0.000 cheap-quarter 1.000 savings 9.72
+  spread (0.6, 750.0, True, False) plan c8910517bf71 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 1.000 savings 11.32
+  spread (0.6, 0.0, False, True) plan 649d52626d83 relaxed-delta -0.913 near-floor-dear 0.000 cheap-quarter 1.000 savings 8.95
+  spread (0.6, 0.0, False, False) plan f18bac1bd7c8 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 1.000 savings 8.93
+  spread (0.6, 0.0, True, True) plan 0942ca8a4be4 relaxed-delta -0.340 near-floor-dear 0.000 cheap-quarter 1.000 savings 9.72
+  spread (0.6, 0.0, True, False) plan c8910517bf71 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 1.000 savings 11.32
+  spread (1.7, 750.0, False, True) plan c4ec269ac492 relaxed-delta -0.231 near-floor-dear 0.000 cheap-quarter 0.957 savings 25.74
+  spread (1.7, 750.0, False, False) plan 2af34c25734e relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.955 savings 25.75
+  spread (1.7, 750.0, True, True) plan 27c42237e842 relaxed-delta -0.595 near-floor-dear 0.000 cheap-quarter 0.948 savings 26.42
+  spread (1.7, 750.0, True, False) plan 8eafeba334ed relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.948 savings 28.02
+  spread (1.7, 0.0, False, True) plan c4ec269ac492 relaxed-delta -0.231 near-floor-dear 0.000 cheap-quarter 0.957 savings 25.74
+  spread (1.7, 0.0, False, False) plan 2af34c25734e relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.955 savings 25.75
+  spread (1.7, 0.0, True, True) plan 27c42237e842 relaxed-delta -0.595 near-floor-dear 0.000 cheap-quarter 0.948 savings 26.42
+  spread (1.7, 0.0, True, False) plan 8eafeba334ed relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.948 savings 28.02
+spread: cells 16 relaxed start objective lower 8 higher 0 identical plan 8
+  flat (0.6, 750.0, False, True) plan 7aa62509d347 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.000 savings 1.34
+  flat (0.6, 750.0, False, False) plan 8aef52589ed3 relaxed-delta +0.000 near-floor-dear 0.202 cheap-quarter 0.032 savings 0.74
+  flat (0.6, 750.0, True, True) plan 57cf0ceeac2a relaxed-delta +0.000 near-floor-dear 0.030 cheap-quarter 0.000 savings 2.01
+  flat (0.6, 750.0, True, False) plan ddf96ff7cd66 relaxed-delta +0.000 near-floor-dear 0.210 cheap-quarter 0.068 savings 2.71
+  flat (0.6, 0.0, False, True) plan 7aa62509d347 relaxed-delta +0.000 near-floor-dear 0.000 cheap-quarter 0.000 savings 1.34
+  flat (0.6, 0.0, False, False) plan 8aef52589ed3 relaxed-delta +0.000 near-floor-dear 0.202 cheap-quarter 0.032 savings 0.74
+  flat (0.6, 0.0, True, True) plan 57cf0ceeac2a relaxed-delta +0.000 near-floor-dear 0.030 cheap-quarter 0.000 savings 2.01
+  flat (0.6, 0.0, True, False) plan ddf96ff7cd66 relaxed-delta +0.000 near-floor-dear 0.210 cheap-quarter 0.068 savings 2.71
+  flat (1.7, 750.0, False, True) plan 3c9b0325eb7c relaxed-delta +0.000 near-floor-dear 1.000 cheap-quarter 0.255 savings 2.18
+  flat (1.7, 750.0, False, False) plan 382f50b52e1c relaxed-delta +0.000 near-floor-dear 0.316 cheap-quarter 0.220 savings 1.98
+  flat (1.7, 750.0, True, True) plan 3fefadd808c4 relaxed-delta +0.000 near-floor-dear 0.682 cheap-quarter 0.262 savings 3.00
+  flat (1.7, 750.0, True, False) plan 58ad980da25e relaxed-delta +0.000 near-floor-dear 0.496 cheap-quarter 0.210 savings 3.97
+  flat (1.7, 0.0, False, True) plan 3c9b0325eb7c relaxed-delta +0.000 near-floor-dear 1.000 cheap-quarter 0.255 savings 2.18
+  flat (1.7, 0.0, False, False) plan 382f50b52e1c relaxed-delta +0.000 near-floor-dear 0.316 cheap-quarter 0.220 savings 1.98
+  flat (1.7, 0.0, True, True) plan 3fefadd808c4 relaxed-delta +0.000 near-floor-dear 0.682 cheap-quarter 0.262 savings 3.00
+  flat (1.7, 0.0, True, False) plan 58ad980da25e relaxed-delta +0.000 near-floor-dear 0.496 cheap-quarter 0.210 savings 3.97
+flat: cells 16 relaxed start objective lower 0 higher 0 identical plan 16
+failures 0
+BASE_SOLVES_RC=0

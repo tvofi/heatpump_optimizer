@@ -1,0 +1,1 @@
+started 2026-10-20T11:39Z; did not finish before the verdict was posted (the seat ran the mutation drives and the features suite under load 40-80). No tests/golden or fixture path is moved by this diff; the claim half ran clean in env_drift_claims_only.txt.
