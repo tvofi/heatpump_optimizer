@@ -329,7 +329,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 6 of 25; before you: R10-RATIO-SITES, R10-VENT-DETECTOR; next: R10-RATIO-ANCHOR, R10-INPUT-STALENESS). Owning seam in this group: the heat-loss fold methods named above. Shape: a night-interval predicate at the fold; no new learner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-night-folds",
     "commit": null,
     "last_step": null,
