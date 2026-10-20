@@ -10534,9 +10534,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tick: divergence evidence is about the write path, not the meter.
         """
         ctx = getattr(self, "_ctx", self)
-        configured = ctx._config.freq_control_mode
         if (
-            configured != FREQ_MODE_CONTROL
+            ctx._config.freq_control_mode != FREQ_MODE_CONTROL
             or not ctx._config.compressor_freq_entity
         ) and self._freq_fallback:
             # The user switched back to observe — or removed the entity
@@ -10654,10 +10653,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         reported, hz_min, hz_max, source = self._freq_entity_reading()
         mode = self._freq_mode()
-        known = mode != "unconfigured"
         recommended = None
         exhausted = False
-        if known:
+        if source is not None:
             target = self._commanded_power() or 0.0
             recommended = self._freq_map.recommend(target, hz_min, hz_max)
             # "Running flat out on faith" must be visible: the flat-out
@@ -10673,8 +10671,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "recommended_hz": recommended,
             "evidence_exhausted": exhausted,
             "commanded_hz": self._freq_watchdog.commanded,
-            "range_hz": [round(hz_min, 1), round(hz_max, 1)] if known else None,
-            "map": self._freq_map.summary(hz_min, hz_max) if known else {},
+            "range_hz": (
+                [round(hz_min, 1), round(hz_max, 1)] if source is not None else None
+            ),
+            "map": self._freq_map.summary(hz_min, hz_max) if source is not None else {},
         }
         if source is not None:
             # Only a configured view gains the key, so the unconfigured

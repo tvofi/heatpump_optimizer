@@ -4153,6 +4153,12 @@ _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
 )
+_P2_PLANTS["defrost_standoff"] = (
+    "\n\ndef _p2_plant(signals):\n"
+    "    if signals.defrosting:\n"
+    "        return 1\n"
+    "    return 0\n"
+)
 _p2_planted = {
     fact: _p2_fails(_p2_scan(
         {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
