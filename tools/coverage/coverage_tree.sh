@@ -300,9 +300,6 @@ if [ -n "${W5P_REUSE:-}" ] && [ -s "$OUT/scripts.tsv" ] \
     _reused=$(awk -F'\t' '$2=="reused" {print $1}' "$OUT/scripts.tsv")
     # measure() replaces each one's per/ entry; its reused rows leave the
     # stage's two ledgers, so each script keeps exactly one row in each.
-    for _f in "$OUT/scripts.tsv" "$OUT/per/provenance.tsv"; do
-      awk -F'\t' '$2!="reused"' "$_f" > "$_f.tmp" && mv "$_f.tmp" "$_f"
-    done
     PLAN=$(echo "$_reused" | sed 's/^/measure\t/')
     run_plan
     rm -f "$WORK/data/.coverage"
