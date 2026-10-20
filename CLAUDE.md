@@ -150,13 +150,16 @@ individually, because a range reads as complete while covering a fraction:
 
 ### Instruments
 
-`tools/audit/seat/` is the instrument inventory (merge train, verdict bus, PR
-openers and updaters, crash-safety snapshot, merge and absorb, CI watcher, seat
-venv, tmp-path detector); the gate-check family is in `.claude/workflows/`, the
-architecture score in `tools/audit/archscore/`, per-group harnesses in
-`dev/audit/harnesses/` and `dev/audit/rounds/round9/`. Check it before hand-rolling
-any merge, push, body, gate or watch loop; new reusable instruments land here,
-never only in /tmp (decision 0013).
+`tools/audit/seat/INSTRUMENTS.md` is the operator's guide to the inventory in
+`tools/audit/seat/` (merge train, verdict bus, PR openers and updaters,
+crash-safety snapshot, merge and absorb, CI watcher, seat venv, tmp-path
+detector); the gate-check family is in `.claude/workflows/`, the architecture
+score in `tools/audit/archscore/`, per-group harnesses in `dev/audit/harnesses/`
+and `dev/audit/rounds/round9/`. Read the guide before hand-rolling any merge,
+push, body, gate, watch loop, relay or helper: a shape it already carries is
+never re-written in scratch. A new instrument the programme needs is a tracked,
+self-tested file in the repo -- `tools/`, with a `--self-test` -- never only in
+/tmp or a session's scratch (decision 0013).
 
 ### The suite, the register, the handover
 
