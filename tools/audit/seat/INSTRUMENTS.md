@@ -229,7 +229,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   existing PR, so the open-PR soft cap is untouched (an update is not an open).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
-  `OWED handoff-update`, and retried only when the handoff moves. Every
+  `OWED handoff-update`, and retried only when the handoff moves. An update that
+  exits 75 is `update_pr.sh`'s BUSY (another run holds the branch's
+  `upd-<branch>.lock`, typically the orchestrator's own update of that PR): it is
+  not recorded, and the next pass retries it. Every
   `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
   appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
   the same way (a fixer's return the orchestrator has not opened, or a merged
