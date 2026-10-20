@@ -1258,7 +1258,8 @@
     "R10-FAHRENHEIT"
    ],
    "carry": [
-    "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry."
+    "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry.",
+    "Follow-up test folded here rather than opened as its own pull request: handoff handoff/r10-earlycutoff-coverage at ecaf178c adds 52 lines to tests/features.py asserting the release/detach path of early_cutoff directly. This group owns that code and is done, so the test should ride the next touch of early_cutoff, or be opened as a test-only pull request if no touch is planned."
    ],
    "architect_note": null,
    "resume": {
