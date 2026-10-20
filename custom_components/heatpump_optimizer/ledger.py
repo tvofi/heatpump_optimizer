@@ -26,7 +26,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from .payload import ContractComparison, SavingsMonth
+from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -407,6 +407,48 @@ def billed_total(lines: Mapping[str, Mapping[str, float]]) -> tuple[float, list[
     """(total SEK, the billed lines it adds) of a receipt's published lines."""
     basis = [name for name in BILLED_LINES if name in lines]
     return round(sum(float(lines[name]["sek"]) for name in basis), 2), basis
+
+
+def explain_metered(
+    metered_space_kwh: float,
+    metered_dhw_kwh: float,
+    *,
+    space_reason: str | None,
+    dhw_reason: str | None,
+) -> list[tuple[str, float]]:
+    """``[(reason, kWh)]`` partitioning one interval's metered energy.
+
+    A reason names WHY a plan ran a channel. A channel the plan was drawing on
+    is explained by the reason for its step, whatever the meter's magnitude: a
+    step below the modulation floor is duty cycling within it, so a reading
+    above the step's average is the pump's own cycling and not an unplanned
+    draw. A channel the plan was drawing NOTHING on — ``payload.IDLE_REASONS``,
+    or no reason at all — cannot be explained by its step's reason, so its
+    metered share books ``REASON_UNTAGGED``: outside the plan. Until #2256
+    every metered kilowatt took the step's reason, so a plan idling at zero
+    while the meter saw a draw booked the whole draw as "idle", which made
+    "Not heating" the costliest category.
+
+    The split between the channels is the caller's — one meter serves both
+    circuits, so it is apportioned by what the plan asked each to draw. Pure,
+    and the arithmetic the receipt's partition rests on: the returned kWh sum
+    to ``metered_space_kwh + metered_dhw_kwh`` exactly, and no reason is
+    returned for a zero share.
+    """
+    shares: dict[str, float] = {}
+    for reason, metered in (
+        (space_reason, metered_space_kwh),
+        (dhw_reason, metered_dhw_kwh),
+    ):
+        kwh = float(metered)
+        if kwh <= 0.0:
+            continue
+        planned = (
+            bool(reason) and reason != REASON_UNTAGGED and reason not in IDLE_REASONS
+        )
+        code = reason if planned else REASON_UNTAGGED
+        shares[code] = shares.get(code, 0.0) + kwh
+    return list(shares.items())
 
 
 def restate_total(report: dict[str, Any]) -> dict[str, Any]:
