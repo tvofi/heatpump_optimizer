@@ -69,11 +69,13 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "audit" / "seat"))
+sys.path.insert(0, os.environ.get("REPLAN_SEAT_DIR")
+               or str(Path(__file__).resolve().parent.parent / "audit" / "seat"))
 import roster_lib  # noqa: E402 -- the one owner of which roster a tool reads
 
 SELF = "tools/plan/replan.py"
@@ -455,7 +457,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         })
 
     gate = gate_minutes(durations)
-    ci = round((len(batch_rows) + len(stamps)) * gate, 1)
+    # The published gate is rounded; the CI minutes are the product of the
+    # published pair, so a reader who multiplies the summary's own numbers
+    # gets the summary's own total (a self-test arm recomputes exactly this).
+    gate_report = round(gate, 1)
+    ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)
 
     groups_out = {}
     for n in sorted(G):
@@ -523,7 +529,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "closure_stamp": stamps[-1]["version"],
             "wall_hours": round(closure / 60.0, 2),
             "ci_minutes": ci,
-            "gate_minutes": round(gate, 1),
+            "gate_minutes": gate_report,
             "batches": len(batch_rows),
             "stamps": len(stamps),
             "groups_total": len(G),
@@ -920,6 +926,94 @@ def selftest() -> int:
            any("exceeds_cap" in b for b in check_plan(oversized)),
            str(check_plan(oversized)))
 
+    # The six behaviours whose deletion the reviewer will attempt: each gets
+    # an arm that names it, and the mutation harness below proves the arm goes
+    # red when the line is removed.
+    rerun = [  # the API lists newest first; the second line is the first attempt
+        "closures\t2\t2026-01-05T01:00:00Z\t2026-01-05T01:30:00Z\tsuccess",
+        "closures\t1\t2026-01-05T00:00:00Z\t2026-01-05T00:20:00Z\tfailure",
+    ]
+    ing = _ingest_check_runs(rerun, {"closures"})
+    expect("a rerun does not replace the first attempt (earliest started_at)",
+           ing.get("closures", {}).get("job") == 1
+           and ing["closures"]["minutes"] == 20.0, str(ing))
+
+    coord3 = {"groups": [
+        {"group": f"K{i}", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "hot_files": ["coordinator.py"],
+         "resume": {"stage": "not-started"}} for i in range(3)]}
+    p4 = build_plan(coord3, durations, caps, start, "v1.0.0")
+    expect("the coordinator cap limits planned groups in flight",
+           p4["summary"]["peak_coordinator_in_flight"] <= caps["coordinator_cap"],
+           str(p4["summary"]["peak_coordinator_in_flight"]))
+
+    one = dict(caps)
+    one["slots"] = 1
+    order = {"groups": [
+        {"group": "A", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "B", "size": "L", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "C", "size": "XL", "lane": "Core model", "kind": "defect",
+         "after": ["B"], "resume": {"stage": "not-started"}}]}
+    p5 = build_plan(order, durations, one, start, "v1.0.0")
+    expect("dispatch takes the longest remaining path first, not the shortest job",
+           p5["groups"]["A"]["start"] > p5["groups"]["B"]["start"],
+           f"A starts {p5['groups']['A']['start']}, B {p5['groups']['B']['start']}")
+
+    prod = {"groups": [
+        {"group": f"P{i}", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}} for i in range(6)]}
+    p6 = build_plan(prod, durations, caps, start, "v1.0.0")
+    pat = [s for s in p6["stamps"] if s["kind"] == "patch"]
+    expect("five production merges cut one patch stamp",
+           len(pat) == 1 and len(pat[0]["carries"]) == caps["stamp_every"],
+           str(p6["stamps"]))
+    s6 = p6["summary"]
+    expect("CI minutes price every gate run (batches + stamps)",
+           s6["batches"] > 0 and s6["stamps"] > 0
+           and s6["ci_minutes"] == round((s6["batches"] + s6["stamps"])
+                                         * s6["gate_minutes"], 1),
+           str({k: s6[k] for k in ("ci_minutes", "batches", "stamps", "gate_minutes")}))
+    gate = gate_minutes(durations)
+    want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
+    expect("the gate price includes the cancelled-leg rerun",
+           abs(gate - want_gate) < 1e-6, f"{gate} != {want_gate}")
+
+    # Each arm above must go red when its subject is deleted. A self-test that
+    # survives its own removal is the defect the arms exist to catch, so each
+    # mutation is applied to a copy and its self-test must exit non-zero.
+    if not os.environ.get("REPLAN_MUTATION_CHILD"):
+        mutations = [
+            ("earliest-attempt",
+             'if prev is None or started < prev["started"]:', "if prev is None:"),
+            ("coordinator-cap",
+             "if coord[n] and n not in inherited and cc >= coord_cap:", "if False:"),
+            ("dispatch-order",
+             "key = (-height[n], -dur_min[n], n)", "key = (n,)"),
+            ("stamp-cadence", "if len(carry) >= every:", "if False:"),
+            ("ci-formula",
+             "ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)",
+             "ci = round(len(batch_rows) * gate_report, 1)"),
+            ("gate-cancellation",
+             "return fast + clo + ana * (1.0 + p_cancel)", "return fast + clo + ana"),
+        ]
+        source = Path(__file__).read_text(encoding="utf-8")
+        seat = str(Path(__file__).resolve().parent.parent / "audit" / "seat")
+        with tempfile.TemporaryDirectory() as td:
+            for name, old, new in mutations:
+                if old not in source:
+                    expect(f"self-test fails when {name} is deleted", False,
+                           f"mutation anchor not found: {old}")
+                    continue
+                copy = Path(td) / f"{name.replace('-', '_')}.py"
+                copy.write_text(source.replace(old, new, 1), encoding="utf-8")
+                env = {**os.environ, "REPLAN_MUTATION_CHILD": "1",
+                       "REPLAN_SEAT_DIR": seat}
+                rc = subprocess.run([sys.executable, "-I", str(copy), "--self-test"],
+                                    capture_output=True, text=True, env=env).returncode
+                expect(f"self-test fails when {name} is deleted", rc != 0, f"rc={rc}")
+
     print(f"self-test: {len(failures)} failed")
     return 1 if failures else 0
 
@@ -930,6 +1024,38 @@ def median(xs):
     xs = sorted(xs)
     n = len(xs)
     return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2.0
+
+
+def _ingest_check_runs(lines, want) -> dict:
+    """The EARLIEST completed attempt per context name on one commit.
+
+    `gh api ... --paginate` lists check runs newest first, so the first line
+    for a name is usually the RERUN, not the first attempt. Keeping the
+    earliest `started_at` is the invariant: a median over gates counts each
+    tree's first attempt once, and a cancelled first attempt stays cancelled
+    (its rerun is what `cancelled_rate` prices, not a replacement result).
+    """
+    best = {}
+    for line in lines:
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) != 5:
+            continue
+        name, job, began, ended, concl = parts
+        if name not in want or began in ("", "null") or ended in ("", "null"):
+            continue
+        started = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
+        finished = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
+        prev = best.get(name)
+        if prev is None or started < prev["started"]:
+            best[name] = {
+                "job": int(job),
+                "minutes": round((finished - started).total_seconds() / 60.0, 1),
+                "conclusion": concl,
+                "started": started,
+            }
+    return best
 
 
 def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
@@ -944,13 +1070,13 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
          f"-{merges}", "--format=%H"],
         capture_output=True, text=True, check=True).stdout.split()
     want = ("fast (3.14)", "closures", "Analyze (python)")
-    # One row per (commit, context) that COMPLETED, kept with its conclusion.
-    # The cancelled rate's denominator is the Analyze population, never the
-    # complete-sample population: a commit whose Analyze leg was cancelled at
-    # its cap and whose fast leg had not finished at measurement time is a
-    # cancelled Analyze run, and sampling only complete triples drops it -- the
-    # rate that did so under-priced one cancelled leg per 26 runs instead of
-    # per 29 (2026-10-20 review, measurement-defect).
+    # One row per (commit, context), its FIRST attempt, kept with its
+    # conclusion. The cancelled rate's denominator is the Analyze population,
+    # never the complete-sample population: a commit whose Analyze leg was
+    # cancelled at its cap and whose fast leg had not finished at measurement
+    # time is a cancelled Analyze run, and sampling only complete triples drops
+    # it -- the rate that did so under-priced one cancelled leg per 26 runs
+    # instead of per 29 (2026-10-20 review, measurement-defect).
     rows: dict = {w: [] for w in want}
     samples = []
     for sha in log:
@@ -960,26 +1086,13 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
             capture_output=True, text=True)
         if out.returncode:
             continue
-        got = {}
-        for line in out.stdout.strip().split("\n"):
-            if not line:
-                continue
-            name, job, began, ended, concl = line.split("\t")
-            if name in want and began not in ("", "null") and ended not in ("", "null"):
-                a = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
-                b = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
-                mins = round((b - a).total_seconds() / 60.0, 1)
-                # One row per (commit, context): a workflow rerun adds a second
-                # check run of the same name on the same tree, and counting both
-                # would put two attempts in a median that describes one gate.
-                # The first attempt is kept -- a cancelled leg rerun is what the
-                # cancelled-rate term prices, not a second sample.
-                if name in got:
-                    continue
-                rows[name].append((mins, concl))
-                got[name] = {"job": int(job), "minutes": mins, "conclusion": concl}
+        got = _ingest_check_runs(out.stdout.strip().split("\n"), want)
+        for name, row in got.items():
+            rows[name].append((row["minutes"], row["conclusion"]))
         if len(got) == 3:
-            samples.append({"sha": sha, **got})
+            samples.append({"sha": sha, **{
+                n: {k: v for k, v in r.items() if k != "started"}
+                for n, r in got.items()}})
 
     def stat(xs):
         xs = sorted(m for m, _ in xs)
