@@ -3422,7 +3422,7 @@
     "commit": "d1611efe6b7d7bd0d6fdb1651924d015aed3f74d",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Fell through wave 1: the finished work is pushed at handoff/r10-rca-harness-friction (d1611efe) with a body at handoff-body/r10-rca-harness-friction (a32fbfd1), and no pull request was ever opened; this brief still reads 'unpublished'. Queued for the next free seat: merge current main into the branch, re-run the harness at the new base, re-handoff."
+    "note": "Handoff handoff/r10-rca-harness-friction at d1611efe is this group's work: 9 commits over 10 files, the RCA records plus edits to the fix-review and orchestrator role contracts (policy, so the owner approves at merge). Owed: merge current main, re-take the body and open the pull request."
    }
   },
   {
