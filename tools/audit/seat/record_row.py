@@ -77,14 +77,15 @@ import delivery_status  # noqa: E402  anchored, mentions, merge_parents
 SELF = "tools/audit/seat/record_row.py"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 
-#: The body checker this generator's output is graded by. `pr-contract` and
-#: `prepr.sh` run `.claude/workflows/policy_lint.mjs` when a tree carries that
-#: copy and `tools/policy/` otherwise; the self-test resolves it the same way
-#: so it drives the check rather than a copy of its rule.
+#: The body checker this generator's output is graded by: `pr-contract` and
+#: `prepr.sh` run `tools/policy/policy_lint.mjs` from a current tree, and a CI
+#: job may restore the base's copy where the fallback below finds it. The
+#: self-test resolves it the same way, so it drives the check rather than a
+#: copy of its rule.
 ROOT = Path(__file__).resolve().parents[3]
-_LINT_JS = ROOT / ".claude/workflows/policy_lint.mjs"
+_LINT_JS = ROOT / "tools/policy/policy_lint.mjs"
 if not _LINT_JS.is_file():
-    _LINT_JS = ROOT / "tools/policy/policy_lint.mjs"
+    _LINT_JS = ROOT / ".claude/workflows/policy_lint.mjs"  # or tools/policy/policy_lint.mjs
 
 #: Where a row lives, and the WHOLE write surface. The digits are load-bearing:
 #: `dev/programme/delivery/<N>.md` rows <N> through a line anchoring <N> itself, as
