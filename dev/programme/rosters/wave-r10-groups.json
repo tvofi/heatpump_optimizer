@@ -756,7 +756,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-trust-relative",
-    "commit": null,
+    "commit": "05c39d3a6597e02c81f07e771a058da90f8ebb46",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
