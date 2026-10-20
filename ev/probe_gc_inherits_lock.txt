@@ -1,0 +1,11 @@
+loose: 20000 objects, 80000 kilobytes
+Auto packing the repository in background for optimum performance.
+See "git help gc" for manual housekeeping.
+run exits
+probe: lock HELD after the run exited
+  live git pid 13582: git -c gc.auto=100 -c gc.autoDetach=true gc --auto  holds: l3.lock
+  live git pid 13586: /usr/lib/git-core/git prune --expire 2.weeks.ago  holds: l3.lock
+probe: lock free
+  live git pid 13582:  holds: 
+probe: lock free
+probe: lock free

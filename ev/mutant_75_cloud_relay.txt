@@ -1,0 +1,4 @@
+  FAIL a busy update is tried again on the next pass (rc=1, want 0)
+  FAIL and is not recorded failed (rc=1, want 0)
+  FAIL nor logged OWED (rc=0, want 1)
+cloud_relay self-test: 72 checks, 3 failed
