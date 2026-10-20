@@ -1,2 +1,0 @@
-
-TOTAL: 1 error(s) across 1 file(s)

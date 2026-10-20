@@ -1,48 +1,139 @@
-Fix review: blocked a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 harness: class-open location.pathname/search setters and a head meta refresh pass the census inside a driven handler, outside the stated residual and its carries
+Fix review: merge 2a579f5794bef0d817a077ad1603859c070c9931
 
-bus-nonce: 79d8ef828f8b4d8fa5dde25cf3da5733
+bus-nonce: 95e6b95f8cf226176e251f4293e64798
 
-Round: 1 (no earlier `Fix review:` comment on #2452). Measured head: a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 (ev/HEAD), still the PR head at write time. Merge base 4e1b36070. Contract current: `git diff` of dev/governance/roles/ between merge base and origin/main is empty.
+Round 3 of #2452 (R10-DEEPLINK-HANDLERS). Measured head
+`2a579f5794bef0d817a077ad1603859c070c9931` (unchanged when this verdict was
+pushed). The fixer's handoff is `dd74b93f`; the reviewed head is the relay's
+recarry of it onto main, and `git diff --stat dd74b93f HEAD -- tests/card.mjs
+tools/audit/seat/r10_deeplink_mutants.py dev/programme/rosters/wave-r10-groups.json`
+is empty, so the handoff's three authored files are byte-identical here.
 
-## RESULT lines
+## RESULT lines (my own runs)
 
-Finder's plants (RV1-RV7 from the round-8 review, RD4/RD6 from rounds 9-10; #2317's class), driven with the PR's driver at both ends:
+Base worktree at `8b3ea42c`, head worktree at `2a579f57`, each with the head's
+`tools/audit/seat/r10_deeplink_mutants.py` and its own `tests/plan_view.py`
+payload written first (`rc=0` in both). Every driver process printed
+`restored`; `git status --short` over the card and `tests/card.mjs` is empty
+after the runs.
 
-| plant | merge base 4e1b36070 | head a01006c1b |
-|---|---|---|
-| RV1-RV7 (history/form spellings in the chart keydown) | rc=0 fails=0, all seven (finding reproduces) | rc=1 fails=1, all seven |
-| RD4, RD6 (markup outside the shadow root, driven press) | rc=0 fails=0 | rc=1 fails=1 |
-| RD7 (detached anchor) | rc=0 | rc=1 |
-| ON1 (on<event> property) | rc=0 | rc=1 |
-| AL1 | rc=1 | rc=1 |
-| RD9, KD1, FT1, UL1 | -- | rc=1 fails=1 each |
-| RD8 (stated residual witness) | -- | rc=0 (green, as stated) |
-| F1 (control) | -- | rc=0 (green, as stated) |
-| NULL_no_plant | -- | rc=0 fails=0 |
+    RESULT null-control head   NULL_no_plant                                  rc=0 fails=0
+    RESULT pair-1 base         REV_CAP1_location_captured_at_load             rc=0 fails=0
+    RESULT pair-1 head         REV_CAP1_location_captured_at_load             rc=1 fails=1
+    RESULT pair-2 base         TMX_history_back_eighty_timeouts_deep          rc=0 fails=0
+    RESULT pair-2 head         TMX_history_back_eighty_timeouts_deep          rc=1 fails=1
+    RESULT pair-3 base         REV_XL1_svg_xlink_href_markup                  rc=0 fails=0
+    RESULT pair-3 head         REV_XL1_svg_xlink_href_markup                  rc=1 fails=1
+    RESULT x-pair-1 alone      X34_card_loads_before_the_surface              rc=0 fails=0
+    RESULT x-pair-1 paired     X34CAP4_load_order_is_what_closes_REV_CAP4     rc=0 fails=0
+    RESULT x-pair-2 alone      X35_settle_cap_drops_silently                  rc=0 fails=0
+    RESULT x-pair-2 paired     X35TMX_cap_refusal_is_what_closes_TMX          rc=0 fails=0
+    RESULT class-probe base    PROBE_CAP_SI_set_interval_captured_at_load     rc=0 fails=0
+    RESULT class-probe head    PROBE_CAP_SI_set_interval_captured_at_load     rc=1 fails=1
 
-Mutation proof (the PR's own X pairs, at head): X24ON1 rc=0 (the inline check is what closes ON1 -- load-bearing, as the body says); X22RV1 rc=1 (body does not list it green; consistent). My X17 run aborted on a mistyped plant name (reviewer error, KeyError; tree restored). Full: ev/base_finder_plants.txt, ev/head_finder_plants.txt, ev/head_x_plants.txt.
+Three of the sixteen before/after pairs re-derive as the body states: green at
+`8b3ea42c`, red at the head. Two X-pairs re-derive as "only closes paired":
+the isolating X plant alone is green, and the pair with the plant its line
+closes is green too, so the line, not the plant alone, is what catches it.
+`X35TMX`'s head FAIL is `no press throws ... deferred work had not settled
+after 64 rounds`; `X34` alone passes all 1,260 checks.
 
-## The blocking finding: the class is open beyond the stated residual
+## Class rule (fixer.md step 8; fix-review.md step 6)
 
-Reviewer-built plants (my instrument, disclosed: ev/own_plants.py, using the PR driver's run()/kd(); output ev/own_plants.txt), each one statement at the head of the chart keydown handler that this PR now drives:
+The body's round-3 rule: every global the census records through is one graph
+installed before the card loads. Read at the diff (`8b3ea42c..HEAD`): the
+graph is built above `vm.runInContext(cardSrc, ctx)`, and the census switches
+it on through `navHook` rather than replacing members, so a reference the card
+took at load is the recorder. `CAP5-CAP13` and `REV_CAP1-4` plant one member
+kind each (document.write, the element factory, CustomEvent, setTimeout, the
+registration method, the Navigation API, the History prototype, the location
+descriptor, a window alias; history, open, location).
 
-- `RESULT mutant=OWN1_meta_refresh_in_keydown rc=0 fails=0` -- `<meta http-equiv="refresh" content="0;url=/config/integrations">` appended to document.head. A browser navigates on insertion. No listed name appears (static arm silent); the read enumerates only href/action/formaction and FORM, so the dynamic arm is silent too.
-- `RESULT mutant=OWN2_location_pathname_built_in_keydown rc=0 fails=0` -- `globalThis[["loc","ation"].join("")].pathname = "/config/integrations"`. Navigates in a browser. sink.location records only the href setter, assign and replace; any other member write lands silently on a plain object.
-- `RESULT mutant=OWN3_location_search_built_in_keydown rc=0 fails=0` -- same with `.search`.
-- Control `OWN2c_location_href_built_in_keydown_control`: rc=1 fails=2 (static `href` token and the dynamic recorder both fire), so the position is driven and the recorder works for href. The gap is the member, not reach.
+Five members of planted kinds are not individually planted: `setInterval` /
+`clearTimeout` / `clearInterval`, the plain `Event` class,
+`createElementNS`, the window and document `addEventListener` sites, and
+`window.window` / `self` / `defaultView`. Each is in the diff, so none is
+`class-open` under the contract's clause. **This probe is mine, not the body's**:
+I planted a load-time `setInterval` capture whose callback calls
+`history.back()`, and it is red at the head (`every link the census records
+from a press is one haLink builds for this entry`, `history back` recorded
+against the keydown drive) and green at the base. The mechanism closes the
+kind, not only the planted member.
 
-Why it blocks this PR rather than being an older gap: the location sink and the read's attribute list predate this diff, but this PR states the census's coverage. The census comment says "a name BUILT at run time ... is the dynamic arm's on every drive", and the body's Residual says "Two kinds of code still pass": undriven code, and markup through DOM members the stub lacks. OWN1-OWN3 are a third kind, in a driven handler, and are neither in the diff nor dispositioned in the body's "Seams outside that enumeration". The forward-carry exports that two-item residual to R10-ADVISOR, R10-SCORES and R10-UX-HEALTH ("write no navigation there"), so a later card stage would trust a census that passes these (fix-review.md step 6; finding-propagation.md).
+## Red checks (defect-root-cause.md's second trigger)
 
-The fix is small, either way: make sink.location record every member write (a Proxy set trap, or setters for pathname/search/hash/host/hostname/port/protocol), and add `meta[http-equiv=refresh]` to the read's ways out. Or state both in the census's Residual paragraph, the body and the three briefs' carries, each with a witness plant.
+`nightly-status` is red at this head and is not this pull request's. The job's
+report is `NIGHTLY FAILED: slow failed last night`, scheduled run
+`39387919507` at head `0c298f6`, job `slow` failure. The diff touches none of
+`tests/nightly_status.py`, `tests.yml`, `governance.yml`, the plan or
+`HANDOVER.md`, and the only row it adds is its own
+`dev/programme/delivery/2452.md`.
 
-## Other checks (all pass unless noted)
+`pr-contract` is green at this head (runs 118644092804 and 118644343217). Its
+earlier red at `b69ac5c16` (job 118349952504) is named and answered in the
+body's `## Red checks`; I re-derived its figure:
+`python3 -I tools/audit/carry_audit.py check --body BODY.md` prints
+`9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)`. CI's own
+red-history walk over the 20 commits prints `every failure conclusion across
+them: nightly-status`, and that walk excludes `pr-contract` itself.
 
-- Merges cleanly: `git merge-tree --write-tree` rc=0 against origin/main 4e1b36070, and again against 64b0ae690 (main moved during the review). ev/merge_tree.txt.
-- VERSION, manifest, RELEASE_NOTES.md, claim files, goldens, tests/dom_stub.mjs, closures.json and every *_budgets.json are untouched (three-dot diff empty). The card is unchanged. No fixture moved, so there is nothing to claim.
-- `structure.py`: STRUCTURE RATCHET PASSED. `closure.py select`: `MODE: SCOPED -- 3 script(s) run, 30 scoped out`, matching the body. `entities.py` (env -u BASH_ENV): ALL 2350 ENTITY CHECKS PASSED. The body says 2346, which was at its older base; main has since added checks.
-- `brief_lint` on the roster: **TOTAL: 1 error**, not the body's 0. The error is `[R10-SCORES] coordinator.py:10281 'heat_loss_coefficient' ... found at line 1075`, and it is identical at the merge base. It is inherited from main's coordinator drift and is not this diff's, but the body's figure does not reproduce at this head. CI `briefs` is green.
-- The body's figure of 87 addEventListener sites in the card reproduces (grep count 87). The eleven static names reproduce (NAV_SURFACE has 11 rows).
-- Body figures not re-derived: the 137-plant sweep tallies (107/7/23), and the 54.6 s to 3 min 11 s timing (this box ran about 3 min per census under parallel load). Not verified.
-- Forward-carry: the in-diff briefs of R10-ADVISOR, R10-SCORES and R10-UX-HEALTH carry the new terms, with the control as a precondition (RV1 red, RD8 green, at the stage's merge base). Roster handoff/audit-r10-roster 04a641598 holds 7 `Source: #2452` entries: 5 in R10-ADVISOR, 1 in R10-RCA-FRICTION and 1 in R10-POLICY-FIXER-MD, matching the body. These carries are what export the incomplete residual above.
-- CI on this head (ev/ci_checkruns.txt): the only red is `nightly-status`, which is not this PR's (its diff reaches nothing that check reads), so `## Red checks: none` stands. `coverage` and `Analyze (python)` were still in progress when read. The mutation lane drew no mutant, because the diff writes no production line.
-- Architecture (step 15): test and driver code only; no breach seen.
+`mutation` is green with an empty scope:
+`MUTATION TABLE -- scope changed: no production code line added or modified
+against the base`. It draws no mutant, so the green says nothing about this
+fix; the plant sweep is the proof and is re-derived above.
+
+## Gate and claims, from CI at this head
+
+`MODE: SCOPED -- 3 script(s) run, 30 scoped out`, naming `tests/plan_view.py`,
+`tests/card.mjs` and `tests/card_drift.mjs`; `7 TEST SCRIPT(S) PASSED`, with
+`ALL CARD CHECKS PASSED`, `ALL 124 closure shrink pins PASSED`, `ALL 109
+HARNESS HEADER CHECKS PASSED`, `env_drift.py --claims-only` ok. `coverage`,
+`coverage-ratchet`, `closures` and `fast (3.14)` are the lanes that conclude
+the same. `node tests/card_drift.mjs a2b25bbc5` here, and CI's run against
+`76bb4562`, both print `identical in all 40 states`. `VERSION`, the manifest
+version, the notes heading, both claim files, `tests/dom_stub.mjs` and the card
+are untouched by the three-dot diff. `git merge-tree --write-tree origin/main
+HEAD` exits 0 with no conflicting path.
+
+## Carries
+
+`dev/programme/rosters/wave-r10-groups.json` is in this diff, and at this head
+the three briefs R10-ADVISOR, R10-SCORES and R10-UX-HEALTH carry the census
+terms with the control stated as a precondition: `Control, re-measured at your
+merge base: ... RV1_history_bracket_back_in_undriven_keydown
+RD8_insert_adjacent_html_built_href_driven_residual reads RV1 red and RD8
+green`. `carry_audit.py` reads 9 items, 9 routed, 0 bad destinations.
+
+## Notes (non-blocking)
+
+- The body's `## Figures` says the three-dot diff is 3 files, 928 insertions,
+  335 deletions and that `git diff --name-only origin/main HEAD` names the same
+  three. At the measured head the three-dot is 4 files, 929 insertions, 335
+  deletions: the fourth is `dev/programme/delivery/2452.md` (one line), and the
+  two-dot names 84 paths because main has since taken #2465. The body also says
+  `a01006c1b` is not in the head's ancestry; it is. The substantive claim -- the
+  recarry reverted no authored file -- is true and I re-derived it directly.
+  Carry: dismissed: the head the body's `## Head` names is the head reviewed,
+  the extra path is the orchestrator's own delivery row, and round 4 owes the
+  re-cut regardless.
+- `Carry: R10-ADVISOR (roster 04a641598)` names a SHA that does not carry the
+  text: at `04a641598` none of the three briefs contains the census carry (it
+  is an ancestor; the text lands through the roster commits this branch
+  merges). Carry: dismissed: the destination finding-propagation.md names, the
+  roster file in this diff at the reviewed head, does carry it.
+
+## Not verified
+
+I re-derived 3 of the 16 before/after pairs end to end and 2 X-pairs; I did not
+re-run the full 228-plant sweep (the brief scoped me to a subset), nor the
+1,260-ok-line count. The finder's original plant scripts (`rev_plants.py`,
+`mut*.py`, `review_plants*.py`, `own_plants.py`) are not in the tree, so the
+driver's "verbatim" is its own label: `tools/audit/seat/r10_deeplink_mutants.py`
+is committed and names each round's provenance, but I did not diff it against
+the out-of-tree originals. `closures` was the last run at this head; it
+concluded `success` at 13:49:13, so every run had concluded when this verdict
+was pushed.
+
+Round 3, so `fixer.md`'s re-cut rule does not yet bind. The body is cumulative
+(rounds 1-3) and each round section states its change and its measurement; I
+did not find it repairing rather than describing.

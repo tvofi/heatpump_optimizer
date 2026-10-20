@@ -1,0 +1,4 @@
+== nightly-status at head (job 118644090652) ==
+2026-10-20T13:06:53.3188687Z NIGHTLY FAILED: slow failed last night.
+2026-10-20T13:06:53.3189655Z   failing jobs:
+2026-10-20T13:06:53.3190063Z     slow  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/39387919507/job/118512165515

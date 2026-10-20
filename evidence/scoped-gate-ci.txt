@@ -1,0 +1,18 @@
+== fast (3.14) gate at head (job 118644265784) ==
+2026-10-20T13:07:43.1065000Z   GOLDEN_MODE: drift
+2026-10-20T13:07:43.8974172Z   MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+2026-10-20T13:07:43.8979273Z       RUN   tests/plan_view.py
+2026-10-20T13:07:43.8979836Z       RUN   tests/card.mjs
+2026-10-20T13:07:43.8980404Z       RUN   tests/card_drift.mjs
+2026-10-20T13:07:44.6188088Z   [13:07:44] ok     python3 tests/env_drift.py --claims-only 76bb45628745ff8843f61c1708641f271643a224 (0s)
+2026-10-20T13:07:46.1678713Z   [13:07:46] ok     python3 tests/plan_view.py (2s)
+2026-10-20T13:07:49.1656261Z   [13:07:49] ok     python3 tests/closure.py selftest (5s)
+2026-10-20T13:07:54.6960146Z   [13:07:54] ok     python3 tests/layout.py (5s)
+2026-10-20T13:09:21.5876893Z   [13:09:21] ok     node tests/card.mjs (95s)
+2026-10-20T13:09:26.4005072Z   [13:09:26] ok     node tests/card_drift.mjs 76bb45628745ff8843f61c1708641f271643a224 (5s)
+2026-10-20T13:12:41.8452126Z   [13:12:41] ok     python3 tests/harness_headers.py (195s)
+2026-10-20T13:12:41.9899225Z ALL 124 closure shrink pins PASSED
+2026-10-20T13:12:42.0122438Z SKIP: tests/golden.py (GOLDEN_MODE=drift checks fixtures via env_drift.py instead)
+2026-10-20T13:12:42.0687182Z ALL CARD CHECKS PASSED
+2026-10-20T13:12:42.0729222Z ALL 109 HARNESS HEADER CHECKS PASSED
+2026-10-20T13:12:42.1582794Z 7 TEST SCRIPT(S) PASSED; 28 SCOPED OUT AND NOT RUN

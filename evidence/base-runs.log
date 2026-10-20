@@ -1,0 +1,6 @@
+Tue Oct 20 13:10:39 UTC 2026
+RESULT mutant=REV_CAP1_location_captured_at_load rc=0 fails=0
+RESULT mutant=TMX_history_back_eighty_timeouts_deep rc=0 fails=0
+RESULT mutant=REV_XL1_svg_xlink_href_markup rc=0 fails=0
+restored
+Tue Oct 20 13:23:08 UTC 2026
