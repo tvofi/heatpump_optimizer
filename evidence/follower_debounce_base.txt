@@ -1,4 +1,4 @@
-REFUSED: first step of /Users/timmalmstrom/hpo-seats/r10s3/rev-2480/evidence/base-pr-contract-rerun.yml is None, not the deferral
+REFUSED: first step of /Users/timmalmstrom/hpo-seats/r10s3/rev-2480b/evidence/base-pr-contract-rerun.yml is None, not the deferral
 per-head model: N watched completions, R red, every red stale (worst case before)
   N=8 R=0: program runs 0 -> 0, contract re-runs 0 -> 0, API calls <= 0 -> <= 8
   N=8 R=1: program runs 1 -> 1, contract re-runs 1 -> 1, API calls <= 9 -> <= 17

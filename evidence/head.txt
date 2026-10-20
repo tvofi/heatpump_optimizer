@@ -1,18 +1,17 @@
-Head measured: 5748642ff342ec68a49b085b2ef167f2d05a97ee
-Merge base with origin/main (2c7ec6c0f): 0c298f6b542e6efa4c93941700b3a23b859f3f9a
-PR base for the three-dot diff: 0c298f6b542e6efa4c93941700b3a23b859f3f9a
+Head measured: 312913795abd5f2865384afdc0f1f9c9659bd466
+Previous head (round 1): 5748642ff342ec68a49b085b2ef167f2d05a97ee
+Merge base with origin/main (a25de7a686767cedd5071ba7ccf3f323c3050804): a25de7a686767cedd5071ba7ccf3f323c3050804
+Recarry: HEAD parents = 5748642ff342ec68a49b085b2ef167f2d05a97ee (old head) + a25de7a686767cedd5071ba7ccf3f323c3050804 (origin/main).
 
-RESULT head_sha=5748642ff342ec68a49b085b2ef167f2d05a97ee
-RESULT closure_select=MODE:SCOPED 2 scripts (tests/entities.py tests/harness_headers.py)
-RESULT follower_debounce=9 cases, 0 failed
-RESULT follower_debounce_base=REFUSED (first step is None)
-RESULT entities_head=ALL 2359 ENTITY CHECKS PASSED
-RESULT body_figure_entities=2351 (does not re-derive at head; head prints 2359)
-RESULT entities_M4=1 defect, starts 'if:'
-RESULT harness_headers=ALL 109 HARNESS HEADER CHECKS PASSED
+RESULT head_sha=312913795abd5f2865384afdc0f1f9c9659bd466
+RESULT recarry_delta_on_pr_files=empty (workflow, harness, entities, closures, delivery row unchanged old->new)
+RESULT three_dot_diff=5 files, 223 insertions(+), 12 deletions(-) (same as round 1)
+RESULT merge_tree_vs_main_rc=0
+RESULT follower_debounce=9 cases, 0 failed; origin/main file REFUSED (first step None)
+RESULT mutants=M1 M2 M3 M4 each fail the named case
 RESULT structure=STRUCTURE RATCHET PASSED
-RESULT merge_tree_rc=0 (no conflict vs origin/main 2c7ec6c0f)
-RESULT required_checks=17 ("PR contract re-run" not among them)
-RESULT follower_runs_before_15.08Z=skipped 69, failure 2, success 29 (31 ran)
-RESULT carry_audit=CARRY-AUDIT 3 items: 1 routed, 2 unrouted
-RESULT roster_carry=R10-CI-LAYOUT brief at origin/handoff/audit-r10-roster 204eb8a99 lacks the follower carry
+RESULT closure_select=MODE:SCOPED 2 scripts (tests/entities.py, tests/harness_headers.py)
+RESULT carry_audit=CARRY-AUDIT 3 items: 3 routed, 0 unrouted, 0 bad destination, rc=0
+RESULT roster_carry=present at 5ab01bbb098d9d7eb3a28c00c95f242b5d05cc62 (live tip) with control, precondition and API-lag
+RESULT ci_fast_3.14=success; closures=success; coverage=success; pr-contract=success (x2); instrument-self-tests=success; mutation=success
+RESULT ci_analyze_python=cancelled (30-min job timeout; success in ~21.5 min at 5748642)

@@ -1,3 +1,3 @@
 head: defect_count=0
 M4: defect_count=1
-    if: 'contains(fromJSON(\'["failure","timed_out","cancelled"]\'), github.event.workflow_run.conclusion)' skips a completion a deferred red may need
+    if: "github.event.workflow_run.conclusion == 'failure'" skips a completion a deferred red may need
