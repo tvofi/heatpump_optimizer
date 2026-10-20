@@ -3973,7 +3973,7 @@
    "architect_note": null,
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-ci-layout",
+    "branch": "handoff/r10-ci-layout-g",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer for PR 0 now (inert ci.yml stub plus the ci-ratchet payments a-c; tests/run.sh is code-owned); PR G only after #2444 (merged) and from fresh main; then PR 1; then PR 2 at a wave boundary",
