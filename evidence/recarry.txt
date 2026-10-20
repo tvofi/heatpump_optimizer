@@ -1,0 +1,24 @@
+HEADS parents: 5748642ff342ec68a49b085b2ef167f2d05a97ee a25de7a686767cedd5071ba7ccf3f323c3050804
+diff old_head..new_head on PR files (expect empty):
+(end)
+three-dot diff vs merge base a25de7a686767cedd5071ba7ccf3f323c3050804:
+ .github/workflows/pr-contract-rerun.yml  |  64 +++++++++++++++--
+ dev/audit/harnesses/follower_debounce.py | 120 +++++++++++++++++++++++++++++++
+ dev/programme/delivery/2480.md           |   1 +
+ tests/closures.json                      |   1 +
+ tests/entities.py                        |  49 +++++++++++--
+ 5 files changed, 223 insertions(+), 12 deletions(-)
+files changed old->new (main's commits only):
+dev/audit/rca/nightly-ha-pyspy-timeout.md
+dev/programme/delivery/2469.md
+dev/programme/delivery/2477.md
+dev/programme/delivery/2478.md
+dev/programme/delivery/2479.md
+dev/programme/delivery/2481.md
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/cloud_relay.sh
+tools/audit/seat/pr_args.sh
+tools/audit/seat/update_pr.sh
+merge-tree vs origin/main a25de7a68:
+2287a3d11e346c551e01a58354619bb774d4490a
+rc=0

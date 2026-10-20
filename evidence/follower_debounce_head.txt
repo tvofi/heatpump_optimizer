@@ -1,0 +1,17 @@
+  ok   another watched run in progress defers
+  ok   a green last completion after a deferred red hands that red on
+  ok   the newest red is the one handed on
+  ok   no red at the head re-runs nothing (null control)
+  ok   a head with one watched run still re-runs
+  ok   an unwatched run in progress does not defer
+  ok   the trigger listed stale as in progress does not defer itself
+  ok   a run waiting on an environment does not defer
+  ok   a head that is not 40 hex is refused
+follower_debounce: 9 cases, 0 failed
+per-head model: N watched completions, R red, every red stale (worst case before)
+  N=8 R=0: program runs 0 -> 0, contract re-runs 0 -> 0, API calls <= 0 -> <= 8
+  N=8 R=1: program runs 1 -> 1, contract re-runs 1 -> 1, API calls <= 9 -> <= 17
+  N=8 R=2: program runs 2 -> 1, contract re-runs 2 -> 1, API calls <= 18 -> <= 17
+  N=8 R=3: program runs 3 -> 1, contract re-runs 3 -> 1, API calls <= 27 -> <= 17
+  N=8 R=8: program runs 8 -> 1, contract re-runs 8 -> 1, API calls <= 72 -> <= 17
+  N=1 R=1: program runs 1 -> 1, contract re-runs 1 -> 1, API calls <= 9 -> <= 10

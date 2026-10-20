@@ -1,0 +1,17 @@
+Head measured: 312913795abd5f2865384afdc0f1f9c9659bd466
+Previous head (round 1): 5748642ff342ec68a49b085b2ef167f2d05a97ee
+Merge base with origin/main (a25de7a686767cedd5071ba7ccf3f323c3050804): a25de7a686767cedd5071ba7ccf3f323c3050804
+Recarry: HEAD parents = 5748642ff342ec68a49b085b2ef167f2d05a97ee (old head) + a25de7a686767cedd5071ba7ccf3f323c3050804 (origin/main).
+
+RESULT head_sha=312913795abd5f2865384afdc0f1f9c9659bd466
+RESULT recarry_delta_on_pr_files=empty (workflow, harness, entities, closures, delivery row unchanged old->new)
+RESULT three_dot_diff=5 files, 223 insertions(+), 12 deletions(-) (same as round 1)
+RESULT merge_tree_vs_main_rc=0
+RESULT follower_debounce=9 cases, 0 failed; origin/main file REFUSED (first step None)
+RESULT mutants=M1 M2 M3 M4 each fail the named case
+RESULT structure=STRUCTURE RATCHET PASSED
+RESULT closure_select=MODE:SCOPED 2 scripts (tests/entities.py, tests/harness_headers.py)
+RESULT carry_audit=CARRY-AUDIT 3 items: 3 routed, 0 unrouted, 0 bad destination, rc=0
+RESULT roster_carry=present at 5ab01bbb098d9d7eb3a28c00c95f242b5d05cc62 (live tip) with control, precondition and API-lag
+RESULT ci_fast_3.14=success; closures=success; coverage=success; pr-contract=success (x2); instrument-self-tests=success; mutation=success
+RESULT ci_analyze_python=cancelled (30-min job timeout; success in ~21.5 min at 5748642)

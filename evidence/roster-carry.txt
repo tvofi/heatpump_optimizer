@@ -1,0 +1,7 @@
+Head: 312913795abd5f2865384afdc0f1f9c9659bd466
+Previous head: 5748642ff342ec68a49b085b2ef167f2d05a97ee
+Roster commit cited by body: 5ab01bbb098d9d7eb3a28c00c95f242b5d05cc62
+Live roster tip (origin/handoff/audit-r10-roster): 5ab01bbb098d9d7eb3a28c00c95f242b5d05cc62
+
+R10-CI-LAYOUT carry entry at 5ab01bbb (live tip):
+From R10-FOLLOWER-DEBOUNCE (#2480). Finding: `.github/workflows/pr-contract-rerun.yml` fires on every completion of the 8 workflows it watches, so one red at a head re-ran the stale-contract check repeatedly on the same Actions token quota that validate-hacs, arch-score and env-matrix also draw on. The debounce landed at #2480 keys the concurrency group on the PR head sha (`pr-contract-rerun-${{ github.event.workflow_run.head_sha }}`, cancel-in-progress), so one effective follower run per head. Control: `dev/audit/harnesses/follower_debounce.py`, 9 cases, 0 failed; against origin/main's file it prints `REFUSED: first step ... is None`; mutants M1-M4 each fail exactly the one named case. Re-measure at your own merge base by running that harness. Precondition for the umbrella design: a follower replacement must either keep the per-head debounce semantics or drop the follower entirely, and must measure the per-head red count BEFORE keeping it -- at 0 or 1 reds per head the debounce costs more calls than the old design. The API-lag gap (a completion event arriving before the check's conclusion is readable) is carried with it; see #2480's body section Risk.
