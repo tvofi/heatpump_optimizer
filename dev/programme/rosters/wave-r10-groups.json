@@ -4511,7 +4511,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-follower-debounce",
-    "commit": null,
+    "commit": "d99b400a5986a206e3a2bc0c2943967ce27b8adc",
     "last_step": "dispatch",
     "next_step": "fixer",
     "note": "tvofi 2026-10-19 ~15:05Z: do it now as a small fix."
