@@ -2857,7 +2857,16 @@ def _batch_self_test(check) -> None:
 
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
+            w.setdefault("calls", []).append(argv)  # the hold's order on the primary path
             a = " ".join(argv)
+            # THE RECORD-BEAT HOLD on the batch arm: `batch` defaults to
+            # `--base main`, so this world can prove the ref is published
+            # before anything merges. `hold_sha` empty (the default) is the API
+            # refusing, which the batch must survive like the serial train.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a and "/commits/" not in a:
+                return 0, w.get("hold_sha", "")
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                return 0, "{}"
             if "record_row.py" in a:  # --bot-prs: an open record PR #9 whose guard passes
                 w.setdefault("bot_calls", []).append(argv)
                 return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
@@ -3036,6 +3045,24 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    # THE HOLD ON THE PRIMARY PATH (re-review M8/M10). `batch` defaults to
+    # `--base main`, its start publish is the only hold write before a D merge
+    # (no wait sleeps, no proof), and nothing else in this suite asked whether
+    # the batch armed the ref: deleting the arming and/or the start publish
+    # left the suite green. These read the stub's own call order.
+    w = go({1: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.__setitem__("hold_sha", "f" * 40))
+    _calls = w["calls"]
+    _commits = [i for i, c in enumerate(_calls)
+                if c[:2] == ["gh", "api"] and "/git/commits" in " ".join(c)]
+    _refs = [i for i, c in enumerate(_calls)
+             if c[:2] == ["gh", "api"] and "git/refs" in " ".join(c)]
+    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+    check("a real-base batch publishes the record-beat hold before it merges anything "
+          "(the primary path is armed, not only the serial one)",
+          w["rc"] == 0 and list(w["merged"]) == [1]
+          and bool(_commits) and bool(_refs) and bool(_merges)
+          and _commits[0] < _refs[0] < _merges[0])
     _bg, brev, bman, _brev_revoke = policy_fixture_builders()
     bnow = datetime.datetime.now(datetime.timezone.utc)
     w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")
