@@ -5017,7 +5017,9 @@
    "lane": "IN",
    "kind": "instrument",
    "size": "L",
-   "issues": [],
+   "issues": [
+    2505
+   ],
    "fixes": [],
    "after": [
     "R10-ROSTER-OPS",
