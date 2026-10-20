@@ -1,20 +1,35 @@
 Why this change, and what it measures: `Analyze (python)` is a required
 context, and the `analyze` job's 30-minute cap sits inside the leg's observed
 runtime spread — three cancellations at the cap on 2026-10-20 (30:19, 30:09,
-30:07) and a rerun of the same head that finished in 21:31. This raises the cap
+30:07; the first during query evaluation, the other two during upload) and a
+rerun of the same head that finished in 21:31. This raises the cap
 to 45 and adds a check that refuses a lower value. It is headroom against
 runner-load variance, not a claim that the leg now needs more than 30 minutes
 every run.
 
 ## Head
 
-fccae47c41e773125960912cc74f34e70f91cb06
+7b64805231166191ff3f29e2ed3f618edf2cbf70
+
+prepr was run at this head with `PREPR_SKIP_CLOSURES=1`: the closures
+recording step passed green at `fccae47c4` in the preceding full run, and the
+only changes since are comment text in `codeql.yml` and `tests/entities.py`
+(blob-identical author files across the recarry to `55b74733`). The skip prints
+`closures: PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left`.
+
+## Approval
+
+`.github/workflows/codeql.yml` is code-owned: `.github/CODEOWNERS`'s
+`/.github/workflows/` rule names `@tvofi`, so this merge needs tvofi's
+approving review. `policy_lint`'s `POLICY_GLOBS` does not match
+`.github/workflows/`, so the diff owes no policy `## Approval`; the code-owner
+review above is the one that binds.
 
 ## Mutation proof
 
 The production line is `.github/workflows/codeql.yml`'s
-`analyze.timeout-minutes`. The head was checked out detached at `fccae47c4`
-into a scratch worktree and the value set to 30 there, never committed:
+`analyze.timeout-minutes`. The head `7b6480523` was checked out detached into a
+scratch worktree and the value set to 30 there, never committed:
 
     sed -i '' 's/^    timeout-minutes: 45$/    timeout-minutes: 30/' .github/workflows/codeql.yml
     cd <scratch worktree> && PYTHONPATH=tests/hastub python tests/entities.py
@@ -33,7 +48,7 @@ so the mutation moves the predicate and not a tail.
 
 ## Null control
 
-- The unmodified head passes the same command: rc=0, `ALL 2360 ENTITY CHECKS PASSED`.
+- The unmodified head `7b6480523` passes the same command: rc=0, `ALL 2360 ENTITY CHECKS PASSED`.
 - Every other job's cap is unchanged at both ends:
 
       for r in origin/main HEAD; do git show $r:.github/workflows/codeql.yml | \
@@ -56,9 +71,9 @@ so the mutation moves the predicate and not a tail.
 - The four `Analyze (python)` intervals, from the Actions API (read-only):
   `gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id> --jq '{name,conclusion,started_at,completed_at,run_id,head_sha}'`
   and `gh api "repos/tvofi/heatpump_optimizer/actions/runs/<run>/jobs?per_page=100"`:
-  - `2bd5e90f` run 39436564344 job 118675172846: 14:09:00Z → 14:39:19Z, cancelled, 30:19.
-  - `4e5801eb` run 39437802530 attempt 1 job 118679535262: 14:17:24Z → 14:47:33Z, cancelled, 30:09.
-  - `916431ae` run 39434809989 attempt 2 job 118688693484: 14:34:41Z → 15:04:48Z, cancelled, 30:07.
+  - `2bd5e90f` run 39436564344 job 118675172846: 14:09:00Z → 14:39:19Z, cancelled 30:19 (query evaluation started 14:27:57; cancelled 11 min in, then the cancelled handler uploaded the failed-run SARIF).
+  - `4e5801eb` run 39437802530 attempt 1 job 118679535262: 14:17:24Z → 14:47:33Z, cancelled 30:09 while uploading results (upload began 14:46:11).
+  - `916431ae` run 39434809989 attempt 2 job 118688693484: 14:34:41Z → 15:04:48Z, cancelled 30:07 while uploading results (upload began 15:02:38).
   - `4e5801eb` run 39437802530 attempt 2 job 118701134345: 14:58:02Z → 15:19:33Z, success, 21:31.
 - Headroom in the code comment: `python -c "s=45*60-(30*60+19); print(f'{s//60}:{s%60:02d}')"` → `14:41`.
 - Parsed caps at the head: `git show HEAD:.github/workflows/codeql.yml | python -c "import sys,yaml; d=yaml.safe_load(sys.stdin); print(d['jobs']['analyze']['timeout-minutes'])"` → `45`.
