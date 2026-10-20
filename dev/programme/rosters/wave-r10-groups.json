@@ -4293,7 +4293,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-prepr-unpinned-red",
-    "commit": null,
+    "commit": "0fd52fd729949380d3927c1ae8ec386de3625f4a",
     "last_step": null,
     "next_step": "fixer",
     "note": null
