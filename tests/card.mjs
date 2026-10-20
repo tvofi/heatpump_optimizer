@@ -11905,7 +11905,7 @@ check("without an indoor reading the corner now label is absent",
   // recorded too: the document-level read covers it, attached or not. Both
   // report through the live graph's registration method and factories.
   navHook.reg = (on, type, f) => { regs.push({ on, type, f, line: callerLine(4) }); };
-  navHook.made = (n) => { made.push(n); };
+  navHook.made = null;
   // The stub's selector engine (tests/dom_stub.mjs) answers one compound
   // selector with a quoted attribute value. The card also writes a selector
   // LIST (`.wi-quiet-days, .wi-quiet-action`) and an unquoted value

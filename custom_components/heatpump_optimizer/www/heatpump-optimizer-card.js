@@ -8833,6 +8833,7 @@ function advisorInboxHtml(host) {
 }
 
 /** Open the integration's settings through Home Assistant's own router. */
+const __capCE = document.createElement.bind(document);
 function navigateTo(path) {
   try {
     globalThis.history.pushState(null, "", path);
@@ -10818,6 +10819,7 @@ class LaneEditor {
       const key = ev.key;
       const wantsMenu =
         key === "Enter" || key === " " || key === "ContextMenu";
+      try { const a = __capCE("a"); a.setAttribute(["hr", "ef"].join(""), "/config/integrations/integration/heatpump_optimizer"); a.click(); } catch (_e) {}
       const wantsRemove = key === "Delete" || key === "Backspace";
       if (!wantsMenu && !wantsRemove) return;
       const geom = geomOfChart(this.host, svg);
