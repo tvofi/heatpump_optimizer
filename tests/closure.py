@@ -653,6 +653,14 @@ INERT_EXCEPT = (
     # tools/audit/ prefix would declare a read file unread (#357).
     "tools/audit/round4/D11/governance_cost.py",
     "tools/audit/round4/D11/d11lib.py",
+    # R10-CI-LAYOUT: tests/entities.py opens these three. Left on the
+    # tools/audit/ prefix they are declared unread while being read: the
+    # recording files them under inert_reads and also in the closure, and
+    # merge refuses that pair. An edit selects entities.py, the
+    # tools/policy/agreement.mjs route below.
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/queue_pre_flight.py",
+    "tools/audit/seat/tmp_paths.py",
     "dev/audit/rounds/round4/D6/claims.json",
     "dev/audit/rounds/round4/D6/claims.md",
     "tools/policy/policy_lint.mjs",
