@@ -132,7 +132,7 @@ const NAV = (() => {
     writeln(...a) { navRecord("document", `writeln ${a.join("")}`); },
   };
   return { history, open, location, navigation, doc,
-    History: navInterface("History", history),
+    History: function History() {},
     Navigation: navInterface("Navigation", navigation),
     Document: navInterface("Document", doc) };
 })();
