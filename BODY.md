@@ -4,6 +4,8 @@ The replay lane is already gated nightly: `.github/workflows/tests.yml`'s `slow`
 
 It deliberately does **not** change `COST_BUDGETS` and does **not** add the real recorded day. The cap's re-record is a raise, which is the owner's under CLAUDE.md rule 2, and the real day needs an export from the owner's Home Assistant box that is neither in the tree nor on this box. Both are carried under `## Forward-carry`.
 
+**Owner review and rollback.** The group is code-owned on `.github/workflows/`; this diff touches no `.github/workflows/` file (the lane is gated in `tests.yml`'s `slow` job, unchanged), so the code-owner rule does not bind it, and the decision it leaves to the owner is the cap's re-record under rule 2 (mandate 6175172275), not a workflow change. **Rollback:** revert the branch's two commits over `4e5801eb5` (`cdec077ac`, `f0b1844ba`) — they change one audit instrument and one comment; no runtime path, budget or workflow reads either.
+
 ## Head
 
 `f0b1844bad38247e0a08f575b0208e78e3ff6537` (merge of `origin/main` 4e5801eb5 into the fix).
