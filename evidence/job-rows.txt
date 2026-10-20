@@ -1,0 +1,17 @@
+Rows fetched by the reviewer with gh api from each job's log (the `cost {...}` line of the `slow` job's clean run):
+2026-10-15 run 38699166296 job 116302891186 head 9061fbd3d (pre-era, no loop_ref_ms):
+  cost {'cpu_ratio': 1.329, 'peak_kib': 1913.6, 'loop_cpu_ratio': 0.2452, 'timed': 23, 'traced': 24, 'ref_ms': 54.808613000000506}
+2026-10-17 run 39011974246 job 117336255624 head e3f3b312f:
+  cost {'cpu_ratio': 1.3723, 'peak_kib': 1915.5, 'loop_cpu_ratio': 0.0868, 'timed': 23, 'traced': 24, 'ref_ms': 53.81093599999964, 'loop_ref_ms': 161.09746400000003}
+2026-10-18 run 39106988523 job 117614882824 head 994695e06:
+  cost {'cpu_ratio': 1.7137, 'peak_kib': 1912.6, 'loop_cpu_ratio': 0.0875, 'timed': 23, 'traced': 24, 'ref_ms': 32.59231699999998, 'loop_ref_ms': 127.94426400000003}
+2026-10-19 run 39218718759 job 117948683617 head c35302773:
+  cost {'cpu_ratio': 1.3898, 'peak_kib': 1913.5, 'loop_cpu_ratio': 0.0877, 'timed': 23, 'traced': 24, 'ref_ms': 53.4551840000006, 'loop_ref_ms': 161.39012899999994}
+2026-10-19 dispatch run 39256093598 job 118071730008 head e8c67e1d3:
+  cost {'cpu_ratio': 1.4666, 'peak_kib': 1915.9, 'loop_cpu_ratio': 0.0982, 'timed': 23, 'traced': 24, 'ref_ms': 54.03386500000007, 'loop_ref_ms': 157.16636400000004}
+2026-10-20 run 39387919507 job 118512165515 head 0c298f6b5 (schedule, main):
+  cost {'cpu_ratio': 1.9479, 'peak_kib': 1913.5, 'loop_cpu_ratio': 0.1114, 'timed': 23, 'traced': 24, 'ref_ms': 22.345223999999497, 'loop_ref_ms': 84.0496599999998}
+  doubled-loop arm: loop_cpu_ratio 0.2616, injected_ratio 1.0001
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1114 over its budget 0.111]
+Run/job head_sha and head_branch confirmed via repos/.../actions/runs/<id> and .../actions/jobs/<id>: 39387919507 is event=schedule head_branch=main head_sha=0c298f6b542e6efa4c93941700b3a23b859f3f9a.
+Derived arithmetic re-done: sqrt(2)*median(0.0877)=0.124; sqrt(2)*max(0.1114)=0.1575; 0.124/2=0.062 (0.32% under 0.0618); 0.1575/2=0.0788; 0.0701*1.27=0.089.

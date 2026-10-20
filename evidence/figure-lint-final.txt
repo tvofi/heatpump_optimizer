@@ -1,0 +1,26 @@
+  ok         python3 dev/audit/harnesses/r10_replay_loopnorm.py --series
+             `dev/audit/harnesses/r10_replay_loopnorm.py` is in the tree at this head
+  ok         gh run view 39387919507 --job 118512165515 --log
+             gh run view: every long flag accepted
+  ok         gh run view <run> --job <job> --log
+             gh run view: every long flag accepted
+  unverified python3 -c 'import math; print(round(math.sqrt(2) * 0.0877, 4), round(math.sqrt(2) * 0.1114, 4))'
+             python3 runs an inline script rather than a file
+  unverified git archive
+             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         PYTHONPATH=tests/hastub python3 tests/replay.py --one tests/replay/synthetic-dhw-only.json
+             `tests/replay.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>
+             `tests/closure.py` is in the tree at this head
+  ok         tests/debug_collect.py
+             `tests/debug_collect.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tests/features.py
+             `tests/features.py` is in the tree at this head
+  ok         tools/pr/prepr.sh <body>
+             `tools/pr/prepr.sh` is in the tree at this head
+
+FIGURES: 10 resolved, 2 not verified, 0 refused

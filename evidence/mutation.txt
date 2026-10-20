@@ -1,0 +1,8 @@
+  ok: pre: the field is the old figure
+  ok: pre: loop CPU is the field times ref_ms
+  ok: post: the field is the new figure
+  ok: post: loop CPU is the new field times loop_ref_ms
+  FAIL: post: the old figure is derived
+  ok: the era key is the ruler time, not a date
+  ok: the spreads separate
+RESULT self_test checks=7 failed=1
