@@ -1,0 +1,3 @@
+RESULT re-take ci aiohttp 3.14.4 161 ==pypi 161 True
+RESULT re-take typing aiohttp 3.14.4 161 ==pypi 161 True ci_eq_typing True
+RESULT re-take typing yarl 1.25.1 138 ==pypi 138 True
