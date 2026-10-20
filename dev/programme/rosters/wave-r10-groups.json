@@ -3884,7 +3884,9 @@
    "group": "R10-MERGE-SUBJECT-HARDEN",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
+   "issues": [
+    2494
+   ],
    "fixes": [],
    "findings": [
     "#2423 review findings 5 and 6"
