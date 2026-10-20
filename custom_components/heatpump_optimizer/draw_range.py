@@ -84,7 +84,7 @@ IDLE_MARGIN = 1.25
 #: arbiter writes on the entity's step and rounds the ceiling down.
 CEILING_TOLERANCE_K = 0.5
 #: A set-point within this of the gate commanded no heat.
-GATE_TOLERANCE_K = 0.25
+GATE_TOLERANCE_K = 0.5
 
 
 @dataclass
