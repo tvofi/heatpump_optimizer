@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Run the gate lease's priority cases against a BASE ``tests/gate_lock.py``.
+"""Run the gate lease's priority and slot-hold cases against a BASE gate_lock.
 
     python3 dev/audit/harnesses/r10_gate_priority_base.py [BASE_REF]
 
 The cases live in the head's ``tests/gate_lock.py`` and take the module under
-test as an argument (``_priority_cases(g)``), so the same arms can be driven
-against another revision's copy. This loads ``BASE_REF``'s (default
-``origin/main``) and prints each case's verdict. On a base that predates the
-priority channel the ordering arms fail -- the base lease ignores both the
-environment and a ticket's priority -- while the renew guard and the
-concurrency control pass at both ends.
+test as an argument (``_priority_cases(g)``, ``_slot_hold_cases(g)``), so the
+same arms can be driven against another revision's copy. This loads
+``BASE_REF``'s (default ``origin/main``) and prints each case's verdict.
+
+On a base that predates the two behaviours the ordering arms fail (the lease
+ignores priority) and the hold arms fail (an expired slot is stolen while its
+named holder still runs), while the renew guard, the concurrency control and
+the dead-pid control pass at both ends.
 
 Exit 0 when the base shows at least one failure: the demonstration is live.
 Exit 1 when every case passes at the base, which means the ref is not a
@@ -62,11 +64,11 @@ def main(argv: list[str]) -> int:
         base_path.write_text(shown.stdout)
         base = _load("gate_lock_base", base_path)
     head = _load("gate_lock_head", ROOT / "tests" / "gate_lock.py")
-    rows = head._priority_cases(base)
+    rows = (head._priority_cases(base) + head._slot_hold_cases(base))
     for name, ok, detail in rows:
         print(("PASS" if ok else "FAIL"), "|", name, "|", detail)
     failed = [name for name, ok, _ in rows if not ok]
-    print(f"{ref}: {len(failed)} of {len(rows)} priority cases FAILED")
+    print(f"{ref}: {len(failed)} of {len(rows)} lease cases FAILED")
     if not failed:
         print("r10_gate_priority_base: every case passes at the base -- this ref "
               "is not a baseline, so the failing-first evidence is void")
