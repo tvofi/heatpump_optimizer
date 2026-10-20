@@ -50,8 +50,8 @@
   ok   a handoff ahead of its PR runs update_pr with branch and code sha
   ok   the issues come from the body's closing keywords
   ok   the body handed to update_pr is the handoff-body BODY.md
-  FAIL the body update_pr gets passes prepr's body-path check (not directly in a shared root) (rc=0, want 1)
-  FAIL and that body's directory is removed after the update (rc=1, want 0)
+  ok   the body update_pr gets passes prepr's body-path check (not directly in a shared root)
+  ok   and that body's directory is removed after the update
   ok   held runs are approved on the branch
   ok   dispatch runs at the NEW head
   ok   OWED reviewer-fire is logged with pr, head and nonce
@@ -72,4 +72,4 @@
   ok   pass --loop is the only loop (a bad interval is refused)
   ok   pass runs both arms once and returns
   ok   the pass fired the handoff arm
-cloud_relay self-test: 74 checks, 2 failed
+cloud_relay self-test: 74 checks, 0 failed

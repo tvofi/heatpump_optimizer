@@ -73,4 +73,3 @@
   ok   pass runs both arms once and returns
   ok   the pass fired the handoff arm
 cloud_relay self-test: 74 checks, 0 failed
-rc=0

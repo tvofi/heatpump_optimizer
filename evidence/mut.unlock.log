@@ -1,9 +1,3 @@
-  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
-  ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
-  ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
-  ok   no group writes no empty parentheses
-  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
-delivery_row self-test: 5 checks, 0 failed
   ok   open_pr: three arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
   ok   open_pr: an abbreviated code sha refuses as not 40-hex
@@ -50,9 +44,14 @@ delivery_row self-test: 5 checks, 0 failed
   ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
   ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
   ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
-  ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
-  ok     mutant mut:unlock (its line deleted): the holder outlives the run and the next run is BUSY
-  ok   null control: update_pr with code sha '679f2f8' passes every check, and its failed push names its log
+  FAIL update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+  FAIL update_pr: the lock holder has exited by the time a run returns
+  ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+  FAIL update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+  FAIL   mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+  ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+  ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
+  ok   null control: update_pr with code sha 'dee94f7' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 51 checks, 0 failed
+pr_args self-test: 56 checks, 4 failed
