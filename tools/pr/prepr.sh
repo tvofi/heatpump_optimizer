@@ -2450,6 +2450,24 @@ PY
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
   slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and takes it before the heavy steps begin"
+  # (7) The priority the slot-take reads is derived from the branch's group and
+  # exported BEFORE the take, so the lease's ticket carries it (tvofi,
+  # 2026-10-20). The derivation's own four arms are gate_priority.py's
+  # --self-test; these rows pin the WIRING -- that the main flow asks for it at
+  # all, and that the answer reaches the slot-take that queues on it.
+  st "$(grep -cF 'gate_priority.py --branch' <<<"$flow")" 1 "the main flow derives the branch's gate priority"
+  st "$(grep -cF 'export HPO_GATE_PRIORITY' <<<"$flow")" 1 "and exports it for the slot-take and every nested leased step"
+  prio_order=$(awk '/slot-take --label/{exit} /gate_priority.py --branch/{print "ok"}' <<<"$flow")
+  st "$prio_order" ok "and derives it before the heavy slot is taken"
+  # (8) The derived default is gate_priority.py's own: a listed group gets
+  # priority with no env and no marker, an unlisted or unresolvable branch
+  # stays FIFO, and every unreadable input is 0. Its self-test is hermetic --
+  # a throwaway roster and critical-path set -- so republishing the live set
+  # cannot redden this row. This is the copy that answers on every pull
+  # request: `tools/pr/` is INERT, so the suite never selects it.
+  out=$(python3 tools/pr/gate_priority.py --self-test 2>&1); r=$?
+  st "$r" 0 "gate_priority.py's derived-default self-test passes"
+  [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
   # The entry wires both before the first fixture is built: driving the two
   # helpers pins nothing if the self-test stops calling them (#1591's shape).
   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
@@ -2498,6 +2516,20 @@ case $? in
   1) step "transport" 1 "$(echo $TRANSPORT) -- transport is in the code head's ancestry; the body goes on the orphan ref handoff-body/<topic> (fixer.md step 6), and the code head is re-cut without these commits" ;;
   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
 esac
+
+# --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
+# The lease is generic: it orders waiters by an integer and never decides who
+# deserves one. This step supplies the integer from tools/pr/gate_priority.py,
+# whose precedence is (1) $HPO_GATE_PRIORITY, (2) .gate-priority in the
+# worktree, (3) the default DERIVED from this branch's group in the round
+# roster and the critical-path set the orchestrator publishes at the roster
+# ref. Every unreadable answer is 0 -- FIFO -- never a crash and never a stuck
+# queue. It is exported before the slot-take so that take and every nested
+# leased step (run.sh, derive_closures.sh) carry the same priority.
+HPO_GATE_PRIORITY=$(python3 tools/pr/gate_priority.py --branch "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" 2>/dev/null)
+[ "$?" -eq 0 ] && [ -n "$HPO_GATE_PRIORITY" ] || HPO_GATE_PRIORITY=0
+export HPO_GATE_PRIORITY
+say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critical-path default)"
 
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
 # WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its

@@ -18,11 +18,28 @@ seat, so trusting it would read a live seat as dead. A seat holding the lease
 across commands passes the pid of a process that outlives them, e.g.
 ``--owner-pid $PPID``.
 
-The lease is first come, first served. A waiter holds a ticket
-(``ticket-<n>``); a free lease goes to the oldest LIVE ticket, and one whose
-process is gone or whose ticket expired is skipped and removed. ``renew``
-refuses (``RENEW_REFUSED_RC``) while another label's ticket waits: the holder
-finishes its current run, releases, and takes again behind the waiter.
+The lease is first come, first served WITHIN a priority band. A waiter holds a
+ticket (``ticket-<n>``); a free lease goes to the oldest LIVE ticket in the
+highest band present, and one whose process is gone or whose ticket expired is
+skipped and removed. ``renew`` refuses (``RENEW_REFUSED_RC``) while another
+label's ticket waits: the holder finishes its current run, releases, and takes
+again behind the waiter.
+
+A waiter may declare a priority: ``take``/``take_slot`` read
+``$HPO_GATE_PRIORITY`` (0 normal, 1 high, 2 urgent), or take a ``priority=``
+argument that wins over it. THE LEASE NEVER DECIDES WHO DESERVES ONE: which
+group is on the critical path is the caller's policy, and ``tools/pr/prepr.sh``
+derives it from the round roster's critical-path file. A ticket with no
+priority, a malformed one or an unreadable field is 0 and never crashes the
+queue. Aging keeps normal work from starving: a waiter past
+``PRIORITY_AGING_SECONDS`` (600 s) is promoted to ``PRIORITY_MAX``, so it
+overtakes any higher priority that arrived later, while arrival still orders
+the band. The window sits between the pool's 69 s ``SLOT_MIN_SECONDS`` and the
+1800 s ``LEASE_SECONDS``: long enough that priority orders a burst of heavy
+work, short enough that a steady stream of urgent tickets cannot hold a normal
+waiter indefinitely. A ticket rewrite keeps its ``priority`` and its original
+``queued_at`` -- the poll that refreshes it must not reset its age. The
+heavy-slot pool below obeys the same rule in its own directory.
 
 That single lease serialises the commands that must run ALONE -- those that
 measure the machine, so their numbers are comparable only with nothing else
@@ -92,6 +109,16 @@ MACHINE_MEASURING = ("tests/stress.py", "tests/harness_headers.py")
 # A waiter rewrites its ticket every poll; one this far past it is dead.
 TICKET_SECONDS = 60
 RENEW_REFUSED_RC = 75
+# --- priority (#gate-priority, tvofi 2026-10-20) -----------------------------
+# The lease carries an integer priority; it never decides who deserves one. The
+# environment channel is what a caller prepr.sh cannot edit uses, and the
+# ``priority=`` argument is what a Python caller or a test uses (it wins).
+PRIORITY_ENV = "HPO_GATE_PRIORITY"
+PRIORITY_NORMAL = 0
+PRIORITY_MAX = 2
+# A waiter this old is promoted to PRIORITY_MAX, so a normal ticket overtakes a
+# higher priority that arrived later (module docstring states the rationale).
+PRIORITY_AGING_SECONDS = 600
 
 
 class RenewRefused(RuntimeError):
@@ -293,18 +320,41 @@ def _steal(owner_path: Path, seen: Owner) -> None:
     grave.unlink(missing_ok=True)
 
 
-def _ticket_tmp(lock_dir: Path, label: str) -> Path:
+def _ticket_tmp(lock_dir: Path, label: str, priority: int, queued_at: datetime) -> Path:
     """A ticket's full text in a private file, so no reader sees half of it."""
     tmp = lock_dir / f"tmp-{os.getpid()}-{time.monotonic_ns()}"
     expires = datetime.now(UTC) + timedelta(seconds=TICKET_SECONDS)
-    tmp.write_text(f"label={label}\npid={os.getpid()}\nexpires_at={expires.isoformat()}\n")
+    tmp.write_text(
+        f"label={label}\npid={os.getpid()}\nexpires_at={expires.isoformat()}\n"
+        f"priority={priority}\nqueued_at={queued_at.isoformat()}\n"
+    )
     return tmp
 
 
-def _enqueue(lock_dir: Path, label: str, ticket: Path | None) -> Path:
+def _ticket_queued_at(ticket: Path | None) -> datetime:
+    """The arrival stamp a rewritten ticket keeps, or now for a new one.
+
+    ``_enqueue`` rewrites its ticket every poll, so an arrival time taken fresh
+    at each rewrite would reset the waiter's age and aging would never fire.
+    Only this process rewrites its own ticket, so a plain read is enough; a
+    missing, unreadable or naive stamp starts the wait now rather than at an
+    unknowable instant (fixer.md step 16).
+    """
+    if ticket is not None:
+        try:
+            stamp = datetime.fromisoformat(_fields(ticket.read_text())["queued_at"])
+            if stamp.tzinfo is not None:
+                return stamp
+        except (OSError, KeyError, ValueError):
+            pass
+    return datetime.now(UTC)
+
+
+def _enqueue(lock_dir: Path, label: str, ticket: Path | None, *,
+             priority: int = PRIORITY_NORMAL) -> Path:
     """Refresh ``ticket`` in place, or join the back of the queue."""
     _ensure_lock_dir(lock_dir)
-    tmp = _ticket_tmp(lock_dir, label)
+    tmp = _ticket_tmp(lock_dir, label, priority, _ticket_queued_at(ticket))
     try:
         if ticket is not None and ticket.exists():
             os.replace(tmp, ticket)
@@ -320,23 +370,93 @@ def _enqueue(lock_dir: Path, label: str, ticket: Path | None) -> Path:
         tmp.unlink(missing_ok=True)
 
 
-def _queue(lock_dir: Path) -> list[tuple[Path, str]]:
-    """Live tickets, oldest first; a dead or expired one is removed."""
-    live = []
+def _read_priority(raw: str | None) -> int:
+    """A declared priority as an int in ``0..PRIORITY_MAX``; 0 for anything else.
+
+    Absent, empty, non-integer and out-of-range values all land in the range
+    rather than outranking work or crashing the queue: a caller's typo must not
+    lift it above the owner's scale. This is the one parse the lease uses, on
+    both the environment channel and a ticket's own field.
+    """
+    if not raw:
+        return PRIORITY_NORMAL
+    try:
+        value = int(str(raw).strip())
+    except ValueError:
+        return PRIORITY_NORMAL
+    return max(PRIORITY_NORMAL, min(PRIORITY_MAX, value))
+
+
+def _declared_priority(priority: int | None) -> int:
+    """The argument when given, else ``$HPO_GATE_PRIORITY``, else 0.
+
+    Read once when a take begins: a waiter keeps the priority it declared for
+    its whole wait, including every ticket rewrite.
+    """
+    if priority is not None:
+        return _read_priority(str(priority))
+    return _read_priority(os.environ.get(PRIORITY_ENV))
+
+
+def _stamp_or_now(raw: str | None, now: datetime) -> datetime:
+    """An aware arrival stamp, or ``now`` when it is absent, unreadable or naive."""
+    try:
+        stamp = datetime.fromisoformat(raw) if raw else None
+    except ValueError:
+        return now
+    if stamp is None or stamp.tzinfo is None:
+        return now
+    return stamp
+
+
+@dataclass(frozen=True)
+class Waiter:
+    """One live ticket: where it queues, who waits, and what it declared."""
+    path: Path
+    label: str
+    priority: int
+    queued_at: datetime
+
+    def effective(self, now: datetime) -> int:
+        """The priority the queue orders it by: aged waiters sit at the top."""
+        if now - self.queued_at >= timedelta(seconds=PRIORITY_AGING_SECONDS):
+            return PRIORITY_MAX
+        return self.priority
+
+
+def _queue(lock_dir: Path, now: datetime | None = None) -> list[Waiter]:
+    """Live tickets, in the order the next free resource goes.
+
+    Highest effective priority first, then arrival (the ``ticket-<n>``
+    sequence, which a rewrite keeps). A ticket past ``PRIORITY_AGING_SECONDS``
+    is promoted to ``PRIORITY_MAX``, so an aged normal waiter overtakes any
+    priority that arrived later; arrival still orders within a band, so two
+    aged waiters keep their FIFO order. Missing or malformed fields read as
+    priority 0 and arrival now, and a dead or expired ticket is removed.
+    """
+    now = datetime.now(UTC) if now is None else now
+    live: list[tuple[int, str, Waiter]] = []
     for path in sorted(lock_dir.glob(TICKET_PREFIX + "*")):
         try:
             f = _fields(path.read_text())
             alive = (_pid_alive(int(f["pid"]))
-                     and datetime.now(UTC) < datetime.fromisoformat(f["expires_at"]))
+                     and now < datetime.fromisoformat(f["expires_at"]))
         except FileNotFoundError:
             continue
         except (OSError, KeyError, ValueError):
             alive = False
         if alive:
-            live.append((path, f["label"]))
+            waiter = Waiter(
+                path=path,
+                label=f["label"],
+                priority=_read_priority(f.get("priority")),
+                queued_at=_stamp_or_now(f.get("queued_at"), now),
+            )
+            live.append((-waiter.effective(now), path.name, waiter))
         else:
             path.unlink(missing_ok=True)
-    return live
+    live.sort(key=lambda row: (row[0], row[1]))
+    return [waiter for _, _, waiter in live]
 
 
 def take(
@@ -346,13 +466,17 @@ def take(
     lease_seconds: int = LEASE_SECONDS,
     wait: bool = True,
     owner_pid: int | None = None,
+    priority: int | None = None,
 ) -> Owner:
     """Acquire the gate lease for ``label``, queueing behind older live tickets.
 
     ``owner_pid`` names a process that outlives the commands holding the lease
     (a seat's ``$PPID``). It is recorded in the owner file so a later take can
     steal an orphaned lease whose holder exited without releasing (#1143).
+    ``priority`` (or ``$HPO_GATE_PRIORITY``) places the waiter ahead of older
+    tickets in a lower band; see the module docstring.
     """
+    prio = _declared_priority(priority)
     said, ticket = False, None
     try:
         while True:
@@ -360,12 +484,12 @@ def take(
             if owner is None:
                 _ensure_lock_dir(lock_dir)
                 queue = _queue(lock_dir)
-                if not queue or queue[0][0] == ticket:
+                if not queue or queue[0].path == ticket:
                     fresh = _new_owner(label, lease_seconds, owner_pid)
                     if fresh.create(lock_dir / OWNER_NAME):
                         return fresh
                     continue
-                held = f"{queue[0][1]}, queued first"
+                held = f"{queue[0].label}, at the head of the queue"
             elif owner.label == label:
                 (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
                 if owner.expired:
@@ -381,7 +505,7 @@ def take(
                 held = f"{owner.label} until {owner.expires_at}"
             if not wait:
                 raise BlockingIOError(f"gate held by {held}")
-            ticket = _enqueue(lock_dir, label, ticket)
+            ticket = _enqueue(lock_dir, label, ticket, priority=prio)
             if not said:
                 print(f"gate_lock: waiting for the lease held by {held}"
                       " (yours? export HPO_GATE_LOCK_LABEL with that label)", file=sys.stderr)
@@ -404,7 +528,9 @@ def renew(
         raise RuntimeError("no live gate lease to renew")
     if owner.label != label:
         raise RuntimeError(f"lease held by {owner.label}, not {label}")
-    waiting = [who for _, who in _queue(lock_dir) if who != label]
+    # Any other label's ticket refuses, whatever priority it declared: a
+    # priority tenant queues like everyone else and never extends past a waiter.
+    waiting = [waiter.label for waiter in _queue(lock_dir) if waiter.label != label]
     if waiting:
         raise RenewRefused(
             f"renew refused: {waiting[0]} waits for the lease. Finish the current "
@@ -441,7 +567,7 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
     return {
         "lock_dir": str(lock_dir),
         "owner": owner,
-        "queue": [who for _, who in _queue(lock_dir)] if lock_dir.exists() else [],
+        "queue": [waiter.label for waiter in _queue(lock_dir)] if lock_dir.exists() else [],
         "flock_available": flock_available(lock_dir) if lock_dir.exists() else True,
     }
 
@@ -511,20 +637,24 @@ def take_slot(
     lease_seconds: int = LEASE_SECONDS,
     wait: bool = True,
     owner_pid: int | None = None,
+    priority: int | None = None,
 ) -> tuple[int, Owner]:
     """Claim one of ``slots`` heavy slots for ``label``; return (index, owner).
 
-    First come, first served like the single lease: while every slot is held a
-    caller queues behind older live tickets and takes the next slot to free, so
-    a fifth caller waits rather than loading the box. ``owner_pid`` names a
-    process that outlives the commands holding the slot, so a later take steals
-    a slot whose seat has exited (#1143). ``slots`` defaults to `heavy_slots()`,
-    the pool's own capacity.
+    Priority, then arrival like the single lease: while every slot is held a
+    caller queues behind older live tickets, and a free slot goes to the oldest
+    ticket in the highest band present, so a fifth caller waits rather than
+    loading the box. ``owner_pid`` names a process that outlives the commands
+    holding the slot, so a later take steals a slot whose seat has exited
+    (#1143). ``slots`` defaults to `heavy_slots()`, the pool's own capacity.
+    ``priority`` (or ``$HPO_GATE_PRIORITY``) orders the waiter; see the module
+    docstring.
     """
     if slots is None:
         slots = heavy_slots()
     if slots < 1:
         raise ValueError("slots must be at least 1")
+    prio = _declared_priority(priority)
     pool = pool_dir(lock_dir)
     said, ticket = False, None
     try:
@@ -544,17 +674,17 @@ def take_slot(
             free = _free_slot(pool, slots)
             if free is not None:
                 queue = _queue(pool)
-                if not queue or queue[0][0] == ticket:
+                if not queue or queue[0].path == ticket:
                     fresh = _new_owner(label, lease_seconds, owner_pid)
                     if fresh.create(_slot_path(pool, free)):
                         return free, fresh
                     continue  # another caller won the O_EXCL create; try again
-                held = f"{queue[0][1]}, queued first"
+                held = f"{queue[0].label}, at the head of the queue"
             else:
                 held = _held_slots(pool, slots)
             if not wait:
                 raise BlockingIOError(f"all {slots} heavy slots held: {held}")
-            ticket = _enqueue(pool, label, ticket)
+            ticket = _enqueue(pool, label, ticket, priority=prio)
             if not said:
                 print(f"gate_lock: waiting for a heavy slot ({held})", file=sys.stderr)
                 said = True
@@ -590,7 +720,7 @@ def slots_status(
         "pool_dir": str(pool),
         "slots": slots,
         "holders": holders,
-        "queue": [who for _, who in _queue(pool)] if pool.exists() else [],
+        "queue": [waiter.label for waiter in _queue(pool)] if pool.exists() else [],
     }
 
 
@@ -1048,6 +1178,262 @@ def _queue_cases(g) -> list[tuple[str, bool, str]]:
     return out
 
 
+def _priority_cases(g) -> list[tuple[str, bool, str]]:
+    """The priority channel's cases, against module ``g`` -- this one, or
+    origin/main's copy loaded beside it, where the ordering arms fail because
+    the base lease ignores both the environment and a ticket's priority, and
+    the concurrency control holds either way.
+
+    Every arm states the property rather than an instance. The ordering arms
+    set ``HPO_GATE_PRIORITY`` in the process while a waiter ENTERS ``take``
+    (its priority is read once, at entry), and read the order the waiters were
+    released in. The aging arm drives ``_queue(now=...)`` with a stated clock,
+    so no arm sleeps a window. The concurrency arm counts holders inside the
+    pool, so two grants in one poll show up as a count, not an argument.
+    """
+    import tempfile
+    import threading
+
+    env_name = "HPO_GATE_PRIORITY"
+    poll = g.WAIT_POLL_SECS
+
+    class _Env:
+        def __init__(self, value: str | None):
+            self.value = value
+
+        def __enter__(self):
+            self.saved = os.environ.get(env_name)
+            if self.value is None:
+                os.environ.pop(env_name, None)
+            else:
+                os.environ[env_name] = self.value
+
+        def __exit__(self, *exc):
+            os.environ.pop(env_name, None)
+            if self.saved is not None:
+                os.environ[env_name] = self.saved
+
+    def ticket_text(d: Path, who: str, limit: float = 8.0) -> str:
+        """The ticket ``who`` waits on, read back; "" when it never queues."""
+        end = time.monotonic() + limit
+        while time.monotonic() < end:
+            for p in d.glob(g.TICKET_PREFIX + "*"):
+                try:
+                    text = p.read_text()
+                except OSError:
+                    continue
+                if f"label={who}\n" in text:
+                    return text
+            time.sleep(0.02)
+        return ""
+
+    def rewritten(d: Path, who: str, first: str, limit: float = 8.0) -> str:
+        """The ticket after at least one poll rewrote it: its expiry moved.
+
+        An instrument for the rewrite property rather than a sleep: a ticket
+        only counts as rewritten once ``expires_at`` has advanced past the
+        stamp read when it first queued.
+        """
+        seen = _fields(first).get("expires_at")
+        end = time.monotonic() + limit
+        while time.monotonic() < end:
+            for p in d.glob(g.TICKET_PREFIX + "*"):
+                try:
+                    text = p.read_text()
+                except OSError:
+                    continue
+                if f"label={who}\n" in text and _fields(text).get("expires_at") != seen:
+                    return text
+            time.sleep(0.02)
+        return ""
+
+    def priority_first(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.WAIT_POLL_SECS = 0.1
+        g.take("h", lock_dir=d, lease_seconds=60, wait=False)
+
+        def one(who: str) -> None:
+            g.take(who, lock_dir=d, lease_seconds=60)
+            got.append(who)
+            time.sleep(0.15)
+            g.release(who, lock_dir=d)
+
+        normal = threading.Thread(target=one, args=("normal",), daemon=True)
+        normal.start()
+        normal_queued = bool(ticket_text(d, "normal"))
+        with _Env("2"):
+            urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
+            urgent.start()
+            urgent_queued = ticket_text(d, "urgent")
+        # Wait for an actual rewrite, not a sleep: the priority must survive
+        # the poll that refreshes the ticket the queue will read next.
+        after_rewrite = rewritten(d, "urgent", urgent_queued) if urgent_queued else ""
+        g.release("h", lock_dir=d)
+        normal.join(20)
+        urgent.join(20)
+        ok = (normal_queued and bool(urgent_queued) and "priority=2" in urgent_queued
+              and "priority=2" in after_rewrite and got == ["urgent", "normal"])
+        return ok, (f"queued={normal_queued}/{bool(urgent_queued)} "
+                    f"rewrite={'priority=2' in after_rewrite} order={got}")
+
+    def rewrite_keeps(d: Path, got: list[str]) -> tuple[bool, str]:
+        g._ensure_lock_dir(d)
+        path = g._enqueue(d, "w", None, priority=2)
+        first = _fields(path.read_text())
+        time.sleep(0.05)
+        again = g._enqueue(d, "w", path, priority=2)
+        second = _fields(again.read_text())
+        ok = (again == path and first.get("priority") == "2"
+              and second.get("priority") == "2"
+              and first.get("queued_at") and first.get("queued_at") == second.get("queued_at"))
+        return ok, (f"same_path={again == path} priority={first.get('priority')}/"
+                    f"{second.get('priority')} queued_at_kept="
+                    f"{first.get('queued_at') == second.get('queued_at')}")
+
+    def aging(d: Path, got: list[str]) -> tuple[bool, str]:
+        window = g.PRIORITY_AGING_SECONDS
+        now = datetime.now(UTC)
+
+        def ticket(where: Path, n: int, who: str, prio: int, age: int) -> None:
+            g._ensure_lock_dir(where)
+            (where / f"{g.TICKET_PREFIX}{n:012d}").write_text(
+                f"label={who}\npid={os.getpid()}\n"
+                f"expires_at={(now + timedelta(seconds=window + 900)).isoformat()}\n"
+                f"priority={prio}\nqueued_at={(now - timedelta(seconds=age)).isoformat()}\n")
+
+        old, young = d / "old", d / "young"
+        ticket(old, 1, "normal", g.PRIORITY_NORMAL, window + 1)
+        ticket(old, 2, "urgent", g.PRIORITY_MAX, 60)
+        aged = [w.label for w in g._queue(old, now=now)]
+        # Null control: one second short of the window the same pair is FIFO by
+        # priority, so this arm binds on the threshold, not on age alone.
+        ticket(young, 1, "normal", g.PRIORITY_NORMAL, window - 1)
+        ticket(young, 2, "urgent", g.PRIORITY_MAX, 60)
+        below = [w.label for w in g._queue(young, now=now)]
+        return aged == ["normal", "urgent"] and below == ["urgent", "normal"], \
+            f"aged={aged} below={below}"
+
+    def malformed(d: Path, got: list[str]) -> tuple[bool, str]:
+        now = datetime.now(UTC)
+        g._ensure_lock_dir(d)
+
+        def ticket(n: int, who: str, extra: str) -> None:
+            (d / f"{g.TICKET_PREFIX}{n:012d}").write_text(
+                f"label={who}\npid={os.getpid()}\n"
+                f"expires_at={(now + timedelta(seconds=600)).isoformat()}\n" + extra)
+
+        ticket(1, "absent", "")                                    # no fields at all
+        ticket(2, "junk", "priority=junk\n")                       # unparseable
+        ticket(3, "over", "priority=9\n")                          # clamps to the top
+        ticket(4, "negative", "priority=-4\n")                     # clamps to normal
+        ticket(5, "float", "priority=2.5\nqueued_at=not-a-time\n")  # both unreadable
+        order = [w.label for w in g._queue(d, now=now)]
+        parsed = [g._read_priority(v) for v in
+                  (None, "", "junk", "9", "-4", "2.5", " 1 ")]
+        ok = (order == ["over", "absent", "junk", "negative", "float"]
+              and parsed == [0, 0, 0, 2, 0, 0, 1])
+        return ok, f"order={order} parsed={parsed}"
+
+    def renew_refused(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.WAIT_POLL_SECS = 0.1
+        g.take("h", lock_dir=d, lease_seconds=60, wait=False)
+
+        def one() -> None:
+            g.take("urgent", lock_dir=d, lease_seconds=60)
+            got.append("urgent")
+            time.sleep(0.1)
+            g.release("urgent", lock_dir=d)
+
+        with _Env("2"):
+            thread = threading.Thread(target=one, daemon=True)
+            thread.start()
+            queued = bool(ticket_text(d, "urgent"))
+        try:
+            g.renew("h", lock_dir=d, lease_seconds=60)
+            refused = False
+        except RuntimeError:
+            refused = True
+        g.release("h", lock_dir=d)
+        thread.join(20)
+        return refused and queued and got == ["urgent"], f"refused={refused} order={got}"
+
+    def slot_priority(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.WAIT_POLL_SECS = 0.1
+        pool = g.pool_dir(d)
+        g.take_slot("h", lock_dir=d, slots=1, lease_seconds=60, wait=False)
+
+        def one(who: str) -> None:
+            g.take_slot(who, lock_dir=d, slots=1, lease_seconds=60)
+            got.append(who)
+            time.sleep(0.1)
+            g.release_slot(who, lock_dir=d, slots=1)
+
+        normal = threading.Thread(target=one, args=("normal",), daemon=True)
+        normal.start()
+        normal_queued = bool(ticket_text(pool, "normal"))
+        with _Env("2"):
+            urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
+            urgent.start()
+            urgent_queued = ticket_text(pool, "urgent")
+        g.release_slot("h", lock_dir=d, slots=1)
+        normal.join(20)
+        urgent.join(20)
+        ok = (normal_queued and bool(urgent_queued)
+              and "priority=2" in urgent_queued and got == ["urgent", "normal"])
+        return ok, f"queued={normal_queued}/{bool(urgent_queued)} order={got}"
+
+    def one_winner(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.WAIT_POLL_SECS = 0.05
+        pool = g.pool_dir(d)
+        g.take_slot("holder", lock_dir=d, slots=1, lease_seconds=60, wait=False)
+        inside, overlaps, guard = [0], [0], threading.Lock()
+
+        def one(who: str) -> None:
+            g.take_slot(who, lock_dir=d, slots=1, lease_seconds=60)
+            with guard:
+                if inside[0]:
+                    overlaps[0] += 1
+                inside[0] += 1
+            time.sleep(0.15)
+            with guard:
+                inside[0] -= 1
+            got.append(who)
+            g.release_slot(who, lock_dir=d, slots=1)
+
+        threads = [threading.Thread(target=one, args=(w,), daemon=True) for w in ("a", "b")]
+        [t.start() for t in threads]
+        queued = bool(ticket_text(pool, "a")) and bool(ticket_text(pool, "b"))
+        g.release_slot("holder", lock_dir=d, slots=1)
+        [t.join(20) for t in threads]
+        ok = queued and sorted(got) == ["a", "b"] and overlaps[0] == 0
+        return ok, f"queued={queued} overlaps={overlaps[0]} order={got}"
+
+    cases = [
+        ("priority: an urgent waiter takes before an older normal one, after its ticket rewrite",
+         priority_first),
+        ("priority: a ticket rewrite keeps its priority and its arrival stamp", rewrite_keeps),
+        ("priority: aging promotes a normal waiter past a later urgent one, and only past the window",
+         aging),
+        ("priority: malformed, absent and out-of-range values are 0 or clamped, never a crash",
+         malformed),
+        ("priority: a waiting tenant still refuses renew, and queues ahead after the release",
+         renew_refused),
+        ("priority: the heavy-slot pool orders by the same rule", slot_priority),
+        ("concurrency control: two waiters released in one poll, exactly one holds the slot",
+         one_winner),
+    ]
+    out: list[tuple[str, bool, str]] = []
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            for i, (name, case) in enumerate(cases):
+                try:
+                    out.append((name, *case(Path(td) / str(i), [])))
+                except Exception as exc:  # a crash is a red case, not a lost one
+                    out.append((name, False, f"raised {exc!r}"))
+    finally:
+        g.WAIT_POLL_SECS = poll
+    return out
+
+
 def _acceptance() -> int:
     from harness import Results
 
@@ -1184,6 +1570,10 @@ def _acceptance() -> int:
 
     R.section("the queue")
     for name, ok, detail in _queue_cases(sys.modules[__name__]):
+        R.check(name, ok, detail)
+
+    R.section("priority")
+    for name, ok, detail in _priority_cases(sys.modules[__name__]):
         R.check(name, ok, detail)
 
     for d in (d1, d2, d3, d4, d5, d6):

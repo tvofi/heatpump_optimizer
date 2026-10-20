@@ -15593,6 +15593,8 @@ R.check(
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._priority_cases(_gate_lock):
+    R.check(f"gate lease priority: {_gl_name}", _gl_ok, _gl_detail)
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
