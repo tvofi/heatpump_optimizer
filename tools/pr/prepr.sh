@@ -499,6 +499,20 @@ claims_line() { # rc 0 holds, 1 refused
   rm -f "$out"; return "$r"
 }
 
+# Off Linux the scoped recordings are CI's job, not the handoff's. Its
+# required `closures` context records them, and `closures-autofix` commits the
+# recording for an UNDER-SCOPED run; a local recording here buys only the
+# round trip that bot commit then costs (a GITHUB_TOKEN head runs no
+# `pull_request` event, so the required contexts stay absent and the train
+# recarries it). A lane that needs a first-green head, so no bot commit at
+# all, sets PREPR_RECORD_CLOSURES=1 and records here anyway. Linux is
+# unchanged: every decision the step made before this predicate stands.
+closures_records_here() { # rc 0 record scoped closures on this machine, 1 leave them to CI
+  [ -n "${PREPR_RECORD_CLOSURES:-}" ] && return 0
+  case "$(uname -s 2>/dev/null)" in Linux*) return 0 ;; esac
+  return 1
+}
+
 # The recorder is `derive_closures.sh` unless PREPR_RECORD names another one
 # taking the same arguments, which only `--self-test` does. rc 3 is a skip.
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
@@ -528,10 +542,13 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         printf '%s\n' "$s" >> "$cw/record.txt"
       done < "$cw/aff/affected.scripts"
       rp=""
-      if [ -s "$cw/record.txt" ]; then
-        # Resolved only when this machine will actually record something, so a
-        # diff whose recordings are all left to CI owes no interpreter (and
-        # `closure_lane` above still ran on the ambient python3 it always did).
+      # Resolved only when this machine will actually record something, so a
+      # diff whose recordings are all left to CI owes no interpreter (and
+      # `closure_lane` above still ran on the ambient python3 it always did).
+      # `closures_records_here` is the second half of that condition: off Linux
+      # the scoped recordings are CI's unless PREPR_RECORD_CLOSURES names a
+      # lane that needs a first-green head.
+      if [ -s "$cw/record.txt" ] && closures_records_here; then
         rp=$(recorder_python) || { echo "$rp"; r=1; }
       fi
       if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
@@ -540,7 +557,12 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
       fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
       elif [ ! -d "$cw/rec" ]; then
-        echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
+        if closures_records_here; then
+          echo "nothing scoped can be recorded on this machine; left to CI:$left"
+        else
+          echo "the scoped recordings are left to CI: its required \`closures\` context records them and \`closures-autofix\` commits the recording; set PREPR_RECORD_CLOSURES=1 to record them locally on this non-Linux seat (a lane that needs a first-green head)"
+        fi
+        r=3
       else
         v=$(closures_verdict "$cw/rec"); r=$?
         echo "$v${left:+; left to CI:$left}"
@@ -1991,6 +2013,7 @@ EOS
     && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
     && echo "own_lane  # this branch's claim" >> tests/golden/claimed_drift.txt && $G commit -qam own \
     && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
+    && $G checkout -q -b fl fork && echo "# a gate file" >> tests/closure.py && $G commit -qam fl \
     && $G checkout -q -b main fork && echo "main_lane  # claimed on main after the fork" >> tests/golden/claimed_drift.txt \
     && $G commit -qam main && git update-ref refs/remotes/origin/main main \
     && $G checkout -q -b unt && echo "# unt" >> custom_components/heatpump_optimizer/away.py \
@@ -2032,7 +2055,10 @@ for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
   printf '#!/bin/bash\n[ -n "${CALLLOG:-}" ] && printf '"'"'%%s\\n'"'"' "$1" >> "$CALLLOG"\nmkdir -p "$5"\nif [ "$1" = "--scripts-from" ]; then\n  while read -r s; do\n    [ -n "$s" ] || continue\n    cp "$FIXTURE_REC/$(basename "$s").json" "$5/"\n    [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\n  done < "$2"\nelse\n  cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n  [ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nfi\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
-  closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
+  # The recording arms below drive the recorder, so they name the off-Linux
+  # opt-in: off Linux the default is now the skip its own arms pin, and CI
+  # runs this self-test on Linux. See the platform arms after them.
+  closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD_CLOSURES=1 PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
@@ -2043,6 +2069,40 @@ PY
   # genuinely outside every recorded reach; dev/governance/ is one at both
   # ends (pinned in tests/entities.py beside the rule itself).
   got=$(closures_at sk under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # The platform decision (tvofi, 2026-10-20): off Linux the scoped recordings
+  # are CI's -- its required `closures` context records them and
+  # `closures-autofix` commits the recording -- unless PREPR_RECORD_CLOSURES
+  # names a lane that needs a first-green head. The predicate reads `uname`,
+  # so a shell function of that name inside the arm's own subshell stands for
+  # the host and these arms run the same on a Darwin seat and a Linux runner.
+  # The bad override proves the skip still owes no recorder interpreter.
+  CL_TXT=$( ( cd "$CLM/r" && git checkout -q cl && uname() { printf 'Darwin\n'; } \
+    && HPO_RECORDER_PYTHON=/bin/false PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" closures_line fork ) ); CL_RC=$?
+  st "$CL_RC" 3 "6b leaves a scoped diff's recordings to CI off Linux by default, owing no recorder interpreter"
+  grep -q '`closures` context' <<<"$CL_TXT" && grep -q '`closures-autofix`' <<<"$CL_TXT"
+  st $? 0 "and the skip line names the CI context and the autofix job that own them"
+  grep -q 'PREPR_RECORD_CLOSURES=1' <<<"$CL_TXT"
+  st $? 0 "and names the opt-in that records locally instead"
+  closures_run() { # branch fixture linux|darwin [opt-in]; sets CL_RC and CL_TXT
+    CL_TXT=$( ( cd "$CLM/r" && git checkout -q "$1" \
+      && if [ "${3:-linux}" = darwin ]; then uname() { printf 'Darwin\n'; }; else uname() { printf 'Linux\n'; }; fi \
+      && PREPR_RECORD_CLOSURES="${4:-}" PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork ) )
+    CL_RC=$?
+  }
+  closures_run cl ok darwin 1
+  st "$CL_RC" 0 "6b's opt-in records off Linux for a lane that needs a first-green head"
+  closures_run cl under darwin 1
+  st "$CL_RC" 1 "and the opt-in still refuses a closure its recording does not cover (null control)"
+  closures_run cl under linux ""
+  st "$CL_RC" 1 "6b on Linux still records and still refuses an uncovered closure (null control)"
+  closures_run fl under linux ""
+  st "$CL_RC" 3 "6b skips a diff it cannot scope (full), recording nothing"
+  [ "$CL_TXT" = "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden" ]
+  st $? 0 "and the full case's line is byte-identical to the one it printed before the platform decision"
+  closures_run sk under linux ""
+  st "$CL_RC" 3 "and a skip-case diff still skips"
+  [ "$CL_TXT" = "the diff reaches no selectable script's closure" ]
+  st $? 0 "and the skip case's line is byte-identical too"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
   # per script pays the SUM of the recordings where the lane run pays a lane
@@ -2050,7 +2110,7 @@ PY
   # failed with the log holding --single. `cl` is again the scoped branch.
   : > "$CLM/calls"
   full=$(cd "$CLM/r" && git checkout -q cl \
-    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" CALLLOG="$CLM/calls" \
+    && PREPR_RECORD_CLOSURES=1 PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" CALLLOG="$CLM/calls" \
        closures_line fork 2>&1); rc=$?
   st "$rc" 0 "6b drives the scoped set through the --scripts-from lane runner"
   [ "$(sort -u "$CLM/calls" | tr -d '\n')" = "--scripts-from" ]
@@ -2074,7 +2134,7 @@ PY
   [ -n "$realpy" ] && pybin="$(dirname "$realpy"):$PATH"
   : > "$CLM/pylog"
   full=$(cd "$CLM/r" && git checkout -q cl \
-    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+    && PREPR_RECORD_CLOSURES=1 PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
        HPO_STATE_DIR="$FB/state" PATH="$pybin" \
        closures_line fork 2>&1); rc=$?
   st "$rc" 0 "6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)"
@@ -2082,7 +2142,7 @@ PY
   st $? 0 "and the recorder received that interpreter as \$PYTHON"
   : > "$CLM/pylog"
   full=$(cd "$CLM/r" && git checkout -q cl \
-    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+    && PREPR_RECORD_CLOSURES=1 PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
        HPO_RECORDER_PYTHON=/bin/false closures_line fork 2>&1); rc=$?
   st "$rc" 1 "6b refuses an override that cannot parse the tree instead of recording under it"
   grep -q 'seat_venv.sh' <<<"$full"
@@ -2749,8 +2809,11 @@ step "claims hygiene" $? "$CLAIMS_LINE"
 # affected`, three-dot), the recordings are `--record-only` so the committed
 # file is compared and never rewritten, and a full re-record is never run here
 # (gate-scoping.md). It runs the scoped scripts once, without the gate lease,
-# so a script that needs one is left to CI (`closure_lane`);
-# PREPR_SKIP_CLOSURES=1 skips it on a push that only re-bodies.
+# so a script that needs one is left to CI (`closure_lane`). Off Linux the
+# scoped recordings are left to CI's `closures` context and `closures-autofix`
+# (`closures_records_here`); PREPR_RECORD_CLOSURES=1 records them here for a
+# lane that needs a first-green head, and PREPR_SKIP_CLOSURES=1 skips it on a
+# push that only re-bodies.
 if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
 else
