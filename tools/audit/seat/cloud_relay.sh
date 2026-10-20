@@ -101,7 +101,7 @@ relay() {
   sha=$(git ls-remote origin "$ref" | awk 'NF { print $1; exit }')
   [ -n "$sha" ] || { die "no $ref on origin"; return; }
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
-  if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
+  if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
   git fetch -q origin "$ref" || { die "could not fetch $ref"; return; }
   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
