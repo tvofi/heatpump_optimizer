@@ -3627,7 +3627,9 @@
    "group": "R10-SAV-COMFORT",
    "lane": "SV",
    "kind": "owner",
-   "issues": [],
+   "issues": [
+    2492
+   ],
    "fixes": [],
    "findings": [],
    "class": "owner",
