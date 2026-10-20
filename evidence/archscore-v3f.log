@@ -1,0 +1,2 @@
+===== daemonize pid=15137 2026-10-20T23:31:57Z argv: python3 -u tools/audit/archscore/score.py --diff origin/main
+Architecture score: dS +0.0000 NULL
