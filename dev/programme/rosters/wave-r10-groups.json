@@ -2469,9 +2469,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-i5-docs",
-    "commit": null,
+    "commit": "7a7102eb844cf4f549d52af241b7bdc8e5a74797",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Fell through wave 1: no commit on handoff/r10-i5-docs, no pull request, issues #2222 and #2298 open. Queued for the next free seat; the group is not blocked by any dependency."
