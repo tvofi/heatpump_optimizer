@@ -4917,7 +4917,9 @@
   {
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
+   "issues": [
+    2502
+   ],
    "fixes": [],
    "severity": "medium",
    "size": "S",
