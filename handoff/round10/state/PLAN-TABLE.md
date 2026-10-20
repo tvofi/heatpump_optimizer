@@ -160,8 +160,8 @@ State found: the RCA is DONE but unpublished. |  |
 | R10-RCA-HEADMOVED | RP | 2 | not-started | #2389 | opus/opus | - | ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). |  |
 | R10-RCA-STRUCTURE-BLIND | RP | 1 | done | #2235 | opus/opus | - | # O16 — round-10 RCA for the N-structure-blind class (#2235)
 Role: dev/governance/roles/root-cause.md. |  |
-| R10-SAV-COMFORT | SV | 1 | not-started | - | opus/opus | - | Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. |  |
-| R10-MUTATION-ANCHOR | IN | 1 | not-started | - | opus/opus | - | Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. |  |
+| R10-SAV-COMFORT | SV | 1 | not-started | #2492 | opus/opus | - | Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. |  |
+| R10-MUTATION-ANCHOR | IN | 1 | not-started | #2493 | opus/opus | - | Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. |  |
 | R10-N-LOG-FLOOD | PS | 1 | done | **#2337** | opus/opus | - | RECORD OF A DELIVERED GROUP (PR #2351, merged at 42e6dedb27f36d180af04069ce652eca4b345378; issue #2337). |  |
 | R10-POLICY-LINT-FAMILY | IN | 1 | not-started | #2410 | opus/opus | yes: policy: tools/policy/ is in POLICY_GLOBS; tvofi approves under the mandate | Measure first, then fix `tools/policy/policy_lint.mjs`'s family count. |  |
 | R10-DEAD-RATE-LIMIT | LR | 1 | done | - | opus/opus | - | Found by the R10-TRUST-RELATIVE seat (no defer): after that group's relative trust region, the rate limit `HOUSE_LOSS_MAX_STEP` (the `max_step_fraction=HOUSE... |  |
