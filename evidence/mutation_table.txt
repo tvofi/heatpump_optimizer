@@ -1,5 +1,0 @@
-  4147 unpinned site(s) of 6227 candidate sites, 4147 at the ratchet base 4a3cbcf62e6f5e7b6594d376d714388caf2915cf; the ledger agrees with the deterministic inventory
-MUTATION TABLE -- scope changed: 1 production file(s) whose code this diff adds or modifies
-  no mutant is both generatable and drivable
-
-MUTATION TABLE PASSED (empty pool)
