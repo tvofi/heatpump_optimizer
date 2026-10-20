@@ -1,0 +1,4 @@
+Tue Oct 20 13:39:33 UTC 2026
+RESULT mutant=PROBE_CAP_SI_set_interval_captured_at_load rc=0 fails=0
+--- restore check ---
+Tue Oct 20 13:42:13 UTC 2026

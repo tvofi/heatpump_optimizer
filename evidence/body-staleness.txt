@@ -1,0 +1,30 @@
+== body staleness at the measured head ==
+--- body ## Figures bullet says: three-dot 3 files, 928 insertions, 335 deletions; 'git diff --name-only origin/main HEAD names the same three'
+--- actual three-dot (origin/main...HEAD):
+ dev/programme/delivery/2452.md             |   1 +
+ dev/programme/rosters/wave-r10-groups.json |   6 +-
+ tests/card.mjs                             | 814 +++++++++++++++++++++--------
+ tools/audit/seat/r10_deeplink_mutants.py   | 443 ++++++++++++----
+ 4 files changed, 929 insertions(+), 335 deletions(-)
+--- actual two-dot (origin/main HEAD) name list (main has advanced with #2465):
+      84
+--- the extra path's origin:
+a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 record: the delivery row for #2452
+--- a01006c1b in this head's ancestry?
+YES
+--- code head preserved? git diff --stat dd74b93f HEAD -- tests/card.mjs tools/audit/seat/r10_deeplink_mutants.py dev/programme/rosters/wave-r10-groups.json
+(empty above = the authored code head's three files are byte-identical in the recarry)
+
+== roster carry citation ==
+--- body cites 'roster 04a641598'; does that commit carry the census text?
+R10-ADVISOR census text at 04a641598: False
+R10-SCORES census text at 04a641598: False
+R10-UX-HEALTH census text at 04a641598: False
+--- at the measured head:
+R10-ADVISOR census text at head: True | RV1/RD8 control line: True
+R10-SCORES census text at head: True | RV1/RD8 control line: True
+R10-UX-HEALTH census text at head: True | RV1/RD8 control line: True
+--- commit that adds the census carry (last change to those briefs):
+6e710b948a6134ce51457e6dadfc0d67416dd0eb Merge origin/main into handoff/r10-deeplink-handlers
+7e8e5e5ab97479a1d63fde668c6011334be492db roster_edit append-carry R10-UPDATE-PR-SIGNALS (tools/audit/seat/roster_edit.py)
+8591ee80a5a52f19d6d1197fef489e4a47208566 roster_edit append-group R10-UPDATE-PR-SIGNALS (tools/audit/seat/roster_edit.py)

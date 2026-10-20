@@ -1,0 +1,6 @@
+Tue Oct 20 13:39:32 UTC 2026
+RESULT mutant=PROBE_CAP_SI_set_interval_captured_at_load rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:keydown:SVG#27/2 -> history back; plan:keydown:SVG#27/2:Escape -> history back; plan:keydown:SVG#27/2:Enter -> history back; plan:keydown:SVG#27/2:  -> history back; plan:keydown:SVG#27/2:Context
+--- restore check ---
+Tue Oct 20 13:42:02 UTC 2026

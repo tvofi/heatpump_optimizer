@@ -1,0 +1,4 @@
+== mutation lane at head (job 118644091180) ==
+2026-10-20T13:07:09.6998226Z MUTATION TABLE -- scope changed: no production code line added or modified against the base
+2026-10-20T13:07:09.7143835Z   no production file in scope; nothing to mutate
+2026-10-20T13:07:09.7144233Z MUTATION TABLE PASSED (empty scope)

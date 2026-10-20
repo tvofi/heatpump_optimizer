@@ -1,0 +1,20 @@
+Tue Oct 20 13:10:38 UTC 2026
+=== NULL ===
+RESULT mutant=NULL_no_plant rc=0 fails=0
+Tue Oct 20 13:14:50 UTC 2026
+=== PLANTS ===
+RESULT mutant=REV_CAP1_location_captured_at_load rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:keydown:SVG#27/2 -> location pathname=/config/integrations; plan:keydown:SVG#27/2:Escape -> location pathname=/config/integrations; plan:keydown:SVG#27/2:Enter -> location pathname=/config/integr
+RESULT mutant=TMX_history_back_eighty_timeouts_deep rc=1 fails=1
+    FAIL  no press throws
+      plan:keydown:SVG#27/2: deferred work had not settled after 64 rounds; plan:keydown:SVG#27/2:Escape: deferred work had not settled after 64 rounds; plan:keydown:SVG#27/2:Enter: deferred work had not se
+RESULT mutant=REV_XL1_svg_xlink_href_markup rc=1 fails=1
+    FAIL  every link the census records from a press is one haLink builds for this entry
+      plan:render -> href /config/integrations/integration/heatpump_optimizer; plan:render -> href /config/integrations/integration/heatpump_optimizer; plan:render -> href /config/integrations/integration/h
+RESULT mutant=X34_card_loads_before_the_surface rc=0 fails=0
+RESULT mutant=X34CAP4_load_order_is_what_closes_REV_CAP4 rc=0 fails=0
+RESULT mutant=X35_settle_cap_drops_silently rc=0 fails=0
+RESULT mutant=X35TMX_cap_refusal_is_what_closes_TMX rc=0 fails=0
+restored
+Tue Oct 20 13:38:40 UTC 2026
