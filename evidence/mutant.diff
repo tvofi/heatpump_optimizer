@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 7f0f93841..a420fc650 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -188,7 +188,7 @@ jobs:
+     # hung) while a rerun of 4e5801eb finished in 21.5 minutes (job
+     # 118701134345). 45 leaves 14:41 over the longest observed run
+     # (45:00 - 30:19); tests/entities.py refuses a lower value.
+-    timeout-minutes: 45
++    timeout-minutes: 30
+     # One language failing must not cancel the others: each leg is its own
+     # analysis and its own evidence.
+     strategy:

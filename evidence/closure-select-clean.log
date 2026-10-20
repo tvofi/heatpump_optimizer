@@ -1,0 +1,45 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (2), measured against the recorded closures in tests/closures.json:
+      .github/workflows/codeql.yml
+      tests/entities.py
+
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
+
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 89 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 93 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 96 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 125 files, no changed file is in its measured closure)
+      SKIP  tests/debug_collect.py  (closure: 98 files, no changed file is in its measured closure)
+      SKIP  tests/deployment_shape.py  (closure: 121 files, no changed file is in its measured closure)
+      SKIP  tests/doc_claims.py  (closure: 157 files, no changed file is in its measured closure)
+      SKIP  tests/edge.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/env_drift.py  (closure: 191 files, no changed file is in its measured closure)
+      SKIP  tests/features.py  (closure: 139 files, no changed file is in its measured closure)
+      SKIP  tests/finite_boundary.py  (closure: 114 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/golden.py  (closure: 193 files, no changed file is in its measured closure)
+      SKIP  tests/guard_pins.py  (closure: 65 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/manual_plan.py  (closure: 105 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/plan_view.py  (closure: 85 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 86 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 40 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 83 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 83 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 89 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
