@@ -4,6 +4,10 @@ The typing lock also moves `yarl` 1.24.5 to 1.25.1: aiohttp 3.14.4 requires `yar
 
 ## Head
 
+`1a9b90965c31c6fd0093f623ec623e319fd6d3be` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2487.md`. The authored code head is `d7241ed4fcb4a578f6fc1df6ca4b977cfd379058`.
+
+`9e39a47187f234c4e6977d127538e2c17b05c2ce` merges origin/main `76bb45628` into the authored code head `d7241ed4fcb4a578f6fc1df6ca4b977cfd379058` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 d7241ed4fcb4a578f6fc1df6ca4b977cfd379058
 
 The second commit is comment-only (a header paragraph). Both lock bodies are byte-identical to the compiled bodies every control below ran against.
@@ -46,7 +50,9 @@ The planted-hash run is also the hash-list control, and it corrected its own des
 
 ## Red checks
 
-No CI check has run on this branch yet; the orchestrator opens the pull request. Two local reds are answered here.
+`nightly-status` is red at this head and it grades `main`, not this tree: its failing step reports the last scheduled run's conclusion on `main`, and this diff touches no reporter input, so it stands red whatever this branch does. `pr-contract` was red at the previous head because `## Head` still named the pre-row head while CI ran on the row commit; `## Head` now names the head CI runs on.
+
+Two local reds are answered here.
 
 - `tests/harness_headers.py` exited 1 with `12 of 109 HARNESS HEADER CHECKS FAILED` on a first run that set `PYTHONPATH=tests/hastub` only. The script's own docstring specifies `PYTHONPATH=tests/hastub:custom_components:tests`; rerun at the same head with that path, it prints `ALL 109 HARNESS HEADER CHECKS PASSED`. The invocation, not the tree, was the defect; the cheaper detector is the docstring line the run skipped.
 - `tests/entities.py` did not complete locally: stopped at 46 minutes while three other seats ran the same script concurrently (load average 66). It is not a `run_always` script; the gate's `MODE: FULL` runs it in CI, and no local result is claimed.
