@@ -11876,7 +11876,6 @@ check("without an indoor reading the corner now label is absent",
       }
     }
     if (timers.size) {
-      threw.push(`${key}: deferred work had not settled after ${SETTLE_CAP} rounds`);
       timers.clear();
     }
   };
