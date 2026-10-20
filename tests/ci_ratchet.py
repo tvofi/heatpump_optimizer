@@ -20,9 +20,12 @@ THE METRICS, each an answer to a named cost:
   script_runs_per_push    instrumented heavy-script executions in a push
                   run (the closures re-derive plus the coverage stage): the
                   "number of script re-runs" the round-9 consolidation
-                  pre-study measured (3.8 per merge average, 7 worst case);
-                  the composed-recording and proof-consume paths land as
-                  HEADROOM here and tighten at the next --record.
+                  pre-study measured (3.8 per merge average, 7 worst case).
+                  A `reused` coverage row executes nothing and is not
+                  counted. Recorded at the every-script-measured-once count
+                  (the closures lane's full plan less the composed script it
+                  consumes, plus the coverage `fast` stage), so a push that
+                  measures any script twice in one instrument grows it.
   script_runs_full_case_pr   the same count on a full-case pull-request run
                   (every script measured and re-derived once). Scoping's
                   ratchet: what a full-case PR costs may only shrink.
@@ -168,7 +171,11 @@ def read_metrics(metrics_dir: Path) -> dict[tuple[str, str], list[dict]]:
 
 
 def script_runs(run: list[dict]) -> int:
-    return sum(1 for r in run if r["lane"] in LANES)
+    """Instrumented script EXECUTIONS in one run. A `reused` coverage row is a
+    copy of the base's per-script data, not an execution -- it runs nothing
+    -- so it is no script run (R10-CI-LAYOUT PR 0). Counting it graded push
+    run 39213675232's 19 copies as 19 runs, 73 against a budget of 68."""
+    return sum(1 for r in run if r["lane"] in LANES and r["class"] != "reused")
 
 
 def critical_path_minutes(runs_json: Path) -> float:
