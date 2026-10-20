@@ -5148,9 +5148,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # sunny intervals inform the solar aperture, dark ones the
         # internal-gains profile.
         self._fold_solar_aperture(previous_state, residual, dt_h)
-        # #2223: dark only; a sunlit residual carries the aperture's error here.
-        if is_sunlit_interval(previous_state.solar_radiation):
-            return
         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
