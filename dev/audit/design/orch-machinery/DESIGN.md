@@ -29,12 +29,15 @@ it.
   at them.
 - Wall-clock is always reported beside `load1`; most of this box's timings are
   load-dominated, so counts and structural facts carry the claims.
-- Tree size at the read head: `ls tools/audit/seat | wc -l` → **53 entries**;
-  **37 self-testing scripts** (`grep -l -- '--self-test' tools/audit/seat/* |
-  grep -vc '\.md$'`; `INSTRUMENTS.md` is a document and does not count as a
-  script); 22,793 lines across the directory (`wc -l tools/audit/seat/* … | tail -1`).
-  These counts move as instruments land; the row count in §2 is derived from this
-  file, not from them.
+- Tree size at the read head: **52 tracked entries** under `tools/audit/seat/`
+  (`git ls-tree --name-only HEAD tools/audit/seat/ | wc -l` → 52; a live
+  checkout's `ls` returns 53 because of an ignored `__pycache__/`, `git status
+  --ignored` shows it as `!!`); **37 self-testing scripts** (`grep -l --
+  '--self-test' tools/audit/seat/* | grep -vc '\.md$'`; `INSTRUMENTS.md` is a
+  document and does not count as a script); 22,793 lines across the directory
+  (`wc -l tools/audit/seat/* … | tail -1`). No tree file changed between the
+  design's two revisions; the row count in §2 is derived from this file, not from
+  these.
 
 ### 1.1 The inventory's row count
 
@@ -439,7 +442,7 @@ daemons and owns the schedule. Its **job table** is a tracked file beside it
 | job | interval | timeout | heartbeat | lock |
 |---|---|---|---|---|
 | `tick` | 300 s | 900 s (one full read measured ~4 min) | 60 s | one per job |
-| `relay-probe` | 120 s | 120 s | — | one per job |
+| `relay-probe` | 120 s | 120 s (**first cut**: the probe pass measured 0.78 s, a fixture relay ~6.5 s; see E21) | — | one per job |
 | `handoff` | 120 s | **3600 s** (measured runs 18:40–36:50) | 60 s | one per job; `update_pr`'s per-branch flock still applies |
 | `state-docs` | 300 s | 300 s | — | one per job |
 | `sync` | 900 s | 600 s | — | one per job |
@@ -461,8 +464,10 @@ daemons and owns the schedule. Its **job table** is a tracked file beside it
   different object and get a different contract** (S4): `orchestrator_tick.py`'s
   existing WORKERS section is the seat checker, and its input becomes a
   machine-readable `workers.json` — `{seat, pr, head, dispatched_at, agent_kind}` —
-  that the session's seat ledger is rendered from. A seat with no PR after the
-  stall window prints `SEAT-STALLED`; a PR whose head moved prints `SEAT-DONE?`.
+  that the session's seat ledger is rendered from. The checker keeps the existing
+  grammar: a seat with no PR after the stall window prints `<seat>: STALLED? …
+  (Nh since dispatch)` and a PR whose head moved prints `<seat>: DONE? …`, exactly
+  as `orchestrator_tick.py:one_worker` prints them today (no new token).
   The prose ledger stops being the source of truth.
 - **Compatibility during migration**: `beatd` writes `tick/alive` on every `tick`
   pass, and the sweep template's step 5 is edited in the same pull request to read
@@ -484,15 +489,16 @@ stores and one derived fold**, all with one schema, and one writer per fact:
 - **`events.tsv`** — append-only `open`/`close` for **event obligations**
   (`reviewer-fire`, `verdict-unposted`, `train-stop`), which cannot be recomputed.
 - **The derived fold** — every **derived obligation** is computed each pass from
-  the live world and never stored: `handoff-no-pr`, `probe-ref`, `stage-mismatch`,
-  `absorb-edge-missing`, `record-owed`. It cannot leak, because it is not an
-  accumulator.
+  the live world and never stored: `handoff-no-pr`, `handoff-update`, `probe-ref`,
+  `stage-mismatch`, `absorb-edge-missing`, `record-owed`. It cannot leak, because
+  it is not an accumulator.
 - **One schema, one parser.** Two kinds of obligation, distinguished by how they
   close:
 
 | kind | class | producer | closer / resolution predicate |
 |---|---|---|---|
 | `handoff-no-pr` | derived | handoff job | an open PR at the topic (the job sees it); or `open_pr.sh`/`update_pr.sh` applies the ref (a disposition); or **`subject-absent`** when the ref is gone from `origin` |
+| `handoff-update` | derived | handoff job | a successful update removes the topic's entry from `handoff-failed.tsv`; a moved `handoff/<topic>` supersedes the entry (the next pass retries at the new sha); or `subject-absent`. Its `why` carries the relay's failure reason, including the two zero-live code paths (`approve-held-runs`, `dispatch`), which are reasons on this obligation, not kinds of their own |
 | `probe-ref` | derived | probe job | `cloud_relay.sh dispose`; or `subject-absent` |
 | `stage-mismatch` | derived | `roster_sync.py` | the predicate is false on a later pass (it is recomputed, not accumulated) |
 | `absorb-edge-missing` | derived | `roster_sync.py` | the edges carry (recomputed) |
@@ -512,10 +518,18 @@ stores and one derived fold**, all with one schema, and one writer per fact:
   name, so the two long-lived state refs stop being permanent obligations.
 - **`subject-absent`** closes any obligation whose subject no longer exists on
   `origin`; at the re-read, 13 of 26 never-disposed subjects are already gone (E19).
-- **The import** is one-time and idempotent: 210 lines → 203 refs (7 duplicate
-  lines), kind inferred from the `refs/heads/probe/` vs `handoff/` prefix, each
-  closed at its **current** sha; a ref it cannot classify is refused and reported,
-  not guessed.
+- **The import** is one-time and idempotent: 210 lines → **203 distinct refs**,
+  taking the **last disposition per ref** (7 repeated ref entries: one exact
+  duplicate line and six same-ref-different-sha re-disposals, which are the
+  relay's legitimate move rule; deduping lines would be wrong). The kind is
+  inferred by prefix with **three arms**: `refs/heads/probe/` → `probe-ref`;
+  `refs/heads/handoff/` **and `refs/heads/handoff-body/`** → `handoff-no-pr` (the
+  relay's own kind already spans both — 113 and 89 refs respectively); the one
+  `probe` ref is `probe-ref`. Each is closed at its **current** sha. A ref whose
+  prefix matches no arm is refused and reported, not guessed. **The relay's OWED
+  vocabulary is closed**: its five shapes map to the five kinds above, and an OWED
+  shape with no ledger kind is a refusal — so the day a new shape is added, the
+  relay stops rather than writing an obligation nothing reads.
 - **Unreadable contract** (B11): a *missing* store is "first run" (the current
   `FileNotFoundError` branch), an **unreadable** store is `UNREADABLE` and the
   pass fails; neither prints a clean board.
@@ -537,10 +551,15 @@ orchestrator (a roster edit, not this design's to land):
 1. **Gate coverage.** `owner_gate` becomes structured
    `{class: code-owned|policy|budget|mandate, mandate: <id|null>, paths: [...]}`.
    The predicate is **class × mandate coverage**: parse the in-force mandate's
-   scope, and `GATE-READY` when the class is covered, `GATE-OWNER <class>` when it
-   is not. With mandate 6175172275 ("scope `all` … covers codeowner, policy and
-   budget-raise approvals") the answer is **14 ready / 0 owner** — revision 1's
-   10/4 was wrong (B2).
+   scope and map each class to the scopes that cover it, at
+   `tools/policy/budget_raise_gate.py`'s own grammar
+   (`MANDATE_GRAMMAR`, `scope (code-owned|budget-raise|all)`):
+   `code-owned` ← `code-owned|all`; `budget` ← `budget-raise|all`
+   (`MANDATE_COVERS_RAISE`); **`policy` ← `all` only** (`MANDATE_COVERS_POLICY`,
+   the file's own ruling that neither `code-owned` nor `budget-raise` licenses
+   landing a policy head). `GATE-READY` when the class is covered,
+   `GATE-OWNER <class>` when it is not. With the only live mandate at scope `all`
+   the answer is **14 ready / 0 owner** — revision 1's 10/4 was wrong (B2).
 2. **Absorbed-edge closure.** `resume.stage: "absorbed"` with `absorbed_into:
    <group>` joins `DONE_STAGES` **only when every `after` edge of the absorbed
    group is present on the absorbing group or in its transitive closure**;
@@ -618,13 +637,18 @@ roster has a size; commit SHAs rendered as SHAs, never `#`.
 
 **Self-test: mutation pins built from fixtures, not from the live file (B12).**
 Three of the five defects were repaired in the live generator while revision 1 was
-reading it, so each arm carries the **pre-fix expression as a fixture** (recovered
-from the `.bak` files) and a **mutant renderer line**; the arm passes on the
-corrected renderer and fails on the mutant:
+reading it, so each arm carries the **pre-fix expression as a fixture** and a
+**mutant renderer line**; the arm passes on the corrected renderer and fails on
+the mutant. Provenance: defects 2, 3 and 4 are recovered from `gen.py.bak` at
+lines 4, 148 and 89; **defect 1's pre-fix expression is in the live file as
+`groups["R10-ARCH-DOCS"] = {… "stage": "not-started"}`, and the fixture
+reproduces that shape** (a hardcoded override whose stage contradicts the
+roster's), not an invented "in-review" hint; defect 5 is partial (status text
+folded, pill class `done`).
 
 | arm | fixture | mutant that must fail the arm |
 |---|---|---|
-| 1 hardcoded override | a roster with the group `done` and an injected "in-review" hint | re-add `groups[...] = {... stage ...}` before the walk |
+| 1 hardcoded override | a roster saying the group `done`, plus the live pre-fix shape `groups[...] = {… "stage": "not-started"}` | re-add that override before the walk |
 | 2 graph from scratch | a roster `after` plus a fixture "scratch edges" file that differs | prefer the scratch file (`EDGES.get(g, …)`) |
 | 3 count from the wrong set | an issue list containing PRs and closed issues | `len(all_issues) - 1` |
 | 4 commit prefix as PR | a done group with a `resume.commit`, no merge | render `f"#{commit8}"` |
@@ -648,7 +672,7 @@ fields. This design consumes them.
 | slot renewal + no-steal-live | 0 | ~40 | none |
 | plan page in the tree | ~2 on a moved input | ~400 | B14(ii): the plan path moves |
 | new-file CI wiring (N5) | — | 3 `run:` lines + `INSTRUMENTS.md` entries | B5: R10-CI-LAYOUT's files |
-| **net** | **~55 s per 5 min** | **~1,340** | **five proposals (§8)** |
+| **net** | **~55 s per 5 min** | **~1,340** | **eight proposals (§8 rows i–viii; `grep -c '^\| [ivx]* \| '` → 8)** |
 
 The board alone rewrites **3.9 MB × 8.2 passes/h ≈ 32 MB/h ≈ 0.77 GB/day**; the
 ledger replaces it with a fold over 229 subjects and 203 dispositions.
@@ -710,10 +734,11 @@ mirror. **CI wiring is R10-CI-LAYOUT's** (B5): `beatd.py`, `ledger.py` and
 `plan_page.py` each carry `--self-test`, so `selftest_wiring.py --check`
 (37/37 wired today) refuses them unwired, and the `run:` lines live in
 `tests.yml`/`governance.yml`/`ci.yml` — the three files R10-CI-LAYOUT's four PRs
-edit, one of which re-records `script_runs_per_push`. **Ordering:** Phase 3's
-wiring lands after R10-CI-LAYOUT's last PR, or in it as a listed file; the three
-instruments may land earlier but stay unwired and red in
-`instrument-self-tests` until then. *(B5, N5.)*
+edit, one of which re-records `script_runs_per_push`. **Ordering:** each
+instrument lands **with its wiring**, after R10-CI-LAYOUT's last PR or as a
+listed file in it; an instrument cannot land earlier and stay unwired, because
+`instrument-self-tests` is a required check and a merge that reddens it cannot
+land. *(B5, N5.)*
 
 **Overlap and retirement (N4).** During the overlap the plan of record is the plan
 ref (`PLAN.html`); the scratch generator is run only to compare, never published.
@@ -776,6 +801,28 @@ must do is policy).
 | the ledger and reconciler need no unreadable rule | both, and the job table, fail closed | E11 |
 | the five plan-page defects are present at `gen.py` | 2, 3 and 4 were repaired live; arms are mutation pins over fixtures | E10 |
 | the stage rule matched the nine | the stated rule (topic-suffix) gives 10; revision 1 used a prefix it did not state | E8 |
-| §6.8 "policy lines 0" | five proposals in §8; four further seat-visible effects named | §8 |
-| 53 entries, 38 self-test files | 53 entries, 37 self-testing scripts (the 38th is a document) | E1 |
+| §6.8 "policy lines 0" | eight proposals in §8; four further seat-visible effects named | §8 |
+| 53 entries, 38 self-test files | **52 tracked entries** (a live `ls` returns 53 because of an ignored `__pycache__/`), 37 self-testing scripts | E1 |
 | `#201` has one writer | `delivery-status-publish` rewrites a body region; `tests/delivery_status.py` builds the ledger; four mechanisms were missing | E14 |
+
+---
+
+## 11. Corrections in revision 3 (round-2 review, `46cd9d44`)
+
+The structure and the row count are unchanged; two ledger clauses and nine
+figures were wrong.
+
+| round-2 item | correction | evidence |
+|---|---|---|
+| B10-R import refuses 89 refs | the import has **three** classification arms: `probe/` → `probe-ref`; `handoff/` **and `handoff-body/`** → `handoff-no-pr` (113 + 89 + 1 = 203 refs, last disposition per ref) | E20 |
+| B10-R a live kind is missing | **`handoff-update`** is a derived kind (10 live lines), state `handoff-failed.tsv`, closed by a successful update, superseded by a moved ref; `approve-held-runs` and `dispatch` are its reasons; a relay OWED shape with no ledger kind is a refusal | E20 |
+| N1-R "53 entries" | **52 tracked entries**; `ls`'s 53 is an ignored `__pycache__/`; no tree file changed between revisions | E1 |
+| N2-R the combined grep | the precise pattern `grep -c 'cloud-disposed'` → **0**; the looser `disposed` matches one docstring word | E2 |
+| N3-R four exact mandate strings | **six** carry the exact string; ten name the mandate; 14/0 unaffected | E8b |
+| N4-R "7 duplicate lines" | 210 lines, 203 refs, **209 distinct lines**: seven repeated ref entries, one an exact duplicate; the import takes the last disposition per ref | E2, E20 |
+| N5-R five proposals | **eight** (§8 rows i–viii), derived with `grep -c '^\| [ivx]* \| '` → 8 | §6.8 |
+| N6-R land earlier and stay red | struck: an instrument lands **with its wiring**; a required check cannot be merged red | §8 Phase 3 |
+| N7-R `SEAT-STALLED` | the existing grammar: `<seat>: STALLED? …` / `<seat>: DONE? …`, as `one_worker` prints | §6.2 |
+| N8-R arm 1's fixture | the fixture reproduces the live pre-fix shape `groups[...] = {… "stage": "not-started"}`, not an invented hint; provenance of the other three is `gen.py.bak:4,148,89` | §6.7 |
+| N9-R relay-probe bound unmeasured | marked a **first cut** with its anchors: probe pass 0.99 s at load1 50; a relay fixture ~7 s (74 checks in 56.5 s) | E21 |
+| N10-R class → scope unstated | stated from `budget_raise_gate.py`: `code-owned` ← `code-owned\|all`; `budget` ← `budget-raise\|all`; `policy` ← `all` only | E22 |

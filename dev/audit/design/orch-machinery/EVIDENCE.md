@@ -26,17 +26,23 @@ reviewer's perturbed figures (its V2, V8, V11, V16, V17) are re-derived below.
         sed 's/^| M//' | sort -n |
         awk 'NR != $1 { print "gap at", $1; bad=1 } END { exit bad }'
     (no gap; exit 0)
+    $ git ls-tree --name-only HEAD tools/audit/seat/ | wc -l
+    52
     $ ls tools/audit/seat | wc -l
     53
+    $ ls -A tools/audit/seat | grep -i pycache
+    __pycache__
+    $ git status --ignored --porcelain tools/audit/seat | head -1
+    !! tools/audit/seat/__pycache__/
     $ grep -l -- '--self-test' tools/audit/seat/* | grep -vc '\.md$'
     37
     $ wc -l tools/audit/seat/* tools/audit/seat/*.md | tail -1
     22793 total
 
-N1 correction: revision 1 wrote "38 with a --self-test"; the 38th is
-`INSTRUMENTS.md`, a document, so the script count is **37**. The entry count at
-this head is 53 (the reviewer measured 52 at its read; instruments land and the
-count moves). The composition rule no longer leans on the total.
+N1-R correction: the tree holds **52** entries at both revision heads; a live
+checkout's `ls` returns 53 because of an ignored `__pycache__/`. No tree file
+changed between revisions, so revision 2's "instruments land" explanation was
+false. The 37 self-testing scripts figure stands.
 
 ---
 
@@ -65,15 +71,19 @@ different sha". The sha-aware comparison:
 
 So of **202 comparable** dispositions, **199 sit at exactly their disposed sha**
 and **3 moved** (the plan ref, the roster and `r10-ci-layout-p0` — the branches
-that move) (N6: 210 lines, 203 distinct refs; 7 duplicate lines). The ledger is
-still required for the reason that survives:
+that move) (N6-R: 210 lines, 203 distinct refs, **209 distinct lines** — seven
+repeated ref entries, one an exact duplicate; the import takes the last
+disposition per ref). The ledger is still required for the reason that survives:
 
     $ awk '$1=="OWED" && ($3=="handoff-no-pr"||$3=="probe-ref"){print $4}' ~/.local/state/hpo/cloud-relay.log | sort -u | wc -l
     228
-    $ grep -c 'disposed\|cloud-disposed' tools/audit/seat/orchestrator_tick.py
+    $ grep -c 'cloud-disposed' tools/audit/seat/orchestrator_tick.py
     0
+    $ grep -c 'disposed' tools/audit/seat/orchestrator_tick.py
+    1        # the word in dispositions' docstring; the precise pattern is the claim
 
-The tick never opens `cloud-disposed`; 203 disposals silence nothing.
+The tick never opens `cloud-disposed` (the precise pattern is 0; the looser
+`disposed` matches one docstring word). 203 disposals silence nothing.
 
 The board remains a projection of the log (unchanged, PASS):
 
@@ -255,11 +265,12 @@ Seven resolve uniquely and are ancestors of `origin/main`; the length test
 
 **E8b — gate coverage under the mandate (B2 correction).** See E18 for the
 mandate's text. Every one of the 14 open gates is class `code-owned` or `policy`
-(four carry the exact string `mandated approval under 6175172275`; ten name the
-mandate in some form; none is a class the mandate excludes). Under the design's
-predicate — is the gate's class covered by the in-force mandate? — the answer is
-**14 ready / 0 owner**. Revision 1's 10/4 asked whether the gate's *free text*
-named the mandate, which is S3's defect in a new form.
+(**six** carry the exact string `mandated approval under 6175172275`; ten name
+the mandate in some form; four name neither, all still `code-owned`/`policy`
+classes). Under the design's predicate — is the gate's class covered by the
+in-force mandate? — the answer is **14 ready / 0 owner**. Revision 1's 10/4 asked
+whether the gate's *free text* named the mandate, which is S3's defect in a new
+form.
 
 Absorbed, with no merge of its own:
 
@@ -513,3 +524,77 @@ The counts move (the reviewer measured 19 of 32 gone at 12:07Z). A ledger withou
 a `subject-absent` close would carry the vanished half forever; a ledger that
 treats `handoff/audit-r*-plan` and `handoff/audit-r*-roster` as handoff branches
 carries two permanent obligations. Both are answered in DESIGN §6.3.
+
+---
+
+## E20. The import's classification and the live OWED shapes (B10-R)
+
+    $ awk '{print $1}' ~/.local/state/hpo/cloud-disposed | sort -u |
+        sed -E 's#(refs/heads/[a-z-]+/).*#\1#' | sort | uniq -c
+     89 refs/heads/handoff-body/
+    113 refs/heads/handoff/
+      1 refs/heads/probe/
+    $ wc -l < ~/.local/state/hpo/cloud-disposed; sort -u ~/.local/state/hpo/cloud-disposed | wc -l
+    210
+    209
+    $ awk '{print $1}' ~/.local/state/hpo/cloud-disposed | sort | uniq -c | awk '$1>1'
+       2 refs/heads/handoff/audit-r10-roster
+       6 refs/heads/handoff/r10-rca-worktree-vanish
+       2 refs/heads/probe/cloud-seat-20261018
+
+Three classification arms, not two: `refs/heads/probe/` → `probe-ref`;
+`refs/heads/handoff/` **and `refs/heads/handoff-body/`** → `handoff-no-pr`
+(89 + 113 + 1 = 203). Seven repeated ref entries (one exact duplicate line,
+six same-ref-different-sha re-disposals); the import takes the **last**
+disposition per ref.
+
+    $ awk '$1=="OWED"{print ($2 ~ /^[0-9]{4}-/ ? $3 : $2)}' ~/.local/state/hpo/cloud-relay.log | sort | uniq -c
+    29890 handoff-no-pr
+       10 handoff-update
+      151 probe-ref
+        1 reviewer-fire
+    $ grep -c 'logline OWED "approve-held-runs\|logline OWED "dispatch' tools/audit/seat/cloud_relay.sh
+    2          # both code paths exist, 0 live lines at this read
+
+`handoff-update` (10 live lines) is the fifth live shape; in the ledger it is a
+derived kind whose state is `handoff-failed.tsv` (`<topic> <code-sha>`), closed by
+a successful update or superseded when the ref moves; `approve-held-runs` and
+`dispatch` are reasons on it, not kinds. A relay OWED shape with no ledger kind is
+a refusal.
+
+---
+
+## E21. Timing anchors for the relay jobs (N9-R)
+
+    $ uptime
+    load averages: 50.04 50.21 47.69
+    $ /usr/bin/time -p sh -c 'git ls-remote --heads origin "refs/heads/probe/*" >/dev/null'
+    real 0.99   user 0.06   sys 0.09
+    $ /usr/bin/time -p bash tools/audit/seat/cloud_relay.sh --self-test
+    cloud_relay self-test: 74 checks, 0 failed
+    real 56.54  user 12.14  sys 15.54     # ~8 relay fixtures => ~7 s per relay
+    $ uptime
+    load averages: 145.66 75.27 57.07     # the self-test itself loads the box
+
+The probe pass is one `ls-remote` (0.99 s at load1 50); a relay pass adds fetch,
+archive, grading and `push-verdict` (~7 s per ref in the fixture path, which also
+loads the box). The `relay-probe` 120 s timeout is therefore a **first cut**, not
+an end-to-end measurement of a pass with several refs — stated as such in §6.2.
+
+---
+
+## E22. The mandate scope grammar and the class mapping (N10-R)
+
+    $ grep -n 'MANDATE_GRAMMAR\|MANDATE_COVERS' tools/policy/budget_raise_gate.py | head -5
+    112: MANDATE_GRAMMAR = re.compile(rf"MANDATE: agents may approve as {OWNER_LOGIN}, scope (code-owned|budget-raise|all), …")
+    116: MANDATE_COVERS_RAISE = ("budget-raise", "all")
+    121: MANDATE_COVERS_POLICY = ("all",)
+    $ sed -n '117,121p' tools/policy/budget_raise_gate.py
+    # What covers the merge train landing a POLICY head …: only `all`. A `code-owned`
+    # scope licenses an approval of a code-owned path, and a `budget-raise` scope a
+    # raise; neither is the owner's written authority for the train to land their
+    # written record.
+
+Mapping: `code-owned` ← `code-owned|all`; `budget` ← `budget-raise|all`;
+`policy` ← `all` only. The only live mandate is scope `all`, so 14/0 is unchanged
+by the mapping; a narrower mandate would be read correctly.
