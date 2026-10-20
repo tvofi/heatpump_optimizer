@@ -42,10 +42,10 @@ Plants:
            refuse. V9 is GREEN there: an attribute node built and attached to
            nothing names no way out, and only the retired spelling row
            refused it.
-  T1c,T2c  a press that throws, or rejects, only inside the census (the card
-           tells the census by the selector-list shim it alone installs; the
-           navigation surface is the same object everywhere since round 3, so
-           detects the census's one-parameter open).
+  T1c,T2c  a press that throws, or rejects, only inside the census. The card
+           tells the census by the selector-list shim it alone installs: since
+           round 3 the navigation surface is the same object everywhere, so
+           the census's one-parameter `open` is no longer a tell.
   Y1       the residual's witness, expected GREEN: a run-time name written
            through a selector the stub DOM cannot resolve (see the census's
            Residual paragraph).
@@ -57,8 +57,12 @@ Plants:
            catch DEPENDS on that line. Read each alone and paired; the body
            of the pull request that added a line records both verdicts.
   RV1-RV7  the round-8 review's written spellings in the chart's keydown
-           handler, which R10-DEEPLINK-HANDLERS drives: expected RED, each on
-           the dynamic arm. RV1c and RV5c, their controls, stay red.
+           handler, which R10-DEEPLINK-HANDLERS drives: expected RED. RV1-RV3
+           and RV5-RV7 are red on the drive; RV4 is a form appended to
+           document.body and submitted by a button's click(), the same shape
+           as RD4, so it is red on the document-level read, not on the drive
+           -- RD4's entry below states that read. RV1c and RV5c, their
+           controls, stay red.
   RD4-RD6c markup appended outside the shadow root inside a driven press
            (rounds 9 and 10): RD4 a form submitted by click(), RD6 an anchor
            with a run-time-built href, click()ed -- expected RED under the
