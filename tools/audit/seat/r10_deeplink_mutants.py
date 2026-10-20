@@ -31,59 +31,89 @@ Plants:
            a computed key, `Reflect.apply`, `.call` on the reach side, a
            newline before the paren). Z3c is the control: the standard spelling
            in the same position is red on reach.
-  V1-V13   the round-7 review's written programmatic form (#2345) and this
-           fix's isolating variants of it: createElement("form") (V2, and V13
-           with the tag's upper case), the action written through setAttribute
-           (V3), createAttribute (V9), setAttributeNS (V12), Reflect.set (V7),
-           Object.assign (V8) and a computed key (V11), and a submit by name
-           (V4), computed key (V5), requestSubmit (V6) and indirect .call
-           (V10). V1 is the review's plant verbatim. Each is wrapped in the
-           try its own handler has, so a stub missing `submit` cannot kill it
-           by a crash -- a crash is rc=1 with no FAIL line, i.e. no census arm
-           ran.
-  T1c,T2c  a press that throws, or rejects, only inside the census (the card
-           detects the census's one-parameter open).
+  V1-V13   the round-7 review's written programmatic form (#2345) and its
+           isolating variants: createElement("form") (V2, V13 upper case), an
+           action written through setAttribute (V3), createAttribute (V9),
+           setAttributeNS (V12), Reflect.set (V7), Object.assign (V8) or a
+           computed key (V11), and a submit by name (V4), computed key (V5),
+           requestSubmit (V6) or .call (V10). Since R10-DEEPLINK-HANDLERS the
+           keydown they sit in is driven, so each is the dynamic arm's except
+           the submits, which the bare `submit` / `requestSubmit` names
+           refuse. V9 is GREEN there: an attribute node built and attached to
+           nothing names no way out, and only the retired spelling row
+           refused it.
+  T1c,T2c  a press that throws, or rejects, only inside the census. The card
+           tells the census by the selector-list shim it alone installs: since
+           round 3 the navigation surface is the same object everywhere, so
+           the census's one-parameter `open` is no longer a tell.
   Y1       the residual's witness, expected GREEN: a run-time name written
            through a selector the stub DOM cannot resolve (see the census's
            Residual paragraph).
   F1-F4    the CONTROLS that must stay GREEN (rc=0 fails=0): the same words as
-           values or as a key on a legitimate object (`sensor === "action"`
-           inside a setAttribute value, `key === "action"` inside an
-           Object.assign value, `{ action: "off" }`), and an identifier that
-           begins with `submit`. They are what shows the new rows key on the
-           name position rather than the word.
+           values or as a key on a legitimate object, and an identifier that
+           begins with `submit`.
   X*       this fix's own lines, each mutated where a plant it closes sits
-           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3, X10V2,
-           X10V13, X11V3, X11V9, X11V12, X12V7, X12V8, X12V11, X13V4, X13V5,
-           X13V6, X13V10): if the
-           mutant alone leaves the plant green, the plant's catch DEPENDS on
-           that line, and a fix line whose removal changes no check is a line
-           this census does not need. X1 and X2 alone are red: each makes
-           the line's own check fire on an otherwise unmodified card. Every
-           other X alone (X3-X13) reads rc=0 fails=0 -- with the line gone the
-           card holds nothing for it to refuse -- and is read paired with the
-           plant beside it, which then goes green. X7K1b is red on `no press
-           throws`: without the surface member the plant's navigate call
-           throws inside the census, and the member is what records it as a
-           navigation instead.
-  RV1-RV7  the round-8 review's written spellings in the undriven keydown
-           handler, expected GREEN (rc=0 fails=0): the residual's witnesses
-           (the census's Residual paragraph). RV1c and RV5c are their controls,
-           the spellings the rows do name, expected red. They are the control
-           R10-DEEPLINK-HANDLERS starts from: each goes red when the dynamic
-           arm drives that handler.
-  RD4-RD6c the round-9 and round-10 reviews' driven-press plants: markup
-           appended outside the shadow root inside a press the census drives,
-           expected GREEN -- RD4 a form submitted by click(), RD6 an anchor
-           with a run-time-built href, click()ed. Their red controls put the
-           same element in the shadow root, placed and not submitted or
-           clicked: RD5 the form with its action, RD6c the anchor.
+           beside it: if the mutant alone leaves the plant green, the plant's
+           catch DEPENDS on that line. Read each alone and paired; the body
+           of the pull request that added a line records both verdicts.
+  RV1-RV7  the round-8 review's written spellings in the chart's keydown
+           handler, which R10-DEEPLINK-HANDLERS drives: expected RED. RV1-RV3
+           and RV5-RV7 are red on the drive; RV4 is a form appended to
+           document.body and submitted by a button's click(), the same shape
+           as RD4, so it is red on the document-level read, not on the drive
+           -- RD4's entry below states that read. RV1c and RV5c, their
+           controls, stay red.
+  RD4-RD6c markup appended outside the shadow root inside a driven press
+           (rounds 9 and 10): RD4 a form submitted by click(), RD6 an anchor
+           with a run-time-built href, click()ed -- expected RED under the
+           document-level read; RD5 and RD6c, the same elements in the shadow
+           root, stay red.
+  RD7      a detached anchor, never appended, built href, click()ed: RED, the
+           read covers every element the document made.
+  RD8      the residual's stub-fidelity witness, expected GREEN: markup with a
+           built name inserted through insertAdjacentHTML, which the stub does
+           not implement.
+  AL1,KD1, navigation reached only with every modifier held (AL1), under one
+  FT1,ON1  key literal (KD1), in a handler a drive registers (FT1, the slot
+           menu's Escape), and a handler wired as an `on<event>` property
+           (ON1): each RED, and each green beside the X line that closes it.
+  OWN1-3   the #2452 round-1 review's plants (its own_plants.py, verbatim) in
+           the driven chart keydown: a head meta refresh, and the location
+           object's pathname and search setters under a built name. OWN2c,
+           its href control, stays red.
+  L*,D*,   the class those three belong to, enumerated by the rule "every
+  I*,MR*,  member, alias, interface or element through which a browser leaves
+  B*,UQ*,  the page": each URL part of the location object (hash, host,
+  TM*      hostname, port, protocol), its reload, a write through
+           Object.assign, the location assigned whole on the global, the
+           window and the document, the location reached through every alias
+           of the window (top, parent, frames, window.self, defaultView), the
+           history and Navigation members reached through their interface's
+           prototype, the document's open / write / writeln, the refresh
+           pragma as a member, as quoted markup and as unquoted markup, a base
+           element's href, an area's href, single-quoted and unquoted markup
+           attributes the stub's parser drops, and navigation deferred to a
+           timer the handler starts. Each RED. LRc, MRc and TMc are their
+           controls, GREEN: a location read, a meta that is no pragma, and a
+           timer that does nothing.
+  REV_*,   the round-2 review's plants (its rev_plants.py, verbatim): a
+  CAP*,    reference to the surface taken when the card LOADS (REV_CAP1-4),
+  TMX      deferred work five timers deep, an svg anchor's xlink:href in
+           markup, and its other probes; and the captured-at-load class beyond
+           them -- document.write, the element factory, CustomEvent,
+           setTimeout, the registration method, the Navigation API, the
+           History prototype, the location's own descriptor and a window
+           alias, each taken at load (CAP5-CAP13) -- and a timer chain 80 deep
+           (TMX), past the settle cap, refused as unsettled. Each RED;
+           REV_CAP4c and REV_XL1c, the review's controls, stay red.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
 Run from the worktree root after `PYTHONPATH=tests/hastub python3
 tests/plan_view.py` (card.mjs reads its payload). Null control: run with no
-plant applied (`--null`), which must print rc=0 fails=0.
+plant applied (`--null`), which must print rc=0 fails=0. Each plant's node
+runs with `--max-old-space-size=4096`, because the census's live set is past
+node's default old space (`run()` records the measurement).
 """
 import subprocess
 import sys
@@ -196,8 +226,11 @@ V13_KEYDOWN_CREATE_FORM_UPPER = card(
 # not one. Expected rc=0 fails=0 -- the opposite verdict from every other
 # plant in this file, and the reason the rows are anchored.
 F1_KEYDOWN_ACTION_AS_A_VALUE = card(
-    KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", sensor === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
-# F2 compares the handler's own `key`, not `act`: `act === "x"` is the act-
+    KEYDOWN, '      try { const d = document.createElement("div"); d.setAttribute("aria-label", key === "action" ? "a" : "b"); } catch (_e) {}\n' + KEYDOWN)
+# F1 and F2 compare the handler's own `key`: F1 once read `sensor`, a name
+# not bound in that handler, which is a read of an unbound global the census
+# refuses by name once the handler is driven (R10-DEEPLINK-HANDLERS). F2 also
+# compares `key`, not `act`: `act === "x"` is the act-
 # branch syntax the reach check reads, so a control written on `act` declares
 # an act branch and is red on reach, not on the form rows it controls.
 F2_KEYDOWN_ACTION_AS_AN_OBJECT_VALUE = card(
@@ -207,7 +240,10 @@ F3_KEYDOWN_ACTION_AS_AN_OBJECT_KEY = card(
 F4_KEYDOWN_SUBMIT_AS_AN_IDENTIFIER = card(
     KEYDOWN, '      try { const submission = { submitted: true }; } catch (_e) {}\n' + KEYDOWN)
 # The two seams this fix found for itself.
-W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
+# `frames` is bound to the window since #2452 round 2 (the window's aliases
+# lead to its location), so W1 reads a browser global the rig still binds
+# nothing to.
+W1 = after_nav('if (globalThis.visualViewport) globalThis.dispatchEvent(new Event("nothing-to-see"));')
 W2 = after_nav('globalThis[["hist", "ory"].join("")].go(-1);')
 # The scan's grammar, ECMAScript's IdentifierName production: under the ASCII
 # word grammar the source split `främes` at the `ä`, so the name was never
@@ -217,35 +253,96 @@ X8 = test(r'  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;
           r'  const IDENT = /[A-Za-z_$][\w$]*/g;')
 X1 = test('    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =\n'
           '      [{ class: "power", key: "heat_pump_power_entity" }];\n', "")
-X3 = test('  for (const at of ["href", "action", "formaction"]) {', '  for (const at of ["href"]) {')
+X3 = test('      for (const at of ["href", "xlink:href", "action", "formaction"]) {', '      for (const at of ["href", "xlink:href"]) {')
 X4 = test('    if (typeof type === "string" && !EVENT_TYPES.has(type)) {', '    if (false) {')
 X5 = test('      unknown.add(name);\n      return uninstrumented(name);', '      return undefined;')
-X6 = test('  { what: "the open member, named", re: /\\bopen\\b/, exact: true },',
-          '  { what: "the open member, named", re: /(?!)open/, exact: true },')
+X6 = test('  { what: "the open member", name: "open", exact: true },',
+          '  { what: "the open member", name: "(?!)open", exact: true },')
 # The reach rule enumerates every mention of a link function; the pre-fix form
 # enumerated the `name(` call-site spelling, which a space before the paren
 # escaped. X9 is that old enumeration, so Z3 must go green under it.
 X9 = test('  const LINK_NAME = /\\b(navigateTo|openHaLink)\\b/;',
           '  const LINK_NAME = /\\b(navigateTo|openHaLink)\\(/;')
-# The round-7 fix's four new surface rows, one mutant each: X10 the form
-# created by name, X11 its action written through an attribute, X12 its action
-# written through a member or a computed key, X13 a submit by name. Each is
-# run alone (green: it moves no check by itself) and paired with every plant
-# its row is the only closure of -- if the pair is green, the row is what
-# closes that plant.
-X10 = test(r'''  { what: "a form created by name", re: /\bcreateElement\s*\(\s*["'`]form["'`]/ },
-''', "")
-X11 = test(r'''  { what: "a form's action written through an attribute",
-    re: /(?:\bsetAttribute\s*\(\s*["'`]action["'`]|\bsetAttributeNS\s*\([^,]*,\s*["'`]action["'`]|\bcreateAttribute\s*\(\s*["'`]action["'`])/ },
-''', "")
-X12 = test(r'''  { what: "a form's action written through a member",
-    re: /(?:\bReflect\.set\s*\([^,]*,\s*["'`]action["'`]|\bObject\.assign\s*\([^,]*,\s*\{[^}]*\baction\s*:|\[\s*["'`]action["'`]\s*\]\s*=)/ },
-''', "")
-X13 = test(r'''  { what: "a form submitted by name",
-    re: /(?:\.\s*(?:submit|requestSubmit)\b|\[\s*["'`](?:submit|requestSubmit)["'`]\s*\])/ },
-''', "")
-X7 = test('  sink.navigation.navigate = (u) => { left.push(["navigation", String(u)]); return null; };',
-          '  sink.navigation.navigate = undefined;')
+X7 = test('    navigate(u) { navRecord("navigation", String(u)); return null; },', '    navigate: undefined,')
+
+
+# R10-DEEPLINK-HANDLERS (#2317): the handler drive and the document-level read.
+ESCAPE = '      const origin = this.menuOrigin;'
+RD7 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); a.click(); } catch (_e) {}' % P)
+AL1 = kd('if (ev.ctrlKey) { try { globalThis.history.back(); } catch (_e) {} }')
+KD1 = kd('if (key === "Delete") { try { globalThis.history.back(); } catch (_e) {} }')
+FT1 = card(ESCAPE, '      try { globalThis.history.back(); } catch (_e) {}\n' + ESCAPE)
+ON1 = card(LOOP, '  for (const b of root.querySelectorAll(".adv-act")) b.onkeydown = () => null;\n' + LOOP)
+RV1 = kd('try { globalThis.history["back"](); } catch (_e) {}')
+X14 = test('    [document.head, document.body, c, ...made].forEach(walk);',
+           '    [c, ...made].forEach(walk);')
+X15 = test('    ...["plan", "setup", "savings", "advisor", "health"].map((page) => ({ page })),\n', '')
+RD9 = after_nav('try { document.body.innerHTML += `<a ${["hr", "ef"].join("")}="%s">x</a>`; } catch (_e) {}' % P)
+UL1 = card("function healthPageHtml(host) {",
+           'function unreachedListener(host) { host.addEventListener("keydown", () => null); }\n\nfunction healthPageHtml(host) {')
+X16 = test('  navHook.made = (n) => { made.push(n); };', '  navHook.made = null;')
+X17 = test('  for (const v of FIXTURES) {', '  for (const v of FIXTURES.filter((f) => !f.name)) {')
+X18 = test('      saved.findAll.call(this, one.trim().replace(', '      saved.findAll.call(this, sel, out); break; saved.findAll.call(this, one.trim().replace(')
+X19 = test('  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };', '')
+X20 = test('          if (VARY.some((f) => reads.has(f))) await', '          if (false) await')
+X21 = test('        const keys = base.has("key") || base.has("code") ? [undefined, ...KEYS] : [undefined];',
+           '        const keys = [undefined];')
+X22 = test('      for (let j = 0; j < (first.has("target") ? nt : 1); j++) {', '      for (let j = 0; j < 1; j++) {')
+X23 = test('      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on))) continue;', '      continue;')
+X24 = test('    inline.size === 0, [...inline].join(", "));', '    true, [...inline].join(", "));')
+X25 = test('    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1);',
+           '    .filter(([l]) => /\\baddEventListener\\s*\\(/.test(l)).map(([, i]) => i + 1).filter((i) => driven.has(i));')
+# #2452 round 1: the location object's every member, its aliases, the
+# interfaces, the document's page-replacing members, the refresh pragma and
+# markup the stub's parser drops, and deferred work -- each in the driven
+# chart keydown, each name built so the static arm cannot see it.
+LOC = 'globalThis[["loc", "ation"].join("")]'
+BUILT_LOC = '[["loc", "ation"].join("")]'
+HREF = '["hr", "ef"].join("")'
+X26 = test('    set: (_t, k, v) => { navRecord("location", k === "href" ? String(v) : `${String(k)}=${String(v)}`); return true; },',
+           '    set: (_t, k, v) => { if (k === "href") navRecord("location", String(v)); return true; },')
+X27 = test('      if (typeof eq === "string" && eq.trim().toLowerCase() === "refresh") {', '      if (false) {')
+X28 = test('      if (typeof n._html === "string") markupWaysOut(n._html, out);', '')
+X29 = test('  Object.defineProperty(document, "location", locDesc);\n', '  document.location = { ...LOCATION_PARTS };\n')
+X30 = test('  navHook.timer = {\n', '  navHook.timer = null && {\n')
+X31 = test('    for (const a of WINDOW_ALIASES) g[a] = ctx.window;\n', '')
+X32 = test('    History: navInterface("History", history),\n', '    History: function History() {},\n')
+X33 = test('    write(...a) { navRecord("document", `write ${a.join("")}`); },', '    write() {},')
+OWN1 = kd('{ const m = document.createElement("meta"); m.setAttribute("http-equiv", "refresh"); m.setAttribute("content", "0;url=/config/integrations"); document.head.appendChild(m); }')
+OWN2 = kd(LOC + '.pathname = "/config/integrations";')
+LD = kd('try { document%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+LT = kd('try { globalThis[["t", "op"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+LT2 = kd('try { globalThis[["par", "ent"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC)
+IH = kd('try { globalThis[["Hist", "ory"].join("")].prototype[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}')
+DW = kd('try { document[["wri", "te"].join("")]("<p>x</p>"); } catch (_e) {}')
+UQ1 = kd('try { document.body.innerHTML += `<a ${%s}=/config/integrations>x</a>`; } catch (_e) {}' % HREF)
+TM1 = kd('setTimeout(() => { try { globalThis.history.back(); } catch (_e) {} }, 50);')
+# #2452 round 3: a reference to the surface taken when the card LOADS, before
+# the census switches its recorders on (the round-2 review's rev_plants.py,
+# verbatim, and the class it belongs to: every member, factory, timer, event
+# class and registration method the census records through, captured at load).
+TOP = "function navigateTo("
+def at_load(stmt, use):
+    return card(TOP, stmt + "\n" + TOP) + kd(use)
+CAP4 = at_load('const __revH = window.history;', 'try { __revH.back(); } catch (_e) {}')
+CAP5 = at_load('const __capW = document[["wri", "te"].join("")].bind(document);', 'try { __capW("<p>x</p>"); } catch (_e) {}')
+CAP6 = at_load('const __capCE = document.createElement.bind(document);',
+               'try { const a = __capCE("a"); a.setAttribute(%s, "%s"); a.click(); } catch (_e) {}' % (HREF, P))
+CAP8 = at_load('const __capST = globalThis[["set", "Timeout"].join("")];',
+               '__capST(() => { try { globalThis.history.back(); } catch (_e) {} }, 50);')
+CAP9 = at_load('const __capAdd = HTMLElement.prototype.addEventListener;',
+               'try { const el = document.createElement("div"); __capAdd.call(el, "keyup", () => { try { globalThis.history.back(); } catch (_e) {} }); } catch (_e) {}')
+TMX = kd('{ const go = (n) => setTimeout(() => { if (n) go(n - 1); else { try { globalThis.history.back(); } catch (_e) {} } }); go(80); }')
+XL1 = kd('try { document.body.innerHTML += `<svg><a xlink:${%s}="%s"><text>x</text></a></svg>`; } catch (_e) {}' % (HREF, P))
+X34 = [(TEST, 'const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");\nvm.runInContext(cardSrc, ctx);\n',
+        'const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");\n'),
+       (TEST, '// --- A browser\'s navigation surface, live before the card loads (R10-DEEPLINK) --\n',
+        'vm.runInContext(fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8"), ctx);\n// --- A browser\'s navigation surface, live before the card loads (R10-DEEPLINK) --\n')]
+X35 = test("      threw.push(`${key}: deferred work had not settled after ${SETTLE_CAP} rounds`);\n", '')
+X36 = [(TEST, '      for (const at of ["href", "xlink:href", "action", "formaction"]) {', '      for (const at of ["href", "action", "formaction"]) {'),
+       (TEST, '  const MARKUP_WAY_OUT = /\\s(?:xlink:)?(href|action|formaction)', '  const MARKUP_WAY_OUT = /\\s(href|action|formaction)')]
+RD4 = after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P)
+RD6 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P)
 
 
 PLANTS = {
@@ -330,19 +427,20 @@ PLANTS = {
     # on the rig alone would never see the failure. Ported from the
     # 2026-10-16 snapshot of this group's first design (a3b1c00e2), whose
     # census's CustomEvent subclass the R10-DEEPLINK round-4 plants had keyed.
-    "T1c_census_only_throw_on_press": after_nav('if (globalThis.open.length === 1) throw new Error("census-only boom");'),
+    "T1c_census_only_throw_on_press": after_nav('if (root.querySelectorAll(".adv-act, .adv-act").length) throw new Error("census-only boom");'),
     "T2c_census_only_async_reject_on_press": after_nav(
-        'if (globalThis.open.length === 1) await Promise.reject(new Error("census-only reject"));'),
+        'if (root.querySelectorAll(".adv-act, .adv-act").length) await Promise.reject(new Error("census-only reject"));'),
     # The residual's witness, expected GREEN (rc=0 fails=0): a name built at
     # run time, written through a selector the stub DOM cannot resolve, in a
     # handler a press does reach. The write runs on no element, so the
     # dynamic arm sees nothing, and the static arm refuses only a written
     # name. R7c is the same write on a selector the stub resolves (red).
     # The round-8 review's written spellings (#2345, the reviewer's
-    # review_plants.py, verbatim), expected GREEN: navigation written in the
-    # undriven keydown handler in a spelling no static row names. RV1c and
-    # RV5c, the spellings the rows do name in the same position, are red.
-    "RV1_history_bracket_back_in_undriven_keydown": kd('try { globalThis.history["back"](); } catch (_e) {}'),
+    # review_plants.py, verbatim), green at #2345's head, where the keydown
+    # handler was undriven and no static row named the spelling. Expected RED
+    # since R10-DEEPLINK-HANDLERS drives that handler. RV1c and RV5c, the
+    # spellings #2345's rows named in the same position, stay red.
+    "RV1_history_bracket_back_in_undriven_keydown": RV1,
     "RV2_history_optional_back_in_undriven_keydown": kd('try { globalThis.history?.back(); } catch (_e) {}'),
     "RV3_history_destructure_in_undriven_keydown": kd('try { const { back } = globalThis.history; back.call(globalThis.history); } catch (_e) {}'),
     "RV4_form_ns_action_member_button_click_in_undriven_keydown": kd('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
@@ -352,21 +450,114 @@ PLANTS = {
     "RV1c_history_dot_back_control": kd('try { globalThis.history.back(); } catch (_e) {}'),
     "RV5c_action_member_to_literal_control": kd('try { const f = document.createElement("div"); f.action = "%s"; } catch (_e) {}' % P),
     # The round-9 review's driven-press plants (#2345, review_plants9.py,
-    # verbatim). RD4 is expected GREEN: a form appended to document.body,
-    # outside the shadow root the census reads, and submitted by a button's
-    # click(), inside the advisor:settings press the census drives. RD5, its
-    # red control, is the same form element and action appended in the shadow
-    # root, placed and not submitted.
-    "RD4_form_ns_action_member_button_click_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; const b = document.createElement("button"); f.appendChild(b); document.body.appendChild(f); b.click(); } catch (_e) {}' % P),
+    # verbatim). RD4, green at #2345's head: a form appended to document.body,
+    # outside the shadow root that census read, and submitted by a button's
+    # click(), inside the advisor:settings press it drove; expected RED under
+    # the document-level read. RD5, its red control, is the same form element
+    # and action appended in the shadow root, placed and not submitted.
+    "RD4_form_ns_action_member_button_click_driven": RD4,
     "RD5_action_member_to_variable_on_rendered_form_driven": after_nav('try { const u = "%s"; const f = document.createElementNS("http://www.w3.org/1999/xhtml", "form"); f.action = u; root.appendChild(f); } catch (_e) {}' % P),
     # The round-10 review's anchor (#2345, review_plants10.py, verbatim): RD6,
-    # expected GREEN, is an anchor whose href name is built at run time,
-    # appended to document.body and click()ed in the same driven press; RD6c,
-    # the same anchor appended in the shadow root and not clicked, is red.
-    "RD6_anchor_built_href_outside_root_click_driven": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); document.body.appendChild(a); a.click(); } catch (_e) {}' % P),
+    # green at #2345's head and RED under the document-level read, is an
+    # anchor whose href name is built at run time, appended to document.body
+    # and click()ed in the same driven press; RD6c, the same anchor appended
+    # in the shadow root and not clicked, is red.
+    "RD6_anchor_built_href_outside_root_click_driven": RD6,
     "RD6c_anchor_built_href_in_root_driven_control": after_nav('try { const a = document.createElement("a"); a.setAttribute(["hr", "ef"].join(""), "%s"); root.appendChild(a); } catch (_e) {}' % P),
+    # R10-DEEPLINK-HANDLERS (#2317). RD7: a detached anchor, never appended,
+    # with a run-time-built href, click()ed in a driven press -- a browser
+    # navigates by it, and the read covers every element the document made.
+    # RD8, expected GREEN: markup inserted through a DOM member the stub does
+    # not implement (insertAdjacentHTML) with a built name -- the residual's
+    # stub-fidelity witness, beside Y1. AL1, KD1, FT1: navigation reached only
+    # at the far end of the event's fields (ctrlKey), under one key literal,
+    # and in a handler a drive registers (the slot menu's Escape). ON1: a
+    # handler wired as an `on<event>` property, which no registration records.
+    "RD7_detached_anchor_built_href_click_driven": RD7,
+    "RD8_insert_adjacent_html_built_href_driven_residual": after_nav('try { const d = root.querySelector(".adv-act"); d.insertAdjacentHTML("afterend", `<a ${["hr", "ef"].join("")}="%s">x</a>`); } catch (_e) {}' % P),
+    "AL1_history_back_under_ctrl_in_keydown": AL1,
+    "KD1_history_back_under_delete_in_keydown": KD1,
+    "FT1_history_back_in_slot_menu_escape": FT1,
+    "ON1_inline_keydown_property": ON1,
+    # RD9: markup with a built href written into document.body's innerHTML in
+    # a driven press -- no factory made it, so only the body read sees it.
+    # UL1: an addEventListener site no fixture renders.
+    "RD9_body_inner_html_built_href_driven": RD9,
+    "UL1_listener_site_no_fixture_renders": UL1,
+    # #2452 round 1 (the review's own_plants.py, verbatim) and the class.
+    "OWN1_meta_refresh_in_keydown": OWN1,
+    "OWN2_location_pathname_built_in_keydown": OWN2,
+    "OWN2c_location_href_built_in_keydown_control": kd(LOC + '.href = "/config/integrations";'),
+    "OWN3_location_search_built_in_keydown": kd(LOC + '.search = "?x=1";'),
+    "L1_location_hash_built": kd('try { %s.hash = "#x"; } catch (_e) {}' % LOC),
+    "L2_location_host_built": kd('try { %s.host = "example.org"; } catch (_e) {}' % LOC),
+    "L3_location_hostname_built": kd('try { %s.hostname = "example.org"; } catch (_e) {}' % LOC),
+    "L4_location_port_built": kd('try { %s.port = "8124"; } catch (_e) {}' % LOC),
+    "L5_location_protocol_built": kd('try { %s.protocol = "https:"; } catch (_e) {}' % LOC),
+    "L6_location_reload_built": kd('try { %s.reload(); } catch (_e) {}' % LOC),
+    "L7_location_object_assign_built": kd('try { Object.assign(%s, { pathname: "/config/integrations" }); } catch (_e) {}' % LOC),
+    "L8_global_location_assigned_built": kd('try { globalThis%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "L9_window_location_assigned_built": kd('try { globalThis.window%s = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LD1_document_location_assigned_built": LD,
+    "LD2_document_location_pathname_built": kd('try { document%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT1_top_location_pathname_built": LT,
+    "LT2_parent_location_pathname_built": LT2,
+    "LT3_frames_location_pathname_built": kd('try { globalThis[["fra", "mes"].join("")]%s.pathname = "/config/integrations"; } catch (_e) {}' % BUILT_LOC),
+    "LT4_window_self_location_hash_built": kd('try { globalThis.window[["se", "lf"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
+    "LT5_default_view_location_hash_built": kd('try { document[["default", "View"].join("")]%s.hash = "#x"; } catch (_e) {}' % BUILT_LOC),
+    "IH1_history_prototype_push_state_built": IH,
+    "IH2_history_get_prototype_back": kd('try { Object.getPrototypeOf(globalThis.history).back.call(globalThis.history); } catch (_e) {}'),
+    "IN1_navigation_prototype_navigate_built": kd('try { const N = globalThis[["Navi", "gation"].join("")]; N.prototype.navigate.call(globalThis[["navi", "gation"].join("")], "/config/integrations"); } catch (_e) {}'),
+    "DO1_document_open_url_built": kd('try { document[["op", "en"].join("")]("/config/integrations", "_self", ""); } catch (_e) {}'),
+    "DW1_document_write_built": DW,
+    "DW2_document_writeln_built": kd('try { document[["wri", "teln"].join("")]("<p>x</p>"); } catch (_e) {}'),
+    "MR1_meta_refresh_member_in_body": kd('try { const m = document.createElement("meta"); m.httpEquiv = "Refresh"; m.content = "0"; document.body.appendChild(m); } catch (_e) {}'),
+    "MR2_meta_refresh_quoted_markup": kd('try { document.body.innerHTML += \'<meta http-equiv="refresh" content="0;url=/config/integrations">\'; } catch (_e) {}'),
+    "MR3_meta_refresh_unquoted_markup": kd('try { document.head.innerHTML += "<meta http-equiv=refresh content=0>"; } catch (_e) {}'),
+    "B1_base_built_href_in_head": kd('try { const b = document.createElement("base"); b.setAttribute(%s, "/config/integrations/"); document.head.appendChild(b); } catch (_e) {}' % HREF),
+    "B2_area_built_href_detached": kd('try { const a = document.createElement("area"); a.setAttribute(%s, "/config/integrations"); a.click(); } catch (_e) {}' % HREF),
+    "UQ1_unquoted_built_href_markup": UQ1,
+    "UQ2_single_quoted_built_href_markup": kd("try { document.body.innerHTML += `<a ${%s}='/config/integrations'>x</a>`; } catch (_e) {}" % HREF),
+    "TM1_history_back_in_timeout": TM1,
+    "TM2_history_back_in_interval": kd('{ const t = setInterval(() => { try { globalThis.history.back(); } catch (_e) {} }, 50); }'),
+    "LRc_location_read_control": kd('try { const p = %s.pathname + %s.hash; void p; } catch (_e) {}' % (LOC, LOC)),
+    "MRc_meta_not_a_pragma_control": kd('try { const m = document.createElement("meta"); m.setAttribute("name", "viewport"); document.head.appendChild(m); } catch (_e) {}'),
+    "TMc_timer_does_nothing_control": kd('setTimeout(() => null, 0);'),
+    # #2452 round 3: the round-2 review's plants (rev_plants.py, verbatim).
+    "REV_CAP1_location_captured_at_load": at_load('const __revL = globalThis[["loc", "ation"].join("")];', 'try { __revL[["path", "name"].join("")] = "%s"; } catch (_e) {}' % "/config/integrations"),
+    "REV_CAP1c_captured_location_resolves": at_load('const __revL = globalThis[["loc", "ation"].join("")];', 'try { if (typeof __revL === "object" && __revL) globalThis[["hist", "ory"].join("")][["ba", "ck"].join("")](); } catch (_e) {}'),
+    "REV_CAP1d_location_captured_lazily": card(TOP, 'let __revL2 = null; const __revGetL = () => (__revL2 = __revL2 || globalThis[["loc", "ation"].join("")]);\n__revGetL();\n' + TOP) + kd('try { __revGetL()[["path", "name"].join("")] = "%s"; } catch (_e) {}' % "/config/integrations"),
+    "REV_CAP2_history_captured_at_load": at_load('const __revH = globalThis[["hist", "ory"].join("")];', 'try { __revH[["ba", "ck"].join("")](); } catch (_e) {}'),
+    "REV_CAP3_open_captured_at_load": at_load('const __revO = globalThis[["op", "en"].join("")];', 'try { __revO("%s", "_self"); } catch (_e) {}' % "/config/integrations"),
+    "REV_CAP4_history_captured_at_load_literal": CAP4,
+    "REV_CAP4c_window_captured_at_load_control": at_load('const __revW = window;', 'try { __revW.history.back(); } catch (_e) {}'),
+    "REV_TM5_history_back_five_timeouts_deep": kd('setTimeout(() => setTimeout(() => setTimeout(() => setTimeout(() => setTimeout(() => { try { globalThis.history.back(); } catch (_e) {} })))));'),
+    "REV_TM4c_history_back_four_timeouts_deep_control": kd('setTimeout(() => setTimeout(() => setTimeout(() => setTimeout(() => { try { globalThis.history.back(); } catch (_e) {} }))));'),
+    "REV_PR1_history_back_in_unawaited_promise_chain": kd('Promise.resolve().then(() => null).then(() => null).then(() => { try { globalThis.history.back(); } catch (_e) {} });'),
+    "REV_XL1_svg_xlink_href_markup": XL1,
+    "REV_XL1c_svg_plain_href_markup_control": kd('try { document.body.innerHTML += `<svg><a ${%s}="%s"><text>x</text></a></svg>`; } catch (_e) {}' % (HREF, "/config/integrations")),
+    "REV_FM1_form_from_markup_no_action": kd('try { document.body.innerHTML += "<fo" + "rm><input></fo" + "rm>"; } catch (_e) {}'),
+    "REV_RF1_reflect_set_location_hash": kd('try { Reflect.set(globalThis[["loc", "ation"].join("")], "hash", "#x"); } catch (_e) {}'),
+    "REV_RF2_reflect_define_location_search": kd('try { Reflect.defineProperty(globalThis[["loc", "ation"].join("")], "search", { value: "?x" }); } catch (_e) {}'),
+    "REV_WO1_defaultview_open_built": kd('try { document.defaultView[["op", "en"].join("")]("%s"); } catch (_e) {}' % "/config/integrations"),
+    "REV_PX1_proxy_wrapped_anchor_href": kd('try { const a = new Proxy(document.createElement("a"), {}); a[%s] = "%s"; a.click(); } catch (_e) {}' % (HREF, "/config/integrations")),
+    # The captured-at-load class beyond the review's four: every other thing
+    # the census records through, taken when the card loads.
+    "CAP5_document_write_captured_at_load": CAP5,
+    "CAP6_create_element_captured_at_load": CAP6,
+    "CAP7_custom_event_captured_at_load": at_load('const __capCEv = globalThis[["Custom", "Event"].join("")];',
+        'try { globalThis.dispatchEvent(new __capCEv(%s, { detail: { entityId: "sensor.x" } })); } catch (_e) {}' % RUNTIME_MORE_INFO),
+    "CAP8_set_timeout_captured_at_load": CAP8,
+    "CAP9_add_event_listener_captured_at_load": CAP9,
+    "CAP10_navigation_captured_at_load": at_load('const __capN = globalThis[["navi", "gation"].join("")];', 'try { __capN.navigate("/config/integrations"); } catch (_e) {}'),
+    "CAP11_history_interface_captured_at_load": at_load('const __capHI = globalThis[["Hist", "ory"].join("")].prototype;',
+        'try { __capHI[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}'),
+    "CAP12_location_descriptor_captured_at_load": at_load('const __capLD = Object.getOwnPropertyDescriptor(globalThis, ["loc", "ation"].join(""));',
+        'try { __capLD.get()[["ha", "sh"].join("")] = "#x"; } catch (_e) {}'),
+    "CAP13_window_alias_captured_at_load": at_load('const __capT = globalThis[["par", "ent"].join("")];', 'try { __capT[["loc", "ation"].join("")].hash = "#x"; } catch (_e) {}'),
+    "TMX_history_back_eighty_timeouts_deep": TMX,
     "Y1_runtime_name_on_unresolved_selector_residual": attach("a.zz", 'a.setAttribute(["hr", "ef"].join(""), "%s");' % P),
-    "W1_guarded_frames": W1,
+    "W1_guarded_unbound_global": W1,
     "W2_history_go_built": W2,
     "W3_unicode_global": W3,
     # This fix's own lines, and the plant each one closes.
@@ -390,22 +581,62 @@ PLANTS = {
     "X7K1b_surface_member_names_the_primitive_K1b": X7 + K1B,
     "X8_ascii_grammar": X8,
     "X8W3_grammar_line_is_what_closes_W3": X8 + W3,
-    "X10_create_form_row_dropped": X10,
-    "X10V2_create_form_row_is_what_closes_V2": X10 + V2_KEYDOWN_CREATE_FORM,
-    "X10V13_create_form_row_is_what_closes_V13": X10 + V13_KEYDOWN_CREATE_FORM_UPPER,
-    "X11_action_attribute_row_dropped": X11,
-    "X11V3_action_attribute_row_is_what_closes_V3": X11 + V3_KEYDOWN_SET_ATTRIBUTE_ACTION,
-    "X11V9_action_attribute_row_is_what_closes_V9": X11 + V9_KEYDOWN_CREATE_ATTRIBUTE_ACTION,
-    "X11V12_action_attribute_row_is_what_closes_V12": X11 + V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
-    "X12_action_member_row_dropped": X12,
-    "X12V7_action_member_row_is_what_closes_V7": X12 + V7_KEYDOWN_REFLECT_ACTION,
-    "X12V8_action_member_row_is_what_closes_V8": X12 + V8_KEYDOWN_OBJECT_ASSIGN_ACTION,
-    "X12V11_action_member_row_is_what_closes_V11": X12 + V11_KEYDOWN_BRACKET_ACTION,
-    "X13_submit_row_dropped": X13,
-    "X13V4_submit_row_is_what_closes_V4": X13 + V4_KEYDOWN_SUBMIT,
-    "X13V5_submit_row_is_what_closes_V5": X13 + V5_KEYDOWN_SUBMIT_BRACKET,
-    "X13V6_submit_row_is_what_closes_V6": X13 + V6_KEYDOWN_REQUEST_SUBMIT,
-    "X13V10_submit_row_is_what_closes_V10": X13 + V10_KEYDOWN_SUBMIT_CALL,
+    # This fix's own lines (R10-DEEPLINK-HANDLERS), alone and with the plant
+    # each one closes.
+    "X14_read_shadow_root_only": X14,
+    "X14RD9_document_read_is_what_closes_RD9": X14 + RD9,
+    "X16RD4_made_tracking_also_closes_RD4": X16 + RD4,
+    "X15_no_handler_drive": X15,
+    "X15RV1_handler_drive_is_what_closes_RV1": X15 + RV1,
+    "X16_made_untracked": X16,
+    "X16RD7_made_tracking_is_what_closes_RD7": X16 + RD7,
+    "X17_no_variants": X17,
+    "X18_selector_engine_unshimmed": X18,
+    "X19_no_set_attribute_ns": X19,
+    "X19V12_set_attribute_ns_is_what_closes_V12": X19 + V12_KEYDOWN_SET_ATTRIBUTE_NS_ACTION,
+    "X20_no_alt_drive": X20,
+    "X20AL1_alt_drive_is_what_closes_AL1": X20 + AL1,
+    "X21_no_key_drive": X21,
+    "X21KD1_key_drive_is_what_closes_KD1": X21 + KD1,
+    "X22_own_target_only": X22,
+    "X22RV1_targets_are_what_close_RV1": X22 + RV1,
+    "X23_no_follow_through": X23,
+    "X23FT1_follow_through_is_what_closes_FT1": X23 + FT1,
+    "X24_inline_check_off": X24,
+    "X24ON1_inline_check_is_what_closes_ON1": X24 + ON1,
+    "X25_reach_counts_driven_sites_only": X25,
+    "X25UL1_reach_line_is_what_closes_UL1": X25 + UL1,
+    # This fix's own lines (#2452 round 2), alone and with the plant each closes.
+    "X26_location_records_href_only": X26,
+    "X26OWN2_member_trap_is_what_closes_OWN2": X26 + OWN2,
+    "X27_no_refresh_read": X27,
+    "X27OWN1_refresh_read_is_what_closes_OWN1": X27 + OWN1,
+    "X28_no_markup_read": X28,
+    "X28UQ1_markup_read_is_what_closes_UQ1": X28 + UQ1,
+    "X29_document_location_inert": X29,
+    "X29LD1_document_location_is_what_closes_LD1": X29 + LD,
+    "X30_no_settle": X30,
+    "X30TM1_settle_is_what_closes_TM1": X30 + TM1,
+    "X31_no_window_aliases": X31,
+    "X31LT1_aliases_are_what_close_LT1": X31 + LT,
+    # LT1 stays red under X31: the card's code mentions `top`, so the watch
+    # refuses the global by name. `parent` it does not mention.
+    "X31LT2_aliases_are_what_close_LT2": X31 + LT2,
+    "X32_history_interface_inert": X32,
+    "X32IH1_interface_is_what_closes_IH1": X32 + IH,
+    "X33_document_write_inert": X33,
+    "X33DW1_write_recorder_is_what_closes_DW1": X33 + DW,
+    # Round 3: the surface installed before the card loads, the settle cap,
+    # the xlink read and registration through the live method.
+    "X34_card_loads_before_the_surface": X34,
+    "X34CAP4_load_order_is_what_closes_REV_CAP4": X34 + CAP4,
+    "X35_settle_cap_drops_silently": X35,
+    "X35TMX_cap_refusal_is_what_closes_TMX": X35 + TMX,
+    "X36_no_xlink_read": X36,
+    "X36XL1_xlink_read_is_what_closes_REV_XL1": X36 + XL1,
+    "X16CAP6_made_hook_is_what_closes_CAP6": X16 + CAP6,
+    "X30CAP8_timer_hook_is_what_closes_CAP8": X30 + CAP8,
+    "X33CAP5_write_recorder_is_what_closes_CAP5": X33 + CAP5,
 }
 
 
@@ -418,7 +649,15 @@ def run(name, edits):
                 print(f"RESULT mutant={name} rc=ERR fails=0\n    anchor not unique in {f}: {old[:60]!r}")
                 return
             open(f, "w").write(s.replace(old, new))
-        r = subprocess.run(["node", TEST], capture_output=True, text=True, timeout=1800)
+        # The census's live set -- every element the document's factories made,
+        # held for the whole run -- is past node's default old space on an
+        # 8-core box. Measured 2026-10-20: `node tests/card.mjs` alone at the
+        # default 2096 MB dies rc=134 (SIGABRT, "Ineffective mark-compacts near
+        # heap limit"); 2560 MB completes rc=0 at 1 233 567 744 B peak RSS;
+        # 4096 MB completes rc=0 at 841 007 104 B. The flag buys the collector
+        # its own budget and no plant's verdict can depend on it.
+        r = subprocess.run(["node", "--max-old-space-size=4096", TEST],
+                           capture_output=True, text=True, timeout=1800)
         lines = (r.stdout + r.stderr).splitlines()
         fails = [i for i, l in enumerate(lines) if l.startswith("  FAIL")]
         print(f"RESULT mutant={name} rc={r.returncode} fails={len(fails)}")
