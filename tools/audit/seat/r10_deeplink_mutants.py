@@ -24,14 +24,22 @@ Plants:
   W*       two seams this fix found for itself: a global the census cannot see
            the use of, read behind a feature test, and the history object's own
            back step behind a name built at run time.
+  Z2, Z3   the round-5 review's two written spellings in the chart's undriven
+           keydown handler -- an indirect open (`globalThis.open.call(...)`)
+           and `navigateTo ("...")` with a space before the paren -- plus the
+           other written invocation forms the name rules must catch (`.apply`,
+           a computed key, `Reflect.apply`, `.call` on the reach side, a
+           newline before the paren). Z3c is the control: the standard spelling
+           in the same position is red on reach.
   X*       this fix's own lines, each mutated where a plant it closes sits
-           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z): if the mutant alone
-           leaves the plant green, the plant's catch DEPENDS on that line, and
-           a fix line whose removal changes no check is a line this census does
-           not need. X1, X2, X3, X4, X5 and X6 alone are the detector
-           demonstrations -- the check each line carries is red without it.
-           X7 and X7K1b are the other shape: with the surface member gone the
-           plant is red only as a crash, which is what the member replaces.
+           beside it (X1K5b, X3K2b, X4K3t, X5W1, X6Z, X6Z2, X9Z3): if the
+           mutant alone leaves the plant green, the plant's catch DEPENDS on
+           that line, and a fix line whose removal changes no check is a line
+           this census does not need. X1, X2, X3, X4, X5, X6 and X9 alone are
+           the detector demonstrations -- the check each line carries is red
+           without it. X7 and X7K1b are the other shape: with the surface
+           member gone the plant is red only as a crash, which is what the
+           member replaces.
 
     python3 tools/audit/seat/r10_deeplink_mutants.py [plant ...]
 
@@ -87,7 +95,20 @@ Z_KEYDOWN = card(KEYDOWN, '      open("/config/entities", "_self");\n' + KEYDOWN
 # so the space alone is what hid the call.
 Z2_KEYDOWN_OPEN_CALL = card(
     KEYDOWN, '      globalThis.open.call(globalThis, "/config/entities", "_self");\n' + KEYDOWN)
+# The other written ways to invoke the member by name, so the round closes the
+# CLASS the review's spelling belongs to rather than that one spelling: an
+# `.apply`, a computed string key, a function value handed to `Reflect.apply`,
+# and the same on the reach side. Each must be refused by the census's name
+# rules wherever it is written.
+Z2B_KEYDOWN_OPEN_APPLY = card(
+    KEYDOWN, '      globalThis.open.apply(globalThis, ["/config/entities", "_self"]);\n' + KEYDOWN)
+Z2C_KEYDOWN_OPEN_BRACKET = card(
+    KEYDOWN, '      globalThis["open"]("/config/entities", "_self");\n' + KEYDOWN)
+Z2D_KEYDOWN_OPEN_REFLECT = card(
+    KEYDOWN, '      Reflect.apply(globalThis.open, globalThis, ["/config/entities", "_self"]);\n' + KEYDOWN)
 Z3_KEYDOWN_NAV_SPACE = card(KEYDOWN, '      navigateTo ("/config/entities");\n' + KEYDOWN)
+Z3B_KEYDOWN_NAV_CALL = card(KEYDOWN, '      navigateTo.call(globalThis, "/config/entities");\n' + KEYDOWN)
+Z3D_KEYDOWN_NAV_NEWLINE = card(KEYDOWN, '      navigateTo\n        ("/config/entities");\n' + KEYDOWN)
 Z3C_KEYDOWN_NAV_SPACE_CONTROL = card(KEYDOWN, '      navigateTo("/config/entities");\n' + KEYDOWN)
 # The two seams this fix found for itself.
 W1 = after_nav('if (globalThis.frames) globalThis.dispatchEvent(new Event("nothing-to-see"));')
@@ -167,7 +188,12 @@ PLANTS = {
     "K3c_event_literal_more_info_control": after_nav('globalThis.dispatchEvent(new Event("hass-more-info"));'),
     "Z_open_in_undriven_keydown": Z_KEYDOWN,
     "Z2_open_call_in_undriven_keydown": Z2_KEYDOWN_OPEN_CALL,
+    "Z2b_open_apply_in_undriven_keydown": Z2B_KEYDOWN_OPEN_APPLY,
+    "Z2c_open_bracket_in_undriven_keydown": Z2C_KEYDOWN_OPEN_BRACKET,
+    "Z2d_open_reflect_in_undriven_keydown": Z2D_KEYDOWN_OPEN_REFLECT,
     "Z3_navigate_to_space_in_undriven_keydown": Z3_KEYDOWN_NAV_SPACE,
+    "Z3b_navigate_to_call_in_undriven_keydown": Z3B_KEYDOWN_NAV_CALL,
+    "Z3d_navigate_to_newline_in_undriven_keydown": Z3D_KEYDOWN_NAV_NEWLINE,
     "Z3c_navigate_to_standard_in_undriven_keydown_control": Z3C_KEYDOWN_NAV_SPACE_CONTROL,
     "W1_guarded_frames": W1,
     "W2_history_go_built": W2,
@@ -184,7 +210,7 @@ PLANTS = {
     "X4K3t_recordEvent_line_is_what_closes_K3t": X4 + K3T,
     "X5_watch_swallows": X5,
     "X5W1_watch_line_is_what_closes_W1": X5 + W1,
-    "X6_surface_drops_bare_open": X6,
+    "X6_surface_drops_the_open_name": X6,
     "X6Z_surface_member_is_what_closes_Z": X6 + Z_KEYDOWN,
     "X6Z2_surface_member_is_what_closes_Z2": X6 + Z2_KEYDOWN_OPEN_CALL,
     "X9_reach_enumerates_call_sites_not_names": X9,
