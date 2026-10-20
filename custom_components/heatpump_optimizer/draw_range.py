@@ -289,7 +289,7 @@ def _stored_idle(raw: Any) -> list[float]:
     return [
         float(v) for v in (raw if isinstance(raw, list) else ())
         if isinstance(v, (int, float)) and not isinstance(v, bool)
-        and np.isfinite(v) and v >= 0.0
+        and np.isfinite(v) and v > 0.0
     ]
 
 
