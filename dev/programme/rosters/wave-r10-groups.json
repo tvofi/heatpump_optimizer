@@ -4252,7 +4252,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-setpoint-power",
-    "commit": null,
+    "commit": "9d300ed118cec3ee02738286ac1893235ccc13f4",
     "last_step": null,
     "next_step": "fixer",
     "note": null
