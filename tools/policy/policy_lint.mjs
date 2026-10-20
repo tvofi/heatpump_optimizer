@@ -5284,7 +5284,14 @@ function assertAcceptance(derived) {
   }
   // ARM B of #1058: the citation removed, the document left, the sentence that
   // carried it still in place. This is the arm that measured `TOTAL: 0`.
-  const elide = (t) => cpKeys.reduce((acc, k) => acc.split(k).join(`${k}.NOT-CITED`), t)
+  // EVERY SPELLING THE MOVE MAP KNOWS: a policy file may cite the document by
+  // its canonical (pre-move) path, which an old line carries, or by the live
+  // path, which a line added while the guard reads the diff must carry --
+  // `layout.py`'s guard refuses a new citation of the retired spelling. Eliding
+  // only the canonical key left the live citation in place, so the arm counted
+  // one of the two earned exclusions and reported itself vacuous.
+  const spellings = (k) => [...new Set([k, locate(k)])]
+  const elide = (t) => cpKeys.reduce((acc, k) => spellings(k).reduce((a, s) => a.split(s).join(`${s}.NOT-CITED`), acc), t)
   const cpElided = driveCP(cpLive.map(([f, t]) => [f, elide(t)]))
   if (cpElided.length !== cpKeys.length) {
     console.log(`\nFIXTURE VACUOUS: checkCitationPresence reported ${cpElided.length} of ${cpKeys.length} earned exclusions with every citation of them elided from the corpus. That is arm B of #1058's citation table -- the citation removed and the document left -- and it measured TOTAL 0 before this check existed.`)
