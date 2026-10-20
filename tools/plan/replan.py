@@ -17,11 +17,19 @@ What it reads
 The schedule
     List scheduling over the roster's `after` edges with six pull-request
     slots, longest-remaining-path first. A group holds a slot from its start
-    (the PR opens) to its finish (the PR merges); at most two in-flight groups
-    may touch `coordinator.py`. Groups whose fixer is already working (stage
-    `in-progress`) were dispatched before the replan: up to six start at the
-    replan instant in height order, and the rest wait for a slot like any
-    pending group.
+    (the PR opens) to its finish (the PR merges). Groups whose fixer is
+    already working (stage `in-progress`) were dispatched before the replan:
+    up to six start at the replan instant in height order, whatever their
+    dependency state, and the rest wait for a slot like any pending group.
+
+    The coordinator cap is enforced on the groups the PLAN dispatches. The
+    inherited in-progress set can itself exceed it -- on 2026-10-20 three of
+    the six running fixers touch `coordinator.py`, against a cap of two, while
+    no coordinator pull request was measured open. The plan records that set
+    in `generated.inherited_coordinator` (cap, groups, whether it exceeds the
+    cap) and `--check` refuses a plan whose record is missing or disagrees
+    with its groups: the excess is stated, not hidden, and never counted as a
+    cap the plan chose to breach.
 
     Merges are batched. A finished group waits up to `batch_window_minutes`
     for a partner; then the batch lands and its slots free. One batch pays one
@@ -36,23 +44,24 @@ The schedule
 Why it checks what it checks
     A schedule that violates a cap is not a plan. `--check` refuses (exit 1)
     on: more than `slots` in flight at any instant; more than `seats` working
-    at any instant; more than `coordinator_cap` in flight touching
-    `coordinator.py`; a dependency that finishes after its dependent starts
-    (an inherited in-progress group that started before its dependency is
-    recorded in `generated.inherited_dependency_violations`, not refused --
-    the replan cannot undo it); a stamp cadence breach; a wave opening while
-    the open-PR cap is full; a summary that disagrees with the groups it
-    summarises. `--self-test` plants each violation and proves the refusal
-    fires.
+    at any instant; more than `coordinator_cap` PLANNED groups in flight
+    touching `coordinator.py`, or an inherited coordinator record that is
+    missing or disagrees with the groups; a dependency that finishes after its
+    dependent starts (an inherited in-progress group that started before its
+    dependency is recorded in `generated.inherited_dependency_violations`, not
+    refused -- the replan cannot undo it); a stamp cadence breach; a wave
+    opening while the open-PR cap is full; a summary that disagrees with the
+    groups it summarises. `--self-test` plants each violation and proves the
+    refusal fires.
 
 plan.json shape
     schema; generated {roster_ref, roster_blob, start, version, caps,
-    inherited_dependency_violations}; summary {closure, wall_hours, ci_minutes,
-    batches, stamps, ...}; critical_path [group...]; groups {name: {wave,
-    start, finish, slot, duration_minutes, size, lane, level, live, inherited,
-    coordinator, batch, stamp, after}}; waves [{wave, opens, drains, stamp,
-    batch, groups}]; batches [{id, at, groups}]; stamps [{version, at, kind,
-    batch, carries}].
+    inherited_coordinator, inherited_dependency_violations}; summary {closure,
+    wall_hours, ci_minutes, batches, stamps, ...}; critical_path [group...];
+    groups {name: {wave, start, finish, slot, duration_minutes, size, lane,
+    level, live, inherited, coordinator, batch, stamp, after}}; waves [{wave,
+    opens, drains, stamp, batch, groups}]; batches [{id, at, groups}]; stamps
+    [{version, at, kind, batch, carries}].
 """
 
 from __future__ import annotations
@@ -335,22 +344,31 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         if guard > 20000:
             raise PlanError("scheduler did not terminate; the graph is unsound")
 
-        # 1. Admit live groups first (they were dispatched before the replan),
-        #    then fill every free slot with the best ready group.
-        live_ready = sorted((n for n in ready if n in live), key=lambda n: (-height[n], n))
-        while live_ready and free_slot() is not None:
-            n = live_ready.pop(0)
-            s = free_slot()
-            start_t[n] = t
-            slot_of[n] = s
-            work_end[n] = t + dur_min[n]
-            running[n] = (s, work_end[n])
-            if t == 0:
+        # 1. At the replan instant, the groups whose fixer is already working
+        #    were dispatched before the plan: admit up to `slots` of them in
+        #    height order whatever their dependency state. That state is why
+        #    `generated.inherited_dependency_violations` can be non-empty -- a
+        #    fixer can be ahead of the roster's serialisation. After this
+        #    instant a live group still waiting for a slot queues like any
+        #    other and is released when its dependencies have merged.
+        if t == 0:
+            live_pending = sorted((n for n in pending if n in live),
+                                  key=lambda n: (-height[n], n))
+            while live_pending and free_slot() is not None:
+                n = live_pending.pop(0)
+                s = free_slot()
+                start_t[n] = t
+                slot_of[n] = s
+                work_end[n] = t + dur_min[n]
+                running[n] = (s, work_end[n])
                 inherited.add(n)
-            ready.discard(n)
-            pending.discard(n)
+                ready.discard(n)
+                pending.discard(n)
         while ready and free_slot() is not None:
-            n = pick(sorted(ready), t)
+            candidates = sorted(n for n in ready if n not in start_t)
+            if not candidates:
+                break
+            n = pick(candidates, t)
             if n is None:
                 break
             s = free_slot()
@@ -381,7 +399,9 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         #    while every slot is busy with work and no ready group waits is
         #    sharing a gate run for free. Slots free and dependents release at
         #    this instant.
-        waiting = bool(ready) and (free_slot() is None or pick(sorted(ready), t) is None)
+        waiting = bool([n for n in ready if n not in start_t]) and (
+            free_slot() is None
+            or pick(sorted(n for n in ready if n not in start_t), t) is None)
         if finished and (waiting or t >= min(finished.values()) + batch_window
                          or (not running and not ready and not pending)):
             batch = sorted(finished, key=lambda n: (work_end[n], n))
@@ -407,7 +427,10 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                         carry = []
             for n in batch:
                 for c in children[n]:
-                    if all(a in merged_t for a in deps[c]):
+                    # A group already started (an inherited fixer admitted
+                    # ahead of its dependency) must not be released a second
+                    # time when that dependency later merges.
+                    if c not in start_t and all(a in merged_t for a in deps[c]):
                         ready.add(c)
 
     if pending or ready or running or finished:
@@ -484,6 +507,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         for n in sorted(inherited) for g in deps[n]
         if merged_t[g] > start_t[n]
     ]
+    inherited_coord = sorted(n for n in inherited if coord[n])
     plan = {
         "schema": 1,
         "generated": {
@@ -495,6 +519,14 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "caps": {
                 "slots": slots, "seats": seats, "coordinator_cap": coord_cap,
                 "stamp_every": every, "batch_window_minutes": batch_window,
+            },
+            # The inherited in-progress set, recorded so the coordinator cap's
+            # state at t=0 is a fact in the plan rather than a claim in prose.
+            # `--check` refuses a plan whose record is missing or disagrees.
+            "inherited_coordinator": {
+                "cap": coord_cap,
+                "groups": inherited_coord,
+                "exceeds_cap": len(inherited_coord) > coord_cap,
             },
             "inherited_dependency_violations": inherited_deps,
         },
@@ -615,13 +647,24 @@ def check_plan(plan: dict) -> list:
         return int((dt.datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ") - start).total_seconds() // 60)
 
     # 1. dependency: a dependency finishes before its dependent starts. An
-    #    inherited (already running) dependent is recorded, not refused.
+    #    inherited (already running) dependent is recorded, not refused, and
+    #    the record must equal the state -- an unrecorded inversion is refused.
+    inherited_deps = set()
     for n, g in groups.items():
         for a in g.get("after") or []:
-            if a in groups and mins(groups[a]["finish"]) > mins(g["start"]) \
-                    and not g.get("inherited"):
+            if a not in groups or mins(groups[a]["finish"]) <= mins(g["start"]):
+                continue
+            if g.get("inherited"):
+                inherited_deps.add((n, a))
+            else:
                 bad.append(f"dependency: {a} finishes {groups[a]['finish']} "
                            f"after {n} starts {g['start']}")
+    recorded_deps = {(d["group"], d["after"]) for d in
+                     plan["generated"].get("inherited_dependency_violations") or []}
+    if recorded_deps != inherited_deps:
+        bad.append("dependency: generated.inherited_dependency_violations "
+                   f"{sorted(recorded_deps)} does not equal the inherited "
+                   f"inversions {sorted(inherited_deps)}")
 
     # 2. six in flight at any instant (open pull requests), and eight working
     events = []
@@ -645,16 +688,33 @@ def check_plan(plan: dict) -> list:
         if curw > seats:
             bad.append(f"seats: {curw} groups working at {iso(start, t)} (cap {seats})")
 
-    # 3. coordinator cap: at most two in flight, counting planned starts.
+    # 3. coordinator cap: at most `coord_cap` PLANNED groups in flight; the
+    #    inherited in-progress set is recorded and must match the groups.
     coord = [(n, g) for n, g in groups.items() if g.get("coordinator")]
     for t, _, _ in events:
         curc = sum(1 for n, g in coord
                    if not g.get("inherited")
                    and mins(g["start"]) <= t < mins(g["finish"]))
         if curc > coord_cap:
-            bad.append(f"coordinator cap: {curc} touching coordinator.py at "
-                       f"{iso(start, t)} (cap {coord_cap})")
+            bad.append(f"coordinator cap: {curc} planned groups touching "
+                       f"coordinator.py at {iso(start, t)} (cap {coord_cap})")
             break
+    inherited_coord = sorted(n for n, g in coord if g.get("inherited"))
+    rec = plan["generated"].get("inherited_coordinator")
+    if rec is None:
+        bad.append("coordinator cap: the inherited in-progress set is not "
+                   "recorded in generated.inherited_coordinator")
+    else:
+        if rec.get("cap") != coord_cap:
+            bad.append(f"coordinator cap: the inherited record says cap "
+                       f"{rec.get('cap')}, the plan's is {coord_cap}")
+        if sorted(rec.get("groups") or []) != inherited_coord:
+            bad.append(f"coordinator cap: the inherited record "
+                       f"{sorted(rec.get('groups') or [])} does not equal "
+                       f"{inherited_coord}")
+        if bool(rec.get("exceeds_cap")) != (len(inherited_coord) > coord_cap):
+            bad.append("coordinator cap: the inherited record's exceeds_cap "
+                       "flag disagrees with the groups")
 
     # 4. a wave opens only while the open-PR cap has room
     for w in plan.get("waves", []):
@@ -836,6 +896,42 @@ def selftest() -> int:
            p2["summary"]["inherited_in_progress"] == caps["slots"],
            str(p2["summary"]["inherited_in_progress"]))
 
+    # The inherited state the docstring promises to RECORD: a fixer ahead of
+    # the roster's serialisation, and a coordinator-touching live group.
+    ahead = {"groups": [
+        {"group": "B", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "not-started"}},
+        {"group": "A", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": ["B"], "hot_files": ["coordinator.py"],
+         "resume": {"stage": "in-progress"}},
+    ]}
+    p3 = build_plan(ahead, durations, caps, start, "v1.0.0")
+    inv = p3["generated"]["inherited_dependency_violations"]
+    expect("an inherited group ahead of its dependency is recorded",
+           [(d["group"], d["after"]) for d in inv] == [("A", "B")], str(inv))
+    expect("the plan with a recorded inversion passes --check",
+           check_plan(p3) == [], str(check_plan(p3)))
+    deleted = json.loads(json.dumps(p3))
+    deleted["generated"]["inherited_dependency_violations"] = []
+    expect("an unrecorded inherited inversion refuses",
+           any("inherited_dependency_violations" in b
+               for b in check_plan(deleted)), str(check_plan(deleted)))
+
+    rec = p3["generated"]["inherited_coordinator"]
+    expect("the inherited coordinator set is recorded",
+           rec["groups"] == ["A"] and rec["cap"] == caps["coordinator_cap"]
+           and rec["exceeds_cap"] is False, str(rec))
+    norec = json.loads(json.dumps(p3))
+    del norec["generated"]["inherited_coordinator"]
+    expect("a missing inherited-coordinator record refuses",
+           any("inherited in-progress set is not recorded" in b
+               for b in check_plan(norec)), str(check_plan(norec)))
+    oversized = json.loads(json.dumps(p3))
+    oversized["generated"]["inherited_coordinator"]["exceeds_cap"] = True
+    expect("a disagreeing inherited-coordinator record refuses",
+           any("exceeds_cap" in b for b in check_plan(oversized)),
+           str(check_plan(oversized)))
+
     print(f"self-test: {len(failures)} failed")
     return 1 if failures else 0
 
@@ -860,6 +956,13 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
          f"-{merges}", "--format=%H"],
         capture_output=True, text=True, check=True).stdout.split()
     want = ("fast (3.14)", "closures", "Analyze (python)")
+    # One row per (commit, context) that COMPLETED, kept with its conclusion.
+    # The cancelled rate's denominator is the Analyze population, never the
+    # complete-sample population: a commit whose Analyze leg was cancelled at
+    # its cap and whose fast leg had not finished at measurement time is a
+    # cancelled Analyze run, and sampling only complete triples drops it -- the
+    # rate that did so under-priced one cancelled leg per 26 runs instead of
+    # per 29 (2026-10-20 review, measurement-defect).
     rows: dict = {w: [] for w in want}
     samples = []
     for sha in log:
@@ -878,21 +981,22 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
                 a = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
                 b = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
                 mins = round((b - a).total_seconds() / 60.0, 1)
-                rows[name].append(mins)
+                rows[name].append((mins, concl))
                 got[name] = {"job": int(job), "minutes": mins, "conclusion": concl}
         if len(got) == 3:
             samples.append({"sha": sha, **got})
 
     def stat(xs):
-        xs = sorted(xs)
+        xs = sorted(m for m, _ in xs)
         q = lambda p: xs[min(len(xs) - 1, int(round(p * (len(xs) - 1))))]
         return {"median_minutes": round(median(xs), 1), "iqr": [q(.25), q(.75)],
                 "min_minutes": min(xs), "max_minutes": max(xs), "n": len(xs)}
 
     ci = {w: stat(rows[w]) for w in want}
-    ana = [s["Analyze (python)"] for s in samples]
-    cancelled = sum(1 for s in ana if s["conclusion"] == "cancelled")
-    ci["Analyze (python)"]["cancelled_rate"] = round(cancelled / max(1, len(ana)), 3)
+    ana_rows = rows["Analyze (python)"]
+    cancelled = sum(1 for _, concl in ana_rows if concl == "cancelled")
+    ci["Analyze (python)"]["cancelled_rate"] = round(cancelled / max(1, len(ana_rows)), 3)
+    ci["Analyze (python)"]["cancelled"] = cancelled
     ci["Analyze (python)"]["cap_minutes"] = 30
     return {
         "provenance": {
@@ -1002,8 +1106,14 @@ def print_waves(plan: dict) -> None:
         print(f"{w['wave']:>4}  {w['opens']:<17} {w['drains']:<17} "
               f"{(w['stamp'] or '—'):<9} {', '.join(g[4:] for g in w['groups'])}")
     s = plan["summary"]
+    g = plan["generated"]
+    ic = g.get("inherited_coordinator") or {}
     print(f"summary: closure {s['closure']} | wall {s['wall_hours']} h | "
-          f"CI {s['ci_minutes']} min | batches {s['batches']} | stamps {s['stamps']}")
+          f"CI {s['ci_minutes']} min | batches {s['batches']} | stamps {s['stamps']} "
+          f"| roster {g.get('roster_blob', '')[:12] or 'unpinned'} "
+          f"| inherited coordinator {len(ic.get('groups') or [])}/{ic.get('cap')} "
+          f"({len(g.get('inherited_dependency_violations') or [])} inherited "
+          f"dependency inversion(s))")
 
 
 if __name__ == "__main__":

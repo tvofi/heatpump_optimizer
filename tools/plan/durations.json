@@ -1,39 +1,41 @@
 {
  "analyze_cancel_note": "Analyze (python) is cancelled at a 30-minute cap; the measured cancellation rate is priced as one more full leg per cancelled run.",
  "batch_window_minutes": 0,
- "batch_window_note": "0: merge a batch as soon as it is merge-ready, sharing a gate run only among groups that finish at the same instant. Measured on the round-10 roster at a fixed start (2026-10-20T18:00Z): window 0 closes 235.45 h with 39 batches and 4884 CI minutes; 20 min closes 237.67 h with 37 and 4667; 60 min closes 242.33 h with 37; 120 min closes 249.33 h with 37. Closure is the first objective, and holding a finished group delays its dependents' release even when no group is waiting for the slot, so every window above 0 costs wall time and the CI saving saturates at 37 batches.",
+ "batch_window_note": "0: merge a batch as soon as it is merge-ready, sharing a gate run only among groups that finish at the same instant. Measured on the round-10 roster at blob 277cdd359193 (branch tip e3010676), fixed start 2026-10-20T17:00Z: window 0 closes 226.28 h with 44 batches and 5778.4 CI minutes; 20 min closes 228.28 h with 44 and the same CI; 60 min 232.28 h; 120 min 238.28 h. Closure is the first objective, and holding a finished group delays its dependents' release even when no group is waiting for the slot, so every window above 0 costs wall time with no CI saving at this roster.",
+ "cancelled_rate_note": "The cancelled-rate denominator is the Analyze (python) rows that completed, not the commits whose three legs all completed: a run cancelled at its 30-minute cap is a cancelled run even when another leg of the same tree had not finished at measurement time. Measured 2026-10-20T16:52Z: 2 cancelled of 30 Analyze rows (0.067).",
  "ci": {
   "Analyze (python)": {
-   "cancelled_rate": 0.038,
+   "cancelled": 2,
+   "cancelled_rate": 0.067,
    "cap_minutes": 30,
    "iqr": [
-    21.5,
-    28.1
+    21.0,
+    27.9
    ],
    "max_minutes": 30.3,
-   "median_minutes": 27.2,
+   "median_minutes": 26.9,
    "min_minutes": 16.8,
-   "n": 29
+   "n": 30
   },
   "closures": {
    "iqr": [
-    18.4,
-    29.9
+    21.8,
+    30.0
    ],
    "max_minutes": 31.5,
-   "median_minutes": 25.1,
+   "median_minutes": 29.4,
    "min_minutes": 16.6,
-   "n": 28
+   "n": 29
   },
   "fast (3.14)": {
    "iqr": [
     41.5,
-    57.4
+    56.7
    ],
    "max_minutes": 58.9,
    "median_minutes": 55.2,
-   "min_minutes": 32.4,
-   "n": 26
+   "min_minutes": 31.9,
+   "n": 28
   }
  },
  "closure_lead_minutes": 120,
@@ -41,10 +43,83 @@
  "live_remaining_fraction_note": "0.7: the share of a size duration still ahead for a group whose fixer is already working. A working estimate carried from the out-of-tree renderer; no measurement supports a different fraction.",
  "provenance": {
   "instrument": "gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs over the last main merges",
-  "measured_at": "2026-10-20T15:51:45Z",
-  "merges": 26
+  "measured_at": "2026-10-20T16:52:44Z",
+  "merges": 28
  },
+ "roster_provenance": "The schedule figures in the pull request body are taken at roster branch tip e3010676747126df614e595ae43477db7d32e7b9, roster blob 277cdd3591938af542a3f72510389f9bc3378429. A later roster edit moves the batches, the CI minutes and the closure; re-run the replanner and re-take the figures rather than quoting these.",
  "samples": [
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118717889819,
+    "minutes": 23.9
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118725904646,
+    "minutes": 24.2
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118717726660,
+    "minutes": 48.0
+   },
+   "sha": "990e90af9bcd05f283295f90c128ef936e8ba025"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118717487110,
+    "minutes": 18.1
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118732298651,
+    "minutes": 30.3
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118717341993,
+    "minutes": 31.9
+   },
+   "sha": "d4f937d6e7efdd8ee22bd5023d10734d75d08085"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118712340131,
+    "minutes": 28.8
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118721387954,
+    "minutes": 29.6
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118712169045,
+    "minutes": 56.7
+   },
+   "sha": "7416f340a3e9e8c768d8f98886f2f69069063eb9"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "cancelled",
+    "job": 118712076957,
+    "minutes": 30.3
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118712372634,
+    "minutes": 30.2
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118711866716,
+    "minutes": 55.2
+   },
+   "sha": "575dad30d9172dc77acf252bcc7c58b25948c457"
+  },
   {
    "Analyze (python)": {
     "conclusion": "success",
@@ -188,78 +263,6 @@
     "minutes": 41.5
    },
    "sha": "eef9165ee76bce9d2a2d438d8b4c60d8a4d8fc77"
-  },
-  {
-   "Analyze (python)": {
-    "conclusion": "success",
-    "job": 118513243055,
-    "minutes": 27.9
-   },
-   "closures": {
-    "conclusion": "success",
-    "job": 118513552347,
-    "minutes": 30.0
-   },
-   "fast (3.14)": {
-    "conclusion": "success",
-    "job": 118513100577,
-    "minutes": 39.8
-   },
-   "sha": "2c7ec6c0fd7ae40b958ef9cb11a8425b26591708"
-  },
-  {
-   "Analyze (python)": {
-    "conclusion": "success",
-    "job": 118512586654,
-    "minutes": 27.8
-   },
-   "closures": {
-    "conclusion": "success",
-    "job": 118512800926,
-    "minutes": 17.9
-   },
-   "fast (3.14)": {
-    "conclusion": "success",
-    "job": 118512476288,
-    "minutes": 41.2
-   },
-   "sha": "d59b90ec92cec52ecd5913fb482b4beeee6a1776"
-  },
-  {
-   "Analyze (python)": {
-    "conclusion": "success",
-    "job": 118482034870,
-    "minutes": 26.7
-   },
-   "closures": {
-    "conclusion": "success",
-    "job": 118482216942,
-    "minutes": 29.4
-   },
-   "fast (3.14)": {
-    "conclusion": "success",
-    "job": 118481949332,
-    "minutes": 55.8
-   },
-   "sha": "0c298f6b542e6efa4c93941700b3a23b859f3f9a"
-  },
-  {
-   "Analyze (python)": {
-    "conclusion": "success",
-    "job": 118476971599,
-    "minutes": 20.0
-   },
-   "closures": {
-    "conclusion": "success",
-    "job": 118477127214,
-    "minutes": 16.6
-   },
-   "fast (3.14)": {
-    "conclusion": "success",
-    "job": 118476896771,
-    "minutes": 55.5
-   },
-   "sha": "6f25795bc1027eeefe448079b3f9b74dfa317e75"
   }
  ],
  "sizes_hours": {
