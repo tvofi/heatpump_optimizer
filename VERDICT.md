@@ -5,7 +5,7 @@ bus-nonce: 4162309a01046b05b79c53f3e102f4aa
 ## Head
 
 Round 2. Measured `478cc27efd03d59d97899cff0d67f2e912ce7918` in a detached worktree at
-`/Users/timmalmstrom/hpo-seats/r10s3/rev-2485-r2`; `origin/main` is `76bb45628745` and the merge base
+`~/hpo-seats/r10s3/rev-2485-r2`; `origin/main` is `76bb45628745` and the merge base
 is `origin/main`, so the PR's own diff is the three-dot one. The PR head read from the API at
 13:30Z, again at 13:39Z and again immediately before posting at 13:49Z is `478cc27e`. The body was
 read from the pull request
