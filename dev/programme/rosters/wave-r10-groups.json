@@ -3865,7 +3865,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-dead-rate-limit",
-    "commit": null,
+    "commit": "d4fb5351beee7d74ab1525cc96adef563612532c",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
