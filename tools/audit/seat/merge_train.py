@@ -1315,7 +1315,7 @@ class Train:
             stdin=json.dumps({"message": f"train hold pid={os.getpid()}",
                               "tree": tree, "parents": [tip]}))
         sha = next((w for w in said.split() if is_sha(w)), "")  # not said.strip(): a gh warning may trail it
-        if code or not is_sha(sha):
+        if code:
             self.held = False
             self.log(f"NOT held: the hold commit was refused (rc={code}: {said.strip()[-160:]})")
             return
