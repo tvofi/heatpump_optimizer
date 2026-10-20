@@ -3933,7 +3933,9 @@
    "group": "R10-CI-LAYOUT",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
+   "issues": [
+    2495
+   ],
    "fixes": [],
    "findings": [
     "CI consolidation (tests.yml into an umbrella ci.yml, two pull requests)"
