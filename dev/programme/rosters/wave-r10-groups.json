@@ -5021,7 +5021,9 @@
    "after": [
     "R10-DEEPLINK-HANDLERS"
    ],
-   "carry": [],
+   "carry": [
+    "H1, the dialog type floor, from the harmony study (probe/card-harmony-design at 6aea0d10b8f2e618d64c684755db9aaa0c624588; its HARMONY.md and four before/after pages live under docs/design/harmony in that ref; read them from the ref, never from memory). Measured: the enlarged dialog's base is 12.0 / 12.0 / 12.9 px at 375 / 768 / 1280 against the card's own 14 px, so its chrome and captions render smaller than the tile's \u2014 what-if hints 10.2, group titles 10.8, the wide legend note 9.1-9.8. The fix: DIALOG_FONT_PX_MIN from 12 to 14, and font-size max(12px, <em>) on the caption roles. Control: measure with the study's harness in the ref (its harness/states.js, page and theme query parameters) at all three widths; the card face is the null arm and must move only in the caption roles. Re-measure at the merge base; the px figures here describe the study's tree, not the fix's."
+   ],
    "model": {
     "fixer": "opus",
     "reviewer": "opus",
