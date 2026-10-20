@@ -33222,6 +33222,119 @@ R.check(
     "(want a refusal)",
 )
 
+# --- the gather half: the fetch, its refusal and its retry ------------------
+#
+# Main's ci-ratchet died on every push for twelve merges because the gather
+# step fetched the artifacts list inline as `gh api … --jq … > window.json ||
+# true`, and `|| true` turned a failed or truncated response into a 0-byte
+# file the next line `json.load`ed into a traceback naming nothing (CI job
+# 118878630676, 2026-10-20). The decision is tests/ci_ratchet.py's now, so
+# this script drives it offline. The empty arm is the failing test -- it
+# reddens against the base's heredoc, which raises JSONDecodeError instead of
+# naming the fetch -- and the good-body arm is its null control. The mutation
+# that removes the 0-byte guard reddens the first alone: the guard is what
+# names the RUN, which a body cut short can still be missing.
+_CIR_GOOD_ARTIFACTS = json.dumps({"artifacts": [
+    {"id": 1, "name": "ci-metrics-fast", "created_at": "2026-10-20T10:00:00Z",
+     "expired": False, "workflow_run": {"id": 9}},
+    {"id": 2, "name": "ci-metrics-fast", "created_at": "2026-10-20T12:00:00Z",
+     "expired": False, "workflow_run": None, "run_id": 8},
+    {"id": 3, "name": "ci-metrics-fast", "created_at": "2026-10-20T15:00:00Z",
+     "expired": False, "workflow_run": {"id": 77}},
+]})
+
+
+def _cir_refusal(fn) -> str:
+    try:
+        fn()
+    except SystemExit as exc:
+        return str(exc)
+    return ""
+
+
+_CIR_EMPTY = _cir_refusal(lambda: _cir.window_entries("", "77"))
+R.check(
+    "the CI ratchet's window parser refuses an empty artifacts response by "
+    "naming the fetch (a failed fetch is not an empty window)",
+    "artifacts fetch" in _CIR_EMPTY and "0 bytes" in _CIR_EMPTY
+    and "run 77" in _CIR_EMPTY,
+    _CIR_EMPTY or "an empty body was accepted as a window",
+)
+_CIR_SELECTED = [a["id"] for a in _cir.window_entries(_CIR_GOOD_ARTIFACTS, "77")]
+R.check(
+    "and a good response still yields the same window (the null control)",
+    _CIR_SELECTED == [2, 1],
+    f"{_CIR_SELECTED} (want [2, 1]: this run 77 out, the .run_id fallback for "
+    "id 2 read as run 8, and jq's (run, name) order kept)",
+)
+
+
+def _cir_retry_runner(calls: list):
+    def run(argv, **_kw):
+        calls.append(argv)
+        if len(calls) < 3:
+            return _subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
+        return _subprocess.CompletedProcess(argv, 0, _CIR_GOOD_ARTIFACTS, "")
+    return run
+
+
+_CIR_ATTEMPTS: list = []
+_CIR_RETRIED = [a["id"] for a in _cir.fetch_window(
+    "o/r", "77", runner=_cir_retry_runner(_CIR_ATTEMPTS), sleep=lambda _s: None)]
+R.check(
+    "the CI ratchet retries the artifacts list and uses the retry's window",
+    len(_CIR_ATTEMPTS) == 3 and _CIR_RETRIED == [2, 1],
+    f"attempts={len(_CIR_ATTEMPTS)} ids={_CIR_RETRIED}",
+)
+
+import io as _cir_io  # noqa: E402 - beside its subject, one block
+import zipfile as _cir_zip  # noqa: E402
+
+with _tempfile.TemporaryDirectory() as _cir_dl_td:
+    def _cir_zip_of(text: str) -> bytes:
+        buf = _cir_io.BytesIO()
+        with _cir_zip.ZipFile(buf, "w") as zf:
+            zf.writestr("ci-metrics-fast.tsv", text)
+        return buf.getvalue()
+
+    def _cir_dl_runner(argv, **_kw):
+        aid = int(argv[-1].rstrip("/zip").rsplit("/", 1)[-1])
+        if aid == 12:
+            return _subprocess.CompletedProcess(
+                argv, 1, b"", b"gh: Artifact has expired (HTTP 404)")
+        return _subprocess.CompletedProcess(argv, 0, _cir_zip_of("x\n"), b"")
+
+    _CIR_DL_SKIPPED = _cir.download_artifacts(
+        [{"id": 11, "name": "ci-metrics-fast"},
+         {"id": 12, "name": "ci-metrics-closures"}],
+        _cir_dl_td, "o/r", runner=_cir_dl_runner)
+    _CIR_DL_FILES = sorted(p.name for p in Path(_cir_dl_td).iterdir())
+R.check(
+    "a 404 on one artifact's zip is skipped, and the rest of the window lives",
+    [a["id"] for a in _CIR_DL_SKIPPED] == [12]
+    and _CIR_DL_FILES == ["w11-ci-metrics-fast.tsv"],
+    f"skipped={[a['id'] for a in _CIR_DL_SKIPPED]} files={_CIR_DL_FILES}",
+)
+
+# The wiring is a pinned fact, read from the job's own text: the job runs the
+# module's gather and its self-test, and the inline fetch whose `|| true`
+# swallowed the failure is gone. A self-test no run line names is one the
+# tree never runs (tools/audit/seat/selftest_wiring.py's rule); that tool
+# scans tools/audit/seat/ only, so this is the pin for tests/.
+R.check(
+    "the ci-ratchet job runs the gather and its self-test from the module",
+    "python3 -I tests/ci_ratchet.py --self-test" in _CIR_JOB
+    and "python3 -I tests/ci_ratchet.py --gather --metrics-dir" in _CIR_JOB,
+    f"self-test={'python3 -I tests/ci_ratchet.py --self-test' in _CIR_JOB}, "
+    f"gather={'python3 -I tests/ci_ratchet.py --gather --metrics-dir' in _CIR_JOB}",
+)
+R.check(
+    "and the inline artifacts fetch that swallowed its own failure is gone",
+    'gh api "repos/' not in _CIR_JOB
+    and '"$RUNNER_TEMP/window.json"' not in _CIR_JOB,
+    "the gather step must not fetch and parse inside the workflow again",
+)
+
 # The class's seam rule: every tracked shell file naming the variable is an
 # emitter, and each one unsets it from what it exports -- as a command line of
 # its own, so an `unset` surviving only inside a comment does not pass.

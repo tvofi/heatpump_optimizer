@@ -55,6 +55,8 @@ Usage (the ci-ratchet job; stdlib only besides the archscore import):
     python3 tests/ci_ratchet.py --metrics-dir DIR [--runs-json FILE]
     python3 tests/ci_ratchet.py --metrics-dir DIR --runs-json FILE \
         --record "reason"
+    python3 tests/ci_ratchet.py --gather --metrics-dir DIR   # the job's fetch
+    python3 tests/ci_ratchet.py --self-test                  # offline, no network
 
 --metrics-dir holds the ci-metrics artifacts of this run and the recent
 window, flat: lines of
@@ -68,10 +70,15 @@ a reason.
 """
 from __future__ import annotations
 
+import io
 import json
 import math
+import os
 import subprocess
 import sys
+import tempfile
+import time
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -80,6 +87,199 @@ BUDGETS = ROOT / "tests" / "ci_budgets.json"
 METADATA_KEYS = {"recorded_at", "reason"}
 
 LANES = ("closures", "coverage")
+
+# --- the recent-window fetch (the ci-ratchet job's gather step) --------------
+#
+# This lane's input is two API calls: the artifacts list -- the heaviest read
+# the workflow makes -- and up to 45 artifact zips. Both DECISIONS live here,
+# not in a workflow heredoc, because a decision inside a heredoc cannot be
+# tested offline (decision 0013) and this one has already failed in
+# production: the list call returned a body gh's jq engine could not parse
+# ("unexpected end of JSON input"), `|| true` swallowed the exit code, and the
+# step died ten seconds later on `json.load` of a 0-byte file with a traceback
+# naming nothing (CI job 118878630676, 2026-10-20). An EMPTY OR PARTIAL BODY IS
+# A FAILED FETCH, NEVER AN EMPTY WINDOW.
+ARTIFACTS_URL = "repos/{repo}/actions/artifacts?per_page=100"
+WINDOW_LIMIT = 45          # the list the step has always downloaded from
+FETCH_ATTEMPTS = 4         # the list call's attempts, in total
+FETCH_DELAY = 2.0          # seconds before the second attempt; doubles
+EXPIRED_HTTP = ("404", "410")
+
+
+def _refusal(text: str) -> SystemExit:
+    """The module's refusal shape: one named line, never a traceback the
+    reader has to reverse-engineer."""
+    return SystemExit(f"ci-ratchet: {text}")
+
+
+def _run_field(art: dict):
+    """The artifact's run association: .workflow_run.id with a .run_id
+    fallback. The list API stopped returning .run_id (null for every
+    artifact, 2026-10-12), which once left the old filter selecting on null;
+    both forms stay null-safe because .workflow_run itself may be null."""
+    run = art.get("workflow_run") or {}
+    if not isinstance(run, dict):
+        run = {}
+    rid = run.get("id")
+    return rid if rid is not None else art.get("run_id")
+
+
+def _number(value):
+    """An int run id, else None: a non-numeric field stays in the window
+    rather than being silently matched to the current run."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def window_entries(payload, run_id, limit: int = WINDOW_LIMIT) -> list[dict]:
+    """The recent ci-metrics window from one artifacts-list response.
+
+    An empty or truncated body is a FAILED FETCH, never an empty window: the
+    API call can return rc 1 or a partial body on a shared runner's network,
+    and a zero read as a window grades on nothing while looking like a pass.
+    Every refusal here therefore names the fetch.
+    """
+    body = payload or ""
+    if not body.strip():
+        raise _refusal(f"the artifacts fetch returned 0 bytes for run "
+                       f"{run_id}; refusing to read that as an empty window")
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise _refusal(f"the artifacts fetch returned {len(body)} bytes of "
+                       f"incomplete JSON ({exc}); refusing to read that as "
+                       "an empty window") from None
+    if not isinstance(data, dict) or not isinstance(data.get("artifacts"), list):
+        raise _refusal(f"the artifacts fetch returned {len(body)} bytes with "
+                       "no artifacts list; refusing to read that as an empty "
+                       "window")
+    me = _number(run_id)
+    rows = []
+    for art in data["artifacts"]:
+        if not isinstance(art, dict):
+            continue
+        name = art.get("name")
+        if not isinstance(name, str) or not name.startswith("ci-metrics-"):
+            continue
+        if art.get("expired") is not False:
+            continue
+        run = _run_field(art)
+        if me is not None and _number(0 if run is None else run) == me:
+            continue
+        rows.append({"id": art.get("id"), "run": run, "name": name,
+                     "at": art.get("created_at")})
+    # Newest first, then one artifact per (run, name): the newest, which is
+    # the copy the step always downloaded.
+    rows.sort(key=lambda r: (r["at"] is None, r["at"] or ""), reverse=True)
+    seen, unique = set(), []
+    for row in rows:
+        key = (row["run"], row["name"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(row)
+    # jq's unique_by sorts by its key before keeping the first of each group,
+    # so the list the step received was ordered by (run, name) ascending; the
+    # --limit cut below is taken in that order.
+    unique.sort(key=lambda r: (r["run"] is not None, r["run"] or 0, r["name"]))
+    return unique[:limit]
+
+
+def fetch_window(repo, run_id, *, runner=None, sleep=None,
+                 attempts: int = FETCH_ATTEMPTS,
+                 delay: float = FETCH_DELAY) -> list[dict]:
+    """The recent window, retried, or a refusal that names the fetch.
+
+    A retry with a bounded backoff turns a transient refusal into a green run
+    and a sustained one into a red JOB whose log says why. When the attempts
+    are spent the refusal carries gh's exit code, the byte count and gh's own
+    stderr, so the log says what failed instead of a JSON traceback naming
+    nothing."""
+    run = runner or subprocess.run
+    wait = sleep or time.sleep
+    url = ARTIFACTS_URL.format(repo=repo)
+    failure = "no attempt ran"
+    for attempt in range(1, attempts + 1):
+        try:
+            proc = run(["gh", "api", url], capture_output=True, text=True)
+        except OSError as exc:
+            failure = f"gh could not be run ({exc})"
+            proc = None
+        if proc is not None:
+            body = proc.stdout or ""
+            if proc.returncode != 0:
+                failure = (f"gh exited {proc.returncode} after {len(body)} "
+                           f"byte(s): {(proc.stderr or '').strip()[:400]}")
+            elif not body.strip():
+                failure = "gh exited 0 and returned 0 bytes"
+            else:
+                try:
+                    return window_entries(body, run_id)
+                except SystemExit as exc:
+                    failure = str(exc).removeprefix("ci-ratchet: ")
+        print(f"ci-ratchet: artifacts fetch attempt {attempt}/{attempts} "
+              f"failed: {failure}", file=sys.stderr)
+        if attempt < attempts:
+            wait(delay * 2 ** (attempt - 1))
+    raise _refusal(f"the artifacts fetch failed after {attempts} attempt(s): "
+                   f"{failure}. This is a refusal, not an empty window: the "
+                   "recent-window metrics are unknown, so the ratchet cannot "
+                   "grade")
+
+
+def download_artifacts(entries, out_dir, repo, *, runner=None) -> list[dict]:
+    """Write each window artifact's .tsv files into out_dir, returning the
+    artifacts skipped as expired.
+
+    An artifact that expired between the listing and the download (HTTP
+    404/410) is skipped and said so: the window is listed first and up to 45
+    zips are fetched minutes later, and one expired artifact must not discard
+    the other 44. Any other failure refuses by name."""
+    run = runner or subprocess.run
+    out = Path(out_dir)
+    skipped = []
+    for art in entries:
+        url = f"repos/{repo}/actions/artifacts/{art['id']}/zip"
+        proc = run(["gh", "api", url], capture_output=True)
+        if proc.returncode != 0:
+            err = (proc.stderr or b"").decode("utf-8", "replace").strip()
+            if any(f"HTTP {code}" in err for code in EXPIRED_HTTP):
+                first = err.splitlines()[0][:200] if err else "no stderr"
+                print(f"ci-ratchet: skipping expired artifact {art['id']} "
+                      f"({art['name']}): {first}")
+                skipped.append(art)
+                continue
+            raise _refusal(f"downloading artifact {art['id']} ({art['name']}) "
+                           f"failed: gh exited {proc.returncode}: {err[:400]}")
+        with zipfile.ZipFile(io.BytesIO(proc.stdout)) as zf:
+            for name in zf.namelist():
+                if name.endswith(".tsv"):
+                    (out / f"w{art['id']}-{Path(name).name}").write_bytes(
+                        zf.read(name))
+    return skipped
+
+
+def gather(metrics_dir, *, repo=None, run_id=None, runner=None,
+           sleep=None) -> dict:
+    """The ci-ratchet job's gather step: this run's lane artifacts are already
+    in metrics_dir; add the recent window's and return the counts printed, so
+    a caller (and --self-test) can assert them."""
+    repo = repo or os.environ.get("GITHUB_REPOSITORY")
+    run_id = run_id or os.environ.get("GITHUB_RUN_ID")
+    if not repo or not run_id:
+        raise _refusal("gather needs GITHUB_REPOSITORY and GITHUB_RUN_ID")
+    out = Path(metrics_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    entries = fetch_window(repo, run_id, runner=runner, sleep=sleep)
+    print(f"window: {len(entries)} ci-metrics artifact(s)")
+    skipped = download_artifacts(entries, out, repo, runner=runner)
+    if skipped:
+        print(f"ci-ratchet: {len(skipped)} of {len(entries)} artifact(s) "
+              "expired before download and were skipped")
+    return {"window": len(entries), "skipped": len(skipped),
+            "downloaded": len(entries) - len(skipped)}
 
 
 def _finite_number(value) -> bool:
@@ -247,8 +447,172 @@ def compare(budgets: dict, derived: dict) -> tuple[list[str], int]:
     return lines, len(grew)
 
 
+def _art(aid, name, run, at, *, expired=False, fallback_only=False):
+    """One artifact as the list API shapes it; `fallback_only` leaves
+    .workflow_run null so only the .run_id fallback can attribute it."""
+    return {"id": aid, "name": name, "created_at": at, "expired": expired,
+            "workflow_run": None if fallback_only else ({"id": run}
+                                                        if run is not None
+                                                        else None),
+            "run_id": run}
+
+
+def _zip_of(name: str, text: str) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(name, text)
+    return buf.getvalue()
+
+
+def self_test() -> int:
+    """Drive every refusal and the selection offline: no network, no sleep."""
+    passed = failed = 0
+
+    def ck(name: str, ok: bool, detail: str = "") -> None:
+        nonlocal passed, failed
+        passed, failed = passed + ok, failed + (not ok)
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}{'' if ok else ' -- ' + detail}")
+
+    def refused(fn):
+        try:
+            fn()
+        except SystemExit as exc:
+            return str(exc)
+        return ""
+
+    def safe(fn):
+        """(value, "") or (None, refusal). Every arm goes through this, so a
+        mutant that crashes REDDENS its own named check instead of aborting
+        the self-test -- a crash reads like a proof and is not one."""
+        try:
+            return fn(), ""
+        except SystemExit as exc:
+            return None, str(exc)
+
+    # The failing-test-first arm: an empty body must redden naming the fetch
+    # AND the run whose fetch it was. The run is what the explicit 0-byte
+    # guard adds over the JSON catch -- the two causes (nothing arrived vs a
+    # body cut short) have different diagnoses, so the arm separates them.
+    got, msg = safe(lambda: window_entries("", "77"))
+    ck("an empty response refuses, naming the 0-byte fetch and its run "
+       "(not an empty window)",
+       got is None and "artifacts fetch" in msg and "0 bytes" in msg
+       and "run 77" in msg, msg or f"returned {got!r}")
+    for label, body in (("whitespace-only", "  \n"),
+                        ("truncated", '{"artifacts": ['),
+                        ("no artifacts list", '{"total_count": 3}')):
+        msg = refused(lambda b=body: window_entries(b, "77"))
+        ck(f"a {label} artifacts response refuses (not an empty window)",
+           "artifacts fetch" in msg and "empty window" in msg, msg or "no refusal")
+
+    # --- the selection, and its null control: a good body still selects ----
+    good = json.dumps({"artifacts": [
+        _art(1, "ci-metrics-fast", 9, "2026-10-20T10:00:00Z"),
+        _art(2, "ci-metrics-fast", 8, "2026-10-20T11:00:00Z"),
+        _art(3, "ci-metrics-fast", 8, "2026-10-20T12:00:00Z"),
+        _art(4, "other-name", 8, "2026-10-20T13:00:00Z"),
+        _art(5, "ci-metrics-fast", 8, "2026-10-20T14:00:00Z", expired=True),
+        _art(6, "ci-metrics-fast", 77, "2026-10-20T15:00:00Z"),
+        _art(7, "ci-metrics-closures", 7, "2026-10-20T09:00:00Z",
+             fallback_only=True),
+    ]})
+    got, msg = safe(lambda: window_entries(good, "77"))
+    ids = [e["id"] for e in got or []]
+    ck("a good response still yields the window (the null control)",
+       got is not None and ids == [7, 3, 1], msg or f"got {ids}, want [7, 3, 1]")
+    ck("a duplicate (run, name) keeps the newest copy",
+       2 not in ids and 3 in ids, f"got {ids}")
+    ck("an expired artifact, another name and THIS run are all out",
+       {4, 5, 6}.isdisjoint(ids), f"got {ids}")
+    ck("the .run_id fallback attributes a null .workflow_run",
+       bool(got) and got[0]["run"] == 7, f"run={got[0]['run'] if got else None}")
+    cut, msg = safe(lambda: window_entries(good, "77", limit=2))
+    ck("the cut is taken in (run, name) order, as jq's unique_by emitted it",
+       [e["id"] for e in cut or []] == [7, 3], msg or f"got {cut}")
+
+    # --- the retry ----------------------------------------------------------
+    def stub(sequence):
+        calls, slept = [], []
+
+        def run(argv, **_kw):
+            calls.append(argv)
+            rc, out, err = sequence[min(len(calls), len(sequence)) - 1]
+            return subprocess.CompletedProcess(argv, rc, out, err)
+        return run, calls, slept
+
+    runner, calls, slept = stub([(1, "", "gh: Server Error (HTTP 502)"),
+                                 (0, good, "")])
+    entries, msg = safe(lambda: fetch_window("o/r", "77", runner=runner,
+                                             sleep=slept.append))
+    ck("a failed list call is retried and the retry's window is used",
+       [e["id"] for e in entries or []] == [7, 3, 1] and len(calls) == 2
+       and slept == [2.0], msg or f"calls={len(calls)} slept={slept}")
+    runner, calls, slept = stub([(0, "", ""), (0, good, "")])
+    entries, msg = safe(lambda: fetch_window("o/r", "77", runner=runner,
+                                             sleep=slept.append))
+    ck("an rc 0 with 0 bytes is retried too, not read as a window",
+       len(entries or []) == 3 and len(calls) == 2,
+       msg or f"calls={len(calls)}")
+    runner, calls, slept = stub([(1, "", "gh: HTTP 500"), (1, "", "gh: HTTP 500")])
+    msg = refused(lambda: fetch_window("o/r", "77", runner=runner,
+                                       sleep=slept.append, attempts=3))
+    ck("spent attempts refuse by name (exit code, attempts), no traceback",
+       "after 3 attempt(s)" in msg and "HTTP 500" in msg and slept == [2.0, 4.0],
+       msg or "no refusal")
+
+    # --- the expired-artifact download --------------------------------------
+    zips = {11: _zip_of("ci-metrics-fast.tsv", "fast\tmode\tfull\t0\t0\tpush\t1\n"),
+            12: _zip_of("ci-metrics-closures.tsv", "closures\ta.py\tfull\t0\t1\tpush\t1\n"),
+            14: _zip_of("ci-metrics-coverage.tsv", "coverage\tb.py\tfull\t0\t1\tpush\t1\n")}
+
+    def dl_run(argv, **_kw):
+        aid = int(argv[-1].rstrip("/zip").rsplit("/", 1)[-1])
+        if aid == 12:
+            return subprocess.CompletedProcess(argv, 1, b"",
+                                               b"gh: Artifact has expired (HTTP 404)")
+        if aid == 13:
+            return subprocess.CompletedProcess(argv, 1, b"", b"gh: HTTP 500")
+        return subprocess.CompletedProcess(argv, 0, zips[aid], b"")
+
+    with tempfile.TemporaryDirectory() as td:
+        skipped, msg = safe(lambda: download_artifacts(
+            [{"id": 11, "name": "ci-metrics-fast"},
+             {"id": 12, "name": "ci-metrics-closures"},
+             {"id": 14, "name": "ci-metrics-coverage"}],
+            td, "o/r", runner=dl_run))
+        names = sorted(p.name for p in Path(td).iterdir())
+        ck("an expired artifact is skipped and the rest of the window survives",
+           [a["id"] for a in skipped or []] == [12] and names == [
+               "w11-ci-metrics-fast.tsv", "w14-ci-metrics-coverage.tsv"],
+           msg or f"skipped={[a['id'] for a in skipped or []]} files={names}")
+        msg = refused(lambda: download_artifacts(
+            [{"id": 13, "name": "ci-metrics-coverage"}], td, "o/r",
+            runner=lambda argv, **_kw: subprocess.CompletedProcess(
+                argv, 3, b"", b"gh: HTTP 500")))
+        ck("a non-expiry download failure still refuses by name",
+           "artifact 13" in msg and "exited 3" in msg, msg or "no refusal")
+
+    print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv == ["--self-test"]:
+        return self_test()
+    if "--gather" in argv:
+        argv.remove("--gather")
+        metrics_dir = None
+        if "--metrics-dir" in argv:
+            i = argv.index("--metrics-dir")
+            metrics_dir = argv[i + 1]
+            del argv[i:i + 2]
+        if metrics_dir is None or argv:
+            print("ci-ratchet: --gather needs exactly --metrics-dir DIR",
+                  file=sys.stderr)
+            return 2
+        gather(metrics_dir)
+        return 0
     record_reason = None
     if "--record" in argv:
         i = argv.index("--record")
