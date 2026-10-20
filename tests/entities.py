@@ -15681,7 +15681,7 @@ def _gl_stub_tree(td: Path) -> Path:
     the real gate_lock.py beside them: what runs under the lease is observable."""
     (td / "tests").mkdir(parents=True)
     (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
-    for name in ("stress", "other"):
+    for name in ("stress", "other", "harness_headers"):
         (td / f"tests/{name}.py").write_text(
             f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
     return td
@@ -33424,6 +33424,7 @@ _AS_PAIR = ('run "$PYTHON" tests/arch_score.py',
             'run "$PYTHON" tests/arch_score_head.py')
 _AS_NULL = 'run "$PYTHON" tests/structure.py'
 _AS_UNITS, _AS_GOLDEN = _lane_body(_RUN_SH, "units"), _lane_body(_RUN_SH, "golden")
+_AS_E2E, _AS_ALONE = _lane_body(_RUN_SH, "e2e"), _lane_body(_RUN_SH, "stress")
 R.check(
     "the architecture-score pair runs in lane_golden and not in lane_units",
     all(_l in _AS_GOLDEN and _l not in _AS_UNITS for _l in _AS_PAIR)
@@ -33431,6 +33432,32 @@ R.check(
     f"in lane_units: {[_l for _l in _AS_PAIR if _l in _AS_UNITS]}; in "
     f"lane_golden: {[_l for _l in _AS_PAIR if _l in _AS_GOLDEN]}; "
     f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
+)
+
+# The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3).
+# harness_headers.py bills each harness's CPU against bounds sized from the
+# serial cost; a co-running lane inflates a CPU second (its CPU_LIMIT_S
+# comment), and R(a)'s move put arch_score.py beside it: fast (3.14) went red
+# on sysid_estimator_frontier.py at 306.4 CPU-s against 240 (job 118380549631).
+# So it runs in lane_stress, after stress.py, and in none of the parallel
+# lanes -- and lane_stress stays out of $LANES, the set run side by side.
+# Null: stress.py is read inside lane_stress by the same reader.
+_HH = 'run_always "$PYTHON" tests/harness_headers.py'
+_HH_LANES_LINE = re.search(r'^LANES="([^"]*)"', _RUN_SH, re.M)
+_HH_PARALLEL = (_HH_LANES_LINE.group(1).split() if _HH_LANES_LINE else [])
+_HH_IN_PARALLEL = [n for n, b in (("units", _AS_UNITS), ("golden", _AS_GOLDEN),
+                                  ("e2e", _AS_E2E)) if _HH in b]
+_HH_STRESS = 'run "$PYTHON" tests/stress.py'
+R.check(
+    "the CPU-bounded harness check runs alone: in lane_stress after stress.py, "
+    "in no parallel lane",
+    _HH in _AS_ALONE and _HH_STRESS in _AS_ALONE
+    and _AS_ALONE.index(_HH_STRESS) < _AS_ALONE.index(_HH)
+    and not _HH_IN_PARALLEL
+    and set(_HH_PARALLEL) == {"units", "golden", "e2e"},
+    f"in lane_stress: {_HH in _AS_ALONE}; in parallel lanes: {_HH_IN_PARALLEL}; "
+    f"parallel set {_HH_PARALLEL} (want units golden e2e, no stress); "
+    f"stress.py read in lane_stress (null): {_HH_STRESS in _AS_ALONE}",
 )
 
 
