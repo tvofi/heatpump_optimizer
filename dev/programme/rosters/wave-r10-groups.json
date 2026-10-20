@@ -4992,7 +4992,9 @@
     "R10-ROSTER-OPS",
     "R10-CI-LAYOUT"
    ],
-   "carry": [],
+   "carry": [
+    "Instrument defect, observed 2026-10-20 (orchestrator): tools/audit/worktree_gc.sh collected the roster worktree while it held an unpushed commit on the roster branch, and deleted the branch with it. The tool's own header promises a worktree with unpushed work is left alone. What happened: roster_edit.py committed set-stage for R10-STAMP at 247fbcc7 with \"nothing pushed\" on handoff/audit-r10-roster, worktree_gc ran in the same minute, and the worktree (~/hpo-seats/r10s3/roster-r10) and the local branch were both gone; the commit survived only as a loose object, and `git push 247fbcc7:refs/heads/handoff/audit-r10-roster` fast-forwarded the remote from 982a942, which proves it was unpushed. Nothing was lost only because the object had not been gc'd. Control for the fix: a worktree checked out on a branch with exactly one unpushed commit must be kept by both the classify and the apply paths, and the self-test must plant that case and fail without the clause; null control: a clean worktree at a merged head is still collected. Re-measure at your base: create the case in a scratch clone, run worktree_gc --dry-run and --apply, and read the summary line."
+   ],
    "model": {
     "fixer": "opus",
     "reviewer": "opus",
