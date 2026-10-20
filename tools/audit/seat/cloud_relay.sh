@@ -176,7 +176,7 @@ watch() { # [--interval N] [--once]
 }
 
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs body iss nh nonce
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs body iss nh nonce urc
   f=$state/cloud-handoff-failed; mkdir -p "$state"
   { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
@@ -198,7 +198,11 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; continue; }
     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
-    if ! { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2; then
+    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 || urc=$?
+    # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
+    # a failure, so it is not recorded and the next pass retries once that run has ended.
+    if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -f "$body"; continue; fi
+    if [ "$urc" != 0 ]; then
       echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -f "$body"; continue
     fi
     rm -f "$body"
@@ -389,6 +393,13 @@ self_test() {
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a failed update is tried once" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 1
   chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS" "$LOG"
+  # a BUSY update (75: another update_pr.sh holds the branch's worktree) is no failure: not recorded, retried next pass
+  rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"
+  bu=$t/bu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 75\n' "$t" > "$bu"; chmod +x "$bu"; HPO_RELAY_UPDATE=$bu
+  handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "a busy update is tried again on the next pass" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 2
+  chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
+  chk "nor logged OWED" 1 grep -q "handoff-update" "$LOG"
   # handoff refs with no open PR are OWED on every pass until disposed
   : > "$LOG"; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
   handoff_arm >/dev/null 2>&1

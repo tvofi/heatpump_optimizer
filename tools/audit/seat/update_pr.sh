@@ -21,6 +21,16 @@ pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
+# One run per branch. $WT and $WT.log are fixed per branch, and the line below that removes $WT
+# force-removed a second run's live worktree under its prepr: "Unable to read current working
+# directory", tools/ files missing, the other run's body in the shared log (2026-10-19/20: the
+# orchestrator's update and cloud_relay.sh's handoff arm on one PR). flock(2) on fd 9, which this
+# shell keeps open, is released by the kernel when the run dies, so a killed run leaves no stale lock.
+exec 9>>"$WT.lock"; LOCKED=0
+python3 -I -c 'import fcntl, sys; exec("try: fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)\nexcept BlockingIOError: sys.exit(75)")' || LOCKED=$?  # mut:lock
+[ "$LOCKED" != 75 ] || { echo "update_pr: BUSY: another update_pr.sh run (pid $(cat "$WT.lock" 2>/dev/null)) holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75; }
+[ "$LOCKED" = 0 ] || pr_refuse "could not take the per-branch lock $WT.lock (python3 exited $LOCKED)"
+echo $$ > "$WT.lock"
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -55,5 +65,5 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 9>&- || pr_push_failed $WT.log
 echo "HEAD=$H"

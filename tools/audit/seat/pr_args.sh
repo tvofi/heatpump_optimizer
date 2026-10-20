@@ -196,6 +196,34 @@ pr_args_self_test() (
     update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+  # One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch
+  # worktree was force-removed under a concurrent run's prepr. lockrun <mutant> <hold: 1|0>
+  # registers that worktree with a file in it (the in-flight run's), holds -- or, at 0, leaves
+  # behind a dead pid in -- the branch's lock, and runs update_pr.sh on the branch.
+  lockrun() {
+    local s=$t/s$((i + 1)) hp="" k=0
+    rm -f "$t/held"; mkdir -p "$s/pr"
+    git -C "$m" worktree add -q --detach "$s/pr/upd-fix-x" && touch "$s/pr/upd-fix-x/live"
+    if [ "$2" = 1 ]; then
+      python3 -I -c 'import fcntl, sys, time; f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[2], "w").close(); time.sleep(120)' \
+        "$s/pr/upd-fix-x.lock" "$t/held" & hp=$!
+      while [ ! -e "$t/held" ] && [ $k -lt 200 ]; do sleep 0.1; k=$((k + 1)); done
+    else echo 99999 > "$s/pr/upd-fix-x.lock"; fi
+    cp "$t/body.md" "$t/b.md"; run "$1" update_pr.sh fix/x - "$t/b.md"
+    [ -z "$hp" ] || { kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; }
+    [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
+  }
+  lockrun - 1
+  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another update_pr.sh run" "$t/out" \
+    && [ "$(cat "$t/live")" = 1 ] && ! grep -q STOPPED "$t/out"
+  ck "update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place" $?
+  lockrun lock 1
+  ! grep -qF "update_pr: BUSY" "$t/out" && [ "$(cat "$t/live")" = 0 ]
+  ck "  mutant mut:lock (its line deleted) removes the in-flight run's worktree" $?
+  lockrun - 0
+  [ "$(cat "$t/rc")" != 0 ] && ! grep -qF "update_pr: BUSY" "$t/out" \
+    && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
+  ck "null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
