@@ -2517,7 +2517,8 @@
     "R10-REF-PRIVACY"
    ],
    "carry": [
-    "Every fix carries a self-test case that fails at the merge base."
+    "Every fix carries a self-test case that fails at the merge base.",
+    "Instrument defect, observed 2026-10-20 (orchestrator): `orchestrator_tick.py`'s train liveness (around lines 470-492) counts every live `merge_train.py` process and, at `len(live) > 1`, prints \"a merge race (two trains interleave); kill all but one\". `_seat_procs` filters the tick itself and shell wrappers but not `--self-test`, so a reviewer's `merge_train.py --self-test` beside a real batch reads as a race \u2014 measured 2026-10-20 with the TRAIN-HOLD reviewer's self-test beside batch b16, and following the line would have killed a reviewer mid-run. Fix: exclude `--self-test` in that command string, with a mutant that puts it back and reddens the arm. Declined as adjacent by the WIP-cap fixer to keep its evidence tree stable; queued here separately."
    ],
    "architect_note": null,
    "resume": {
