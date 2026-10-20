@@ -282,19 +282,28 @@ echo "wrote $OUT/coverage.json"
 # FLOOR RE-VALIDATION (R10, #2342): a reused per-script base, re-combined with a
 # changed subset of freshly-measured scripts, can grade below the floor though the
 # tree itself is green -- the reuse path does not reproduce the base's own green
-# measurement. Re-measure every script (no reuse) and re-combine, so the grader
-# never sees that stale union. The pinned grader is the floor's own voice; its
-# pragma row is a source grep reuse cannot move, so it is not a reason to re-run.
+# measurement. Re-measure the scripts it reused and re-combine, so the grader
+# never sees that stale union. Only the reused ones (R10-CI-LAYOUT PR 0): a
+# script this run measured already measured this tree, and re-running it is a
+# second execution of the same answer -- push run 39213675232 re-ran all 20,
+# `entities` twice, and the stage's critical path with them. After the re-run
+# every per/ entry is this tree's own measurement, the union a no-reuse run
+# combines. The pinned grader is the floor's own voice; its pragma row is a
+# source grep reuse cannot move, so it is not a reason to re-run.
 if [ -n "${W5P_REUSE:-}" ] && [ -s "$OUT/scripts.tsv" ] \
    && grep -q $'\treused' "$OUT/scripts.tsv"; then
   _grade="$(env -u COVERAGE_PROCESS_START "$PY" tests/coverage_ratchet.py \
               --coverage "$OUT/coverage.json" 2>&1 || true)"
   if printf '%s\n' "$_grade" | grep -qE "FAIL (package coverage|every module|config_flow\.py coverage)"; then
-    echo "reused measurement grades below the floor; re-measuring every script"
+    echo "reused measurement grades below the floor; re-measuring the reused scripts"
     printf '%s\n' "$_grade" | grep -E "FAIL|below" || true
-    rm -f "$OUT/per"/.coverage.* "$OUT/per"/*.nodata 2>/dev/null || true
-    rm -f "$OUT/per/provenance.tsv" "$OUT/scripts.tsv"
-    PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
+    _reused=$(awk -F'\t' '$2=="reused" {print $1}' "$OUT/scripts.tsv")
+    # measure() replaces each one's per/ entry; its reused rows leave the
+    # stage's two ledgers, so each script keeps exactly one row in each.
+    for _f in "$OUT/scripts.tsv" "$OUT/per/provenance.tsv"; do
+      awk -F'\t' '$2!="reused"' "$_f" > "$_f.tmp" && mv "$_f.tmp" "$_f"
+    done
+    PLAN=$(echo "$_reused" | sed 's/^/measure\t/')
     run_plan
     rm -f "$WORK/data/.coverage"
     "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
