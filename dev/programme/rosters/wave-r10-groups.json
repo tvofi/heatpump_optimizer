@@ -4360,7 +4360,7 @@
     "commit": "9969e3ca80bd6255cd1231b1b4e53410a6fbeb88",
     "last_step": "fixer",
     "next_step": "open_pr",
-    "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
+    "note": "Handoff handoff/r10-roster-ops at 9969e3ca (1 commit, 361 lines: set-after and drop-carry ops plus a mutant driver) has no pull request. Owed: recarry and open."
    }
   },
   {
