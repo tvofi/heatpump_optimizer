@@ -1,4 +1,0 @@
- .../ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json   | 6 ++++++
- .../MonthlyLedger._coverage_factor.CMP_BOUND.0966076a.json          | 6 ++++++
- .../MonthlyLedger._coverage_factor.GUARD_OFF.0966076a.json          | 6 ++++++
- 3 files changed, 18 insertions(+)

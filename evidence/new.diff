@@ -1,0 +1,270 @@
+diff --git a/custom_components/heatpump_optimizer/ledger.py b/custom_components/heatpump_optimizer/ledger.py
+index c58edde60..22517ad13 100644
+--- a/custom_components/heatpump_optimizer/ledger.py
++++ b/custom_components/heatpump_optimizer/ledger.py
+@@ -48,6 +48,10 @@ CAPACITY_PEAK_META = "capacity_peak_kw"
+ #: its estimate scales by (#2255 item 2).
+ SETTLED_HOURS_META = "settled_hours"
+ 
++#: The month's spot samples: one fold per priced settlement, beside the
++#: coverage fold the same call makes.
++SPOT_PRICE_META = "spot_price"
++
+ #: The lines that are metered energy at the spot price: what every contract
+ #: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
+ ENERGY_LINES = ("spot", "immersion")
+@@ -185,7 +189,7 @@ class MonthlyLedger:
+         """
+         if dt > 0:
+             self.observe_meta_mean(when, SETTLED_HOURS_META, dt)
+-        self.observe_meta_mean(when, "spot_price", spot)
++        self.observe_meta_mean(when, SPOT_PRICE_META, spot)
+         self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
+ 
+     def add_savings_settlement(
+@@ -306,12 +310,22 @@ class MonthlyLedger:
+     def _coverage_factor(self, now: datetime) -> float:
+         """Open-month scale: the month's hours over the hours it settled.
+ 
+-        Falls back to the calendar-day ratio for a month booked before the
+-        coverage meta existed. Every estimated figure takes this one factor.
++        The coverage is the month's only when it began with the month's
++        first settlement: the call folding it folds a spot sample at most
++        once, so a complete coverage has at least as many folds. A month
++        booked before the coverage meta existed (an upgrade mid-month) has
++        fewer, and its hours describe the upgrade's tail, not the lines it
++        would scale (#2255's coverage under v7.0.1: months of bookings over
++        minutes of hours). That month, like one with no coverage, falls back
++        to the calendar-day ratio. Every estimated figure takes this one
++        factor.
+         """
+-        entry = self.months.get(month_key(now), {}).get("meta", {}).get(SETTLED_HOURS_META)
++        meta = self.months.get(month_key(now), {}).get("meta", {})
++        entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
+         settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
+-        if settled > 0:
++        folds = int(entry["count"]) if isinstance(entry, dict) else 0
++        spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
++        if settled > 0 and folds >= spot_folds:
+             return max(1.0, month_hours(now) / settled)
+         return pro_rata_factor(now)
+ 
+@@ -463,7 +477,7 @@ def freeze_month_report(
+             else None
+         ),
+     }
+-    for key, name, digits in (("mean_spot_price", "spot_price", 4),
++    for key, name, digits in (("mean_spot_price", SPOT_PRICE_META, 4),
+                               ("capacity_peak_kw", CAPACITY_PEAK_META, 2)):
+         mean = ledger.meta_mean(month, name)
+         if mean is not None:
+diff --git a/dev/audit/harnesses/r10_savings_upgrade_month.py b/dev/audit/harnesses/r10_savings_upgrade_month.py
+new file mode 100644
+index 000000000..928d5cb41
+--- /dev/null
++++ b/dev/audit/harnesses/r10_savings_upgrade_month.py
+@@ -0,0 +1,75 @@
++#!/usr/bin/env python3
++"""R10-SAVINGS-NEGATIVE: the open month's savings row across an upgrade mid-month.
++
++WHY IT EXISTS. v7.0.1 (#2411) scales the open month by the month's hours over
++the hours its coverage meta settled. A store written by v7.0.0 has no such
++meta; the first v7.0.1 settlement starts one, minutes long, beside weeks of
++lines. Every figure below is synthetic: a February with nine days booked the
++v7.0.0 way (a spot sample and the savings lines, thermostat 0.75 kW against a
++metered 1.0 kW), then one six-minute settlement through the production
++``observe_spot_and_settle_savings``. The row is read at 10 February 15:00.
++
++  upgrade  the upgraded month: the defect reads ``factor`` near 672 / 0.1,
++           the fix reads the calendar-day ratio 28 / 10.
++  null     the same negative booking with its coverage from the month's
++           first settlement (24 hourly settlements on 9 February): the
++           hours' scale 672 / 24 at both ends. A fix that reads it moved
++           took the coverage away from a month that owns it.
++  fresh    a month with no coverage meta at all: the calendar-day ratio at
++           both ends.
++
++    PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_savings_upgrade_month.py
++"""
++from datetime import datetime
++
++from heatpump_optimizer.ledger import MonthlyLedger
++
++NOW = datetime(2026, 2, 10, 15, 0)
++
++
++def _legacy_days(ledger: MonthlyLedger, days: int, baseline_kw: float) -> None:
++    """Hourly v7.0.0 bookings: a spot sample and the savings lines, no hours."""
++    for h in range(days * 24):
++        t = datetime(2026, 2, 1 + h // 24, h % 24, 0)
++        ledger.observe_meta_mean(t, "spot_price", 1.0)
++        ledger.add_savings_settlement(t, baseline_kw=baseline_kw, actual_kwh=1.0, spot=1.0, dt=1.0)
++        ledger.add(t, "spot", kwh=1.0, sek=1.0)
++
++
++def upgrade() -> MonthlyLedger:
++    ledger = MonthlyLedger()
++    _legacy_days(ledger, 9, 0.75)
++    ledger.observe_spot_and_settle_savings(NOW, 1.0, {"baseline_kw": 0.75}, 0.1, 0.1)
++    ledger.add(NOW, "spot", kwh=0.1, sek=0.1)
++    return ledger
++
++
++def null() -> MonthlyLedger:
++    ledger = MonthlyLedger()
++    for h in range(24):
++        t = datetime(2026, 2, 9, h, 0)
++        ledger.observe_spot_and_settle_savings(t, 1.0, {"baseline_kw": 0.75}, 1.0, 1.0)
++        ledger.add(t, "spot", kwh=1.0, sek=1.0)
++    return ledger
++
++
++def fresh() -> MonthlyLedger:
++    ledger = MonthlyLedger()
++    _legacy_days(ledger, 9, 0.75)
++    return ledger
++
++
++def main() -> int:
++    for name, build in (("upgrade", upgrade), ("null", null), ("fresh", fresh)):
++        ledger = build()
++        row = ledger.savings_months(NOW)[0]
++        print(
++            f"{name:8s} factor={ledger._coverage_factor(NOW):10.3f} "
++            f"savings_sek={row['savings_sek']:12.2f} actual_sek={row['actual_sek']:12.2f} "
++            f"savings_pct={row['savings_pct']}"
++        )
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/dev/programme/delivery/2463.md b/dev/programme/delivery/2463.md
+new file mode 100644
+index 000000000..c0b2152e0
+--- /dev/null
++++ b/dev/programme/delivery/2463.md
+@@ -0,0 +1 @@
++- [#2463](https://github.com/tvofi/heatpump_optimizer/pull/2463) — **open**, fix(ledger): monthly savings coverage factor on mid-month store upgrade (R10-SAVINGS-NEGATIVE)
+diff --git a/tests/closures.json b/tests/closures.json
+index b0b64bf0a..6ba82f509 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3466,6 +3466,7 @@
+    "dev/audit/harnesses/r10_sav_baseline.py",
+    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
+    "dev/audit/harnesses/r10_sav_null_terms.py",
++   "dev/audit/harnesses/r10_savings_upgrade_month.py",
+    "dev/audit/harnesses/r10_seat_selftests_mutants.py",
+    "dev/audit/harnesses/r10_setpoint_power.py",
+    "dev/audit/harnesses/r10_slot_floor_twins.py",
+diff --git a/tests/features.py b/tests/features.py
+index 5ba7f9b42..2c58540ad 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -37585,6 +37585,45 @@ R.check(
+     _ren.savings_months(_feb10) == _feb.savings_months(_feb10),
+     repr(_ren.savings_months(_feb10)),
+ )
++# An upgrade mid-month: nine days booked the way the release before the
++# coverage meta did (a spot sample and the savings lines, no hours), then
++# one six-minute settlement under the coverage. The hours describe the
++# upgrade's tail, not the nine days of lines: scaled by 672 / 0.1 the row
++# read thousands of times its size, negative wherever the booked saving
++# was. The month is the calendar-day ratio's, as with no coverage at all.
++from heatpump_optimizer.ledger import pro_rata_factor as _sav_pro_rata
++_upg = _SavLedger()
++for _h in range(9 * 24):
++    _t = _SavDT(2026, 2, 1 + _h // 24, _h % 24, 0)
++    _upg.observe_meta_mean(_t, "spot_price", 1.0)
++    _upg.add_savings_settlement(_t, baseline_kw=0.5, actual_kwh=1.0, spot=1.0, dt=1.0)
++    _upg.add(_t, "spot", kwh=1.0, sek=1.0)
++_upg.observe_spot_and_settle_savings(_feb10, 1.0, {"baseline_kw": 0.5}, 0.1, 0.1)
++_upg.add(_feb10, "spot", kwh=0.1, sek=0.1)
++_upg_row = _upg.savings_months(_feb10)[0]
++_upg_booked = -0.5 * 9 * 24 - 0.05
++R.check(
++    "a month booked before its coverage began scales by the calendar-day ratio",
++    abs(_upg_row["savings_sek"] - _upg_booked * _sav_pro_rata(_feb10)) < 1e-9
++    and abs(_upg_row["actual_sek"] - (9 * 24 + 0.1) * _sav_pro_rata(_feb10)) < 1e-9,
++    repr(_upg_row),
++)
++# The null control: the same negative month with its coverage from the
++# first settlement keeps the hours' scale, the saving as small and as
++# negative as it was booked.
++_neg = _SavLedger()
++for _h in range(24):
++    _neg.observe_spot_and_settle_savings(
++        _SavDT(2026, 2, 9, _h, 0), 1.0, {"baseline_kw": 0.75}, 1.0, 1.0
++    )
++    _neg.add(_SavDT(2026, 2, 9, _h, 0), "spot", kwh=1.0, sek=1.0)
++_neg_row = _neg.savings_months(_feb10)[0]
++R.check(
++    "a negative month covered from its first settlement keeps the hours' scale",
++    abs(_neg_row["savings_sek"] - (-0.25 * 24) * 672.0 / 24.0) < 1e-9
++    and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
++    repr(_neg_row),
++)
+ # An interval of no length settled no hours, so the stored coverage (the
+ # payload the ledger store saves) takes no sample from it, as it takes none
+ # from a backwards one.
+diff --git a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json
+new file mode 100644
+index 000000000..b6f3ba4d7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.0966076a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor BOOLOP 0966076a",
++  "killed_by": "tests/features.py",
++  "old": "        if settled > 0 and folds >= spot_folds:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a3cbcf62e6f5e7b6594d376d714388caf2915cf: BOOLOP (`if settled > 0 or folds >= spot_folds:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.0966076a.json b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.0966076a.json
+new file mode 100644
+index 000000000..fa56f2b15
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.0966076a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor CMP_BOUND 0966076a",
++  "killed_by": "tests/features.py",
++  "old": "        if settled > 0 and folds >= spot_folds:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a3cbcf62e6f5e7b6594d376d714388caf2915cf: CMP_BOUND (`if settled >= 0 and folds >= spot_folds:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
++}
+diff --git a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.3ffba7d3.json b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.3ffba7d3.json
+deleted file mode 100644
+index 5c1d5ce09..000000000
+--- a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.CMP_BOUND.3ffba7d3.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor CMP_BOUND 3ffba7d3",
+-  "killed_by": "tests/features.py",
+-  "old": "        if settled > 0:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: CMP_BOUND (`if settled >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.0966076a.json b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.0966076a.json
+new file mode 100644
+index 000000000..a33a3cfa7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.0966076a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor GUARD_OFF 0966076a",
++  "killed_by": "tests/features.py",
++  "old": "        if settled > 0 and folds >= spot_folds:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a3cbcf62e6f5e7b6594d376d714388caf2915cf: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.3ffba7d3.json b/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.3ffba7d3.json
+deleted file mode 100644
+index 6951b7e2d..000000000
+--- a/tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.GUARD_OFF.3ffba7d3.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor GUARD_OFF 3ffba7d3",
+-  "killed_by": "tests/features.py",
+-  "old": "        if settled > 0:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+-}
