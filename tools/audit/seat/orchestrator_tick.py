@@ -312,7 +312,7 @@ class Tick:
         return r.returncode, [l.strip() for l in r.stdout.splitlines()
                               if l.strip()]
 
-    def _roster_ref(self, S: str, rl) -> str:
+    def _roster_ref(self, S: str, rl, announce: bool = True) -> str:
         """The ref this tick reads the roster at: --roster-ref, else
         roster_lib's `default_roster_ref` (O17: the round's roster branch,
         else main) through the tick's own git, its note printed in `S`. One
@@ -320,7 +320,7 @@ class Tick:
         if self.roster_ref:
             return self.roster_ref
         ref, note = rl.default_roster_ref(self.git)
-        if note:
+        if note and announce:
             self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
         return ref
 
@@ -1045,7 +1045,7 @@ class Tick:
             # tree carries both rosters (R10-TICK b).
             # WHICH REF is roster_lib's too (O17): the round's roster
             # branch, else main, through the tick's own git.
-            ref = self._roster_ref(S, rl)
+            ref = self._roster_ref(S, rl, announce)
             path = self.roster_path
             if not path:
                 code, o = self.git(["ls-tree", "--name-only", ref,

@@ -115,6 +115,12 @@ exactly that.
 
 ## 5. Before dispatching a seat
 
+- **Do not dispatch a new group while work in progress is at the cap**
+  (tvofi, 2026-10-20): `tools/audit/seat/pr_cap.py dispatch-gate` counts the
+  roster groups whose `resume.stage` is `in-progress` and refuses at
+  `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why it is
+  exceeded. Opening and merging are always allowed — opening is how work leaves
+  work in progress, and capping it parked complete handoffs unopened.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
