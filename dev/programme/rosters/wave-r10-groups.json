@@ -4973,7 +4973,7 @@
    "brief": "Owner report (tvofi, 2026-10-20): six open Dependabot alerts on the default branch, all aiohttp, three advisories x two manifests. Read them live with the Dependabot alerts API (state=open) and do not carry the count: GHSA-2g87-pp6c-29x5 (high), GHSA-494j-54xm-rwp3 (low) and GHSA-5wr8-gcqf-gqf3 (high), each first patched in 3.14.4, against `tests/requirements-ci.txt` and `tests/requirements-typing.txt`, both pinning `aiohttp==3.14.3`. Bump both to 3.14.4 and re-lock the hashes: these files install under `pip install --require-hashes`, so the bump is the version line plus every hash line for the package, taken from the index, never typed from memory. Controls: `pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt` succeeds in a throwaway venv; the typing lock's own install path (`tests/typing_ruler.py`) still resolves; a planted wrong hash turns the install red (the null control that shows the hash list is actually read). After the merge, read the alerts again and confirm they closed, naming each by GHSA id.",
    "resume": {
     "stage": "not-started",
-    "branch": null
+    "branch": "handoff/r10-dependabot-aiohttp"
    }
   }
  ]
