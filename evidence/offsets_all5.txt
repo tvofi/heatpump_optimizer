@@ -1,0 +1,17 @@
+before 39310145738 push 4a3cbcf62 attempt=1 success queue=0.07 dur=57.73 offset=57.80
+before 39309509899 push daca95c5d attempt=1 success queue=0.05 dur=57.97 offset=58.02
+before 39309055147 push 28ebd0b07 attempt=1 success queue=0.08 dur=53.77 offset=53.85
+before 39307877535 push d5d0b465b attempt=1 success queue=0.08 dur=54.80 offset=54.88
+before 39302900612 push 8b14bcecc attempt=1 success queue=0.08 dur=58.43 offset=58.52
+before 39301525639 push f118e2644 attempt=1 success queue=0.07 dur=57.77 offset=57.83
+before 39299026662 push 91f011950 attempt=1 success queue=0.07 dur=58.73 offset=58.80
+before 39298637824 push 76e96a406 attempt=1 success queue=0.07 dur=59.50 offset=59.57
+before 39293926561 push 5b9c33d58 attempt=1 success queue=0.05 dur=34.37 offset=34.42
+before: counted 9 of 9; median offset=57.83 median dur=57.77
+after 39333417268 pull_request 4d1730bd1 attempt=1 success queue=1.28 dur=51.85 offset=53.13
+after 39337586935 pull_request c5b5d06c3 attempt=2 success queue=1.22 dur=31.10 offset=32.32
+after 39337584363 workflow_dispatch c5b5d06c3 attempt=1 success queue=1.00 dur=46.50 offset=47.50
+after 39346553722 pull_request c4a357e5e attempt=1 failure queue=0.40 dur=52.45 offset=52.85
+after 39358539208 pull_request 07db35124 attempt=1 success queue=0.45 dur=52.20 offset=52.65
+after: counted 5 of 5; median offset=52.65 median dur=51.85
+RESULT saved_offset=5.18 bar=5.0 PASS

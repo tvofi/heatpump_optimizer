@@ -1,0 +1,8 @@
+$ git merge-tree --write-tree origin/main(52011c69a) 07db3512
+a5397abd32dc490c62609f5ce85cfb6c11ea756e
+exit=0
+bebb85c54 tree 00c7e15d731bb59fc630866e7feae6f5b5df6488 == merge-tree(c4a357e5e,dd3a44474) 00c7e15d731bb59fc630866e7feae6f5b5df6488
+07db3512 tree a5397abd32dc490c62609f5ce85cfb6c11ea756e == merge-tree(bebb85c54,52011c69a) a5397abd32dc490c62609f5ce85cfb6c11ea756e
+$ git merge-tree --write-tree origin/main(bb5b21a88) 07db3512
+f041f6b24011271d0febc0bae6f5793d35c42e0e
+exit=0

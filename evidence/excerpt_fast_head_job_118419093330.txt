@@ -1,0 +1,79 @@
+2026-10-20T02:23:28.7743498Z   GOLDEN_MODE: drift
+2026-10-20T02:23:29.2949827Z   MODE: FULL -- every test script runs, nothing is scoped out.
+2026-10-20T02:23:29.3843910Z ########## 3 lanes in parallel: units golden e2e ##########
+2026-10-20T02:23:29.3883796Z   [02:23:29] start  python3 tests/env_drift.py --claims-only 52011c69ae04f8a725c82040669b7c158290f834
+2026-10-20T02:23:29.3893701Z   [02:23:29] start  python3 tests/env_drift.py --all 52011c69ae04f8a725c82040669b7c158290f834
+2026-10-20T02:23:29.3904590Z   [02:23:29] start  python3 tests/validate.py
+2026-10-20T02:23:29.8693828Z   [02:23:29] ok     python3 tests/env_drift.py --claims-only 52011c69ae04f8a725c82040669b7c158290f834 (0s)
+2026-10-20T02:23:29.8733783Z   [02:23:29] start  python3 tests/closure.py selftest
+2026-10-20T02:23:34.4258860Z   [02:23:34] ok     python3 tests/closure.py selftest (5s)
+2026-10-20T02:23:34.4307819Z   [02:23:34] start  python3 tests/features.py
+2026-10-20T02:23:57.0496182Z   [02:23:57] ok     python3 tests/validate.py (28s)
+2026-10-20T02:23:57.0532742Z   [02:23:57] start  python3 tests/edge.py
+2026-10-20T02:24:42.2473685Z   [02:24:42] ok     python3 tests/edge.py (45s)
+2026-10-20T02:24:42.2524633Z   [02:24:42] start  python3 tests/backtest.py
+2026-10-20T02:26:51.7675118Z   [02:26:51] ok     python3 tests/backtest.py (129s)
+2026-10-20T02:26:51.7725367Z   [02:26:51] start  python3 tests/boost_drift_replay.py
+2026-10-20T02:29:08.2082042Z   [02:29:08] ok     python3 tests/env_drift.py --all 52011c69ae04f8a725c82040669b7c158290f834 (339s)
+2026-10-20T02:29:08.2142582Z   [02:29:08] start  python3 tests/arch_score.py
+2026-10-20T02:36:41.2312798Z   [02:36:41] ok     python3 tests/boost_drift_replay.py (590s)
+2026-10-20T02:36:41.2408370Z   [02:36:41] start  python3 tests/optimality.py
+2026-10-20T02:38:10.8552401Z   [02:38:10] ok     python3 tests/features.py (876s)
+2026-10-20T02:38:10.8670987Z   [02:38:10] start  python3 tests/entities.py
+2026-10-20T02:45:44.0685048Z   [02:45:44] ok     python3 tests/optimality.py (543s)
+2026-10-20T02:45:44.0867732Z   [02:45:44] start  python3 tests/plan_view.py
+2026-10-20T02:45:46.6817671Z   [02:45:46] ok     python3 tests/plan_view.py (2s)
+2026-10-20T02:45:46.6907443Z   [02:45:46] start  python3 tests/frontend.py
+2026-10-20T02:45:47.1694376Z   [02:45:47] ok     python3 tests/frontend.py (1s)
+2026-10-20T02:45:47.1794102Z   [02:45:47] start  node tests/card.mjs
+2026-10-20T02:47:18.2094449Z   [02:47:18] ok     node tests/card.mjs (91s)
+2026-10-20T02:47:18.2204505Z   [02:47:18] start  node tests/setup_qa_render.mjs
+2026-10-20T02:47:19.9164536Z   [02:47:19] ok     node tests/setup_qa_render.mjs (1s)
+2026-10-20T02:47:19.9464572Z   [02:47:19] start  node tests/card_drift.mjs 52011c69ae04f8a725c82040669b7c158290f834
+2026-10-20T02:47:33.5414974Z   [02:47:33] ok     node tests/card_drift.mjs 52011c69ae04f8a725c82040669b7c158290f834 (14s)
+2026-10-20T02:54:20.1949975Z   [02:54:20] ok     python3 tests/entities.py (970s)
+2026-10-20T02:54:20.2088655Z   [02:54:20] start  python3 tests/block_duty.py
+2026-10-20T02:54:21.9994413Z   [02:54:21] ok     python3 tests/block_duty.py (1s)
+2026-10-20T02:54:22.0044103Z   [02:54:22] start  python3 tests/doc_claims.py
+2026-10-20T02:54:33.6134504Z   [02:54:33] ok     python3 tests/doc_claims.py (11s)
+2026-10-20T02:54:33.6194167Z   [02:54:33] start  node tests/md_tables.mjs
+2026-10-20T02:54:33.9580602Z   [02:54:33] ok     node tests/md_tables.mjs (0s)
+2026-10-20T02:54:33.9632519Z   [02:54:33] start  python3 tests/wood_advisor.py
+2026-10-20T02:54:35.0633969Z   [02:54:35] ok     python3 tests/wood_advisor.py (2s)
+2026-10-20T02:54:35.0670890Z   [02:54:35] start  python3 tests/config_flow_steps.py
+2026-10-20T02:55:21.8534512Z   [02:55:21] ok     python3 tests/config_flow_steps.py (46s)
+2026-10-20T02:55:21.8669806Z   [02:55:21] start  python3 tests/structure.py
+2026-10-20T02:55:53.4739755Z   [02:55:53] ok     python3 tests/structure.py (32s)
+2026-10-20T02:55:53.4782166Z   [02:55:53] start  python3 tests/typing_ruler.py
+2026-10-20T02:55:54.0794505Z   [02:55:54] ok     python3 tests/typing_ruler.py (1s)
+2026-10-20T02:55:54.0884324Z   [02:55:54] start  python3 tests/ha_contract.py
+2026-10-20T02:55:54.9474468Z   [02:55:54] ok     python3 tests/ha_contract.py (0s)
+2026-10-20T02:55:54.9524660Z   [02:55:54] start  python3 tests/manual_plan.py
+2026-10-20T02:56:14.7314572Z   [02:56:14] ok     python3 tests/manual_plan.py (20s)
+2026-10-20T02:56:14.7424853Z   [02:56:14] start  python3 tests/open_meteo.py
+2026-10-20T02:56:15.4266160Z   [02:56:15] ok     python3 tests/open_meteo.py (1s)
+2026-10-20T02:56:15.4300496Z   [02:56:15] start  python3 tests/solar_alignment.py
+2026-10-20T02:56:16.6164292Z   [02:56:16] ok     python3 tests/solar_alignment.py (1s)
+2026-10-20T02:56:16.6213095Z   [02:56:16] start  python3 tests/guard_pins.py
+2026-10-20T02:56:18.3274343Z   [02:56:18] ok     python3 tests/guard_pins.py (2s)
+2026-10-20T02:56:18.3424121Z   [02:56:18] start  python3 tests/debug_collect.py
+2026-10-20T02:56:20.8874580Z   [02:56:20] ok     python3 tests/debug_collect.py (2s)
+2026-10-20T02:56:20.8954189Z   [02:56:20] start  python3 tests/finite_boundary.py
+2026-10-20T02:58:50.2474548Z   [02:58:50] ok     python3 tests/finite_boundary.py (150s)
+2026-10-20T02:58:50.2594338Z   [02:58:50] start  python3 tests/layout.py
+2026-10-20T02:59:01.8694417Z   [02:59:01] ok     python3 tests/layout.py (11s)
+2026-10-20T02:59:01.8784063Z   [02:59:01] start  python3 tests/deployment_shape.py
+2026-10-20T02:59:06.5144691Z   [02:59:06] ok     python3 tests/deployment_shape.py (5s)
+2026-10-20T03:06:44.1898342Z   [03:06:44] ok     python3 tests/arch_score.py (2256s)
+2026-10-20T03:06:44.1932398Z   [03:06:44] start  python3 tests/arch_score_head.py
+2026-10-20T03:07:26.0407152Z   [03:07:26] ok     python3 tests/arch_score_head.py (42s)
+2026-10-20T03:07:26.0422309Z ########## alone on the box: stress, then harness_headers ##########
+2026-10-20T03:07:26.0453117Z   [03:07:26] start  python3 tests/stress.py
+2026-10-20T03:12:05.6519594Z   [03:12:05] ok     python3 tests/stress.py (279s)
+2026-10-20T03:12:05.6555866Z   [03:12:05] start  python3 tests/harness_headers.py
+2026-10-20T03:14:52.4092879Z   [03:14:52] ok     python3 tests/harness_headers.py (167s)
+2026-10-20T03:14:52.8062648Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2026-10-20T03:14:52.8545974Z   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=141.9s of the 480s bound
+2026-10-20T03:14:52.8560948Z ALL 109 HARNESS HEADER CHECKS PASSED
+2026-10-20T03:14:52.8566156Z     3083s  TOTAL (3 lane(s))
+2026-10-20T03:14:52.8566272Z ALL TEST SCRIPTS PASSED

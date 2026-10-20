@@ -1,0 +1,9 @@
+R10-CI-LAYOUT :: From PR r10-ci-layout-p0: PR 1's W1 deletes the composed-closure path (`tests/composed_closures.json`, DESIGN-P1 step 5a). After that, the closures lane records `boost_drift_replay.py` bare on every FULL push, and the every-script-once count becomes 54. This PR's budget-equality check (`_cir_once_count()` against `script_runs_per_push`) then refuses until PR 1 re-derives the count and re-records the budget, with the reason stated in that commit. R(b)'s `_coverage_revalidation` must also stay green across W1 (review section 3).
+
+R10-CI-LAYOUT :: From PR r10-ci-layout-p0: U9's re-keyed `ci_ratchet.py` reader (PR 2) must keep R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged (review section 3, "After PR 2").
+
+R10-CI-LAYOUT :: Carried from #2464 (R10-CI-LAYOUT PR 0) at dd3a4447, round 3:
+- U9's re-keyed `ci_ratchet.py` reader (PR 2) keeps R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged. Any later lane edit, PR 1's W1 or the umbrella's split of `tests.yml`, keeps `tests/harness_headers.py` in the alone phase: the run-alone pin refuses otherwise.
+
+R10-STAMP :: From PR r10-ci-layout-p0: R10-STAMP: `stamp.py` rule 2 needs a green Tests push run at HEAD, and `ci-ratchet` is part of that run. The stamp can run once the B4 window above reads green, which is before PR 1 (review B7). It must not wait for the first push run after this merge alone.
+

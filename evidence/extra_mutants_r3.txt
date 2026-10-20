@@ -1,0 +1,6 @@
+X6_into_golden KILLED rc=1 | 2 of 2358 ENTITY CHECKS FAILED | aimed=1 | other_fails=<47 FAIL lines: the counted one is graders-head-copy (environmental): True; the rest are sub-harness planted controls>
+X7_before_stress KILLED rc=1 | 2 of 2358 ENTITY CHECKS FAILED | aimed=1 | other_fails=<47 FAIL lines: the counted one is graders-head-copy (environmental): True; the rest are sub-harness planted controls>
+X8_stress_in_LANES KILLED rc=1 | 2 of 2358 ENTITY CHECKS FAILED | aimed=1 | other_fails=<47 FAIL lines: the counted one is graders-head-copy (environmental): True; the rest are sub-harness planted controls>
+X9_parallel_loop SURVIVED rc=1 | 1 of 2358 ENTITY CHECKS FAILED | aimed=0 | counted_other=["FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs fr"]
+X10_no_wait SURVIVED rc=1 | 1 of 2358 ENTITY CHECKS FAILED | aimed=0 | counted_other=["FAIL graders-head-copy's delivery_status step is red only when this copy's exit differs fr"]
+done
