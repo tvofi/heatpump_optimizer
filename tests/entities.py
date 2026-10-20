@@ -26699,13 +26699,17 @@ _MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
                          Path("tools/audit/seat/merge_train.py").read_text())
 
 
-def _train_hold_status(code: int, body: str) -> str:
-    """The automerge step's `status=` over a stubbed API whose train-hold read
-    answers (code, body); every other read is the minimum the step needs.
+def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
+    """The automerge step's `status=` and whether it warned "unreadable" over a
+    stubbed API whose train-hold read answers (code, body); every other read is
+    the minimum the step needs.
 
     The record-row guard is a stub that refuses, so an arm that did NOT skip
     reaches it and reports `refused`: a missing or unreached skip is visible
-    in the status, not inferred from an absence."""
+    in the status, not inferred from an absence. `GET /commits/<ref>` answers
+    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
+    live 2026-10-20), never 404 -- an absent hold must be silent, or every
+    beat with no train running logs a warning."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         (t / "tools" / "audit" / "seat").mkdir(parents=True)
@@ -26740,12 +26744,13 @@ def _train_hold_status(code: int, body: str) -> str:
         (bin_ / "curl").chmod(0o755)
         out = t / "out"
         out.write_text("")
-        subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
-                       env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
-                            "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                            "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
+                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
-        return found[-1] if found else ""
+        warned = "unreadable" in (p.stdout + p.stderr)
+        return (found[-1] if found else ""), warned
 
 
 def _hold_when(offset_s: int) -> str:
@@ -26758,22 +26763,27 @@ def _hold_when(offset_s: int) -> str:
 R.check(
     "tests.yml's automerge skips while a live merge train holds the record "
     "beat (executed, issue #2302)",
-    _HOLD_BOUND > 0 and _hold_when(-60)
-    and _train_hold_status(200, _hold_when(-60)) == "skip-train-hold",
-    f"bound={_HOLD_BOUND}, status={_train_hold_status(200, _hold_when(-60))!r}",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
+    f"bound={_HOLD_BOUND}, "
+    f"status={_train_hold_status(200, _hold_when(-60))!r}",
 )
 R.check(
     "and a hold at the bound, one dated ahead of the runner's clock, an absent "
-    "one and an unreadable one do not skip (null controls)",
+    "one (the API's own 422) and an unreadable one do not skip -- and only the "
+    "unreadable ones warn (null controls)",
     _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == "refused"
-    and _train_hold_status(200, _hold_when(3600)) == "refused"
-    and _train_hold_status(404, "{}") == "refused"
-    and _train_hold_status(500, "{}") == "refused"
-    and _train_hold_status(200, "{}") == "refused",
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
+    and _train_hold_status(422, "{}") == ("refused", False)
+    and _train_hold_status(404, "{}") == ("refused", False)
+    and _train_hold_status(500, "{}") == ("refused", True)
+    and _train_hold_status(200, "{}") == ("refused", True),
     "a stale hold is a crashed train (no merges, so no rows go overdue); a "
-    "date ahead of the reading clock is unknowable, never young (#775); an "
-    "unreadable hold leaves the pre-fix behaviour, which is the safe failure",
+    "date ahead of the reading clock is unknowable, never young (#775); the "
+    "commits endpoint answers 422 for an absent ref, so that arm must be "
+    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
+    "behaviour, which is the safe failure",
 )
 R.check(
     "the beat's hold ref and the train's hold ref name the same branch",

@@ -4235,16 +4235,20 @@ jobs:
           # younger than HOLD_MAX_AGE_S is a live train, so the pull request
           # stays open for a later beat; at or past it the hold is stale (a
           # crashed train moved nothing, so no rows went overdue) and this
-          # beat proceeds. HOLD_MAX_AGE_S exceeds one queue item's ceiling by
-          # the train's own knobs -- one CI wait is polls x POLL_SECONDS
-          # (~96 min) and a --main-moved-tries recovery re-runs it -- and the
-          # train refreshes per item, so a long run never ages a live item
-          # stale. A date ahead of this runner's clock is unknowable, never
-          # young (#775); an unreadable hold leaves the pre-fix behaviour,
-          # the safe failure for a bookkeeping guard. record_row.py's own
-          # --automerge-check is untouched.
+          # beat proceeds. The train refreshes the ref on every queue item,
+          # every recarry and before every CI-wait sleep, so the longest gap
+          # between refreshes is ONE PHASE -- a recarry (5-15 min inside
+          # app_push's prepr) or a poll (min(POLL_SECONDS, HEARTBEAT_SECONDS)
+          # = 240 s), never a whole wait or a whole batch. HOLD_MAX_AGE_S=3600
+          # is above the longest such phase by more than 3x. A date ahead of
+          # this runner's clock is unknowable, never young (#775); an absent
+          # ref leaves the pre-fix behaviour. GET /commits/<ref> answers 422
+          # "No commit found for SHA" for an absent ref (measured live
+          # 2026-10-20), not 404, so both arms are the silent absence; any
+          # other code is logged. record_row.py's own --automerge-check is
+          # untouched.
           HOLD_REF=train-hold
-          HOLD_MAX_AGE_S=14400
+          HOLD_MAX_AGE_S=3600
           hold_code=$(curl -sS -o "$RUNNER_TEMP/train-hold.json" -w '%{http_code}' \
             -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/commits/$HOLD_REF") || hold_code=000
           if [ "$hold_code" = 200 ]; then
@@ -4269,7 +4273,7 @@ jobs:
                   echo "::warning::the train hold is ${hold_age}s old (bound ${HOLD_MAX_AGE_S}s); treated as stale"
                 fi ;;
             esac
-          elif [ "$hold_code" != 404 ]; then
+          elif [ "$hold_code" != 404 ] && [ "$hold_code" != 422 ]; then
             echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
           fi
           HEAD=$(pr_field 'd["head"]["sha"]') || {

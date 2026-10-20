@@ -288,10 +288,11 @@ MAIN_MOVED_TRIES = 3
 # beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
 # an older one as stale, so a crashed train cannot block records forever. The
 # ref points at a commit created at publication, whose committer date is the
-# age the beat reads; it is refreshed once per queue item, so the age is the
-# ITEM's, not the run's -- one CI wait may take POLL_SECONDS x polls and a
-# --main-moved-tries recovery re-runs it. A `batch/` rehearsal publishes
-# nothing: it merges nothing into main.
+# age the beat reads; it is refreshed at the start of every queue item, before
+# every recarry, and before every sleep inside wait_ci, so the age is the last
+# REFRESH's, not the run's, and the beat's bound prices that gap -- one phase
+# (a recarry or a poll), never a whole CI wait and never a whole batch. A
+# `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
@@ -490,6 +491,7 @@ class Train:
         self.skipped: list[dict] = []
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
+        self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -704,7 +706,10 @@ class Train:
         silence). The beat is time-based -- computed from the wait's start
         against the poll clock -- never poll-based, so a poll cadence slower
         or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
-        value, gate or wait duration changes."""
+        value, gate or wait duration changes. One write rides the loop: while
+        the wait goes on, the train-hold ref is refreshed before each sleep
+        (`hold_refresh`), so a wait that runs to its `polls` ceiling still
+        keeps the record beat held; a wait that settles writes nothing."""
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
@@ -733,6 +738,11 @@ class Train:
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
             # t+305s (tvofi, 2026-10-14) -- a beat never waits on a poll.
+            # Before the wait the hold is refreshed (R10-TRAIN-HOLD): a wait is
+            # the longest silence a train has, so the beat's bound prices the
+            # refresh gap, not a whole wait. Returning above (CI settled) costs
+            # no write.
+            self.hold_refresh()
             self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
 
@@ -1077,6 +1087,7 @@ class Train:
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
         if not self.contains_main(h):
+            self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
             if not wt.exists():
@@ -1162,7 +1173,6 @@ class Train:
         waits only for ITS required contexts. The queue's order holds: the
         caller lands entries one at a time, an earlier still-pending entry
         never jumped by a later eligible one."""
-        self.hold_refresh()  # per item: a long item must not age the hold stale
         h = item.get("rc_head") or self.recarry(item)
         self.serial(item, h, item.get("rc_base"), req)
 
@@ -1291,7 +1301,7 @@ class Train:
         starts no push-triggered run. A failure is logged and the train runs
         on -- the pre-fix behaviour -- because the hold guards a bookkeeping
         beat, and stopping a merge train for it is the worse failure."""
-        if not self.real:
+        if not (self.real and self.hold_armed):
             return
         tip = self.out("git", "rev-parse", "origin/main")
         tree = self.out("git", "rev-parse", tip + "^{tree}") if is_sha(tip) else ""
@@ -1354,6 +1364,7 @@ class Train:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
         self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
             try:
@@ -1640,6 +1651,7 @@ class Train:
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})"
                  f"{' --overlap' if self.overlap else ''}{' --skip-bad' if self.skip_bad else ''}")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
         self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         self.skipped: list[dict] = []
@@ -1859,7 +1871,13 @@ def _self_test() -> int:
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+                # `pending_reads`: the first N reads report in_progress, so a
+                # wait that outlives one poll can be driven without a clock.
+                reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                runs = world.get("runs", [])
+                if reads <= world.get("pending_reads", 0):
+                    runs = [dict(c, status="in_progress") for c in runs]
+                return 0, "\n".join(json.dumps(c) for c in runs)
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
@@ -1991,7 +2009,11 @@ def _self_test() -> int:
     # still beats exactly on time.
     hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
     def hung_run(argv, cwd=ROOT, stdin=None):
-        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+        # The pair wraps the whole conditional: `return 0, X if c else (0, "")`
+        # made a non-check-runs call answer `(0, (0, ""))`, a tuple where the
+        # trainer reads a string (found by the R10-TRAIN-HOLD session/arming
+        # mutant, which is the only reader to reach it).
+        return (0, "\n".join(json.dumps(c) for c in hang)) if "check-runs" in " ".join(argv) else (0, "")
     ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
     lines: list[str] = []
     with tempfile.TemporaryDirectory() as d:
@@ -2728,6 +2750,32 @@ def _self_test() -> int:
           rc == 0 and merged(calls) and not any(k == "call" and "/git/refs" in v
                                                 for k, v in w["timeline"])
           and any(ln.startswith("NOT held:") for ln in lines))
+    # A WAIT IS THE LONGEST SILENCE (review F1). One CI wait runs to 24 polls
+    # of HEARTBEAT_SECONDS, and a --batch proof and a main_green wait are the
+    # same loop, so the ref is refreshed from the loop itself: the bound then
+    # prices the refresh gap, not a whole wait.
+    w = {"hold_sha": "f" * 40, "pending_reads": 1}
+    rc, lines, calls = go(w)  # polls=2: read 1 in progress, read 2 green
+    reads = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and "check-runs" in v]
+    check("a CI wait that outlives one poll refreshes the hold mid-wait, so the bound "
+          "can be shorter than a wait",
+          rc == 0 and merged(calls) and len(reads) >= 2
+          and any(reads[0] < u < reads[1] for u in hold_idx(w, "update")))
+    # A recarry takes 5-15 min inside app_push's prepr, and --overlap runs one
+    # per serial entry BEFORE any wait: a refresh only per item or per wait
+    # would let the up-front loop age the ref stale.
+    w = {"hold_sha": "f" * 40, "contains": [False]}
+    rc, lines, calls = go(w)
+    check("a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it",
+          rc == 0 and merged(calls) and len(hold_idx(w, "update")) == 2)
+    # `wait-ci` is a bare CI watch, not a train: it has no closing line to
+    # release a ref, so it must never publish one.
+    w = {"hold_sha": "f" * 40, "runs": green, "pending_reads": 1}
+    run0, calls0 = fake(w)
+    Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run0,
+          sleep=lambda s: None, polls=2).wait_ci(H0)
+    check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
+          not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
