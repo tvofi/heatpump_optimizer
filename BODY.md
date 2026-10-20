@@ -10,6 +10,10 @@ The root-cause record for the recurring `nightly-ha (stable)` red: `hb:positive_
 
 ## Head
 
+`202cb8874ef72b82d9db49a6ecd77f28ad22838a` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2479.md`. The authored code head is `0b7145312480e83c46665876ff5ade670125c900`.
+
+`f81d96c4604ae5669c30d09d6f915342e35459d3` merges origin/main `0c298f6b5` into the authored code head `0b7145312480e83c46665876ff5ade670125c900` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `93647bfd9b4c2d940bc87b162bf4159ad2dd6b1e` merges origin/main `0c298f6b5` into the authored code head `0b7145312480e83c46665876ff5ade670125c900` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
 
 `0b7145312480e83c46665876ff5ade670125c900`: one commit on `origin/main` `106af95a3`.
@@ -32,18 +36,18 @@ n/a: no check, test or production line changes. Countermeasure A's demonstration
 
 ## Red checks
 
-none
-
-## Forward-carry
-
-- Countermeasure A, for a fixer group: `dev/audit/rca/nightly-ha-pyspy-timeout.md` section 5. It names the sites, the `tests/entities.py` pins and the demonstration owed. The orchestrator appends it as a roster carry.
-- Countermeasure C: a draft for tvofi, RCA section 4.
-- Not added to `dev/audit/config/bugclasses.json`. This is a CI-lane race, not an audit class; that is the orchestrator's call.
+- `pr-contract`: red at the earlier head 202cb8874, `CARRY-AUDIT: 5 finding item(s): 0 routed, 5 unrouted` — the `## Forward-carry` and `## Friction` items named no `Carry:` destination. Answered at this body: each item now ends in `Carry: <group>` or `Carry: dismissed: <reason>`, and `tools/audit/carry_audit.py check --body` reads `4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)`. Cheaper detector: `carry_audit.py check --body` runs locally in under a second; prepr did not run it on this body before the first push, so the standing cost is one local run per body.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_01C26mXCF4djAbnjhBir49QZ
+## Forward-carry
+
+- Countermeasure A, for a fixer group: `dev/audit/rca/nightly-ha-pyspy-timeout.md` section 5. It names the sites, the `tests/entities.py` pins and the demonstration owed. Carry: R10-CI-LAYOUT (the lane it repairs is CI's nightly-ha job).
+- Countermeasure C: a draft for tvofi, RCA section 4. Carry: dismissed: an owner proposal recorded in the RCA, not a work item.
+- Not added to `dev/audit/config/bugclasses.json`. This is a CI-lane race, not an audit class. Carry: dismissed: not an audit class; the RCA section 2 states why.
+
+
 
 ## Friction
 
-- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2).
+- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2). Carry: R10-RCA-FRICTION (the friction-disposition group).
