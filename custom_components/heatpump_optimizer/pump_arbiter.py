@@ -619,7 +619,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
             "space_setpoint",
             flow_setpoint_for_level(_step_kw(inp.plan, now), p_min, p_max, heat_c, floor_c),
             FLOW_GATE_C,
-            lo=min(floor_c, heat_c),
+            lo=(floor_c),
             hi=heat_c,
         )
     if duty is not None:
