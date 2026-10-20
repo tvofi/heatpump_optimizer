@@ -4774,7 +4774,9 @@
   {
    "lane": "IN",
    "kind": "production",
-   "issues": [],
+   "issues": [
+    2500
+   ],
    "fixes": [],
    "severity": "high",
    "size": "M",
