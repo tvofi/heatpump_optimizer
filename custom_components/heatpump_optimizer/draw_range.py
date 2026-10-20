@@ -137,7 +137,7 @@ class DrawRange:
         return [
             (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)
             for (d, a), cmd in zip(self.samples, self._aligned())
-            if d > above
+            if d >= above
         ]
 
     def _aligned(self) -> list[tuple[float, float] | None]:
