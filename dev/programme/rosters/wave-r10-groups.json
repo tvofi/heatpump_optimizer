@@ -915,7 +915,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 13 of 25; before you: R10-LEAF-IMPORTS, R10-TRUST-RELATIVE; next: R10-LOOP-CPU, R10-SAV-BASELINE). Owning seam in this group: `_observe_frequency`. Shape: one defrost predicate, owned by the frequency map. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-freq-defrost",
     "commit": null,
     "last_step": null,
