@@ -590,7 +590,7 @@ def self_test() -> int:
          "mergeCommit": {"oid": "a" * 40}, "body": "## Friction\n\n- none\n"},
         {"number": 12, "state": "OPEN", "headRefName": "handoff/r9-open"},
         {"number": 13, "state": "MERGED", "headRefName": "handoff/r9-defer",
-         "mergeCommit": {"oid": "c" * 40}},
+         "mergeCommit": {"oid": "c" * 40}, "body": "## Friction\n\n- none\n"},
         {"number": 14, "state": "MERGED", "headRefName": "handoff/r9-done",
          "mergeCommit": {"oid": "d" * 40}},
         {"number": 15, "state": "MERGED", "headRefName": "handoff/r9-carry",
@@ -631,7 +631,7 @@ def self_test() -> int:
         by = roster_lib.groups_of(r)
         check("merged PR: stage done at its merge commit",
               by["R9-LIVE"]["resume"]["stage"] == "done"
-              and by["R9-LIVE"]["resume"]["commit"] == "a" * 40
+              and by["R9-LIVE"]["resume"].get("commit") == "a" * 40
               and by["R9-LIVE"]["resume"]["pr"] == 11,
               by["R9-LIVE"]["resume"])
         check("open PR: stage in-progress with its number",
