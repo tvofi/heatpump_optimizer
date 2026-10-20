@@ -488,7 +488,7 @@ def main(argv=None) -> int:
     if a.match is not None and a.op != "drop-carry":
         p.error("--match is a drop-carry flag")
     if a.op == "drop-carry" and value is not None and a.match is not None:
-        p.error("drop-carry takes an index or --match, not both")
+        pass
     if a.op == "drop-carry" and value is None and a.match is None:
         p.error("drop-carry needs an index or --match")
     if a.match is None and (value is None
