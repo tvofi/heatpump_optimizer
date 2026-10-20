@@ -1,0 +1,114 @@
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+Input indoor_temp_entity (sensor.indoor) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+heatpump_optimizer_test_entry_ledger: stored instant 2026-01-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+No electricity price data available; skipping optimization until prices can be fetched
+heatpump_optimizer_test_entry_ledger: stored instant 2026-01-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+No electricity price data available; skipping optimization until prices can be fetched
+heatpump_optimizer_test_entry_thermal_learning: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+heatpump_optimizer_test_entry_thermal_learning: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+heatpump_optimizer_test_entry_thermal_learning: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+heatpump_optimizer_test_entry_thermal_learning: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 12:00:00+00:00
+Update gap of 360 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+heatpump_optimizer_test_entry_energy: stored instant 2027-02-05T12:00:00+00:00 is ahead of the clock; bounded to 2026-01-01 18:00:00+00:00
+A heartbeat ahead of the clock reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+heatpump_optimizer_test_entry_energy: stored instant 2026-01-01T18:01:00+00:00 is ahead of the clock; bounded to 2026-01-01 18:00:00+00:00
+A heartbeat ahead of the clock reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+A heartbeat ahead of the clock reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Pump arbiter apply skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+Accuracy pairing skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+Realised-peak tracking skipped: injected best-effort fault (first occurrence; repeats log at DEBUG)
+Quiet comfort learning skipped: injected learner fault (first occurrence; repeats log at DEBUG)
+Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/coordinator.py", line 5781, in async_run_optimization
+    raise RuntimeError(
+        f"solver returned a failed plan: {result.status}"
+    )
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbage' (expected HH:MM-HH:MM)); that day keeps the default schedule
+/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/scipy/optimize/_numdiff.py:687: RuntimeWarning: invalid value encountered in divide
+  df_dx = [delf / delx for delf, delx in zip(df, dx)]
+System identification fit raised: Singular matrix
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+    self.result = self.identify_slab()
+                  ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/tests/features.py", line 7259, in _wrapper
+    return method(self, *args, **kwargs)
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+    return self._slab_outcome(
+           ~~~~~~~~~~~~~~~~~~^
+        best_x, rooms, error, slab_mass, slab_transfer, told_error
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+    profile_halfwidth = _slab_ua_profile_halfwidth(
+        best_x, path_error, int(rooms.size), self.config.gains_prior_kw
+    )
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+    cov = np.linalg.inv(jac.T @ jac) * sigma2
+          ~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
+    ainv = _umath_linalg.inv(a, signature=signature)
+  File "/Users/timmalmstrom/.local/state/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 144, in _raise_linalgerror_singular
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+Persisted price shape has a non-finite or unreadable bin; restarting it
+Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Valve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
+mixing_valve_write_target_kind=flow needs two-zone
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/custom_components/heatpump_optimizer/coordinator.py", line 6426, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s3/rev-2465/wt/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Ignoring invalid DHW demand windows: Invalid window 'garbage' (expected HH:MM-HH:MM)

@@ -1,0 +1,10 @@
+Measured head: 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687
+(bus nonce da4664480025ee08a56aadf47e523638 dispatched here)
+Head at the moment of posting: 294bf66ffb463faf842f6a0f43c119b27005b558
+Delta 44ea3af3..294bf66f is the merge of origin/main d99b400a5 (PR #2480,
+fix/r10-follower-debounce): .github/workflows/pr-contract-rerun.yml,
+dev/audit/harnesses/follower_debounce.py, dev/programme/delivery/2480.md,
+tests/closures.json, tests/entities.py. Only tests/closures.json is a path
+this PR also touches; the merged file carries both harness entries
+(follower_debounce.py at closure line 3444, r10_setpoint_boost.py at 3476).
+No production line, check, ledger row, harness or delivery row of #2465 moves.
