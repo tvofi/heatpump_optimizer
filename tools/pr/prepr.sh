@@ -552,8 +552,29 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         rp=$(recorder_python) || { echo "$rp"; r=1; }
       fi
       if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
+        # THE RECORDER DIES WITH THIS SHELL. A stopped prepr used to leave
+        # derive_closures.sh reparented to launchd and running to completion
+        # -- two such orphans ran 20 and 38 minutes on 2026-10-20, and they
+        # fed the box's load. `set -m` gives the recorder its own process
+        # group, the TERM/INT traps reap that group, and the watchdog reaps it
+        # when the prepr itself is gone: `$$` stays the top-level prepr even
+        # inside this command substitution, so a TERM to the prepr alone --
+        # which never reaches the substitution's own trap -- still ends the
+        # closure work instead of orphaning it.
+        reap_recorder() { [ -n "${rpid:-}" ] && kill -TERM -- "-$rpid" 2>/dev/null
+                          [ -n "${wpid:-}" ] && kill "$wpid" 2>/dev/null; return 0; }
+        trap 'reap_recorder; exit 143' TERM
+        trap 'reap_recorder; exit 130' INT
+        set -m
         GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
-          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+          --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1 &
+        rpid=$!
+        ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+          kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
+        wait "$rpid"
+        kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
+        trap - TERM INT
+        set +m
       fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
       elif [ ! -d "$cw/rec" ]; then
