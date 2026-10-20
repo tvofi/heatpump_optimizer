@@ -4954,7 +4954,7 @@
    "brief": "Owner request (tvofi, 2026-10-20): move and archive the top-level `handoff/round9` tree to its durable home. Round 9 closed at v7.0.0 and its plans, rosters and RESUME-CURRENT.md are archived as tags under `archive/handoff/audit-r9-*`; the two files still tracked at `handoff/round9` (`handoff/round9/fix/resume/FR-8.md` and `handoff/round9/plan-table-live.md`) are the last residue. Move the tree to `dev/archive/handoff/round9/`, which is where the round-9 handoff trees live (`dev/archive/handoff/r9-f2-solver-4/` and siblings), record the move in `tests/layout.json` as an old/new pair so the layout guard and `moved_paths.py` see it, and re-point every citation of the old path. Controls: `python3 tests/layout.py --guard --base <merge base>` clean before and after; `python3 -I tools/audit/moved_paths.py` over the touched files names no STALE line; a grep of the tracked tree for `handoff/round9` returns only the layout entry and the archive's own files; `tests/entities.py` passes. The move is content-preserving: `git diff -M` shows renames, no edits.",
    "resume": {
     "stage": "in-progress",
-    "branch": null
+    "branch": "handoff/r10-handoff-archive"
    }
   },
   {
