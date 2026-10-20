@@ -1,4 +1,0 @@
-rc 0
-scripts.tsv rows 22 reused rows 1
-provenance.tsv rows 21 reused rows 1
-reused 1 of 21 script measurements; a reused script's data is trusted from the c
