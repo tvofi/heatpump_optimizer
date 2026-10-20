@@ -196,6 +196,14 @@ pr_args_self_test() (
     update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+  # reap: end every lock holder a fixture run recorded under $t (a mutant's may never exit), by
+  # the holder pid its lock file names -- never pid 0 or 1, which kill reads as a group.
+  reap() {
+    local l h
+    for l in $(find "$t" -name 'upd-*.lock' 2>/dev/null); do
+      h=$(cut -d' ' -f2 "$l" 2>/dev/null); case $h in ''|0|1|*[!0-9]*) ;; *) kill "$h" 2>/dev/null ;; esac
+    done
+  }
   # One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch
   # worktree was force-removed under a concurrent run's prepr. lockrun <mutant> <hold: 1|0>
   # registers that worktree with a file in it (the in-flight run's), holds -- or, at 0, leaves
@@ -211,6 +219,7 @@ pr_args_self_test() (
     else echo 99999 > "$s/pr/upd-fix-x.lock"; fi
     cp "$t/body.md" "$t/b.md"; run "$1" update_pr.sh fix/x - "$t/b.md"
     [ -z "$hp" ] || { kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; }
+    reap
     [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
   }
   lockrun - 1
@@ -241,6 +250,7 @@ pr_args_self_test() (
     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
     echo $? > "$t/rc"
     [ -s "$t/sleepers" ] && kill $(cat "$t/sleepers") 2>/dev/null; rm -f "$t/sleepers"
+    reap
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; rm -rf "$sd"
   }
   detrun -
@@ -275,8 +285,7 @@ pr_args_self_test() (
     k=0; while [ ! -e "$t/ended" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
     sleep 1.5; touch "$t/fast"
     cp "$t/body.md" "$t/b3.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b3.md" > "$t/out3" 2>&1
-    # A holder still alive here (a mutant's) is ended, by the pid it recorded.
-    [ ! -s "$sd/pr/upd-fix-t.lock" ] || kill "$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock")" 2>/dev/null
+    reap
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
   }
   stopped_ok() { grep -qF "update_pr: BUSY" "$t/out2" && [ -e "$t/ended" ] && ! grep -qF "update_pr: BUSY" "$t/out3" \
@@ -300,6 +309,7 @@ pr_args_self_test() (
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
+  reap
   rm -rf "$t"
   echo "pr_args self-test: $n checks, $f failed"
   [ "$f" = 0 ]
