@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -75,6 +76,15 @@ import delivery_status  # noqa: E402  anchored, mentions, merge_parents
 
 SELF = "tools/audit/seat/record_row.py"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
+
+#: The body checker this generator's output is graded by. `pr-contract` and
+#: `prepr.sh` run `.claude/workflows/policy_lint.mjs` when a tree carries that
+#: copy and `tools/policy/` otherwise; the self-test resolves it the same way
+#: so it drives the check rather than a copy of its rule.
+ROOT = Path(__file__).resolve().parents[3]
+_LINT_JS = ROOT / ".claude/workflows/policy_lint.mjs"
+if not _LINT_JS.is_file():
+    _LINT_JS = ROOT / "tools/policy/policy_lint.mjs"
 
 #: Where a row lives, and the WHOLE write surface. The digits are load-bearing:
 #: `dev/programme/delivery/<N>.md` rows <N> through a line anchoring <N> itself, as
@@ -371,11 +381,11 @@ def pr_body(head_sha: str, base_sha: str, rows: list[dict]) -> str:
     """The record pull request's body, in the shape `pr-contract` grades.
 
     Every required heading is content or an explicit `n/a: <reason>`; the
-    figures name instruments, never numbers; the Red checks section names the
-    red `record` this beat answers; ## Approval keeps the review manual and
-    points at the standing round-9 mandate. The head SHA is load-bearing:
-    `checkPrBody` refuses a body whose `## Head` does not name the head CI
-    runs on, so the caller passes the SHA the row commit was pushed at.
+    figures name instruments, never numbers; the Red checks section answers
+    `record` and the two reporters that grade `main`. The head SHA is
+    load-bearing: `checkPrBody` refuses a body whose `## Head` does not name
+    the head CI runs on, so the caller passes the SHA the row commit was
+    pushed at.
     """
     nums = ", ".join(f"#{r['number']} (`{str(r['merge_sha'])[:7]}`)"
                      for r in rows) or "(none listed)"
@@ -418,11 +428,23 @@ def pr_body(head_sha: str, base_sha: str, rows: list[dict]) -> str:
         "",
         "## Red checks",
         "",
-        "`record` is red on main at the base this beat was computed against: "
-        "a rowless merge is the batch interval the record protocol promises, "
-        "and this pull request is that batch, which is the answer the "
-        "check's own refusal text names. No cheaper detector exists than the "
-        "check that already fired; its standing cost is one beat per batch.",
+        "`record`, `nightly-status` and `delivery-status` may stand red on "
+        "main at the base this beat was computed against; each is answered "
+        "here.",
+        "",
+        "- `record`: a rowless merge is the batch interval the record "
+        "protocol promises, and this pull request is that batch, which is "
+        "the answer the check's own refusal text names. No cheaper detector "
+        "exists than the check that already fired; its standing cost is one "
+        "beat per batch.",
+        "- `nightly-status` and `delivery-status` grade `main`, not this "
+        "pull request. This beat's delivery rows are precisely the drain "
+        "`delivery-status` batches, so the red is the batch this beat "
+        "exists to close; `nightly-status` executes nothing this diff "
+        "changes and is answered because the shared reporter-input rule "
+        "counts a row the diff rewrites. No cheaper detector exists than "
+        "the check that already fired; its standing cost is one beat per "
+        "batch.",
         "",
         "## Forward-carry",
         "",
@@ -801,6 +823,47 @@ def _load_roster(args) -> dict | None:
     return None
 
 
+def _body_check(body: str, reds: list[str], workdir: Path,
+                title: str) -> tuple[int, str]:
+    """Run `policy_lint.mjs`'s own body check on `body` with `reds`.
+
+    The rule that a red must be named in `## Red checks` is `checkPrBody`'s,
+    so the self-test drives that script instead of holding a second copy of
+    it (the module's `sections()` says why a copy is the weaker repair). The
+    red-history read is cut off by clearing the token variables: it reaches
+    the network, and a self-test whose answer depended on that would pass or
+    fail on the runner's environment rather than on the body.
+
+    The fixture paths are a record pull request's: two delivery rows that
+    already existed at the base (so the main-state reporters' exemption is
+    void, which is the case this section exists for) and the pull request's
+    own added row.
+    """
+    paths = ["dev/programme/delivery/2480.md",
+             "dev/programme/delivery/2483.md",
+             "dev/programme/delivery/2484.md"]
+    workdir.mkdir(parents=True, exist_ok=True)
+    body_path, paths_path, existing_path = (workdir / "body.md",
+                                            workdir / "paths.txt",
+                                            workdir / "existing.txt")
+    body_path.write_text(body, encoding="utf-8")
+    paths_path.write_text("\n".join(paths) + "\n", encoding="utf-8")
+    existing_path.write_text("\n".join(paths[:2]) + "\n", encoding="utf-8")
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("GITHUB_TOKEN", "GH_TOKEN")}
+    argv = ["node", str(_LINT_JS), "--pr-body", str(body_path),
+            "--head", "a" * 40, "--title", title,
+            "--paths-file", str(paths_path),
+            "--existing-file", str(existing_path)]
+    for name in reds:
+        argv += ["--red", name]
+    try:
+        r = subprocess.run(argv, capture_output=True, text=True, env=env)
+    except FileNotFoundError:
+        return -1, "node not found, so the body check could not be run"
+    return r.returncode, r.stdout + r.stderr
+
+
 def self_test() -> int:
     """Offline: every trap the issue names, driven from fixtures."""
     fails: list[str] = []
@@ -1078,6 +1141,31 @@ def self_test() -> int:
         ok("bare na refused-shape", secs["Mutation proof"].startswith("n/a:"))
         ok("head named", "a" * 40 in secs["Head"])
         ok("red named", "record" in secs["Red checks"])
+        # `nightly-status` and `delivery-status` grade `main`, but a record
+        # pull request REWRITES delivery rows that already existed, which
+        # voids their exemption (#2028's rule), and `checkPrBody` then refuses
+        # a body that does not name them. The arm is driven through
+        # policy_lint's own check -- not a copy of its rule -- and the
+        # stripped body below is the null control: without the names the same
+        # check must refuse, so a green here cannot be vacuous.
+        ok("main-state reporters named",
+           "nightly-status" in secs["Red checks"]
+           and "delivery-status" in secs["Red checks"])
+        _bc_rc, _bc_out = _body_check(
+            body, ["record", "nightly-status", "delivery-status"],
+            root / "bodycheck", pr_title(rows))
+        ok("body check passes the generated body over the reporter reds "
+           f"(rc {_bc_rc}: {_bc_out.strip().splitlines()[-1] if _bc_out.strip() else ''})",
+           _bc_rc == 0)
+        _unnamed = body.replace(
+            secs["Red checks"],
+            secs["Red checks"].replace("nightly-status", "the nightly lane")
+            .replace("delivery-status", "the delivery reporter"))
+        _nc_rc, _nc_out = _body_check(_unnamed, ["nightly-status"],
+                                      root / "bodycheck-null",
+                                      pr_title(rows))
+        ok("a body that does not name nightly-status is refused (null "
+           "control)", _nc_rc == 1 and "does not name it" in _nc_out)
         ok("approval manual", "hpo-author" in secs["Approval"]
            and HANDOVER_FILE not in body)
         ok("forward-carry none", secs["Forward-carry"] == "none")
