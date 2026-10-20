@@ -149,7 +149,7 @@ gantt
 | R10-DEEPLINK-CENSUS | IN | 1 | done | #2317 | opus/opus | - | Split from the R10-DEEPLINK pull request (#2283) after its round-4 review (verdict on head 1826c67c3), as issue #2317: the deep-link builder and its own chec... |  |
 | R10-DEEPLINK-HANDLERS | IN | 1 | planned | **#2317** | opus/opus | - | Split from R10-DEEPLINK-CENSUS by the orchestrator under the three-round rule (round 8 of #2345 found a third missed written spelling). |  |
 | R10-ARCH-DOCS | DOCS | 12 | not-started | **#2395** | opus/opus | - | R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. |  |
-| R10-RCA-FRICTION | RP | 1 | not-started | **#2331**, #2353 | opus/opus | - | # Fixer brief O10-rca-friction: land the finished RCA for #2331 and #2353 (finding sweep L19)
+| R10-RCA-FRICTION | RP | 1 | not-started | **#2331**, #2353, #2409, #2428, #2429, #2436, #2437, #2438 | opus/opus | - | # Fixer brief O10-rca-friction: land the finished RCA for #2331 and #2353 (finding sweep L19)
 State found: the RCA is DONE but unpublished. |  |
 | R10-POLICY-FIXER-MD | RP | 2 | not-started | **#2378** | opus/opus | - | # Fixer brief O10-policy-fixer-md: dispose recurring friction #2378 (finding sweep L20, F-POL, P16, P23, P38). |  |
 | R10-POLICY-GATE-SCOPING | RP | 1 | not-started | **#2381** | opus/opus | - | # Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). |  |
