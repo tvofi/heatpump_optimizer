@@ -3675,7 +3675,9 @@
    "group": "R10-MUTATION-ANCHOR",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
+   "issues": [
+    2493
+   ],
    "fixes": [],
    "findings": [
     "R10-SAV-BASELINE forward-carry (#2411): entities.py --anchor vacuous kill"
