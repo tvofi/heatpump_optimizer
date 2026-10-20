@@ -2103,6 +2103,38 @@ PY
   st "$CL_RC" 3 "and a skip-case diff still skips"
   [ "$CL_TXT" = "the diff reaches no selectable script's closure" ]
   st $? 0 "and the skip case's line is byte-identical too"
+  # THE RECORDER DIES WITH THE PREPR (tvofi, 2026-10-20). A stopped prepr left
+  # derive_closures.sh reparented to launchd and running to completion -- two
+  # such orphans ran 20 and 38 minutes, and they fed the box's load. The
+  # driver is a separate bash so its `$$` is the prepr the watchdog polls, and
+  # the TERM goes to the driver ALONE: a signal to the prepr never reaches the
+  # command substitution's own trap, which is exactly the case that leaked.
+  # The sleeper stands for the recorder; its pid is its own and its group's.
+  PREPR_ABS=$(cd "$(dirname "$PREPR_PATH")" && pwd)/$(basename "$PREPR_PATH")
+  SP="$CLM/sleeper.pid"; : > "$SP"
+  cat > "$CLM/sleeper.sh" <<EOF
+#!/bin/bash
+echo "\$\$" > "$SP"
+sleep 300
+EOF
+  chmod +x "$CLM/sleeper.sh"
+  cat > "$CLM/drv.sh" <<EOF
+#!/bin/bash
+cd "$CLM/r" || exit 9
+eval "\$(awk '/^rc=0\$/{exit} {print}' '$PREPR_ABS')"
+PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1 closures_line fork >/dev/null 2>&1
+EOF
+  chmod +x "$CLM/drv.sh"
+  ( cd "$CLM/r" && git checkout -q cl ) >/dev/null 2>&1
+  bash "$CLM/drv.sh" & drvpid=$!
+  for i in $(seq 1 1200); do [ -s "$SP" ] && break; sleep 0.1; done
+  spid=$(cat "$SP" 2>/dev/null)
+  st "$([ -n "$spid" ] && echo started || echo none)" started "the reap arm's recorder starts under the step"
+  kill -TERM "$drvpid" 2>/dev/null; wait "$drvpid" 2>/dev/null
+  survived=1
+  for i in $(seq 1 100); do if kill -0 "${spid:-0}" 2>/dev/null; then sleep 0.1; else survived=0; break; fi; done
+  [ "$survived" -eq 0 ] || kill -TERM "${spid:-0}" 2>/dev/null
+  st "$survived" 0 "a TERM to the prepr leaves no recorder running behind it (the orphan this closes)"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
   # per script pays the SUM of the recordings where the lane run pays a lane
