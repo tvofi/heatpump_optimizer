@@ -1,0 +1,18 @@
+ custom_components/heatpump_optimizer/ledger.py     | 26 ++++++--
+ dev/audit/harnesses/r10_savings_upgrade_month.py   | 75 ++++++++++++++++++++++
+ dev/programme/delivery/2461.md                     |  2 +-
+ dev/programme/delivery/2462.md                     |  2 +-
+ dev/programme/delivery/2463.md                     |  1 +
+ dev/programme/delivery/2466.md                     |  1 +
+ dev/programme/delivery/2467.md                     |  2 +-
+ dev/programme/delivery/2468.md                     |  1 +
+ dev/programme/delivery/2471.md                     |  1 +
+ dev/programme/rosters/wave-r10-groups.json         | 57 +++++++++++++++-
+ tests/closures.json                                |  1 +
+ tests/features.py                                  | 39 +++++++++++
+ ...hlyLedger._coverage_factor.BOOLOP.0966076a.json |  6 ++
+ ...Ledger._coverage_factor.CMP_BOUND.0966076a.json |  6 ++
+ ...Ledger._coverage_factor.CMP_BOUND.3ffba7d3.json |  6 --
+ ...Ledger._coverage_factor.GUARD_OFF.0966076a.json |  6 ++
+ ...Ledger._coverage_factor.GUARD_OFF.3ffba7d3.json |  6 --
+ 17 files changed, 214 insertions(+), 24 deletions(-)

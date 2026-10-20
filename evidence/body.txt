@@ -1,0 +1,46 @@
+84326c5ca1ec93168480f5a0e091bebeef753349
+main
+Roster for round 10, second landing: brings main's `dev/programme/rosters/wave-r10-groups.json` up to the roster branch tip so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). `carry_audit` reads main's in-tree roster, so a `Carry:` naming a group that exists only on the roster branch reads BAD-DEST or unrouted; #2465 (R10-SETPOINT-BOOST) is blocked on exactly that. Part of #201.
+
+## Head
+
+`84326c5ca1ec93168480f5a0e091bebeef753349` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2471.md`. The authored code head is `f4d751e49e9e3b245aef078d091965f5544ef109`.
+
+`18c3c588e53311423ba2e245bbc70c30b074b24c` merges origin/main `2bd48adfa` into the authored code head `f4d751e49e9e3b245aef078d091965f5544ef109` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+`d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd` is this PR's head. It is the roster branch tip `d8250cd441fb692cfdb3cf433877848606d39eca` (`handoff/audit-r10-roster`, 91 commits ahead of `origin/main` `d1db05dfc`; merge base `73bb15fe8f5bf05ec3568927118a8d678dd8b99`, the tip #2417 landed) plus one commit that adds this PR's own row `dev/programme/delivery/2467.md`. `git diff --name-only origin/main...d4f8914e` lists exactly two files: that row and `dev/programme/rosters/wave-r10-groups.json`. `git merge-tree --write-tree origin/main d8250cd4` is clean, so no conflict arose and no resolution is described.
+
+New groups (17, taking the roster from 72 to 89): R10-TICK-SELFTEST-CI, R10-SEAT-SELFTESTS-CI, R10-RECARRY-HEAD, R10-SETPOINT-POWER, R10-PREPR-UNPINNED-RED, R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-CI-RATCHET-RED, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-POLICY-INSTRUMENTS, R10-SETPOINT-BOOST, R10-CEILING-PROBE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-PARTLOAD. No group is removed.
+
+Stage changes to `done` on existing groups (8): R10-VENT-DETECTOR, R10-TRUST-RELATIVE, R10-SAV-BASELINE, R10-ARCHSCORE-COVERAGE, R10-DIAG-REPLAY, R10-RCA-STRUCTURE-BLIND, R10-DEAD-RATE-LIMIT, R10-OPENPR-SILENT. The 17 new groups arrive at 7 `done` (R10-TICK-SELFTEST-CI, R10-SEAT-SELFTESTS-CI, R10-RECARRY-HEAD, R10-SETPOINT-POWER, R10-PREPR-UNPINNED-RED, R10-CI-RATCHET-RED, R10-POLICY-INSTRUMENTS), 6 `in-progress` (R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-SAVINGS-NEGATIVE), 1 `not-started` (R10-CEILING-PROBE) and 3 `queued` (R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-PARTLOAD); 7 + 6 + 1 + 3 = 17.
+
+Carries appended to existing groups (38 across 9 groups: 1 + 5 + 7 + 1 + 5 + 1 + 1 + 10 + 7): R10-NIGHT-FOLDS 4 to 5, R10-ADVISOR 5 to 10, R10-BRIEFS-FOLD 11 to 18, R10-RCA-FRICTION 0 to 1, R10-POLICY-FIXER-MD 0 to 5, R10-POLICY-GATE-SCOPING 0 to 1, R10-DEAD-RATE-LIMIT 2 to 3, R10-CI-LAYOUT 3 to 13, R10-STAMP 2 to 9. New groups carry 2 more (R10-SEAT-SELFTESTS-CI 1, R10-ROSTER-OPS 1).
+
+Brief or owner-gate text edited on existing groups: R10-VENT-DETECTOR (architect note), R10-SCORES (citation follows #2448's line shift), R10-CI-LAYOUT (brief and owner gate).
+
+This PR leaves #201 open and closes nothing by keyword.
+
+## Mutation proof
+
+n/a: roster state only; no production or test code.
+
+## Null control
+
+n/a: no measured claim. The group, stage and carry lists above are enumerations of a JSON diff between `origin/main` and the head, not measurements of behaviour.
+
+## Figures
+
+none
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
+
