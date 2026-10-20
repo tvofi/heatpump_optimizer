@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.0.1
+# claims-for: 7.0.2
 #
-# v7.0.1: set-point floor from the pump's inlet water and a relaxed solver start for installs that cannot duty-cycle. The stamp empties the list; the
+# v7.0.2: Round-10 wave 1: set-point flow planning, monthly-savings scale, literal stress floors. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
