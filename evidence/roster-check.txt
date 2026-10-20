@@ -1,0 +1,17 @@
+Head: 5748642ff342ec68a49b085b2ef167f2d05a97ee
+Body cites: Carry: R10-CI-LAYOUT (roster d1707a459)
+d1707a459 subject: roster_edit append-group R10-FOLLOWER-DEBOUNCE (tools/audit/seat/roster_edit.py)
+
+R10-CI-LAYOUT group at refs (keyword presence in brief+carry):
+-- HEAD (5748642ff)
+   follower: False | pr-contract-rerun: False | debounce: False | api-lag: False | per-head red: False
+-- d1707a459 (d1707a459)
+   follower: False | pr-contract-rerun: False | debounce: False | api-lag: False | per-head red: False
+-- origin/handoff/audit-r10-roster (204eb8a99)
+   follower: False | pr-contract-rerun: False | debounce: False | api-lag: False | per-head red: False
+
+R10-FOLLOWER-DEBOUNCE source brief line (requires the carry):
+   Ordered by tvofi 2026-10-19 ahead of R10-CI-LAYOUT: the stale-contract follower (pr-contract-rerun.yml, workflow_run on 8 workflows) fires once per completed workflow per PR head, 435 of the first 1000 listed runs on 2026-10-19, and drains the Actions installation API quota (GitHubRatelimitException in validate-hacs, arch-score, env-matrix). Debounce it to one effective re-run per PR head: a concu
+
+grep live roster branch for carry text (expect no output):
+  (none)

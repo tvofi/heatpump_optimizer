@@ -1,0 +1,4 @@
+UNROUTED body item 83bbb0b3 (## Forward-carry) [section]: '- R10-CI-LAYOUT replaces this follower. It must keep the debounce semantics or drop the follower, and it must '
+UNROUTED body item da5528e6 (## Forward-carry) [section]: '- R10-CI-LAYOUT also inherits the API-lag gap named under Risk.'
+CARRY-AUDIT: 3 finding item(s): 1 routed, 2 unrouted, 0 bad destination(s)
+carry_audit_rc=1
