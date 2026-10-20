@@ -3441,6 +3441,7 @@
    "dev/audit/harnesses/eg_a4_wave_deltas.py",
    "dev/audit/harnesses/eg_b11_equiv_6840.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
+   "dev/audit/harnesses/follower_debounce.py",
    "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
