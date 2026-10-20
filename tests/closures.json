@@ -1259,6 +1259,7 @@
    ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
+   ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
@@ -2337,6 +2338,7 @@
    ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
+   ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
@@ -3450,9 +3452,12 @@
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
    "dev/audit/harnesses/r10_carry_sweep_rows.py",
+   "dev/audit/harnesses/r10_ci_layout_p0_fast_offsets.py",
+   "dev/audit/harnesses/r10_ci_layout_p0_mutants.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
+   "dev/audit/harnesses/r10_field_coverage_paths.sh",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
@@ -3466,6 +3471,9 @@
    "dev/audit/harnesses/r10_sav_baseline.py",
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
+   "dev/audit/harnesses/r10_savings_upgrade_month.py",
+   "dev/audit/harnesses/r10_seat_selftests_mutants.py",
+   "dev/audit/harnesses/r10_setpoint_power.py",
    "dev/audit/harnesses/r10_slot_floor_twins.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_structure_blind.py",
@@ -4230,7 +4238,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 726.5
+   "seconds": 303.9
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -4265,7 +4273,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 324.8
   },
   "tests/env_drift.py": {
@@ -4297,7 +4305,7 @@
    "seconds": 0.5
   },
   "tests/harness_headers.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 241.1
   },
   "tests/layout.py": {
@@ -4318,7 +4326,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 186.3
+   "seconds": 87.7
   },
   "tests/plan_view.py": {
    "rc": 0,
@@ -4330,7 +4338,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 760.6
+   "seconds": 361.9
   },
   "tests/structure.py": {
    "rc": 0,
@@ -4338,7 +4346,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 38.0
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,

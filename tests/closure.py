@@ -474,6 +474,11 @@ GATE_FILES = (
     # measure a solver that no policy file can reach, on the pull request AND
     # again on the push to main.
     ".github/workflows/tests.yml",
+    # The CI umbrella (R10-CI-LAYOUT). PR 0 lands it as an inert
+    # `workflow_dispatch` stub; the umbrella that replaces it calls the Tests
+    # lanes and defines the gate's verdict, which is what a gate file means.
+    # Listed from the stub on, so the replacing edit is FULL by construction.
+    ".github/workflows/ci.yml",
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
