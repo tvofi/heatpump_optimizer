@@ -1,57 +1,60 @@
-Fix review: blocked 2351c1c7bb6d71e455a7fd164f42f67091491d0f claim-false: the residual's Carry dismissal rests on a group kill, but daemonize.py's documented stop is kill <pid>, and a TERM of a daemonized update_pr.sh frees the branch lock at once while its push runs on in the worktree
+Fix review: blocked 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1 flaky-arm: the unmutated SIGKILL arm fails 7/7 runs in the cloud seat container, because PID 1 reaps orphans about 1.4 s late and the holder counts the zombie, so the lock frees about 2.05 s after the push and the arm allows 1.5 s; pr_args 58/0 does not reproduce there, and mut:holdgrp cannot be told apart from the head
 
-bus-nonce: 7afa2927b864ae0cc10681c2c3af33cc
+bus-nonce: 76f0c1f880106cdac586744f90d7222d
 
-Round 2 (R10-UPDATE-PR-LOCK). Measured head 2351c1c7bb6d71e455a7fd164f42f67091491d0f = the PR's head at review time (pulls API) = the body's `## Head`. Contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty (merge base 52011c69a = origin/main tip).
+Round 4 of R10-UPDATE-PR-LOCK (a minimal re-cut under the three-round rule). Measured head: 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1 (code c9dd299c). It was still the head of the PR and the branch when this was posted (ev/heads-at-post.txt). origin/main is bb5b21a88. My copy of the roles is current: the role diff against origin/main is empty.
 
-## The blocking finding
+## RESULT lines
 
-The body routes the residual as `Carry: dismissed: daemonize.py runs every detached update as a session leader, so a kill of its group ends the push with it, and no incident involved a kill`. The first premise does not hold for the way a run is actually stopped:
-- `tools/audit/seat/daemonize.py:52`: "`kill` by that pid is the stop story". INSTRUMENTS.md says the same: "the printed pid and `kill` are the stop story". `sweep_template.md:56` runs each `update_pr.sh` "detached under `tools/audit/seat/daemonize.py`". So the documented stop is a kill of the shell's pid alone, which is the residual's own case. A kill of the group is not the documented stop. HANDOVER item 43 records a healthy daemonized instrument read as dead and killed.
-- The default `kill` is TERM, and it is worse than the body's SIGKILL case. The EXIT trap runs and kills the holder **at once**, not "within 2 s". The foreground `app_push.sh` → `prepr.sh` (update_pr.sh:83, cwd `$WT`) is not signalled and runs on.
-- Probe (`ev/probe_term_kill.txt`). This is my own harness: update_pr.sh's lock lines at this head, extracted verbatim, followed by a foreground stand-in for the push, launched through the head's `daemonize.py`. After `kill <printed pid>`, the push stand-in is STILL RUNNING 0.5 s later, and the next run takes the lock at once with no BUSY. A real next run, which is the relay's every-tick handoff arm, would then reach update_pr.sh:60 `git worktree remove --force $WT` under that live push. That is this incident's own mechanism, so "not this incident's class" does not hold either.
-- The second reason ("no incident involved a kill") is true, but alone it is not the stated basis.
+RESULT head-measured 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1
+RESULT merge-tree origin/main: clean, rc=0, tree c0c787587394893d4cad18567a2f8d6b5973d59a (ev/merge-tree.txt)
+RESULT ci-check-runs (commit check-runs API): every completed run is success, skipped or neutral (CodeQL). instrument-self-tests passed, with `pr_args self-test: 58 checks, 0 failed` and `cloud_relay self-test: 74 checks, 0 failed`. Analyze (python) was still in progress when I read them.
+RESULT pr_args-self-test-head, cloud container, unmutated: 58 checks, 1 failed on 7 of 7 runs (4 run one after another, ev/base-seq*.out; 3 run at the same time, ev/base-par*.out). The failing arm every time is "update_pr: a SIGKILLed run keeps the lock until its push has ended; then the next run takes it".
+RESULT pr_args-origin-main: 46 checks, 0 failed (ev/main-counts.txt), which matches the body
+RESULT cloud_relay-head: 74/0. cloud_relay on origin/main: 69/0. Both match the body.
+RESULT mainupd (origin/main's update_pr.sh under the head's harness): 58 checks, 5 failed, which matches the body's "5 failed"
+RESULT removed-mechanisms: gone. The push is in the foreground (update_pr.sh:93). There is no killpg, stop handshake, parent-pid watch or zombie filter in update_pr.sh, and tools/pr/prepr.sh is not in the diff, so 7a2 is gone.
 
-Repair is the fixer's call. Possible repairs:
-- Have a TERM or INT of the run end its children before the holder. For example, a TERM/INT trap that signals the run's own descendants, then exits, so the EXIT trap frees the lock last.
-- Or route the residual to a real destination with a correct reason.
+## Root cause of the failing arm (mine, reproduced)
 
-Whatever the repair, pin it with an arm. Today the holder's self-exit on parent death has no arm either: replacing `while os.getppid() == p` with `while True` gives `pr_args self-test: 51 checks, 0 failed` (`ev/mut_noparentexit.txt`). It is verified only by the body's offline repro, which I reproduced (below).
+- PID 1 in this container (`process_api`) reaps an orphaned child only after a delay. ev/zombie-lifetime.txt (z2.sh) shows a killed group's orphan staying `Z` for about 1.4 s.
+- The holder's `group()` counts every process whose pgid is the run's, and `ps -A -o pgid=` lists zombies. So after a SIGKILL, the push stub's zombie keeps the group non-empty for one or two more 1 s polls.
+- Measured with lat.sh, a replica of the holder: the lock frees 2.049 to 2.060 s after the push ends, on 8 of 8 trials (ev/lock-free-latency.txt).
+- stoprun starts run 3 only 1.5 s after `ended`, so run 3 gets BUSY. ev/dbg.txt shows out3 as `update_pr: BUSY: the lock holder of run 16847, which has ended but started processes that have not`.
+- Adding about 0.1 s of extra work before run 3 (one `ps` dump, ev/dbg2.txt) makes it pass. So this is a timing margin that depends on the host's init, not a logic error in the arm. On GitHub's runner the arm passes.
+- The production effect:
+  - Where init reaps late, the lock outlives the push by the reaping delay, which is harmless.
+  - Where PID 1 never reaps (a container whose PID 1 does not wait on orphans), every run on that branch is BUSY for good after one SIGKILL.
+  - Round 4 removed the zombie filter that dealt with this. The fix could restore it with an arm that pins it, which this container would provide, or keep the filter removed and widen the arm's wait by polling run 3 with a bound. That choice is the fixer's.
 
-## What verified (RESULT)
+## Mutation proof (each mutant applied by me to the real source, the self-test run in its own worktree; ev/<name>.diff and .out)
 
-- RESULT self-test head: `delivery_row self-test: 5 checks, 0 failed`, `pr_args self-test: 51 checks, 0 failed`, `cloud_relay self-test: 74 checks, 0 failed`. origin/main: 46 and 69. Matches the body.
-- RESULT test-first, with the head's pr_args.sh:
-  - round-0/1 update_pr.sh (d2d361a4): `FAIL update_pr: a child the run left detached does not hold the lock…`, 51 checks, 1 failed.
-  - origin/main's: `FAIL … refuses BUSY (75) …` plus `FAIL mutant mut:unlock …`, 51 checks, 2 failed.
-  - Both match the body's counts. The body quotes only the first line of main's two.
-- RESULT harness mutants: `mut:lock` and `mut:unlock` killed, both `ok` at the head.
-- RESULT own mutants on update_pr.sh:
-  - BusyIO exit 3 instead of 75: 2 FAIL.
-  - Drop `f.truncate(0)`: 2 FAIL (dead-run null and detached arm).
-  - Parent-death loop → `while True`: **survives** (above).
-- RESULT cloud_relay mutants, matching the body:
-  - Base body line: 2 failed of 74, the same with `TMPDIR` unset.
-  - Final `rm -rf "$bd"` deleted: 1 failed.
-  - The `urc = 75` line deleted: 3 failed.
-  - The per-run directory under `$TMPDIR` instead of the state dir: 0 failed. This is consistent with `shared_root`, which refuses only a file directly in a root.
-- RESULT round-1 finding fixed:
-  - The shell holds 0 fds on the lock file.
-  - The holder's fd has O_CLOEXEC set (flags 02102001).
-  - A post-checkout-hook detached child no longer holds the lock (arm `ok`).
-- RESULT SIGKILL repro (body's):
-  - `kill -9` the run, then a run 0.2 s later: rc=75, `BUSY: the lock holder of run N, which has ended (the holder exits within 2 s)`.
-  - A run 2.5 s later takes the lock.
-  - Reproduced.
-- RESULT carry_audit, the prepr 7a2 command:
-  - On the PR body: `1 routed, 0 unrouted`, rc 0.
-  - The same body with the residual's `Carry:` removed: `UNROUTED body item … [lead]`, rc 1.
-  - I did not run the full prepr.
-- RESULT merge: `git merge-tree --write-tree origin/main 2351c1c7` rc 0, tree b62a9e00 = the head's own tree (the head already merges origin/main 52011c69a).
-- RESULT CI at this head (check-runs API, 46 runs, `ev/check_runs.tsv`):
-  - 29 success, 14 skipped, CodeQL neutral, none red.
-  - `closures` and `Analyze (python)` were still in_progress at 02:16Z.
-  - Both pr-contract runs: success, `record red-history`, `CARRY-AUDIT: 1 routed, 0 unrouted`.
-- RESULT range reds (`ev/range_reds.txt`): pr-contract failed on d2d361a4 (118384716655, 118384845043), which the body names. It also failed on 02369b10 (118384376991, 118384517187), which the body does not list by id. Same cause: the logs show `UNROUTED … (## Forward-carry)`, so the body's pr-contract answer covers them. The cancelled runs there are cancel-superseded.
-- Not touched: VERSION, manifest, RELEASE_NOTES, claim and golden files. No budget file in the diff.
-- Not re-run by me: the body's relay-vs-manual probes in both orders. The 75 handling they rest on is pinned by the BUSY self-test arm and the cloud_relay retry arms, which I mutated above.
+These ran nine at a time, under load. The named arm fails in each:
+
+| mutant | result |
+|---|---|
+| lock | BUSY arm FAIL |
+| unlock | "the lock holder has exited by the time a run returns" FAIL |
+| stop | TERM arm FAIL |
+| drain | SIGKILL arm FAIL (and TERM) |
+| pgrp | SIGKILL arm FAIL (and TERM) |
+| holdgrp | SIGKILL arm FAIL only |
+
+- shellfd (my own revert: the shell opens fd 9 and the holder flocks it) fails the "detached child" arm.
+- oldfd (49577add's update_pr.sh, the body's revert) fails the "detached child" arm, as the body says.
+- relay-body fails both body-path checks. relay-rm fails the "directory is removed" check. relay-75 fails "tried again", "not recorded failed" and "nor logged OWED". All three match the body.
+
+Every mechanism the body claims has a mutant, and I found none without one. But in this container the SIGKILL arm fails unmutated, so the drain, pgrp and holdgrp mutants "failing" it shows nothing here.
+
+Worse, the harness's own `mut:holdgrp` arm passes vacuously here: it checks that out3 is BUSY, and the unmutated head's out3 is also BUSY. In this container the holdgrp mutant cannot be told apart from the head. The drain and pgrp mutant arms, which check that out2 is not BUSY, still separate from the head.
+
+During the parallel mutant runs, several unrelated arms also failed (for example the TERM main arm under mut:lock and mut:drain). That is consistent with a timing-sensitive harness under load.
+
+## Other checks
+
+- VERSION, the manifest version and the notes heading are not touched. No claim file, budget, closures.json or INERT entry is in the diff.
+- The body's Head paragraph names 98fe31c2 and code c9dd299c, which matches what I measured.
+- Forward-carry: the body says `none`. The `ps` dependency was carried by the orchestrator at roster 25e9cdee (on origin/handoff/audit-r10-roster) to R10-ROSTER-OPS, and that carry states its control (an arm with `ps` off PATH that requires a refusal).
+- The rc-75 trigger is answered in the body: the round-0 pr-contract reds and their cheaper detector.
+- A minor point, not blocking: under `set -e`, any command inside update_pr.sh that exits 75 also reads to the relay as BUSY and is retried forever, not recorded. Today only the lock path exits 75.
+- I built my own instruments: run.sh, lat.sh, z2.sh and zomb.sh, all in ev/. There is no committed finder harness for this instrument fix beyond the PR's own self-test.

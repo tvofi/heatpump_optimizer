@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 5beb4afb6..183ecce28 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -54,7 +54,6 @@ upd_unlocked() { # the holder did not take the lock: BUSY (75) when another hold
+   if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended but started processes that have not,"; fi
+   echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
+ }
+-[ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
+ trap 'exit 143' TERM INT HUP  # mut:stop
+ cd "$M"
+ if [ "$C" != - ]; then

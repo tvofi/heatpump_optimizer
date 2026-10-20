@@ -1,0 +1,14 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index 21f2139e8..9553e2881 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -197,8 +197,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+     # The body goes in a directory of this run's own, under the state dir: a file directly in a
+     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
+     # update failed there (#2469, #2471) -- and still raced the manual update it was meant to spare.
+-    bd=$(mktemp -d "$state/cloud-body.XXXXXX") || { echo "cloud_relay: no body directory under $state" >&2; continue; }
+-    body=$bd/BODY.md
++    bd=${TMPDIR:-/tmp}/cb$$; body=$(mktemp "${TMPDIR:-/tmp}/cloud_body.XXXXXX") || { echo "cloud_relay: no body directory under $state" >&2; continue; }
+     git fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null \
+       && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; rm -rf "$bd"; continue; }
+     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')

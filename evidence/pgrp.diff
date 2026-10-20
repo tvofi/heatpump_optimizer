@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 5beb4afb6..74d705e1c 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -19,7 +19,6 @@
+ PR_NAME=update_pr; pr_trap; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+ # The run leads a process group of its own (an interactive shell's job already does; a script's
+ # child does not): the branch lock below is held until that group is empty.
+-[ "$(ps -o pgid= -p $$ | tr -d ' ')" = "$$" ] || exec python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp(sys.argv[1], sys.argv[1:])' bash "$0" "$@"  # mut:pgrp
+ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+ pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
+ [ "$2" = - ] || pr_code_sha_shape "$2"
