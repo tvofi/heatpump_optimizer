@@ -24,13 +24,28 @@ WT=$P/upd-${BR//\//-}
 # One run per branch. $WT and $WT.log are fixed per branch, and the line below that removes $WT
 # force-removed a second run's live worktree under its prepr: "Unable to read current working
 # directory", tools/ files missing, the other run's body in the shared log (2026-10-19/20: the
-# orchestrator's update and cloud_relay.sh's handoff arm on one PR). flock(2) on fd 9, which this
-# shell keeps open, is released by the kernel when the run dies, so a killed run leaves no stale lock.
-exec 9>>"$WT.lock"; LOCKED=0
-python3 -I -c 'import fcntl, sys; exec("try: fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)\nexcept BlockingIOError: sys.exit(75)")' || LOCKED=$?  # mut:lock
-[ "$LOCKED" != 75 ] || { echo "update_pr: BUSY: another update_pr.sh run (pid $(cat "$WT.lock" 2>/dev/null)) holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75; }
-[ "$LOCKED" = 0 ] || pr_refuse "could not take the per-branch lock $WT.lock (python3 exited $LOCKED)"
-echo $$ > "$WT.lock"
+# orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
+# ONE holder process, not by an fd of this shell: an fd here is inherited by every command the
+# run starts, and a `git gc --auto` that git detaches kept it after the run ended (#2469's round-1
+# review). The holder's file is non-inheritable (PEP 446) and it starts nothing; the kernel frees
+# the lock when the holder dies, and the holder dies with this shell: the EXIT trap ends it, and
+# it exits by itself once its parent is gone (a SIGKILLed run) -- so no stale lock either way.
+python3 -I -c 'import fcntl, os, sys, time
+f = open(sys.argv[1], "a")
+try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError: sys.exit(75)
+p = os.getppid(); f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+while os.getppid() == p: time.sleep(2)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
+trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
+k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
+  local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
+  wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$WT.lock" 2>/dev/null || :)
+  [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $WT.lock (its holder exited $rc)"
+  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+  echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
+}
+[ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -65,5 +80,5 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 9>&- || pr_push_failed $WT.log
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
 echo "HEAD=$H"
