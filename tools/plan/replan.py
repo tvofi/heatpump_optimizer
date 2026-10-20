@@ -981,37 +981,90 @@ def selftest() -> int:
            abs(gate - want_gate) < 1e-6, f"{gate} != {want_gate}")
 
     # Each arm above must go red when its subject is deleted. A self-test that
-    # survives its own removal is the defect the arms exist to catch, so each
-    # mutation is applied to a copy and its self-test must exit non-zero.
+    # survives its own removal is the defect the arms exist to catch. The
+    # harness first proves the copy is sound UNMUTATED -- with durations.json
+    # beside it, because the self-test's cycle arm runs the command and would
+    # otherwise exit 1 on a missing file and make every mutant pass for free --
+    # then applies one deletion inside the named function and requires the
+    # copy's own --self-test to exit non-zero.
     if not os.environ.get("REPLAN_MUTATION_CHILD"):
+        import shutil
+
+        def _def_span(src: str, marker: str) -> tuple[int, int]:
+            """[start, end) of the def/class at `marker`, by indentation."""
+            start = src.index(marker)
+            line_start = src.rfind("\n", 0, start) + 1
+            indent = start - line_start
+            pos = src.find("\n", start) + 1
+            while pos < len(src):
+                nxt = src.find("\n", pos)
+                line = src[pos:nxt if nxt >= 0 else len(src)]
+                if line.strip().startswith(("def ", "class ")) and (
+                        len(line) - len(line.lstrip())) <= indent:
+                    return start, pos
+                if nxt < 0:
+                    break
+                pos = nxt + 1
+            return start, len(src)
+
+        def _m(*parts: str) -> str:
+            """A target assembled at run time.
+
+            The table must not contain the literal it searches for: with the
+            whole string written here, `str.index` found this list (which sits
+            before `_ingest_check_runs` in the file) instead of the production
+            line, and the earliest-attempt mutation changed nothing (2026-10-20
+            review, mutation target).
+            """
+            return "".join(parts)
+
         mutations = [
             ("earliest-attempt",
-             'if prev is None or started < prev["started"]:', "if prev is None:"),
-            ("coordinator-cap",
-             "if coord[n] and n not in inherited and cc >= coord_cap:", "if False:"),
+             _m("def _ingest_check_runs(", "lines, want) -> dict:"),
+             _m("if prev is None or started ", '< prev["started"]:'), "if prev is None:"),
+            ("coordinator-cap", _m("def pick(candidates, ", "now: int):"),
+             _m("if coord[n] and n not in inherited ", "and cc >= coord_cap:"), "if False:"),
             ("dispatch-order",
-             "key = (-height[n], -dur_min[n], n)", "key = (n,)"),
-            ("stamp-cadence", "if len(carry) >= every:", "if False:"),
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("key = (-height[n], ", "-dur_min[n], n)"), "key = (n,)"),
+            ("stamp-cadence",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("if len(carry) >= ", "every:"), "if False:"),
             ("ci-formula",
-             "ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("ci = round((len(batch_rows) + len(stamps)) ", "* gate_report, 1)"),
              "ci = round(len(batch_rows) * gate_report, 1)"),
             ("gate-cancellation",
-             "return fast + clo + ana * (1.0 + p_cancel)", "return fast + clo + ana"),
+             _m("def gate_minutes(durations: ", "dict) -> float:"),
+             _m("return fast + clo + ana * ", "(1.0 + p_cancel)"), "return fast + clo + ana"),
         ]
         source = Path(__file__).read_text(encoding="utf-8")
         seat = str(Path(__file__).resolve().parent.parent / "audit" / "seat")
+        env = {**os.environ, "REPLAN_MUTATION_CHILD": "1", "REPLAN_SEAT_DIR": seat}
         with tempfile.TemporaryDirectory() as td:
-            for name, old, new in mutations:
-                if old not in source:
-                    expect(f"self-test fails when {name} is deleted", False,
-                           f"mutation anchor not found: {old}")
-                    continue
+            shutil.copy2(Path(__file__).resolve().parent / "durations.json",
+                         Path(td) / "durations.json")
+            base = Path(td) / "unmutated.py"
+            base.write_text(source, encoding="utf-8")
+            rc = subprocess.run([sys.executable, "-I", str(base), "--self-test"],
+                                capture_output=True, text=True, env=env).returncode
+            print(f"  null control: unmutated copy rc={rc}")
+            expect("the unmutated copy's self-test exits 0 (null control)",
+                   rc == 0, f"rc={rc}")
+            for name, marker, old, new in mutations:
                 copy = Path(td) / f"{name.replace('-', '_')}.py"
-                copy.write_text(source.replace(old, new, 1), encoding="utf-8")
-                env = {**os.environ, "REPLAN_MUTATION_CHILD": "1",
-                       "REPLAN_SEAT_DIR": seat}
+                start, end = _def_span(source, marker)
+                chunk = source[start:end]
+                if chunk.count(old) != 1:
+                    expect(f"self-test fails when {name} is deleted", False,
+                           f"anchor {old!r} occurs {chunk.count(old)} times in "
+                           f"{marker!r}")
+                    continue
+                copy.write_text(source[:start] + chunk.replace(old, new, 1)
+                                + source[end:], encoding="utf-8")
                 rc = subprocess.run([sys.executable, "-I", str(copy), "--self-test"],
                                     capture_output=True, text=True, env=env).returncode
+                print(f"  mutation {name}: {old!r} -> rc={rc}")
                 expect(f"self-test fails when {name} is deleted", rc != 0, f"rc={rc}")
 
     print(f"self-test: {len(failures)} failed")
