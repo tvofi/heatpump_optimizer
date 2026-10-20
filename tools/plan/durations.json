@@ -1,0 +1,273 @@
+{
+ "analyze_cancel_note": "Analyze (python) is cancelled at a 30-minute cap; the measured cancellation rate is priced as one more full leg per cancelled run.",
+ "batch_window_minutes": 0,
+ "batch_window_note": "0: merge a batch as soon as it is merge-ready, sharing a gate run only among groups that finish at the same instant. Measured on the round-10 roster at a fixed start (2026-10-20T18:00Z): window 0 closes 235.45 h with 39 batches and 4884 CI minutes; 20 min closes 237.67 h with 37 and 4667; 60 min closes 242.33 h with 37; 120 min closes 249.33 h with 37. Closure is the first objective, and holding a finished group delays its dependents' release even when no group is waiting for the slot, so every window above 0 costs wall time and the CI saving saturates at 37 batches.",
+ "ci": {
+  "Analyze (python)": {
+   "cancelled_rate": 0.038,
+   "cap_minutes": 30,
+   "iqr": [
+    21.5,
+    28.1
+   ],
+   "max_minutes": 30.3,
+   "median_minutes": 27.2,
+   "min_minutes": 16.8,
+   "n": 29
+  },
+  "closures": {
+   "iqr": [
+    18.4,
+    29.9
+   ],
+   "max_minutes": 31.5,
+   "median_minutes": 25.1,
+   "min_minutes": 16.6,
+   "n": 28
+  },
+  "fast (3.14)": {
+   "iqr": [
+    41.5,
+    57.4
+   ],
+   "max_minutes": 58.9,
+   "median_minutes": 55.2,
+   "min_minutes": 32.4,
+   "n": 26
+  }
+ },
+ "closure_lead_minutes": 120,
+ "live_remaining_fraction": 0.7,
+ "live_remaining_fraction_note": "0.7: the share of a size duration still ahead for a group whose fixer is already working. A working estimate carried from the out-of-tree renderer; no measurement supports a different fraction.",
+ "provenance": {
+  "instrument": "gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs over the last main merges",
+  "measured_at": "2026-10-20T15:51:45Z",
+  "merges": 26
+ },
+ "samples": [
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118701134345,
+    "minutes": 21.5
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118712478084,
+    "minutes": 21.7
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118712476306,
+    "minutes": 47.5
+   },
+   "sha": "4e5801eb50644df94ccf18650afbb2cc99e854b4"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "cancelled",
+    "job": 118675172846,
+    "minutes": 30.3
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118693417080,
+    "minutes": 27.3
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118675001107,
+    "minutes": 55.2
+   },
+   "sha": "2bd5e90f422e2c24f9e61a1f5b97f581dec21167"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118641715916,
+    "minutes": 23.7
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118654125182,
+    "minutes": 22.9
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118641570883,
+    "minutes": 39.8
+   },
+   "sha": "76bb45628745ff8843f61c1708641f271643a224"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118599530713,
+    "minutes": 27.2
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118610305071,
+    "minutes": 16.9
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118599416717,
+    "minutes": 54.4
+   },
+   "sha": "a2b25bbc5518b5cb212429fdd623b5d33634fd08"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118591053169,
+    "minutes": 27.7
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118597442976,
+    "minutes": 29.8
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118590963808,
+    "minutes": 32.5
+   },
+   "sha": "d99b400a5986a206e3a2bc0c2943967ce27b8adc"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118573357655,
+    "minutes": 27.9
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118573536006,
+    "minutes": 17.6
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118573239926,
+    "minutes": 55.0
+   },
+   "sha": "b701723895a12ef29a9281551ab0fe82643744e2"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118524678908,
+    "minutes": 28.5
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118524855151,
+    "minutes": 16.6
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118524546410,
+    "minutes": 41.7
+   },
+   "sha": "a25de7a686767cedd5071ba7ccf3f323c3050804"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118524347432,
+    "minutes": 20.1
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118524628120,
+    "minutes": 18.3
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118524241015,
+    "minutes": 41.5
+   },
+   "sha": "eef9165ee76bce9d2a2d438d8b4c60d8a4d8fc77"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118513243055,
+    "minutes": 27.9
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118513552347,
+    "minutes": 30.0
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118513100577,
+    "minutes": 39.8
+   },
+   "sha": "2c7ec6c0fd7ae40b958ef9cb11a8425b26591708"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118512586654,
+    "minutes": 27.8
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118512800926,
+    "minutes": 17.9
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118512476288,
+    "minutes": 41.2
+   },
+   "sha": "d59b90ec92cec52ecd5913fb482b4beeee6a1776"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118482034870,
+    "minutes": 26.7
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118482216942,
+    "minutes": 29.4
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118481949332,
+    "minutes": 55.8
+   },
+   "sha": "0c298f6b542e6efa4c93941700b3a23b859f3f9a"
+  },
+  {
+   "Analyze (python)": {
+    "conclusion": "success",
+    "job": 118476971599,
+    "minutes": 20.0
+   },
+   "closures": {
+    "conclusion": "success",
+    "job": 118477127214,
+    "minutes": 16.6
+   },
+   "fast (3.14)": {
+    "conclusion": "success",
+    "job": 118476896771,
+    "minutes": 55.5
+   },
+   "sha": "6f25795bc1027eeefe448079b3f9b74dfa317e75"
+  }
+ ],
+ "sizes_hours": {
+  "L": 20.1,
+  "M": 11.4,
+  "S": 13.1,
+  "XL": 30.2
+ },
+ "sizes_provenance": "median (latest merge - earliest PR commit) over 25 done round-10 groups: S n=16, M n=7, L n=2; XL = 1.5 x L because no XL group has merged. Wall-clock including review rounds and queueing, so a group that waited in review inflates its size (S 13.1 > M 11.4). Measured in wave-data.md section 3 at 2026-10-18; no merged group has changed the method since.",
+ "stamp_lead_minutes": 60
+}
