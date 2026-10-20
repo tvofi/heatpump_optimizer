@@ -20309,13 +20309,14 @@ R.check(
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
 # pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap (2bd5e90f
-# 30:19, 4e5801eb 30:09, 916431ae 30:07, each uploading results when it fired)
-# while a rerun of 4e5801eb finished in 21.5 minutes (job 118701134345). 45 is
-# the 30:19 worst case plus 14:41 of headroom for that variance (45:00 -
-# 30:19); the floor is a measurement, the margin a design choice. The cap is
-# pinned against the YAML (not left as prose in the workflow) because a
-# one-line edit shrinking it back is exactly what no other check reads.
+# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
+# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
+# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
+# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
+# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
+# design choice. The cap is pinned against the YAML (not left as prose in the
+# workflow) because a one-line edit shrinking it back is exactly what no other
+# check reads.
 _CODEQL_JOBS = (_yaml.safe_load(
     (pathlib.Path(__file__).resolve().parents[1] / ".github"
      / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
