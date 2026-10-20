@@ -1,0 +1,31 @@
+
+=== features block ===
+  ok   a step that heats at the floor writes strictly above the gate a step that does not heat writes, on every inlet 10-40 degC and every entity minimum
+  ok   an 18 degC tank writes the gate plus the lift at the floor, not the gate
+  ok   null control: a tank above the gate keeps its own lift, full power keeps the ceiling, and no inlet keeps the rated hold
+  ok   a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unchanged
+  ok   a window commanded below the ceiling never engages and learns no maximum: its idle-level readings are the idle draw, not a run
+  ok   null control: the same draws with nothing commanding them (the pump's own choice) engage at the running percentiles of every sample, as before the guard
+  ok   null control: ceiling-commanded samples drawing well under p_max engage, and their 90th percentile is the maximum
+  ok   readings at the learned idle draw are not runs: they set neither the floor nor the share that disagrees
+  ok   a record stored without commands is dropped by the first commanded sample, and kept by an uncommanded one
+  ok   the commands and the idle readings survive the store, and the store's domains accept every cell
+  ok   a gate-held interval folds one idle reading; a heating set-point, hot water asked, or no command at all folds none
+  ok   the per-cycle fold records the held flow set-point and its ceiling under Control
+  ok   null control: Observe, an indoor set-point, or a plan that writes the compressor frequency (an install that can duty-cycle, whose draw is the plan's echo) records no command
+  ok   no decimal reaches the service call on an entity that states no step; a 0.5-step entity keeps its halves; a stated 0.1 step keeps tenths
+  ok   null control: an already-whole write sends the same whole number
+  ok   a floor rounds up, a ceiling down, levels between to nearest, and the written value never falls as the level rises
+  ok   a Fahrenheit entity is quantised in Fahrenheit: 30 degC is 86 degF, whole, and a floor of 30.2 degC rounds up to 87 degF
+  ok   after rounding, a 20 degC tank's floor stays above the gate, both whole
+  ok   the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn the newest 48 (0.30), not the whole 96 (0.20); null: 20 readings learn their own value
+  ok   a set-point 0.9 K under the ceiling is not full-power evidence: ten ceiling-commanded draws learn no maximum beside ninety sub-ceiling ones; null: a set-point exactly 0.5 K under the ceiling is full
+  ok   a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full (the test is inclusive): 48 of them learn their 90th percentile as the maximum
+  ok   a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run (the test is strict): 48 of them are no evidence at all
+  ok   a stored idle reading of 0.0 is a reading: six of twelve, the median is 0.15; null: a negative, a NaN and a non-number are dropped
+  ok   a set-point exactly one millionth of a step above a multiple is not snapped to it (the snap is strict), so a floor of it rounds up: one millionth of a whole degree writes 1; null: zero snaps to the multiple
+  ok   a set-point 0.4 K above the gate is not a gate-held interval, so its draw is no idle reading; null: one exactly GATE_TOLERANCE_K above the gate is
+  ok   the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing -- no FlowCommand with a missing end -- and a readable one publishes the held command
+
+ALL 26 FEATURES BLOCK PASSED
+RC_S9=0

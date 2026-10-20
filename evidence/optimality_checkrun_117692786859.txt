@@ -1,2 +1,0 @@
-2026-10-18T14:11:08.0998485Z  cert one|summer_negative|shoulder obj  0.305809  re-polish +0.0051%  ladder +10.5544%  claimed=False
-2026-10-18T14:11:08.0998834Z   FAIL one|summer_negative|shoulder: no unclaimed gap above the bar (re-polish + ladder)  [re-polish 0.0051%, ladder 10.5544%, bar 0.1000%]

@@ -36,4 +36,4 @@ spread: cells 16 relaxed start objective lower 8 higher 0 identical plan 8
   flat (1.7, 0.0, True, False) plan 58ad980da25e relaxed-delta +0.000 near-floor-dear 0.496 cheap-quarter 0.210 savings 3.97
 flat: cells 16 relaxed start objective lower 0 higher 0 identical plan 16
 failures 0
-HEAD_SOLVES_RC=0
+RC=0
