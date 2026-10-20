@@ -2464,7 +2464,8 @@
     "R10-REGISTRY-LEAK"
    ],
    "carry": [
-    "The D7.md and D9.md lines of #2222 are policy and land in R10-BRIEFS-FOLD; the coordinator comment (D5-s3-01) lands in R10-CURRENCY; the hot_water_pumps label in R10-UX-SETUP. This group closes #2222 only if it merges last of those four; the orchestrator checks."
+    "The D7.md and D9.md lines of #2222 are policy and land in R10-BRIEFS-FOLD; the coordinator comment (D5-s3-01) lands in R10-CURRENCY; the hot_water_pumps label in R10-UX-SETUP. This group closes #2222 only if it merges last of those four; the orchestrator checks.",
+    "Found by the 2026-10-20 slip screen of the last 500 merged pull requests: tests/README.md:272 still cites tools/audit/harnesses/k1725_blas_kernel_gap.py, a directory that does not exist; the instrument lives under dev/audit/harnesses/. #2114 flagged this line to whoever owns the doc, and the sibling fixes in CLAUDE.md and fixer.md landed by #2072, but this line did not. One line to correct when this group rewrites tests/README.md."
    ],
    "architect_note": null,
    "resume": {
