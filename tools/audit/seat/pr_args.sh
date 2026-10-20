@@ -196,6 +196,14 @@ pr_args_self_test() (
     update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+  # reap: end every lock holder a fixture run recorded under $t (a mutant's may never exit), by
+  # the holder pid its lock file names -- never pid 0 or 1, which kill reads as a group.
+  reap() {
+    local l h
+    for l in $(find "$t" -name 'upd-*.lock' 2>/dev/null); do
+      h=$(cut -d' ' -f2 "$l" 2>/dev/null); case $h in ''|0|1|*[!0-9]*) ;; *) kill "$h" 2>/dev/null ;; esac
+    done
+  }
   # One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch
   # worktree was force-removed under a concurrent run's prepr. lockrun <mutant> <hold: 1|0>
   # registers that worktree with a file in it (the in-flight run's), holds -- or, at 0, leaves
@@ -211,6 +219,7 @@ pr_args_self_test() (
     else echo 99999 > "$s/pr/upd-fix-x.lock"; fi
     cp "$t/body.md" "$t/b.md"; run "$1" update_pr.sh fix/x - "$t/b.md"
     [ -z "$hp" ] || { kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; }
+    reap
     [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
   }
   lockrun - 1
@@ -241,6 +250,7 @@ pr_args_self_test() (
     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
     echo $? > "$t/rc"
     [ -s "$t/sleepers" ] && kill $(cat "$t/sleepers") 2>/dev/null; rm -f "$t/sleepers"
+    reap
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; rm -rf "$sd"
   }
   detrun -
@@ -250,6 +260,46 @@ pr_args_self_test() (
   detrun unlock
   grep -qF "update_pr: BUSY" "$t/out"
   ck "  mutant mut:unlock (its line deleted): the holder outlives the run and the next run is BUSY" $?
+  # A stopped run keeps the lock until its push has ended (#2469 round 2: daemonize.py's stop is
+  # `kill <pid>`, a TERM, and the round-1 EXIT trap freed the lock while the push ran on in $WT).
+  # Branch fix/t carries a push stub that records its start, lingers 2 s when TERMed, else ends
+  # after 6 s, and exits at once when $t/fast exists. stoprun <mutant> <signal>: run 1 is
+  # signalled mid-push; run 2 starts at once after a TERM, 3 s after a KILL (past
+  # round 2's 2-s self-exit, with the stub still running); run 3 starts after the stub has ended.
+  if [ ! -e "$t/fixt" ]; then
+    git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\ntrap '"'"'sleep 2; echo ended > "%s/ended"; exit 1'"'"' TERM\nsleep 6 & wait $!\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" "$t" > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
+  fi
+  stoprun() {
+    local sd=$t/st-$1-$2 g up k=0
+    rm -rf "$t/s$i"; git -C "$m" worktree prune; rm -f "$t/started" "$t/ended" "$t/fast"
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    cp "$t/body.md" "$t/b1.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ ! -e "$t/started" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -"$2" "$up"; wait "$up" 2>/dev/null; [ "$2" != KILL ] || sleep 3
+    cp "$t/body.md" "$t/b2.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b2.md" > "$t/out2" 2>&1
+    k=0; while [ ! -e "$t/ended" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    sleep 1.5; touch "$t/fast"
+    cp "$t/body.md" "$t/b3.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b3.md" > "$t/out3" 2>&1
+    reap
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  stopped_ok() { grep -qF "update_pr: BUSY" "$t/out2" && [ -e "$t/ended" ] && ! grep -qF "update_pr: BUSY" "$t/out3" \
+    && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
+  stoprun - TERM; stopped_ok
+  ck "update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it" $?
+  stoprun stop TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs" $?
+  stoprun - KILL; stopped_ok
+  ck "update_pr: a SIGKILLed run's lock is held until the push it started has ended; then the next run takes it" $?
+  stoprun drain KILL; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:drain (its line deleted): a SIGKILLed run frees the lock while its push still runs" $?
+  stoprun pgrp KILL; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:pgrp (its line deleted): the run shares its caller's group, and the lock goes under a live push" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
@@ -259,6 +309,7 @@ pr_args_self_test() (
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
+  reap
   rm -rf "$t"
   echo "pr_args self-test: $n checks, $f failed"
   [ "$f" = 0 ]
