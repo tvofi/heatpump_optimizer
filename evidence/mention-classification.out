@@ -1,0 +1,59 @@
+### 5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9: 26 file(s)
+  historical (dev/archive/)                            dev/archive/carries/carry-1649.json
+  historical (dev/archive/)                            dev/archive/carries/carry-1654.json
+  historical (dev/archive/)                            dev/archive/carries/carry-1686.json
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-4/ev/gate_head.log
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-4/ev/gate_round1_head.log
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-5/README.md
+  historical (dev/archive/)                            dev/archive/handoff/r9-frictions/handoff_inert_harness.py
+  historical (dev/audit/config/bugclasses.json)        dev/audit/config/bugclasses.json
+  GUARD_EXEMPT record (dev/audit/rca/)                 dev/audit/rca/bugclasses/conflicts_since_0920.tsv
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round10/ROSTER-ISSUES.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/LEADS-L3.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/LEADS-L4.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/FIX-PLAN-head.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/gen.py
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/standing.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/leads-L3.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/ALT-ROSTER.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/DRAFT-ENDGAME-PLAN.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/friction-prestudy-r2-groups.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/friction-prestudy.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/integration-prestudy.md
+  historical (dev/programme/delivery/)                 dev/programme/delivery/1627.md
+  historical (dev/programme/plan-2026-09-open-issues.md) dev/programme/plan-2026-09-open-issues.md
+  historical (dev/programme/rosters/)                  dev/programme/rosters/wave-r9-groups.json
+  historical (dev/programme/round9/)                   dev/programme/round9/state/NEXT-SESSION-PROMPT.md
+  map entry                                            tests/layout.json
+  summary: {'historical (dev/archive/)': 7, 'historical (dev/audit/config/bugclasses.json)': 1, 'GUARD_EXEMPT record (dev/audit/rca/)': 1, 'historical (dev/audit/rounds/)': 12, 'historical (dev/programme/delivery/)': 1, 'historical (dev/programme/plan-2026-09-open-issues.md)': 1, 'historical (dev/programme/rosters/)': 1, 'historical (dev/programme/round9/)': 1, 'map entry': 1}
+
+### HEAD: 27 file(s)
+  historical (dev/archive/)                            dev/archive/carries/carry-1649.json
+  historical (dev/archive/)                            dev/archive/carries/carry-1654.json
+  historical (dev/archive/)                            dev/archive/carries/carry-1686.json
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-4/ev/gate_head.log
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-4/ev/gate_round1_head.log
+  historical (dev/archive/)                            dev/archive/handoff/r9-f2-solver-5/README.md
+  historical (dev/archive/)                            dev/archive/handoff/r9-frictions/handoff_inert_harness.py
+  historical (dev/audit/config/bugclasses.json)        dev/audit/config/bugclasses.json
+  GUARD_EXEMPT record (dev/audit/rca/)                 dev/audit/rca/bugclasses/conflicts_since_0920.tsv
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round10/ROSTER-ISSUES.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/LEADS-L3.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/LEADS-L4.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/FIX-PLAN-head.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/gen.py
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/fixplan/standing.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/leads-L3.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/ALT-ROSTER.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/DRAFT-ENDGAME-PLAN.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/friction-prestudy-r2-groups.json
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/friction-prestudy.md
+  historical (dev/audit/rounds/)                       dev/audit/rounds/round9/prestudy/integration-prestudy.md
+  historical (dev/programme/delivery/)                 dev/programme/delivery/1627.md
+  historical (dev/programme/delivery/)                 dev/programme/delivery/2488.md
+  historical (dev/programme/plan-2026-09-open-issues.md) dev/programme/plan-2026-09-open-issues.md
+  historical (dev/programme/rosters/)                  dev/programme/rosters/wave-r9-groups.json
+  historical (dev/programme/round9/)                   dev/programme/round9/state/NEXT-SESSION-PROMPT.md
+  map entry                                            tests/layout.json
+  summary: {'historical (dev/archive/)': 7, 'historical (dev/audit/config/bugclasses.json)': 1, 'GUARD_EXEMPT record (dev/audit/rca/)': 1, 'historical (dev/audit/rounds/)': 12, 'historical (dev/programme/delivery/)': 2, 'historical (dev/programme/plan-2026-09-open-issues.md)': 1, 'historical (dev/programme/rosters/)': 1, 'historical (dev/programme/round9/)': 1, 'map entry': 1}
+

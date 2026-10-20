@@ -1,0 +1,14 @@
+=== P1/P2/P3 perturbations ===
+## P1 cite the moved file
+    new-reference: tests/zzz-perturb-2488-a.py cites retired path handoff/round9/: see handoff/round9/plan-table-live.md for the table
+    unswept: tests/zzz-perturb-2488-a.py:1 cites handoff/round9/, which this diff moves
+layout: GUARD: 2 refusal(s) against 76bb45628745
+exit=1
+## P2 cite handoff/ as a branch namespace
+layout: GUARD: 0 refusal(s) against 76bb45628745
+exit=0
+## P3 cite the moved tree directory under the namespace
+    new-reference: tests/zzz-perturb-2488-c.py cites retired path handoff/round9/: git diff -- handoff/round9/
+    unswept: tests/zzz-perturb-2488-c.py:1 cites handoff/round9/, which this diff moves
+layout: GUARD: 2 refusal(s) against 76bb45628745
+exit=1

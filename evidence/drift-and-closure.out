@@ -1,0 +1,19 @@
+=== closure select mode line ===
+  MODE: SCOPED -- 10 script(s) run, 23 scoped out.
+
+=== env_drift --all ===
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+DRIFT_EXIT=0
+
+=== card_drift ===
+FAIL: plan payload /tmp/plandata-884ec68ee3f8.json not found -- run tests/plan_view.py first
+CARD_EXIT=1
+
+[exited with code 0]
