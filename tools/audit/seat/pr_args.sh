@@ -196,6 +196,115 @@ pr_args_self_test() (
     update_pr.sh fix/x-pr "$side" "$t/body.md"
   arm "update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap" trap \
     "update_pr: STOPPED: line" update_pr.sh fix/x-absent - "$t/body.md"
+  # reap: end every lock holder a fixture run recorded under $t (a mutant's may never exit), by
+  # the holder pid its lock file names -- never pid 0 or 1, which kill reads as a group.
+  reap() {
+    local l h
+    for l in $(find "$t" -name 'upd-*.lock' 2>/dev/null); do
+      h=$(cut -d' ' -f2 "$l" 2>/dev/null); case $h in ''|0|1|*[!0-9]*) ;; *) kill "$h" 2>/dev/null ;; esac
+    done
+  }
+  # One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch
+  # worktree was force-removed under a concurrent run's prepr. lockrun <mutant> <hold: 1|0>
+  # registers that worktree with a file in it (the in-flight run's), holds -- or, at 0, leaves
+  # behind a dead pid in -- the branch's lock, and runs update_pr.sh on the branch.
+  lockrun() {
+    local s=$t/s$((i + 1)) hp="" k=0
+    rm -f "$t/held"; mkdir -p "$s/pr"
+    git -C "$m" worktree add -q --detach "$s/pr/upd-fix-x" && touch "$s/pr/upd-fix-x/live"
+    if [ "$2" = 1 ]; then
+      python3 -I -c 'import fcntl, os, sys, time; f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); f.write("%d 0\n" % os.getpid()); f.flush(); open(sys.argv[2], "w").close(); time.sleep(120)' \
+        "$s/pr/upd-fix-x.lock" "$t/held" & hp=$!
+      while [ ! -e "$t/held" ] && [ $k -lt 200 ]; do sleep 0.1; k=$((k + 1)); done
+    else echo 99999 > "$s/pr/upd-fix-x.lock"; fi
+    cp "$t/body.md" "$t/b.md"; run "$1" update_pr.sh fix/x - "$t/b.md"
+    [ -z "$hp" ] || { kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null; }
+    reap
+    [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
+  }
+  lockrun - 1
+  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another update_pr.sh run" "$t/out" \
+    && [ "$(cat "$t/live")" = 1 ] && ! grep -q STOPPED "$t/out"
+  ck "update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place" $?
+  lockrun lock 1
+  ! grep -qF "update_pr: BUSY" "$t/out" && [ "$(cat "$t/live")" = 0 ]
+  ck "  mutant mut:lock (its line deleted) removes the in-flight run's worktree" $?
+  lockrun - 0
+  [ "$(cat "$t/rc")" != 0 ] && ! grep -qF "update_pr: BUSY" "$t/out" \
+    && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
+  ck "null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push" $?
+  # The lock dies with the run, whatever the run started (#2469's round-1 review: an fd of the
+  # run's shell was inherited by a `git gc --auto` git detached, which held the lock afterwards).
+  # detrun <mutant>: two runs on fix/x in ONE state directory, one after the other; during the
+  # first, a post-checkout hook (git runs it at `worktree add`) leaves a detached child behind.
+  detrun() {
+    local sd=$t/sd-$1 g hk=$m/.git/hooks/post-checkout
+    rm -rf "$t/s$i"; git -C "$m" worktree prune  # the last run's worktree holds fix/x
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    printf '#!/bin/sh\nsleep 30 </dev/null >/dev/null 2>&1 &\necho $! >> "%s/sleepers"\n' "$t" > "$hk"; chmod +x "$hk"
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
+    if kill -0 "$(cut -d' ' -f2 "$sd/pr/upd-fix-x.lock")" 2>/dev/null; then echo 1 > "$t/hold1"; else echo 0 > "$t/hold1"; fi
+    rm -f "$hk"; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
+    echo $? > "$t/rc"
+    [ -s "$t/sleepers" ] && kill $(cat "$t/sleepers") 2>/dev/null; rm -f "$t/sleepers"
+    reap
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; rm -rf "$sd"
+  }
+  detrun -
+  grep -qF "update_pr: REFUSE: the push failed" "$t/out1" && ! grep -qF "update_pr: BUSY" "$t/out" \
+    && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
+  ck "update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push" $?
+  [ "$(cat "$t/hold1")" = 0 ]
+  ck "update_pr: the lock holder has exited by the time a run returns" $?
+  detrun unlock; [ "$(cat "$t/hold1")" = 1 ]
+  ck "  mutant mut:unlock (its line deleted): the holder is still alive when the run returns" $?
+  # A stopped run keeps the lock until its push has ended, and a killed run leaves no stale lock.
+  # Branch fix/t carries a push stub that records its start, ends after 6 s, and exits at once
+  # when $t/fast exists. Every wait is on a condition with a generous bound, never a fixed window.
+  # stoprun <mutant> <signal>: run 1 gets the signal mid-push.
+  #   TERM: run 2 starts 1 s later (the push has 5 s left) and must be BUSY; run 3 starts once
+  #         run 1 has exited and must take the lock.
+  #   KILL: runs are retried for up to 20 s until one is not BUSY; one must get through.
+  if [ ! -e "$t/fixt" ]; then
+    git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\nsleep 6\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
+  fi
+  updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
+  stoprun() {
+    local sd=$t/st-$1-$2 g up k=0
+    rm -rf "$t/s$i"; git -C "$m" worktree prune; rm -f "$t/started" "$t/ended" "$t/fast" "$t/out2" "$t/out3"
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ ! -e "$t/started" ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -"$2" "$up"
+    if [ "$2" = TERM ]; then
+      sleep 1; updt 2 "$sd"; wait "$up" 2>/dev/null; touch "$t/fast"; updt 3 "$sd"
+    else
+      wait "$up" 2>/dev/null; touch "$t/fast"; k=0
+      while updt 3 "$sd"; grep -qF "update_pr: BUSY" "$t/out3" && [ $k -lt 20 ]; do sleep 1; k=$((k + 1)); done
+    fi
+    reap
+    k=0; while [ ! -e "$t/ended" ] && [ -e "$t/started" ] && [ $k -lt 200 ] && [ "$2" = KILL ]; do sleep 0.05; k=$((k + 1)); done
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  took_lock() { ! grep -qF "update_pr: BUSY" "$t/out3" && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
+  stoprun - TERM; grep -qF "update_pr: BUSY" "$t/out2" && took_lock
+  ck "update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it" $?
+  stoprun stop TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs" $?
+  stoprun - KILL; took_lock
+  ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" $?
+  stoprun watch TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
@@ -205,6 +314,7 @@ pr_args_self_test() (
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
+  reap
   rm -rf "$t"
   echo "pr_args self-test: $n checks, $f failed"
   [ "$f" = 0 ]

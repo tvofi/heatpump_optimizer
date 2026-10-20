@@ -176,7 +176,7 @@ watch() { # [--interval N] [--once]
 }
 
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs body iss nh nonce
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc
   f=$state/cloud-handoff-failed; mkdir -p "$state"
   { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
@@ -194,14 +194,23 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
     git merge-base --is-ancestor "$hs" "$head" && continue
     if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi
-    git fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null && body=$(mktemp "${TMPDIR:-/tmp}/cloud_body.XXXXXX") \
-      && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; continue; }
+    # The body goes in a directory of this run's own, under the state dir: a file directly in a
+    # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
+    # update failed there (#2469, #2471) -- and still raced the manual update it was meant to spare.
+    bd=$(mktemp -d "$state/cloud-body.XXXXXX") || { echo "cloud_relay: no body directory under $state" >&2; continue; }
+    body=$bd/BODY.md
+    git fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null \
+      && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; rm -rf "$bd"; continue; }
     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
-    if ! { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2; then
-      echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -f "$body"; continue
+    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 || urc=$?
+    # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
+    # a failure, so it is not recorded and the next pass retries once that run has ended.
+    if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
+    if [ "$urc" != 0 ]; then
+      echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -rf "$bd"; continue
     fi
-    rm -f "$body"
+    rm -rf "$bd"
     if [ -n "${HPO_RELAY_APPROVE:-}" ]; then "$HPO_RELAY_APPROVE" "$br"; else bash "$HERE/../../pr/approve_held_runs.sh" "$repo" "$br"; fi >&2 \
       || logline OWED "approve-held-runs $pr $br"
     nh=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"; else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
@@ -359,7 +368,7 @@ self_test() {
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   printf '#!/bin/sh\ncat "%s"\n' "$prs" > "$t/lister.sh"; chmod +x "$t/lister.sh"; export HPO_RELAY_PRS=$t/lister.sh
   # update stub: records args, advances the PR head to a new commit that contains the handoff
-  printf '#!/bin/sh\necho "$1 $2 $(basename "$3" | cut -c1-0) $4 $5" >> "%s/updated"\ncp "$3" "%s/body.seen"\nprintf "41\\tfix/topic-a-pr\\t%s\\n" > "%s"\n' "$t" "$t" "$N40" "$prs" > "$ustub"
+  printf '#!/bin/sh\necho "$1 $2 $(basename "$3" | cut -c1-0) $4 $5" >> "%s/updated"\ncp "$3" "%s/body.seen"\necho "$3" > "%s/body.path"\nprintf "41\\tfix/topic-a-pr\\t%s\\n" > "%s"\n' "$t" "$t" "$t" "$N40" "$prs" > "$ustub"
   printf '#!/bin/sh\necho "$1" >> "%s/approved"\n' "$t" > "$astub"
   printf '#!/bin/sh\necho "$1 $2 $3" >> "%s/dispatched.seen"\necho "bus-nonce: 0123456789abcdef0123456789abcdef"\n' "$t" > "$dstub"
   chmod +x "$ustub" "$astub" "$dstub"; export HPO_RELAY_UPDATE=$ustub HPO_RELAY_APPROVE=$astub HPO_RELAY_DISPATCH=$dstub
@@ -374,6 +383,11 @@ self_test() {
   chk "a handoff ahead of its PR runs update_pr with branch and code sha" 0 grep -q "^fix/topic-a-pr $HS " "$t/updated"
   chk "the issues come from the body's closing keywords" 0 grep -q " 77 78 *$" "$t/updated"
   chk "the body handed to update_pr is the handoff-body BODY.md" 0 grep -q "^Part of #201" "$t/body.seen"
+  # prepr's own body-path predicate, read from prepr.sh: the relay's update ran prepr on a body
+  # it wrote directly in $TMPDIR, which that check refuses, so no relay update ever passed.
+  eval "$(sed -n '/^shared_root() {/,/^}/p' "$HERE/../../pr/prepr.sh")"
+  chk "the body update_pr gets passes prepr's body-path check (not directly in a shared root)" 1 shared_root "$(cat "$t/body.path")"
+  chk "and that body's directory is removed after the update" 0 test ! -e "$(dirname -- "$(cat "$t/body.path")")"
   chk "held runs are approved on the branch" 0 test "$(cat "$t/approved")" = fix/topic-a-pr
   chk "dispatch runs at the NEW head" 0 test "$(cat "$t/dispatched.seen")" = "41 $N40 cloud"
   chk "OWED reviewer-fire is logged with pr, head and nonce" 0 grep -q "^OWED reviewer-fire 41 $N40 0123456789abcdef0123456789abcdef " "$LOG"
@@ -389,6 +403,13 @@ self_test() {
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a failed update is tried once" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 1
   chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS" "$LOG"
+  # a BUSY update (75: another update_pr.sh holds the branch's worktree) is no failure: not recorded, retried next pass
+  rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"
+  bu=$t/bu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 75\n' "$t" > "$bu"; chmod +x "$bu"; HPO_RELAY_UPDATE=$bu
+  handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "a busy update is tried again on the next pass" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 2
+  chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
+  chk "nor logged OWED" 1 grep -q "handoff-update" "$LOG"
   # handoff refs with no open PR are OWED on every pass until disposed
   : > "$LOG"; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
   handoff_arm >/dev/null 2>&1
