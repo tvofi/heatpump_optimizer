@@ -3958,7 +3958,8 @@
     "Source: #2444 Forward-carry. Supersedes the uncontrolled #2444 entry at roster ebf81fc1d. Four lines are not pinned by their files' own self-tests, and the earlier wording of this carry (three wrappers) was half refuted by the round-3 review: handoff_push.sh lines 75, 94 and 108 (its push lines), and merge_pr.sh line 169 (`gh pr merge ...`, the path after the gates). Give those lines offline seams of their own (coverage finding). open_pr.sh line 44 and update_pr.sh line 58 are already pinned by their self-tests (via pr_args.sh's copies): do not build seams for them.\nControl (precondition), on a throwaway worktree of the head, one line replaced at a time and restored afterwards (`git status` clean): handoff_push.sh line 75, 94 and 108 each replaced by `true`, then `bash tools/audit/seat/handoff_push.sh --self-test`: rc=0 every time (unpinned). merge_pr.sh line 169 replaced by `exit 0`, then `bash tools/audit/seat/merge_pr.sh --self-test`: rc=0 with `12 checks, 0 failed` (unpinned). Already pinned: open_pr.sh line 44 (`bash \"$_push\" ...`) replaced by `true`: `--self-test` rc=1, `pr_args self-test: 46 checks, 4 failed`; update_pr.sh line 58 (its push) replaced by `true`: rc=1, `46 checks, 2 failed`. Null control: each of the four self-tests on the unmutated file exits rc=0. The work is done when the same four mutants on handoff_push.sh and merge_pr.sh give rc=1 and the unmutated files still give rc=0.\nRe-measure: line numbers move. Find each push or merge line with `grep -n` at the group's base, then re-take every rc above before relying on it.",
     "Source: #2444 Forward-carry. Supersedes the uncontrolled #2444 entry at roster ebf81fc1d. Routing of a cost question, not a decided finding: the field-coverage census copies all of custom_components/heatpump_optimizer/, so its verdict depends on that tree, yet the policy-docs step's `git diff --quiet \"$SINCE\" HEAD -- <pathspec>` predicate leaves it out, because naming it would run the census on every production pull request. #2444 does not decide it. No census cost figure was measured in #2444: the only job time it holds is the instrument-self-tests run (11:08:20Z to 11:10:35Z, job 118026250746), which is not the census. The group decides whether to name the tree after measuring the cost.\nControl (precondition): `bash dev/audit/harnesses/r10_field_coverage_paths.sh` at the base prints `RESULT misread=0`, with the nine listed inputs reading RUN, and a one-file commit under custom_components/heatpump_optimizer/ (not in the www directory) reads SKIPPED, which is the current choice. Null control: `README.md` reads SKIPPED at every ref, and `tests/structure_budgets.json` reads RUN.\nRe-measure: take the census step's wall time from the check-run's `started_at` and `completed_at` (`gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>`) over several recent policy-docs runs where the step ran, and the count of production pull requests per week from the merged list. Decide on the product of the two. Do not quote a figure from this text.",
     "From PR r10-ci-layout-p0: PR 1's W1 deletes the composed-closure path (`tests/composed_closures.json`, DESIGN-P1 step 5a). After that, the closures lane records `boost_drift_replay.py` bare on every FULL push, and the every-script-once count becomes 54. This PR's budget-equality check (`_cir_once_count()` against `script_runs_per_push`) then refuses until PR 1 re-derives the count and re-records the budget, with the reason stated in that commit. R(b)'s `_coverage_revalidation` must also stay green across W1 (review section 3).",
-    "From PR r10-ci-layout-p0: U9's re-keyed `ci_ratchet.py` reader (PR 2) must keep R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged (review section 3, \"After PR 2\")."
+    "From PR r10-ci-layout-p0: U9's re-keyed `ci_ratchet.py` reader (PR 2) must keep R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged (review section 3, \"After PR 2\").",
+    "Carried from #2464 (R10-CI-LAYOUT PR 0) at dd3a4447, round 3:\n- U9's re-keyed `ci_ratchet.py` reader (PR 2) keeps R(c)'s `reused` exclusion, `_CIR_REUSE` and the budget-equality pin unchanged. Any later lane edit, PR 1's W1 or the umbrella's split of `tests.yml`, keeps `tests/harness_headers.py` in the alone phase: the run-alone pin refuses otherwise."
    ],
    "architect_note": null,
    "resume": {
@@ -4315,7 +4316,8 @@
    "after": [],
    "carry": [
     "From the orchestrator 2026-10-19: orchestrator_tick.py's owner-gated age check (around line 1643) counts every open group with a non-empty owner_gate as 'blocked on owner disposition', including owner_gate 'mandated approval under 6175172275', which needs no owner action. The count rises with every mandated group added (13->16 on 2026-10-19) and buries the real owner asks. Fix: count only gates that need tvofi in person (no mandate citation, or an explicit owner-disposition value), and pin it with a mandated-gate null. Also fold: the 'prepr slots N running' line overcounts self-test subshells; and roster_edit append-group pushed nothing once while reporting no error (the commit stayed local; the branch had to be fast-forwarded by hand).",
-    "From #2471 round 1 (blocked body-figures-stale): `open_pr.sh` opened the roster PR with the previous roster PR's (#2467) body, regenerating only the Head paragraph, so every group, stage and carry figure described another diff. A re-opened PR on a reused branch needs its body taken from the new diff, or the opener should refuse a body whose diff enumeration does not match."
+    "From #2471 round 1 (blocked body-figures-stale): `open_pr.sh` opened the roster PR with the previous roster PR's (#2467) body, regenerating only the Head paragraph, so every group, stage and carry figure described another diff. A re-opened PR on a reused branch needs its body taken from the new diff, or the opener should refuse a body whose diff enumeration does not match.",
+    "From #2469 (R10-UPDATE-PR-LOCK) round 3, a non-blocking reviewer note: the round-4 `update_pr.sh` depends on `ps`, for its process-group leader check and for the lock holder's group drain. On a host with no `ps`, a run re-execs forever and the holder never frees the lock. Guard both with a `--self-test` arm that runs with `ps` off PATH and requires a refusal rather than a hang."
    ],
    "architect_note": null,
    "group": "R10-ROSTER-OPS",
@@ -4876,6 +4878,57 @@
    ],
    "after": [],
    "brief": "RCA (2026-10-20, recurrence 2): two update_pr.sh runs on one branch share the fixed worktree $HPO_STATE_DIR/pr/upd-<branch> and its log; each force-removes the worktree at start (update_pr.sh:35), so the second deletes the first's live worktree mid-prepr. The concurrent run is cloud_relay.sh pass's handoff arm (cloud_relay.sh:199-200), which auto-updates any PR whose handoff is ahead, racing a manual update. Fix: an exclusive per-branch lock taken before any fetch or worktree change (BUSY exit 75, released by the kernel on death), and the relay treats 75 as retry-next-pass, not failure. Controls: an offline two-run reproduction, pr_args/update_pr self-test BUSY check plus a stale-lock null, cloud_relay self-test, mutation."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "severity": "medium",
+   "size": "S",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "carry": [
+    "Carried from #2469 (R10-UPDATE-PR-LOCK) at 931e9a0f, round-4 split under the three-round rule:\n- A SIGKILLed run's holder frees the lock within 2 s while the push that run started may still be running in the worktree. Holding it until that push ends needs a drain of the run's process group, and in a container whose PID 1 reaps orphans late that drain's arm failed 7 of 7 runs (#2469 round 4).\n- A signal to the run's whole process group, such as `kill -TERM -- -<pgid>` or SIGHUP when its terminal closes, also reaches the holder. The holder has no handler, so it exits before the push it covers. This is reasoned from the code, not measured here. (SIGINT does not reach it: bash starts the holder in the background, with SIGINT ignored.)\n- Under `set -e`, any command inside `update_pr.sh` that exits 75 reads to the relay as BUSY and is retried rather than recorded. Today only the lock path exits 75."
+   ],
+   "architect_note": null,
+   "findings": [],
+   "wave": 2,
+   "resume": {
+    "stage": "queued",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fix",
+    "note": "split from #2469 (R10-UPDATE-PR-LOCK) at round 4 under the three-round rule"
+   },
+   "class": "production",
+   "group": "R10-UPDATE-PR-SIGNALS",
+   "hot_files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "after": [],
+   "brief": "Signal-safe update_pr.sh: a TERM, INT, HUP or SIGKILL of a running update must not free the branch lock while its push still runs. Split from #2469 round 4, whose SIGKILL arm failed 7/7 in the cloud container because PID 1 reaps orphans late and the holder counted the zombie. Every arm must be deterministic across containers: wait on a condition, never a fixed window. Also covers the ps dependency of the leader check and the holder (carry on R10-ROSTER-OPS)."
   }
  ]
 }
