@@ -282,11 +282,11 @@ from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
-    FREQ_SOURCE_NUMBER,
     FREQ_WRITE_EPSILON_HZ,
     FREQ_WRITE_MIN_INTERVAL_S,
     FrequencyMap,
     FrequencyWatchdog,
+    defrost_interval,
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp
@@ -10529,8 +10529,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         The learning fold skips immersion intervals (#11 owns resistive
         draw — folding it would teach the map that some frequency draws
-        the element's kilowatts), but the watchdog never skips: divergence
-        evidence is about the write path, not about what the meter reads.
+        the element's kilowatts) and defrost intervals: the meter reads the
+        cycle the pump runs on its own coil. The watchdog never skips a
+        tick: divergence evidence is about the write path, not the meter.
         """
         ctx = getattr(self, "_ctx", self)
         configured = ctx._config.freq_control_mode
@@ -10548,10 +10549,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
             self._spawn(self._async_save_thermal_learning())
-        reported, hz_min, hz_max, source = self._freq_entity_reading()
+        reported, hz_min, hz_max, _source = self._freq_entity_reading()
         if reported is None:
             return
-        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+        defrosting = defrost_interval(self._pump_signals.defrosting)
+        if self._freq_mode() == FREQ_MODE_CONTROL:
             # Divergence is only meaningful while the plan is actually
             # asking for the compressor AND the reading is in its running
             # range: an idle pump reading 0 Hz overnight, or one pausing
@@ -10559,7 +10561,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # path that stopped listening — three cycles of routine MPC
             # idle must not stand control down.
             watch_active = (
-                self._commanded_power() > 0.05 and reported >= hz_min
+                self._commanded_power() > 0.05 and not defrosting and reported >= hz_min
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
@@ -10589,7 +10591,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
+        if (
+            self._measured_power is None or self._immersion_active
+            or defrosting or _freq_fold_blocked(self)
+        ):
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
@@ -10649,9 +10654,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         reported, hz_min, hz_max, source = self._freq_entity_reading()
         mode = self._freq_mode()
+        known = mode != "unconfigured"
         recommended = None
         exhausted = False
-        if mode != "unconfigured":
+        if known:
             target = self._commanded_power() or 0.0
             recommended = self._freq_map.recommend(target, hz_min, hz_max)
             # "Running flat out on faith" must be visible: the flat-out
@@ -10667,16 +10673,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "recommended_hz": recommended,
             "evidence_exhausted": exhausted,
             "commanded_hz": self._freq_watchdog.commanded,
-            "range_hz": (
-                [round(hz_min, 1), round(hz_max, 1)]
-                if mode != "unconfigured"
-                else None
-            ),
-            "map": (
-                self._freq_map.summary(hz_min, hz_max)
-                if mode != "unconfigured"
-                else {}
-            ),
+            "range_hz": [round(hz_min, 1), round(hz_max, 1)] if known else None,
+            "map": self._freq_map.summary(hz_min, hz_max) if known else {},
         }
         if source is not None:
             # Only a configured view gains the key, so the unconfigured

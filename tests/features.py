@@ -20947,6 +20947,28 @@ R.check(
     bool(_cextf._freq_map.buckets),
     "#781: do not gate the fold on _learning_frozen wholesale",
 )
+# D7-s2-01: a defrost reverses the cycle, so the meter reads the pump clearing
+# its own coil rather than the load its frequency delivers. Every other learner
+# refuses the interval (_learning_frozen returns "defrosting"); the map did not.
+_cdf = _freq_coord()
+_cdf._pump_signals = PumpSignals(defrosting=True)
+_cdf._observe_frequency(_T6)
+R.check(
+    "a defrost interval never teaches the frequency map",
+    not _cdf._freq_map.buckets,
+    "the fold would learn a ratio that is not a kW-per-Hz point, and the "
+    "decile-keyed map is inherited when the user later switches to control",
+)
+# The carry's null control: the fact must not be over-read. A defrost flag
+# that is False is an ordinary interval, and the arm still folds.
+_cdf0 = _freq_coord()
+_cdf0._pump_signals = PumpSignals(defrosting=False)
+_cdf0._observe_frequency(_T6)
+R.check(
+    "null control: a non-defrost interval still folds",
+    _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
+    repr(_cdf0._freq_map.buckets),
+)
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
 _cnone = []
@@ -21101,6 +21123,24 @@ R.check(
     "overnight idle never trips the watchdog",
     not _ci7._freq_fallback and _ci7._freq_watchdog.strikes == 0,
     "compressor-off is not write-path divergence",
+)
+
+# A defrost is the pump working on its own coil, not on the plan's command:
+# a report that diverges during one says nothing about the write path, so the
+# tick is not active and must neither strike nor keep a streak alive.
+# D7-s2-01: the watchdog's own contract said this; the caller did not.
+_cdw = _armed_coord()
+_asyncio.run(_cdw._command_frequency())  # commands 45.0
+_cdw._pump_signals = PumpSignals(defrosting=True)
+_cdw.hass.states.set(
+    "number.freq", FakeState("90", attributes={"min": 20.0, "max": 120.0})
+)
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _cdw._observe_frequency(_T6)
+R.check(
+    "defrost ticks never stand control down",
+    not _cdw._freq_fallback and _cdw._freq_watchdog.strikes == 0,
+    "a defrost is not a write path that stopped listening",
 )
 
 # The first report after a command is a grace tick: the pump is entitled

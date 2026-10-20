@@ -61,6 +61,23 @@ FREQ_WRITE_MIN_INTERVAL_S = 300.0
 FREQ_WRITE_EPSILON_HZ = 1.0
 
 
+def defrost_interval(defrosting: bool | None) -> bool:
+    """Whether this interval's readings are a defrost's, not the compressor's.
+
+    A defrost reverses the cycle: the meter sees the load of the cycle the
+    pump runs to clear its own outdoor coil, not the electrical kW that the
+    frequency at that instant delivers, and a reported frequency is whatever
+    the hardware is doing to execute it rather than an answer to the last
+    command. So one fact answers two questions that used to be answered
+    apart (D7-s2-01) -- the map must not fold the interval
+    (``FrequencyMap.observe`` would learn a ratio that is not a kW-per-Hz
+    point) and the watchdog must not count it (``FrequencyWatchdog``'s
+    ``active``). ``None`` -- no flag configured, or no evidence this cycle --
+    is not a defrost.
+    """
+    return bool(defrosting)
+
+
 def resolve_reading(
     number_id: str | None,
     sensor_id: str | None,
@@ -288,8 +305,9 @@ class FrequencyWatchdog:
         """Fold one reported frequency; True when this tick trips it.
 
         ``active`` is the caller's judgement that the divergence question
-        is even meaningful this tick — the plan is asking for power AND
-        the reading is in the compressor's running range. Inactive ticks
+        is even meaningful this tick — the plan is asking for power, the
+        reading is in the compressor's running range, and the interval is
+        not a defrost (:func:`defrost_interval`). Inactive ticks
         clear the streak rather than pausing it: strikes must be
         CONSECUTIVE evidence, and an idle gap breaks consecutiveness.
         """

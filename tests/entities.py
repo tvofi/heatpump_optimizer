@@ -3660,6 +3660,22 @@ def _p2_match_literal_domain(domains):
     return m
 
 
+def _p2_match_defrost_decides(n, parents):
+    """A decision-context read of the pump's defrost flag (D7-s2-01).
+
+    The flag itself is ``*.defrosting``. ``_observe_frequency`` holds the
+    owner's ANSWER in a local of the same name and decides on that; an answer
+    being used is not a second reading of the flag, and ``defrost_interval``
+    takes the flag as a plain boolean, so neither is a hit here.
+    """
+    return (
+        isinstance(n, ast.Attribute)
+        and n.attr == "defrosting"
+        and isinstance(n.ctx, ast.Load)
+        and _p2_decides(n, parents)
+    )
+
+
 _P2_STAMPS = {"last_updated", "last_changed", "last_reported"}
 #: The cycle path: where a fenced step's direct call is an unfenced sibling.
 _P2_CYCLE = {"_async_update_data", "async_run_optimization", "_apply_action"}
@@ -3954,6 +3970,25 @@ def _p2_registry(sources):
                      "an index INTO a learned quarter-hour profile, not a "
                      "floored instant: it returns a slot number between 0 and "
                      "QUARTERS_PER_HOUR, and no datetime at all",
+             }),
+        # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
+        # compressor's own evidence -- the meter reads the cycle the pump runs
+        # to clear its own coil, and the reported Hz is what executes the
+        # defrost rather than an answer to the command. One predicate,
+        # defrost_interval, owns the reading; the map's fold and the
+        # watchdog's ``active`` both consult it, where before the fold folded
+        # every defrost interval and the watchdog counted every one.
+        dict(fact="defrost_standoff", finding="D7-s2-01",
+             match=_p2_match_defrost_decides,
+             owners=["freq_control.py::defrost_interval"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                     "the plant-wide gate: it decides whether ANY learner "
+                     "ingests the interval and owns the reason string it "
+                     "returns. The frequency map deliberately folds intervals "
+                     "that gate freezes (external heat, #781), so the "
+                     "frequency pair's own predicate decides the two "
+                     "frequency questions the gate cannot express",
              }),
     ]
 
