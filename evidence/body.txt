@@ -1,24 +1,26 @@
-84326c5ca1ec93168480f5a0e091bebeef753349
-main
-Roster for round 10, second landing: brings main's `dev/programme/rosters/wave-r10-groups.json` up to the roster branch tip so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). `carry_audit` reads main's in-tree roster, so a `Carry:` naming a group that exists only on the roster branch reads BAD-DEST or unrouted; #2465 (R10-SETPOINT-BOOST) is blocked on exactly that. Part of #201.
+Roster for round 10, third landing: brings main's `dev/programme/rosters/wave-r10-groups.json` up to the roster branch tip so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). #2465 (R10-SETPOINT-BOOST) was blocked carry-missing because its R10-CEILING-PROBE items were absent from that group's brief on main; this lands them. Part of #201.
 
 ## Head
 
-`84326c5ca1ec93168480f5a0e091bebeef753349` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2471.md`. The authored code head is `f4d751e49e9e3b245aef078d091965f5544ef109`.
+`3451d97273f75ad114a00f92e355647f427e7c53` merges the authored code head `7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d` and then merges origin/main `2bd48adfa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`18c3c588e53311423ba2e245bbc70c30b074b24c` merges origin/main `2bd48adfa` into the authored code head `f4d751e49e9e3b245aef078d091965f5544ef109` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+`b9ce429a76f3095fdd9215823059227009b6510e` merges the authored code head `7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d` and then merges origin/main `2bd48adfa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd` is this PR's head. It is the roster branch tip `d8250cd441fb692cfdb3cf433877848606d39eca` (`handoff/audit-r10-roster`, 91 commits ahead of `origin/main` `d1db05dfc`; merge base `73bb15fe8f5bf05ec3568927118a8d678dd8b99`, the tip #2417 landed) plus one commit that adds this PR's own row `dev/programme/delivery/2467.md`. `git diff --name-only origin/main...d4f8914e` lists exactly two files: that row and `dev/programme/rosters/wave-r10-groups.json`. `git merge-tree --write-tree origin/main d8250cd4` is clean, so no conflict arose and no resolution is described.
+`a6d22c22d71d194d57b5a19dd128970244201195` merges the authored code head `7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d` and then merges origin/main `2bd48adfa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-New groups (17, taking the roster from 72 to 89): R10-TICK-SELFTEST-CI, R10-SEAT-SELFTESTS-CI, R10-RECARRY-HEAD, R10-SETPOINT-POWER, R10-PREPR-UNPINNED-RED, R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-CI-RATCHET-RED, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-POLICY-INSTRUMENTS, R10-SETPOINT-BOOST, R10-CEILING-PROBE, R10-SAVINGS-NEGATIVE, R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-PARTLOAD. No group is removed.
+`83371d42dbd221900665a60a4c8831de6800ba9b` merges the authored code head `7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d` and then merges origin/main `2bd48adfa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-Stage changes to `done` on existing groups (8): R10-VENT-DETECTOR, R10-TRUST-RELATIVE, R10-SAV-BASELINE, R10-ARCHSCORE-COVERAGE, R10-DIAG-REPLAY, R10-RCA-STRUCTURE-BLIND, R10-DEAD-RATE-LIMIT, R10-OPENPR-SILENT. The 17 new groups arrive at 7 `done` (R10-TICK-SELFTEST-CI, R10-SEAT-SELFTESTS-CI, R10-RECARRY-HEAD, R10-SETPOINT-POWER, R10-PREPR-UNPINNED-RED, R10-CI-RATCHET-RED, R10-POLICY-INSTRUMENTS), 6 `in-progress` (R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-SAVINGS-NEGATIVE), 1 `not-started` (R10-CEILING-PROBE) and 3 `queued` (R10-DEMAND-OVERBOOK, R10-BUFFER-STORE, R10-COP-PARTLOAD); 7 + 6 + 1 + 3 = 17.
+`84326c5ca1ec93168480f5a0e091bebeef753349` merges origin/main `2bd48adfa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-Carries appended to existing groups (38 across 9 groups: 1 + 5 + 7 + 1 + 5 + 1 + 1 + 10 + 7): R10-NIGHT-FOLDS 4 to 5, R10-ADVISOR 5 to 10, R10-BRIEFS-FOLD 11 to 18, R10-RCA-FRICTION 0 to 1, R10-POLICY-FIXER-MD 0 to 5, R10-POLICY-GATE-SCOPING 0 to 1, R10-DEAD-RATE-LIMIT 2 to 3, R10-CI-LAYOUT 3 to 13, R10-STAMP 2 to 9. New groups carry 2 more (R10-SEAT-SELFTESTS-CI 1, R10-ROSTER-OPS 1).
+The authored code head is `7dc8a207e721a1b3de55487b0b37b4c6cb1e6a6d` (`handoff/audit-r10-roster`). Its merge base with `origin/main` is `d8250cd44`, the roster tip #2467 landed. `git diff --name-only origin/main...7dc8a207` lists exactly one file, `dev/programme/rosters/wave-r10-groups.json`; the PR head adds only this PR's own row `dev/programme/delivery/2471.md`.
 
-Brief or owner-gate text edited on existing groups: R10-VENT-DETECTOR (architect note), R10-SCORES (citation follows #2448's line shift), R10-CI-LAYOUT (brief and owner gate).
+The diff, enumerated from the JSON at `origin/main` and at `7dc8a207` (groups 89 to 90, stage `done` 42 to 43, carries 196 to 198):
 
-This PR leaves #201 open and closes nothing by keyword.
+- New group (1): R10-UPDATE-PR-LOCK, wave 1, stage `in-progress` (PR #2469). No group is removed.
+- Stage change (1): R10-SAVINGS-NEGATIVE `in-progress` to `done` (#2463, merged as `73a6ca86`).
+- Carries appended (2 across 2 groups): R10-CEILING-PROBE 0 to 1, R10-ROSTER-OPS 1 to 2. The CEILING-PROBE paragraph quotes three items of #2465's body routed there by `Carry: R10-CEILING-PROBE`: the floor-only mapping and the unidentified set-point-to-draw gain, reaching the real maximum (p_max owner question or a ceiling probe), and idle draw absorbing compressor draw. The ROSTER-OPS paragraph records this PR's round-1 friction below.
+
+No brief or owner-gate text changes. This PR leaves #201 open and closes nothing by keyword.
 
 ## Mutation proof
 
@@ -26,7 +28,7 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-n/a: no measured claim. The group, stage and carry lists above are enumerations of a JSON diff between `origin/main` and the head, not measurements of behaviour.
+n/a: no measured claim. The lists above enumerate a JSON diff between `origin/main` and the head, not behaviour.
 
 ## Figures
 
@@ -38,9 +40,8 @@ none
 
 ## Forward-carry
 
-none
+- Round 1 was blocked body-figures-stale: `open_pr.sh` carried the previous roster PR's (#2467) body forward with only the Head paragraph regenerated. Carry: R10-ROSTER-OPS
 
 ## Friction
 
 none
-
