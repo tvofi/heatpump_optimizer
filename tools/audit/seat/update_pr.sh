@@ -11,14 +11,14 @@
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch: a second run while one holds the branch's lock ($WT.lock) exits 75, BUSY,
 # having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) or
-# killed run keeps the lock until every process it started has ended.
+# killed run keeps the lock until its push has ended.
 # --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=update_pr; pr_trap; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 # The run leads a process group of its own (an interactive shell's job already does; a script's
-# child does not): the branch lock below is held until that group is empty (#2469 round 2).
+# child does not): the branch lock below is held until that group is empty.
 [ "$(ps -o pgid= -p $$ | tr -d ' ')" = "$$" ] || exec python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp(sys.argv[1], sys.argv[1:])' bash "$0" "$@"  # mut:pgrp
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
@@ -28,41 +28,24 @@ M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-com
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
 # One run per branch. $WT and $WT.log are fixed per branch, and the line below that removes $WT
-# force-removed a second run's live worktree under its prepr: "Unable to read current working
-# directory", tools/ files missing, the other run's body in the shared log (2026-10-19/20: the
+# force-removed a concurrent run's live worktree under its prepr (2026-10-19/20: the
 # orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
-# ONE holder process, never by an fd of this shell: every command the run starts inherits such an
-# fd, and a `git gc --auto` git detached kept it after the run ended (#2469 round 1). The holder's
-# file is non-inheritable (PEP 446) and the holder sits in a process group of its own. The run
-# leads its own group (above), so that group is exactly what the run started and has not ended
-# (git's detached gc calls setsid and leaves it). The lock is freed only when nothing in that group
-# can still be in $WT (#2469 round 2: `kill <pid>`, daemonize.py's stop, freed it under a live push):
-#   - a normal end: the EXIT trap ends the holder, the push having been waited for;
-#   - TERM, INT or HUP: upd_stop asks the holder, which TERMs the run's group and holds the lock
-#     until no process of it is left;
-#   - SIGKILL, which no trap sees: the holder sees its parent go and does the same wait.
-python3 -I -c 'import fcntl, os, signal, subprocess, sys, time
+# one holder process in a process group of its own; this shell holds no fd on it, so nothing the
+# run starts can (a detached `git gc --auto` kept an inherited one). The run leads its own group
+# (above), and the holder keeps the lock while any process of that group is left, so a SIGKILLed
+# run's push keeps it. On a normal end, and after a trapped TERM/INT/HUP (bash runs the trap once
+# the foreground push has finished), the EXIT trap ends the holder at once.
+python3 -I -c 'import fcntl, os, subprocess, sys, time
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: sys.exit(75)
-p = os.getppid(); os.setpgid(0, 0)
+p = os.getppid()
+os.setpgid(0, 0)  # mut:holdgrp
 f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
-signal.signal(signal.SIGINT, signal.SIG_IGN); signal.signal(signal.SIGHUP, signal.SIG_IGN)
-def group():
-    try: w = subprocess.run(["ps", "-A", "-o", "pgid=", "-o", "stat="], capture_output=True, text=True).stdout.split()
-    except OSError: return 1
-    return sum(1 for g, st in zip(w[0::2], w[1::2]) if g == str(p) and not st.startswith("Z"))
-stop = []
-def on_stop(*_):
-    try: os.killpg(p, signal.SIGTERM)
-    except OSError: pass
-    stop.append(1)
-    with open(sys.argv[1] + ".stopping", "w") as g: g.write("stopping\n")
-signal.signal(signal.SIGUSR2, on_stop)
-while os.getppid() == p and not stop: time.sleep(0.5)
-while group(): time.sleep(0.3)  # mut:drain
+def group(): return subprocess.run(["ps", "-A", "-o", "pgid="], capture_output=True, text=True).stdout.split().count(str(p))
+while group(): time.sleep(1)  # mut:drain
 sys.exit(0)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
-trap '{ [ -n "${UPD_STOPPING:-}" ] || { kill "$LKP"; wait "$LKP"; }; } 2>/dev/null || :' EXIT  # mut:unlock
+trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
 k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
 upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
@@ -72,13 +55,7 @@ upd_unlocked() { # the holder did not take the lock: BUSY (75) when another hold
   echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
 }
 [ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
-upd_stop() { # TERM/INT/HUP: the holder TERMs this run's group and keeps the lock until it is empty
-  local k=0; trap '' TERM INT HUP; UPD_STOPPING=1
-  kill -USR2 "$LKP" 2>/dev/null || exit 143
-  while [ ! -e "$WT.lock.stopping" ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
-  exit 143
-}
-rm -f "$WT.lock.stopping"; trap upd_stop TERM INT HUP  # mut:stop
+trap 'exit 143' TERM INT HUP  # mut:stop
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -113,8 +90,5 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-# In the background and waited for: a trapped TERM interrupts `wait` at once, where it would
-# wait for a foreground push to finish first.
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 & PUSHP=$!
-wait "$PUSHP" || pr_push_failed $WT.log
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
 echo "HEAD=$H"

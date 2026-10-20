@@ -2852,17 +2852,6 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
 
-  # --- 7a2. every finding the body records names its destination. `pr-contract`'s last step
-  # runs this script on the body; without it here a body this gate passed went red there on
-  # `UNROUTED body item` (#2469's round 0), a review round to find what a run here prints.
-  if test -f tools/audit/carry_audit.py; then
-    python3 -I tools/audit/carry_audit.py check --body "$BODY" >/tmp/prepr-carry.$$ 2>&1
-    step "carry" $? "$(grep -E '^(UNROUTED|BAD)' /tmp/prepr-carry.$$ | head -2 | tr '\n' ' '; tail -1 /tmp/prepr-carry.$$)"
-    rm -f /tmp/prepr-carry.$$
-  else
-    say skip "carry" "no tools/audit/carry_audit.py at this head"
-  fi
-
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")
   case $? in
