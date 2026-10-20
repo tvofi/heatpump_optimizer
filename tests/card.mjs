@@ -49,6 +49,7 @@ const {
   fireWindow, fireDocument, tickIntervals, coarseTouch, reducedMotion,
   VOID_TAGS, parseHtml, Node, matches, HTMLElement,
 } = makeCardContext();
+vm.runInContext(fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8"), ctx);
 // --- A browser's navigation surface, live before the card loads (R10-DEEPLINK) --
 // The rig gives the card none of that surface; a browser always has it. It is
 // installed HERE, before the card's source runs, and it is ONE graph for the
@@ -211,7 +212,6 @@ const NAV = (() => {
 }
 
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
-vm.runInContext(cardSrc, ctx);
 
 const names = Object.keys(ctx.customElements._d);
 console.log("defined elements:", names.join(", "));
