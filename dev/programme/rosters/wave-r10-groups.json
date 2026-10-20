@@ -2962,7 +2962,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-replay-lane",
     "commit": null,
     "last_step": null,
