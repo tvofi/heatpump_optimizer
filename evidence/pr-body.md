@@ -172,4 +172,3 @@ Merged under the mandate on #201, comment 6175172275, quoted verbatim: "MANDATE:
 ## Friction
 
 none
-

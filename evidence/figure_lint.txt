@@ -1,0 +1,2 @@
+FIGURES: 11 resolved, 0 not verified, 0 refused
+exit=0
