@@ -2143,6 +2143,7 @@ EOF
 #!/bin/bash
 cd "$CLM/r" || exit 9
 eval "\$(awk '/^rc=0\$/{exit} {print}' '$PREPR_ABS')"
+uname() { printf 'Linux\n'; }
 PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1 closures_line fork >/dev/null 2>&1
 EOF
   chmod +x "$CLM/drv.sh"
@@ -2153,8 +2154,10 @@ EOF
   st "$([ -n "$spid" ] && echo started || echo none)" started "the reap arm's recorder starts under the step"
   kill -TERM "$drvpid" 2>/dev/null; wait "$drvpid" 2>/dev/null
   survived=1
-  for i in $(seq 1 100); do if kill -0 "${spid:-0}" 2>/dev/null; then sleep 0.1; else survived=0; break; fi; done
-  [ "$survived" -eq 0 ] || kill -TERM "${spid:-0}" 2>/dev/null
+  if [ -n "$spid" ]; then
+    for i in $(seq 1 100); do if kill -0 "$spid" 2>/dev/null; then sleep 0.1; else survived=0; break; fi; done
+    [ "$survived" -eq 0 ] || kill -TERM "$spid" 2>/dev/null
+  fi
   st "$survived" 0 "a TERM to the prepr leaves no recorder running behind it (the orphan this closes)"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
