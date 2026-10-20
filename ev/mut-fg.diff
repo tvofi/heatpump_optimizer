@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..f5f3e878b 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -115,6 +115,5 @@ E
+ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+ # In the background and waited for: a trapped TERM interrupts `wait` at once, where it would
+ # wait for a foreground push to finish first.
+-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 & PUSHP=$!
+-wait "$PUSHP" || pr_push_failed $WT.log
++PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
+ echo "HEAD=$H"

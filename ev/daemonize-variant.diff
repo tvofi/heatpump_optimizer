@@ -1,0 +1,16 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 6d9b75908..f3a47311c 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -278,9 +278,9 @@ pr_args_self_test() (
+       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+     done
+-    cp "$t/body.md" "$t/b1.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
++    cp "$t/body.md" "$t/b1.md"; rm -f "$t/out1"; up=$(python3 "$src/daemonize.py" --log "$t/out1" --cwd "$PWD" --env HPO_STATE_DIR=$sd -- bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" | sed -n 's/^daemonize: detached pid \([0-9]*\) .*/\1/p'); echo "daemon pid $up pgid $(ps -o pgid= -p $up)" >> "$t/../daemon.trace" 
+     while [ ! -e "$t/started" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+-    kill -"$2" "$up"; wait "$up" 2>/dev/null; [ "$2" != KILL ] || sleep 3
++    kill -"$2" "$up"; k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 200 ]; do sleep 0.05; k=$((k+1)); done; echo "after kill -$2 alive=$(kill -0 $up 2>/dev/null && echo yes || echo no) BUSY-next? see out2" >> "$t/../daemon.trace"; [ "$2" != KILL ] || sleep 3
+     cp "$t/body.md" "$t/b2.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b2.md" > "$t/out2" 2>&1
+     k=0; while [ ! -e "$t/ended" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+     sleep 1.5; touch "$t/fast"

@@ -1,0 +1,10 @@
+daemon pid 20992 pgid 20992
+after kill -TERM alive=no BUSY-next? see out2
+daemon pid 21235 pgid 21235
+after kill -TERM alive=no BUSY-next? see out2
+daemon pid 21489 pgid 21489
+after kill -KILL alive=no BUSY-next? see out2
+daemon pid 21763 pgid 21763
+after kill -KILL alive=no BUSY-next? see out2
+daemon pid 22036 pgid 22036
+after kill -KILL alive=no BUSY-next? see out2

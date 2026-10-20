@@ -1,0 +1,10 @@
+- TERM kill->run1-exit .054739750 push-ended-before-run1-exit=no
+- TERM run2-BUSY=yes push-end-after-kill 1.999606386
+stop TERM kill->run1-exit .003713363 push-ended-before-run1-exit=no
+stop TERM run2-BUSY=no push-end-after-kill 6.215661161
+- KILL kill->run1-exit .002701732 push-ended-before-run1-exit=no
+- KILL run2-BUSY=yes push-end-after-kill 5.945461482
+drain KILL kill->run1-exit .002073831 push-ended-before-run1-exit=no
+drain KILL run2-BUSY=no push-end-after-kill 9.197215161
+pgrp KILL kill->run1-exit .002473708 push-ended-before-run1-exit=no
+pgrp KILL run2-BUSY=no push-end-after-kill 9.171356978

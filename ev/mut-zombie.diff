@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..ff0789f9c 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -51,7 +51,7 @@ signal.signal(signal.SIGINT, signal.SIG_IGN); signal.signal(signal.SIGHUP, signa
+ def group():
+     try: w = subprocess.run(["ps", "-A", "-o", "pgid=", "-o", "stat="], capture_output=True, text=True).stdout.split()
+     except OSError: return 1
+-    return sum(1 for g, st in zip(w[0::2], w[1::2]) if g == str(p) and not st.startswith("Z"))
++    return sum(1 for g, st in zip(w[0::2], w[1::2]) if g == str(p))
+ stop = []
+ def on_stop(*_):
+     try: os.killpg(p, signal.SIGTERM)

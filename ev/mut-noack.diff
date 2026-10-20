@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..944303ee9 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -75,7 +75,7 @@ upd_unlocked() { # the holder did not take the lock: BUSY (75) when another hold
+ upd_stop() { # TERM/INT/HUP: the holder TERMs this run's group and keeps the lock until it is empty
+   local k=0; trap '' TERM INT HUP; UPD_STOPPING=1
+   kill -USR2 "$LKP" 2>/dev/null || exit 143
+-  while [ ! -e "$WT.lock.stopping" ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
++  :
+   exit 143
+ }
+ rm -f "$WT.lock.stopping"; trap upd_stop TERM INT HUP  # mut:stop

@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..3def791d3 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -54,7 +54,7 @@ def group():
+     return sum(1 for g, st in zip(w[0::2], w[1::2]) if g == str(p) and not st.startswith("Z"))
+ stop = []
+ def on_stop(*_):
+-    try: os.killpg(p, signal.SIGTERM)
++    try: pass
+     except OSError: pass
+     stop.append(1)
+     with open(sys.argv[1] + ".stopping", "w") as g: g.write("stopping\n")

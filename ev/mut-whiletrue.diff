@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..bc91ebc6f 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -59,7 +59,7 @@ def on_stop(*_):
+     stop.append(1)
+     with open(sys.argv[1] + ".stopping", "w") as g: g.write("stopping\n")
+ signal.signal(signal.SIGUSR2, on_stop)
+-while os.getppid() == p and not stop: time.sleep(0.5)
++while not stop: time.sleep(0.5)
+ while group(): time.sleep(0.3)  # mut:drain
+ sys.exit(0)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
+ trap '{ [ -n "${UPD_STOPPING:-}" ] || { kill "$LKP"; wait "$LKP"; }; } 2>/dev/null || :' EXIT  # mut:unlock

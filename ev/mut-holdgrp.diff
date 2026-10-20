@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 44529fc13..70b36fd33 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -45,7 +45,7 @@ python3 -I -c 'import fcntl, os, signal, subprocess, sys, time
+ f = open(sys.argv[1], "a")
+ try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+ except BlockingIOError: sys.exit(75)
+-p = os.getppid(); os.setpgid(0, 0)
++p = os.getppid()
+ f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+ signal.signal(signal.SIGINT, signal.SIG_IGN); signal.signal(signal.SIGHUP, signal.SIG_IGN)
+ def group():
