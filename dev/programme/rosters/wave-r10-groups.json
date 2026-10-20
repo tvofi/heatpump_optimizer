@@ -4360,7 +4360,7 @@
     "branch": "handoff/r10-roster-ops",
     "commit": "9969e3ca80bd6255cd1231b1b4e53410a6fbeb88",
     "last_step": "fixer",
-    "next_step": "open_pr",
+    "next_step": "open the ops handoff at 9969e3ca (set-after, drop-carry, mutant driver) as a draft PR; then dispatch the brief's second deliverable at a new head: the roster-sync reconciler in state_docs.py beat (--apply, dry run by default), deriving merged->done and open->in-progress from the repository and appending a merged body's Carry through carry_audit.py's parser, never overwriting deferred/refused.",
     "note": "Handoff handoff/r10-roster-ops at 9969e3ca (1 commit, 361 lines: set-after and drop-carry ops plus a mutant driver) has no pull request. Owed: recarry and open."
    }
   },
