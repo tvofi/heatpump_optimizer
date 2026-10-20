@@ -52,7 +52,7 @@ python3 tests/gate_lock.py status
 
 The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
 `expires_at` lease (30 minutes, above the longest observed stress run). Waiters
-queue first come, first served (`ticket-<n>`; a dead or expired ticket is
+queue by priority band, then arrival (`ticket-<n>`; a dead or expired ticket is
 skipped), and `renew` exits 75 while one waits. An expired lease, or an
 abandoned hold (`holding` marker, no live flock), may be taken without
 forensics. Whoever runs `stress.py` under the lease holds `flock` on
