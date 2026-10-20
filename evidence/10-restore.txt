@@ -1,0 +1,5 @@
+# restore: git checkout HEAD -- tools/audit/seat/record_row.py
+# git status --porcelain (empty == restored):
+# re-run self-test after restore:
+record_row self-test: all checks passed
+rc=0

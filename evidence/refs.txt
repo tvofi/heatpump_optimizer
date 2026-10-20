@@ -1,0 +1,6 @@
+# head: f851f243976a2a5e67b9813de47ae32b9b7814cd
+# base: 76bb45628745ff8843f61c1708641f271643a224
+
+f851f2439 record: the delivery row for #2486
+3cb9b2b73 Merge remote-tracking branch 'origin/main' into fix/r10-record-body
+76bb45628 Merge pull request #2465 from tvofi/fix/r10-setpoint-boost

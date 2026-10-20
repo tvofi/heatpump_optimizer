@@ -1,0 +1,9 @@
+# nightly-status job 118648986388
+job: nightly-status completed failure
+   1 Set up job                                              completed  success
+   2 Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 completed  success
+   3 Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 completed  success
+   4 Report the last scheduled run's conclusion              completed  failure
+   7 Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 completed  skipped
+   8 Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 completed  success
+   9 Complete job                                            completed  success

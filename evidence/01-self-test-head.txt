@@ -1,0 +1,2 @@
+record_row self-test: all checks passed
+self-test rc=0
