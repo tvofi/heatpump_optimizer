@@ -4164,7 +4164,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-seat-selftests-ci",
-    "commit": null,
+    "commit": "76e96a406d4c0b3633c7d0209f80933be6e371cb",
     "last_step": null,
     "next_step": "fixer",
     "note": null
