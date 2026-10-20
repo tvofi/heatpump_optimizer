@@ -267,9 +267,9 @@ pr_args_self_test() (
   # signalled mid-push; run 2 starts at once after a TERM, 3 s after a KILL (past
   # round 2's 2-s self-exit, with the stub still running); run 3 starts after the stub has ended.
   if [ ! -e "$t/fixt" ]; then
-    git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/audit" \
-      && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\ntrap '"'"'sleep 2; echo ended > "%s/ended"; exit 1'"'"' TERM\nsleep 6 & wait $!\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" "$t" > "$o/tools/audit/app_push.sh" \
-      && git -C "$o" add tools/audit/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
+    git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\ntrap '"'"'sleep 2; echo ended > "%s/ended"; exit 1'"'"' TERM\nsleep 6 & wait $!\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" "$t" > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
   fi
   stoprun() {
     local sd=$t/st-$1-$2 g up k=0
