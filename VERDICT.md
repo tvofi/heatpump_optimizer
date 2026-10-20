@@ -38,4 +38,4 @@ The branch's only red gate is `pr-contract` (round 0's `02369b10` and `d2d361a4`
 
 ## Evidence
 
-`/Users/timmalmstrom/hpo-seats/r10s3/rev-2469r6/ev` — `ci-summary.txt` and `check-runs-42bee4bd.json` (both name the head SHA), `delta-review.txt`, `delta-42bee4bd.patch`, `delta-67ee6adf.patch`, `pr_args-selftest.txt`, `cloud_relay-selftest.txt`, `pr-contract-run-39377731567.log`, `body.md`.
+`~/hpo-seats/r10s3/rev-2469r6/ev` — `ci-summary.txt` and `check-runs-42bee4bd.json` (both name the head SHA), `delta-review.txt`, `delta-42bee4bd.patch`, `delta-67ee6adf.patch`, `pr_args-selftest.txt`, `cloud_relay-selftest.txt`, `pr-contract-run-39377731567.log`, `body.md`.
