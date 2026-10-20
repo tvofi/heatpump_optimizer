@@ -44,14 +44,15 @@
   ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
   ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
   ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
-  FAIL update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
-  FAIL update_pr: the lock holder has exited by the time a run returns
+  ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+  ok   update_pr: the lock holder has exited by the time a run returns
   ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
-  FAIL update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
-  FAIL   mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+  ok   update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+tools/audit/seat/pr_args.sh: line 278: 44444 Terminated: 15          HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1
+  ok     mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
   ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
   ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
-  ok   null control: update_pr with code sha 'dee94f7' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha 'fac2afe' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 56 checks, 4 failed
+pr_args self-test: 56 checks, 0 failed

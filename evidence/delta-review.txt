@@ -1,0 +1,48 @@
+Delta review, PR 2469
+reviewed head: 42bee4bde021e9934e85cba43a34be6c99c05f30
+prior reviewed head: 67ee6adfd712786da12241bf59bb5b78030c2d80
+origin/main at review: 0c298f6b542e6efa4c93941700b3a23b859f3f9a
+merge-base(origin/main, head): 6f25795bc1027eeefe448079b3f9b74dfa317e75
+
+== three-dot code delta at head ==
+ dev/programme/delivery/2469.md  |   1 +
+ tools/audit/seat/INSTRUMENTS.md |   9 +++-
+ tools/audit/seat/cloud_relay.sh |  35 ++++++++++---
+ tools/audit/seat/pr_args.sh     | 110 ++++++++++++++++++++++++++++++++++++++++
+ tools/audit/seat/update_pr.sh   |  29 +++++++++++
+ 5 files changed, 175 insertions(+), 9 deletions(-)
+
+== three-dot code delta at 67ee6adf ==
+ dev/programme/delivery/2469.md  |   1 +
+ tools/audit/seat/INSTRUMENTS.md |   9 +++-
+ tools/audit/seat/cloud_relay.sh |  35 ++++++++++---
+ tools/audit/seat/pr_args.sh     | 110 ++++++++++++++++++++++++++++++++++++++++
+ tools/audit/seat/update_pr.sh   |  29 +++++++++++
+ 5 files changed, 175 insertions(+), 9 deletions(-)
+
+== blob identity per changed file ==
+dev/programme/delivery/2469.md 67ee6adf=663eb3b5d832ebedeadd1a148b0736659104a323 head=663eb3b5d832ebedeadd1a148b0736659104a323
+tools/audit/seat/INSTRUMENTS.md 67ee6adf=caa071d7e381b05275abcebc523abe391d3df93f head=caa071d7e381b05275abcebc523abe391d3df93f
+tools/audit/seat/cloud_relay.sh 67ee6adf=21f2139e809387b298a2a44a1554a30c32d8e5b7 head=21f2139e809387b298a2a44a1554a30c32d8e5b7
+tools/audit/seat/pr_args.sh 67ee6adf=ce84ab48f7a87db84957544cdcb95f20e3d71fe6 head=ce84ab48f7a87db84957544cdcb95f20e3d71fe6
+tools/audit/seat/update_pr.sh 67ee6adf=8532317b8db0093218af7665860bcfbf736c0f37 head=8532317b8db0093218af7665860bcfbf736c0f37
+
+== patch comparison (index lines stripped) ==
+rc=0 (0 = identical)
+
+== what the recarry added: git diff 67ee6adf 42bee4bd ==
+ dev/programme/delivery/2464.md             |  2 +-
+ dev/programme/delivery/2473.md             |  2 +-
+ dev/programme/delivery/2474.md             |  1 +
+ dev/programme/delivery/2475.md             |  1 +
+ dev/programme/delivery/2476.md             |  1 +
+ dev/programme/rosters/wave-r10-groups.json | 57 ++++++++++++++++++++++++++++--
+ 6 files changed, 60 insertions(+), 4 deletions(-)
+
+== merge-tree origin/main x head ==
+c025d0bd4333d60f6938ca3c182ee5a0b1b094d8
+rc=0
+
+== carry_audit at head ==
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0
