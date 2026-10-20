@@ -1028,6 +1028,15 @@ SOLAR_APERTURE_MIN_IRRADIANCE: Final = 150.0
 SOLAR_APERTURE_ALPHA: Final = 0.02
 #: Accepted sunny samples before the learned scale applies.
 SOLAR_APERTURE_MIN_SAMPLES: Final = 30
+#: The dark gauge (#2223, class N-confounded-learner): an interval at or
+#: below this irradiance carries no modelled solar term worth the name, so
+#: the heat-loss folds take it and a sunlit one they leave to the aperture
+#: learner. Also the refit pair's admission and the internal-gains gate --
+#: one threshold, because they are one question. Justified where it binds:
+#: at the shipped aperture product the modelled solar gain at 50 W/m² is
+#: 0.30 kW, which one half-hour interval at the house capacity turns into
+#: under 0.02 K of residual against the learner's 1.0 K rejection.
+HEAT_LOSS_MAX_SOLAR_W_M2: Final = 50.0
 #: #53 — per-hour internal gains, ridge-regularised toward the constant.
 CONF_INTERNAL_GAINS_LEARNING_ENABLED: Final = (
     "internal_gains_learning_enabled"
@@ -1039,6 +1048,14 @@ INTERNAL_GAINS_ALPHA: Final = 0.05
 INTERNAL_GAINS_RIDGE: Final = 0.02
 #: Per-hour ceiling as a multiple of the configured constant.
 INTERNAL_GAINS_MAX_FACTOR: Final = 3.0
+#: #2223: the share of the heat-loss walk the level must have traversed
+#: before the hour shape folds. One residual feeds both learners, and the
+#: ΔT that carries a heat-loss error is correlated with the hour, so the
+#: shape absorbs the level until the level is pinned. At 0.9 the walk's
+#: remaining distance is 10 % of the prior's error -- 5 % of the anchor on
+#: a prior half again its truth -- which is the tolerance the class is
+#: measured against (``dev/audit/rca/R10-N-confounded-learner.md``).
+INTERNAL_GAINS_MIN_UA_CONFIDENCE: Final = 0.9
 #: #2 — a standing learned bias on the ECL110 heat curve displace.
 CONF_CURVE_LEARNING_ENABLED: Final = "curve_learning_enabled"
 DEFAULT_CURVE_LEARNING_ENABLED: Final = False

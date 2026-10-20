@@ -177,6 +177,7 @@ from .const import (
     INTERNAL_GAINS_ALPHA,
     INTERNAL_GAINS_RIDGE,
     INTERNAL_GAINS_MAX_FACTOR,
+    INTERNAL_GAINS_MIN_UA_CONFIDENCE,
     CONFIDENCE_MARGIN_CAP_C,
     MOLD_SURFACE_RH_LIMIT,
     SCORE_ALPHA,
@@ -307,6 +308,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    is_sunlit_interval,
     learner_newton_step,
     mold_safe_room_floor,
     learner_unmetered,
@@ -1074,6 +1076,20 @@ def _house_loss_terms(params: ThermalParameters) -> tuple[float, float]:
     if params.two_zone_enabled:
         return params.upper_floor_heat_loss, params.upper_floor_thermal_mass
     return params.heat_loss_coefficient, params.room_thermal_mass
+
+
+def _learned_zone_temperature(
+    state: ThermalState, params: ThermalParameters
+) -> float:
+    """The zone a heat-loss fold's residual is read on: upper floor, else room."""
+    if params.two_zone_enabled:
+        return state.upper_floor_temperature
+    return state.room_temperature
+
+
+def _zone_capacity(params: ThermalParameters) -> float:
+    """The mass the #36/#53 folds turn a residual into a power on, same zone."""
+    return _house_loss_terms(params)[1]
 
 
 async def _async_save_restored(coord: Any) -> None:
@@ -5010,6 +5026,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         gain, internal gains, wind and rain) is therefore accounted for, and
         what is left over is attributed to the heat loss coefficient.
 
+        Dark intervals only (#2223): the solar term is netted out only to
+        the aperture's accuracy, so a sunlit residual would settle the
+        aperture's error into the heat loss, at a value that looks converged.
+
         The Newton step follows from the single-zone dynamics: predicted room
         change is linear in UA with slope ``-(T_room - T_out)·Δt / C_room``, so
         a residual of ``e`` degrees implies ``ΔUA = -e·C_room / (ΔT·Δt)``.
@@ -5063,19 +5083,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS:
-            return
-        if dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
+        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
             return
 
         outdoor = previous_state.outdoor_temperature
         # Same zone as the residual, or the Newton step is taken about a
         # temperature difference the residual does not describe.
-        driving_temp = (
-            previous_state.upper_floor_temperature
-            if ctx._thermal_params.two_zone_enabled
-            else previous_state.room_temperature
-        )
+        driving_temp = _learned_zone_temperature(previous_state, ctx._thermal_params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
@@ -5097,11 +5111,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
         params = ctx._thermal_params
-        predicted_room = (
-            predicted_state.upper_floor_temperature
-            if params.two_zone_enabled
-            else predicted_state.room_temperature
-        )
+        predicted_room = _learned_zone_temperature(predicted_state, params)
         residual = observed - predicted_room
         if not np.isfinite(residual):
             return
@@ -5136,10 +5146,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # T4b (#36 #53, both gated): the same accepted residual, split by
         # attribution so the two learners cannot fight over one sample —
         # sunny intervals inform the solar aperture, dark ones the
-        # internal-gains profile, and the heat-loss fold below keeps
-        # everything as before (UA error correlates with ΔT, not with the
-        # sun, so sharing samples with it is sound).
+        # internal-gains profile.
         self._fold_solar_aperture(previous_state, residual, dt_h)
+        # #2223: dark only; a sunlit residual carries the aperture's error here.
+        if is_sunlit_interval(previous_state.solar_radiation):
+            return
         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
@@ -5229,6 +5240,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         outdoor = previous_state.outdoor_temperature
         delta_t = previous_state.lower_floor_temperature - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
+            return
+
+        # #2223: the same dark gate; the lower replay carries the same sun term.
+        if is_sunlit_interval(previous_state.solar_radiation):
             return
 
         # Same physics as the solve when #53 is on; inert when off.
@@ -8962,11 +8977,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         irradiance = float(previous_state.solar_radiation or 0.0)
         if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE:
             return
-        capacity = (
-            ctx._thermal_params.upper_floor_thermal_mass
-            if ctx._thermal_params.two_zone_enabled
-            else ctx._thermal_params.room_thermal_mass
-        )
+        capacity = _zone_capacity(ctx._thermal_params)
         if capacity <= 1e-6 or dt_h <= 1e-6:
             return
         x = self._thermal_model.compute_solar_gain(irradiance)
@@ -9007,19 +9018,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the aperture learner's business (#36) — and the ridge term keeps
         every hour tethered to the configured constant: the profile is a
         perturbation of the prior, never a replacement for it.
+
+        #2223: folded only once the heat-loss level has converged -- the
+        residual's ΔT-part is hour-correlated, so the shape would learn it.
         """
         ctx = getattr(self, "_ctx", self)
-        if not ctx._config.internal_gains_learning_enabled:
+        settled = house_loss_confidence(getattr(self, "_house_heat_loss_samples", 0))
+        if (
+            not ctx._config.internal_gains_learning_enabled
+            or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+        ):
             return
-        if float(previous_state.solar_radiation or 0.0) > 50.0:
+        if is_sunlit_interval(previous_state.solar_radiation):
             return
         if previous_time is None or dt_h <= 1e-6:
             return
-        capacity = (
-            ctx._thermal_params.upper_floor_thermal_mass
-            if ctx._thermal_params.two_zone_enabled
-            else ctx._thermal_params.room_thermal_mass
-        )
+        capacity = _zone_capacity(ctx._thermal_params)
         if capacity <= 1e-6:
             return
         g0 = float(ctx._thermal_params.internal_gains)
@@ -9689,6 +9703,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     ),
                     outdoor_temp=pending.get("outdoor"),
                     humidity=pending.get("humidity"),
+                    solar_radiation=pending.get("solar"),  # #2223, refit's gate
                 )
                 # T4a: observed-minus-modelled COP rides on the sample, so
                 # the snapshots' accuracy tags and #12's history both see
@@ -9766,6 +9781,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "boost_space": boost.space_boost_active(self),
             "outdoor": ctx._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
+            "solar": ctx._current_state.solar_radiation,  # #2223, the sample's
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
             "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),

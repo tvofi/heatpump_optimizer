@@ -106,6 +106,7 @@ from .const import (
     TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
     WOOD_TANK_MAX_TEMP,
     WOOD_TANK_MIN_MARGIN,
+    HEAT_LOSS_MAX_SOLAR_W_M2,
     topology_layout_valid,
 )
 from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
@@ -1568,6 +1569,18 @@ def on_threshold_kw(params: ThermalParameters) -> float:
     take this; readers of the plan take ``planned_draw_runs``.
     """
     return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)
+
+
+def is_sunlit_interval(solar_radiation: float | None) -> bool:
+    """Whether an interval's measured sun is past the dark gauge (#2223).
+
+    One question, four readers -- the two heat-loss folds, the
+    internal-gains fold and the drift refit's pair admission -- answered
+    once here, on the measured irradiance. ``None`` (no sensor, or a
+    sample written before the field existed) reads as no sun, which is how
+    the tree reads an unknown irradiance everywhere else.
+    """
+    return float(solar_radiation or 0.0) > HEAT_LOSS_MAX_SOLAR_W_M2
 
 @dataclass
 class ThermalState:

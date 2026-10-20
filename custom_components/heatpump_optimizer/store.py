@@ -283,7 +283,7 @@ _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
     **{f"samples/#/{k}": _N for k in (
         "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
-        "humidity", "cop_residual")},
+        "humidity", "solar_radiation", "cop_residual")},
     "samples/#/predicted_cost": _R,
     # #1935: whether a boost overlay governed the interval -- the exclusion
     # tag a post-drift recommendation reads.
