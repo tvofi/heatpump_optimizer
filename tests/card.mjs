@@ -11782,7 +11782,7 @@ check("without an indoor reading the corner now label is absent",
   // quotings HTML admits, and a refresh pragma. Read tag by tag: a lookbehind
   // over a page-sized string re-scans it at every character.
   const MARKUP_TAG = /<[A-Za-z][^<>]*>?/g;
-  const MARKUP_WAY_OUT = /\s(?:xlink:)?(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
+  const MARKUP_WAY_OUT = /\s(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
   const REFRESH_MARKUP = /^<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
   const markupWaysOut = (html, out) => {
     if (!/=/.test(html)) return;
@@ -11807,7 +11807,7 @@ check("without an indoor reading the corner now label is absent",
       // A form is a way out whether or not it names an action: submitted, one
       // with none navigates to the document's own URL.
       if (n.tagName === "FORM") out.push(["form", String(n.action || n.getAttribute("action") || "(this page)")]);
-      for (const at of ["href", "xlink:href", "action", "formaction"]) {
+      for (const at of ["href", "action", "formaction"]) {
         const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
         if (typeof v === "string" && v) out.push([at, v]);
       }
