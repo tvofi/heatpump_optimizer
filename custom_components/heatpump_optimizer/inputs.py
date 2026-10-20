@@ -454,7 +454,7 @@ def _on_step(value: float, step: float, rounding: str) -> float:
     """
     ratio = value / step
     near = round(ratio)
-    turns = near if abs(ratio - near) < 1e-6 else _ROUNDINGS[rounding](ratio)
+    turns = near if abs(ratio - near) <= 1e-6 else _ROUNDINGS[rounding](ratio)
     return round(turns * step, 6)
 
 
