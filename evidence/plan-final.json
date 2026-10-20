@@ -1,0 +1,2704 @@
+{
+ "batches": [
+  {
+   "at": "2026-10-21T00:59:00Z",
+   "groups": [
+    "R10-NIGHT-FOLDS",
+    "R10-REPLAY-LANE",
+    "R10-SAV-REASONS"
+   ],
+   "id": 1
+  },
+  {
+   "at": "2026-10-21T02:10:00Z",
+   "groups": [
+    "R10-FREQ-DEFROST",
+    "R10-TRAIN-HOLD"
+   ],
+   "id": 2
+  },
+  {
+   "at": "2026-10-21T12:23:00Z",
+   "groups": [
+    "R10-ADVISOR",
+    "R10-BRIEFS-FOLD"
+   ],
+   "id": 3
+  },
+  {
+   "at": "2026-10-21T13:34:00Z",
+   "groups": [
+    "R10-RATIO-ANCHOR"
+   ],
+   "id": 4
+  },
+  {
+   "at": "2026-10-21T14:05:00Z",
+   "groups": [
+    "R10-I5-DOCS"
+   ],
+   "id": 5
+  },
+  {
+   "at": "2026-10-21T14:08:00Z",
+   "groups": [
+    "R10-CI-LAYOUT"
+   ],
+   "id": 6
+  },
+  {
+   "at": "2026-10-21T15:16:00Z",
+   "groups": [
+    "R10-REPLAY-SCOPED"
+   ],
+   "id": 7
+  },
+  {
+   "at": "2026-10-21T23:15:00Z",
+   "groups": [
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "id": 8
+  },
+  {
+   "at": "2026-10-21T23:18:00Z",
+   "groups": [
+    "R10-ROSTER-OPS"
+   ],
+   "id": 9
+  },
+  {
+   "at": "2026-10-21T23:47:00Z",
+   "groups": [
+    "R10-SOLVER"
+   ],
+   "id": 10
+  },
+  {
+   "at": "2026-10-22T02:40:00Z",
+   "groups": [
+    "R10-INPUT-STALENESS"
+   ],
+   "id": 11
+  },
+  {
+   "at": "2026-10-22T04:22:00Z",
+   "groups": [
+    "R10-RCA-FRICTION"
+   ],
+   "id": 12
+  },
+  {
+   "at": "2026-10-22T08:29:00Z",
+   "groups": [
+    "R10-SCORES"
+   ],
+   "id": 13
+  },
+  {
+   "at": "2026-10-22T12:21:00Z",
+   "groups": [
+    "R10-MERGE-SUBJECT-HARDEN"
+   ],
+   "id": 14
+  },
+  {
+   "at": "2026-10-22T12:53:00Z",
+   "groups": [
+    "R10-POLICY-GATE-SCOPING"
+   ],
+   "id": 15
+  },
+  {
+   "at": "2026-10-22T15:46:00Z",
+   "groups": [
+    "R10-CURRENCY"
+   ],
+   "id": 16
+  },
+  {
+   "at": "2026-10-22T17:28:00Z",
+   "groups": [
+    "R10-POLICY-FIXER-MD"
+   ],
+   "id": 17
+  },
+  {
+   "at": "2026-10-22T19:24:00Z",
+   "groups": [
+    "R10-ORCH-MACHINERY"
+   ],
+   "id": 18
+  },
+  {
+   "at": "2026-10-23T01:59:00Z",
+   "groups": [
+    "R10-POLICY-LINT-FAMILY"
+   ],
+   "id": 19
+  },
+  {
+   "at": "2026-10-23T04:52:00Z",
+   "groups": [
+    "R10-LOOP-CPU"
+   ],
+   "id": 20
+  },
+  {
+   "at": "2026-10-23T06:34:00Z",
+   "groups": [
+    "R10-RCA-HEADMOVED"
+   ],
+   "id": 21
+  },
+  {
+   "at": "2026-10-23T08:27:00Z",
+   "groups": [
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "id": 22
+  },
+  {
+   "at": "2026-10-23T08:30:00Z",
+   "groups": [
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "id": 23
+  },
+  {
+   "at": "2026-10-23T13:23:00Z",
+   "groups": [
+    "R10-BUFFER-STORE"
+   ],
+   "id": 24
+  },
+  {
+   "at": "2026-10-23T14:41:00Z",
+   "groups": [
+    "R10-LIVESTATE"
+   ],
+   "id": 25
+  },
+  {
+   "at": "2026-10-23T17:58:00Z",
+   "groups": [
+    "R10-CARD-VOICE",
+    "R10-LEARNER-DEFAULT"
+   ],
+   "id": 26
+  },
+  {
+   "at": "2026-10-23T19:51:00Z",
+   "groups": [
+    "R10-CEILING-PROBE"
+   ],
+   "id": 27
+  },
+  {
+   "at": "2026-10-23T19:54:00Z",
+   "groups": [
+    "R10-COP-PARTLOAD"
+   ],
+   "id": 28
+  },
+  {
+   "at": "2026-10-24T00:47:00Z",
+   "groups": [
+    "R10-MUTANT-SKIP"
+   ],
+   "id": 29
+  },
+  {
+   "at": "2026-10-24T03:47:00Z",
+   "groups": [
+    "R10-CONFIG-NOTICES"
+   ],
+   "id": 30
+  },
+  {
+   "at": "2026-10-24T05:04:00Z",
+   "groups": [
+    "R10-DEPENDABOT-AIOHTTP"
+   ],
+   "id": 31
+  },
+  {
+   "at": "2026-10-24T05:22:00Z",
+   "groups": [
+    "R10-DEMAND-OVERBOOK",
+    "R10-MUTATION-ANCHOR"
+   ],
+   "id": 32
+  },
+  {
+   "at": "2026-10-24T07:15:00Z",
+   "groups": [
+    "R10-SAV-COMFORT"
+   ],
+   "id": 33
+  },
+  {
+   "at": "2026-10-24T09:57:00Z",
+   "groups": [
+    "R10-HANDOFF-ARCHIVE"
+   ],
+   "id": 34
+  },
+  {
+   "at": "2026-10-24T14:14:00Z",
+   "groups": [
+    "R10-MERGE-PR-MANDATE"
+   ],
+   "id": 35
+  },
+  {
+   "at": "2026-10-24T16:46:00Z",
+   "groups": [
+    "R10-THERMAL-POWER-OPTION"
+   ],
+   "id": 36
+  },
+  {
+   "at": "2026-10-25T09:59:00Z",
+   "groups": [
+    "R10-PARAMS-OWNER"
+   ],
+   "id": 37
+  },
+  {
+   "at": "2026-10-26T06:05:00Z",
+   "groups": [
+    "R10-ARCH-SHAPES"
+   ],
+   "id": 38
+  },
+  {
+   "at": "2026-10-26T17:29:00Z",
+   "groups": [
+    "R10-LEARNER-ETA"
+   ],
+   "id": 39
+  },
+  {
+   "at": "2026-10-27T23:41:00Z",
+   "groups": [
+    "R10-HEAT-METER"
+   ],
+   "id": 40
+  },
+  {
+   "at": "2026-10-28T11:05:00Z",
+   "groups": [
+    "R10-COP-GATE"
+   ],
+   "id": 41
+  },
+  {
+   "at": "2026-10-28T19:47:00Z",
+   "groups": [
+    "R10-CONFIGFLOW-PAGES"
+   ],
+   "id": 42
+  },
+  {
+   "at": "2026-10-29T07:11:00Z",
+   "groups": [
+    "R10-UX-HEALTH"
+   ],
+   "id": 43
+  },
+  {
+   "at": "2026-10-30T03:17:00Z",
+   "groups": [
+    "R10-ARCH-DOCS"
+   ],
+   "id": 44
+  }
+ ],
+ "critical_path": [
+  "R10-SAV-REASONS",
+  "R10-ADVISOR",
+  "R10-SCORES",
+  "R10-LIVESTATE",
+  "R10-CONFIG-NOTICES",
+  "R10-PARAMS-OWNER",
+  "R10-ARCH-SHAPES",
+  "R10-LEARNER-ETA",
+  "R10-HEAT-METER",
+  "R10-COP-GATE",
+  "R10-UX-HEALTH",
+  "R10-ARCH-DOCS"
+ ],
+ "generated": {
+  "caps": {
+   "batch_window_minutes": 0,
+   "coordinator_cap": 2,
+   "seats": 8,
+   "slots": 6,
+   "stamp_every": 5
+  },
+  "durations": {
+   "instrument": "gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs over the last main merges",
+   "measured_at": "2026-10-20T17:53:14Z",
+   "merges": 29
+  },
+  "inherited_coordinator": {
+   "cap": 2,
+   "exceeds_cap": true,
+   "groups": [
+    "R10-FREQ-DEFROST",
+    "R10-NIGHT-FOLDS",
+    "R10-SAV-REASONS"
+   ]
+  },
+  "inherited_dependency_violations": [],
+  "roster_blob": "277cdd3591938af542a3f72510389f9bc3378429",
+  "roster_ref": "e3010676747126df614e595ae43477db7d32e7b9",
+  "start": "2026-10-20T17:00:00Z",
+  "version": "7.0.2"
+ },
+ "groups": {
+  "R10-ADVISOR": {
+   "after": [
+    "R10-SAV-REASONS"
+   ],
+   "batch": 3,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-21T12:23:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.3",
+   "start": "2026-10-21T00:59:00Z",
+   "wave": 2
+  },
+  "R10-ARCH-DOCS": {
+   "after": [
+    "R10-ADVISOR",
+    "R10-ARCH-SHAPES",
+    "R10-BRIEFS-FOLD",
+    "R10-CONFIG-NOTICES",
+    "R10-CONFIGFLOW-PAGES",
+    "R10-COP-GATE",
+    "R10-CURRENCY",
+    "R10-DEEPLINK-HANDLERS",
+    "R10-FREQ-DEFROST",
+    "R10-HEAT-METER",
+    "R10-I5-DOCS",
+    "R10-INPUT-STALENESS",
+    "R10-LEARNER-ETA",
+    "R10-LIVESTATE",
+    "R10-LOOP-CPU",
+    "R10-NIGHT-FOLDS",
+    "R10-PARAMS-OWNER",
+    "R10-RATIO-ANCHOR",
+    "R10-REPLAY-LANE",
+    "R10-REPLAY-SCOPED",
+    "R10-SAV-REASONS",
+    "R10-SCORES",
+    "R10-SENSOR-PAYLOAD",
+    "R10-SOLVER",
+    "R10-TRAIN-HOLD",
+    "R10-UX-HEALTH"
+   ],
+   "batch": 44,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-30T03:17:00Z",
+   "inherited": false,
+   "lane": "Docs",
+   "level": 12,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": null,
+   "start": "2026-10-29T07:11:00Z",
+   "wave": 39
+  },
+  "R10-ARCH-SHAPES": {
+   "after": [
+    "R10-FREQ-DEFROST",
+    "R10-PARAMS-OWNER",
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "batch": 38,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-26T06:05:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 7,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": "v7.0.7",
+   "start": "2026-10-25T09:59:00Z",
+   "wave": 34
+  },
+  "R10-ARCHSCORE-COVERAGE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-BRIEFS-FOLD": {
+   "after": [],
+   "batch": 3,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-21T12:23:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-21T00:59:00Z",
+   "wave": 2
+  },
+  "R10-BUFFER-STORE": {
+   "after": [],
+   "batch": 24,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T13:23:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": "v7.0.5",
+   "start": "2026-10-23T01:59:00Z",
+   "wave": 20
+  },
+  "R10-CARD-VOICE": {
+   "after": [
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "batch": 26,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T17:58:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": "v7.0.6",
+   "start": "2026-10-23T06:34:00Z",
+   "wave": 22
+  },
+  "R10-CEILING-PROBE": {
+   "after": [
+    "R10-CI-LAYOUT",
+    "R10-NIGHT-FOLDS"
+   ],
+   "batch": 27,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T19:51:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 2,
+   "stamp": "v7.0.6",
+   "start": "2026-10-23T08:27:00Z",
+   "wave": 23
+  },
+  "R10-CI-LAYOUT": {
+   "after": [],
+   "batch": 6,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1268,
+   "finish": "2026-10-21T14:08:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "XL",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-CI-RATCHET-RED": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-CONFIG-NOTICES": {
+   "after": [
+    "R10-LIVESTATE"
+   ],
+   "batch": 30,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-24T03:47:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 5,
+   "live": false,
+   "size": "S",
+   "slot": 0,
+   "stamp": "v7.0.6",
+   "start": "2026-10-23T14:41:00Z",
+   "wave": 26
+  },
+  "R10-CONFIGFLOW-PAGES": {
+   "after": [
+    "R10-HEAT-METER"
+   ],
+   "batch": 42,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-28T19:47:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 10,
+   "live": false,
+   "size": "L",
+   "slot": 1,
+   "stamp": "v7.0.8",
+   "start": "2026-10-27T23:41:00Z",
+   "wave": 37
+  },
+  "R10-COP-GATE": {
+   "after": [
+    "R10-HEAT-METER",
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "batch": 41,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T11:05:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 10,
+   "live": false,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.8",
+   "start": "2026-10-27T23:41:00Z",
+   "wave": 37
+  },
+  "R10-COP-PARTLOAD": {
+   "after": [],
+   "batch": 28,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T19:54:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 4,
+   "stamp": "v7.0.6",
+   "start": "2026-10-23T08:30:00Z",
+   "wave": 24
+  },
+  "R10-CURRENCY": {
+   "after": [
+    "R10-INPUT-STALENESS"
+   ],
+   "batch": 16,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T15:46:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.4",
+   "start": "2026-10-22T02:40:00Z",
+   "wave": 12
+  },
+  "R10-D15-GRADER": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEAD-RATE-LIMIT": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK-CENSUS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK-HANDLERS": {
+   "after": [],
+   "batch": 8,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-21T23:15:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 2,
+   "stamp": "v7.0.4",
+   "start": "2026-10-21T14:05:00Z",
+   "wave": 6
+  },
+  "R10-DEMAND-OVERBOOK": {
+   "after": [],
+   "batch": 32,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T05:22:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.7",
+   "start": "2026-10-23T17:58:00Z",
+   "wave": 27
+  },
+  "R10-DEPENDABOT-AIOHTTP": {
+   "after": [],
+   "batch": 31,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-24T05:04:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-23T19:54:00Z",
+   "wave": 29
+  },
+  "R10-DIAG-REPLAY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Replay",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FAHRENHEIT": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FEEDS": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FOLLOWER-DEBOUNCE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FREQ-DEFROST": {
+   "after": [],
+   "batch": 2,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-21T02:10:00Z",
+   "inherited": true,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.3",
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-GATE-YIELD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-HANDOFF-ARCHIVE": {
+   "after": [],
+   "batch": 34,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-24T09:57:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-24T00:47:00Z",
+   "wave": 30
+  },
+  "R10-HEAT-METER": {
+   "after": [
+    "R10-INPUT-STALENESS",
+    "R10-LEARNER-ETA",
+    "R10-RATIO-ANCHOR"
+   ],
+   "batch": 40,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-27T23:41:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 9,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.8",
+   "start": "2026-10-26T17:29:00Z",
+   "wave": 36
+  },
+  "R10-I1": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-I5-DOCS": {
+   "after": [],
+   "batch": 5,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-21T14:05:00Z",
+   "inherited": false,
+   "lane": "Docs",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-21T00:59:00Z",
+   "wave": 2
+  },
+  "R10-INPUT-STALENESS": {
+   "after": [
+    "R10-RATIO-ANCHOR"
+   ],
+   "batch": 11,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T02:40:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 3,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.4",
+   "start": "2026-10-21T13:34:00Z",
+   "wave": 5
+  },
+  "R10-LEAF-IMPORTS": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-LEARNER-DEFAULT": {
+   "after": [],
+   "batch": 26,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T17:58:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.6",
+   "start": "2026-10-23T04:52:00Z",
+   "wave": 21
+  },
+  "R10-LEARNER-ETA": {
+   "after": [
+    "R10-ARCH-SHAPES"
+   ],
+   "batch": 39,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-26T17:29:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 8,
+   "live": false,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.8",
+   "start": "2026-10-26T06:05:00Z",
+   "wave": 35
+  },
+  "R10-LIVESTATE": {
+   "after": [
+    "R10-SCORES"
+   ],
+   "batch": 25,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-23T14:41:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.5",
+   "start": "2026-10-22T08:29:00Z",
+   "wave": 14
+  },
+  "R10-LOOP-CPU": {
+   "after": [
+    "R10-FREQ-DEFROST"
+   ],
+   "batch": 20,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T04:52:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.5",
+   "start": "2026-10-22T15:46:00Z",
+   "wave": 17
+  },
+  "R10-MERGE-PR-MANDATE": {
+   "after": [],
+   "batch": 35,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-24T14:14:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-24T05:04:00Z",
+   "wave": 32
+  },
+  "R10-MERGE-SUBJECT-HARDEN": {
+   "after": [],
+   "batch": 14,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T12:21:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-21T23:15:00Z",
+   "wave": 9
+  },
+  "R10-MUTANT-SKIP": {
+   "after": [],
+   "batch": 29,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T00:47:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-23T13:23:00Z",
+   "wave": 25
+  },
+  "R10-MUTATION-ANCHOR": {
+   "after": [],
+   "batch": 32,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T05:22:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-23T17:58:00Z",
+   "wave": 27
+  },
+  "R10-N-LOG-FLOOD": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-NIGHT-FOLDS": {
+   "after": [],
+   "batch": 1,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-21T00:59:00Z",
+   "inherited": true,
+   "lane": "Learners",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 2,
+   "stamp": "v7.0.3",
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-OPENPR-SILENT": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-ORCH-MACHINERY": {
+   "after": [
+    "R10-CI-LAYOUT",
+    "R10-ROSTER-OPS"
+   ],
+   "batch": 18,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-22T19:24:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "L",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-21T23:18:00Z",
+   "wave": 10
+  },
+  "R10-PARAMS-OWNER": {
+   "after": [
+    "R10-CONFIG-NOTICES"
+   ],
+   "batch": 37,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-25T09:59:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 6,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.7",
+   "start": "2026-10-24T03:47:00Z",
+   "wave": 31
+  },
+  "R10-POLICY-FIXER-MD": {
+   "after": [
+    "R10-BRIEFS-FOLD",
+    "R10-RCA-FRICTION"
+   ],
+   "batch": 17,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T17:28:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-22T04:22:00Z",
+   "wave": 13
+  },
+  "R10-POLICY-GATE-SCOPING": {
+   "after": [],
+   "batch": 15,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T12:53:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-21T23:47:00Z",
+   "wave": 11
+  },
+  "R10-POLICY-INSTRUMENTS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-POLICY-LINT-FAMILY": {
+   "after": [],
+   "batch": 19,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T01:59:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-22T12:53:00Z",
+   "wave": 16
+  },
+  "R10-POLICY-LINT-STATS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PRE-EDIT-HOOK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PREPR-CAP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PREPR-UNPINNED-RED": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PUMP-MODEL": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RATIO-ANCHOR": {
+   "after": [
+    "R10-NIGHT-FOLDS"
+   ],
+   "batch": 4,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-21T13:34:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.3",
+   "start": "2026-10-21T02:10:00Z",
+   "wave": 3
+  },
+  "R10-RATIO-SITES": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RCA-FRICTION": {
+   "after": [],
+   "batch": 12,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T04:22:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-21T15:16:00Z",
+   "wave": 8
+  },
+  "R10-RCA-HEADMOVED": {
+   "after": [
+    "R10-RCA-FRICTION"
+   ],
+   "batch": 21,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T06:34:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": "v7.0.5",
+   "start": "2026-10-22T17:28:00Z",
+   "wave": 18
+  },
+  "R10-RCA-NIGHTLY-PYSPY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RCA-STRUCTURE-BLIND": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RECARRY-HEAD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REF-PRIVACY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REGISTRY-LEAK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REPLAY-LANE": {
+   "after": [],
+   "batch": 1,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-21T00:59:00Z",
+   "inherited": true,
+   "lane": "Replay",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-REPLAY-LOOPNORM": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Replay",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REPLAY-SCOPED": {
+   "after": [
+    "R10-REPLAY-LANE",
+    "R10-TRAIN-HOLD"
+   ],
+   "batch": 7,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-21T15:16:00Z",
+   "inherited": false,
+   "lane": "Replay",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-21T02:10:00Z",
+   "wave": 3
+  },
+  "R10-ROSTER-OPS": {
+   "after": [],
+   "batch": 9,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-21T23:18:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-21T14:08:00Z",
+   "wave": 7
+  },
+  "R10-SAV-BASELINE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SAV-COMFORT": {
+   "after": [],
+   "batch": 33,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T07:15:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 2,
+   "stamp": "v7.0.7",
+   "start": "2026-10-23T19:51:00Z",
+   "wave": 28
+  },
+  "R10-SAV-REASONS": {
+   "after": [],
+   "batch": 1,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-21T00:59:00Z",
+   "inherited": true,
+   "lane": "Product UX",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.3",
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-SAVINGS-NEGATIVE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SCORES": {
+   "after": [
+    "R10-ADVISOR"
+   ],
+   "batch": 13,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-22T08:29:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 3,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": "v7.0.4",
+   "start": "2026-10-21T12:23:00Z",
+   "wave": 4
+  },
+  "R10-SEAT-SELFTESTS-CI": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SENSOR-PAYLOAD": {
+   "after": [
+    "R10-SCORES"
+   ],
+   "batch": 22,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-23T08:27:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "L",
+   "slot": 2,
+   "stamp": "v7.0.5",
+   "start": "2026-10-22T12:21:00Z",
+   "wave": 15
+  },
+  "R10-SERVICES-GUARD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SETPOINT-BOOST": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SETPOINT-POWER": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SOLVER": {
+   "after": [
+    "R10-SAV-REASONS"
+   ],
+   "batch": 10,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-21T23:47:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": "v7.0.4",
+   "start": "2026-10-21T12:23:00Z",
+   "wave": 4
+  },
+  "R10-STALE-PATHS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STALE-PATHS-2": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STAMP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STORE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STRUCTURE-BLIND": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TARIFF": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-THERMAL-POWER-OPTION": {
+   "after": [],
+   "batch": 36,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T16:46:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.7",
+   "start": "2026-10-24T05:22:00Z",
+   "wave": 33
+  },
+  "R10-TICK-DRIVERS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-ORCH": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-SELFTEST-CI": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-TRAIN": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TRAIN-HOLD": {
+   "after": [],
+   "batch": 2,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-21T02:10:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-20T17:00:00Z",
+   "wave": 1
+  },
+  "R10-TRUST-RELATIVE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-UPDATE-PR-LOCK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-UPDATE-PR-SIGNALS": {
+   "after": [],
+   "batch": 23,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T08:30:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-22T19:24:00Z",
+   "wave": 19
+  },
+  "R10-UX-HEALTH": {
+   "after": [
+    "R10-COP-GATE",
+    "R10-HEAT-METER",
+    "R10-SCORES"
+   ],
+   "batch": 43,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-29T07:11:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 11,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": "v7.0.8",
+   "start": "2026-10-28T11:05:00Z",
+   "wave": 38
+  },
+  "R10-UX-SETUP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-VENT-DETECTOR": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  }
+ },
+ "schema": 1,
+ "stamps": [
+  {
+   "at": "2026-10-21T14:34:00Z",
+   "batch": 4,
+   "carries": [
+    "R10-NIGHT-FOLDS",
+    "R10-SAV-REASONS",
+    "R10-FREQ-DEFROST",
+    "R10-ADVISOR",
+    "R10-RATIO-ANCHOR"
+   ],
+   "kind": "patch",
+   "version": "v7.0.3"
+  },
+  {
+   "at": "2026-10-22T16:46:00Z",
+   "batch": 16,
+   "carries": [
+    "R10-DEEPLINK-HANDLERS",
+    "R10-SOLVER",
+    "R10-INPUT-STALENESS",
+    "R10-SCORES",
+    "R10-CURRENCY"
+   ],
+   "kind": "patch",
+   "version": "v7.0.4"
+  },
+  {
+   "at": "2026-10-23T15:41:00Z",
+   "batch": 25,
+   "carries": [
+    "R10-LOOP-CPU",
+    "R10-RCA-HEADMOVED",
+    "R10-SENSOR-PAYLOAD",
+    "R10-BUFFER-STORE",
+    "R10-LIVESTATE"
+   ],
+   "kind": "patch",
+   "version": "v7.0.5"
+  },
+  {
+   "at": "2026-10-24T04:47:00Z",
+   "batch": 30,
+   "carries": [
+    "R10-CARD-VOICE",
+    "R10-LEARNER-DEFAULT",
+    "R10-CEILING-PROBE",
+    "R10-COP-PARTLOAD",
+    "R10-CONFIG-NOTICES"
+   ],
+   "kind": "patch",
+   "version": "v7.0.6"
+  },
+  {
+   "at": "2026-10-26T07:05:00Z",
+   "batch": 38,
+   "carries": [
+    "R10-DEMAND-OVERBOOK",
+    "R10-SAV-COMFORT",
+    "R10-THERMAL-POWER-OPTION",
+    "R10-PARAMS-OWNER",
+    "R10-ARCH-SHAPES"
+   ],
+   "kind": "patch",
+   "version": "v7.0.7"
+  },
+  {
+   "at": "2026-10-29T08:11:00Z",
+   "batch": 43,
+   "carries": [
+    "R10-LEARNER-ETA",
+    "R10-HEAT-METER",
+    "R10-COP-GATE",
+    "R10-CONFIGFLOW-PAGES",
+    "R10-UX-HEALTH"
+   ],
+   "kind": "patch",
+   "version": "v7.0.8"
+  },
+  {
+   "at": "2026-10-30T05:17:00Z",
+   "batch": null,
+   "carries": [],
+   "kind": "minor",
+   "version": "v7.1.0"
+  }
+ ],
+ "summary": {
+  "batches": 44,
+  "ci_minutes": 5737.5,
+  "closure": "2026-10-30T03:17:00Z",
+  "closure_stamp": "v7.1.0",
+  "gate_minutes": 112.5,
+  "groups_done": 48,
+  "groups_open": 50,
+  "groups_total": 98,
+  "inherited_coordinator": 3,
+  "inherited_in_progress": 6,
+  "peak_coordinator_in_flight": 2,
+  "peak_in_flight": 6,
+  "peak_working": 6,
+  "stamps": 7,
+  "wall_hours": 226.28
+ },
+ "waves": [
+  {
+   "batch": [
+    1,
+    2,
+    6
+   ],
+   "drains": "2026-10-21T14:08:00Z",
+   "groups": [
+    "R10-CI-LAYOUT",
+    "R10-FREQ-DEFROST",
+    "R10-NIGHT-FOLDS",
+    "R10-REPLAY-LANE",
+    "R10-SAV-REASONS",
+    "R10-TRAIN-HOLD"
+   ],
+   "opens": "2026-10-20T17:00:00Z",
+   "stamp": null,
+   "wave": 1
+  },
+  {
+   "batch": [
+    3,
+    5
+   ],
+   "drains": "2026-10-21T14:05:00Z",
+   "groups": [
+    "R10-ADVISOR",
+    "R10-BRIEFS-FOLD",
+    "R10-I5-DOCS"
+   ],
+   "opens": "2026-10-21T00:59:00Z",
+   "stamp": null,
+   "wave": 2
+  },
+  {
+   "batch": [
+    4,
+    7
+   ],
+   "drains": "2026-10-21T15:16:00Z",
+   "groups": [
+    "R10-RATIO-ANCHOR",
+    "R10-REPLAY-SCOPED"
+   ],
+   "opens": "2026-10-21T02:10:00Z",
+   "stamp": "v7.0.3",
+   "wave": 3
+  },
+  {
+   "batch": [
+    10,
+    13
+   ],
+   "drains": "2026-10-22T08:29:00Z",
+   "groups": [
+    "R10-SCORES",
+    "R10-SOLVER"
+   ],
+   "opens": "2026-10-21T12:23:00Z",
+   "stamp": null,
+   "wave": 4
+  },
+  {
+   "batch": [
+    11
+   ],
+   "drains": "2026-10-22T02:40:00Z",
+   "groups": [
+    "R10-INPUT-STALENESS"
+   ],
+   "opens": "2026-10-21T13:34:00Z",
+   "stamp": null,
+   "wave": 5
+  },
+  {
+   "batch": [
+    8
+   ],
+   "drains": "2026-10-21T23:15:00Z",
+   "groups": [
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "opens": "2026-10-21T14:05:00Z",
+   "stamp": null,
+   "wave": 6
+  },
+  {
+   "batch": [
+    9
+   ],
+   "drains": "2026-10-21T23:18:00Z",
+   "groups": [
+    "R10-ROSTER-OPS"
+   ],
+   "opens": "2026-10-21T14:08:00Z",
+   "stamp": null,
+   "wave": 7
+  },
+  {
+   "batch": [
+    12
+   ],
+   "drains": "2026-10-22T04:22:00Z",
+   "groups": [
+    "R10-RCA-FRICTION"
+   ],
+   "opens": "2026-10-21T15:16:00Z",
+   "stamp": null,
+   "wave": 8
+  },
+  {
+   "batch": [
+    14
+   ],
+   "drains": "2026-10-22T12:21:00Z",
+   "groups": [
+    "R10-MERGE-SUBJECT-HARDEN"
+   ],
+   "opens": "2026-10-21T23:15:00Z",
+   "stamp": null,
+   "wave": 9
+  },
+  {
+   "batch": [
+    18
+   ],
+   "drains": "2026-10-22T19:24:00Z",
+   "groups": [
+    "R10-ORCH-MACHINERY"
+   ],
+   "opens": "2026-10-21T23:18:00Z",
+   "stamp": null,
+   "wave": 10
+  },
+  {
+   "batch": [
+    15
+   ],
+   "drains": "2026-10-22T12:53:00Z",
+   "groups": [
+    "R10-POLICY-GATE-SCOPING"
+   ],
+   "opens": "2026-10-21T23:47:00Z",
+   "stamp": null,
+   "wave": 11
+  },
+  {
+   "batch": [
+    16
+   ],
+   "drains": "2026-10-22T15:46:00Z",
+   "groups": [
+    "R10-CURRENCY"
+   ],
+   "opens": "2026-10-22T02:40:00Z",
+   "stamp": "v7.0.4",
+   "wave": 12
+  },
+  {
+   "batch": [
+    17
+   ],
+   "drains": "2026-10-22T17:28:00Z",
+   "groups": [
+    "R10-POLICY-FIXER-MD"
+   ],
+   "opens": "2026-10-22T04:22:00Z",
+   "stamp": null,
+   "wave": 13
+  },
+  {
+   "batch": [
+    25
+   ],
+   "drains": "2026-10-23T14:41:00Z",
+   "groups": [
+    "R10-LIVESTATE"
+   ],
+   "opens": "2026-10-22T08:29:00Z",
+   "stamp": "v7.0.5",
+   "wave": 14
+  },
+  {
+   "batch": [
+    22
+   ],
+   "drains": "2026-10-23T08:27:00Z",
+   "groups": [
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "opens": "2026-10-22T12:21:00Z",
+   "stamp": null,
+   "wave": 15
+  },
+  {
+   "batch": [
+    19
+   ],
+   "drains": "2026-10-23T01:59:00Z",
+   "groups": [
+    "R10-POLICY-LINT-FAMILY"
+   ],
+   "opens": "2026-10-22T12:53:00Z",
+   "stamp": null,
+   "wave": 16
+  },
+  {
+   "batch": [
+    20
+   ],
+   "drains": "2026-10-23T04:52:00Z",
+   "groups": [
+    "R10-LOOP-CPU"
+   ],
+   "opens": "2026-10-22T15:46:00Z",
+   "stamp": null,
+   "wave": 17
+  },
+  {
+   "batch": [
+    21
+   ],
+   "drains": "2026-10-23T06:34:00Z",
+   "groups": [
+    "R10-RCA-HEADMOVED"
+   ],
+   "opens": "2026-10-22T17:28:00Z",
+   "stamp": null,
+   "wave": 18
+  },
+  {
+   "batch": [
+    23
+   ],
+   "drains": "2026-10-23T08:30:00Z",
+   "groups": [
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "opens": "2026-10-22T19:24:00Z",
+   "stamp": null,
+   "wave": 19
+  },
+  {
+   "batch": [
+    24
+   ],
+   "drains": "2026-10-23T13:23:00Z",
+   "groups": [
+    "R10-BUFFER-STORE"
+   ],
+   "opens": "2026-10-23T01:59:00Z",
+   "stamp": null,
+   "wave": 20
+  },
+  {
+   "batch": [
+    26
+   ],
+   "drains": "2026-10-23T17:58:00Z",
+   "groups": [
+    "R10-LEARNER-DEFAULT"
+   ],
+   "opens": "2026-10-23T04:52:00Z",
+   "stamp": null,
+   "wave": 21
+  },
+  {
+   "batch": [
+    26
+   ],
+   "drains": "2026-10-23T17:58:00Z",
+   "groups": [
+    "R10-CARD-VOICE"
+   ],
+   "opens": "2026-10-23T06:34:00Z",
+   "stamp": null,
+   "wave": 22
+  },
+  {
+   "batch": [
+    27
+   ],
+   "drains": "2026-10-23T19:51:00Z",
+   "groups": [
+    "R10-CEILING-PROBE"
+   ],
+   "opens": "2026-10-23T08:27:00Z",
+   "stamp": null,
+   "wave": 23
+  },
+  {
+   "batch": [
+    28
+   ],
+   "drains": "2026-10-23T19:54:00Z",
+   "groups": [
+    "R10-COP-PARTLOAD"
+   ],
+   "opens": "2026-10-23T08:30:00Z",
+   "stamp": null,
+   "wave": 24
+  },
+  {
+   "batch": [
+    29
+   ],
+   "drains": "2026-10-24T00:47:00Z",
+   "groups": [
+    "R10-MUTANT-SKIP"
+   ],
+   "opens": "2026-10-23T13:23:00Z",
+   "stamp": null,
+   "wave": 25
+  },
+  {
+   "batch": [
+    30
+   ],
+   "drains": "2026-10-24T03:47:00Z",
+   "groups": [
+    "R10-CONFIG-NOTICES"
+   ],
+   "opens": "2026-10-23T14:41:00Z",
+   "stamp": "v7.0.6",
+   "wave": 26
+  },
+  {
+   "batch": [
+    32
+   ],
+   "drains": "2026-10-24T05:22:00Z",
+   "groups": [
+    "R10-DEMAND-OVERBOOK",
+    "R10-MUTATION-ANCHOR"
+   ],
+   "opens": "2026-10-23T17:58:00Z",
+   "stamp": null,
+   "wave": 27
+  },
+  {
+   "batch": [
+    33
+   ],
+   "drains": "2026-10-24T07:15:00Z",
+   "groups": [
+    "R10-SAV-COMFORT"
+   ],
+   "opens": "2026-10-23T19:51:00Z",
+   "stamp": null,
+   "wave": 28
+  },
+  {
+   "batch": [
+    31
+   ],
+   "drains": "2026-10-24T05:04:00Z",
+   "groups": [
+    "R10-DEPENDABOT-AIOHTTP"
+   ],
+   "opens": "2026-10-23T19:54:00Z",
+   "stamp": null,
+   "wave": 29
+  },
+  {
+   "batch": [
+    34
+   ],
+   "drains": "2026-10-24T09:57:00Z",
+   "groups": [
+    "R10-HANDOFF-ARCHIVE"
+   ],
+   "opens": "2026-10-24T00:47:00Z",
+   "stamp": null,
+   "wave": 30
+  },
+  {
+   "batch": [
+    37
+   ],
+   "drains": "2026-10-25T09:59:00Z",
+   "groups": [
+    "R10-PARAMS-OWNER"
+   ],
+   "opens": "2026-10-24T03:47:00Z",
+   "stamp": null,
+   "wave": 31
+  },
+  {
+   "batch": [
+    35
+   ],
+   "drains": "2026-10-24T14:14:00Z",
+   "groups": [
+    "R10-MERGE-PR-MANDATE"
+   ],
+   "opens": "2026-10-24T05:04:00Z",
+   "stamp": null,
+   "wave": 32
+  },
+  {
+   "batch": [
+    36
+   ],
+   "drains": "2026-10-24T16:46:00Z",
+   "groups": [
+    "R10-THERMAL-POWER-OPTION"
+   ],
+   "opens": "2026-10-24T05:22:00Z",
+   "stamp": null,
+   "wave": 33
+  },
+  {
+   "batch": [
+    38
+   ],
+   "drains": "2026-10-26T06:05:00Z",
+   "groups": [
+    "R10-ARCH-SHAPES"
+   ],
+   "opens": "2026-10-25T09:59:00Z",
+   "stamp": "v7.0.7",
+   "wave": 34
+  },
+  {
+   "batch": [
+    39
+   ],
+   "drains": "2026-10-26T17:29:00Z",
+   "groups": [
+    "R10-LEARNER-ETA"
+   ],
+   "opens": "2026-10-26T06:05:00Z",
+   "stamp": null,
+   "wave": 35
+  },
+  {
+   "batch": [
+    40
+   ],
+   "drains": "2026-10-27T23:41:00Z",
+   "groups": [
+    "R10-HEAT-METER"
+   ],
+   "opens": "2026-10-26T17:29:00Z",
+   "stamp": null,
+   "wave": 36
+  },
+  {
+   "batch": [
+    41,
+    42
+   ],
+   "drains": "2026-10-28T19:47:00Z",
+   "groups": [
+    "R10-CONFIGFLOW-PAGES",
+    "R10-COP-GATE"
+   ],
+   "opens": "2026-10-27T23:41:00Z",
+   "stamp": null,
+   "wave": 37
+  },
+  {
+   "batch": [
+    43
+   ],
+   "drains": "2026-10-29T07:11:00Z",
+   "groups": [
+    "R10-UX-HEALTH"
+   ],
+   "opens": "2026-10-28T11:05:00Z",
+   "stamp": "v7.0.8",
+   "wave": 38
+  },
+  {
+   "batch": [
+    44
+   ],
+   "drains": "2026-10-30T03:17:00Z",
+   "groups": [
+    "R10-ARCH-DOCS"
+   ],
+   "opens": "2026-10-29T07:11:00Z",
+   "stamp": null,
+   "wave": 39
+  }
+ ]
+}

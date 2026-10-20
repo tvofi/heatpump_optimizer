@@ -1,0 +1,13 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 51 items, 0 divergent
+  pair finder-report-form: 2 readers, 214 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 896 items, 0 divergent
+  merge-subject guard: 80 first-parent commit(s) past 07a09406a, 45 merge call(s) in 9 file(s)
+  pair dead-member-liveness: 2 readers, 148 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 49 items, 0 divergent
+  pair budget-raise: 2 readers, 56 items, 0 divergent
+  pair entity-names: 2 readers, 121 items, 0 divergent
+  discovery: 362 governance code files, 1595 distinct grammars, 27 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.1
+AGREEMENT ok
+agreement rc=0

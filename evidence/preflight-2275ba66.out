@@ -1,0 +1,20 @@
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             3:both
+             7:every
+             15:each
+             19:all
+             19:every
+             27:all
+             32:none
+             36:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             10 p
+             28 h
+             28 h
+             44 b
+             51 g
+             44 b
+             19 c
+             11 i
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)

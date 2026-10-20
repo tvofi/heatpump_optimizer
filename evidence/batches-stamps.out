@@ -1,0 +1,7 @@
+RESULT batches= 44 groups= 50 all_in_exactly_one_batch= True
+RESULT batch_at_equals_each_member_finish= True
+RESULT batch_sizes= [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3]
+RESULT production_groups= 30 stamp_carries= 30 cover_in_order= True
+RESULT patch_sizes= [5, 5, 5, 5, 5, 5] minor= [0]
+RESULT stamp_versions= ['v7.0.3', 'v7.0.4', 'v7.0.5', 'v7.0.6', 'v7.0.7', 'v7.0.8', 'v7.1.0'] closure_stamp= v7.1.0
+RESULT gate_minutes_summary= 113.3 ci_minutes= 5778.4

@@ -1,0 +1,6 @@
+RESULT sample_at_1652 head e5d967192254 tail d1db05dfcf2a n 30
+RESULT fast (3.14): n=30 listed med=55.2 iqr=41.2-56.8 | earliest med=55.2 iqr=41.2-56.8 | naive n=30 med=55.2
+RESULT closures: n=30 listed med=28.4 iqr=21.7-30.1 | earliest med=29.45 iqr=21.7-30.1 | naive n=31 med=29.4
+RESULT Analyze (python): n=30 listed med=26.9 iqr=21.0-27.9 | earliest med=26.9 iqr=21.0-27.9 | naive n=30 med=26.9
+RESULT analyze cancelled(first-listed) 2 of 30 rate 0.067
+RESULT committed {'fast (3.14)': (55.2, 28, [41.5, 56.7]), 'closures': (29.4, 29, [21.8, 30.0]), 'Analyze (python)': (26.9, 30, [21.0, 27.9])}

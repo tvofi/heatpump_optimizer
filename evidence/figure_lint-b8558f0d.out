@@ -1,0 +1,8 @@
+  ok         python3 -I tools/plan/replan.py --roster-ref e3010676747126df614e595ae43477db7d32e7b9 --start 2026-10-20T17:00:00Z --out /tmp/plan.json
+             `tools/plan/replan.py` is in the tree at this head
+  ok         python3 -I tools/plan/replan.py --check --plan /tmp/plan.json
+             `tools/plan/replan.py` is in the tree at this head
+  ok         python3 -I tools/plan/replan.py --measure-ci --out-durations /tmp/durations.json
+             `tools/plan/replan.py` is in the tree at this head
+
+FIGURES: 3 resolved, 0 not verified, 0 refused

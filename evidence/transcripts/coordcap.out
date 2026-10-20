@@ -1,0 +1,16 @@
+REFUSED: 15 violation(s) in /Users/timmalmstrom/hpo-seats/r10s3/plan-opt-review3/scratch/coordcap-plan.json
+  in flight: 7 groups at 2026-10-21T00:59:00Z (cap 6)
+  in flight: 8 groups at 2026-10-21T00:59:00Z (cap 6)
+  in flight: 9 groups at 2026-10-21T00:59:00Z (cap 6)
+  in flight: 8 groups at 2026-10-21T02:10:00Z (cap 6)
+  in flight: 7 groups at 2026-10-21T02:10:00Z (cap 6)
+  in flight: 8 groups at 2026-10-21T02:10:00Z (cap 6)
+  in flight: 9 groups at 2026-10-21T02:10:00Z (cap 6)
+  in flight: 8 groups at 2026-10-21T12:23:00Z (cap 6)
+  in flight: 7 groups at 2026-10-21T12:23:00Z (cap 6)
+  seats: 9 groups working at 2026-10-21T00:59:00Z (cap 8)
+  seats: 9 groups working at 2026-10-21T02:10:00Z (cap 8)
+  coordinator cap: 4 planned groups touching coordinator.py at 2026-10-21T00:59:00Z (cap 2)
+  wave 2 opens at 2026-10-21T00:59:00Z with 9 in flight (cap 6)
+  wave 3 opens at 2026-10-21T02:10:00Z with 9 in flight (cap 6)
+  stamp cadence: stamped production groups do not equal the merged production groups, in merge order

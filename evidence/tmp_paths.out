@@ -1,0 +1,4 @@
+REFUSE tools/plan/replan.py:4: [tmp] python3 tools/plan/replan.py --out /tmp/plan.json
+REFUSE tools/plan/replan.py:5: [tmp] python3 tools/plan/replan.py --check --plan /tmp/plan.json
+tmp_paths: 2 refused, 0 stale allow entries at HEAD, ledger lines added since 990e90af9bcd
+tmp_paths rc=1

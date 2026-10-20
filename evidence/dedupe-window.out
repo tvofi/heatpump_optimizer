@@ -1,0 +1,8 @@
+RESULT window_merges=30 closures_rows_complete=29 distinct_commits=28
+RESULT rows_without_dedupe n=29 median=29.4 | committed n=29 median=29.4
+RESULT duplicate commit=0c298f6b542e api_order=[('2026-10-20T07:56:10Z', 22.1, 118518413410), ('2026-10-20T06:07:28Z', 29.4, 118482216942)]
+RESULT shipped_rule_first_listed n=28 median=28.4
+RESULT stated_intent_first_attempt n=28 median=29.45
+RESULT gate_if_closures_median=committed gate=113.3023 ci_51=5778.4
+RESULT gate_if_closures_median=shipped_rule gate=112.3023 ci_51=5727.4
+RESULT gate_if_closures_median=stated_intent gate=113.3523 ci_51=5781.0

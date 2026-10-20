@@ -1,0 +1,6 @@
+RESULT code_rule closures n=4 median=23.0
+RESULT code_rule samples=3
+RESULT code_rule all n={'fast (3.14)': 3, 'closures': 4, 'Analyze (python)': 3}
+RESULT correct_first_attempt closures n=3 median=22
+RESULT naive_all_attempts closures n=4 median=23.0
+RESULT mutant=True | code keeps first-listed rerun: False
