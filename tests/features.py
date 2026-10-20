@@ -63470,6 +63470,14 @@ R.check(
     and _bst_floor_of(18.0) == 18.0 + _BST_LIFT,
     f"{_bst_write(1.5, 24.0)} {_bst_write(5.5, 18.0)} {_bst_write(1.5, None)}",
 )
+R.check(
+    "a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank "
+    "writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank "
+    "writes 31 unchanged",
+    _bst_write(1.5, 25.3) == 31 and _bst_write(1.5, 25.9) == 31
+    and _bst_write(1.5, 26.0) == 31,
+    f"{_bst_write(1.5, 25.3)} {_bst_write(1.5, 25.9)} {_bst_write(1.5, 26.0)}",
+)
 
 # (B) The window. ``observe`` takes the sample's command where the tree has
 # it; a tree without the guard folds the same draws without one.
