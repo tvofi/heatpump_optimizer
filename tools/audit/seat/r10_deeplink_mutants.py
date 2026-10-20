@@ -107,7 +107,9 @@ Plants:
 
 Run from the worktree root after `PYTHONPATH=tests/hastub python3
 tests/plan_view.py` (card.mjs reads its payload). Null control: run with no
-plant applied (`--null`), which must print rc=0 fails=0.
+plant applied (`--null`), which must print rc=0 fails=0. Each plant's node
+runs with `--max-old-space-size=4096`, because the census's live set is past
+node's default old space (`run()` records the measurement).
 """
 import subprocess
 import sys
@@ -643,7 +645,15 @@ def run(name, edits):
                 print(f"RESULT mutant={name} rc=ERR fails=0\n    anchor not unique in {f}: {old[:60]!r}")
                 return
             open(f, "w").write(s.replace(old, new))
-        r = subprocess.run(["node", TEST], capture_output=True, text=True, timeout=1800)
+        # The census's live set -- every element the document's factories made,
+        # held for the whole run -- is past node's default old space on an
+        # 8-core box. Measured 2026-10-20: `node tests/card.mjs` alone at the
+        # default 2096 MB dies rc=134 (SIGABRT, "Ineffective mark-compacts near
+        # heap limit"); 2560 MB completes rc=0 at 1 233 567 744 B peak RSS;
+        # 4096 MB completes rc=0 at 841 007 104 B. The flag buys the collector
+        # its own budget and no plant's verdict can depend on it.
+        r = subprocess.run(["node", "--max-old-space-size=4096", TEST],
+                           capture_output=True, text=True, timeout=1800)
         lines = (r.stdout + r.stderr).splitlines()
         fails = [i for i, l in enumerate(lines) if l.startswith("  FAIL")]
         print(f"RESULT mutant={name} rc={r.returncode} fails={len(fails)}")
