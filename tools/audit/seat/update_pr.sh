@@ -9,6 +9,9 @@
 # 40-hex and inside origin/handoff/<topic>, the topic being HANDOFF_TOPIC, else the branch less
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
+# One run per branch: a second run while one holds the branch's lock ($WT.lock) exits 75, BUSY,
+# having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) or
+# killed run keeps the lock until every process it started has ended.
 # --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
