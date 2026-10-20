@@ -4824,6 +4824,55 @@
     "R10-SETPOINT-BOOST"
    ],
    "brief": "Found by R10-SETPOINT-BOOST's demand analysis. The COP model keys only on outdoor temperature and the tank/weather-curve flow; it has no power (part-load) dependence and no burst term. So the planner cannot weigh tvofi's hypotheses (2026-10-19): power near the floor is suboptimal under price swings, and a short high-power burst does not raise the flow temperature enough to hurt COP much. Measure first on synthetic installs: COP vs compressor power at a fixed lift, and the flow-temperature rise during a short burst. Add a model term only if the measured effect is material, with controls: a flat-price null, a no-term null that keeps plans byte-identical, and mutation. Must work without a heat meter."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "severity": "high",
+   "size": "S",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": true,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "carry": [],
+   "architect_note": null,
+   "findings": [],
+   "wave": 1,
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-worktree-vanish",
+    "commit": null,
+    "last_step": null,
+    "next_step": "review",
+    "note": null
+   },
+   "class": "production",
+   "group": "R10-UPDATE-PR-LOCK",
+   "hot_files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "after": [],
+   "brief": "RCA (2026-10-20, recurrence 2): two update_pr.sh runs on one branch share the fixed worktree $HPO_STATE_DIR/pr/upd-<branch> and its log; each force-removes the worktree at start (update_pr.sh:35), so the second deletes the first's live worktree mid-prepr. The concurrent run is cloud_relay.sh pass's handoff arm (cloud_relay.sh:199-200), which auto-updates any PR whose handoff is ahead, racing a manual update. Fix: an exclusive per-branch lock taken before any fetch or worktree change (BUSY exit 75, released by the kernel on death), and the relay treats 75 as retry-next-pass, not failure. Controls: an offline two-run reproduction, pr_args/update_pr self-test BUSY check plus a stale-lock null, cloud_relay self-test, mutation."
   }
  ]
 }
