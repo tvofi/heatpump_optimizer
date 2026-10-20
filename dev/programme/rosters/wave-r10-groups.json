@@ -5128,7 +5128,9 @@
    "effort": "medium",
    "after": [],
    "carry": [],
-   "issues": [],
+   "issues": [
+    2508
+   ],
    "fixes": [],
    "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6385-6388). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
    "resume": {
