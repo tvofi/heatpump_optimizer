@@ -662,10 +662,11 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
 
     A failure is swallowed into the reason, so a balky valve never breaks
     planning: an entity of a domain smart_write cannot command, or the write
-    raising.
+    raising. The target caps what the valve delivers, so it rounds down onto
+    the entity's step.
     """
     try:
-        if await write_setpoint_c(hass, entity_id, target):
+        if await write_setpoint_c(hass, entity_id, target, rounding="down"):
             return None
     except Exception as err:  # noqa: BLE001 - never break planning
         return f"could not be commanded: {err}"
@@ -9631,7 +9632,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window

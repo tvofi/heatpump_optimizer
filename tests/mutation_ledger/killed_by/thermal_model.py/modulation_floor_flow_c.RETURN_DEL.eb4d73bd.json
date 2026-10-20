@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:modulation_floor_flow_c RETURN_DEL eb4d73bd",
-  "killed_by": "tests/features.py",
-  "old": "    return None if inlet is None else inlet + FLOW_MIN_LIFT_K",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against fb9b3fc1fe16a174476c8571c40b4b7d2d3c089c: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}
