@@ -13,7 +13,8 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R10-DEEPLINK-HANDLERS (stage planned, branch `handoff/r10-deeplink-handlers`, note `None`): `git fetch origin handoff/r10-deeplink-handlers && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-DEEPLINK-HANDLERS (stage in-progress, branch `handoff/r10-deeplink-handlers`, note `None`): `git fetch origin handoff/r10-deeplink-handlers && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-STAMP (stage in-progress, branch `handoff/r10-stamp`, note `None`): `git fetch origin handoff/r10-stamp && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-ROSTER-OPS (stage in-progress, branch `handoff/r10-roster-ops`, note `None`): `git fetch origin handoff/r10-roster-ops && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-MERGE-PR-MANDATE (stage in-progress, branch `handoff/r10-merge-pr-mandate`, note `None`): `git fetch origin handoff/r10-merge-pr-mandate && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-SETPOINT-BOOST (stage in-progress, branch `handoff/r10-setpoint-boost`, note `None`): `git fetch origin handoff/r10-setpoint-boost && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
