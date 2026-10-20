@@ -116,12 +116,28 @@ function panelOf(votes) {
 const rcaOwed = (n, barriered) => n >= 3 || (barriered && n >= 1)
 // PANEL:END
 
+// R10-TICK (e, h), one class: a script that trusts a large agent reply.
+// audit-find.js holds the same guard (a workflow script imports nothing): a
+// collection read off a reply is parsed when it came back as JSON text --
+// round 10's register read returned its findings as one string -- and refused
+// when it is not the collection named, never read as empty.
+const replyField = (v, kind, what) => {
+  let x = v
+  if (typeof x === 'string') {
+    try { x = JSON.parse(x) } catch { throw new Error(`${what}: the reply is text that does not parse as JSON (cut off?)`) }
+  }
+  const got = x === null ? 'null' : Array.isArray(x) ? 'array' : typeof x
+  if (got !== kind) throw new Error(`${what}: the reply is ${got === 'undefined' ? 'missing' : `a${got === 'array' || got === 'object' ? 'n' : ''} ${got}`}, not an ${kind}`)
+  return x
+}
+
 phase('Read the register')
 const reg = await agent(
   `In ${repo}, check out ${branch}. Read the Round ${round} findings register in dev/programme/register/audit-2026-09.md and every ${ROUND_DIR}/D*/ report (REPORT*.md and report*.json). Return JSON {findings: [{id, dimension, scope, step, severity, title, claim, class_guess, report_path, harness_paths: [..], attached_refutation: string|null}]} for every finding with status reported; scope is the finder seat id (D<k>-s<n>), step the brief's method step the report names (D<k>.M<n>, null if none), class_guess the report's ledger id or "new". Do not include corroborations of open issues.`,
-  { label: 'read', schema: { type: 'object', required: ['findings'] } },
+  { label: 'read', schema: { type: 'object', required: ['findings'], properties: { findings: { type: 'array', items: { type: 'object', required: ['id', 'dimension'] } } } } },
 )
 if (!reg) throw new Error('register read failed (agent returned null); relaunch')
+reg.findings = replyField(reg.findings, 'array', 'the register read: findings')
 
 const tally = {}
 // Always empty since round 10 (no vote kills), and kept in the return so a
@@ -144,13 +160,19 @@ Every finding below gets your vote, refute-first, with an executed number (verif
 No vote kills a finding: a refute with an executed number sends it to the common judge disputed, who re-measures it; a refute without one counts as unresolved, and so does a refute resting on a timing mismatch alone. Timing and memory numbers taken while other seats run are provisional: quote load1 and thread_factor beside them.
 Findings (reports and harnesses under ${ROUND_DIR}/${u.dim}/): ${JSON.stringify(u.findings.map((f) => ({ id: f.id, scope: seatOf(f), title: f.title, claim: f.claim, class_guess: f.class_guess, harness_paths: f.harness_paths, attached_refutation: f.attached_refutation })))}.
 Write your report to ${ROUND_DIR}/${u.dim}/verify${u.tag === u.dim ? '' : '-' + u.tag.split('#')[1]}.md and return JSON {votes: [{id, vote: "verify"|"weaken"|"refute"|"unresolved", severity, value, metric_definition, method, attacks, reproduced, independent_value, reachable, class, seam_rule_enumerates}]}: reproduced is V1's number, independent_value V2's, and reachable, class and seam_rule_enumerates V3's.`,
-    { label: `${u.tag}/verify`, phase: 'Panels', schema: { type: 'object', required: ['votes'] } },
+    { label: `${u.tag}/verify`, phase: 'Panels', schema: { type: 'object', required: ['votes'], properties: { votes: { type: 'array', items: { type: 'object', required: ['id', 'vote'] } } } } },
   )
 
   phase('Panels')
   // A null verifier is re-run once; still null, its findings go to the judge
   // `unvoted`, never dropped.
-  const panels = await pipeline(units, async (u) => (await verifier(u)) ?? (await verifier(u)))
+  // A verifier whose votes do not read as a list is a null verifier: re-run once.
+  const voted = async (u) => {
+    const r = await verifier(u)
+    if (!r) return null
+    try { return { ...r, votes: replyField(r.votes, 'array', `${u.tag}/verify: votes`) } } catch (e) { log(e.message); return null }
+  }
+  const panels = await pipeline(units, async (u) => (await voted(u)) ?? (await voted(u)))
   toJudge = []
   units.forEach((u, i) => {
     for (const f of u.findings) {
@@ -175,26 +197,28 @@ Then write ${ROUND_DIR}/JUDGE-INPUT.json: a JSON list of every canonical finding
 Findings, each with its panel (verified, contested, disputed, or unvoted) and its verifier's vote:
 <<FINDINGS>>${JSON.stringify(toJudge)}<</FINDINGS>>
 Return JSON {canonical: [id], merged: [{id, into, number}], input_path}.`,
-  { label: 'judge/dedup', schema: { type: 'object', required: ['canonical', 'merged', 'input_path'] } },
+  { label: 'judge/dedup', schema: { type: 'object', required: ['canonical', 'merged', 'input_path'], properties: { canonical: { type: 'array', items: { type: 'string' } }, merged: { type: 'array', items: { type: 'object' } }, input_path: { type: 'string' } } } },
 )
 if (!dedup) throw new Error('judge dedup failed (agent returned null); relaunch to re-run it')
+dedup.merged = replyField(dedup.merged ?? [], 'array', 'judge/dedup: merged')
 
 const runnerRows = await parallel(Array.from({ length: runners }, (_, i) => () => agent(
   `You are a mechanical re-run runner for audit round ${round}'s judge: you measure, you do not decide. On a quiet box, fresh worktree from ${repo}: git worktree add ../audit-r${round}-runner-${i + 1} ${branch}. Run, from the worktree root:
 python3 tools/audit/judge_batch.py --input ${dedup.input_path} --label judge-r${round}-runner${i + 1}${runners > 1 ? ` --shard ${i + 1}/${runners}` : ''} --out-json ${ROUND_DIR}/judge-batch-${i + 1}.json --out-md ${ROUND_DIR}/judge-batch-${i + 1}.md
 It takes and releases the gate lease itself and runs every command serially. Read its exit code; do not edit a row. Return JSON {table, rows, rc}.`,
-  { label: `judge/runner-${i + 1}`, schema: { type: 'object', required: ['table', 'rows'] } },
+  { label: `judge/runner-${i + 1}`, schema: { type: 'object', required: ['table', 'rows'], properties: { table: { type: 'string' }, rows: { type: 'integer' } } } },
 )))
 
 const judge = await agent(
   `You are the judge of audit round ${round}, continuing in ../audit-r${round}-judge (from ${repo}) after your dedup (${JSON.stringify(dedup)}). Hold the gate lease for any measurement: ${lease}.
 The scripted re-runs are in ${JSON.stringify(runnerRows.map((r) => r?.table ?? null))} (one row per canonical finding, with load1 and thread_factor; a null entry is a runner that died -- run judge_batch.py for its shard yourself). Read every row. Re-run by hand every finding whose row is disputed at panel, void, by-hand, not reproduced, flagged for a re-take (thread_factor > 1.05), or whose null control is by-hand. Then follow judge.md steps 1-7 for every canonical finding: compare the finder's and the verifiers' metric definitions, leave-one-out on aggregates, the null control on cost, gain and time claims, stop_rule_class from the number, and a class for every survivor. Reuse before minting: compare the finding's mechanism with the nearest class in dev/audit/config/bugclasses.json and use its id unless the mechanism differs; a class is a mechanism, never a site. A new class (P13..., I6..., N-<name>) carries its mechanism in one line, the id of the nearest existing class as nearest, and in differs what the mechanism does that the nearest does not; tools/audit/fold_ledger.py refuses a new id without both, and two ids minted this round with one nearest are counted as one for the trigger.
 Write ${ROUND_DIR}/JUDGE.md and JUDGE.json (the round, and the verdicts as returned) and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, class, class_mechanism, nearest, differs, note}]} for the canonical findings; nearest and differs only on a verdict whose class is new.`,
-  { label: 'judge', schema: { type: 'object', required: ['verdicts'] } },
+  { label: 'judge', schema: { type: 'object', required: ['verdicts'], properties: { verdicts: { type: 'array', items: { type: 'object', required: ['id', 'verdict'] } } } } },
 )
 if (!judge) throw new Error('judge failed (agent returned null); relaunch to re-run the judge')
+judge.verdicts = replyField(judge.verdicts, 'array', 'the judge: verdicts')
 
-const verdicts = [...(judge.verdicts ?? []), ...(dedup.merged ?? []).map((m) => ({ id: m.id, verdict: 'merged', into: m.into, note: `merged into ${m.into}: ${m.number}` }))]
+const verdicts = [...judge.verdicts, ...dedup.merged.map((m) => ({ id: m.id, verdict: 'merged', into: m.into, note: `merged into ${m.into}: ${m.number}` }))]
 
 // The rotation ledger's yield: judge-surviving findings per method step, per
 // dimension, counted here rather than by an agent; a merged finding counts once,
@@ -214,13 +238,13 @@ const sortedYield = Object.fromEntries(Object.keys(rotationYield).sort().map((d)
 
 phase('Class sweep')
 const byClass = {}
-for (const v of judge.verdicts ?? []) if (SURVIVES.has(v.verdict)) (byClass[v.class ?? 'unclassified'] ??= []).push(v)
+for (const v of judge.verdicts) if (SURVIVES.has(v.verdict)) (byClass[v.class ?? 'unclassified'] ??= []).push(v)
 const classIds = Object.keys(byClass).sort()
 const sweeps = await pipeline(classIds, (cls) => agent(
   `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree from ${repo}: git worktree add ../audit-r${round}-sweep-${cls} ${branch}. Read dev/governance/dimensions/D14.md and run its method steps 3-4 for this class: an enumerator listing every seam of the class across the whole package (start from the findings' seam_rules), its positive control (it re-finds every finding below), its null control (zero on a clean fixture) and its perturbation (it moves under a one-line re-introduction); then disposition every seam it returns as instance (with a probe that fails on it), guarded (name the guard) or not applicable (the reason). Read the class's status in dev/audit/config/bugclasses.json.
 Findings in the class: ${JSON.stringify(byClass[cls])}.
 Write ${ROUND_DIR}/sweep-${cls}.md, and the JSON you return as ${ROUND_DIR}/sweep-${cls}.json, which tools/audit/fold_ledger.py reads: {class, instances, barriered, enumerator, instance_list: [{file, symbol, probe, beyond_finding}]}. Every seam in instance_list carries a boolean beyond_finding: true when it is NOT the site of a finding above, false when it is a judged site itself; instances is the count of true ones.`,
-  { label: `sweep/${cls}`, phase: 'Class sweep', schema: { type: 'object', required: ['instances', 'barriered', 'enumerator'] } },
+  { label: `sweep/${cls}`, phase: 'Class sweep', schema: { type: 'object', required: ['instances', 'barriered', 'enumerator'], properties: { instances: { type: 'integer' }, barriered: { type: 'boolean' }, enumerator: { type: 'string' }, instance_list: { type: 'array', items: { type: 'object' } } } } },
 ))
 const classes = classIds.map((cls, i) => {
   const s = sweeps[i]
@@ -240,7 +264,7 @@ phase('Fold the register')
 const fold = await agent(
   `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${round}; then python3 tools/audit/fold_ledger.py check. Do not edit dev/audit/config/bugclasses.json or dev/audit/config/finding.schema.json by hand: the script writes both. If fold exits non-zero it has refused (a survivor with no class, a new class without nearest and differs, a sweep seam without beyond_finding): change nothing, and return its output verbatim. Otherwise commit dev/audit/config/bugclasses.json, dev/audit/config/finding.schema.json and ${ROUND_DIR}/ with the subject "audit round ${round}: fold the register".
 Return JSON {rc: <fold's exit code>, check_rc: <check's exit code>, output: <both outputs, verbatim>}.`,
-  { label: 'fold', phase: 'Fold the register', schema: { type: 'object', required: ['rc', 'output'] } },
+  { label: 'fold', phase: 'Fold the register', schema: { type: 'object', required: ['rc', 'output'], properties: { rc: { type: 'integer' }, check_rc: { type: 'integer' }, output: { type: 'string' } } } },
 )
 if (!fold) throw new Error('fold failed (agent returned null); relaunch to re-run it')
 if (typeof fold.rc === 'number' && fold.rc !== 0) throw new Error(`fold_ledger.py refused: ${String(fold.output).slice(0, 600)}`)
@@ -252,13 +276,13 @@ const writer = await agent(
 One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write ${ROUND_DIR}/ISSUES.json: per class {class, title: "[R${round}-<class>] <mechanism>", labels: ["audit", "round-${round}", "class:<class>", "sev:<highest severity in the class>"], body}, the body carrying the class mechanism, each finding (id, severity, harness, verdict), each sweep instance, the enumerator command, and "RCA: owed" when rca is true or "RCA: not triggered (N=<n>)". Write the draft roster .claude/workflows/wave-r${round}-groups.json: one group per class with its issue (null until filed), its file set from the sweep, after dependencies, and the RCA flag; run node tools/policy/brief_lint.mjs and read its exit code and error lines, not the summary.
 ${fileIssues ? `Filing is on (args.file): as tvofi, for each class run gh issue list --search "\\"[R${round}-<class>]\\" in:title" and skip one that exists, else create it; put the numbers in ISSUES.json, the register rows and the roster.` : 'Do not file issues, push, or open a pull request: filing and pushing are the Mac seat\'s (decision 0011). Commit on the branch and stop.'}
 Return JSON {issues: [{class, number}], issues_path, roster, brief_lint_rc}.`,
-  { label: 'register', schema: { type: 'object', required: ['issues'] } },
+  { label: 'register', schema: { type: 'object', required: ['issues'], properties: { issues: { type: 'array', items: { type: 'object' } } } } },
 )
 phase('Round record')
 const record = await agent(
   `The round record of audit round ${round} is branch ${branch} in ${repo}: the folded register (dev/audit/config/bugclasses.json), its reports under ${ROUND_DIR}/, the register section of dev/programme/register/audit-2026-09.md. Write its pull request body to a file outside the worktree under the form of .github/PULL_REQUEST_TEMPLATE.md (the first line \`_Requested by **tvofi**_\`, the head sha, the fold's output: ${JSON.stringify(String(fold.output ?? '').slice(0, 1500))}).
 ${fileIssues ? `Filing is on (args.file): run tools/pr/app_push.sh <owner/repo> <worktree> ${branch} <body> as the Mac seat, which checks the body, pushes and opens the pull request as the hpo-author App, and return its output.` : 'Do not push or open the pull request: the App key is the Mac seat\'s (decision 0011). Return the exact app_push.sh command line for the orchestrator.'}
 Return JSON {branch, body_path, pr: <number or null>, command}.`,
-  { label: 'record', phase: 'Round record', schema: { type: 'object', required: ['branch'] } },
+  { label: 'record', phase: 'Round record', schema: { type: 'object', required: ['branch'], properties: { branch: { type: 'string' } } } },
 )
 return { panel: { killed, tally }, dedup, verdicts, classes, fold, writer, record, rotation_yield: sortedYield }

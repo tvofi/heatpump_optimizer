@@ -12,7 +12,9 @@ first search matched script paths only, so it missed the directory.
 WHAT IT READS: tests/layout.json. A moved path is one of:
   - a `retired` entry's `old` that is no longer tracked (a directory entry
     counts only once no tracked file is left under it);
-  - each directory those moves emptied, at any depth;
+  - each directory those moves emptied, at any depth -- except a manufactured
+    parent that is a `ref_namespaces` prefix (`handoff/` names branches, not
+    a directory);
   - a `lifted` prefix.
 
 A directory argument is walked: every tracked file under it is scanned, so a
@@ -46,7 +48,8 @@ def moved_paths(layout: dict, tracked: set[str]) -> dict[str, str]:
     plus the lifted prefixes, whose generated copies a reader dispositions."""
     sys.path.insert(0, str(ROOT / "tests"))
     from layout import landed  # noqa: E402  one definition of a landed move (R9-RO-10)
-    moved = {e["old"]: e["new"] or "(retired)" for e in landed(sorted(tracked), layout.get("retired", []))}
+    moved = {e["old"]: e["new"] or "(retired)" for e in landed(
+        sorted(tracked), layout.get("retired", []), layout.get("ref_namespaces", ()))}
     for e in layout.get("lifted", []):
         moved[e["old"]] = e["new"]
     return moved
@@ -81,9 +84,11 @@ def scan(files: list[str], moved: dict[str, str]) -> list[str]:
 def _self_test() -> int:
     layout = {"retired": [{"old": "a/old/x.sh", "new": "b/x.sh"},
                           {"old": "keep/y.sh", "new": "c/y.sh"},
-                          {"old": "keep/", "new": "c/"}],
-              "lifted": [{"old": "r/", "new": "g/r/"}]}
-    tracked = {"b/x.sh", "keep/y.sh", "keep/z.sh"}
+                          {"old": "keep/", "new": "c/"},
+                          {"old": "ns/sub/", "new": "b/ns/sub/"}],
+              "lifted": [{"old": "r/", "new": "g/r/"}],
+              "ref_namespaces": ["ns/"]}
+    tracked = {"b/x.sh", "keep/y.sh", "keep/z.sh", "b/ns/sub/f"}
     m = moved_paths(layout, tracked)
     fails = 0
 
@@ -97,6 +102,8 @@ def _self_test() -> int:
     check("a retired entry still tracked is a planned move, not a moved path", "keep/y.sh" not in m)
     check("a retired directory with tracked files under it is a planned move", "keep/" not in m)
     check("a lifted prefix is moved", m.get("r/") == "g/r/")
+    check("a moved tree under a ref namespace is moved", m.get("ns/sub/") == "b/ns/sub/")
+    check("its parent, a ref namespace, is not a moved directory", "ns/" not in m)
     with tempfile.TemporaryDirectory() as d:
         f = Path(d) / "s.sh"
         f.write_text("see `a/old/` here\nif test -f a/old/x.sh; then p=a/old/x.sh; else p=b/x.sh; fi\nclean line\n")
@@ -115,7 +122,7 @@ def _self_test() -> int:
         check("a directory argument walks its tracked files, recursively, and skips untracked ones",
               names == ["top.sh", "sub/a.sh", "sub/deep/b.sh"])
         check("a walked directory's files are scanned", len(scan(files, m)) == 1)
-    print(f"moved_paths self-test: 9 checks, {fails} failed")
+    print(f"moved_paths self-test: 11 checks, {fails} failed")
     return 1 if fails else 0
 
 

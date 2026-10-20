@@ -310,16 +310,24 @@ def exempt(old: str, new: str | None, line: str) -> bool:
 GUARD_EXEMPT = ("dev/governance/config/", "dev/audit/rca/", ".claude/rules/", ".cursor/rules/")
 
 
-def landed(files: list[str], retired: list[dict]) -> list[dict]:
+def landed(files: list[str], retired: list[dict],
+           ref_namespaces: tuple[str, ...] | list[str] = ()) -> list[dict]:
     """The landed entries, and every directory their moves emptied: the map
     retires a directory's files one by one, and a citation of the directory
-    (a `git diff -- <dir>`, a glob) then reads nothing, silently."""
+    (a `git diff -- <dir>`, a glob) then reads nothing, silently.
+
+    A `ref_namespaces` prefix (the manifest's) names git REFS, not a tracked
+    directory: `handoff/<topic>` is a branch, so the parent a move empties is
+    not a path a line can cite, and manufacturing it as a moved path would
+    sweep every branch name the seat tools spell. Only manufactured ancestors
+    are skipped -- an explicit entry whose `old` is under the prefix, and the
+    moved tree itself, are still swept."""
     have = {p[:i + 1] for p in files for i, c in enumerate(p) if c == "/"} | set(files)
     out = [r for r in retired if r["old"] not in have]
     known = {r["old"] for r in retired}
     while True:
         dirs = {o.rstrip("/").rpartition("/")[0] + "/" for o in (r["old"] for r in out)}
-        dirs = sorted(d for d in dirs - have - known if d != "/")
+        dirs = sorted(d for d in dirs - have - known if d != "/" and not any(d.startswith(ns) for ns in ref_namespaces))
         if not dirs:
             return out
         for d in dirs:
@@ -400,10 +408,11 @@ def guard(root: Path, manifest: dict, base: str, rev: str | None = None) -> list
     """The guard's findings for the index at `root` (or commit `rev`) against
     commit `base`."""
     retired, cats = manifest["retired"], compiled(manifest)
+    refs = manifest.get("ref_namespaces", ())
     skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
     files = tracked(root) if rev is None else listing(root, rev)
     then = listing(root, base)
-    now, before = landed(files, retired), landed(then, retired)
+    now, before = landed(files, retired, refs), landed(then, retired, refs)
     fresh = [r for r in now if r not in before]
     planned = [r for r in retired if r not in now]
     diff = git(root, "diff", *(["--cached", base] if rev is None else [base, rev]),
@@ -462,7 +471,7 @@ def stale(root: Path, manifest: dict) -> list[str]:
     """Every live line in the index citing a landed path: what the guard
     keeps from growing, listed whole (historical and exempt text skipped)."""
     files = tracked(root)
-    now = landed(files, manifest["retired"])
+    now = landed(files, manifest["retired"], manifest.get("ref_namespaces", ()))
     skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
     text = blobs(root, [f":{p}" for p in files if not p.startswith(skip)])
     return [f"{k[1:]}: {o} | {line.strip()[:120]}" for k, t in text.items() if t for o, line in stale_lines(t, now)]
@@ -477,13 +486,15 @@ def guard_self_test() -> int:
                         {"name": "twin", "globs": ["docs/twin.md"], "why": "t"},
                         {"name": "rules", "globs": [".claude/rules/*.md", ".cursor/rules/*.mdc"], "why": "t"}],
          "historical": ["arch/"],
+         "ref_namespaces": ["ns/"],
          "retired": [{"old": "old/gone.sh", "new": "tools/gone.sh", "since": "1"},
                      {"old": "old/briefs/a.md", "new": "docs/a.md", "since": "1"},
                      {"old": "gone.txt", "new": None, "since": "1"},
                      {"old": "old/dir/", "new": "tools/dir/", "since": None},
+                     {"old": "ns/sub/", "new": "tools/sub/", "since": "1"},
                      {"old": "old/wip.sh", "new": "tools/wip.sh", "since": None}]}
     base = {"docs/a.md": "intro\n", "docs/b.md": "run old/gone.sh here\n", "tools/gone.sh": "",
-            "old/dir/x.sh": "", "old/wip.sh": "", "docs/c.md": "see old/wip.sh\n"}
+            "old/dir/x.sh": "", "old/wip.sh": "", "ns/sub/x.sh": "", "docs/c.md": "see old/wip.sh\n"}
     cites = "run old/gone.sh now\n"
     cases = [
         ("null: the base tree unchanged", {}, (), {}),
@@ -520,6 +531,15 @@ def guard_self_test() -> int:
         ("a file re-added at a landed path", {"old/gone.sh": ""}, (), {"placement": 1, "new-reference": 0}),
         ("a move landed, a citation left", {"tools/wip.sh": ""}, ("old/wip.sh",), {"unswept": 1}),
         ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
+        # A moved tree whose parent is also a git ref namespace (`handoff/`):
+        # the parent is a branch prefix, not a directory, so its spelling is
+        # not a citation of the emptied directory and must not be swept.
+        ("a ref namespace's name is not a citation of its emptied parent",
+         {"tools/sub/x.sh": "", "docs/e.md": "git branch --list 'ns/*'\n"}, ("ns/sub/x.sh",), {}),
+        # ...but the moved tree itself is still swept under that parent.
+        ("a citation of the moved tree under a ref namespace is still swept",
+         {"tools/sub/x.sh": "", "docs/e.md": "see ns/sub/x.sh\n"}, ("ns/sub/x.sh",),
+         {"new-reference": 1, "unswept": 1}),
     ]
     failed = 0
     from throwaway_git import throwaway_git_init

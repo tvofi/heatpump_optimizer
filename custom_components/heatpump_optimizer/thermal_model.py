@@ -1443,30 +1443,61 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
     )
 
 
+#: The flow set-point's lift over the measured water the pump heats, at
+#: the modulation floor, in kelvin: the 5 K supply-over-return spread a
+#: heat-pump condenser is rated at (EN 14511, W35 at 30/35 °C). The pump's
+#: own water thermostat holds its supply at the set-point, so a set-point
+#: at the inlet commands no heat at all; this one commands at least the
+#: floor, whose spread is below the rated one.
+FLOW_MIN_LIFT_K = 5.0
+
+
+def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
+    """The flow set-point for the modulation floor, °C, or ``None``.
+
+    The measured inlet (the buffer tank behind a mixing valve, else the
+    return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
+    command (tvofi, 2026-10-19): the system water behind it rises slowly,
+    so a set-point anchored anywhere but the water it heats commands a
+    power the plan never booked. ``gate_c`` is the set-point a step that
+    does not heat writes; the lift is taken from whichever of the two is
+    higher, so a step that heats never writes the value that means off --
+    on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``
+    for an unmeasured inlet.
+    """
+    inlet = _optional_float(inlet_c)
+    if inlet is None:
+        return None
+    gate = _optional_float(gate_c)
+    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
+
+
 def flow_setpoint_for_level(
     planned_kw: Any,
     p_min: Any,
     p_max: Any,
     heat_c: float,
-    inlet_c: float,
+    floor_c: float,
 ) -> float:
     """Heating flow for one planned level, °C.
 
-    Full modulation holds ``heat_c``. A positive level below it moves
-    toward ``inlet_c``, so the pump's own water thermostat can realize a
-    lower output; a fixed heating flow never cycles. A non-positive level
-    is not a partial — a boost over an idle plan still holds ``heat_c``.
-    A missing or fixed band keeps ``heat_c``, which is the historical
-    constant.
+    Full modulation holds ``heat_c``, so full power still writes the
+    configured ceiling. A positive level below it slides toward
+    ``floor_c``, the set-point that commands the modulation floor
+    (:func:`modulation_floor_flow_c`), so the pump's own water thermostat
+    can realize a lower output; a fixed heating flow never cycles. A
+    non-positive level is not a partial — a boost over an idle plan still
+    holds ``heat_c``. A missing or fixed band keeps ``heat_c``, which is
+    the historical constant.
     """
     heat = float(heat_c)
     planned = _optional_float(planned_kw)
     lo = _optional_float(p_min)
     hi = _optional_float(p_max)
-    inlet = _optional_float(inlet_c)
+    floor = _optional_float(floor_c)
     ready = all((
         planned is not None, lo is not None, hi is not None,
-        inlet is not None, math.isfinite(heat),
+        floor is not None, math.isfinite(heat),
     ))
     band = _span_when(hi, lo, ready)
     wide = all((
@@ -1489,7 +1520,7 @@ def flow_setpoint_for_level(
         ) else raw
     )
     low = (
-        inlet if inlet is not None and inlet < (
+        floor if floor is not None and floor < (
             heat
         ) else heat
     )
@@ -1897,7 +1928,6 @@ def learner_newton_step(
     *,
     trust_region: float,
     alpha: float,
-    max_step_fraction: float,
 ) -> tuple[float, float] | None:
     """One bounded Newton step for a multiplicative heat-loss correction.
 
@@ -1921,6 +1951,12 @@ def learner_newton_step(
     time constant ``C/u`` is over a hundred hours, so a residual of +0.12 K
     already implies a dU larger than the whole coefficient -- a negative
     target, on exactly the intervals where the house lost less than predicted.
+
+    No sample moves the estimate by more than ``alpha * trust_region`` of
+    it: the EWMA moves ``alpha`` of the way to a target at most
+    ``trust_region * current`` away. That is the per-interval rate limit;
+    a separate clip after the EWMA could never bind and was removed
+    (R10-DEAD-RATE-LIMIT).
     """
     if base_u <= 1e-6 or capacity <= 1e-6:
         return None
@@ -1931,15 +1967,15 @@ def learner_newton_step(
     target = (current_u + delta_u) / base_u
     if not np.isfinite(target):
         return None
-    target = float(
-        np.clip(target, current - trust_region, current + trust_region)
-    )
+    # A fraction of the current estimate, so the bound in UA is
+    # ``current_u * trust_region`` however UA splits into base and multiplier
+    # (#2252: a fixed offset made a reseed change the step size alone).
+    reach = current * trust_region
+    target = float(np.clip(target, current - reach, current + reach))
 
-    # The EWMA and the rate limit below are what decide how fast genuine
-    # signal moves the estimate; the trust region only keeps noise even.
-    updated = (1.0 - alpha) * current + alpha * target
-    max_step = current * max_step_fraction
-    updated = float(np.clip(updated, current - max_step, current + max_step))
+    # The EWMA decides how fast genuine signal moves the estimate; the trust
+    # region keeps noise even and, with it, bounds one sample's move.
+    updated = float((1.0 - alpha) * current + alpha * target)
     return target, updated
 
 
@@ -2047,7 +2083,7 @@ class ThermalModel:
         terminal valuations, the efficiency learner's reference and the
         capacity caps -- inherits the lift from this one place rather than
         from a call site each. Hot water is not lifted twice:
-        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no curve flow.
+        :meth:`compute_cop_dhw` passes :meth:`_cop_law` the tank's own water.
         The lift is one-sided, applied only above the reference flow, which
         is the batch twin's semantics and is kept for its bitwise parity: a
         curve below 35 °C earns no boost.
@@ -2198,23 +2234,23 @@ class ThermalModel:
         """Compute heat pump COP for DHW mode.
 
         DHW requires higher supply temperature (55-65°C vs 35-45°C for space
-        heating), so COP is lower.  Rough model:
-        COP_dhw ≈ COP_space * 0.7 (penalty for higher supply temp)
+        heating), so COP is lower. The tank pays the flow lift at its own water
+        temperature -- the same Carnot ratio the buffer tank pays, and the same
+        one-sided rule: below the reference flow the lift is skipped, not
+        clipped, so a cold tank earns no boost it never gets.
+
+        One law for both plants (D2-s2-01). ``cop_flow_carnot`` is a
+        SPACE-circuit fact -- it decides whether a passed ``flow_temp`` is the
+        supply the machine runs at (:meth:`compute_cop`) -- and it used to
+        select a second, linear law here (0.008/K, floored at 0.5), so the same
+        tank at the same outdoor was priced up to 1.4346x apart and below the
+        reference flow took a boost of up to 1.2x that :meth:`_batch_cop`'s own
+        comment refuses. The tank's water temperature is passed as the flow
+        instead of a curve (the #1067 note above): the curve would price a
+        space supply the hot-water circuit never runs at, and the lift the tank
+        does pay is priced once.
         """
-        if self.params.cop_flow_carnot:
-            # #1530: behind a valve the buffer prices its lift by Carnot, so the
-            # tank pays the same law at the same water temperature, not its own.
-            return self._cop_law(outdoor_temp, humidity, dhw_temp)
-        # The law without any flow lift (#1067): the penalty below already
-        # prices the tank's hotter water, so a curve lift would count it twice.
-        base_cop = self._cop_law(outdoor_temp, humidity, None)
-        # Higher DHW temp → lower COP (Carnot-like penalty)
-        dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
-        # The penalty is another factor multiplying in after the curve's
-        # own floor, so it needs the same resistive bound as compute_cop
-        # (#928) -- at the shipped hard max (60 °C against deep cold) the
-        # product lands near 0.84, and this method has no other clamp.
-        return max(base_cop * dhw_penalty, 1.0)
+        return self._cop_law(outdoor_temp, humidity, dhw_temp)
 
     def effective_heat_loss_coefficient(
         self, base_u: float, wind_speed: float = 0.0, precipitation: float = 0.0

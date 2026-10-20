@@ -33,6 +33,9 @@ class RegistryEntry:
     device_class: str | None = None
     original_device_class: str | None = None
     unit_of_measurement: str | None = None
+    # Why an entry is disabled (#2271): upstream's RegistryEntryDisabler, a
+    # string enum, or None while enabled.
+    disabled_by: str | None = None
 
 
 class EntityRegistry:

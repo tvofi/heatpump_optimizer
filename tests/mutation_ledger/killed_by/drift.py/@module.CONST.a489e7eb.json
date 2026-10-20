@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:<module> CONST a489e7eb",
+  "killed_by": "tests/features.py",
+  "old": "REFERENCE_PRIOR_COV = 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c8cc75ea90a3bb38dbc6b8dbb7d27d9cce74cdd0: CONST (`REFERENCE_PRIOR_COV = 2.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

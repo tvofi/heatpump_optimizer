@@ -101,6 +101,7 @@ jobs:
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/audit/seat/roster_lib.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
@@ -363,3 +364,23 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+
+      # finding-propagation.md's `Carry:` marker, refused where a body is
+      # written: every `## Friction` and `## Forward-carry` item, and every
+      # out-of-scope or residual item, names a destination that exists -- a
+      # live roster group, an issue a live group or carry file owns, an O-brief,
+      # or `dismissed: <reason>` (tools/audit/carry_audit.py). Round 10 left 39
+      # of 95 findings with no owner, 20 of them in a body.
+      #
+      # THE PULL REQUEST'S OWN COPY, OWNED, AND LAST -- not pinned. A pinned
+      # grader must be declared in field_coverage.mjs, which is itself pinned,
+      # so the pull request adding one cannot pass (#1847); protection is
+      # ownership instead, as for fold_ledger.py: CODEOWNERS names carry_audit.py.
+      # It is the job's LAST step, so the one thing a pull-request program here
+      # could do to the job -- write $GITHUB_ENV for a later step -- reaches
+      # nothing. roster_lib.py, which it imports, is restored from the base
+      # above. The roster read is the tree's; an O-brief is out of tree, so here
+      # it passes UNVERIFIED and the train's pre-flight checks it.
+      - name: Every finding the body records names its destination
+        if: always()
+        run: python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md

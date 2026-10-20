@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._evidence CMP_BOUND 3a7f8343",
+  "killed_by": "tests/features.py",
+  "old": "            (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: CMP_BOUND (`(d, a, cmd is None or cmd[0] > cmd[1] - CEILING_TOLERANCE_K)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

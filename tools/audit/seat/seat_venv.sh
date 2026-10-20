@@ -92,12 +92,16 @@ self_test() (
   expect() { if [ "$2" = 0 ]; then ok "$1"; else bad "$1"; fi; }
   real_py=$(command -v python3)
   # If python3 on PATH is itself a seat shim, follow it to a real interpreter
-  # so `import os` in the shim arms is not a second shim exec.
-  case $real_py in
-    */hpo-seats/bin/python3|*/hpo-seats/bin/python)
-      real_py="${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin/python3" ;;
-  esac
+  # so `import os` in the shim arms is not a second shim exec. The interpreter
+  # names itself: a path pattern for the shim missed one installed outside
+  # hpo-seats/bin (the state dir's bin), and the wrapper below then exec'd the
+  # shim, which exec'd the wrapper, forever.
+  real_py=$("$real_py" -c 'import sys; print(sys.executable)' 2>/dev/null) || real_py=
   [ -x "$real_py" ] || real_py=/usr/bin/python3
+  # A script here would be a shim, and the arms below would never return.
+  if [ "$(head -c 2 "$real_py")" = '#!' ]; then
+    bad "the shim arms run a real interpreter, not a script ($real_py)"; real_py=/usr/bin/python3
+  else ok "the shim arms run a real interpreter, not a script"; fi
   mkdir -p "$W/venv-ci/bin" "$W/venv-ha/bin" "$W/bin"
   # Wrapper: the shim execs this; it must be a real interpreter so os.environ
   # is the one the shim exported (or did not).

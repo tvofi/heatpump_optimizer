@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.0.0";
+const CARD_VERSION = "7.0.2";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -1537,8 +1537,8 @@ const DEFAULTS = {
 // which forecast the values come from ("space", "dhw", "solar", or "either"
 // meaning prefer space then fall back to dhw). `field` is the forecast
 // attribute key. `color` is the light-card colour and `colorDark` the dark
-// one: the palette of record (handoff/round9/state/alt/design/DESIGN.md
-// section 4, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
+// one: the palette of record (DESIGN.md section 4, archived on the round-9
+// alt tag, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
 // its own card and against deuteranope, protanope and tritanope confusion
 // (D4). Both reach the markup through the `--hpo-series-<key>` tokens
 // (`seriesPaint`), so a theme switch repaints without a redraw.
@@ -1753,8 +1753,8 @@ const CLOSE_ICON =
 // One value axis per panel, on the left (R9-UI-4), so the plot no longer
 // pays for a second left axis or the two right-hand ones.
 const MARGIN = { top: 16, right: 20, bottom: 34, left: 52 };
-// R9-UI-4 (tvofi's D2, concept A; handoff/round9/state/alt/design/DESIGN.md
-// section 4): three panels stacked on the chart's one time axis, each with
+// R9-UI-4 (tvofi's D2, concept A; DESIGN.md section 4, archived on the round-9
+// alt tag): three panels stacked on the chart's one time axis, each with
 // its own value scale, gridlines and unit. `axes` are the value scales a
 // panel draws (SERIES_DEFS' `axis`); `share` divides the height between the
 // panels that have a visible series. All three live inside the ONE chart svg
@@ -3834,8 +3834,8 @@ function setupSvgHtml(topo, ctx) {
 // instead of the three dividers and two greys the literals had drifted to.
 // Light and dark are chosen in JS from `hass.themes.darkMode` for the reason
 // the D4-s1-01 colours below are (a profile switch, not the OS scheme).
-// Values are the design of record's (handoff/round9/state/alt/design/DESIGN.md
-// section 3, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
+// Values are the design of record's (DESIGN.md section 3, archived on the
+// round-9 alt tag, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
 // the text, pill and tile pairs on these literals, and tests/card_browser.mjs's
 // P9 grid what Chromium paints. Each entry holds its light and dark literal,
 // plus the Home Assistant variable it stands for where there is one. The stylesheet is written with the LIGHT literal as
