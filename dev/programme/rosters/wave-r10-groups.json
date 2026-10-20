@@ -1315,7 +1315,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-pump-model",
-    "commit": null,
+    "commit": "499f952b0b4f5f5a7ea4417f08480dcddea709f8",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
