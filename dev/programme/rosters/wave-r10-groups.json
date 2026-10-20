@@ -5007,6 +5007,35 @@
     "note": null
    },
    "brief": "The orchestration machinery, built to the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (design) and review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639 (DESIGN REVIEW: APPROVE, round 3; rounds 1 and 2 preserved at 76b6a5be2f203e0f417f90f75ad35eabd7d6823d and 46cd9d4448042e90300aa869d0859f6572e33f59). Read the design from the ref, never from memory: its 50-row inventory, its timing graph and its evidence sections are the specification, and the review's three non-blocking FAILs are corrections to apply while building, not opinions to rediscover.\n\nThree instruments, in this order. (1) An obligations ledger replacing the relay's log scan and the tick's OWED scan: keyed by kind, subject and sha; a disposal written by the producer; a moved subject closes the old entry and opens one; an unclassifiable ref is a refusal; an obligation with no ledger kind is a refusal; a missing store is a first run and an unreadable one prints UNREADABLE, never a clean board. Its import must classify the three prefixes the relay actually writes (probe, handoff, handoff-body) and take the last disposition per ref. (2) One supervised beat with per-job timeouts and single-instance locks, writing the journal the sweep's liveness rule reads, with the relay's handoff arm as its own job and its bound above the measured run; the in-tree sweep template changes in the same pull request so the double start the design names cannot occur. (3) The plan page as a tree instrument sharing one model builder with tools/audit/seat/plan_table.py, driven by tools/audit/seat/state_docs.py, published beside the plan table, failing to an explicit UNAVAILABLE page rather than a page of zeros, with the five generator defects as mutation-pinned self-test fixtures recovered from the scratch generator's .bak files.\n\nCorrections from the round-3 review that bind the implementation: the folded approve-held-runs and dispatch reasons have no backing state in the relay's failure file today, so either that file's format gains a reason field or they become their own derived kinds; an instrument is wired in the same pull request that lands it, and the reason is that pr-contract makes the body answer a red on the wiring check (not that the check is required); and the two remaining figure corrections in the review's round-3 findings are carried into whatever the body states.\n\nSeams, not duplication: the roster-state reconciler is R10-ROSTER-OPS's roster-sync step, and this group contributes the gate-coverage, absorbed-edge-closure and commit-prefix predicates to that brief rather than building a second one; the workflow wiring collides with R10-CI-LAYOUT's files, which is why this group follows it. Follow dev/governance/roles/fixer.md; failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-CARD-VOICE",
+   "lane": "UI",
+   "kind": "feature",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-DEEPLINK-HANDLERS"
+   ],
+   "carry": [],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "owner_gate": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer at the owner's chosen design (probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40, prototype 1 Badge) and fold in whatever the harmony review (probe/card-harmony-design) proposes and the owner accepts",
+    "note": null
+   },
+   "brief": "The card's setup page, to the owner's chosen design. tvofi chose prototype 1, the type badge, from the five in probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40: a small type disc on each box's outer corner, the wood tank's disc a spring, and the coil pipe the one accent pipe. Read the prototype from the ref and the measurements in its NOTES.md, not from memory.\n\nThe defects it answers, measured by that pre-study. The schematic draws eight boxes from eleven title strings with one visual style, so only the title tells a tank from a valve. The wood coil is an immersed hot-water coil in the wood furnace tank, present only when the wood-coil option, DHW and the two-tank four-way topology are all true; today it is drawn as one ordinary pipe identical in class, stroke and opacity to a heating pipe, with a muted twelve-pixel caption on the wrong box, and configured-but-not-modelled is silent. The configure chip's handler ignores its own destination attribute, and Home Assistant has no URL route into an options-flow step, so the card can only open the entry: the design's fix is honesty, naming the page on the button and stating the path once above the drawing, and the chip must also exist for boxes whose slots are all set.\n\nAlso owed inside this group: the coil's three states are stated in words on the hot-water box, exactly one visible at a time; and the documentation that describes the removed visual is corrected in the same pull request (the card docs still claim a visible spring on the tank's upper-right wall, and the hydronic-coil SVG still contains the coil elements the card no longer has).\n\nThe card's own tokens are the design voice; do not introduce a new one. Follow dev/governance/roles/fixer.md, with a failing test first in the card rig, the mutation proof, the card drift states unchanged or re-recorded with the reason, and the structure ratchet before the push."
   }
  ]
 }
