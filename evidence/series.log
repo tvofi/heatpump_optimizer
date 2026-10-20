@@ -1,0 +1,14 @@
+===== daemonize pid=64757 2026-10-20T19:04:13Z argv: python3 -u dev/audit/harnesses/r10_replay_loopnorm.py --series
+RESULT series_rows=22 api_failures=0 no_slow_lane=0 no_logs=0 off_main=58
+RESULT era_rows pre=17 post=5
+RESULT old_pre_spread=min0.2441_max0.4050_factor1.659 (BLAS ruler, the field)
+RESULT new_post_spread=min0.0868_max0.1114_factor1.283 median=0.0877 (pure-Python ruler, the field)
+RESULT old_post_spread=min0.2599_max0.4190_factor1.612 (BLAS figure on the same rows)
+RESULT corr_new_post_ref_ms=-0.616 n=5
+RESULT pre_era_old_slow_class n=11 ref_mean=53.13 loop_cpu_mean=13.69 old=0.2441..0.2742
+RESULT pre_era_old_fast_class n=6 ref_mean=28.65 loop_cpu_mean=9.91 old=0.3157..0.4050
+RESULT post_era_old_slow_class n=3 ref_mean=53.77 loop_cpu_mean=14.52 old=0.2599..0.2856
+RESULT post_era_old_fast_class n=2 ref_mean=27.47 loop_cpu_mean=10.28 old=0.3435..0.4190
+RESULT post_era_new_slow_class n=3 ref_mean=53.77 loop_cpu_mean=14.52 new=0.0868..0.0982
+RESULT post_era_new_fast_class n=2 ref_mean=27.47 loop_cpu_mean=10.28 new=0.0875..0.1114
+RESULT worst_post run=39387919507 new=0.1114 loop_cpu_ms=9.36 loop_ref_ms=84.05 ref_ms=22.35

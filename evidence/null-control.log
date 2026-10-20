@@ -1,0 +1,18 @@
+===== daemonize pid=94069 2026-10-20T19:13:37Z argv: python3 -u /Users/timmalmstrom/hpo-seats/r10s3/r10-replay-lane-review/null_control.py
+RESULT run arm=c3530277 i=0 loop_cpu_ratio=0.1046 ref_ms=83.86 loop_ref_ms=248.21 loop_cpu_ms=25.96 wall_s=254 load1=55.6
+RESULT run arm=0c298f6b i=0 loop_cpu_ratio=0.1060 ref_ms=71.53 loop_ref_ms=209.70 loop_cpu_ms=22.23 wall_s=194 load1=57.6
+RESULT run arm=c3530277 i=1 loop_cpu_ratio=0.0908 ref_ms=58.02 loop_ref_ms=193.25 loop_cpu_ms=17.55 wall_s=143 load1=51.3
+RESULT run arm=0c298f6b i=1 loop_cpu_ratio=0.0903 ref_ms=49.74 loop_ref_ms=193.26 loop_cpu_ms=17.45 wall_s=97 load1=62.3
+RESULT run arm=c3530277 i=2 loop_cpu_ratio=0.0901 ref_ms=54.07 loop_ref_ms=190.35 loop_cpu_ms=17.15 wall_s=85 load1=66.0
+RESULT run arm=0c298f6b i=2 loop_cpu_ratio=0.0829 ref_ms=52.71 loop_ref_ms=194.17 loop_cpu_ms=16.10 wall_s=80 load1=88.2
+RESULT run arm=c3530277 i=3 loop_cpu_ratio=0.0775 ref_ms=42.61 loop_ref_ms=205.32 loop_cpu_ms=15.91 wall_s=36 load1=135.7
+RESULT run arm=0c298f6b i=3 loop_cpu_ratio=0.0717 ref_ms=53.33 loop_ref_ms=218.92 loop_cpu_ms=15.70 wall_s=44 load1=148.3
+RESULT run arm=c3530277 i=4 loop_cpu_ratio=0.0817 ref_ms=44.80 loop_ref_ms=197.46 loop_cpu_ms=16.13 wall_s=37 load1=187.6
+RESULT run arm=0c298f6b i=4 loop_cpu_ratio=0.0847 ref_ms=47.67 loop_ref_ms=195.17 loop_cpu_ms=16.53 wall_s=33 load1=194.5
+RESULT run arm=c3530277 i=5 loop_cpu_ratio=0.0739 ref_ms=52.21 loop_ref_ms=201.76 loop_cpu_ms=14.91 wall_s=30 load1=202.3
+RESULT run arm=0c298f6b i=5 loop_cpu_ratio=0.0809 ref_ms=44.86 loop_ref_ms=196.38 loop_cpu_ms=15.89 wall_s=29 load1=201.6
+
+RESULT arm=c3530277 n=6 min=0.0739 max=0.1046 median=0.0859 spread=1.415
+RESULT arm=0c298f6b n=6 min=0.0717 max=0.1060 median=0.0838 spread=1.478
+RESULT paired_median_ratio=0.9756 median_a=0.0859 median_b=0.0838
+RESULT final load1=192.1
