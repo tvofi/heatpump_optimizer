@@ -15,7 +15,6 @@ import asyncio
 import contextvars
 import copy
 import functools
-import hashlib
 import inspect
 import json
 import logging
@@ -85,7 +84,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import QuarantiningStore, admitted
+from .store import QuarantiningStore, admitted, load_mapping
 from .entry_config import EntryConfig
 from homeassistant.util import dt as dt_util
 
@@ -156,6 +155,7 @@ from .const import (
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
     VENT_CUSUM_STARVE_HOURS,
+    VENT_CUSUM_REFERENCE_HOURS,
     OPEN_WINDOW_RELAX_C,
     IMMERSION_FACTOR,
     COP_BASELINE_MIN_SAMPLES,
@@ -244,15 +244,15 @@ from .manual_plan import (
     ManualPlanError,
 )
 from .price_model import (
+    PriceShapeLearner,
     PriceShapeModel,
     TIBBER_API_URL,
     _raw_value,
     extend_price_series,
-    hourly_from_entries,
     pull_prices,
-    quarters_from_entries,
 )
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
+from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -498,13 +498,9 @@ def _within_window(value: float | None, window: tuple[float, float]) -> float | 
     return value if value is None or lo <= value <= hi else None
 
 
-#: Resolution the optimizer plans at, and therefore the resolution every
-#: forecast series is resampled to.
-FORECAST_STEP_MINUTES = 15
-
-
-#: One forecast step, as the clock ``drift.utc_step_starts`` walks.
-FORECAST_STEP = timedelta(minutes=FORECAST_STEP_MINUTES)
+#: One forecast step, as the clock ``drift.utc_step_starts`` walks; its
+#: width is the plan's (``plan_step.PLAN_STEP_MINUTES``).
+FORECAST_STEP = timedelta(minutes=PLAN_STEP_MINUTES)
 
 
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
@@ -1276,17 +1272,22 @@ HOUSE_LOSS_ALPHA = 0.02
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
-# A single interval may never move the estimate more than this fraction; real
-# building fabric does not change, so anything larger is a disturbance.
+# The re-anchor threshold gate: a nameplate edit within this fraction keeps
+# the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
+# per-interval limit: one sample moves the estimate by at most
+# ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
 HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped. Centred on the current value,
-# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
-# against fixed global bounds does not have that property, because the
-# midpoint of a fixed range is not the current estimate.
+# *current* estimate before it is clipped, as a fraction of that estimate.
+# Centred on the current value, zero-mean noise has zero-mean effect after
+# clipping; rejecting or clamping against fixed global bounds does not have
+# that property, because the midpoint of a fixed range is not the current
+# estimate. A fraction rather than a multiplier offset (#2252), so the bound
+# in UA is the same whether the learned value sits in the settings or in
+# the multiplier.
 _LEARNER_TRUST_REGION = 0.5
 
 
@@ -2258,26 +2259,6 @@ def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 
-def _solve_anchor(now: datetime) -> datetime:
-    """``now`` floored onto the grid the forecast arrays are built on.
-
-    ``_forecast_arrays`` anchors every price and weather step at
-    ``midnight + FORECAST_STEP_MINUTES·k``, so a solve labelled with the
-    raw instant (12:07) published timestamps seven minutes off the
-    quarter its own arrays described — and pins, capacity-window
-    offsets, filed lead promises and every card timestamp inherited
-    that skew. The granularity is the forecast grid's, deliberately not
-    ``time_step_minutes``: if the two ever diverge the arrays disagree
-    first, and the anchor must follow the arrays. Wall-clock lookups
-    INTO the plan (``get_current_action``, ``_async_drive_pumps``) stay
-    on the raw clock — they ask what applies now, not where step 0 is.
-    """
-    step = int(FORECAST_STEP_MINUTES)
-    return now.replace(
-        minute=(now.minute // step) * step, second=0, microsecond=0
-    )
-
-
 def _liquid_fraction(
     precip_array: np.ndarray, snow_array: np.ndarray
 ) -> np.ndarray:
@@ -2445,7 +2426,7 @@ def _ecl110_legacy_payload(
     coordinator: a module-level helper handed ``self`` would keep every
     reference it moved -- ``tests/structure.py`` walks only class methods
     and matches ``self.<attr>``, so the seam metric would fall while the
-    coupling stood. Same rule as ``_solve_anchor`` and ``_liquid_fraction``.
+    coupling stood. Same rule as ``plan_step.plan_step_start`` and ``_liquid_fraction``.
     """
     return {
         "source": DOMAIN,
@@ -2765,12 +2746,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         it never moves a plan. Everything that could move one (the comfort
         relaxation, the DHW margin nudge) is gated behind its own flag.
         """
-        # #26: an open window shows as sustained colder-than-predicted
-        # residuals in the heat-loss learner's replay.
+        # #26: an open window shows as a sustained cold CHANGE in the heat-loss
+        # replay residual, measured from what it normally reads (#2241).
         self._vent_cusum = Cusum(
             threshold=VENT_CUSUM_THRESHOLD_C,
             drift=VENT_CUSUM_DRIFT_C,
             side=-1,
+            clip=VENT_CUSUM_CLIP_C,
+            reference_hours=VENT_CUSUM_REFERENCE_HOURS,
         )
         # #11: the immersion element announces itself as measured power
         # beyond what the compressor can draw. 2/2 hysteresis, like every
@@ -3011,16 +2994,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
-        self._price_model = PriceShapeModel()
-        self._price_days_seen: set[str] = set()
+        self._price_learner = PriceShapeLearner()
         self._price_known_steps: int = 0
         self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
         )
-
-        self._price_qdays_seen: set[str] = set()
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
         self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
@@ -3126,14 +3106,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
-            lead=timedelta(hours=max(LEAD_BUCKETS)),
-        )
-        # Serialized form of the last payload each store accepted, keyed by
-        # store name. An every-cycle save that rewrites unchanged content is
-        # pure disk wear; a digest recorded only after a successful save means
-        # a failed write is retried on the next cycle rather than skipped.
-        self._store_digests: dict[str, str] = {}
+            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy"
+        )  # its promises' dues declare their own lead (store.DOMAINS, D1-s2-01)
 
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
@@ -4581,13 +4555,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``MeasuredCop.record`` writes all three together.
 
-        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
-        ``compute_cop`` — the SPACE curve — including intervals the pump spent
-        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
-        space heating, and the model prices that at roughly 16 % lower COP at a
-        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
-        asked looked ~16 % less efficient than modelled, every hot-water
-        interval, in the same direction.
+        v5.3.0. ``_learn_measured_cop`` compared every interval against
+        ``compute_cop`` — the SPACE curve — including the ones the pump spent
+        making hot water. The model prices a 55 °C tank at 0.62x the space
+        curve, and the tank's own lift law is what it pays (D2-s2-01; the
+        linear 0.008/K penalty this seam was written against priced the same
+        tank 1.35x higher). So a healthy pump doing what the plan asked looked
+        less efficient than modelled, every hot-water interval, same direction.
 
         Three things consume the result and all three were wrong for those
         intervals: the reported ``measured_cop``, the capacity envelope, and —
@@ -4875,8 +4849,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
           change the stored scale is kept verbatim: below convergence
           the law is a measured regression against today's behaviour on
           exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner absorbs a small
-          edit in one step anyway.
+          the ungated law's 18.2%), and the learner's EWMA closes a
+          small edit on its own, ``HOUSE_LOSS_ALPHA`` of the way to its
+          target per accepted sample.
         * **Clamp means reset.** If the re-anchored scale falls outside
           ``[0.3, 3.0]`` the measurement cannot be expressed against
           the new nameplate: reset explicitly and log it. Clipping onto
@@ -5130,14 +5105,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not np.isfinite(residual):
             return
 
-        # #26: an open window shows as SUSTAINED colder-than-predicted
-        # residuals — often exactly the large ones the guard below throws
-        # away, which is why the detector is fed first, clipped so one
-        # sensor glitch cannot trip it alone. On a trip every learner
-        # freezes with reason "ventilation" until the residuals recover.
-        vent_changed = self._vent_cusum.update(
-            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
-        )
+        # #26: a window shows as SUSTAINED cold residuals, often ones the guard
+        # below throws away, so the detector is fed first, with the interval's
+        # heat and sun: a delivery or aperture bias scales with those, a window
+        # does not (#2241). On a trip every learner freezes until it recovers.
+        vent_changed = self._vent_cusum.update(now, float(residual), (
+            previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",
@@ -5176,7 +5149,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5284,7 +5256,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5739,7 +5710,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # would shift every array one step against the plan's own
             # timestamps — silently, and only a few times a day.
             now = dt_util.now()
-            solve_now = _solve_anchor(now)
+            solve_now = plan_step_start(now)
             horizon = self._forecast_arrays(now)
             prices = horizon.prices
 
@@ -6899,7 +6870,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._open_meteo is None or not self._open_meteo.available:
             return solar
 
-        step = timedelta(minutes=FORECAST_STEP_MINUTES)
+        step = timedelta(minutes=PLAN_STEP_MINUTES)
         aligned: list[float] = []
         missing = 0
         for i, step_start in enumerate(
@@ -6953,7 +6924,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             now = dt_util.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         step_offset = int(
-            _utc_age_seconds(now, midnight) / 60 / FORECAST_STEP_MINUTES
+            _utc_age_seconds(now, midnight) / 60 / PLAN_STEP_MINUTES
         )
 
         priced = self._price_series(n_steps, midnight, step_offset)
@@ -6977,7 +6948,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # snowfall has no entity fallback — no data reads as no snow.
         snowfall = [0.0] * n_steps
         if self._open_meteo is not None and self._open_meteo.available:
-            step = timedelta(minutes=FORECAST_STEP_MINUTES)
+            step = timedelta(minutes=PLAN_STEP_MINUTES)
             for i, step_start in enumerate(
                 utc_step_starts(midnight, n_steps, FORECAST_STEP, step_offset)
             ):
@@ -7862,45 +7833,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_price_model(self) -> None:
         """Restore the learned diurnal price shape."""
-        try:
-            stored = await self._price_model_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load price model: %s", err)
+        stored = await load_mapping(self._price_model_store, "price model")
+        if stored is None:
             return
-        if not isinstance(stored, dict):
-            return
-        self._price_model = PriceShapeModel.from_dict(stored.get("model"))
-        days = stored.get("days_seen")
-        if isinstance(days, list):
-            self._price_days_seen = {str(d) for d in days}
-        qdays = stored.get("quarter_days_seen")
-        if isinstance(qdays, list):
-            self._price_qdays_seen = {str(d) for d in qdays}
+        self._price_learner.restore(stored)
 
     async def _async_save_price_model(self) -> None:
         store = self._price_model_store  # bound once: read twice below (D1-s2-52)
         try:
             await store.async_wait_for_read()
-            await store.async_save(
-                {
-                    "model": self._price_model.as_dict(),
-                    # Only recent days matter for de-duplication, and an
-                    # unbounded set would grow forever.
-                    "days_seen": sorted(self._price_days_seen)[-90:],
-                    "quarter_days_seen": sorted(self._price_qdays_seen)[-90:],
-                }
-            )
+            await store.async_save(self._price_learner.store_payload())
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist price model: %s", err)
 
     async def _async_load_ledger(self) -> None:
         """Restore the monthly ledger (T1)."""
-        try:
-            stored = await self._ledger_store.async_load()
-        except Exception as err:  # noqa: BLE001 - never block setup on storage
-            _LOGGER.debug("Could not load ledger: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._ledger_store, "ledger")
+        if stored is None:
             return
         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
         # T6, all additive on the same payload: absent keys on a pre-T6
@@ -7960,12 +7909,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_accuracy(self) -> None:
         ctx = getattr(self, "_ctx", self)
-        try:
-            stored = await self._accuracy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load accuracy history: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._accuracy_store, "accuracy history")
+        if stored is None:
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
         # Additive keys: an older store has none; an older build ignores extras.
@@ -7981,29 +7926,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._config.comfort_weight,
         )
         self._apply_comfort_weight()
-    async def _async_save_if_changed(
-        self, name: str, store: QuarantiningStore[dict[str, Any]], payload: dict[str, Any]
-    ) -> None:
-        """Write ``payload`` unless the store already holds exactly it.
-
-        Both callers run every cycle and most change nothing: a rewrite is
-        disk wear. The digest is remembered only after the store accepted
-        the payload, so a failed save is retried, not skipped as written.
-        """
-        digest = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, default=str).encode()
-        ).hexdigest()
-        if self._store_digests.get(name) == digest:
-            return
-        await store.async_save(payload)
-        self._store_digests[name] = digest
-
     async def _async_save_accuracy(self) -> None:
         try:
             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "accuracy",
-                self._accuracy_store,
+            await self._accuracy_store.async_save_if_changed(
                 {
                     "accuracy": self._accuracy.as_dict(),
                     # v5.2.0: the tank's lead record, alongside the room's
@@ -8020,12 +7946,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist accuracy history: %s", err)
 
     async def _async_load_energy_totals(self) -> None:
-        try:
-            stored = await self._energy_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load energy totals: %s", err)
-            return
-        if not isinstance(stored, dict):
+        stored = await load_mapping(self._energy_store, "energy totals")
+        if stored is None:
             return
         for key in list(self._energy_totals):
             value = stored.get(key)
@@ -8046,9 +7968,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_save_energy_totals(self) -> None:
         try:
             await self._energy_store.async_wait_for_read()  # D1-s2-52
-            await self._async_save_if_changed(
-                "energy_totals",
-                self._energy_store,
+            await self._energy_store.async_save_if_changed(
                 {
                     **self._energy_totals,
                     # The accumulators' stated period ("since"): written once
@@ -8192,7 +8112,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         override = self._manual_override
         if override is None or override.is_expired(
-            _solve_anchor(dt_util.now())
+            plan_step_start(dt_util.now())
         ):
             return None
         return {
@@ -8225,7 +8145,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # a raw-instant lattice counts slot edges differently and the
         # reported figure would disagree with the plan by one step.
         step_starts = self._horizon_step_starts(
-            _solve_anchor(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
+            plan_step_start(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
         )
         return {
             "expires_at": override.expires_at.isoformat(),
@@ -8251,32 +8171,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Fold any newly complete price days into the learned shape."""
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
             return
-        days = hourly_from_entries(self._prices)
-        learned = False
-        for day, hours in days.items():
-            if day in self._price_days_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day(when, hours):
-                self._price_days_seen.add(day)
-                learned = True
-        # The quarter refinement (#19) learns beside the hourly shape, from
-        # days that arrived at full 15-minute resolution only.
-        for day, quarters in quarters_from_entries(self._prices).items():
-            if day in self._price_qdays_seen:
-                continue
-            try:
-                when = datetime.fromisoformat(f"{day}T12:00:00")
-            except ValueError:
-                continue
-            if self._price_model.observe_day_quarters(when, quarters):
-                self._price_qdays_seen.add(day)
-                learned = True
-        if learned:
+        if self._price_learner.fold(self._prices):
             await self._async_save_price_model()
+
+    @property
+    def _price_model(self) -> PriceShapeModel:
+        """The learned shape, read-only: ``_price_learner`` owns it."""
+        return self._price_learner.model
 
     def _price_prior(self) -> PriceShapeModel | None:
         if not getattr(self, "_ctx", self)._config.price_prior_enabled:
@@ -9313,7 +9214,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._dhw_learner.apply_draws(draws)
         prices = learners.get("price_model")
         if isinstance(prices, dict):
-            self._price_model = PriceShapeModel.from_dict(prices)
+            self._price_learner.adopt_model(prices)
         # The accuracy tracker is deliberately NOT restored: it is the
         # evidence the drift alarm judges, not a learner. Restoring it
         # made the rollback erase its own justification — the next
@@ -9460,15 +9361,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_load_snapshots(self) -> None:
         try:
-            stored = await self._snapshot_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load learner snapshots: %s", err)
-            return
+            stored = await load_mapping(self._snapshot_store, "learner snapshots")
         finally:
             # Set even on failure: a lost store means an empty ring, and
             # the insurance must keep running rather than disarm forever.
             self._snapshots_loaded = True
-        if isinstance(stored, dict):
+        if stored is not None:
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
@@ -10186,13 +10084,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         shifting, and this is the proof, either way.
         """
         month = month or month_key(dt_util.now())
-        spot_line = self._ledger.line(month, "spot")
-        # The immersion line is spot-priced energy carved out of "spot"
-        # for visibility (#11); the settlement is over ALL metered kWh,
-        # so it folds back in here.
-        imm_line = self._ledger.line(month, "immersion")
-        kwh = spot_line["kwh"] + imm_line["kwh"]
-        spot_cost = spot_line["sek"] + imm_line["sek"]
+        # The settlement is over ALL metered kWh, the immersion carve-out
+        # (#11) included: the ledger's one energy figure (#2255).
+        energy = self._ledger.metered_energy(month)
+        kwh, spot_cost = energy["kwh"], energy["sek"]
         out: ContractComparison = {
             "month": month,
             "kwh": round(kwh, 3),
@@ -11129,7 +11024,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 len(horizon.prices), float(overrides["power_cap_kw"])
             )
         # One snap for slot stamps and the shadow solve (#463).
-        solve_at = _solve_anchor(now)
+        solve_at = plan_step_start(now)
         _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),

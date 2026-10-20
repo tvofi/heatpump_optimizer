@@ -193,10 +193,10 @@ by the trajectory simulation and by every terminal and deferred valuation:
 - building mass (room, slab, upper, lower) heats at the plain space curve;
 - the **buffer tank** charges at the flow-derated COP of the tank's own
   temperature;
-- the **DHW tank** charges at `compute_cop_dhw` at the tank's temperature.
-  Behind a throttling valve (the `cop_flow_carnot` gate) that is the buffer's
-  own flow-derated law, so the two tanks cost the same per kWh at the same
-  water temperature; without one, the tank keeps its own lift penalty.
+- the **DHW tank** charges at `compute_cop_dhw` at the tank's temperature:
+  the buffer's own flow-derated law, on every plant, so the two tanks cost the
+  same per kWh at the same water temperature. A tank below the reference flow
+  (`cop_flow_reference_temp`, 35 °C by default) earns no boost.
 
 Each is priced at the forecast humidity: the step's own where the plan buys
 heat, and the horizon's mean where a valuation prices at the mean outdoor
@@ -1156,7 +1156,7 @@ fit degrades to the historical two-column form and reports no gains figure.
 |---|---|---|
 | DHW tank cooling rate | Tank decay with no heating | Lower envelope, clamped 0.05–3.0 °C/h |
 | Buffer tank cooling rate | Buffer decay with the pump off | Lower envelope; needs a buffer sensor, else an area-scaled prior |
-| House heat loss scale | Predicted vs measured indoor temperature | Slow symmetric average, rate-limited, residual cutoff |
+| House heat loss scale | Predicted vs measured indoor temperature | Slow symmetric average, each sample's move bounded by a trust region, residual cutoff |
 | Lower-floor loss ratio | Lower-floor sensor residuals | Only moves with a real lower-floor sensor |
 | COP scale | Measured power vs modelled thermal output | [0.5, 1.6], tracking-error gate, bounded step |
 | Defrost derate | Predicted vs actual performance, per outdoor-temperature and humidity bucket | Exactly 1.0 with no evidence |

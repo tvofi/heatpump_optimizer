@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.0.0
+# claims-for: 7.0.1
 #
-# v7.0.0: Round-9 closure. The stamp empties the list; the
+# v7.0.1: set-point floor from the pump's inlet water and a relaxed solver start for installs that cannot duty-cycle. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -731,44 +731,5 @@
 # editor_schema stays identical (it renders a schema, not the card).
 
 # 1. the stylesheet alone:
-no_plan # stylesheet only
-no_plan_expanded # stylesheet only
-plan_inline # stylesheet only
-plan_inline_sv # stylesheet only
-plan_short_window # stylesheet only
-custom_title_currency # stylesheet only
-hidden_series # stylesheet only
-score_open # stylesheet only
-expanded_plan # stylesheet only
-what_if_off # stylesheet only
-expanded_zoomed # stylesheet only
-draft_dirty_menu_open # stylesheet only
-draft_mid_drag # stylesheet only
-whatif_edited # stylesheet only
-whatif_weekly # stylesheet only
-override_active # stylesheet only
-shared_steps # stylesheet only
-shared_steps_hover # stylesheet only
-tooltip_hover # stylesheet only
-coarse_pointer # stylesheet only
-reduced_motion # stylesheet only
-advisor_page # stylesheet only
-wood_alert # stylesheet only
-wood_lane # stylesheet only
-wood_whatif # stylesheet only
-away_toggle # stylesheet only
-away_return # stylesheet only
-away_status # stylesheet only
-history_panned # stylesheet only
-history_deep_panned # stylesheet only
-history_no_power # stylesheet only
-history_unavailable # stylesheet only
-history_pending # stylesheet only
 
 # 2. the redrawn Setup page, on top of the stylesheet:
-setup_single_buffer # the Setup page is redrawn
-setup_two_tank # the Setup page is redrawn
-setup_coil # the Setup page is redrawn
-layout_editing_dragged # the Setup page is redrawn
-layout_editing_tidy # the Setup page is redrawn
-picker_open_filtered # the Setup page is redrawn

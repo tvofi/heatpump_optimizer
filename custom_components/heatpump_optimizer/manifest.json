@@ -2,7 +2,8 @@
   "domain": "heatpump_optimizer",
   "name": "Heat Pump Cost Optimizer",
   "after_dependencies": [
-    "mqtt"
+    "mqtt",
+    "recorder"
   ],
   "codeowners": [
     "@tvofi"
@@ -20,5 +21,5 @@
     "scipy>=1.10.0",
     "threadpoolctl>=3.5.0"
   ],
-  "version": "7.0.0"
+  "version": "7.0.1"
 }

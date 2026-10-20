@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._energy_cost_fn GUARD_OFF 6e5e1a9f",
+  "killed_by": "tests/features.py",
+  "old": "        if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):",
+  "reason": "Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -126,13 +126,11 @@ from __future__ import annotations
 import asyncio
 import bisect
 import logging
-import math
 from collections import Counter, deque
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from functools import wraps
-from typing import Any, Callable, TypeGuard
+from typing import Any, TypeGuard
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -145,6 +143,10 @@ from homeassistant.util import dt as dt_util
 
 from . import boost, issues, pump_mode, quiet_windows
 from .const import (
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
     MODE_AUTO,
     MODE_BOOST,
@@ -154,15 +156,17 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
-from .inputs import read_setpoint, setpoint_range_c, write_setpoint_c
+from .inputs import InputReader, read_setpoint, setpoint_range_c, write_setpoint_c
 from .log_latch import log_held
 from .payload import CurrentAction
+from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
     configured_flow_heat_c,
     flow_setpoint_for_level,
+    modulation_floor_flow_c,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -315,22 +319,6 @@ def duty_mode(config: Any) -> str:
     return EntryConfig.from_mapping(config).pump_duty_mode
 
 
-def _release_duty_floor(
-    fn: Callable[..., str | None],
-) -> Callable[..., str | None]:
-    """Drop the plan's modulation floor if ``step_duty`` raises between the reads."""
-    @wraps(fn)
-    def _wrapped(*args: Any, **kwargs: Any) -> str | None:
-        try:
-            return fn(*args, **kwargs)
-        finally:
-            setattr(planned_draw_runs, "modulation_floor", None)
-    return (
-        _wrapped
-    )
-
-
-@_release_duty_floor
 def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
@@ -343,19 +331,26 @@ def step_duty(result: Any, now: datetime) -> str | None:
     no space duty at all, so the arbiter wrote the pump's hot-water mode over
     it. A caller-supplied threshold is the shape that let them diverge, so the
     parameter is gone rather than defaulted.
+
+    The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
+    (D7-arch3-04). It used to travel through an attribute on the function
+    object, set here and cleared by a decorator's ``finally`` so a later
+    floorless caller did not inherit it: one module-level slot for a per-plan
+    value, read by every caller that passed none. No production reader runs off
+    the loop, so the harm was the channel and the second piece of state that
+    kept it clean, not a live race.
     """
     stamps = list(getattr(result, "timestamps", None) or [])
     i = bisect.bisect_right(stamps, now) - 1
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):
+    # A step covers [stamp, stamp + one plan step): the last one ends where the
+    # next would start, the same half-open rule bisect gives every other step.
+    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
-    setattr(
-        planned_draw_runs, "modulation_floor",
-        getattr(result, "duty_floor_kw", None),
-    )
-    s_on = i < len(space) and planned_draw_runs(space[i])
-    d_on = i < len(dhw) and planned_draw_runs(dhw[i])
+    floor = getattr(result, "duty_floor_kw", None)
+    s_on = i < len(space) and planned_draw_runs(space[i], modulation_floor=floor)
+    d_on = i < len(dhw) and planned_draw_runs(dhw[i], modulation_floor=floor)
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
@@ -474,17 +469,52 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
     )
 
 
-def _flow_inlet_c(inp: ArbiterInputs) -> float:
-    """Floor-return temperature, else the rated hold flow."""
-    value = getattr(inp.state, "floor_return_temperature", None)
-    finite = tuple(
-        float(item) for item in (value,)
-        if isinstance(item, (int, float))
-        if math.isfinite(item)
+#: The sensors that measure the water the pump heats, best first: the
+#: set-point is a power command (tvofi, 2026-10-19), so its floor sits a
+#: lift above that water. One precedence for every plant, because what a
+#: slot measures follows the plant (tvofi asked for every combination):
+#:
+#: * pump-loop return -- the condenser's own inlet on any plant;
+#: * buffer tank -- with a buffer, with or without a mixing valve, the
+#:   pump heats the tank;
+#: * floor return -- on a direct-to-radiator plant the pump's inlet; behind
+#:   a buffer, the mixed circuit's return, below the tank, so the floor
+#:   errs toward less power;
+#: * valve outlet -- house-side supply, at or above the floor return and,
+#:   on a wood topology, mixed with the wood tank, so the last rung.
+#:
+#: The pump's outgoing temperature is not a rung: it is the set-point's own
+#: controlled variable, and a floor anchored on it would chase itself. No
+#: rung read leaves the rated :data:`FLOW_HOLD_C`, today's default.
+FLOW_INLET_KEYS = (
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+)
+
+
+def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
+    """The first fresh reading of :data:`FLOW_INLET_KEYS`, °C, or ``None``.
+
+    Read through :class:`~.inputs.InputReader`, so a stale, implausible or
+    unconfigured slot is absent rather than guessed, and a slot left unset
+    falls to the next rung.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    reader = InputReader(
+        inp.hass, dict(inp.config or {}),
+        enabled=cfg.staleness_watchdog_enabled,
+        scale=cfg.staleness_max_age_scale,
     )
-    return (
-        finite[0] if finite else FLOW_HOLD_C
+    readings = (reader.read(key) for key in FLOW_INLET_KEYS)
+    return next(
+        (reading.value for reading in readings if reading.ok), None
     )
+
+
+def _or_hold(floor_c: float | None) -> float:
+    return FLOW_HOLD_C if floor_c is None else floor_c
 
 
 def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
@@ -495,9 +525,11 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
     2026-09-26). A step that heats writes a flow that follows the planned
     level: :data:`FLOW_HEAT_C` (or the configured ceiling) at full power,
-    toward the return temperature at the modulation floor, so the pump's
-    own water thermostat can realize a lower level. A fixed 55 °C never
-    cycles, and a sub-minimum slot then delivers the modulation floor. A
+    sliding to the measured inlet plus a minimum lift at the modulation
+    floor, so the pump's own water thermostat can realize a lower level.
+    With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`. A
+    fixed 55 °C never cycles, and a sub-minimum slot then delivers the
+    modulation floor. A
     step that does not heat writes the gate. The fallback leaves the pump
     on its own, so it holds the rated :data:`FLOW_HOLD_C`, or the curve
     where that is higher.
@@ -512,7 +544,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
                 p_min,
                 p_max,
                 configured_flow_heat_c(inp.config, FLOW_HEAT_C),
-                _flow_inlet_c(inp),
+                _or_hold(modulation_floor_flow_c(_flow_inlet_c(inp))),
             ),
             FLOW_GATE_C,
         )
@@ -523,11 +555,6 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
     hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)
     return _bounded(inp, "space_setpoint", hold, FLOW_GATE_C)
-
-
-def _step_start(now: datetime) -> datetime:
-    """The 15-minute step start covering ``now``, on the solver's clock."""
-    return now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
 
 
 def _silent_rows(spec: Any) -> TypeGuard[str]:
@@ -542,7 +569,9 @@ def _silent_rows(spec: Any) -> TypeGuard[str]:
     if not isinstance(spec, str) or not spec.strip():
         return False
     monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = quiet_windows.step_actions(monday, 7 * 96, 0.25, spec, None)
+    actions = quiet_windows.step_actions(
+        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
+    )
     return actions is not None
 
 
@@ -554,7 +583,7 @@ def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
     not a silent one.
     """
     actions = quiet_windows.step_actions(
-        _step_start(now), 1, 0.25, silent_spec, off_spec,
+        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
     )
     return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
 
@@ -898,7 +927,7 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
     """Fold this pass into the current step's ledger row; close the last one."""
     held.last_duty = duty
-    start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    start = plan_step_start(now)
     tank = getattr(inp.state, "dhw_temperature", None)
     row = held.step
     if row is None or row["start"] != start:

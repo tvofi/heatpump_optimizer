@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v7.0.1
+
+**Heat pumps driven through a flow set-point now follow the price plan instead of sitting at minimum power (#2445).** On an install that cannot duty-cycle -- its power is commanded through the heating-flow set-point, so a planned level below the pump's minimum is rounded to off or to that minimum -- the plan could sit at the 1.5 kW floor all day despite a price spread. Two things caused it, and both are fixed:
+
+- The minimum-power set-point now starts from the water actually entering the pump (the heat pump return, else the buffer tank, else the floor return, else the valve outlet, whichever is configured and fresh) plus a 5 K lift, instead of the return temperature or a fixed 35 °C. Full power still writes the configured ceiling, and with none of those sensors configured the floor is exactly the old 35 °C. No new setting is added.
+- The solver gets one extra, relaxed starting point that cannot get stuck in the flat zone between off and minimum power. Its result is refined and ranked against every other candidate on the objective the install actually runs, so the plan shipped is never worse than before. Installs that can duty-cycle are unchanged.
+
+Flat-price control for this change (ruled under mandate 6175172275): the relaxed start also frees flat-price solves that were stuck, so flat-price plans can move. The control for solver-start changes is therefore "never worse, and every flat-price move lowers the objective" -- no flat-price plan scores higher, and every flat-price plan that moves scores lower. How many census plans move depends on the machine's floating-point build; the invariant holds on both arm64 and x86_64.
+
+**Please measure on a Raspberry Pi.** The extra solve time is estimated, not measured: about +8 to +16 s per solve on a clamped install, scaled from +2.0 to +2.7 s measured on arm64. If you run on a Pi with a set-point-driven pump, please report the solve time, especially if a solve approaches your update interval.
+
+Other changes users can see:
+
+- Hot water: the tank pays the pump's lift at its own water temperature on every plant, so hot-water heating is priced more realistically (the always-hot baseline's hot-water cost rises), and one duty floor and slot-floor owner (#2368, #2365).
+- Savings: the thermostat baseline is taken from a held state, with month scaling and one month cost (#2411).
+- Fahrenheit installs: one set-point unit owner, so climate, valve and clamp writes are correct in °F (#2285).
+- Tariffs: the month's last peak window closes; plateau, cyclic range and peak billing are each computed once (#2282).
+- Price and weather feeds: last-known values are age-bounded, failures read as distinct values, and repeated feed errors no longer flood the log (#2336, #2351).
+- Learning: the lower-floor learned ratio is applied in the space-demand estimate and the heat-loss basis is labelled (#2347); the learner's trust region is relative to the parameter (#2435); a rate limit no reachable state binds is removed (#2448); the vent detector gains a bias window (#2391).
+- Diagnostics: Download diagnostics includes a replay document (#2399); sensor payload numbers are checked and scrubbed in one place (#2379).
+- Card and setup: the Setup tab is redesigned with flat cards, wrapped labels, muted unset rows and one precision (#2346); Home Assistant deep links go through one card helper (#2283, #2345).
+- Robustness: the store owns its field rules (#2375); the early cutoff releases its coordinator wiring at unload (#2329); apply_schedule resolves loaded entries before its no-op return (#2290); leaf modules stop importing the solver (#2371).
+
+Engineering and audit programme (round 10): the round-10 record and catch-up record (#2244, #2251); archscore coverage and structure pricing (#2293, #2311, #2320, #2340, #2401, #2441); orchestration, train, tick, prepr and roster tooling (#2275, #2281, #2289, #2294, #2297, #2305, #2341, #2344, #2360, #2366, #2374, #2376, #2386, #2390, #2397, #2400, #2403, #2404, #2406, #2408, #2416, #2419, #2421, #2422, #2423, #2424, #2433, #2442, #2444, #2447, #2456); CI and replay (#2206, #2207, #2209, #2210, #2211, #2212, #2214, #2215, #2216, #2217, #2284, #2301, #2316, #2323, #2339, #2342, #2349, #2393, #2394, #2396, #2405); RCA records (#2204, #2415); round-9 handover (#2213).
+
+Roster and delivery-record pull requests: #2202, #2208, #2218, #2245, #2246, #2274, #2276, #2277, #2278, #2279, #2280, #2286, #2287, #2288, #2291, #2292, #2295, #2296, #2299, #2300, #2303, #2306, #2308, #2309, #2313, #2314, #2315, #2318, #2319, #2321, #2322, #2324, #2325, #2326, #2327, #2328, #2330, #2332, #2333, #2334, #2335, #2338, #2348, #2352, #2354, #2355, #2356, #2357, #2358, #2359, #2361, #2362, #2363, #2364, #2367, #2369, #2370, #2372, #2377, #2380, #2382, #2383, #2384, #2385, #2387, #2388, #2392, #2398, #2402, #2407, #2412, #2413, #2414, #2417, #2418, #2420, #2425, #2426, #2427, #2430, #2431, #2432, #2434, #2439, #2440, #2443, #2446, #2449, #2450, #2451, #2453, #2454, #2455, #2457, #2458, #2459.
+
 ## v7.0.0
 
 Round 9 closes: the audit fix programme drains to completion. The record beat's delivery rows land under a guard that accepts its own rewrites (the row-staleness class is closed at both layers); the merge train beats visibly and its main_green reads once; two reusable instruments land (a daemonized launcher, a refusal-log reader) and a self-tested remote-ref prune closes the branch namespace; the roster and state docs move into main. See #201 for the closure record.
