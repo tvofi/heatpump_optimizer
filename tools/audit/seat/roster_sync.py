@@ -272,12 +272,13 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         if not pr.merge_commit:
             skips.append((gid, stage, pr, "the merge carries no commit"))
             continue
-        if (stage != "done" or resume.get("commit") != pr.merge_commit
-                or resume.get("pr") != pr.number):
+        # A transition only: a group already done is a settled record, and its
+        # commit is not re-recorded (the tick checks a done commit is in main;
+        # a pull request's head is, once merged).
+        if stage != "done":
             changes.append(Change(gid, "done", pr.number, pr.merge_commit,
                                   stage, pr.state))
-            if stage != "done":
-                transitions.append(pr)
+            transitions.append(pr)
     return changes, skips, transitions
 
 
@@ -319,7 +320,10 @@ def apply_plan(roster: dict, changes: list[Change], appends: list[tuple]) -> Non
     """The derived ops, through roster_edit's own op functions."""
     for c in changes:
         roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)
-        roster_lib.groups_of(roster)[c.group].setdefault("resume", {})["pr"] = c.pr
+        if c.stage == "in-progress":
+            # The open pull request's number is the one the ask records; a
+            # done group's record is its merge commit.
+            roster_lib.groups_of(roster)[c.group].setdefault("resume", {})["pr"] = c.pr
     for dest, text in appends:
         roster_edit.op_append_carry(roster, dest, text)
 
@@ -387,9 +391,13 @@ def sync(a) -> int:
         appends, refusals = carry_plan(projected, transitions, a.repo,
                                        a.pr_state)
         for c in changes:
-            print(f"roster_sync: {c.group}: stage {c.was} -> {c.stage}"
-                  + (f" at {c.merge_commit[:12]}" if c.merge_commit else "")
-                  + f" (PR #{c.pr} {c.state})")
+            if c.was == c.stage:
+                print(f"roster_sync: {c.group}: record PR #{c.pr} for stage "
+                      f"{c.stage}")
+            else:
+                print(f"roster_sync: {c.group}: stage {c.was} -> {c.stage}"
+                      + (f" at {c.merge_commit[:12]}" if c.merge_commit else "")
+                      + f" (PR #{c.pr} {c.state})")
         for s in skips:
             why = s[3] if len(s) > 3 else "a human disposition"
             print(f"roster_sync: SKIP {s[0]}: stage {s[1]} is {why} "
@@ -632,7 +640,7 @@ def self_test() -> int:
         check("merged PR: stage done at its merge commit",
               by["R9-LIVE"]["resume"]["stage"] == "done"
               and by["R9-LIVE"]["resume"].get("commit") == "a" * 40
-              and by["R9-LIVE"]["resume"]["pr"] == 11,
+              and "pr" not in by["R9-LIVE"]["resume"],
               by["R9-LIVE"]["resume"])
         check("open PR: stage in-progress with its number",
               by["R9-OPEN"]["resume"]["stage"] == "in-progress"
@@ -641,9 +649,9 @@ def self_test() -> int:
         check("a deferred stage is never overwritten",
               by["R9-DEFER"]["resume"]["stage"] == "deferred",
               by["R9-DEFER"]["resume"])
-        check("a done stage takes the merge commit and the number",
+        check("an already-done stage is left alone (its commit is not rewritten)",
               by["R9-DONE"]["resume"]["stage"] == "done"
-              and by["R9-DONE"]["resume"]["commit"] == "d" * 40,
+              and by["R9-DONE"]["resume"]["commit"] == "b" * 40,
               by["R9-DONE"]["resume"])
         check("the merged body's Carry item lands in the destination",
               by["R9-DEST"].get("carry")
