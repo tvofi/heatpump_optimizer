@@ -1,0 +1,2 @@
+REFUSED: 1 violation(s) in /Users/timmalmstrom/hpo-seats/r10s3/plan-opt-review3/scratch/no-inh-coord.json
+  coordinator cap: the inherited in-progress set is not recorded in generated.inherited_coordinator

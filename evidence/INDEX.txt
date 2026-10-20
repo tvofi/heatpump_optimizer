@@ -1,0 +1,27 @@
+Evidence index for the round-3 fix review of f031946e7fe5a3a0430b29d251119c1c46735644.
+
+HEAD.txt                     head, origin/main and merge base at review time
+plan.json, plan2.json        the pinned roster command's output; plan2 is the determinism rerun
+arith.out                    reviewer harness: closure, chain, batches, stamps, gate minutes, medians
+batches-stamps.out           batches cover 50 groups once; 30 production merges in stamp order
+inherited.out, heights.out   inherited coordinator set; 6 inherited = top-6 live by height
+wave-depth.out               50 open groups, 45 store a wave, 5 none, 40 disagree (two depth definitions)
+inert.out                    closure.is_inert and closures.json for tools/plan
+carry_audit.out              body carry audit: 6 routed, 0 unrouted
+batch-windows.out            --batch-window-minutes 20 and 120 figures
+openpr-1652.out              exactly one PR open at 16:52:44Z (#2491)
+ci-order.out                 real check-run order: the rerun is listed before the first attempt
+dedupe-window.out            the decisive CI window: committed = no-dedupe; shipped rule = rerun kept
+dedupe.out, dedupe-mutant.out  synthetic duplicate: code rule vs first-attempt vs naive, and the dedupe line deleted
+selftest.out                 --self-test 19 ok, rc 0
+selftest-dedupe-mutant.out   --self-test still 19 ok after deleting the dedupe line
+tmp_paths.out                tmp_paths --check rc 1, tools/plan/replan.py:4-5
+agreement_py.out, agreement_mjs.out  agreement lane rc 1, unregistered wave-roster grammar
+agreement-cause.out          the grammar and tools/plan at the merge base and at the head
+transcripts/A.out            missing inherited_coordinator: --check rc 1
+transcripts/B.out            dependency cycle: rc 2
+transcripts/C1.out           inherited inversion recorded, --check rc 0
+transcripts/C2.out           unrecorded inversion: --check rc 1
+transcripts/coordcap2.out    planned coordinator cap breached: --check rc 1
+harness/                     the reviewer's arith.py, dedupe-window.py, measure_ci_dedupe.py and the two roster fixtures
+prepr.log                    the pre-PR run at this head (written under the scratch root)

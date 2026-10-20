@@ -1,0 +1,2 @@
+REFUSED: 1 violation(s) in /Users/timmalmstrom/hpo-seats/r10s3/plan-opt-review3/scratch/coordcap2-plan.json
+  coordinator cap: 2 planned groups touching coordinator.py at 2026-10-21T02:10:00Z (cap 1)

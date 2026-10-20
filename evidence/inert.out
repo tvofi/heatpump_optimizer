@@ -1,0 +1,5 @@
+RESULT is_inert(tools/plan/replan.py)=True
+RESULT is_inert(tools/plan/durations.json)=True
+RESULT is_inert(tools/plan/)=True
+RESULT tools_plan_in_INERT= True
+RESULT tools_plan_in_closures.json= False

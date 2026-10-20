@@ -1,0 +1,6 @@
+RESULT cut=16:52 fast (3.14): n=28 listed=55.2 earliest=55.2 | closures: n=28 listed=28.4 earliest=29.45 | Analyze (python): n=30 listed=26.9 earliest=26.9
+RESULT cut=16:53 fast (3.14): n=29 listed=55.2 earliest=55.2 | closures: n=28 listed=28.4 earliest=29.45 | Analyze (python): n=30 listed=26.9 earliest=26.9
+RESULT cut=16:54 fast (3.14): n=29 listed=55.2 earliest=55.2 | closures: n=28 listed=28.4 earliest=29.45 | Analyze (python): n=30 listed=26.9 earliest=26.9
+RESULT cut=16:55 fast (3.14): n=29 listed=55.2 earliest=55.2 | closures: n=28 listed=28.4 earliest=29.45 | Analyze (python): n=30 listed=26.9 earliest=26.9
+RESULT cut=16:57 fast (3.14): n=29 listed=55.2 earliest=55.2 | closures: n=28 listed=28.4 earliest=29.45 | Analyze (python): n=30 listed=26.9 earliest=26.9
+RESULT cut=16:62 fast (3.14): n=29 listed=55.2 earliest=55.2 | closures: n=29 listed=27.3 earliest=29.4 | Analyze (python): n=30 listed=26.9 earliest=26.9

@@ -1,0 +1,2 @@
+REFUSED: 1 violation(s) in /Users/timmalmstrom/hpo-seats/r10s3/plan-opt-review3/scratch/ahead-unrecorded.json
+  dependency: generated.inherited_dependency_violations [] does not equal the inherited inversions [('B', 'A')]

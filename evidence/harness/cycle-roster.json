@@ -1,0 +1,1 @@
+{"groups": [{"group": "A", "size": "S", "lane": "Core model", "kind": "defect", "after": ["B"], "resume": {"stage": "not-started"}}, {"group": "B", "size": "S", "lane": "Core model", "kind": "defect", "after": ["A"], "resume": {"stage": "not-started"}}]}

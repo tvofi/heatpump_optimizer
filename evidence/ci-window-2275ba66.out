@@ -1,0 +1,4 @@
+RESULT window_merges=30 samples_all_three=29
+RESULT fast (3.14): n=29 median=55.2 iqr=[41.2, 56.7] cancelled=0 rate=0.0 | committed n=29 median=55.2 iqr=[41.2, 56.7] cancelled=None rate=None
+RESULT closures: n=30 median=28.35 iqr=[21.7, 30.1] cancelled=0 rate=0.0 | committed n=30 median=28.4 iqr=[21.7, 30.1] cancelled=None rate=None
+RESULT Analyze (python): n=30 median=27.15 iqr=[21.5, 27.9] cancelled=2 rate=0.067 | committed n=30 median=27.1 iqr=[21.5, 27.9] cancelled=2 rate=0.067

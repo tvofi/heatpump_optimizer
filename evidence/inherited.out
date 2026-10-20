@@ -1,0 +1,5 @@
+RESULT live_count= 11
+RESULT live_coordinator= ['R10-FREQ-DEFROST', 'R10-NIGHT-FOLDS', 'R10-SAV-REASONS']
+RESULT plan_inherited= 6 ['R10-CI-LAYOUT', 'R10-FREQ-DEFROST', 'R10-NIGHT-FOLDS', 'R10-REPLAY-LANE', 'R10-SAV-REASONS', 'R10-TRAIN-HOLD']
+RESULT top6_by_duration= ['R10-CI-LAYOUT', 'R10-FREQ-DEFROST', 'R10-TRAIN-HOLD', 'R10-DEEPLINK-HANDLERS', 'R10-ROSTER-OPS', 'R10-MERGE-PR-MANDATE']
+RESULT summary_peaks= {'peak_in_flight': 6, 'peak_working': 6, 'peak_coordinator_in_flight': 2}

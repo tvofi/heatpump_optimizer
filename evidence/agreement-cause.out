@@ -1,0 +1,7 @@
+=== at merge base 990e90af9bcd ===
+(empty above = tools/plan absent at the merge base)
+=== roster grammar readers at merge base ===
+990e90af9bcd:tools/audit/seat/roster_lib.py:47:_ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
+=== roster grammar readers at head ===
+HEAD:tools/audit/seat/roster_lib.py:47:_ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
+HEAD:tools/plan/replan.py:105:_ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")

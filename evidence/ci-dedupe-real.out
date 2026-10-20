@@ -1,0 +1,6 @@
+RESULT last30_head= e5d967192254 last30_tail= d1db05dfcf2a n= 30
+RESULT target_in_last30= True
+RESULT fast (3.14): n_rows=30 median_first_listed=55.2 median_earliest_started=55.2 median_naive_all_rows=55.2 naive_n=30
+RESULT closures: n_rows=30 median_first_listed=28.4 median_earliest_started=29.45 median_naive_all_rows=29.4 naive_n=31
+RESULT Analyze (python): n_rows=30 median_first_listed=26.9 median_earliest_started=26.9 median_naive_all_rows=26.9 naive_n=30
+RESULT dup_commit closures rows in API order: [('2026-10-20T07:56:10Z', 22.1, 118518413410), ('2026-10-20T06:07:28Z', 29.4, 118482216942)]

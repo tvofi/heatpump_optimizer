@@ -1,0 +1,16 @@
+RESULT closure_from_groups=2026-10-30T03:17:00Z wall_hours=226.2833 | body claims 2026-10-30T03:17Z 226.28
+RESULT critical_chain_minutes=13577 hours=226.2833 links=12 | body claims 226.28 h over 12 links
+RESULT critical_chain=R10-SAV-REASONS>R10-ADVISOR>R10-SCORES>R10-LIVESTATE>R10-CONFIG-NOTICES>R10-PARAMS-OWNER>R10-ARCH-SHAPES>R10-LEARNER-ETA>R10-HEAT-METER>R10-COP-GATE>R10-UX-HEALTH>R10-ARCH-DOCS
+RESULT plan_critical_path_links=12 hours=226.2833 same_as_recomputed=True
+RESULT wall_equals_chain=True groups_started_after_all_deps_merged=7 (>0 means slot/queueing delay somewhere)
+RESULT batches=44 stamps=7 patch_stamps=6 minor_stamps=1
+RESULT summary_batches=44 summary_stamps=7
+RESULT gate_per_run=113.302300 runs=51 gate_minutes=5778.4173 | body claims 51 runs, 5778.4; plan summary 5778.4
+RESULT medians fast=55.2 closures=29.4 analyze=26.9 cancelled_rate=0.067
+RESULT n fast=28 closures=29 analyze=30 cancelled=2
+RESULT iqr fast=[41.5, 56.7] closures=[21.8, 30.0] analyze=[21.0, 27.9]
+RESULT durations_measured_at=2026-10-20T16:52:44Z merges=28
+RESULT inherited_coordinator cap=2 groups=['R10-FREQ-DEFROST', 'R10-NIGHT-FOLDS', 'R10-SAV-REASONS'] exceeds_cap=True | body claims 3 groups, cap 2
+RESULT inherited_in_progress=6 inherited_dep_violations=0
+RESULT roster_ref=e3010676747126df614e595ae43477db7d32e7b9 roster_blob=277cdd3591938af542a3f72510389f9bc3378429
+RESULT groups_open=50 summary_groups_open=50 all_scheduled=True start_le_finish=True

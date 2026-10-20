@@ -1,0 +1,10 @@
+RESULT harness_setup_unmutated_RC_MUST_BE_ZERO_FOR_A_NULL_CONTROL rc=1 fails=['FAIL the command exits 2 on a dependency cycle: rc=1']
+RESULT unmutated_with_durations rc=0 fails=[]
+RESULT first_occurrence_is_production=True
+RESULT earliest_attempt_as_the_harness_applies_it rc=1 fails=["FAIL a rerun does not replace the first attempt (earliest started_at): {'closures': {'job': 2, 'minutes': 30.0, 'conclusion': 'success', 'started': datetime.datetime(2026, 1, 5, 1, 0, tzinfo=datetime.timezone.utc)}}"]
+RESULT earliest_attempt_production_line_changed rc=1 fails=["FAIL a rerun does not replace the first attempt (earliest started_at): {'closures': {'job': 2, 'minutes': 30.0, 'conclusion': 'success', 'started': datetime.datetime(2026, 1, 5, 1, 0, tzinfo=datetime.timezone.utc)}}"]
+RESULT coordinator-cap rc=1 fails=['FAIL the coordinator cap limits planned groups in flight: 3']
+RESULT dispatch-order rc=1 fails=['FAIL dispatch takes the longest remaining path first, not the shortest job: A starts 2026-01-05T00:00:00Z, B 2026-01-05T02:00:00Z']
+RESULT stamp-cadence rc=1 fails=["FAIL five production merges cut one patch stamp: [{'version': 'v1.1.0', 'at': '2026-01-05T04:00:00Z', 'carries': ['P0', 'P1', 'P2', 'P3', 'P4', 'P5'], 'kind': 'minor', 'batch': None}]"]
+RESULT ci-formula rc=1 fails=["FAIL CI minutes price every gate run (batches + stamps): {'ci_minutes': 100.1, 'batches': 1, 'stamps': 2, 'gate_minutes': 100.1}"]
+RESULT gate-cancellation rc=1 fails=['FAIL the gate price includes the cancelled-leg rerun: 99.0 != 100.08']

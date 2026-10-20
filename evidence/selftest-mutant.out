@@ -1,0 +1,20 @@
+ok   deterministic: two runs are byte-identical
+ok   the clean plan passes --check
+ok   the critical path runs A -> B -> D
+ok   cycle: build refuses
+ok   over-cap wave refuses
+ok   dependency inversion refuses
+ok   stamp cadence breach refuses
+ok   short patch stamp refuses
+ok   summary mismatch refuses
+ok   --check exits 1 on a planted over-cap wave
+FAIL the command exits 2 on a dependency cycle: rc=1
+ok   live admission never exceeds the slot cap
+ok   the excess live group is queued, not invented
+ok   an inherited group ahead of its dependency is recorded
+ok   the plan with a recorded inversion passes --check
+ok   an unrecorded inherited inversion refuses
+ok   the inherited coordinator set is recorded
+ok   a missing inherited-coordinator record refuses
+ok   a disagreeing inherited-coordinator record refuses
+self-test: 1 failed

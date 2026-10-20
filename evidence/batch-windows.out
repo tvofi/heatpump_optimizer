@@ -1,0 +1,4 @@
+=== window 20 ===
+summary: closure 2026-10-30T05:17:00Z | wall 228.28 h | CI 5778.4 min | batches 44 | stamps 7 | roster 277cdd359193 | inherited coordinator 3/2 (0 inherited dependency inversion(s))
+=== window 120 ===
+summary: closure 2026-10-30T15:17:00Z | wall 238.28 h | CI 5778.4 min | batches 44 | stamps 7 | roster 277cdd359193 | inherited coordinator 3/2 (0 inherited dependency inversion(s))
