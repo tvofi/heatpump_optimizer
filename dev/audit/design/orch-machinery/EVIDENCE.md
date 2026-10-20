@@ -1,487 +1,354 @@
-# Evidence for the orchestration-machinery design
+# Evidence for the orchestration-machinery design (revision 2)
 
-Commands and their output for every quantified claim in `DESIGN.md`. Host paths are
-written `~` and the owner column of an `ls -la` output is shown as `USER` (the docs were committed to a ref; `ref_privacy.py` exists so a push
-does not publish the host). Times are UTC unless marked local. `load1` is quoted
-beside every timing claim.
+Commands and output for every figure in `DESIGN.md`. Host paths are written `~`
+and the owner column of an `ls -la` output is shown as `USER` (the docs go to a
+ref; `ref_privacy.py` exists so a push does not publish the host). Times are UTC
+unless marked local. `load1` is quoted beside every timing claim.
 
 Run from the design worktree unless a command names another directory:
 
     git -C ~/heatpump_optimizer worktree add ~/hpo-seats/r10s3/orch-design/wt \
         -B handoff/orch-machinery origin/main
-    cd ~/hpo-seats/r10s3/orch-design/wt      # HEAD a2b25bbc5 at the time of writing
+    cd ~/hpo-seats/r10s3/orch-design/wt      # HEAD a2b25bbc5
 
-Live state read 2026-10-20T11:38Z–11:56Z, `load1` 42.9–82.6 on 8 cores
+Live state re-read 2026-10-20T11:38Z–12:24Z, `load1` 42.9–82.6 on 8 cores
 (`sysctl -n hw.ncpu` → 8; `uptime` → `load averages: 42.95 57.47 60.92`).
+Revision 1's ERRORS are corrected here and listed in DESIGN.md §10; the
+reviewer's perturbed figures (its V2, V8, V11, V16, V17) are re-derived below.
 
 ---
 
-## E1. Inventory row count (derived, not carried)
+## E1. Inventory row count and tree size
 
     $ grep -c '^| M[0-9][0-9]' dev/audit/design/orch-machinery/DESIGN.md
-    46
+    50
     $ grep -o '^| M[0-9][0-9]' dev/audit/design/orch-machinery/DESIGN.md |
         sed 's/^| M//' | sort -n |
-        awk 'NR != $1 { print "gap at", $1; bad=1 } END { if (!bad) print "contiguous 1.." NR; exit bad }'
-    contiguous 1..46
-
-False-result control: a copied count would not match this command after any edit;
-the second command fails if a row id is missing or duplicated.
-
-Tree size the rows are drawn from:
-
+        awk 'NR != $1 { print "gap at", $1; bad=1 } END { exit bad }'
+    (no gap; exit 0)
     $ ls tools/audit/seat | wc -l
     53
-    $ grep -l -- '--self-test' tools/audit/seat/* | wc -l
-    38
+    $ grep -l -- '--self-test' tools/audit/seat/* | grep -vc '\.md$'
+    37
     $ wc -l tools/audit/seat/* tools/audit/seat/*.md | tail -1
     22793 total
 
+N1 correction: revision 1 wrote "38 with a --self-test"; the 38th is
+`INSTRUMENTS.md`, a document, so the script count is **37**. The entry count at
+this head is 53 (the reviewer measured 52 at its read; instruments land and the
+count moves). The composition rule no longer leans on the total.
+
 ---
 
-## E2. The board is a projection of the relay log (S1)
+## E2. The disposal figure, sha-aware (B1 correction)
+
+Revision 1 compared ref **names** (`comm`) and concluded "201 re-owed at a
+different sha". The sha-aware comparison:
+
+    $ python3 -I - <<'PY'
+    import collections
+    L=os.path.expanduser('~/.local/state/hpo/cloud-relay.log')
+    D=os.path.expanduser('~/.local/state/hpo/cloud-disposed')
+    last={}
+    for line in open(L):
+        f=line.split()
+        if len(f)>=5 and f[0]=='OWED' and f[2] in ('handoff-no-pr','probe-ref'):
+            last[(f[2],f[3])]=f[4]
+    ...
+    PY
+    disposed lines: 210 distinct refs: 203
+    last-owed sha == disposed: 199 different: 3
+      moved: ('refs/heads/handoff/audit-r10-roster', 'b932ecc9…', '0321c901…')
+      moved: ('refs/heads/handoff/r10-ci-layout-p0', 'dd3a4447…', '385b3a0d…')
+      moved: ('refs/heads/handoff/audit-r10-plan', 'b90c1053…', '6691dd18…')
+    disposed refs with no OWED line in the log: 1
+
+So of **202 comparable** dispositions, **199 sit at exactly their disposed sha**
+and **3 moved** (the plan ref, the roster and `r10-ci-layout-p0` — the branches
+that move) (N6: 210 lines, 203 distinct refs; 7 duplicate lines). The ledger is
+still required for the reason that survives:
+
+    $ awk '$1=="OWED" && ($3=="handoff-no-pr"||$3=="probe-ref"){print $4}' ~/.local/state/hpo/cloud-relay.log | sort -u | wc -l
+    228
+    $ grep -c 'disposed\|cloud-disposed' tools/audit/seat/orchestrator_tick.py
+    0
+
+The tick never opens `cloud-disposed`; 203 disposals silence nothing.
+
+The board remains a projection of the log (unchanged, PASS):
 
     $ wc -c -l ~/hpo-orch/r10s3/orch/tick/tick.txt
-    30079 3901380 ~/hpo-orch/r10s3/orch/tick/tick.txt
-    $ tail -1 ~/hpo-orch/r10s3/orch/tick/tick.txt
-    DISPATCH LIST: 30014 finding(s)
-    $ awk '{print $1}' ~/hpo-orch/r10s3/orch/tick/tick.txt | sort | uniq -c | sort -rn | head -3
-    30014 ->
-        8 ==
-        3 roster
+    30079 3901380
     $ grep -c '^-> OWED:' ~/hpo-orch/r10s3/orch/tick/tick.txt
     29976
     $ grep '^-> OWED:' ~/hpo-orch/r10s3/orch/tick/tick.txt |
         sed -E 's/.* (refs\/heads\/[^ ]+|[a-z-]+) .*/\1/' | sort -u | wc -l
     229
-    $ python3 -I -c "print(29976/229)"
-    130.8995633187773
-    $ grep '^-> OWED:' ~/hpo-orch/r10s3/orch/tick/tick.txt |
-        sed -E 's/^-> OWED: OWED( [0-9T:Z-]+)? ([a-z-]+).*/\2/' | sort | uniq -c
-    29814 handoff-no-pr
-       10 handoff-update
-      151 probe-ref
-        1 reviewer-fire
-
-The source log, same count:
-
-    $ wc -l -c ~/.local/state/hpo/cloud-relay.log
-    29976 3622919 ~/.local/state/hpo/cloud-relay.log
-    $ grep ' handoff-no-pr ' ~/.local/state/hpo/cloud-relay.log | awk '{print substr($2,1,13)}' |
-        sort | uniq -c | tail -4
-     1827 2026-10-20T08
-      875 2026-10-20T09
-     1040 2026-10-20T10
-      862 2026-10-20T11
-    $ grep ' handoff-no-pr ' ~/.local/state/hpo/cloud-relay.log | awk '{print $4}' | sort -u | wc -l
-    213
-    $ wc -l < ~/.local/state/hpo/cloud-disposed
-    210
-    $ comm -12 <(grep ' handoff-no-pr ' ~/.local/state/hpo/cloud-relay.log | awk '{print $4}' | sort -u) \
-               <(awk '{print $1}' ~/.local/state/hpo/cloud-disposed | sort -u) | wc -l
-    201
-
-201 of the 210 disposed refs are re-owed at a different sha (the ref moved after
-disposal); the relay's own rule — "a disposed ref that moves is owed again" — is
-correct for a one-shot probe ref and permanent for a moving branch.
-
-**Write volume.** 144 banners over the log's span (E5) → 8.2 passes/h:
-
-    $ python3 -I -c "b=3901380; print(round(b*8.2/1e6,1),'MB/h', round(b*8.2*24/1e9,2),'GB/day')"
-    32.0 MB/h 0.77 GB/day
-
-**The parser's key.** Source, `tools/audit/seat/orchestrator_tick.py:relay_owed`:
-
-    for row in rows:
-        f = row.split()
-        if len(f) >= 3 and f[0] == "OWED":
-            owed.setdefault(f[2], []).append(row.strip())
-        elif len(f) >= 3 and f[0] == "POSTED":
-            owed.pop(f[2], None)
-
-`f[2]` is the PR for the verdict grammars and the literal kind token for
-`handoff-no-pr` / `probe-ref`. No `POSTED` is ever written for those kinds.
 
 ---
 
-## E3. Demonstration — the fold's blind grammar (real code, fixture)
+## E3. Demonstration — the fold's blind grammar
 
-    $ python3 -I - <<'PY'
-    import importlib.util, tempfile, os
-    spec=importlib.util.spec_from_file_location("tick","tools/audit/seat/orchestrator_tick.py")
-    m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-    t=object.__new__(m.Tick); t.findings=[]; t.sections={}; t.api_calls=0
-    d=tempfile.mkdtemp(); log=os.path.join(d,"relay.log")
-    open(log,"w").write(
-    "OWED 2026-10-19T18:11:44Z handoff-no-pr refs/heads/handoff/x deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n"
-    "OWED 2026-10-19T18:11:44Z probe-ref refs/heads/probe/y deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n"
-    "OWED 2026-10-19T18:20:00Z 7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bus.sh confirm failed\n"
-    "POSTED 2026-10-19T18:25:00Z 7 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n")
-    t.relay_log=log
-    t.relay_owed("REPLAN")
-    for f in t.findings: print(f["text"])
-    print("findings:",len(t.findings))
-    open(os.path.join(d,"cloud-disposed"),"w").write("refs/heads/handoff/x deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n")
-    t.findings=[]; t.sections={}
-    t.relay_owed("REPLAN")
-    for f in t.findings: print(f["text"])
-    print("findings after dispose:",len(t.findings))
+    $ python3 -I - <<'PY'   # the real Tick.relay_owed on a four-line fixture
+    ...
     PY
-    OWED: OWED 2026-10-19T18:11:44Z probe-ref refs/heads/probe/y deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-    OWED: OWED 2026-10-19T18:11:44Z handoff-no-pr refs/heads/handoff/x deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+    OWED: OWED 2026-10-19T18:11:44Z probe-ref refs/heads/probe/y deadbeef…
+    OWED: OWED 2026-10-19T18:11:44Z handoff-no-pr refs/heads/handoff/x deadbeef…
     findings: 2
-    OWED: OWED 2026-10-19T18:11:44Z probe-ref refs/heads/probe/y deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-    OWED: OWED 2026-10-19T18:11:44Z handoff-no-pr refs/heads/handoff/x deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+    OWED: OWED 2026-10-19T18:11:44Z probe-ref refs/heads/probe/y deadbeef…
+    OWED: OWED 2026-10-19T18:11:44Z handoff-no-pr refs/heads/handoff/x deadbeef…
     findings after dispose: 2
 
-Null control that passes: the relay-verdict OWED (`… 7 … bus.sh confirm failed`)
-followed by `POSTED … 7 …` prints **nothing** — the one grammar the self-test pins.
+Null control: the relay-verdict OWED (`… 7 … bus.sh confirm failed`) followed by
+`POSTED … 7 …` prints nothing. Source: `orchestrator_tick.py:relay_owed` keys on
+`f[2]`, the PR for one grammar and the literal kind token for the others.
 
 ---
 
-## E4. Demonstration — the relay's fail-open (S6)
+## E4. Demonstration — the relay's fail-open, and the double start
 
-    $ S=$(mktemp -d ~/hpo-seats/r10s3/orch-design/relaydemo.XXXXXX); cd "$S"
-    $ HPO_STATE_DIR="$S/state" HPO_RELAY_PRS=true \
-        bash ~/hpo-seats/r10s3/orch-design/wt/tools/audit/seat/cloud_relay.sh pass > "$S/out" 2>&1
-    $ echo "rc=$?"; cat "$S/out"
+    $ HPO_STATE_DIR="$S/state" HPO_RELAY_PRS=true bash tools/audit/seat/cloud_relay.sh pass
     rc=0
     fatal: 'origin' does not appear to be a git repository
-    fatal: Could not read from remote repository.
-
-    Please make sure you have the correct access rights
-    and the repository exists.
     cloud_relay: could not list handoff refs; will retry
     fatal: 'origin' does not appear to be a git repository
-    fatal: Could not read from remote repository.
-
-    Please make sure you have the correct access rights
-    and the repository exists.
     cloud_relay: ls-remote failed; will retry
 
-The live instance, in the running loop's own log:
+Live, in the running loop's log:
 
     $ grep -n '^===== daemonize' ~/hpo-orch/r10s3/orch/tick/loop.log
-    1:===== daemonize pid=46070 2026-10-19T18:11:31Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    246:===== daemonize pid=48658 2026-10-19T18:15:36Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    23558:===== daemonize pid=30511 2026-10-20T06:54:19Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    27536:===== daemonize pid=11552 2026-10-20T09:37:39Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    27542:===== daemonize pid=12205 2026-10-20T09:38:06Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    28593:===== daemonize pid=35000 2026-10-20T10:11:16Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
+    1:     pid=46070 2026-10-19T18:11:31Z
+    246:   pid=48658 2026-10-19T18:15:36Z
+    23558: pid=30511 2026-10-20T06:54:19Z
+    27536: pid=11552 2026-10-20T09:37:39Z
+    27542: pid=12205 2026-10-20T09:38:06Z
+    28593: pid=35000 2026-10-20T10:11:16Z
     $ sed -n '27536,27540p' ~/hpo-orch/r10s3/orch/tick/loop.log
-    ===== daemonize pid=11552 2026-10-20T09:37:39Z argv: bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun at: /Library/Developer/CommandLineTools/usr/bin/xcrun
+    ===== daemonize pid=11552 2026-10-20T09:37:39Z argv: bash tools/audit/seat/tick_loop.sh …
+    xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun …
     cloud_relay: could not list handoff refs; will retry
-    xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun at: /Library/Developer/CommandLineTools/usr/bin/xcrun
+    xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun …
     cloud_relay: ls-remote failed; will retry
     TICK-PASS 2026-10-20T09:37:58Z relay=ok tick=0 out=~/hpo-orch/r10s3/orch/tick/tick.txt
 
-Two launches 27 s apart (`09:37:39`, `09:38:06`) of a loop whose interval is 300 s
-is the double-start: the second is the sweep's restart ritual starting a *second*
-mechanism beside the live one. `tick_loop.sh` contains no `alive` write and no
-pidfile (`grep -n 'alive\|pidfile\|flock' tools/audit/seat/tick_loop.sh` → none).
+Two launches 27 s apart under a 300 s interval: two loops. `tick_loop.sh` has no
+`alive` write and no pidfile (`grep -n 'alive\|pidfile\|flock'` → none), and the
+sweep template's step 5 restarts a tick *seat* on a stale `alive`.
 
-False-result control: on a healthy pass the same line would print `relay=ok` with
-no `fatal:`/`xcrun` lines above it; the defect is the *combination*, which the
-self-test does not exercise (`tick_loop.sh --self-test` stubs a relay that exits 0
-or N, never one that fails a read).
+False-result control: a healthy pass prints `relay=ok` with no `fatal:`/`xcrun`
+lines; the defect is the combination, which the self-test never exercises
+(`tick_loop.sh --self-test` stubs a relay that exits 0 or N).
 
 ---
 
 ## E5. The tick's achieved cadence
 
-    $ python3 -I - <<'PY'
-    import re,datetime,statistics
-    import os
-    lines=open(os.path.expanduser('~/hpo-orch/r10s3/orch/tick/loop.log'),encoding='utf-8',errors='replace').read().splitlines()
-    ts=[datetime.datetime.fromisoformat(m.group(1)) for l in lines if (m:=re.match(r'TICK-PASS (\S+) ',l))]
-    gaps=[(b-a).total_seconds() for a,b in zip(ts,ts[1:])]
-    print("passes:",len(ts))
-    print("gaps min/median/mean/max: %.0f %.0f %.0f %.0f"%(min(gaps),statistics.median(gaps),statistics.mean(gaps),max(gaps)))
-    print("gaps >600s:",sum(1 for g in gaps if g>600),"of",len(gaps))
-    print("derived pass durations max %.0f"%max(g-300 for g in gaps if g>300))
-    PY
     passes: 144
     gaps min/median/mean/max: 74 399 438 2654
     gaps >600s: 5 of 143
     derived pass durations max 2354
 
-Eight largest gaps:
+Eight largest gaps: 08:53:44→09:37:58 (2654 s), 10:35:52→11:02:36 (1604),
+06:35:35→06:55:19 (1184), 20:28:28→20:47:46 (1158), 19:39:09→19:50:31 (682).
 
-      08:53:44 -> 09:37:58 2654
-      10:35:52 -> 11:02:36 1604
-      06:35:35 -> 06:55:19 1184
-      20:28:28 -> 20:47:46 1158
-      19:39:09 -> 19:50:31  682
-
-False-result control: 300 s interval with an instantaneous pass would give every
-gap ≈300 s and no gap over 600 s; five gaps of 682–2,654 s is the signal.
+False-result control: a 300 s interval with an instantaneous pass gives every gap
+≈300 s and none over 600 s.
 
 ---
 
-## E6. Demonstration — a live slot holder is stolen at expiry (S7)
+## E6. Demonstration — a live slot holder is stolen at expiry
 
-    $ T=$(mktemp -d ~/hpo-seats/r10s3/orch-design/lockdemo.XXXXXX)
-    $ python3 -I - "$T" <<'PY'
-    import sys, time, os, subprocess, pathlib
-    sys.path.insert(0,"tests"); import gate_lock
-    d=sys.argv[1]; sleeper=subprocess.Popen(["sleep","60"])
-    i,o=gate_lock.take_slot("holder-A", lock_dir=pathlib.Path(d), slots=1, lease_seconds=1, owner_pid=sleeper.pid)
-    print("A took slot",i,"pid",o.pid,"expires",o.expires_at)
-    time.sleep(2); print("A's named pid alive?", sleeper.poll() is None)
-    try:
-        j,o2=gate_lock.take_slot("holder-B", lock_dir=pathlib.Path(d), slots=1, lease_seconds=30, wait=False, owner_pid=os.getpid())
-        print("B STOLE the slot while A's process is alive: slot",j,"now",o2.label)
-    except BlockingIOError as e: print("B blocked:",e)
-    sleeper.kill()
-    PY
     A took slot 0 pid 97905 expires 2026-10-20 11:53:11.542037+00:00
     A's named pid alive? True
     B STOLE the slot while A's process is alive: slot 0 now holder-B
 
-Null control: `wait=False` **before** expiry raises `BlockingIOError` (the same
-call shape); the steal needs the expired lease.
-
-Live context: the two `prepr.sh` runs held slots whose leases expired at
-`12:03:33Z` and `12:03:42Z` while they had run 15+ minutes:
+Null control: `wait=False` before expiry raises `BlockingIOError`. Live context:
 
     $ cat /tmp/hpo-gate.lock/slots/slot-000
     label=prepr-48004
     expires_at=2026-10-20T12:03:33.110897+00:00
     taken_at=2026-10-20T11:33:33.110897+00:00
     pid=48004
-    $ python3 -I tests/gate_lock.py slot-status
-    /tmp/hpo-gate.lock/slots: 3/4 slots held [0:prepr-48004(live), 1:prepr-48265(live), 2:prepr-63943(live)] queue=-
     $ python3 -I tests/gate_lock.py status
     /tmp/hpo-gate.lock: expired label=r10-stamp expires_at=2026-10-20T11:10:05.554391+00:00 flock_available=True queue=-
+    $ ps -eo pid,etime,command | grep 'prepr.sh' | grep -v grep | cut -c1-90
+     7269 23:29 bash tools/pr/prepr.sh ~/hpo-seats/r10s3/fix-stamp/body.md
+    14728 18:40 bash tools/pr/prepr.sh ~/hpo-seats/r10s3/dependabot-aiohttp/body/BODY.md
+    63943 36:50 bash tools/pr/prepr.sh ~/hpo-seats/r10s3/record-body/repro/generated-at-head.md
+    77712 32:40 bash tools/pr/prepr.sh ~/hpo-seats/r10s3/record-body/repro/generated-at-head.md
+    94268 28:06 bash tools/pr/prepr.sh ~/hpo-seats/r10s3/fix-stamp/body.md
 
-The single lease is also abandoned-expired (`r10-stamp`), which is the crash state
-`take()` steals — correct for the exclusive lease, wrong as the *only* protection
-for the pool.
+Five live runs at 18:40–36:50 elapsed against a 1800 s (30 min) lease: the
+longest is already past it and stealable.
 
 ---
 
-## E7. The prepr starvation (S7)
+## E7. Prepr starvation, and the bound a job needs (B7)
 
-    $ ps -o pid,ppid,etime,time,stat,command -p 47539,47826,48004,48214,48265 2>/dev/null | cut -c1-140
-     47539     1    16:09   0:00.04 Ss   bash tools/audit/seat/open_pr.sh r10-earlycutoff-coverage ecaf178cbd4eef5e3b30425bd4693bef8ceb4b24 …
-     47826     1    15:59   0:00.04 Ss   bash tools/audit/seat/open_pr.sh r10-i5-docs 7a7102eb844cf4f549d52af241b7bdc8e5a74797 …
-     48004 48003    15:53   0:00.07 S    bash ~/.local/state/hpo/pr/r10-earlycutoff-coverage/wt/tools/pr/prepr.sh …
-     48265 48264    15:44   0:00.09 S    bash ~/.local/state/hpo/pr/r10-i5-docs/wt/tools/pr/prepr.sh …
+    $ ps -o pid,ppid,etime,time,stat,command -p 47539,47826,48004,48265
+     47539     1    16:09   0:00.04 Ss   bash tools/audit/seat/open_pr.sh r10-earlycutoff-coverage …
+     47826     1    15:59   0:00.04 Ss   bash tools/audit/seat/open_pr.sh r10-i5-docs …
+     48004 48003    15:53   0:00.07 S    bash …/prepr.sh …
+     48265 48264    15:44   0:00.09 S    bash …/prepr.sh …
     $ tail -2 ~/.local/state/hpo/pr/r10-earlycutoff-coverage/p1.log
       ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
     Terminated: 15
 
-Both chains were PPID 1 (orphaned from the session that started them), zero CPU in
-the shell, a line per completed step only. Both logged `Terminated: 15` at
-11:50:33Z (local 13:50:33).
-
-No timeout in the chain:
+Both PPID 1, ~0.1 s CPU in the shell, a line per completed step only, both
+`Terminated: 15` at 11:50:33Z. No timeout in the chain:
 
     $ grep -n 'timeout' tools/pr/prepr.sh tools/audit/seat/open_pr.sh tools/audit/seat/update_pr.sh
-    (no `timeout` command; all hits are prose or a lane name)
+    (no matches)
 
-False-result control: a bounded run would show either a `timeout` refusal line or
-a progress line newer than the last completed step; neither exists.
+At the 12:20Z re-read, five live runs at 18:40–36:50 (E6). A job timeout below
+that kills healthy work every pass, so `beatd`'s `handoff` job is bounded at
+3600 s with a 60 s heartbeat, separate from `relay-probe` (120 s).
 
 ---
 
-## E8. The roster is unverified (S2, S3, S8b)
+## E8. The roster: mismatches, short commits, gate coverage
 
-    $ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json > /tmp/r10roster_branch.json
-    $ python3 -I - <<'PY'
-    import json,collections
-    r=json.load(open('/tmp/r10roster_branch.json'))
-    print("groups:",len(r['groups']))
-    print("stages:",dict(collections.Counter((g.get('resume') or {}).get('stage') for g in r['groups'])))
-    print("open (not done/rca-done):",sum(1 for g in r['groups'] if (g.get('resume') or {}).get('stage') not in ('done','rca-done')))
-    print("owner_gate set:",sum(1 for g in r['groups'] if g.get('owner_gate') and (g.get('resume') or {}).get('stage') not in ('done','rca-done')))
-    PY
-    groups: 93
-    stages: {'done': 46, 'not-started': 36, 'in-progress': 7, 'queued': 4}
-    open (not done/rca-done): 47
-    owner_gate set: 14
+93 groups, 47 open, 14 open gates (unchanged):
 
-Owner gates that name the live mandate (10 of 14; six exactly
-`mandated approval under 6175172275`):
+    $ python3 -I -c "…"   # roster walk
+    groups: 93  stages: {'done': 46, 'not-started': 36, 'in-progress': 7, 'queued': 4}
+    open (not done/rca-done): 47  owner_gate set: 14
 
-    R10-SETPOINT-BOOST    'mandated approval under 6175172275'
-    R10-CEILING-PROBE     'mandated approval under 6175172275'
-    R10-DEMAND-OVERBOOK   'mandated approval under 6175172275'
-    R10-BUFFER-STORE      'mandated approval under 6175172275'
-    R10-COP-PARTLOAD      'mandated approval under 6175172275'
-    R10-UPDATE-PR-SIGNALS 'mandated approval under 6175172275'
-    R10-TRAIN-HOLD        'code-owned: .github/workflows/ (workflow change, approved under mandate 6175172275)'
-    R10-POLICY-LINT-FAMILY 'policy: tools/policy/ is in POLICY_GLOBS; tvofi approves under the mandate'
-    R10-MERGE-SUBJECT-HARDEN 'policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate'
-    R10-CI-LAYOUT         '… approved at their merged head by the CODEOWNER session under mandate 6175172275 …'
+**E8a — the matching rule applied (B13).** Topic = basename of `resume.branch`
+(else the lowercased group id); a ref matches when its name, minus
+`refs/heads/{handoff-body,handoff,fix}/` and a trailing `-pr`, equals the topic or
+starts with `<topic>-`. At 12:20Z:
 
-The mandate, from the tick's own MAIN section:
+    open groups: 47 mismatches: 10
+    ('R10-SENSOR-PAYLOAD', 'not-started', 'in-flight', 'r10-sensor-payload', [handoff-body/…, handoff/…])
+    ('R10-I5-DOCS', 'not-started', 'in-flight', 'r10-i5-docs', …)
+    ('R10-RCA-FRICTION', 'not-started', 'in-flight', 'r10-rca-harness-friction', …)
+    ('R10-CI-LAYOUT', 'not-started', 'in-flight', 'r10-ci-layout', [handoff-body/r10-ci-layout-p0, handoff/r10-ci-layout-p0])
+    ('R10-DEMAND-OVERBOOK', 'queued', 'no-artifact', …)
+    ('R10-BUFFER-STORE', 'queued', 'no-artifact', …)
+    ('R10-COP-PARTLOAD', 'queued', 'no-artifact', …)
+    ('R10-UPDATE-PR-SIGNALS', 'queued', 'no-artifact', …)
+    ('R10-HANDOFF-ARCHIVE', 'in-progress', 'no-artifact', …)
+    ('R10-DEPENDABOT-AIOHTTP', 'in-progress', 'no-artifact', …)
 
-    mandate: in force: mandate 6175172275 (scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z)
+Revision 1's nine omitted `R10-RCA-FRICTION` (its topic differs from its group
+id) and stated a prefix rule it did not define; the set moves as seats work, so
+the exact count is a reading, not a constant. `R10-I5-DOCS` beside a live opener:
 
-Stage-vs-ref mismatches (9), from
-
-    $ git ls-remote --heads origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' 'refs/heads/fix/*' | wc -l
-    219
-
-and the roster walk in `EVIDENCE`'s script (the full program is in the seat log;
-the result):
-
-    ('R10-SENSOR-PAYLOAD', 'not-started', 'not-started but a ref names it')
-    ('R10-I5-DOCS',        'not-started', 'not-started but a ref names it')
-    ('R10-CI-LAYOUT',      'not-started', 'not-started but a ref names it')
-    ('R10-DEMAND-OVERBOOK','queued',      'in-progress/queued but no ref names it')
-    ('R10-BUFFER-STORE',   'queued',      'in-progress/queued but no ref names it')
-    ('R10-COP-PARTLOAD',   'queued',      'in-progress/queued but no ref names it')
-    ('R10-UPDATE-PR-SIGNALS','queued',    'in-progress/queued but no ref names it')
-    ('R10-HANDOFF-ARCHIVE','in-progress', 'in-progress/queued but no ref names it')
-    ('R10-DEPENDABOT-AIOHTTP','in-progress','in-progress/queued but no ref names it')
-
-`R10-I5-DOCS` beside a live opener:
-
-    $ git ls-remote --heads origin 'refs/heads/handoff/*i5-docs*' 'refs/heads/handoff-body/*i5-docs*'
-    cfba198bcbd1dfb3352d7c491d6be7f71fd695bd  refs/heads/handoff-body/r10-i5-docs
-    7a7102eb844cf4f549d52af241b7bdc8e5a74797  refs/heads/handoff/r10-i5-docs
-    $ grep -n 'R10-I5-DOCS' ~/hpo-orch/r10s3/orch/tick/tick.txt
     30023:-> R10-I5-DOCS: UNBLOCKED, not started -- start a fixer on handoff/r10-i5-docs
 
-while `ps` (E7) showed an `open_pr.sh` for `r10-i5-docs` running 11:33–11:50Z.
+and the live `open_pr.sh` for it ran 11:33–11:50Z (E7).
 
-The contradictory display line:
+**E8c — the short commits (B3 correction).**
 
-    $ grep -n 'R10-UPDATE-PR-SIGNALS' ~/hpo-orch/r10s3/orch/tick/tick.txt
-    30046:   R10-UPDATE-PR-SIGNALS: in progress (stage queued)
+    R10-VENT-DETECTOR 768bfc0c341d unique=1 ancestor_in_main=True
+    R10-SAV-BASELINE 8cc1abc3a27d unique=1 ancestor_in_main=True
+    R10-TICK-DRIVERS a96f4be4ac0a unique=1 ancestor_in_main=True
+    R10-DIAG-REPLAY 0dac0bf8731a unique=1 ancestor_in_main=True
+    R10-REF-PRIVACY a73f3320c53a unique=1 ancestor_in_main=True
+    R10-RCA-STRUCTURE-BLIND f0a4acac7984 unique=1 ancestor_in_main=True
+    R10-OPENPR-SILENT 7ab3030bbfff unique=1 ancestor_in_main=True
+    R10-TICK-SELFTEST-CI c35302773738 unresolved here (may exist on an unfetched ref)
 
-The source (`orchestrator_tick.py:plan`) prints `"in progress (stage {stage})"` for
-every non-deferred, non-blocked, non-`UNBLOCKABLE_STAGES` stage, so `queued` is
-rendered "in progress".
+Seven resolve uniquely and are ancestors of `origin/main`; the length test
+(`len(sha)==40`) is the defect, not the records.
 
-Eight `resume.commit` values are not 40-hex (the tick's `group-stale` tests only
-`len(sha)==40`, so these can never be verified):
+**E8b — gate coverage under the mandate (B2 correction).** See E18 for the
+mandate's text. Every one of the 14 open gates is class `code-owned` or `policy`
+(four carry the exact string `mandated approval under 6175172275`; ten name the
+mandate in some form; none is a class the mandate excludes). Under the design's
+predicate — is the gate's class covered by the in-force mandate? — the answer is
+**14 ready / 0 owner**. Revision 1's 10/4 asked whether the gate's *free text*
+named the mandate, which is S3's defect in a new form.
 
-    ('R10-VENT-DETECTOR','768bfc0c341d') ('R10-SAV-BASELINE','8cc1abc3a27d')
-    ('R10-TICK-DRIVERS','a96f4be4ac0a') ('R10-DIAG-REPLAY','0dac0bf8731a')
-    ('R10-REF-PRIVACY','a73f3320c53a') ('R10-RCA-STRUCTURE-BLIND','f0a4acac7984')
-    … (8 total)
+Absorbed, with no merge of its own:
 
-`R10-CI-RATCHET-RED` — `done`, no commit, absorbed:
-
-    'resume': {'stage': 'done', 'branch': 'handoff/r10-ci-ratchet-red', 'commit': None,
-               'next_step': 'fixer',
-               'note': 'Folded into R10-CI-LAYOUT PR 0 … not dispatched separately.'}
+    'R10-CI-RATCHET-RED': {… 'resume': {'stage': 'done', 'commit': None,
+      'note': 'Folded into R10-CI-LAYOUT PR 0 … not dispatched separately.'}}
 
 ---
 
-## E9. Liveness is written by a brief, not by an instrument (S4, S5)
-
-    $ grep -rl 'tick/alive' ~/hpo-orch/r10s3 ~/hpo-seats/r10s3
-    ~/hpo-orch/r10s3/orch/briefs/tick-watcher.md
-    ~/hpo-orch/r10s3/orch/sweep-overlay.json
-    ~/hpo-orch/r10s3/orch/briefs/sweep-current.txt
-    ~/hpo-orch/r10s3/orch/sweep-prompt.txt
-    $ grep -n 'alive' ~/hpo-orch/r10s3/orch/briefs/tick-watcher.md
-    … `date -u +%FT%TZ > ~/hpo-orch/r10s3/orch/tick/alive` each pass (the sweep's liveness signal).
-    $ ps -eo command | grep -F 'alive' | grep -v grep      # no live writer
-    (empty)
-    $ ls -la ~/hpo-orch/r10s3/orch/tick/alive
-    -rw-r--r--  1 USER          staff  21 Oct 20 13:49 ~/hpo-orch/r10s3/orch/tick/alive
-
-`mcp__scheduled-tasks__list_scheduled_tasks` → `No scheduled tasks found.` The file
-moves when an agent turn runs the command; the instrument that runs (`tick_loop.sh`)
-never writes it.
-
-The seat ledger's claim vs the process table:
+## E9. Liveness (S4), with revision 1's command corrected (N2)
 
     $ tail -1 ~/hpo-orch/r10s3/orch/SEATS.md
-    LIVE(8): tick, vent, savbase, sensorpay, pump, refpriv, review-leaf, review-2345.
+    07:10Z Owed openers remain (no PR carries them): r10-roster-ops … Open-PR cap 6; 5 open now.
+    $ grep -n '^LIVE(' ~/hpo-orch/r10s3/orch/SEATS.md | tail -1
+    162:LIVE(8): tick, vent, savbase, sensorpay, pump, refpriv, review-leaf, review-2345.
+    $ stat -f '%Sm' ~/hpo-orch/r10s3/orch/SEATS.md
+    Oct 20 09:12:22 2026                      # local; 07:12Z
     $ ps -eo pid,ppid,etime,command | grep -E 'claude --output-format' | grep -v grep | wc -l
     2
-    $ ps -eo pid,ppid,etime,command | grep -E ' (vent|savbase|sensorpay|pump|refpriv) ' | grep -v grep
+    $ grep -rl 'tick/alive' ~/hpo-orch/r10s3 ~/hpo-seats/r10s3
+    …/orch/briefs/tick-watcher.md  …/orch/sweep-overlay.json  …/sweep-current.txt  …/sweep-prompt.txt
+    $ ps -eo command | grep -F 'alive' | grep -v grep
     (empty)
+    $ ls -la ~/hpo-orch/r10s3/orch/tick/alive
+    -rw-r--r--  1 USER  staff  21 Oct 20 13:49 …/tick/alive
 
-False-result control: a supervised system would show a process per live seat or a
-journal line naming each; neither exists.
+`mcp__scheduled-tasks__list_scheduled_tasks` → `No scheduled tasks found.` The
+`LIVE(8)` line is at 162 of 893, not the tail; the mtime is 09:12 local (07:12Z).
+The file moves when an agent turn runs the command; no instrument writes it.
+
+The seat checker that already exists (and that `beatd status` is **not**):
+
+    $ sed -n '953,1014p' tools/audit/seat/orchestrator_tick.py
+    def workers(self) -> None: … def one_worker(self, S, w) -> None:
+        # STALLED? no PR pushed after the stall window; DONE? the PR head moved
+        # since dispatch; OK (CI completed since dispatch)
+    # input: --workers-file (JSON {seat, pr, head, dispatched_at, agent_kind})
+
+The input is JSON already; the session keeps prose instead.
 
 ---
 
-## E10. The plan generator (S8, added mid-task)
+## E10. The plan generator, with the live-repair correction (B12)
 
-    $ ls -la ~/hpo-orch/r10s3/REPLAN-EDGES.json ~/hpo-orch/r10s3/plan/gen.py
-    -rw-r--r--  1 USER          staff   1610 Oct 17 23:06 ~/hpo-orch/r10s3/REPLAN-EDGES.json
-    -rw-r--r--  1 USER          staff  12293 Oct 20 13:54 ~/hpo-orch/r10s3/plan/gen.py
+    $ md5 ~/hpo-orch/r10s3/plan/gen.py
+    446ce44181804dc5300d18fa000bf078        # unchanged since revision 1's read
+    $ grep -n 'REPLAN-EDGES\|EDGES.get\|groups\["R10-ARCH-DOCS"\]\|plan-issues-open' ~/hpo-orch/r10s3/plan/gen.py
+    10:open(B + "plan-issues-open.json","w") …
+    17:groups["R10-ARCH-DOCS"] = {… "resume": {"stage": "not-started"}}     # PRESENT
+    52:# The dependency graph is the roster's own `after` edges. A scratch REPLAN-EDGES.json used to …
+    $ grep -n 'REPLAN-EDGES\|len(ISS)\|pr=f"#{MERGED' ~/hpo-orch/r10s3/plan/gen.py.bak
+    4:EDGES = json.load(open(B + "REPLAN-EDGES.json"))                      # pre-fix shape
+    148:open_iss = len(ISS) - 1                                            # pre-fix shape
+    89:  pr=f"#{MERGED[g]}" if g in MERGED else PR.get(g, "—")             # pre-fix shape
+
+At the cited file: defect 1 is **present**; 2, 3 and 4 were **repaired** while
+revision 1 was reading it; 5 is **partial** (the status text says folded, the pill
+class is still `done`). The `.bak` files are the recovered pre-fix source, so the
+self-test arms are mutation pins over fixtures (DESIGN §6.7), not references to
+the live file.
+
+The scratch graph and publish path (unchanged):
+
     $ python3 -I - <<'PY'
-    import json
-    import os
-    E=json.load(open(os.path.expanduser('~/hpo-orch/r10s3/REPLAN-EDGES.json')))
-    R=json.load(open('/tmp/r10roster_branch.json')); G={g['group']:g for g in R['groups']}
-    diff=[(k,sorted(g.get('after') or []),sorted(E.get(k,[]) if k in E else sorted(g.get('after') or [])))
-          for k,g in G.items() if sorted(g.get('after') or []) != sorted(E.get(k, g.get('after') or []))]
-    print("groups:",len(G),"in EDGES:",len(E),"absent from EDGES:",sum(1 for k in G if k not in E))
-    print("groups whose edges differ:",len(diff))
+    E=json.load(open('~/hpo-orch/r10s3/REPLAN-EDGES.json')); R=json.load(open('/tmp/r10roster_now.json'))
+    …
     PY
-    groups: 93 in EDGES: 34 absent from EDGES: 59
-    groups whose edges differ: 27
-
-Generator source (read at 13:49Z; it is being edited live):
-
-    EDGES = json.load(open(B + "REPLAN-EDGES.json"))
-    edges = {g: list(EDGES.get(g, groups[g].get("after", []))) for g in groups}   # scratch wins
-    groups["R10-ARCH-DOCS"] = {... "resume": {"stage": "not-started"}}            # roster override
-    LIVE = {...14 seats...}; MERGED = {...25 group→PR...}; HOURS = {"S":5,...}    # carried
-    open_iss = len([i for i in json.load(open(B + "plan-issues-open.json")) if i["number"] != 201])
-
-The publish path the sweep names does not exist:
-
-    $ ls ~/hpo-orch/r10s3/plan/round-10-plan.html
-    ~/hpo-orch/r10s3/plan/round-10-plan.html
+    groups: 93 in EDGES: 34 absent from EDGES: 59 groups whose edges differ: 27
+    $ ls '~/hpo-orch/r10s3/plan/round-10-plan.html'
+    …/plan/round-10-plan.html
     $ ls '/private/tmp/claude-501/…/scratchpad/round-10-plan.html'
     No such file or directory
 
-True open issues excluding `#201` (the corrected figure, 45):
+---
 
-    $ gh issue list -R tvofi/heatpump_optimizer --state open --limit 200 --json number \
-        --jq '[.[] | select(.number != 201)] | length'
-    45
+## E11. The unreadable contract the new readers must keep (B11)
 
-(`gh api 'repos/…/issues?state=open' --paginate --jq '[.[] | select(.pull_request==null)] | length'` → 46, including `#201`; 3 open pull requests are not issues in that listing's sense.)
+The current model, `orchestrator_tick.py:relay_owed`:
 
-`roster_edit.py` has no `set-after`:
+    try: … open(self.relay_log) …
+    except FileNotFoundError:   self.line(S, "cloud-relay log: none yet …"); return
+    except OSError as e:        self.unreadable(S, "cloud-relay log", str(e)[:100]); return
 
-    $ grep -n 'op", choices' tools/audit/seat/roster_edit.py
-    p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
-                                  "edit-brief", "append-carry", "set-resume", …
+First run is not a failure; an unreadable file is `UNREADABLE`. The design keeps
+that split for `ledger.py` (both stores), `roster_sync.py` (ref/PR reads) and
+`beatd.jobs.json` (refuse to start).
 
 ---
 
-## E11. The sweep's overlay has drifted
-
-    $ cat ~/hpo-orch/r10s3/orch/sweep-overlay.json   (the session-local overlay)
-    transcript: ~/.claude/projects/-Users-…-audit-round-10-orchestration-eaa727/9d5c75e8-….jsonl
-    plan_artifact: /private/tmp/claude-501/…-audit-round-10-orchestration-eaa727/…/scratchpad/round-10-plan.html
-    plan_generator: python3 ~/hpo-orch/r10s3/plan/gen.py
-    $ ls -la ~/.claude/projects/-Users-…-audit-round-10-orchestration-eaa727/9d5c75e8-….jsonl
-    -rw-------  1 USER          staff  92219016 Oct 20 08:18 …9d5c75e8-….jsonl
-    $ ls -lat ~/.claude/projects/ | head -3
-    drwx------  4 … -Users-…--claude-worktrees-peaceful-clarke-53d260
-    drwx------ 17 … .
-    drwx------  3 … -Users-…--claude-worktrees-audit-round-10-fixing-de8016
-
-The overlay names a transcript that last grew at 08:18Z (the orchestrator session
-was resumed under a new id); `policy_reread_check.py` against it still answers `OK`
-because the stamp is newer than the last compaction in that file:
-
-    $ python3 -I tools/audit/seat/policy_reread_check.py \
-        --transcript ~/.claude/projects/…/9d5c75e8-….jsonl \
-        --stamp ~/hpo-orch/r10s3/orch/policy-read.stamp
-    OK (read 2026-10-20T11:22:27Z > compaction 2026-10-20T05:51:47.219Z)
-
-A check reading a *different session's* transcript cannot see this session's
-compactions.
-
----
-
-## E12. The self-tests pass while the defects are present (the control against a check that lies)
+## E12. Self-tests pass with the defects present
 
     $ python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tail -1
     orchestrator_tick self-test: 150 checks, 0 failed
@@ -490,98 +357,159 @@ compactions.
     $ bash tools/audit/seat/tick_loop.sh --self-test | tail -1
     tick_loop self-test: 4 checks, 0 failed
 
-None of the three fails on S1 (the OWED fold), S6 (the fail-open adapter) or S7
-(no timeout). This is the demonstration `defect-root-cause.md` asks for, in the
-direction that matters: a check that passes while the bug is present converts an
-open defect into a closed one.
+None fails on the OWED fold, the fail-open adapter or the missing timeout.
 
 ---
 
-## E13. Worktrees and residue (crash-survival surface)
+## E13. Worktrees and residue
 
     $ git -C ~/heatpump_optimizer worktree list | wc -l
     92
-    $ git -C ~/heatpump_optimizer worktree list --porcelain | awk '/^worktree /{print substr($0,10)}' |
-        sed -E 's|^/private/var/folders/.*|/private/var/folders/...|; s|^.*/hpo-seats/[^/]+/[^/]+/.*|~/hpo-seats/<seat>/...|' |
-        sort | uniq -c | sort -rn | head -4
+    $ … | sed -E 's|^/private/var/folders/.*|/private/var/folders/...|' | sort | uniq -c
      48 /private/var/folders/...
      23 ~/hpo-seats/<seat>/...
 
-48 worktrees live under the session temp root (mutation tables, `env_drift`
-baselines) with no process after the run; `git worktree list` sees them, nothing
-collects them. `df -h /` → 9.1 GiB free at 13:49Z, which is above the sweep's
-6 GiB floor.
+48 worktrees under the session temp root with no process; nothing collects them.
+`df -h /` → 9.1 GiB free at 13:49Z (above the sweep's 6 GiB floor).
 
 ---
 
-## E14. State surfaces
+## E14. State surfaces, and the four mechanisms revision 1 missed (B15)
 
     $ git ls-tree --name-only origin/main dev/programme/delivery/ | wc -l
     791
-    $ gh api 'repos/tvofi/heatpump_optimizer/issues/201' --jq '.comments'
+    $ gh api repos/tvofi/heatpump_optimizer/issues/201 --jq '.comments'
     1875
-    $ gh api 'repos/tvofi/heatpump_optimizer/issues/201/comments?per_page=100&sort=created&direction=desc' \
-        --jq '.[0:1] | .[] | .created_at'
-    2026-09-01T23:24:46Z
-    $ gh api 'repos/tvofi/heatpump_optimizer/issues/201/comments?per_page=100&page=19' \
-        --jq '.[-3:][] | [.created_at, .user.login] | @tsv'
+    $ gh api 'repos/…/issues/201/comments?per_page=100&sort=created&direction=desc' --jq '.[0].created_at'
+    2026-09-01T23:24:46Z          # the endpoint ignores sort: this is the OLDEST
+    $ gh api 'repos/…/issues/201/comments?per_page=100&page=19' --jq '.[-3:][] | [.created_at,.user.login] | @tsv'
     2026-10-20T11:05:14Z  tvofi
     2026-10-20T11:21:34Z  hpo-author[bot]
     2026-10-20T11:28:02Z  tvofi
 
-The first query (with `sort=created&direction=desc`) returns the **oldest**
-comment — the endpoint ignores both — so "the newest record on `#201`" requires the
-last page (page 19 of 19). Any check that reads page 1 reads the beginning of the
-programme.
+The missing mechanisms:
 
-    $ tail -20 ~/hpo-orch/r10s3/beat.log | head -6
-    round state: handoff/audit-r10-plan at handoff/round10/state/
-    generated handoff/round10/state/NEXT-SESSION-PROMPT.md: 3236 bytes
-    generated handoff/round10/state/PLAN-TABLE.md: 21688 bytes
-    generated handoff/round10/state/RESUME-CURRENT.md: 1497 bytes
-    pushed handoff/audit-r10-plan at 9ba5ac1b588ccaa9f2a03229d11703c768d193ca
-    $ cat ~/hpo-orch/r10s3/beat.tip
-    a2b25bbc5518b5cb212429fdd623b5d33634fd08 541868d6f2c2b1684d610d8627dfb785fef8d15d
+    $ grep -n '^  delivery-status:\|^  delivery-status-publish:\|^  record:' .github/workflows/governance.yml
+    990:  record:
+    1243:  delivery-status:            # pull_request; timeout-minutes: 5
+    1303:  delivery-status-publish:    # push to main; issues: write; concurrency cancel-in-progress
+    $ sed -n '1303,1317p' .github/workflows/governance.yml
+      delivery-status-publish:
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        permissions: {contents: read, issues: write}
+        concurrency: {group: delivery-status-publish, cancel-in-progress: true}
+        # Regenerate the ledger and put it in #201's region
+    $ ls -la tests/delivery_status.py
+    -rw-r--r--  1 USER  staff  34937 Oct 20 13:43 tests/delivery_status.py   # the credential-free ledger builder
+    $ cat tools/audit/seat/codeql-triage-poll.sh | head -4
+    # Dismiss the 3 #1769 evidence-alerts … for i in $(seq 1 36); do sleep 600 …
+    $ grep -n 'JOB=$(gh api … .*109534061903\|H=3ad6e085' tools/audit/seat/codeql-triage-poll.sh
+    16: JOB=$(… echo 109534061903)
+    23: H=3ad6e085accc2254dbf816ae1a105eb7caeb925c
+    $ grep -n 'MERGE-READY\|BLOCKED-UNFIXED' tools/audit/seat/orchestrator_tick.py | head -3
+    647: MERGE-READY: #N <head8>   merge at the current head, CLEAN or UNSTABLE;
+    677: self.line(S, f"MERGE-READY: #{n} {head[:8]}", flag=True)
 
-The beat's memo is a file, and the tip is written only on a 0 — the one state
-store in the machinery that already recovers correctly from a refused push.
+`bus.sh`'s own posted state (B16):
+
+    $ wc -l ~/.zcode/bus/posted ~/.zcode/bus/dispatched
+    546 ~/.zcode/bus/posted
+    686 ~/.zcode/bus/dispatched
+    $ grep -n 'logline OWED\|printf .OWED reviewer-fire' tools/audit/seat/cloud_relay.sh
+    93,157,211,215,218,221,223,231   # the relay still appends OWED lines to its log
+
+So `#201` has a comment writer and a body-region writer; `bus.sh confirm` already
+owns `posted`; the relay keeps a second OWED store.
 
 ---
 
-## E15. Processes at measurement time
+## E15. Processes
 
     $ ps -eo pid,ppid,etime,time,stat,command | awk 'length($0)<220' | grep -E 'python|bash|node'
     35000     1 01:34:06  bash tools/audit/seat/tick_loop.sh --out ~/hpo-orch/r10s3/orch/tick/tick.txt
-    35031     1 01:31:47  ~/.local/state/hpo/venv-ci/bin/python3 -u tools/audit/seat/state_docs.py beat --push --mirror ~/hpo-orch/r10s3/state --watch-ref refs/heads/main --tip-file ~/hpo-orch/r10s3/beat.tip
-    35037     1 01:34:06  bash -c while :; do bash tools/audit/seat/wt_sync.sh --scratch ~/hpo-orch/r10s3/orch; sleep 900; done
-    … (mutation_table.py, features.py, card.mjs, prepr.sh children)
-    $ ps -o pid,ppid,etime,time -p 3928,3930
-     3928  1007 02:17:22 0:00.00
-     3930  3928 02:17:22 10:35.79
+    35031     1 01:31:47  …/venv-ci/bin/python3 -u tools/audit/seat/state_docs.py beat --push --mirror …
+    35037     1 01:34:06  bash -c while :; do bash tools/audit/seat/wt_sync.sh --scratch …; sleep 900; done
+    … mutation_table.py, features.py, card.mjs, prepr.sh children
+    $ lsof -p 35031 | awk '$4 ~ /^[12]w/{print $9}'
+    ~/hpo-orch/r10s3/orch/state-beat.log
+    $ lsof -p 35037 | awk '$4 ~ /^[12]w/{print $9}'
+    ~/hpo-orch/r10s3/orch/wtsync.log
 
-Three daemons, all PPID 1, all identified only by a pid nothing records. One live
-harness process tree. `lsof -p 35031` → stdout/stderr to
-`~/hpo-orch/r10s3/orch/state-beat.log`; `lsof -p 35037` → `wtsync.log`.
-
-    $ grep -c '^synced' ~/hpo-orch/r10s3/orch/wtsync.log
-    382
+Three daemons, all PPID 1, identified only by a pid nothing records.
 
 ---
 
-## E16. Git availability (S6's premise, and the null control)
+## E16. Git availability and the CI-wiring seam (B5)
 
-    $ which -a git
-    /usr/bin/git
-    /opt/homebrew/bin/git
-    $ git --version
+    $ git --version; xcode-select -p
     git version 2.54.0 (Apple Git-157)
-    $ xcode-select -p
     /Library/Developer/CommandLineTools
     $ grep -rn '/usr/bin/git' tools tests .github .claude
     tests/entities.py:19252: … f'103 execve("/usr/bin/git", …) = 0\n'
 
-The breakage in E4 was transient: the same command succeeds now. Nothing in the
-tree hardcodes `/usr/bin/git`; the dependency is `git` on `PATH`, which resolves to
-the Apple shim over CommandLineTools — so a missing CommandLineTools breaks every
-instrument at once, and the only thing that could notice is a pass rc that the
-relay does not produce.
+The breakage was transient; the dependency is `git` on `PATH`. CI wiring:
+
+    $ python3 -I tools/audit/seat/selftest_wiring.py --check
+    selftest_wiring: 37 self-testing, 37 wired, 0 unwired
+    $ python3 -I -c "import json;r=json.load(open('/tmp/r10roster_now.json'));print([g.get('files') for g in r['groups'] if g['group']=='R10-CI-LAYOUT'])"
+    [['.github/workflows/tests.yml', '.github/workflows/governance.yml', '.github/workflows/ci.yml']]
+
+Any new `--self-test` file must be named by a `run:` line in one of those three
+files — exactly R10-CI-LAYOUT's file list.
+
+---
+
+## E17. The reconciler's owner (B4): R10-ROSTER-OPS's brief
+
+    $ git log -1 --format='%h %ci %s' 541868d6f2c2b1684d610d8627dfb785fef8d15d
+    541868d6f 2026-10-20 13:35:54 +0200 roster_edit edit-brief R10-ROSTER-OPS (tools/audit/seat/roster_edit.py)
+    $ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | …
+    R10-ROSTER-OPS brief:
+      "… Additionally (tvofi, 2026-10-20): make the FACTUAL half of roster upkeep mechanical
+       inside the beat … Add a `roster_sync.py --apply` run by `state_docs.py beat` that derives
+       only what the repository measures — a group whose `resume.branch` has a MERGED pull request
+       becomes `done` …; one whose `resume.branch` has an OPEN pull request becomes `in-progress`
+       with its number … It must never overwrite a human-written `deferred` or `refused` stage,
+       must be a dry run by default with `--apply` to write … go out through `roster_edit.py`'s
+       load-validate-dump and lint gate. …"
+    $ for ref in 541868d6f origin/handoff/audit-r10-roster origin/main origin/handoff/r10-roster-ops; do
+        git cat-file -e "${ref}:tools/audit/seat/roster_sync.py" && echo PRESENT || echo absent; done
+    absent ×4
+    $ git log --all --oneline -- tools/audit/seat/roster_sync.py
+    (empty)
+
+The **requirement** is in R10-ROSTER-OPS's brief at `541868d6f`; the file exists
+on no ref yet. The design therefore names R10-ROSTER-OPS as the single owner and
+adds only three predicates to that brief (gate coverage, absorbed-edge closure,
+commit resolution) — it does not add a second reconciler.
+
+---
+
+## E18. The mandate's text (B2)
+
+    $ gh api repos/tvofi/heatpump_optimizer/issues/comments/6175172275 --jq '.body'
+    MANDATE: agents may approve as tvofi, scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z
+
+    Exceptional round-10 programme mandate, granted by tvofi in session on 2026-10-14.
+    It covers codeowner, policy and budget-raise approvals. It is posted at tvofi's
+    request and has not been edited.
+
+Under "is the gate's class covered by the in-force mandate?", all 14 open gates
+(`code-owned`/`policy` classes) are ready.
+
+---
+
+## E19. Never-disposed subjects and vanished refs (B10)
+
+    OWED subjects: 228  disposed refs: 203  never-disposed subjects: 26
+      gone from origin: 13  still present: 13
+      still present: handoff-body/{r10-earlycutoff-coverage, r10-i5-docs,
+        r10-merge-pr-mandate, r10-rca-harness-friction, r10-roster-ops,
+        r10-setpoint-boost}, handoff/{r10-earlycutoff-coverage, r10-i5-docs,
+        r10-merge-pr-mandate, r10-rca-harness-friction, r10-roster-ops,
+        r10-setpoint-boost}, handoff/orch-machinery
+
+The counts move (the reviewer measured 19 of 32 gone at 12:07Z). A ledger without
+a `subject-absent` close would carry the vanished half forever; a ledger that
+treats `handoff/audit-r*-plan` and `handoff/audit-r*-roster` as handoff branches
+carries two permanent obligations. Both are answered in DESIGN §6.3.
