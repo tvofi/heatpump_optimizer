@@ -4865,7 +4865,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-rca-worktree-vanish",
-    "commit": null,
+    "commit": "eef9165ee76bce9d2a2d438d8b4c60d8a4d8fc77",
     "last_step": null,
     "next_step": "review",
     "note": null
