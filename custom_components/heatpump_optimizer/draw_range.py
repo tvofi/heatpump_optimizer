@@ -135,7 +135,7 @@ class DrawRange:
         idle = self.idle_kw()
         above = 0.0 if idle is None else IDLE_MARGIN * idle
         return [
-            (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)
+            (d, a, cmd is None or cmd[0] > cmd[1] - CEILING_TOLERANCE_K)
             for (d, a), cmd in zip(self.samples, self._aligned())
             if d > above
         ]
