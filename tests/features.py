@@ -18871,6 +18871,10 @@ R.check(
 # the spread to 0.0001). The gauge is the tree's own dark one, which
 # `_fold_internal_gains` already used.
 from heatpump_optimizer.thermal_model import is_sunlit_interval as _nf_sunlit  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _learned_zone_temperature as _nf_zone,
+    _zone_capacity as _nf_cap,
+)
 
 
 R.check(
@@ -18881,6 +18885,25 @@ R.check(
     and _nf_sunlit(50.5) is True,
     f"0 -> {_nf_sunlit(0.0)}, None -> {_nf_sunlit(None)}, "
     f"50 -> {_nf_sunlit(50.0)}, 50.5 -> {_nf_sunlit(50.5)}",
+)
+
+# The two choices #2223's move made once each, pinned as values so a mutant
+# cannot drop either half of the zone rule.
+_nf_state = ThermalState(room_temperature=19.0, upper_floor_temperature=23.0)
+_nf_two_zone = ThermalParameters(two_zone_enabled=True)
+_nf_single_zone = ThermalParameters()
+R.check(
+    "#2223: a fold's zone is the upper floor in two-zone mode, else the room",
+    _nf_zone(_nf_state, _nf_two_zone) == 23.0
+    and _nf_zone(_nf_state, _nf_single_zone) == 19.0,
+    f"two-zone {_nf_zone(_nf_state, _nf_two_zone)}, "
+    f"single {_nf_zone(_nf_state, _nf_single_zone)}",
+)
+R.check(
+    "#2223: and the fold's capacity is that same zone's thermal mass",
+    _nf_cap(_nf_two_zone) == _nf_two_zone.upper_floor_thermal_mass
+    and _nf_cap(_nf_single_zone) == _nf_single_zone.room_thermal_mass,
+    f"two-zone {_nf_cap(_nf_two_zone)}, single {_nf_cap(_nf_single_zone)}",
 )
 
 _nf_scale0 = _vent_coord()._house_heat_loss_scale
