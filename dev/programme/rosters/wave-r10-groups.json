@@ -4444,7 +4444,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer",
-    "note": "Folded into R10-CI-LAYOUT PR 0 (stub plus ci-ratchet payments a-c) by tvofi 2026-10-19; not dispatched separately. Diagnosis is carry 4 of R10-CI-LAYOUT. Stage done = skipped by the dispatch watcher and tick PLAN; reopen only if PR 0's ratchet half is split out and then it owns no separate group."
+    "note": "Reopened 2026-10-20: ci-ratchet failed on every push to main from 4e5801eb (14:17Z) through e4d47457, twelve consecutive runs. .github/workflows/tests.yml fetches the artifacts list with '> window.json || true' and then json.load's it, so a failed or truncated API response becomes an empty file and a JSONDecodeError ten seconds later; reproduced locally, rc 1 and 0 bytes on one attempt in three. PR 0's payments (#2464, 71f0bb69f) did not cover this path. Fixer on handoff/r10-ci-ratchet-red; the retry and never-read-empty rule belong in tests/ci_ratchet.py."
    }
   },
   {
