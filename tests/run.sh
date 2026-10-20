@@ -541,6 +541,7 @@ lane_units() {
   # tree and drives a non-finite leaf through each one -- the property check
   # that makes the fifth-seam escape of #1296/#1345 unreachable.
   run "$PYTHON" tests/finite_boundary.py
+  run_always "$PYTHON" tests/harness_headers.py
   # R9-RO-1: the repository layout barrier, against the target tree in
   # tests/layout.json (report mode, exit 0, until R9-RO-9 enforces it). A pure
   # `git mv` is scoped only by its destination, so this cannot be scoped out.
@@ -663,7 +664,6 @@ lane_stress() {
   # In lane_units it overlapped arch_score.py in lane_golden, and
   # sysid_estimator_frontier.py read cpu=306.4s against its 240 s headroom
   # (job 118380549631; 142.5-164.0 s on the base layout's push runs).
-  run_always "$PYTHON" tests/harness_headers.py
 }
 
 LANES="units golden e2e"
