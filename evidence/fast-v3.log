@@ -1,0 +1,74 @@
+﻿2026-10-20T23:46:12.5798681Z Current runner version: '2.338.0'
+2026-10-20T23:46:12.5819132Z ##[group]Runner Image Provisioner
+2026-10-20T23:46:12.5819854Z Hosted Compute Agent
+2026-10-20T23:46:12.5820426Z Version: 20261015.610
+2026-10-20T23:46:12.5821226Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+2026-10-20T23:46:12.5821893Z Build Date: 2026-10-14T17:06:54Z
+2026-10-20T23:46:12.5822503Z Worker ID: {a446f282-eaaa-44dd-bea0-3c5451def2e6}
+2026-10-20T23:46:12.5823094Z Region: centralus
+2026-10-20T23:46:12.5823578Z Cloud: Azure
+2026-10-20T23:46:12.5824029Z ##[endgroup]
+2026-10-20T23:46:12.5825302Z ##[group]Operating System
+2026-10-20T23:46:12.5825850Z Ubuntu
+2026-10-20T23:46:12.5826281Z 24.04.5
+2026-10-20T23:46:12.5826721Z LTS
+2026-10-20T23:46:12.5827185Z ##[endgroup]
+2026-10-20T23:46:12.5827649Z ##[group]Runner Image
+2026-10-20T23:46:12.5828193Z Image: ubuntu-24.04
+2026-10-20T23:46:12.5828660Z Version: 20261018.339.1
+2026-10-20T23:46:12.5829715Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-20T23:46:12.5831126Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+2026-10-20T23:46:12.5831988Z ##[endgroup]
+2026-10-20T23:46:12.5832903Z ##[group]GITHUB_TOKEN Permissions
+2026-10-20T23:46:12.5834662Z Contents: read
+2026-10-20T23:46:12.5835133Z Metadata: read
+2026-10-20T23:46:12.5835628Z ##[endgroup]
+2026-10-20T23:46:12.5837293Z Secret source: Actions
+2026-10-20T23:46:12.5838025Z Cache mode: write
+2026-10-20T23:46:12.5838601Z Prepare workflow directory
+2026-10-20T23:46:12.6144473Z Prepare all required actions
+2026-10-20T23:46:12.6185519Z Getting action download info
+2026-10-20T23:46:12.8755271Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-20T23:46:12.9696042Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-20T23:46:13.0711171Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-20T23:46:13.2417353Z Download action repository 'actions/cache@caa296126883cff596d87d8935842f9db880ef25' (SHA:caa296126883cff596d87d8935842f9db880ef25)
+2026-10-20T23:46:13.3919086Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-20T23:46:13.6470312Z Complete job name: fast (3.14)
+2026-10-20T23:46:13.7199808Z ##[group]Run echo "fast: closure-scope decided 'skip' for this base and diff."
+2026-10-20T23:46:13.7201958Z [36;1mecho "fast: closure-scope decided 'skip' for this base and diff."[0m
+2026-10-20T23:46:13.7203365Z [36;1mif [ "skip" = "skip" ]; then[0m
+2026-10-20T23:46:13.7204706Z [36;1m  echo "A recorded green run at this exact base and diff stands in for this"[0m
+2026-10-20T23:46:13.7206409Z [36;1m  echo "rerun; every step below is skipped and this job reports success."[0m
+2026-10-20T23:46:13.7207801Z [36;1mfi[0m
+2026-10-20T23:46:13.7312047Z shell: /usr/bin/bash -e {0}
+2026-10-20T23:46:13.7313270Z ##[endgroup]
+2026-10-20T23:46:13.7437579Z fast: closure-scope decided 'skip' for this base and diff.
+2026-10-20T23:46:13.7439307Z A recorded green run at this exact base and diff stands in for this
+2026-10-20T23:46:13.7440970Z rerun; every step below is skipped and this job reports success.
+2026-10-20T23:46:13.7682986Z ##[group]Run echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
+2026-10-20T23:46:13.7685069Z [36;1mecho "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"[0m
+2026-10-20T23:46:13.7719214Z shell: /usr/bin/bash -e {0}
+2026-10-20T23:46:13.7720244Z env:
+2026-10-20T23:46:13.7721245Z   PYTHONPATH: tests/hastub
+2026-10-20T23:46:13.7722151Z ##[endgroup]
+2026-10-20T23:46:13.7899196Z python: can't open file '/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/env_drift.py': [Errno 2] No such file or directory
+2026-10-20T23:46:13.8105355Z ##[group]Run actions/cache@caa296126883cff596d87d8935842f9db880ef25
+2026-10-20T23:46:13.8106618Z with:
+2026-10-20T23:46:13.8107456Z   path: ~/.cache/heatpump_optimizer/drift-baseline
+2026-10-20T23:46:13.8108545Z   key: drift-baseline-
+2026-10-20T23:46:13.8109386Z   enableCrossOsArchive: false
+2026-10-20T23:46:13.8110295Z   fail-on-cache-miss: false
+2026-10-20T23:46:13.8111597Z   lookup-only: false
+2026-10-20T23:46:13.8112377Z   save-always: false
+2026-10-20T23:46:13.8113182Z ##[endgroup]
+2026-10-20T23:46:14.0683281Z Cache hit for restore-key: drift-baseline-9084a417a7575479a0a31b44601ee2e7c0a7fb7712bcb9cc5486798e9857960e
+2026-10-20T23:46:14.4121431Z Received 141726 of 141726 (100.0%), 0.7 MBs/sec
+2026-10-20T23:46:14.4122373Z Cache Size: ~0 MB (141726 B)
+2026-10-20T23:46:14.4153213Z [command]/usr/bin/tar -xf /home/runner/work/_temp/4386b8ab-d0b8-4ab3-91c3-ff44ea1a908c/cache.tzst -P -C /home/runner/work/heatpump_optimizer/heatpump_optimizer --use-compress-program unzstd
+2026-10-20T23:46:14.4234384Z Cache restored successfully
+2026-10-20T23:46:14.4296768Z Cache restored from key: drift-baseline-9084a417a7575479a0a31b44601ee2e7c0a7fb7712bcb9cc5486798e9857960e
+2026-10-20T23:46:14.4502653Z Post job cleanup.
+2026-10-20T23:46:14.5730660Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/heatpump_optimizer/heatpump_optimizer --files-from manifest.txt --use-compress-program zstdmt
+2026-10-20T23:46:15.0034275Z Sent 141727 of 141727 (100.0%), 0.5 MBs/sec
+2026-10-20T23:46:15.1446025Z Cache saved with key: drift-baseline-
+2026-10-20T23:46:15.1542083Z Cleaning up orphan processes
