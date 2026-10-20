@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:modulation_floor_flow_c RETURN_DEL 431e5f53",
+  "killed_by": "tests/features.py",
+  "old": "    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}
