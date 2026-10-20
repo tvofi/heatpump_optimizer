@@ -123,7 +123,7 @@
     {
       "from": "the round-10 planning pull request's cross-check of the roster's stored wave field against the depth its after-edges derive",
       "effect": "invalidates",
-      "control": "The roster records a wave per group and its own comment calls that the dependency depth. At blob 277cdd359193 the stored value disagrees with the depth derived from the after-edges for 40 of 50 open groups; NIGHT-FOLDS stores 6 and derives 1. Null control: the derivation is acyclic and reproduces the replanner's order, so the discrepancy is in the stored field, not in the edges.",
+      "control": "The roster records a wave per group and its own comment calls that the dependency depth. At blob 277cdd359193 the stored value disagrees with the depth derived from the after-edges for 40 of the 45 open groups that store one; the other five store none. NIGHT-FOLDS stores 6 and derives 1. Null control: the derivation is acyclic and reproduces the replanner's order, so the discrepancy is in the stored field, not in the edges.",
       "remeasure": "Run the replanner and compare each open group's level in its output with the roster's wave. Any disagreement means the roster was not re-recorded after its edges changed.",
       "brief": "Constraint on the roster owner: the wave field must be set from the after-edges' derived depth at the next roster edit, or dropped. A reader must not take it as the schedule: the schedule is the model's wave (a dispatch instant) and the dependency depth is the model's level. Until the field is re-recorded it is stale metadata, and a plan built from it will put in-progress work in a later wave."
     }

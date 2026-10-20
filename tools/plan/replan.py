@@ -981,6 +981,13 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
                 a = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
                 b = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
                 mins = round((b - a).total_seconds() / 60.0, 1)
+                # One row per (commit, context): a workflow rerun adds a second
+                # check run of the same name on the same tree, and counting both
+                # would put two attempts in a median that describes one gate.
+                # The first attempt is kept -- a cancelled leg rerun is what the
+                # cancelled-rate term prices, not a second sample.
+                if name in got:
+                    continue
                 rows[name].append((mins, concl))
                 got[name] = {"job": int(job), "minutes": mins, "conclusion": concl}
         if len(got) == 3:
