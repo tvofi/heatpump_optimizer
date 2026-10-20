@@ -443,10 +443,14 @@ def explain_metered(
         kwh = float(metered)
         if kwh <= 0.0:
             continue
-        planned = (
-            bool(reason) and reason != REASON_UNTAGGED and reason not in IDLE_REASONS
-        )
-        code = reason if planned else REASON_UNTAGGED
+        # The reason explains this channel's draw unless it says the plan was
+        # drawing nothing there, or there is no reason at all. Read as two
+        # branches, not a conditional expression: the truthiness test is what
+        # narrows ``str | None`` to the ``str`` the share is keyed by.
+        if reason and reason != REASON_UNTAGGED and reason not in IDLE_REASONS:
+            code = reason
+        else:
+            code = REASON_UNTAGGED
         shares[code] = shares.get(code, 0.0) + kwh
     return list(shares.items())
 
