@@ -49,6 +49,15 @@ POOL (``take_slot``/``release_slot``, ``heavy_slots()`` slots under the `slots`
 subdirectory; #2267), which is what makes nudge.md's four-prepr cap mechanical
 instead of advisory. ``needs_lease`` classifies a scope into the three answers
 ``run.sh`` dispatches on: ``lease``, ``slot`` or ``none``.
+
+A pool slot is held for the LIFE of its run, not for its lease: the taker's pid
+is recorded and an expired slot is freed only when that pid is gone, because
+under load a prepr routinely runs past ``LEASE_SECONDS`` and expiry-stealing
+admitted a fifth while the first still ran. The exclusive lease keeps its
+expiry rule, since a stress run measures the machine and must not be extended
+past a waiter. ``slot-status`` counts both witnesses of an over-subscribed
+pool: holders alive past their lease, and runs that could not take a slot at
+all (``slot-unleased``).
 """
 from __future__ import annotations
 
@@ -119,6 +128,15 @@ PRIORITY_MAX = 2
 # A waiter this old is promoted to PRIORITY_MAX, so a normal ticket overtakes a
 # higher priority that arrived later (module docstring states the rationale).
 PRIORITY_AGING_SECONDS = 600
+# --- the pool's liveness rule (R10-GATE-PRIORITY, tvofi 2026-10-20) ----------
+# A slot is held for the LIFE of its run. `take_slot` records a pid (the
+# caller's, else its own) and `_free_slot` frees an expired slot only when that
+# pid is gone: a prepr under load routinely outlives the 30-minute lease, and
+# expiry-based stealing let a later run take the freed slot while the first was
+# still running, so the pool admitted more heavy runs than HEAVY_SLOTS while
+# reporting the cap. The exclusive lease keeps its expiry rule -- a stress run
+# measures the machine and must not be extended past a waiter.
+UNLEASED_PREFIX = "unleased-"
 
 
 class RenewRefused(RuntimeError):
@@ -598,12 +616,18 @@ def _slot_of(pool: Path, slots: int, label: str) -> tuple[int, Owner] | None:
 
 
 def _free_slot(pool: Path, slots: int) -> int | None:
-    """The first slot that may be claimed, stealing an expired or orphaned one.
+    """The first slot that may be claimed, stealing an orphaned or unheld one.
 
     A missing file is free; an unreadable one is a broken holder, not a live
     one, and is replaced. A dead named pid is stolen at once (#1143's rule for
     the single lease), and the pool directory's own flock -- never held, since
     only the single lease takes flock -- makes ``_orphaned``'s gate honest.
+
+    An expired slot whose named process is ALIVE is not free: the pool's lease
+    is a liveness handle, so a run that outlives ``lease_seconds`` keeps its
+    slot instead of being silently unleased beside an admitted fifth. Only a
+    slot with no pid at all -- a hand-written or older-version file, where
+    nothing proves the run is alive -- is freed on expiry.
     """
     for i in range(slots):
         path = _slot_path(pool, i)
@@ -613,7 +637,7 @@ def _free_slot(pool: Path, slots: int) -> int | None:
                 return i
             path.unlink(missing_ok=True)  # unparseable: no live holder to lose
             return i
-        if owner.expired or _orphaned(pool, owner):
+        if _orphaned(pool, owner) or (owner.expired and owner.pid is None):
             _steal(path, owner)
             return i
     return None
@@ -646,7 +670,9 @@ def take_slot(
     ticket in the highest band present, so a fifth caller waits rather than
     loading the box. ``owner_pid`` names a process that outlives the commands
     holding the slot, so a later take steals a slot whose seat has exited
-    (#1143). ``slots`` defaults to `heavy_slots()`, the pool's own capacity.
+    (#1143); when it is omitted the taking process's own pid is recorded, and
+    that live pid is what holds the slot past ``expires_at`` (``_free_slot``).
+    ``slots`` defaults to `heavy_slots()`, the pool's own capacity.
     ``priority`` (or ``$HPO_GATE_PRIORITY``) orders the waiter; see the module
     docstring.
     """
@@ -655,6 +681,12 @@ def take_slot(
     if slots < 1:
         raise ValueError("slots must be at least 1")
     prio = _declared_priority(priority)
+    # A slot is held for one process's run, so the pool always records SOME
+    # pid: the caller's (a shell that outlives a one-shot take) or this
+    # process's (a slot-auto-lease wrapping the run). The single lease keeps
+    # its opt-in rule because it is held ACROSS commands, where the invoker's
+    # pid is a per-command shell (#1143).
+    holder_pid = owner_pid if owner_pid is not None else os.getpid()
     pool = pool_dir(lock_dir)
     said, ticket = False, None
     try:
@@ -667,7 +699,7 @@ def take_slot(
                     label=label,
                     taken_at=owner.taken_at,
                     expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
-                    pid=owner_pid if owner_pid is not None else owner.pid,
+                    pid=owner_pid if owner_pid is not None else (owner.pid or holder_pid),
                 )
                 fresh.write(_slot_path(pool, index))
                 return index, fresh
@@ -675,7 +707,7 @@ def take_slot(
             if free is not None:
                 queue = _queue(pool)
                 if not queue or queue[0].path == ticket:
-                    fresh = _new_owner(label, lease_seconds, owner_pid)
+                    fresh = _new_owner(label, lease_seconds, holder_pid)
                     if fresh.create(_slot_path(pool, free)):
                         return free, fresh
                     continue  # another caller won the O_EXCL create; try again
@@ -708,6 +740,53 @@ def release_slot(
     return True
 
 
+def _unleased(pool: Path) -> list[str]:
+    """Runs that could not take a slot and are executing anyway (live pids).
+
+    The marker is written by ``mark_unleased`` -- `prepr.sh`'s failed-take arm --
+    and a dead one is removed here, so the count is of runs actually in flight.
+    """
+    found = []
+    for path in sorted(pool.glob(UNLEASED_PREFIX + "*")):
+        try:
+            pid = int(_fields(path.read_text()).get("pid", ""))
+        except (OSError, ValueError):
+            path.unlink(missing_ok=True)
+            continue
+        if _pid_alive(pid):
+            found.append(path.name[len(UNLEASED_PREFIX):])
+        else:
+            path.unlink(missing_ok=True)
+    return found
+
+
+def _marker_path(pool: Path, label: str) -> Path:
+    safe = "".join(c if c.isalnum() or c in "-._" else "-" for c in label)
+    return pool / f"{UNLEASED_PREFIX}{safe}"
+
+
+def mark_unleased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR,
+                  pid: int | None = None) -> Path:
+    """Record that ``label`` runs unleased, counted by `slots_status`.
+
+    The witness a failed take owes: a pool that cannot admit a run must be
+    visible to the next orchestrator, not inferred from load.
+    """
+    pool = pool_dir(lock_dir)
+    _ensure_lock_dir(pool)
+    path = _marker_path(pool, label)
+    path.write_text(f"pid={os.getpid() if pid is None else pid}\nlabel={label}\n")
+    return path
+
+
+def clear_unleased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR) -> bool:
+    """Remove ``label``'s unleased marker; False when it carried none."""
+    path = _marker_path(pool_dir(lock_dir), label)
+    existed = path.exists()
+    path.unlink(missing_ok=True)
+    return existed
+
+
 def slots_status(
     *, lock_dir: Path = DEFAULT_LOCK_DIR, slots: int | None = None
 ) -> dict[str, object]:
@@ -716,11 +795,21 @@ def slots_status(
     holders: list[Owner | None] = []
     for i in range(slots):
         holders.append(_read_at(_slot_path(pool, i)))
+    # Two witnesses of an over-subscribed pool: holders whose named process is
+    # still running past their lease (they hold, and the lease was too short),
+    # and runs that never got a slot at all.
+    past_lease = [
+        f"{i}:{owner.label}" for i, owner in enumerate(holders)
+        if owner is not None and owner.expired
+        and owner.pid is not None and _pid_alive(owner.pid)
+    ]
     return {
         "pool_dir": str(pool),
         "slots": slots,
         "holders": holders,
         "queue": [waiter.label for waiter in _queue(pool)] if pool.exists() else [],
+        "past_lease": past_lease,
+        "unleased": _unleased(pool) if pool.exists() else [],
     }
 
 
@@ -961,14 +1050,37 @@ def _cmd_slot_release(args: argparse.Namespace) -> int:
 
 def _cmd_slot_status(args: argparse.Namespace) -> int:
     info = slots_status(lock_dir=args.lock_dir, slots=args.slots)
-    held = [
-        f"{i}:{o.label}({'expired' if o.expired else 'live'})"
-        for i, o in enumerate(info["holders"]) if o is not None
-    ]
+    held = []
+    for i, owner in enumerate(info["holders"]):
+        if owner is None:
+            continue
+        # "expired" is a claim that a taker may take it; a live-pid holder past
+        # its lease still holds, so the status must not read as free.
+        if owner.expired:
+            state = ("live-past-lease" if owner.pid is not None and _pid_alive(owner.pid)
+                     else "expired")
+        else:
+            state = "live"
+        held.append(f"{i}:{owner.label}({state})")
+    past = info["past_lease"]
+    unleased = info["unleased"]
     print(
         f"{info['pool_dir']}: {len(held)}/{info['slots']} slots held "
-        f"[{', '.join(held) or '-'}] queue={','.join(info['queue']) or '-'}"
+        f"[{', '.join(held) or '-'}] queue={','.join(info['queue']) or '-'} "
+        f"past-lease={len(past)}{'(' + ','.join(past) + ')' if past else ''} "
+        f"unleased={len(unleased)}"
+        f"{'(' + ','.join(unleased) + ')' if unleased else ''}"
     )
+    return 0
+
+
+def _cmd_slot_unleased(args: argparse.Namespace) -> int:
+    mark_unleased(args.label, lock_dir=args.lock_dir, pid=args.pid)
+    return 0
+
+
+def _cmd_slot_leased(args: argparse.Namespace) -> int:
+    clear_unleased(args.label, lock_dir=args.lock_dir)
     return 0
 
 
@@ -1065,6 +1177,20 @@ def _parser() -> argparse.ArgumentParser:
     slot_st_p = sub.add_parser("slot-status", help="print the heavy-slot pool state")
     slot_st_p.add_argument("--slots", type=int, default=None)
     slot_st_p.set_defaults(func=_cmd_slot_status)
+
+    slot_un_p = sub.add_parser(
+        "slot-unleased", help="count a run that could not take a slot"
+    )
+    slot_un_p.add_argument("--label", required=True)
+    slot_un_p.add_argument("--pid", type=int, default=None,
+                           help="the running process (default: this one)")
+    slot_un_p.set_defaults(func=_cmd_slot_unleased)
+
+    slot_cl_p = sub.add_parser(
+        "slot-leased", help="remove a label's unleased marker"
+    )
+    slot_cl_p.add_argument("--label", required=True)
+    slot_cl_p.set_defaults(func=_cmd_slot_leased)
 
     slot_auto_p = sub.add_parser(
         "slot-auto-lease", help="take a heavy slot, run a command inside it, release"
@@ -1434,6 +1560,137 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
     return out
 
 
+def _slot_hold_cases(g) -> list[tuple[str, bool, str]]:
+    """The pool's liveness rule and its two witnesses, against module ``g``.
+
+    A slot is held for the life of its run: a holder whose named process is
+    alive keeps it past ``expires_at``, a dead or absent one is stolen at once,
+    and only a legacy slot with no pid is freed by expiry alone. Every arm
+    PLANTS the lease state it measures -- a past ``expires_at`` -- so none
+    sleeps a lease, and the live-pid arms use this process, which cannot die
+    mid-case.
+    """
+    import tempfile
+    import threading
+
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    poll = g.WAIT_POLL_SECS
+
+    def pool(d: Path) -> Path:
+        return g.pool_dir(d)
+
+    def plant(d: Path, pid: int | None) -> None:
+        g._ensure_lock_dir(pool(d))
+        past = datetime.now(UTC) - timedelta(seconds=60)
+        g.Owner("holder", past, past - timedelta(seconds=600), pid).write(
+            g._slot_path(pool(d), 0))
+
+    def take_taker(d: Path, who: str, slots: int = 1) -> bool:
+        try:
+            g.take_slot(who, lock_dir=d, slots=slots, lease_seconds=60, wait=False)
+            return True
+        except BlockingIOError:
+            return False
+
+    def take_fifth(d: Path, slots: int = 1) -> bool:
+        return take_taker(d, "fifth", slots)
+
+    def live_holds(d: Path, got: list[str]) -> tuple[bool, str]:
+        plant(d, os.getpid())
+        blocked = not take_fifth(d)
+        status = g.slots_status(lock_dir=d, slots=1)
+        # A real take records a pid even when the caller names none: without it
+        # the liveness rule above would free the slot at expiry.
+        g.take_slot("recording", lock_dir=d, slots=2, lease_seconds=60, wait=False)
+        recorded = g._read_at(g._slot_path(pool(d), 1))
+        names_pid = recorded is not None and recorded.pid == os.getpid()
+        ok = (blocked and names_pid and status["past_lease"] == ["0:holder"]
+              and status["unleased"] == [])
+        return ok, (f"blocked={blocked} names_pid={names_pid} "
+                    f"past_lease={status['past_lease']}")
+
+    def dead_stolen(d: Path, got: list[str]) -> tuple[bool, str]:
+        # The control the liveness rule binds on: the SAME past expiry, with the
+        # named process gone, must free the slot at once.
+        plant(d, dead.pid)
+        took = take_fifth(d)
+        return took, f"stolen={took}"
+
+    def no_pid_freed(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A legacy slot names no process, so nothing proves its run is alive:
+        # expiry frees it. A fresh one is still respected (the other arm), so
+        # the rule binds on expiry and not on the absence of a pid alone.
+        plant(d, None)
+        expired_taken = take_fifth(d)
+        g._ensure_lock_dir(pool(d))
+        now = datetime.now(UTC)
+        g.Owner("holder", now + timedelta(seconds=600), now, None).write(
+            g._slot_path(pool(d), 1))
+        fresh_blocked = not take_taker(d, "sixth", slots=2)
+        return expired_taken and fresh_blocked, \
+            f"expired_taken={expired_taken} fresh_blocked={fresh_blocked}"
+
+    def queues_then_takes(d: Path, got: list[str]) -> tuple[bool, str]:
+        plant(d, os.getpid())
+        g.WAIT_POLL_SECS = 0.05
+
+        def one() -> None:
+            index, _owner = g.take_slot("fifth", lock_dir=d, slots=1, lease_seconds=60)
+            got.append(f"fifth:{index}")
+
+        thread = threading.Thread(target=one, daemon=True)
+        thread.start()
+        queued, end = False, time.monotonic() + 8
+        while time.monotonic() < end and not queued:
+            queued = any(w.label == "fifth" for w in g._queue(pool(d)))
+            time.sleep(0.02)
+        # The holder finishes: its slot file goes, exactly as release_slot does.
+        g._slot_path(pool(d), 0).unlink(missing_ok=True)
+        thread.join(20)
+        held = g._slot_of(pool(d), 1, "fifth") is not None
+        return queued and got == ["fifth:0"] and held, \
+            f"queued={queued} order={got} holds={held}"
+
+    def witnesses(d: Path, got: list[str]) -> tuple[bool, str]:
+        plant(d, os.getpid())
+        marker = g.mark_unleased("prepr-x", lock_dir=d, pid=os.getpid())
+        counted = g.slots_status(lock_dir=d, slots=1)
+        before = (counted["past_lease"] == ["0:holder"]
+                  and counted["unleased"] == ["prepr-x"])
+        g.clear_unleased("prepr-x", lock_dir=d)
+        after = g.slots_status(lock_dir=d, slots=1)["unleased"]
+        cleared = after == [] and not marker.exists()
+        g.mark_unleased("prepr-dead", lock_dir=d, pid=dead.pid)
+        pruned = g.slots_status(lock_dir=d, slots=1)["unleased"] == []
+        return before and cleared and pruned, \
+            f"counted={before} cleared={cleared} dead_pruned={pruned}"
+
+    cases = [
+        ("a live holder keeps its slot past its lease, and a fifth taker is blocked",
+         live_holds),
+        ("a slot whose named process is gone is stolen at once (null control)",
+         dead_stolen),
+        ("a legacy slot with no pid is freed on expiry; a fresh one is respected",
+         no_pid_freed),
+        ("a taker queues behind a live past-lease holder and takes the slot when it frees",
+         queues_then_takes),
+        ("slot-status counts past-lease holders and unleased runs, and prunes a dead marker",
+         witnesses),
+    ]
+    out: list[tuple[str, bool, str]] = []
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            for i, (name, case) in enumerate(cases):
+                try:
+                    out.append((name, *case(Path(td) / str(i), [])))
+                except Exception as exc:  # a crash is a red case, not a lost one
+                    out.append((name, False, f"raised {exc!r}"))
+    finally:
+        g.WAIT_POLL_SECS = poll
+    return out
+
+
 def _acceptance() -> int:
     from harness import Results
 
@@ -1574,6 +1831,10 @@ def _acceptance() -> int:
 
     R.section("priority")
     for name, ok, detail in _priority_cases(sys.modules[__name__]):
+        R.check(name, ok, detail)
+
+    R.section("heavy-slot holds")
+    for name, ok, detail in _slot_hold_cases(sys.modules[__name__]):
         R.check(name, ok, detail)
 
     for d in (d1, d2, d3, d4, d5, d6):

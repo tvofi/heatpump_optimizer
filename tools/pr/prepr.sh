@@ -2448,6 +2448,8 @@ PY
   st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
   st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
+  st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
+  st "$(grep -cF "slot-leased --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and clears the count on the way out"
   slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and takes it before the heavy steps begin"
   # (7) The priority the slot-take reads is derived from the branch's group and
@@ -2542,7 +2544,10 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
 # HPO_SLOT_LABEL so a nested heavy step inherits it and joins this slot rather
 # than taking a second (`gate_lock.py holding_slot`). Released on any exit the
 # shell sees; a SIGKILL leaves the slot, which the next take steals once this
-# process is gone (`--owner-pid`). A fifth prepr waits at the back of the queue.
+# process is gone (`--owner-pid`). A run that outlives the 30-minute slot lease
+# KEEPS its slot while $$ lives: the pool's lease is a liveness handle, so load
+# cannot silently push this run beside an admitted fifth (R10-GATE-PRIORITY). A
+# fifth prepr waits at the back of the queue.
 # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
 # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
 SLOT_LABEL="prepr-$$"
@@ -2560,6 +2565,13 @@ else
     trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   else
     say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+    # R10-GATE-PRIORITY: a run that proceeds unleased is COUNTED in
+    # `gate_lock.py slot-status` (unleased=N), so the orchestrator sees an
+    # over-subscribed pool instead of inferring it from load. Removed on exit;
+    # a crashed run's marker is pruned once its pid is gone.
+    python3 tests/gate_lock.py slot-unleased --label "$SLOT_LABEL" --pid $$ >/dev/null 2>&1
+    trap "rc=\$?; python3 tests/gate_lock.py slot-leased --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
+    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   fi
   rm -f "$slot_stderr"
 fi
