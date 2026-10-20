@@ -33316,29 +33316,26 @@ R.check(
     f"skipped={[a['id'] for a in _CIR_DL_SKIPPED]} files={_CIR_DL_FILES}",
 )
 
-# The wiring is a pinned fact, read from the job's own RUN LINES -- never its
-# comments, which describe the fetch that was removed and would otherwise make
-# the refusal fire on the prose that records it (the over-fire class: a check
-# keyed on text that also carries the history). The job runs the module's
-# gather and its self-test, and no run line fetches the artifacts list inline.
-# A self-test no run line names is one the tree never runs
+# The wiring is a pinned fact, read from the job's own text. The two exact
+# command strings are unique to their run lines, and the two artifacts the
+# removal arm keys on are the gone jq program's URL and the heredoc's first
+# read -- both distinctive enough that neither the comment recording the
+# removal nor the runs-duration step beside it can satisfy or refuse them (the
+# over-fire class: a pin keyed on text the job also carries for another
+# reason). A self-test no run line names is one the tree never runs
 # (tools/audit/seat/selftest_wiring.py's rule); that tool scans
 # tools/audit/seat/ only, so this is the pin for tests/.
-_CIR_RUN = "\n".join(
-    line for line in (_re.sub(r"(?:^|(?<=\s))#.*$", "", ln)
-                      for ln in _CIR_JOB.splitlines())
-    if line.strip())
 R.check(
     "the ci-ratchet job runs the gather and its self-test from the module",
-    "python3 -I tests/ci_ratchet.py --self-test" in _CIR_RUN
-    and "python3 -I tests/ci_ratchet.py --gather --metrics-dir" in _CIR_RUN,
-    f"self-test={'python3 -I tests/ci_ratchet.py --self-test' in _CIR_RUN}, "
-    f"gather={'python3 -I tests/ci_ratchet.py --gather --metrics-dir' in _CIR_RUN}",
+    "python3 -I tests/ci_ratchet.py --self-test" in _CIR_JOB
+    and "python3 -I tests/ci_ratchet.py --gather --metrics-dir" in _CIR_JOB,
+    f"self-test={'python3 -I tests/ci_ratchet.py --self-test' in _CIR_JOB}, "
+    f"gather={'python3 -I tests/ci_ratchet.py --gather --metrics-dir' in _CIR_JOB}",
 )
 R.check(
     "and the inline artifacts fetch that swallowed its own failure is gone",
-    "actions/artifacts?per_page=100" not in _CIR_RUN
-    and "window.json" not in _CIR_RUN,
+    "actions/artifacts?per_page=100" not in _CIR_JOB
+    and "json.load(open(window))" not in _CIR_JOB,
     "the gather step must not fetch and parse the artifacts list inside the "
     "workflow again",
 )
