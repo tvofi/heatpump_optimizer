@@ -4223,6 +4223,55 @@ jobs:
                     || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
                 done
           }
+          # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A merge train
+          # merges pull requests itself, and a record pull request landing
+          # from this beat while it waits on CI moves main under it: #2291,
+          # #2295 and #2299 each merged mid-train on 2026-10-15 and stopped
+          # or re-carried #2284 and #2290. CI cannot see the train's local
+          # pidfile, so tools/audit/seat/merge_train.py publishes
+          # refs/heads/train-hold while a real run is live and deletes it at
+          # its closing line (hold_refresh/hold_release). The ref points at a
+          # commit made at publication, whose committer date is the age here:
+          # younger than HOLD_MAX_AGE_S is a live train, so the pull request
+          # stays open for a later beat; at or past it the hold is stale (a
+          # crashed train moved nothing, so no rows went overdue) and this
+          # beat proceeds. HOLD_MAX_AGE_S exceeds one queue item's ceiling by
+          # the train's own knobs -- one CI wait is polls x POLL_SECONDS
+          # (~96 min) and a --main-moved-tries recovery re-runs it -- and the
+          # train refreshes per item, so a long run never ages a live item
+          # stale. A date ahead of this runner's clock is unknowable, never
+          # young (#775); an unreadable hold leaves the pre-fix behaviour,
+          # the safe failure for a bookkeeping guard. record_row.py's own
+          # --automerge-check is untouched.
+          HOLD_REF=train-hold
+          HOLD_MAX_AGE_S=14400
+          hold_code=$(curl -sS -o "$RUNNER_TEMP/train-hold.json" -w '%{http_code}' \
+            -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/commits/$HOLD_REF") || hold_code=000
+          if [ "$hold_code" = 200 ]; then
+            hold_age=$(python3 -I - "$RUNNER_TEMP/train-hold.json" <<'PY'
+          import json, sys
+          from datetime import datetime, timezone
+          at = json.load(open(sys.argv[1]))["commit"]["committer"]["date"]
+          print(int((datetime.now(timezone.utc)
+                     - datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds()))
+          PY
+            ) || hold_age=unreadable
+            case "$hold_age" in
+              *[!0-9-]*|'')
+                echo "::warning::the train hold's age is unreadable ($hold_age); treated as absent" ;;
+              *)
+                if [ "$hold_age" -lt 0 ]; then
+                  echo "::warning::the train hold's committer date is ahead of this runner's clock; age unknowable, treated as stale"
+                elif [ "$hold_age" -lt "$HOLD_MAX_AGE_S" ]; then
+                  echo "::notice::a merge train is live (hold ${hold_age}s old); #$NUM waits for a later beat"
+                  say skip-train-hold; exit 0
+                else
+                  echo "::warning::the train hold is ${hold_age}s old (bound ${HOLD_MAX_AGE_S}s); treated as stale"
+                fi ;;
+            esac
+          elif [ "$hold_code" != 404 ]; then
+            echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
+          fi
           HEAD=$(pr_field 'd["head"]["sha"]') || {
             echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
           if ! guard; then

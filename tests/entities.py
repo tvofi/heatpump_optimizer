@@ -26679,6 +26679,110 @@ R.check(
     "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
     "the repository's full name, must each turn the lookup pin red",
 )
+# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
+# while it is live and deletes it at its closing line, and this beat's
+# automerge step must not merge a record pull request while that ref is
+# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
+# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
+# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
+# stubbed API: the status it prints is what proves the skip happens before the
+# guard and the merge, so a check placed after them (or an inverted age
+# comparison) cannot pass. The bound is read from the step, never carried.
+_HOLD_STEP = next((s for s in ((_yaml.safe_load(_TESTS_YML) or {}).get("jobs") or {})
+                   .get("record-autofix", {}).get("steps") or []
+                   if str(s.get("id") or "") == "automerge"), {})
+_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
+_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
+_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
+_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
+_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
+                         Path("tools/audit/seat/merge_train.py").read_text())
+
+
+def _train_hold_status(code: int, body: str) -> str:
+    """The automerge step's `status=` over a stubbed API whose train-hold read
+    answers (code, body); every other read is the minimum the step needs.
+
+    The record-row guard is a stub that refuses, so an arm that did NOT skip
+    reaches it and reports `refused`: a missing or unreached skip is visible
+    in the status, not inferred from an absence."""
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
+            "import sys\nsys.exit(1)\n")
+        answers = t / "answers.json"
+        answers.write_text(json.dumps({
+            "hold": {"code": code, "body": body},
+            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
+            "reviews": {"code": 200, "body": "[]"},
+            "other": {"code": 404, "body": "{}"}}))
+        bin_ = t / "bin"
+        bin_.mkdir()
+        (bin_ / "curl").write_text(
+            "#!" + sys.executable + "\n"
+            "import json, sys\n"
+            f"ans = json.load(open({str(answers)!r}))\n"
+            "a = sys.argv[1:]\n"
+            "url = a[-1]\n"
+            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
+            "       else 'reviews' if '/reviews' in url\n"
+            "       else 'pulls' if '/pulls/' in url else 'other')\n"
+            "code, body = ans[key]['code'], ans[key]['body']\n"
+            "if '-o' in a:\n"
+            "    p = a[a.index('-o') + 1]\n"
+            "    if p != '/dev/null':\n"
+            "        open(p, 'w').write(body)\n"
+            "    if '-w' in a:\n"
+            "        sys.stdout.write(str(code))\n"
+            "else:\n"
+            "    sys.stdout.write(body)\n")
+        (bin_ / "curl").chmod(0o755)
+        out = t / "out"
+        out.write_text("")
+        subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                       env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
+                            "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
+                            "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
+        return found[-1] if found else ""
+
+
+def _hold_when(offset_s: int) -> str:
+    """A commit read whose committer date is now + offset_s seconds."""
+    at = datetime.now(UTC) + timedelta(seconds=offset_s)
+    return json.dumps({"commit": {"committer": {
+        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
+
+
+R.check(
+    "tests.yml's automerge skips while a live merge train holds the record "
+    "beat (executed, issue #2302)",
+    _HOLD_BOUND > 0 and _hold_when(-60)
+    and _train_hold_status(200, _hold_when(-60)) == "skip-train-hold",
+    f"bound={_HOLD_BOUND}, status={_train_hold_status(200, _hold_when(-60))!r}",
+)
+R.check(
+    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
+    "one and an unreadable one do not skip (null controls)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == "refused"
+    and _train_hold_status(200, _hold_when(3600)) == "refused"
+    and _train_hold_status(404, "{}") == "refused"
+    and _train_hold_status(500, "{}") == "refused"
+    and _train_hold_status(200, "{}") == "refused",
+    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
+    "date ahead of the reading clock is unknowable, never young (#775); an "
+    "unreadable hold leaves the pre-fix behaviour, which is the safe failure",
+)
+R.check(
+    "the beat's hold ref and the train's hold ref name the same branch",
+    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
+    and "/commits/$HOLD_REF" in _HOLD_RUN
+    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
+    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
+    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
+)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
