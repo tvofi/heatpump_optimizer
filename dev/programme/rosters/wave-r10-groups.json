@@ -5050,6 +5050,33 @@
     "note": null
    },
    "brief": "The card's setup page, to the owner's chosen design. tvofi chose prototype 1, the type badge, from the five in probe/card-symbols-design 2cc4d5ebc89657e4103c09447fc2d0e4c7adfe40: a small type disc on each box's outer corner, the wood tank's disc a spring, and the coil pipe the one accent pipe. Read the prototype from the ref and the measurements in its NOTES.md, not from memory.\n\nThe defects it answers, measured by that pre-study. The schematic draws eight boxes from eleven title strings with one visual style, so only the title tells a tank from a valve. The wood coil is an immersed hot-water coil in the wood furnace tank, present only when the wood-coil option, DHW and the two-tank four-way topology are all true; today it is drawn as one ordinary pipe identical in class, stroke and opacity to a heating pipe, with a muted twelve-pixel caption on the wrong box, and configured-but-not-modelled is silent. The configure chip's handler ignores its own destination attribute, and Home Assistant has no URL route into an options-flow step, so the card can only open the entry: the design's fix is honesty, naming the page on the button and stating the path once above the drawing, and the chip must also exist for boxes whose slots are all set.\n\nAlso owed inside this group: the coil's three states are stated in words on the hot-water box, exactly one visible at a time; and the documentation that describes the removed visual is corrected in the same pull request (the card docs still claim a visible spring on the tank's upper-right wall, and the hydronic-coil SVG still contains the coil elements the card no longer has).\n\nThe card's own tokens are the design voice; do not introduce a new one. Follow dev/governance/roles/fixer.md, with a failing test first in the card rig, the mutation proof, the card drift states unchanged or re-recorded with the reason, and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-THERMAL-POWER-OPTION",
+   "lane": "SW",
+   "kind": "production",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "hot_files": [
+    "custom_components/heatpump_optimizer/flow_meter.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "after": [],
+   "carry": [],
+   "issues": [],
+   "fixes": [],
+   "brief": "Fold (e) of #1955, added by tvofi on 2026-10-04 and left unbuilt when the issue closed. #2006 (merged 2026-10-07) implemented (a)-(d) only: it projects sub-minimum planned levels to p_min, couples the heating flow set-point to the planned level, freezes the house-heat-loss learner without measured power, and refuses a duty-cycle reading that no mechanism can realize. Nothing in the round-10 roster carried (e), which is why the owner's question about it found no open item. What (e) asks for: an OPTIONAL thermal power entity, a config option beside the electrical power and flow entities. When it is configured, three consumers change -- (1) measured COP (thermal divided by electrical) feeds cop_scale learning directly, closing the weather-walking failure flow_lift.py documents, where cop_scale absorbs lift-driven COP drop as degradation on direct plants because compute_cop's flow-temperature term never applies; (2) the house-heat-loss learner takes measured delivered heat as its input instead of the commanded-power assumption or the room-residual fit; (3) the capacity envelope samples at all loads rather than only the >=95%-of-p_max steps it is restricted to today (coordinator.py, the envelope sampler added with the probe). Absent the entity, behaviour is exactly as it is now and the goldens are byte-identical; a fully metered install with the option unset must reproduce today's figures. Use the one install-capability probe (writes available, measured power present, frequency present) that (a), (c) and (d) already read rather than adding a second. The tree already derives thermal output from a flow meter and the supply/return temperatures (flow_meter.thermal_output_kw = flow x 4.186 x dT), but only when no measured power and no frequency signal exist; this option is the direct-sensor case, so say in the body how the two interact and which wins when both are configured.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
