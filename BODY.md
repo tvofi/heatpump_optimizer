@@ -10,6 +10,8 @@ The root-cause record for the recurring `nightly-ha (stable)` red: `hb:positive_
 
 ## Head
 
+`93647bfd9b4c2d940bc87b162bf4159ad2dd6b1e` merges origin/main `0c298f6b5` into the authored code head `0b7145312480e83c46665876ff5ade670125c900` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `0b7145312480e83c46665876ff5ade670125c900`: one commit on `origin/main` `106af95a3`.
 
 ## Mutation proof
@@ -38,10 +40,10 @@ none
 - Countermeasure C: a draft for tvofi, RCA section 4.
 - Not added to `dev/audit/config/bugclasses.json`. This is a CI-lane race, not an audit class; that is the orchestrator's call.
 
-## Friction
-
-- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2).
-
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_01C26mXCF4djAbnjhBir49QZ
+
+## Friction
+
+- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2).
