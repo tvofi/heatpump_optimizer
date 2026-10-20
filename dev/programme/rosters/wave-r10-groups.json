@@ -4862,7 +4862,7 @@
    "findings": [],
    "wave": 1,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-worktree-vanish",
     "commit": null,
     "last_step": null,
