@@ -1,6 +1,6 @@
 plan: the schedule model behind the round-10 page, mechanically re-derivable
 
-The page's schedule lived inside the out-of-tree renderer, which both computed and drew it. This adds `tools/plan/replan.py` as the one schedule model: it reads the roster at its ref, the owner's caps and a measured durations file, then writes `plan.json`; the renderer, edited in place out of tree, now draws only what `plan.json` emits and refuses a roster that has moved past it. On the current roster the plan closes `2026-10-30T11:25Z`, 235.45 h from the replan instant, against a 226.28 h dependency chain, so 9.17 h of the span is queueing and the chain, not capacity, sets the date. It merges in 39 batches for 4884 gate minutes.
+The page's schedule lived inside the out-of-tree renderer, which both computed and drew it. This adds `tools/plan/replan.py` as the one schedule model: it reads the roster at its ref, the owner's caps and a measured durations file, then writes `plan.json`; the renderer, edited in place out of tree, now draws only what `plan.json` emits and refuses a roster that has moved past it. On the current roster the plan closes 235.45 h after the replan instant -- `2026-10-30T11:27Z` from a start of `2026-10-20T16:00Z` -- against a 226.28 h dependency chain, so 9.17 h of the span is queueing and the chain, not capacity, sets the date. It merges in 39 batches for 4884 gate minutes.
 
 `tools/plan/` is on `tests/closure.py`'s INERT list and in `tests/entities.py`'s `_INERT_TOOL_HOMES`: no gate script opens the model, and the must-classify set was checked with `closure.is_inert` (no file outside the inert homes is inert, and `tools/plan/` is in no recorded closure).
 
@@ -18,7 +18,7 @@ The unmodified renderer's model starts all eleven in-progress groups at the repl
 
 ## Figures
 
-- closure 2026-10-30T11:25Z, wall 235.45 h, 39 batches, 4884 CI minutes, 6 stamps: `python3 -I tools/plan/replan.py --roster-ref origin/handoff/audit-r10-roster --out /tmp/plan.json`.
+- closure 235.45 h after the stated start, 39 batches, 4884 CI minutes, 6 stamps: `python3 -I tools/plan/replan.py --roster-ref origin/handoff/audit-r10-roster --out /tmp/plan.json`.
 - dependency chain 226.28 h over 12 links: `python3 -I tools/plan/replan.py --check --plan /tmp/plan.json` plus the per-group `duration_minutes` in `/tmp/plan.json`.
 - CI medians and samples: `python3 -I tools/plan/replan.py --measure-ci --out-durations /tmp/durations.json`; it prints the merged-tree count and writes fast (3.14) 55.2 min (n=26), closures 25.1 (n=28), Analyze (python) 27.2 (n=29, IQR 21.5-28.1, cancelled rate 0.038); `tools/plan/durations.json` carries the shas and job ids.
 - batch-window trade, measured at a fixed start: `python3 -I tools/plan/replan.py --batch-window-minutes 20 --out /tmp/plan20.json` prints 237.67 h / 37 batches (4667 CI minutes); `--batch-window-minutes 120` prints 249.33 h / 37.
@@ -38,4 +38,4 @@ The plan documents disagree with the roster; the roster's `after` edges and `res
 ## Friction
 
 r10-pr-cap: contradiction: the pre-change renderer starts 11 in-progress groups at once, over the owner's six-open-PR cap; the replanner admits six, which selects the six running fixers. Carry: #201
-plan-target: unenforced: measured closure is 1.7 days past the mandate's 2026-10-28T18:14Z and 9 days past the owner's 2026-10-21 target; the 226.28 h chain is the floor, so only a roster edge release moves the date. Carry: #201
+plan-target: unenforced: measured closure is 235.45 h from the replan instant, 1.7 days past the mandate's 2026-10-28T18:14Z and 9 days past the owner's 2026-10-21 target when replanned on 2026-10-20; the 226.28 h chain is the floor, so only a roster edge release moves the date. Carry: #201
