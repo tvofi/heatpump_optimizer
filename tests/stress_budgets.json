@@ -1,9 +1,4 @@
 {
-  "coverage_floor_override": {
-    "calls_floor": 6,
-    "cites": "#201 comment 6240984157 (D2-s2-01 ruling, step 3, mandate 6175172275) and the orchestrator's ruling on its floors: every hot-water scenario re-plans because the tank's price changed; CI at 74f23814e judged 18 of 54 scenarios (solver work) and 6 of 20 families (production calls), the floors set here",
-    "floor": 18
-  },
   "flat/1z/dhw": {
     "ratio": 14.33,
     "rss_attrib_mb": 8.5,
