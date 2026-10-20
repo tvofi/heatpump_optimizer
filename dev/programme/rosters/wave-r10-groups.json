@@ -5056,7 +5056,9 @@
    "lane": "UI",
    "kind": "feature",
    "size": "M",
-   "issues": [],
+   "issues": [
+    2506
+   ],
    "fixes": [],
    "after": [
     "R10-DEEPLINK-HANDLERS"
