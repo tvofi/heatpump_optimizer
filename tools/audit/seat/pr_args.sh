@@ -91,6 +91,7 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   local p alive n=0
   PR_REAP_PIDS=()
   pr_descendants $$
+  PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$(pgrep -f "$REAP_DIR/unrelated-sleep" 2>/dev/null || :)  # MUTANT M2
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
   for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done
   while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
