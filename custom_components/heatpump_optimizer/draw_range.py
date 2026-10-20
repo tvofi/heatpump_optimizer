@@ -82,7 +82,7 @@ MIN_IDLE = 12
 IDLE_MARGIN = 1.25
 #: A set-point within this of the ceiling commanded full power: the
 #: arbiter writes on the entity's step and rounds the ceiling down.
-CEILING_TOLERANCE_K = 0.5
+CEILING_TOLERANCE_K = 1.0
 #: A set-point within this of the gate commanded no heat.
 GATE_TOLERANCE_K = 0.25
 
