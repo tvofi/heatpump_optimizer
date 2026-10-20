@@ -1088,7 +1088,7 @@ def _learned_zone_temperature(
 
 
 def _zone_capacity(params: ThermalParameters) -> float:
-    """The mass the #36/#53 folds turn a residual into a power on, same zone."""
+    """The thermal mass the #36 and #53 folds scale a residual by (same zone)."""
     return _house_loss_terms(params)[1]
 
 

@@ -1582,6 +1582,7 @@ def is_sunlit_interval(solar_radiation: float | None) -> bool:
     """
     return float(solar_radiation or 0.0) > HEAT_LOSS_MAX_SOLAR_W_M2
 
+
 @dataclass
 class ThermalState:
     """Current thermal state of the two-zone system with DHW.
