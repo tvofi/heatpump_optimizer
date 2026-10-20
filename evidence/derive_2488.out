@@ -1,0 +1,24 @@
+RESULT landed.head.with_key: 162 entries; handoff/ present=False
+RESULT landed.head.without_key: 163 entries; handoff/ present=True
+RESULT landed.without_key.moved_under_handoff: ['handoff/', 'handoff/round9/']
+RESULT guard.head.deleted_clause: 287
+RESULT guard.head.with_clause: 0
+RESULT sweep_without_key.handoff: 282 citation(s) in 53 file(s)
+RESULT sweep_without_key.handoff_round9: 0 citation(s) in 0 file(s)
+RESULT sweep_with_key.handoff: 0
+RESULT sweep_with_key.handoff_round9: 0
+RESULT base_live_files.handoff_round9: 7 citation(s) in 4 file(s)
+  BASE-UNSWEPT  3 custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+  BASE-UNSWEPT  1 tests/features.py
+  BASE-UNSWEPT  2 tools/audit/seat/handover_prompt.py
+  BASE-UNSWEPT  1 tools/audit/seat/roster_lib.py
+RESULT handoff_citations_files: 53
+RESULT handoff_citations_lines: 282
+  BRANCH-CITE   27 tools/audit/seat/cloud_relay.sh
+  BRANCH-CITE   27 tools/audit/seat/prune_refs.py
+  BRANCH-CITE   23 tools/audit/seat/INSTRUMENTS.md
+  BRANCH-CITE   20 dev/programme/register/audit-2026-09.md
+  BRANCH-CITE   19 tools/audit/seat/orchestrator_tick.py
+  BRANCH-CITE   18 tools/audit/seat/bus.sh
+  BRANCH-CITE   16 tools/audit/seat/state_docs.py
+  BRANCH-CITE   11 tools/audit/seat/pr_args.sh

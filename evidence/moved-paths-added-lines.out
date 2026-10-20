@@ -1,0 +1,4 @@
+=== moved_paths over added lines ===
+~/hpo-seats/r10s3/rev-2488-ev/added_lines_2488.txt:13: [STALE?] handoff/round9/ -> dev/archive/handoff/round9/ | "old": "handoff/round9/",
+~/hpo-seats/r10s3/rev-2488-ev/added_lines_2488.txt:14: [FALLBACK] handoff/round9/ -> dev/archive/handoff/round9/ | "new": "dev/archive/handoff/round9/",
+moved_paths: 163 moved path(s) from tests/layout.json, 2 hit(s) in 1 file(s)

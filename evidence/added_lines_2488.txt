@@ -1,0 +1,63 @@
+// one: the palette of record (DESIGN.md section 4, archived on the round-9
+// alt tag, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
+// R9-UI-4 (tvofi's D2, concept A; DESIGN.md section 4, archived on the round-9
+// alt tag): three panels stacked on the chart's one time axis, each with
+// Values are the design of record's (DESIGN.md section 3, archived on the
+// round-9 alt tag, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
+- The roster brief copy, `fix/RO.md` on the archived
+  `archive/handoff/audit-r9-fixplan` tag, is the orchestrator's to update.
+- [#2488](https://github.com/tvofi/heatpump_optimizer/pull/2488) — **open**, chore(archive): move handoff/round9 into the archive tree (R10-HANDOFF-ARCHIVE) (R10-HANDOFF-ARCHIVE)
+# screen (S1.py, S2.py at 8061ec9b, archived on the round-9 alt tag):
+ "_doc": "The target layout of the repository reorganisation (lane RO). Checked by tests/layout.py; the categories are ordered and a path must match exactly one. `retired` is generated with `python3 tests/layout.py --gen-retired <inventory.tsv>`; an entry's `since` names the pull request that made the move, and null means planned. `historical` prefixes keep the paths that were true when they were written (tvofi's D2), matched on a file's path or on where the move map puts it. `ref_namespaces` names prefixes that spell git refs, not directories (`handoff/` is the fixer hand-off branch namespace of decision 0011): a directory a move empties under one is not a moved path, because the spelling in a line is a branch name, and only the moved tree and an explicit entry are swept.",
+  {
+   "old": "handoff/round9/",
+   "new": "dev/archive/handoff/round9/",
+   "since": null
+  },
+  "dev/audit/config/bugclasses.json",
+  "dev/programme/plan-2026-09-open-issues.md",
+ ],
+ "ref_namespaces": [
+  "handoff/"
+def landed(files: list[str], retired: list[dict],
+           ref_namespaces: tuple[str, ...] | list[str] = ()) -> list[dict]:
+    (a `git diff -- <dir>`, a glob) then reads nothing, silently.
+
+    A `ref_namespaces` prefix (the manifest's) names git REFS, not a tracked
+    directory: `handoff/<topic>` is a branch, so the parent a move empties is
+    not a path a line can cite, and manufacturing it as a moved path would
+    sweep every branch name the seat tools spell. Only manufactured ancestors
+    are skipped -- an explicit entry whose `old` is under the prefix, and the
+    moved tree itself, are still swept."""
+        dirs = sorted(d for d in dirs - have - known if d != "/" and not any(d.startswith(ns) for ns in ref_namespaces))
+    refs = manifest.get("ref_namespaces", ())
+    now, before = landed(files, retired, refs), landed(then, retired, refs)
+    now = landed(files, manifest["retired"], manifest.get("ref_namespaces", ()))
+         "ref_namespaces": ["ns/"],
+                     {"old": "ns/sub/", "new": "tools/sub/", "since": "1"},
+            "old/dir/x.sh": "", "old/wip.sh": "", "ns/sub/x.sh": "", "docs/c.md": "see old/wip.sh\n"}
+        # A moved tree whose parent is also a git ref namespace (`handoff/`):
+        # the parent is a branch prefix, not a directory, so its spelling is
+        # not a citation of the emptied directory and must not be swept.
+        ("a ref namespace's name is not a citation of its emptied parent",
+         {"tools/sub/x.sh": "", "docs/e.md": "git branch --list 'ns/*'\n"}, ("ns/sub/x.sh",), {}),
+        # ...but the moved tree itself is still swept under that parent.
+        ("a citation of the moved tree under a ref namespace is still swept",
+         {"tools/sub/x.sh": "", "docs/e.md": "see ns/sub/x.sh\n"}, ("ns/sub/x.sh",),
+         {"new-reference": 1, "unswept": 1}),
+                           "note_file": f"handoff/r9-fixture/fix/resume/{gid}.md"}}
+          and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
+  - each directory those moves emptied, at any depth -- except a manufactured
+    parent that is a `ref_namespaces` prefix (`handoff/` names branches, not
+    a directory);
+    moved = {e["old"]: e["new"] or "(retired)" for e in landed(
+        sorted(tracked), layout.get("retired", []), layout.get("ref_namespaces", ()))}
+                          {"old": "keep/", "new": "c/"},
+                          {"old": "ns/sub/", "new": "b/ns/sub/"}],
+              "lifted": [{"old": "r/", "new": "g/r/"}],
+              "ref_namespaces": ["ns/"]}
+    tracked = {"b/x.sh", "keep/y.sh", "keep/z.sh", "b/ns/sub/f"}
+    check("a moved tree under a ref namespace is moved", m.get("ns/sub/") == "b/ns/sub/")
+    check("its parent, a ref namespace, is not a moved directory", "ns/" not in m)
+    print(f"moved_paths self-test: 11 checks, {fails} failed")
+`gen_table_rev3.py`'s (the round-9 alt archive tag `archive/handoff/audit-r9-alt`), the

@@ -1,0 +1,20 @@
+### rename proof (merge base 76bb45628745ff8843f61c1708641f271643a224 -> HEAD 916431aefd47a8953cb5b84a990c993a77c371e3)
+## git diff -M --summary
+ rename {handoff => dev/archive/handoff}/round9/fix/resume/FR-8.md (100%)
+ rename {handoff => dev/archive/handoff}/round9/plan-table-live.md (100%)
+ create mode 100644 dev/programme/delivery/2488.md
+## git diff -M --numstat
+0	0	{handoff => dev/archive/handoff}/round9/fix/resume/FR-8.md
+0	0	{handoff => dev/archive/handoff}/round9/plan-table-live.md
+## blob oids (equal at both ends)
+100644 blob b4efe3b2fef09d50078496db392d503de0a84786	handoff/round9/fix/resume/FR-8.md
+100644 blob 0d4ab78c5e2b37cdb87ac8c24399815104da492a	handoff/round9/plan-table-live.md
+100644 blob b4efe3b2fef09d50078496db392d503de0a84786	dev/archive/handoff/round9/fix/resume/FR-8.md
+100644 blob 0d4ab78c5e2b37cdb87ac8c24399815104da492a	dev/archive/handoff/round9/plan-table-live.md
+## sha256
+fix/resume/FR-8.md base=02885f6b47593ef2ca416d3546ba242cf7d7ce5bf92cda6dc69aae089231ab70
+fix/resume/FR-8.md head=02885f6b47593ef2ca416d3546ba242cf7d7ce5bf92cda6dc69aae089231ab70
+plan-table-live.md base=13352f8e98389f5ea287721819e34bd68c36a006b8b574b69d31976e6268d185
+plan-table-live.md head=13352f8e98389f5ea287721819e34bd68c36a006b8b574b69d31976e6268d185
+## tracked under handoff/ at HEAD
+(none)

@@ -1,0 +1,5 @@
+RESULT authored-base counterfactual: total 367 {'handoff': 328, 'round9': 39} unswept files 57
+RESULT kinds: {('new-reference', 'handoff'): 3, ('unswept', 'handoff'): 325, ('unswept', 'round9'): 39}
+  NEWREF new-reference: tests/layout.py cites retired path handoff/: directory: `handoff/<topic>` is a branch, so the parent a move empties is
+  NEWREF new-reference: tests/layout.py cites retired path handoff/: # A moved tree whose parent is also a git ref namespace (`handoff/`):
+  NEWREF new-reference: tools/audit/seat/moved_paths.py cites retired path handoff/: parent that is a `ref_namespaces` prefix (`handoff/` names branches, not

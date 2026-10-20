@@ -1,0 +1,10 @@
+=== head self-tests ===
+### python3 tests/layout.py --self-test
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: ok
+### python3 -I tools/audit/seat/moved_paths.py --self-test
+  ok   a directory argument walks its tracked files, recursively, and skips untracked ones
+  ok   a walked directory's files are scanned
+moved_paths self-test: 11 checks, 0 failed

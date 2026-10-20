@@ -1,0 +1,9 @@
+=== both self-tests, clause deleted in a scratch worktree ===
+### python3 tests/layout.py --self-test
+  FAIL guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: 1 case(s) FAILED
+exit=1
+### python3 tools/audit/seat/moved_paths.py --self-test
+  FAIL its parent, a ref namespace, is not a moved directory
+moved_paths self-test: 11 checks, 1 failed
+exit=1

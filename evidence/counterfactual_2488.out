@@ -1,0 +1,18 @@
+RESULT variant A: total=287 {'other': 5, 'handoff/': 282} unswept_files=53
+    new-reference: tests/layout.py cites retired path handoff/: directory: `handoff/<topic>` is a branch, so the parent a move empties is
+    new-reference: tests/layout.py cites retired path handoff/: # A moved tree whose parent is also a git ref namespace (`handoff/`):
+    new-reference: tools/audit/seat/handover_prompt.py cites retired path handoff/: "note_file": f"handoff/r9-fixture/fix/resume/{gid}.md"}}
+    new-reference: tools/audit/seat/handover_prompt.py cites retired path handoff/: and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
+    unswept: tools/pr/prepr.sh:2351 cites handoff/, which this diff moves
+    unswept: tools/pr/prepr.sh:2352 cites handoff/, which this diff moves
+    landed has handoff/: True | handoff/round9/: True
+RESULT variant B: total=367 {'other': 3, 'handoff/': 325, 'handoff/round9/': 39} unswept_files=57
+    new-reference: tests/layout.py cites retired path handoff/: directory: `handoff/<topic>` is a branch, so the parent a move empties is
+    new-reference: tests/layout.py cites retired path handoff/: # A moved tree whose parent is also a git ref namespace (`handoff/`):
+    new-reference: tools/audit/seat/moved_paths.py cites retired path handoff/: parent that is a `ref_namespaces` prefix (`handoff/` names branches, not
+    unswept: .claude/workflows/audit-find.js:19 cites handoff/, which this diff moves
+    unswept: tools/pr/prepr.sh:2351 cites handoff/, which this diff moves
+    unswept: tools/pr/prepr.sh:2352 cites handoff/, which this diff moves
+    landed has handoff/: True | handoff/round9/: True
+RESULT variant C: total=0 {} unswept_files=0
+    landed has handoff/: False | handoff/round9/: False
