@@ -4682,9 +4682,9 @@
    ],
    "brief": "Owner report on v7.0.1 (tvofi 2026-10-19): the monthly savings entity dropped to extreme negative values. Root cause: #2411 MonthlyLedger._coverage_factor scales by month_hours/settled whenever a settled-hours record exists, but a store upgraded mid-month from v7.0.0 starts that record at the first v7.0.1 settlement, so the factor is in the thousands and the already-negative v7.0.0-era October saving is multiplied by it. Fix: a month whose hour samples are fewer than its spot samples was booked before coverage began and falls back to pro_rata_factor; repairs written stores without migration. Controls: features check failing on main, mutation, legitimately negative null, synthetic upgrade harness.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-savings-negative",
-    "commit": null,
+    "commit": "73a6ca86912c8dae8a45d8dd03c5d418131bb003",
     "last_step": null,
     "next_step": "review",
     "note": null
