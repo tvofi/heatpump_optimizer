@@ -511,7 +511,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
   fixes|issues]` (refuses an absent N), `append-group`, `edit-brief`,
   `append-carry`, `drop-carry <group> <index|--match TEXT>` (0-based index,
-  or the one entry containing TEXT; the last drop removes the key),
+  or the one entry containing TEXT; the last drop leaves `"carry": []`, the
+  key kept),
   `set-after <group> <G1,G2,...|->` (replaces the after-edges whole, `-` for
   none), and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text

@@ -69,7 +69,9 @@ Ops (all group ids must exist, except append-group which must not):
   drop-carry   removes one carry entry by 0-based index or by the one entry
                containing --match TEXT, refusing an absent carry, an index
                out of range, no match and an ambiguous match; dropping the
-               last entry removes the key.
+               last entry leaves the `carry` list empty, never removing the
+               key (27 of the 91 live groups carry `"carry": []`, and none
+               omits it, so the key's presence is the file's own shape).
 """
 
 from __future__ import annotations
@@ -282,8 +284,9 @@ def _cycle(edges):
 def op_drop_carry(roster, group, index=None, match=None):
     """The inverse of append-carry: drop one carry entry, by its 0-based
     index (`jq '.carry[N]'`) or by the one entry containing `match`.
-    Dropping the last entry removes the key, so append-then-drop restores
-    the roster's bytes."""
+    Dropping the last entry leaves `carry` empty and the key in place; a
+    group that already carries a list (all 91 live ones do) is therefore
+    byte-restored by append-then-drop of the appended entry."""
     g = _need(roster, group)
     carry = g.get("carry") or []
     if not carry:
@@ -306,8 +309,6 @@ def op_drop_carry(roster, group, index=None, match=None):
             raise Refuse(f"drop-carry: index {i} out of range for {group} "
                          f"({len(carry)} entries)")
     del carry[i]
-    if not carry:
-        del g["carry"]
 
 
 def _need(roster, group):
@@ -664,7 +665,7 @@ def _self_test() -> int:
          "after": [], "brief": "fixture group A",
          "resume": {"stage": "not-started", "branch": "handoff/a"}},
         {"group": "R9-B", "lane": "L1", "issues": [], "fixes": [],
-         "after": ["R9-A"], "brief": "fixture group B",
+         "after": ["R9-A"], "brief": "fixture group B", "carry": [],
          "resume": {"stage": "not-started", "branch": "handoff/b"}},
     ]}
     (seed / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
@@ -877,9 +878,11 @@ def _self_test() -> int:
           refuses("--match is a drop-carry flag", "set-after", "R9-B",
                   "R9-A", match="x"))
 
-    # drop-carry: the inverse of append-carry, by index or by a unique match;
-    # dropping the last entry removes the key, so append-then-drop restores
-    # the roster's bytes exactly.
+    # drop-carry: the inverse of append-carry, by index or by a unique match.
+    # R9-B carries `"carry": []`, the live roster's empty shape (27 of 91
+    # groups; none omits the key), so the round-trip below is pinned on the
+    # shape the roster actually has. Dropping the last entry leaves the list
+    # empty, keeping the key: append-then-drop restores the bytes exactly.
     def carry_of(group):
         return next(g for g in branch_roster()["groups"]
                     if g["group"] == group).get("carry")
@@ -926,9 +929,9 @@ def _self_test() -> int:
     check("drop-carry by match drops that entry",
           edit("drop-carry", "R9-B", None, match="beta") == 0
           and carry_of("R9-B") == ["alpha one"])
-    check("drop-carry of the last entry removes the key",
+    check("drop-carry of the last entry leaves the key empty",
           edit("drop-carry", "R9-B", None, match="alpha one") == 0
-          and carry_of("R9-B") is None)
+          and carry_of("R9-B") == [])
     check("append-carry then drop-carry is byte-identical",
           bytes_at() == before_carry)
 

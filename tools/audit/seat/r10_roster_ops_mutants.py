@@ -17,7 +17,8 @@ Plants, one per refusal of the two ops and per round-trip property:
   C1-C5  drop-carry: an absent carry, no match (silently drops entry 0), an
          ambiguous match (silently drops the first), a negative index (drops
          the last), a non-integer index (silently drops entry 0).
-  C6     drop-carry of the last entry leaves `"carry": []`.
+  C6     the last drop deletes the `carry` key (the byte round-trip
+         regression; the live roster's empty shape is `"carry": []`).
   C7     drop-carry by index drops the neighbour.
   C8     drop-carry's unknown group.
   P1-P3  the argparse refusals: index and --match together, neither, and
@@ -65,8 +66,8 @@ PLANTS = {
            "        if not i < len(carry):\n"),
     "C5": ("            i = int(index)\n",
            '            i = int(index) if index.lstrip("-").isdigit() else 0\n'),
-    "C6": ('    if not carry:\n        del g["carry"]\n',
-           '    if False:\n        del g["carry"]\n'),
+    "C6": ("    del carry[i]\n",
+           '    del carry[i]\n    if not carry:\n        del g["carry"]\n'),
     "C7": ("    del carry[i]\n", "    del carry[i - 1]\n"),
     "C8": ('    g = _need(roster, group)\n    carry = g.get("carry")',
            f'    {DETACHED}\n    carry = g.get("carry")'),
