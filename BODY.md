@@ -10,6 +10,8 @@ The root-cause record for the recurring `nightly-ha (stable)` red: `hb:positive_
 
 ## Head
 
+`202cb8874ef72b82d9db49a6ecd77f28ad22838a` merges origin/main `0c298f6b5` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `202cb8874ef72b82d9db49a6ecd77f28ad22838a` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2479.md`. The authored code head is `0b7145312480e83c46665876ff5ade670125c900`.
 
 `f81d96c4604ae5669c30d09d6f915342e35459d3` merges origin/main `0c298f6b5` into the authored code head `0b7145312480e83c46665876ff5ade670125c900` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
@@ -42,7 +44,7 @@ n/a: no check, test or production line changes. Countermeasure A's demonstration
 
 ## Forward-carry
 
-- Countermeasure A, for a fixer group: `dev/audit/rca/nightly-ha-pyspy-timeout.md` section 5. It names the sites, the `tests/entities.py` pins and the demonstration owed. Carry: R10-CI-LAYOUT (the lane it repairs is CI's nightly-ha job).
+- Countermeasure A, for a fixer group: `dev/audit/rca/nightly-ha-pyspy-timeout.md` section 5. It names the sites, the `tests/entities.py` pins and the demonstration owed. Carry: #201 (landed: `dev/programme/carries/carry-201.json`, on `handoff/audit-r10-roster` at `606aaca86`; no live roster group lists `tests/nightly_ha.py`, so the carry file is the stage's brief).
 - Countermeasure C: a draft for tvofi, RCA section 4. Carry: dismissed: an owner proposal recorded in the RCA, not a work item.
 - Not added to `dev/audit/config/bugclasses.json`. This is a CI-lane race, not an audit class. Carry: dismissed: not an audit class; the RCA section 2 states why.
 
@@ -50,4 +52,4 @@ n/a: no check, test or production line changes. Countermeasure A's demonstration
 
 ## Friction
 
-- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2). Carry: R10-RCA-FRICTION (the friction-disposition group).
+- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #2411 each read a 6- to 8-instance class as one event (RCA section 2). Carry: R10-RCA-FRICTION (landed: the group's roster carry on `handoff/audit-r10-roster` at `3a9d79531`).
