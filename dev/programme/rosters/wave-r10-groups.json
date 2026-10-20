@@ -4205,7 +4205,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-recarry-head",
-    "commit": null,
+    "commit": "9fb01d46774d3217ff966fb696bb552f027a14cf",
     "last_step": null,
     "next_step": "open PR from the cloud handoff",
     "note": null
