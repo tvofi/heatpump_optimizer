@@ -303,6 +303,11 @@ _ACCURACY: dict[str, Domain | str] = {
     # a sample at or below standby is not a running one, and is dropped.
     "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
     "draw/samples/#/1": _Z,
+    # R10-SETPOINT-BOOST: the flow set-point held and its ceiling, null where
+    # nothing commanded the draw; and the readings taken at the gate.
+    "draw/samples/#/2": _N,
+    "draw/samples/#/3": _N,
+    "draw/idle/#": _Z,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }
