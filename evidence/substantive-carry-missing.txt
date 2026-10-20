@@ -1,0 +1,11 @@
+Roster branch handoff/audit-r10-roster tip: 7e8e5e5ab97479a1d63fde668c6011334be492db
+git diff origin/main...origin/handoff/audit-r10-roster -- dev/programme/rosters/ :
+(empty above = no roster carry beyond main)
+
+Destination group ownership of the RCA's fix sites:
+  tests/nightly_ha.py owned by: R10-DIAG-REPLAY (stage: done)
+  R10-CI-LAYOUT files: .github/workflows/{tests,governance,ci}.yml (does not own tests/nightly_ha.py)
+
+Countermeasure A present in any roster group carry array on handoff/audit-r10-roster: NO
+Countermeasure A present in any dev/programme/carries/carry-*.json: NO
+Body cites a roster branch SHA or carry file for countermeasure A: NO (names group R10-CI-LAYOUT only)

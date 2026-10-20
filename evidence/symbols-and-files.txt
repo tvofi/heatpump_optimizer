@@ -1,0 +1,26 @@
+Files named in the PR body, at the reviewed head:
+  EXISTS  tests/nightly_ha.py
+  EXISTS  tests/entities.py
+  EXISTS  tests/requirements-nightly-ha.txt
+  EXISTS  dev/audit/rca/nightly-ha-pyspy-timeout.md
+
+Code sites the RCA cites (tests/nightly_ha.py):
+282:HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
+1863:def _hb_spin(seconds: float) -> None:
+1909:        self._thread.join(timeout=30)
+1923:    def dump(self, stalled: float) -> str:
+1938:                    [self.py_spy, "dump", "--nonblocking", "--pid", str(os.getpid())],
+1939:                    capture_output=True, text=True, timeout=30,
+1978:def check_hb_positive_control(checks: Checks, summary: dict) -> None:
+2065:        asyncio.get_running_loop().call_soon(_hb_spin, HB_CONTROL_S)
+
+tests/entities.py pins:
+17893:_HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
+17896:def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
+17908:    _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle")
+17909:    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
+17910:    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
+17950:    and '"--nonblocking"' in _inspect.getsource(_nightly.LoopHeartbeat.dump),
+
+requirement commit ab45a5f7c:
+ab45a5f7c7c551a4692b792a074ab02b13ae9583 nightly-ha A15: dwell before settling; py-spy must name the spin; pin stop and wiring
