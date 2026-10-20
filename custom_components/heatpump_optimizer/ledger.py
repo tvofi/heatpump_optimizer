@@ -31,7 +31,7 @@ from .payload import ContractComparison, SavingsMonth
 _LOGGER = logging.getLogger(__name__)
 
 #: Months kept before pruning. Two years covers a year-over-year comparison
-#: with a margin, and keeps the store size bounded forever.
+#: with a margin, and keeps the store size bounded forever. (null control)
 KEEP_MONTHS = 24
 
 #: The lines a receipt's total adds up: what the month cost. Every other line
