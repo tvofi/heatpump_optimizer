@@ -339,14 +339,14 @@ COST_DETECTION = 2.0
 #: (loop_cpu 10.0 -> 13.5 ms, 1.35x) over the BLAS speed (ref_ms 28.6 ->
 #: 53.2 ms, 1.86x). Normalising by a workload of the loop's own kind, on its
 #: own clock, cancels MOST of the interpreter factor, not all of it: the
-#: numerator is not all interpreter work, so a runner that speeds the ruler
-#: faster than the cycle's own loop still lifts the figure. The timed slow
-#: lanes after #2339 read a tight 0.0868-0.0877 while their runners' rulers
-#: sat 1.26x apart (loop_ref_ms 128-161), and 0.1114 on a runner 1.9x faster
-#: than those at the ruler (84.05 ms) whose loop CPU in absolute time was
-#: lower (9.36 ms against 14.0-14.2) -- the runner, not loop work, and over
-#: the cap. ``dev/audit/harnesses/r10_replay_loopnorm.py --series`` derives
-#: the series by ruler era. Recorded at the CENTRE of its measured spread:
+#: numerator's work does not scale with the ruler's, so a runner that speeds
+#: the ruler faster than the cycle's own loop still lifts the figure. The
+#: scheduled slow lanes after #2339 read a tight 0.0868-0.0877 while their
+#: rulers sat 1.26x apart (loop_ref_ms 128-161), and 0.1114 on a runner
+#: 1.5-1.9x faster than those at the ruler (84.05 ms) whose loop CPU in
+#: absolute time fell (9.36 ms) -- the runner, not loop work, over the cap.
+#: ``dev/audit/harnesses/r10_replay_loopnorm.py --series`` derives the series
+#: by ruler era. Recorded at the CENTRE of its measured spread:
 #: twelve clean runs read 0.0618-0.0903 (median 0.0786) at load average
 #: 15-29; sqrt(2) x 0.0786 is 0.111, both edges inside (0.0555, 0.111], and
 #: a doubled loop arm ~0.156 is over the cap. The 0.1114 run falsifies that
