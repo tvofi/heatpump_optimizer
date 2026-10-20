@@ -99,6 +99,7 @@
     "tools/audit/{judge_batch.py,check_scopes.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh,prose_counts_census.py}",
     "tools/audit/seat/**",
     "tools/audit/archscore/**",
+    "tools/plan/**",
     "tools/coverage/**",
     "tools/devices/**",
     "tools/release/**",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The round's schedule model: one mechanical replan, run at a wave edge.
 
-    python3 tools/plan/replan.py --out /tmp/plan.json
-    python3 tools/plan/replan.py --check --plan /tmp/plan.json
+    python3 tools/plan/replan.py --out plan.json
+    python3 tools/plan/replan.py --check --plan plan.json
     python3 tools/plan/replan.py --self-test
     python3 tools/plan/replan.py --measure-ci
 
@@ -69,10 +69,12 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "audit" / "seat"))
+import roster_lib  # noqa: E402 -- the one owner of which roster a tool reads
 
 SELF = "tools/plan/replan.py"
 
@@ -102,37 +104,27 @@ def _git(repo: str, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
 
 
-_ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
-
-
-def newest_roster(paths) -> str | None:
-    found = [(int(m.group(1)), p) for p in paths
-             if (m := _ROSTER_NAME.match(p.rsplit("/", 1)[-1]))]
-    return max(found)[1] if found else None
-
-
 def load_roster(repo: str, ref: str | None = None, path: str | None = None,
                 file: str | None = None) -> tuple[dict, str, str]:
     """(roster, roster_ref, blob) -- `file` wins for a self-test fixture;
-    otherwise the roster is read at `ref` with `git show`, never from disk."""
+    otherwise the roster is read at `ref` with `git show`, never from disk.
+
+    WHICH roster and its filename grammar are `tools/audit/seat/roster_lib.py`'s
+    to own (`roster_path`, `show_roster`); re-declaring the
+    `wave-r<N>-groups.json` pattern here gave the tree a second reader of the
+    same convention, which `tools/policy/agreement.mjs` refuses.
+    """
     if file:
         return json.loads(Path(file).read_text(encoding="utf-8")), file, ""
     if not ref:
         ref = "origin/handoff/audit-r10-roster"
-    if not path:
-        listing = _git(repo, "ls-tree", "--name-only", ref, "dev/programme/rosters/")
-        if listing.returncode:
-            raise PlanError(f"cannot list dev/programme/rosters/ at {ref}: "
-                            f"{(listing.stderr or listing.stdout).strip()[:200]}")
-        path = newest_roster(listing.stdout.split())
-        if not path:
-            raise PlanError(f"no dev/programme/rosters/wave-r<N>-groups.json at {ref}")
-    shown = _git(repo, "show", f"{ref}:{path}")
-    if shown.returncode:
-        raise PlanError(f"no roster at {ref}:{path}: "
-                        f"{(shown.stderr or shown.stdout).strip()[:200]}")
+    try:
+        path = roster_lib.roster_path(repo, ref, path)
+        roster = roster_lib.show_roster(repo, ref, path)
+    except roster_lib.RosterNotFound as exc:
+        raise PlanError(str(exc)) from exc
     blob = _git(repo, "rev-parse", f"{ref}:{path}")
-    return json.loads(shown.stdout), ref, (blob.stdout.strip() if blob.returncode == 0 else "")
+    return roster, ref, (blob.stdout.strip() if blob.returncode == 0 else "")
 
 
 def groups_of(roster: dict) -> dict:
