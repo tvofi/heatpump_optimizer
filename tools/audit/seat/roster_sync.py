@@ -362,6 +362,13 @@ def has_ref(checkout: str, ref: str) -> bool:
                           capture_output=True).returncode == 0
 
 
+def _reset(worktree: str, base: str) -> None:
+    """Drop a failed pass's local commit (best effort): a later pass would
+    otherwise refuse the worktree for unpushed commits it cannot push."""
+    subprocess.run(["git", "-C", worktree, "reset", "-q", "--hard", base],
+                   capture_output=True)
+
+
 def sync(a) -> int:
     """One pass: derive, print every change, write only with --apply."""
     try:
@@ -434,14 +441,19 @@ def sync(a) -> int:
                       "nothing written")
                 return 0
             apply_plan(roster, changes, appends)
-            rc = roster_edit.commit_roster(
-                a.checkout, made, rel, roster, msg, True, branch, a.lint_cwd,
-                label=(f"roster_sync ({len(changes)} stage, "
-                       f"{len(appends)} carry)"))
-            if rc == 3:
-                # Leave no unpushed commit on the branch: a later pass would
-                # otherwise refuse the worktree it finds (unpushed commits).
-                run(["git", "-C", made, "reset", "-q", "--hard", base])
+            try:
+                rc = roster_edit.commit_roster(
+                    a.checkout, made, rel, roster, msg, True, branch,
+                    a.lint_cwd, label=(f"roster_sync ({len(changes)} stage, "
+                                       f"{len(appends)} carry)"))
+            except roster_edit.Refuse as e:  # the write path's own refusal
+                _reset(made, base)
+                raise Refuse(str(e))
+            except Refuse:
+                _reset(made, base)
+                raise
+            if rc != 0:
+                _reset(made, base)
             return rc
         finally:
             if parent is not None:
@@ -701,6 +713,29 @@ def self_test() -> int:
         check("the lint gate refuses the push rc 3", rc == 3, (rc, out, err))
         check("and the branch did not land", branch not in branches(bare2),
               branches(bare2))
+
+        # A REFUSED PUSH is recoverable: the pass's local commit is dropped, so
+        # the next pass is not blocked by "unpushed commits would be lost".
+        bare3, drv3, _ = build(root / "three", LINT_OK)
+        hook = bare3 / "hooks" / "pre-receive"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        rc, out, err = calls(drv3, state, "--apply")
+        check("a refused push returns non-zero", rc != 0, (rc, err))
+        check("and the branch did not land", branch not in branches(bare3),
+              branches(bare3))
+        check("and no unpushed commit is left on the local branch "
+              "(it is back at the base it was cut from)",
+              git("-C", str(drv3), "rev-parse", f"refs/heads/{branch}")
+              == git("-C", str(bare3), "rev-parse", "refs/heads/main"))
+        check("the next pass's worktree check does not refuse an unpushed "
+              "branch", branch not in branches(bare3))
+        hook.unlink()
+        rc, out, err = calls(drv3, state, "--apply")
+        check("the retry lands once the refusal is cleared", rc == 0, (rc, err))
+        check("and the retried roster carries the derived stage",
+              roster_lib.groups_of(roster_at(bare3, branch))["R9-LIVE"]
+              ["resume"]["stage"] == "done")
 
     # The live roster's own words: every stage a round's roster carries is
     # classified, so a new wording cannot be silently overwritten.
