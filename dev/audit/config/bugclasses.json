@@ -1260,10 +1260,11 @@
     "max_per_round": 8,
     "detector": "node .claude/workflows/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
     "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
-    "barrier": "agreement.mjs on the PR gate (round 9, F11.4; prototype handoff/r9-rca-i4@06bae072): every registered concept's real readers, imported or read from source and never copied (rule-frontmatter-paths, finding-class-id, merge-subject-pr, dead-member-liveness, governance-workflow-jobs, entity-names), answer one corpus (the Python readers run first under python3 -I, restored from the base, and hand agreement.mjs their answers as JSON) of live instances plus the findings' boundary cases, and any disagreement, a reader that throws, an empty corpus, or a live merge commit every reader answers null for is refused; a regex source in two or more governance code files must be registered with a disposition (pair:, module:, identical:, not-a-concept:) and a stale entry is DEAD. Declared and accepted: policy_lint.mjs's offline subject mode reads the squash shape only (enumSkipLine), a narrow declaration the lane refuses the moment it answers. The governance-workflow-jobs pair re-derives entities.py's _workflow_job_ids by regex in agreement_py.py (a disclosed copy of a three-line job-id scan, null-controlled by the 'briefs' job). Not reached (tvofi's card C11, accepted): a second reader with a different grammar for a concept nobody registered; the A7/A8 policy text is F11.5's",
+    "barrier": "agreement.mjs on the PR gate (round 9, F11.4; prototype handoff/r9-rca-i4@06bae072): every registered concept's real readers, imported or read from source and never copied (rule-frontmatter-paths, finding-class-id, merge-subject-pr, dead-member-liveness, governance-workflow-jobs, entity-names, budget-raise), answer one corpus (the Python readers run first under python3 -I, restored from the base, and hand agreement.mjs their answers as JSON) of live instances plus the findings' boundary cases, and any disagreement, a reader that throws, an empty corpus, or a live merge commit every reader answers null for is refused; a regex source in two or more governance code files must be registered with a disposition (pair:, module:, identical:, not-a-concept:) and a stale entry is DEAD. Declared and accepted: policy_lint.mjs's offline subject mode reads the squash shape only (enumSkipLine), a narrow declaration the lane refuses the moment it answers. The governance-workflow-jobs pair re-derives entities.py's _workflow_job_ids by regex in agreement_py.py (a disclosed copy of a three-line job-id scan, null-controlled by the 'briefs' job). budget-raise's train reader, merge_train.py's raise_hold, is not in the restore list: it is the pull request's copy, the graded artifact, against the gate restored from the base (R10-RCA-TRAIN-RAISE-HOLD). Not reached (tvofi's card C11, accepted): a second reader with a different grammar for a concept nobody registered; the A7/A8 policy text is F11.5's",
     "status": "barriered",
     "rca": [
-      "R9-I4"
+      "R9-I4",
+      "R10-RCA-TRAIN-RAISE-HOLD"
     ],
     "trigger": {
       "per_round": true,
@@ -1698,7 +1699,7 @@
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/structure.py -- dead_methods by receiver and reachability over methods and properties, with the name-kept members printed as the shape it cannot measure; the coordinator found by role, so a coordinator.py helper handed it is a seam unit and a reach from another module is coordinator_private_reach; the self-check plants one example per past shape (#1686, #1738)",
     "detector_idea": "Liveness by reachability from production roots (tests are not roots), with a self-check planting one example per past shape and a printed count of shapes the metric cannot measure (RCA-BULK-2)",
-    "barrier": "tests/structure.py on the PR gate (F10.4): every row only moves down, and the counting-rule self-check fails the run if a rule regresses. Not reached: a member kept alive only by an untyped load of a name another class defines (printed, unmeasured), and a body moved into a helper still lowers max_class_loc",
+    "barrier": "tests/structure.py on the PR gate (F10.4): every row only moves down, and the counting-rule self-check fails the run if a rule regresses; name_kept_members ratchets the member an untyped load of a shared name keeps alive (R10-N-structure-blind), and field_coverage.mjs's census arm refuses a registered count a planted member moves without a refusal on its row, the card's .js included through the ci-ratchet row archscore.card_dead_definitions (#2401), as are the arch-score's dead_members, public_unused, unread_private_globals and unused_boundary_imports rows; arch-score (tools/audit/archscore, calibration corpus) prices the payload and hub censuses (#2293, #2311). Not reached: annotation spellings outside annotation_members's grammar (generic X[T], a TypeVar bound, a Protocol; #2293)",
     "status": "barriered",
     "nearest_existing": "I4",
     "mechanism_difference": "I4 is two maintained readers of one concept disagreeing; here there is one in-tree metric, blind to a code shape (rename, module-level helper(self), property, attribute-only load), and the second reader exists only as an audit harness",
@@ -1708,7 +1709,8 @@
       "new: structure metric blind to a code shape"
     ],
     "rca": [
-      "BULK-2-N-structure-blind"
+      "BULK-2-N-structure-blind",
+      "R10-N-structure-blind"
     ],
     "rca_planned": [
       "R9-F10.4"
@@ -4105,6 +4107,22 @@
         "dev/audit/rca/R10-RCA-2205.md"
       ]
     },
+    "R10-RCA-TRAIN-RAISE-HOLD": {
+      "class": "I4",
+      "level": "instance-or-process",
+      "subject": "#2401: merge_train.py's approve and queue_pre_flight.py decided a budget raise by the `*_budgets.json` path while budget_raise_gate.py reads the direction, so a head that only added rows stopped trains t11-t13 under a budget_raises=0 PASS, the Stop discarded the gate's why, and pre-flight's second copy (no justification) passed what approve stopped",
+      "trigger": "assigned by the orchestrator: three train stops on one head the required gate passed (2026-10-18)",
+      "date": "2026-10-18",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) #2305's port of the gate's owner reading was followed and reviewed; it ported approval and justification but kept the path predicate, and every self-test budget world held no blob, so a budget path and a raise were one fact in every arm",
+      "countermeasure": "one reader: Train.raise_hold calls budget_raise_gate.raises_between (extracted from gate()), shared by approve and pre-flight, and the concept registered as agreement.mjs pair budget-raise (gate restored from the base against the PR's train over eight edits of every budget file); ~81 ms per budget entry against P~0.8 x >=10 min",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-TRAIN-RAISE-HOLD.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-TRAIN-RAISE-HOLD.md"
+      ]
+    },
     "R10-N-staleness": {
       "class": "N-staleness",
       "level": "class",
@@ -4193,6 +4211,22 @@
       "in_tree_home": "dev/audit/rca/R10-N-confounded-learner.md",
       "doc": [
         "dev/audit/rca/R10-N-confounded-learner.md"
+      ]
+    },
+    "R10-N-structure-blind": {
+      "class": "N-structure-blind",
+      "level": "class",
+      "subject": "#2235 class: the F10.4 barrier printed the name-kept residual with no budget row, so it grew 124 -> 152 over v6.7.14..v7.0.0 with the ratchet green; 6 R10 instances across structure.py, archscore and the card .js",
+      "trigger": "class: per_round, cross_round, barriered_any",
+      "date": "2026-10-18",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) RCA-BULK-2 item 3 was carried out as a printed count with no budget row; plants are per past instance, and the barrier unit is one instrument in one language",
+      "countermeasure": "build: name_kept_members ratchet row (38) and field_coverage census arm perturb-to-red with a gate row per census; card language arm carried to #2259 item 2 (#2373); instrument coverage named in this row's barrier",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-N-structure-blind.md",
+      "doc": [
+        "dev/audit/rca/R10-N-structure-blind.md"
       ]
     }
   },

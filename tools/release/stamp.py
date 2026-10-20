@@ -488,13 +488,82 @@ def rewrite_card_version(text: str, new_version: str) -> tuple[str, str | None]:
     return new_text, old
 
 
+#: The two-line note a branch writes in place of a may-drift entry it
+#: suspends for its own claim (R8-P3; R9-F2.3 and R10-SAV-BASELINE wrote it
+#: so). The second line's tail after ") " is the suspended entry's first line,
+#: verbatim, minus its `# may-drift: ` marker; the entry's continuation lines
+#: stay where they were, after the note.
+SUSPEND_HEAD_RE = re.compile(
+    r"^# \((?P<who>[^()]+) suspends (?P<name>\w+)'s may-drift entry for its "
+    r"claim below; restore it,$")
+SUSPEND_TAIL_RE = re.compile(
+    r"^#  verbatim, when the stamp empties the list\) "
+    r"(?P<entry>(?P<name>\w+) -- .*)$")
+MAY_DRIFT_LINE_RE = re.compile(r"^# may-drift:\s*(\w+)")
+
+
+def restore_suspended(text: str) -> tuple[str, list[str], list[str]]:
+    """Put every suspended may-drift entry back, verbatim, as a stamp owes.
+
+    Returns (new_text, restored, stale). A stamp deletes every claim, and the
+    claim a suspension was made for goes with it, so the entry it suspended
+    must come back in the same commit: `env_drift.py --claims-only HEAD^1`
+    (rule "claims") refuses a post-stamp tree that leaves an allowed name
+    neither may-drift nor claimed (MAY-DRIFT UNCOVERED), and no earlier
+    commit can restore it -- at the old VERSION the claim is still live and a
+    name cannot be both, and a branch that moves no fixture may not delete
+    the claim (RECORD PR CLAIMS). v7.0.1 was refused exactly so, twelve names.
+
+    The restore is the suspension run backwards, in place: each two-line note
+    becomes `# may-drift: <the note's tail>`, and the entry's continuation
+    lines, which the suspension left where they were, are not touched. A
+    note whose name already has a live entry is stale -- the live line is the
+    verbatim one -- and is dropped. A head without its tail, or two notes for
+    one name, is not a stamp's to guess at: ValueError, which refuses the
+    stamp before anything is written.
+    """
+    lines = text.splitlines()
+    live = {m.group(1) for line in lines if (m := MAY_DRIFT_LINE_RE.match(line))}
+    out: list[str] = []
+    restored: list[str] = []
+    stale: list[str] = []
+    i = 0
+    while i < len(lines):
+        head = SUSPEND_HEAD_RE.match(lines[i])
+        if not head:
+            out.append(lines[i])
+            i += 1
+            continue
+        name = head.group("name")
+        tail = SUSPEND_TAIL_RE.match(lines[i + 1]) if i + 1 < len(lines) else None
+        if not tail or tail.group("name") != name:
+            raise ValueError(
+                f"the suspension note for {name} (line {i + 1}) is not followed by "
+                f"its '#  verbatim, when the stamp empties the list) {name} -- ...' "
+                "line, so the entry it suspended cannot be restored verbatim")
+        if name in restored or name in stale:
+            raise ValueError(f"two suspension notes for {name}; restore one by hand")
+        i += 2
+        if name in live:
+            stale.append(name)
+            continue
+        restored.append(name)
+        out.append(f"# may-drift: {tail.group('entry')}")
+    return "\n".join(out) + "\n", restored, stale
+
+
 def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | None, int]:
     """Move the stamp, rewrite the reason block, delete every bare claim.
 
     Returns (new_text, old_stamp, deleted_claims). The reason block is the run
-    of comment lines that follows `# claims-for:` up to the first blank line;
-    `# may-drift:` lines sit after a blank line and are never touched.
+    of comment lines that follows `# claims-for:` up to the first non-comment
+    or `# may-drift:` line; `# may-drift:` lines are never touched. Every
+    suspended entry is restored first (`restore_suspended`), because the
+    claims it was suspended for are the ones deleted here -- and restored in
+    place, so a note that sat where the first entry was ends the reason block
+    as that entry did, instead of reading as reason text the stamp deletes.
     """
+    text, _, _ = restore_suspended(text)
     lines = text.splitlines()
     out: list[str] = []
     old_stamp = None
@@ -785,6 +854,39 @@ def self_test() -> int:
     tight = "# claims-for: 6.2.12\n# reason\n# may-drift: wood_coil -- x\nfoo  # claim\n"
     new2, _, deleted2 = rewrite_claims(tight, "6.2.13", "t")
     check("claims: may-drift survives without a blank line", "# may-drift: wood_coil" in new2 and deleted2 == 1)
+    # Suspended entries come back verbatim with the claims they were
+    # suspended for (v7.0.1's refusal), in place: one note where the first
+    # entry sat, right after the reason block, which it must still end; one
+    # below the claims; one stale beside its live entry, dropped.
+    _note = ("# (X suspends {0}'s may-drift entry for its claim below; restore it,\n"
+             "#  verbatim, when the stamp empties the list) {0} -- {1}\n")
+    suspended = (
+        "# claims-for: 6.2.12\n#\n# X's reason, which the stamp drops.\n#\n"
+        + _note.format("flat_prices", "ruling one") + "# its second line.\n#\n"
+        + "flat_prices  # X's claim\nshoulder  # X's claim\n"
+        + _note.format("shoulder", "ruling two") + "# its own second line.\n"
+        + _note.format("wood_coil", "x") + "# may-drift: wood_coil -- x\n"
+    )
+    new3, _, deleted3 = rewrite_claims(suspended, "6.2.13", "t")
+    _, restored3, stale3 = restore_suspended(suspended)
+    check("claims: suspended entries restored, the stale note dropped",
+          restored3 == ["flat_prices", "shoulder"] and stale3 == ["wood_coil"]
+          and deleted3 == 2 and "suspends" not in new3)
+    check("claims: a note after the reason block ends it and keeps its continuation",
+          "# may-drift: flat_prices -- ruling one\n# its second line.\n" in new3
+          and "which the stamp drops" not in new3)
+    check("claims: an entry below the claims is restored in place",
+          "# may-drift: shoulder -- ruling two\n# its own second line.\n" in new3
+          and new3.count("# may-drift: wood_coil -- x") == 1)
+    for _bad, _why in (
+        ("# claims-for: 6.2.12\n# (X suspends shoulder's may-drift entry for its claim below; restore it,\n", "no tail"),
+        ("# claims-for: 6.2.12\n" + _note.format("shoulder", "a") + _note.format("shoulder", "b"), "two notes"),
+    ):
+        try:
+            restore_suspended(_bad)
+            check(f"claims: a malformed suspension refuses ({_why})", False)
+        except ValueError:
+            check(f"claims: a malformed suspension refuses ({_why})", True)
     card = 'const CARD_VERSION = "5.4.20";\n'
     card_new, card_old = rewrite_card_version(card, "6.3.13")
     check("card: old version read", card_old == "5.4.20")
@@ -1705,7 +1807,7 @@ def merge_is_record_class(sha: str, runner=None) -> bool:
     which leaves it under the ordinary row bar -- the fail-closed direction."""
     run = runner or sh
     try:
-        out = run("git", "diff", "--name-only", f"{sha}^1", sha)
+        out = run("git", "diff", "--no-renames", "--name-only", f"{sha}^1", sha)
     except subprocess.CalledProcessError:
         return False
     return record_class_paths(out.splitlines())
@@ -1959,11 +2061,20 @@ def main() -> int:
     ]
     claim_edits = []
     for path in CLAIM_FILES:
-        new, old, deleted = rewrite_claims(path.read_text(), nxt, args.title)
+        try:
+            _, restored, stale = restore_suspended(path.read_text())
+            new, old, deleted = rewrite_claims(path.read_text(), nxt, args.title)
+        except ValueError as exc:
+            raise Refuse("claims", f"{path.relative_to(ROOT)}: {exc}")
         if old != current:
             print(f"WARNING: {path.name} was stamped {old}, not {current}; restamping anyway")
         claim_edits.append((path, new))
         plan.append(f"{path.relative_to(ROOT)}: claims-for {old} -> {nxt}, {deleted} claim(s) deleted")
+        if restored or stale:
+            plan.append(f"{path.relative_to(ROOT)}: {len(restored)} suspended may-drift "
+                        f"entr{'y' if len(restored) == 1 else 'ies'} restored verbatim "
+                        f"({', '.join(restored) or 'none'}); {len(stale)} stale suspension "
+                        f"note(s) dropped ({', '.join(stale) or 'none'})")
     plan.append(f"{REGISTER_DIR.relative_to(ROOT)}: re-recorded from the stamped tree "
                 f"by {REGISTER_GENERATOR.name}")
     plan.append(f"commit 'v{nxt}: stamp {args.title}' and tag v{nxt}" + (" (pushed)" if args.push else " (not pushed)"))

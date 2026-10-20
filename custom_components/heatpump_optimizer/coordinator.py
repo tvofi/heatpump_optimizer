@@ -155,6 +155,7 @@ from .const import (
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
     VENT_CUSUM_STARVE_HOURS,
+    VENT_CUSUM_REFERENCE_HOURS,
     OPEN_WINDOW_RELAX_C,
     IMMERSION_FACTOR,
     COP_BASELINE_MIN_SAMPLES,
@@ -1271,17 +1272,22 @@ HOUSE_LOSS_ALPHA = 0.02
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
-# A single interval may never move the estimate more than this fraction; real
-# building fabric does not change, so anything larger is a disturbance.
+# The re-anchor threshold gate: a nameplate edit within this fraction keeps
+# the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
+# per-interval limit: one sample moves the estimate by at most
+# ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
 HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped. Centred on the current value,
-# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
-# against fixed global bounds does not have that property, because the
-# midpoint of a fixed range is not the current estimate.
+# *current* estimate before it is clipped, as a fraction of that estimate.
+# Centred on the current value, zero-mean noise has zero-mean effect after
+# clipping; rejecting or clamping against fixed global bounds does not have
+# that property, because the midpoint of a fixed range is not the current
+# estimate. A fraction rather than a multiplier offset (#2252), so the bound
+# in UA is the same whether the learned value sits in the settings or in
+# the multiplier.
 _LEARNER_TRUST_REGION = 0.5
 
 
@@ -2740,12 +2746,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         it never moves a plan. Everything that could move one (the comfort
         relaxation, the DHW margin nudge) is gated behind its own flag.
         """
-        # #26: an open window shows as sustained colder-than-predicted
-        # residuals in the heat-loss learner's replay.
+        # #26: an open window shows as a sustained cold CHANGE in the heat-loss
+        # replay residual, measured from what it normally reads (#2241).
         self._vent_cusum = Cusum(
             threshold=VENT_CUSUM_THRESHOLD_C,
             drift=VENT_CUSUM_DRIFT_C,
             side=-1,
+            clip=VENT_CUSUM_CLIP_C,
+            reference_hours=VENT_CUSUM_REFERENCE_HOURS,
         )
         # #11: the immersion element announces itself as measured power
         # beyond what the compressor can draw. 2/2 hysteresis, like every
@@ -4547,13 +4555,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``MeasuredCop.record`` writes all three together.
 
-        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
-        ``compute_cop`` — the SPACE curve — including intervals the pump spent
-        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
-        space heating, and the model prices that at roughly 16 % lower COP at a
-        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
-        asked looked ~16 % less efficient than modelled, every hot-water
-        interval, in the same direction.
+        v5.3.0. ``_learn_measured_cop`` compared every interval against
+        ``compute_cop`` — the SPACE curve — including the ones the pump spent
+        making hot water. The model prices a 55 °C tank at 0.62x the space
+        curve, and the tank's own lift law is what it pays (D2-s2-01; the
+        linear 0.008/K penalty this seam was written against priced the same
+        tank 1.35x higher). So a healthy pump doing what the plan asked looked
+        less efficient than modelled, every hot-water interval, same direction.
 
         Three things consume the result and all three were wrong for those
         intervals: the reported ``measured_cop``, the capacity envelope, and —
@@ -4841,8 +4849,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
           change the stored scale is kept verbatim: below convergence
           the law is a measured regression against today's behaviour on
           exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner absorbs a small
-          edit in one step anyway.
+          the ungated law's 18.2%), and the learner's EWMA closes a
+          small edit on its own, ``HOUSE_LOSS_ALPHA`` of the way to its
+          target per accepted sample.
         * **Clamp means reset.** If the re-anchored scale falls outside
           ``[0.3, 3.0]`` the measurement cannot be expressed against
           the new nameplate: reset explicitly and log it. Clipping onto
@@ -5096,14 +5105,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not np.isfinite(residual):
             return
 
-        # #26: an open window shows as SUSTAINED colder-than-predicted
-        # residuals — often exactly the large ones the guard below throws
-        # away, which is why the detector is fed first, clipped so one
-        # sensor glitch cannot trip it alone. On a trip every learner
-        # freezes with reason "ventilation" until the residuals recover.
-        vent_changed = self._vent_cusum.update(
-            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
-        )
+        # #26: a window shows as SUSTAINED cold residuals, often ones the guard
+        # below throws away, so the detector is fed first, with the interval's
+        # heat and sun: a delivery or aperture bias scales with those, a window
+        # does not (#2241). On a trip every learner freezes until it recovers.
+        vent_changed = self._vent_cusum.update(now, float(residual), (
+            previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",
@@ -5142,7 +5149,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5250,7 +5256,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -10079,13 +10084,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         shifting, and this is the proof, either way.
         """
         month = month or month_key(dt_util.now())
-        spot_line = self._ledger.line(month, "spot")
-        # The immersion line is spot-priced energy carved out of "spot"
-        # for visibility (#11); the settlement is over ALL metered kWh,
-        # so it folds back in here.
-        imm_line = self._ledger.line(month, "immersion")
-        kwh = spot_line["kwh"] + imm_line["kwh"]
-        spot_cost = spot_line["sek"] + imm_line["sek"]
+        # The settlement is over ALL metered kWh, the immersion carve-out
+        # (#11) included: the ledger's one energy figure (#2255).
+        energy = self._ledger.metered_energy(month)
+        kwh, spot_cost = energy["kwh"], energy["sek"]
         out: ContractComparison = {
             "month": month,
             "kwh": round(kwh, 3),
