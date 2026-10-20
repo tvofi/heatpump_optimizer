@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:setpoint_step CMP_BOUND 901cc8a6",
+  "killed_by": "tests/entities.py",
+  "old": "    return step if step is not None and step > 0.0 else DEFAULT_SETPOINT_STEP",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 52011c69ae04f8a725c82040669b7c158290f834: CMP_BOUND (`return step if step is not None and step >= 0.0 else DEFAULT_SETPOINT_STEP`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

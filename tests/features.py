@@ -10900,16 +10900,19 @@ _wc = _write_coord(
 )
 _asyncio.run(_wc._command_valve_target())
 _calls = _wc.hass.services.calls
+# The 23.5 degC ceiling goes out on the entity's step, rounded down because
+# it caps delivery: a whole 23 on an entity that states no step
+# (R10-SETPOINT-BOOST, tvofi 2026-10-19).
 R.check(
     "a number entity is commanded through set_value",
     _calls == [("number", "set_value",
-                {"entity_id": "number.valve", "value": 23.5})],
+                {"entity_id": "number.valve", "value": 23})],
     f"got {_calls!r}",
 )
 R.check(
     "and the commanded number is the comfort ceiling, the same value the "
     "dumb-valve recommendation gives",
-    _calls and _calls[0][2]["value"] == 23.5,
+    _calls and _calls[0][2]["value"] == 23,
     "commanding what a read-back sensor reports would freeze whatever the "
     "valve held when the mode was enabled",
 )
@@ -10940,7 +10943,7 @@ R.check(
     "a climate entity is commanded through set_temperature",
     _cc.hass.services.calls == [("climate", "set_temperature",
                                  {"entity_id": "climate.valve",
-                                  "temperature": 23.5})],
+                                  "temperature": 23})],
     f"got {_cc.hass.services.calls!r}",
 )
 
@@ -11068,9 +11071,9 @@ _expected_flow = _mv.flow_setpoint(
 R.check(
     "'flow' commands the flow curve's temperature, not the raw indoor target",
     bool(_ff.hass.services.calls)
-    and abs(_ff.hass.services.calls[0][2]["value"] - round(_expected_flow, 1)) < 1e-6
+    and _ff.hass.services.calls[0][2]["value"] == int(_expected_flow)
     and _expected_flow > 23.5,
-    f"got {_ff.hass.services.calls!r}, expected {round(_expected_flow, 1)} "
+    f"got {_ff.hass.services.calls!r}, expected {int(_expected_flow)} "
     f"(unrounded {_expected_flow:.4f})",
 )
 
@@ -11085,7 +11088,7 @@ _asyncio.run(_fs._command_valve_target())
 R.check(
     "an unrecognised kind is validated away to 'indoor' rather than trusted",
     bool(_fs.hass.services.calls)
-    and abs(_fs.hass.services.calls[0][2]["temperature"] - 23.5) < 1e-6,
+    and _fs.hass.services.calls[0][2]["temperature"] == 23,
     f"got {_fs.hass.services.calls!r}",
 )
 
@@ -48316,6 +48319,8 @@ class _G8Services:
 class _G8RepHass:
     def __init__(self):
         self.services = _G8Services()
+        # A real hass carries the state machine the write reads the step from.
+        self.states = FakeHass().states
 
 
 def _g8_fix(data, user_input=None, refuse_clear=False):
@@ -53185,7 +53190,7 @@ _pa_mbs_null.device("number.dhw_set", "40")
 _p8_sp.evaluate(_pa_mbs_null, lambda pump: _pa.dhw_gated(_pa_mbs_null, pump))
 R.check(
     "with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum",
-    _pa_mbs.hass.states.get("number.dhw_set").state == "40.0"
+    _pa_mbs.hass.states.get("number.dhw_set").state == "40"
     and _pa_mbs.hass.states.get("select.pump_mode").state == "Heat + DHW",
 )
 R.check(
@@ -61865,9 +61870,10 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
 
 _SP_ORDER = (_SP_PUMP_RETURN, _SP_TANK, _SP_FLOOR, _SP_VALVE)
 #: Synthetic readings, distinct per slot so a wrong rung reads as a wrong
-#: number; the pump's supply is hot, as a running pump's is.
+#: number, and above the 25 degC gate so each keeps its own lift
+#: (R10-SETPOINT-BOOST); the pump's supply is hot, as a running pump's is.
 _SP_READ = {
-    _SP_PUMP_RETURN: 22.0, _SP_TANK: 24.0, _SP_FLOOR: 26.0, _SP_VALVE: 31.0,
+    _SP_PUMP_RETURN: 27.0, _SP_TANK: 29.0, _SP_FLOOR: 32.0, _SP_VALVE: 36.0,
     _SP_PUMP_SUPPLY: 52.0,
 }
 
@@ -61922,8 +61928,8 @@ R.check(
     f"{len(_sp_cells)} cells, wrong {_sp_wrong}",
 )
 R.check(
-    "a tank at 24 degC writes 29 at the floor, not the 35 the return-or-hold anchor wrote",
-    _sp_write(1.5, (_SP_TANK,)) == 29.0
+    "a tank at 29 degC writes 34 at the floor, not the 35 the return-or-hold anchor wrote",
+    _sp_write(1.5, (_SP_TANK,)) == 34.0
     and _sp_write(1.5, (_SP_TANK,)) != _pa.FLOW_HOLD_C,
     f"{_sp_write(1.5, (_SP_TANK,))}",
 )
@@ -63426,6 +63432,398 @@ R.check(
 )
 
 
+# --- R10-SETPOINT-BOOST: a heating floor above the gate; a censored window -----
+# Synthetic throughout. (A) The flow set-point a step that does not heat
+# writes is the gate (FLOW_GATE_C, or the entity's own minimum); the floor a
+# heating step writes was the inlet plus the lift, so on a tank at or below
+# the gate less the lift it wrote the gate itself -- the command for "heat at
+# the floor" and for "off" were one number. (B) On an install the arbiter
+# drives through a flow set-point, the draw is capped by the set-point
+# written: a draw under a sub-ceiling set-point says nothing about the
+# pump's maximum, and a reading at the gate is the idle draw, not a run.
+import inspect as _bst_inspect  # noqa: E402
+
+from types import SimpleNamespace as _BstNS  # noqa: E402
+
+from heatpump_optimizer import pump_arbiter as _bst_pa  # noqa: E402
+from heatpump_optimizer import store as _bst_store  # noqa: E402
+from heatpump_optimizer.const import CONF_BUFFER_TANK_TEMP_ENTITY as _BST_TANK  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    FLOW_MIN_LIFT_K as _BST_LIFT,
+    modulation_floor_flow_c as _bst_floor_of,
+)
+
+_BST_ENTITY = "number.bst_flow"
+_BST_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+
+
+def _bst_write(kw, tank, entity_min=20, duty="space"):
+    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``."""
+    config = {"space_setpoint_entity": _BST_ENTITY, _BST_TANK: "sensor.bst_tank"}
+    attrs = {"max": 70} if entity_min is None else {"min": entity_min, "max": 70}
+    states = {_BST_ENTITY: FakeState("40", attributes=attrs)}
+    if tank is not None:
+        states["sensor.bst_tank"] = FakeState(str(tank), unit="°C")
+    else:
+        config.pop(_BST_TANK)
+    return _bst_pa._flow_target(
+        _BstNS(
+            config=config, hass=FakeHass(states),
+            state=_BstNS(outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                        floor_return_temperature=None),
+            thermal=_BstNS(params=None, curve_flow_temp=lambda _o: None),
+            params=_BstNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_BstNS(timestamps=[_BST_T0], power_schedule=[kw]),
+        ),
+        duty, _BST_T0,
+    )
+
+
+# The seam census: every inlet from 10 to 40 degC on every entity minimum the
+# gate can take, a step at the floor against a step that does not heat.
+_bst_cells = [(t, lo) for t in range(10, 41) for lo in (None, 20, 25, 28, 30)]
+_bst_collide = [
+    (t, lo, _bst_write(1.5, t, lo), _bst_write(0.0, t, lo, duty="idle"))
+    for t, lo in _bst_cells
+    if not _bst_write(1.5, t, lo) > _bst_write(0.0, t, lo, duty="idle")
+]
+R.check(
+    "a step that heats at the floor writes strictly above the gate a step that does "
+    "not heat writes, on every inlet 10-40 degC and every entity minimum",
+    len(_bst_cells) == 155 and not _bst_collide,
+    f"{len(_bst_cells)} cells, colliding {_bst_collide[:6]} ({len(_bst_collide)})",
+)
+R.check(
+    "an 18 degC tank writes the gate plus the lift at the floor, not the gate",
+    _bst_write(1.5, 18.0) == _bst_pa.FLOW_GATE_C + _BST_LIFT
+    and _bst_write(1.5, 18.0, entity_min=28) == 28.0 + _BST_LIFT
+    and _bst_write(0.0, 18.0, duty="idle") == _bst_pa.FLOW_GATE_C,
+    f"{_bst_write(1.5, 18.0)} {_bst_write(1.5, 18.0, entity_min=28)}",
+)
+R.check(
+    "null control: a tank above the gate keeps its own lift, full power keeps the "
+    "ceiling, and no inlet keeps the rated hold",
+    _bst_write(1.5, 26.0) == 26.0 + _BST_LIFT and _bst_write(1.5, 30.0) == 35.0
+    and _bst_write(5.5, 18.0) == _bst_pa.FLOW_HEAT_C
+    and _bst_write(1.5, None) == _bst_pa.FLOW_HOLD_C
+    and _bst_floor_of(18.0) == 18.0 + _BST_LIFT,
+    f"{_bst_write(1.5, 24.0)} {_bst_write(5.5, 18.0)} {_bst_write(1.5, None)}",
+)
+R.check(
+    "a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank "
+    "writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank "
+    "writes 31 unchanged",
+    _bst_write(1.5, 25.3) == 31 and _bst_write(1.5, 25.9) == 31
+    and _bst_write(1.5, 26.0) == 31,
+    f"{_bst_write(1.5, 25.3)} {_bst_write(1.5, 25.9)} {_bst_write(1.5, 26.0)}",
+)
+
+# (B) The window. ``observe`` takes the sample's command where the tree has
+# it; a tree without the guard folds the same draws without one.
+_BST_FLOOR, _BST_MID, _BST_CEIL = (30.0, 55.0), (40.0, 55.0), (55.0, 55.0)
+_BST_TAKES = "command" in _bst_inspect.signature(_dr.DrawRange.observe).parameters
+
+
+def _bst_window(rows, idle=(), cfg=(1.5, 5.5), legacy=None):
+    """A range fed ``rows`` of ``(drawn, asked, command)`` after ``idle`` readings."""
+    d = _dr.DrawRange() if legacy is None else _dr.DrawRange.from_dict(legacy)
+    for value in idle:
+        getattr(d, "observe_idle", lambda _v: None)(value)
+    for drawn, asked, cmd in rows:
+        if _BST_TAKES:
+            d.observe(drawn, asked, *cfg, command=cmd)
+        else:
+            d.observe(drawn, asked, *cfg)
+    return d
+
+
+# The owner-shaped window: idle 0.30 kW at the gate; 24 floor-commanded
+# samples at the idle level, 48 a little over it; 18 mid-commanded samples
+# asked 3 kW drawing 2 kW. Not one written at the ceiling.
+_BST_ROWS = (
+    [(0.33, 1.5, _BST_FLOOR)] * 24 + [(0.5, 1.5, _BST_FLOOR)] * 48
+    + [(2.0, 3.0, _BST_MID)] * 18
+)
+_bst_censored = _bst_window(_BST_ROWS, idle=[0.30] * 12)
+_bst_obs = _bst_censored.observed()
+R.check(
+    "a window commanded below the ceiling never engages and learns no maximum: "
+    "its idle-level readings are the idle draw, not a run",
+    _bst_censored.engaged is False and _bst_obs is not None and _bst_obs[1] is None
+    and _bst_censored.planned(1.5, 5.5) is None
+    and getattr(_bst_censored, "idle_kw", lambda: None)() == 0.30
+    and _bst_censored.summary().get("observed_max_kw") is None,
+    f"engaged {_bst_censored.engaged} observed {_bst_obs}",
+)
+_bst_free = _bst_window([(d, a, None) for d, a, _ in _BST_ROWS])
+_bst_free_draws = np.array([d for d, _, _ in _BST_ROWS])
+R.check(
+    "null control: the same draws with nothing commanding them (the pump's own "
+    "choice) engage at the running percentiles of every sample, as before the guard",
+    _bst_free.engaged and _bst_free.observed() == (
+        float(np.percentile(_bst_free_draws, _dr.LOW_PERCENTILE)),
+        float(np.percentile(_bst_free_draws, _dr.HIGH_PERCENTILE)),
+    ),
+    f"{_bst_free.engaged} {_bst_free.observed()}",
+)
+_bst_full_rows = [(2.0 + 0.01 * k, 5.5, _BST_CEIL) for k in range(48)]
+_bst_full = _bst_window(_bst_full_rows, idle=[0.30] * 12)
+R.check(
+    "null control: ceiling-commanded samples drawing well under p_max engage, and "
+    "their 90th percentile is the maximum",
+    _bst_full.engaged and _bst_full.observed()[1] == float(
+        np.percentile([d for d, _, _ in _bst_full_rows], _dr.HIGH_PERCENTILE))
+    and _bst_full.planned(1.5, 5.5) is not None,
+    f"{_bst_full.engaged} {_bst_full.observed()}",
+)
+_bst_idle_rows = [(2.0, 5.5, _BST_CEIL)] * 48 + [(0.33, 5.5, _BST_CEIL)] * 30
+_bst_idle_win = _bst_window(_bst_idle_rows, idle=[0.30] * 12)
+R.check(
+    "readings at the learned idle draw are not runs: they set neither the floor nor "
+    "the share that disagrees",
+    _bst_idle_win.observed() == (2.0, 2.0)
+    and _bst_window(_bst_idle_rows).observed()[0] == 0.33,
+    f"{_bst_idle_win.observed()} without idle {_bst_window(_bst_idle_rows).observed()}",
+)
+_bst_legacy_rec = {"samples": [[0.4, 3.0]] * 60, "engaged": True, "config": [1.5, 5.5]}
+_bst_old_cmd = _bst_window([(0.4, 3.0, _BST_MID)], legacy=_bst_legacy_rec)
+_bst_old_free = _bst_window([(0.4, 3.0, None)], legacy=_bst_legacy_rec)
+R.check(
+    "a record stored without commands is dropped by the first commanded sample, and "
+    "kept by an uncommanded one",
+    len(_bst_old_cmd.samples) == 1 and _bst_old_cmd.engaged is False
+    and len(_bst_old_free.samples) == 61 and _bst_old_free.engaged is True,
+    f"{len(_bst_old_cmd.samples)} {_bst_old_cmd.engaged} "
+    f"{len(_bst_old_free.samples)} {_bst_old_free.engaged}",
+)
+_bst_doc = _bst_censored.as_dict()
+_bst_back = _dr.DrawRange.from_dict(_bst_doc)
+R.check(
+    "the commands and the idle readings survive the store, and the store's domains "
+    "accept every cell",
+    list(_bst_back.commands) == list(_bst_censored.commands)
+    and list(_bst_back.idle) == list(_bst_censored.idle)
+    and _bst_back.engaged == _bst_censored.engaged
+    and _bst_store.admitted("accuracy", {"accuracy": {"draw": _bst_doc}}),
+    f"{_bst_doc.get('samples', [])[:1]} idle {_bst_doc.get('idle')}",
+)
+
+
+# The fold: an interval at the gate with no hot water asked is an idle
+# reading; one with nothing commanding the pump is not.
+def _bst_fold(command, split=(0.0, 0.0)):
+    d = _dr.DrawRange()
+    kw = {} if not _BST_TAKES else {"command": command}
+    _dr.fold(d, 0.31, split, _dr_params(1.5, 5.5), frozen=False, distorted=False,
+             defrost=False, **kw)
+    return list(getattr(d, "idle", ()))
+
+
+_BST_AT_GATE = _BstNS(written_c=25.0, gate_c=25.0, ceiling_c=55.0)
+R.check(
+    "a gate-held interval folds one idle reading; a heating set-point, hot water "
+    "asked, or no command at all folds none",
+    _bst_fold(_BST_AT_GATE) == [0.31]
+    and _bst_fold(_BstNS(written_c=30.0, gate_c=25.0, ceiling_c=55.0)) == []
+    and _bst_fold(_BST_AT_GATE, split=(0.0, 2.0)) == []
+    and _bst_fold(None) == [],
+)
+
+
+# The coordinator hands the fold what the arbiter holds. Control, a flow
+# unit and a written set-point: the sample carries it; any one missing --
+# an install whose draw nothing commands, as a duty-cycling or Off install's
+# -- carries none.
+def _bst_coord(**extra):
+    states = {_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+    c = _DrCoord(FakeHass(states), _dr_entry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY, **extra}))
+    c._current_action = {"power": 6.0, "dhw_power": 0.0}
+    c._measured_power = 2.3
+    _bst_pa.state_for(c).written["space_setpoint"] = (40.0, _BST_T0)
+    c._record_accuracy()
+    return list(getattr(c._accuracy.draw, "commands", [None]))
+
+
+R.check(
+    "the per-cycle fold records the held flow set-point and its ceiling under Control",
+    _bst_coord(pump_duty_mode="control", space_setpoint_unit="flow") == [(40.0, 55.0)],
+    f"{_bst_coord(pump_duty_mode='control', space_setpoint_unit='flow')}",
+)
+R.check(
+    "null control: Observe, an indoor set-point, or a plan that writes the compressor "
+    "frequency (an install that can duty-cycle, whose draw is the plan's echo) records "
+    "no command",
+    _bst_coord(pump_duty_mode="observe", space_setpoint_unit="flow") == [None]
+    and _bst_coord(pump_duty_mode="control", space_setpoint_unit="indoor") == [None]
+    and _bst_coord(
+        pump_duty_mode="control", space_setpoint_unit="flow",
+        compressor_freq_entity="number.bst_freq", freq_control_mode="control",
+    ) == [None],
+)
+
+
+# (C) Set-points are written on the entity's own step, whole degrees where it
+# states none (tvofi, 2026-10-19: many pumps take no decimals), quantised at
+# the one service call (``inputs.write_setpoint``) and, by meaning, where the
+# arbiter bounds them: a heating floor up, a gate and a ceiling down, levels
+# between to nearest -- in the entity's own unit (#2285).
+import asyncio as _bst_aio  # noqa: E402
+
+from heatpump_optimizer import inputs as _bst_in  # noqa: E402
+
+
+def _bst_sent(value, attrs=None, unit="°C", entity="number.bst_q"):
+    hass = FakeHass({entity: FakeState("40", unit=unit, attributes=attrs or {})})
+    _bst_aio.run(_bst_in.write_setpoint(hass, entity, value))
+    return [data["value" if not entity.startswith("climate") else "temperature"]
+            for _d, _s, data in hass.services.calls]
+
+
+R.check(
+    "no decimal reaches the service call on an entity that states no step; a "
+    "0.5-step entity keeps its halves; a stated 0.1 step keeps tenths",
+    _bst_sent(30.4) == [30] and isinstance(_bst_sent(30.4)[0], int)
+    and _bst_sent(30.6) == [31]
+    and _bst_sent(30.4, {"step": 0.5}) == [30.5]
+    and _bst_sent(30.44, {"step": 0.1}) == [30.4],
+    f"{_bst_sent(30.4)} {_bst_sent(30.4, {'step': 0.5})} {_bst_sent(30.44, {'step': 0.1})}",
+)
+R.check(
+    "null control: an already-whole write sends the same whole number",
+    _bst_sent(35.0) == [35] and _bst_sent(35) == [35],
+)
+
+
+def _bst_q(value_c, rounding="nearest", lo=None, hi=None, attrs=None, unit="°C"):
+    hass = FakeHass({"number.bst_q": FakeState("40", unit=unit, attributes=attrs or {})})
+    return _bst_in.quantise_setpoint_c(hass, "number.bst_q", value_c, rounding=rounding, lo_c=lo, hi_c=hi)
+
+
+_bst_levels = [_bst_q(30.2 + 0.1 * k, lo=30.2, hi=54.6) for k in range(0, 245)]
+R.check(
+    "a floor rounds up, a ceiling down, levels between to nearest, and the written "
+    "value never falls as the level rises",
+    _bst_q(30.2, lo=30.2) == 31.0 and _bst_q(54.6, hi=54.6) == 54.0
+    and _bst_q(42.4) == 42.0 and _bst_q(42.6) == 42.0 + 1.0
+    and _bst_q(25.0, rounding="down") == 25.0 and _bst_q(25.7, rounding="down") == 25.0
+    and all(b >= a for a, b in zip(_bst_levels, _bst_levels[1:]))
+    and _bst_levels[0] == 31.0 and _bst_levels[-1] == 54.0,
+    f"{_bst_levels[:3]} {_bst_levels[-3:]}",
+)
+_bst_f = _bst_q(30.0, lo=30.0, unit="°F")
+R.check(
+    "a Fahrenheit entity is quantised in Fahrenheit: 30 degC is 86 degF, whole, and "
+    "a floor of 30.2 degC rounds up to 87 degF",
+    abs(_bst_f - 30.0) < 1e-9
+    and abs(_bst_q(30.2, lo=30.2, unit="°F") - (87.0 - 32.0) * 5.0 / 9.0) < 1e-9
+    and _bst_sent(86.0, unit="°F") == [86],
+    f"{_bst_f} {_bst_q(30.2, lo=30.2, unit='°F')}",
+)
+_bst_tank20 = (_bst_write(1.5, 20.3), _bst_write(0.0, 20.3, duty="idle"))
+R.check(
+    "after rounding, a 20 degC tank's floor stays above the gate, both whole",
+    _bst_tank20[0] > _bst_tank20[1] and float(_bst_tank20[0]).is_integer()
+    and float(_bst_tank20[1]).is_integer(),
+    f"{_bst_tank20}",
+)
+
+# The window's own constants and guards: each check pins one mutation site of
+# the diff (the mutation table's added sites), through the production symbol.
+_bst_idle_day = _dr.DrawRange()
+for _v in [0.20] * 60 + [0.30] * 36:
+    _bst_idle_day.observe_idle(_v)
+R.check(
+    "the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn "
+    "the newest 48 (0.30), not the whole 96 (0.20); null: 20 readings learn "
+    "their own value",
+    len(_bst_idle_day.idle) == 48 and _bst_idle_day.idle_kw() == 0.30
+    and _dr.DrawRange.from_dict(
+        {"config": [1.5, 5.5], "idle": [0.20] * 20}).idle_kw() == 0.20,
+    f"{len(_bst_idle_day.idle)} {_bst_idle_day.idle_kw()}",
+)
+_bst_sub = _bst_window(
+    [(3.0, 5.5, _BST_CEIL)] * 10 + [(1.0, 5.5, (54.1, 55.0))] * 90,
+    idle=[0.30] * 12,
+)
+R.check(
+    "a set-point 0.9 K under the ceiling is not full-power evidence: ten "
+    "ceiling-commanded draws learn no maximum beside ninety sub-ceiling ones; "
+    "null: a set-point exactly 0.5 K under the ceiling is full",
+    _bst_sub.observed() is not None and _bst_sub.observed()[1] is None
+    and _bst_window([(3.0, 5.5, (54.5, 55.0))] * 48,
+                    idle=[0.30] * 12).observed()[1] == 3.0,
+    f"{_bst_sub.observed()}",
+)
+_bst_edge = _bst_window([(3.0, 5.5, (54.5, 55.0))] * 48, idle=[0.30] * 12)
+R.check(
+    "a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full "
+    "(the test is inclusive): 48 of them learn their 90th percentile as the "
+    "maximum",
+    _bst_edge.observed() is not None and _bst_edge.observed()[1] == 3.0,
+    f"{_bst_edge.observed()}",
+)
+_bst_at_idle = _bst_window([(0.5, 1.5, _BST_CEIL)] * 48, idle=[0.4] * 12)
+R.check(
+    "a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a "
+    "run (the test is strict): 48 of them are no evidence at all",
+    _bst_at_idle.idle_kw() == 0.4 and _bst_at_idle.observed() is None,
+    f"{_bst_at_idle.idle_kw()} {_bst_at_idle.observed()}",
+)
+_bst_zero_idle = _dr.DrawRange.from_dict(
+    {"config": [1.5, 5.5], "idle": [0.0] * 6 + [0.3] * 6})
+R.check(
+    "a stored idle reading of 0.0 is a reading: six of twelve, the median is "
+    "0.15; null: a negative, a NaN and a non-number are dropped",
+    _bst_zero_idle.idle_kw() == 0.15
+    and _dr._stored_idle([-0.1, float("nan"), "0.2", 0.3]) == [0.3],
+    f"{_bst_zero_idle.idle_kw()} {_dr._stored_idle([0.0, -0.1, float('nan')])}",
+)
+R.check(
+    "a set-point exactly one millionth of a step above a multiple is not "
+    "snapped to it (the snap is strict), so a floor of it rounds up: one "
+    "millionth of a whole degree writes 1; null: zero snaps to the multiple",
+    _bst_in._on_step(1e-6, 1.0, "up") == 1.0
+    and _bst_in._on_step(0.0, 1.0, "up") == 0.0,
+    f"{_bst_in._on_step(1e-6, 1.0, 'up')} {_bst_in._on_step(0.0, 1.0, 'up')}",
+)
+R.check(
+    "a set-point 0.4 K above the gate is not a gate-held interval, so its draw "
+    "is no idle reading; null: one exactly GATE_TOLERANCE_K above the gate is",
+    _bst_fold(_BstNS(written_c=25.4, gate_c=25.0, ceiling_c=55.0)) == []
+    and _bst_fold(_BstNS(written_c=25.25, gate_c=25.0, ceiling_c=55.0)) == [0.31],
+    f"{_bst_fold(_BstNS(written_c=25.4, gate_c=25.0, ceiling_c=55.0))}",
+)
+
+
+def _bst_flow_of(written, states=None):
+    """What ``_flow_command`` publishes for a held ``written`` set-point."""
+    states = ({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+              if states is None else states)
+    coord = _DrCoord(FakeHass(states), _dr_entry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY,
+        "pump_duty_mode": "control", "space_setpoint_unit": "flow"}))
+    coord._current_action = {"power": 6.0, "dhw_power": 0.0}
+    coord._measured_power = 2.3
+    _bst_pa.state_for(coord).written["space_setpoint"] = written
+    return _bst_pa._flow_command(
+        coord.arbiter_inputs(), _bst_pa.state_for(coord))
+
+
+_bst_held = _bst_flow_of((40.0, _BST_T0))
+R.check(
+    "the guard: a written set-point that is not a number, or an entity range "
+    "that does not read, commands nothing -- no FlowCommand with a missing end "
+    "-- and a readable one publishes the held command",
+    _bst_held is not None and _bst_held.written_c == 40.0
+    and _bst_flow_of(("40", _BST_T0)) is None
+    and _bst_flow_of((40.0, _BST_T0), states={}) is None,
+    f"{_bst_held} {_bst_flow_of(('40', _BST_T0))} "
+    f"{_bst_flow_of((40.0, _BST_T0), states={})}",
+)
+
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
 # The probe is #1955's own: power and frequency come from ``probe_install``;
 # the energy and flow entities are the classes the probe does not carry. The
@@ -64875,7 +65273,8 @@ def _df_write(slot, entity, state, instance, value_c):
 _df_cells = {}
 for _df_slot, _df_c in (("dhw_setpoint", 50.0), ("space_setpoint", 21.0)):
     for _df_inst in (_DF, _DC):
-        _df_f = round(_df_c * 9 / 5 + 32, 1)
+        # R10-SETPOINT-BOOST: whole degrees in the entity unit (21 degC -> 70 degF).
+        _df_f = float(round(_df_c * 9 / 5 + 32))
         _df_want = _df_f if _df_inst == _DF else _df_c
         _df_cells[(_df_slot, "climate", _df_inst)] = (_df_write(
             _df_slot, f"climate.{_df_slot}",
@@ -64935,11 +65334,11 @@ R.check(
     "the smart_write valve target is written in the entity's unit, once, "
     "and remembered in degC (L1)",
     _df_valves == {
-        "climate on degF": ([74.3], 23.5),
-        "climate on degF, no target": ([74.3], 23.5),
-        "number declaring degF": ([74.3], 23.5),
-        "climate on degC": ([23.5], 23.5),
-        "number declaring degC": ([23.5], 23.5),
+        "climate on degF": ([74], 23.5),
+        "climate on degF, no target": ([74], 23.5),
+        "number declaring degF": ([74], 23.5),
+        "climate on degC": ([23], 23.5),
+        "number declaring degC": ([23], 23.5),
     },
     f"{_df_valves}",
 )
@@ -64977,7 +65376,7 @@ R.check(
     "in the instance's unit (L2)",
     _df_ranges == {
         "climate on degF, above max": 50.0,
-        "climate on degF, below min": 7.0,
+        "climate on degF, below min": (45 - 32) * 5 / 9,  # 44.6 degF min, whole degF up
         "climate on degC, above max": 50.0,
         "number on degC, above max": 50.0,
         "number on degC, inside": 45.0,

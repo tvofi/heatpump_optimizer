@@ -1452,17 +1452,24 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
 FLOW_MIN_LIFT_K = 5.0
 
 
-def modulation_floor_flow_c(inlet_c: Any) -> float | None:
+def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
     """The flow set-point for the modulation floor, °C, or ``None``.
 
     The measured inlet (the buffer tank behind a mixing valve, else the
     return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
-    power the plan never booked. ``None`` for an unmeasured inlet.
+    power the plan never booked. ``gate_c`` is the set-point a step that
+    does not heat writes; the lift is taken from whichever of the two is
+    higher, so a step that heats never writes the value that means off --
+    on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``
+    for an unmeasured inlet.
     """
     inlet = _optional_float(inlet_c)
-    return None if inlet is None else inlet + FLOW_MIN_LIFT_K
+    if inlet is None:
+        return None
+    gate = _optional_float(gate_c)
+    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
 
 
 def flow_setpoint_for_level(
