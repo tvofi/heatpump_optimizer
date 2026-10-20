@@ -35,6 +35,10 @@ No issues close here.
 
 ## Head
 
+`5748642ff342ec68a49b085b2ef167f2d05a97ee` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2480.md`. The authored code head is `f210e78b59ffa9b15993cb80eaea4dd496c2d3a8`.
+
+`f6abe94fe66a0fb90a1c4a7eb7a25741a2c8dc84` merges origin/main `0c298f6b5` into the authored code head `f210e78b59ffa9b15993cb80eaea4dd496c2d3a8` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 f210e78b59ffa9b15993cb80eaea4dd496c2d3a8, measured against merge base 64b0ae6901b7e7484a1d46d3402b2aaf88da0d69 (origin/main at 2026-10-19T15:05Z).
 
 ## Mutation proof
@@ -69,14 +73,17 @@ Each mutant was applied to the committed tree and then restored, and a `cmp` aga
 
 nightly-status is main's: run 39218718759, record-autofix 403. It does not come from this diff (no file the nightly reads changes here), and its root cause is the token quota this PR addresses.
 
+- `pr-contract`: red at the head `5748642ff` on `2 unrouted` `## Forward-carry` bullets. Answered at this body: each bullet now ends in `Carry: R10-CI-LAYOUT`, and the destination brief states the finding (roster `5ab01bbb`). Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body <file>` exits 1 in about a second on the same items; the standing cost is one local run per body.
+
 ## Forward-carry
 
-- R10-CI-LAYOUT replaces this follower. It must keep the debounce semantics or drop the follower, and it must measure the per-head red count before keeping it, since at 0 or 1 reds per head this design costs more calls than the old one.
-- R10-CI-LAYOUT also inherits the API-lag gap named under Risk.
-- Destination: `.github/workflows/pr-contract-rerun.yml`. Carry: R10-CI-LAYOUT (roster d1707a459)
+- R10-CI-LAYOUT replaces this follower. It must keep the debounce semantics or drop the follower, and it must measure the per-head red count before keeping it, since at 0 or 1 reds per head this design costs more calls than the old one. Carry: R10-CI-LAYOUT (roster `5ab01bbb`, the group's carry array now states the debounce's semantics and its measurement precondition).
+- R10-CI-LAYOUT also inherits the API-lag gap named under Risk. Carry: R10-CI-LAYOUT (same roster carry at `5ab01bbb`, which names the API-lag gap as owed with the debounce).
+- Destination: `.github/workflows/pr-contract-rerun.yml`. Carry: R10-CI-LAYOUT (roster `5ab01bbb`; `d1707a459` above was the commit that added this group, not the carry)
 
 ## Friction
 
 none
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
