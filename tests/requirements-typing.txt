@@ -37,6 +37,13 @@
 # yarl==1.24.5, below the >=1.25.1 aiohttp 3.14.4 requires. mypy does not
 # execute either, so the override changes no measured number. Drop both once
 # homeassistant pins aiohttp >= 3.14.4.
+#
+# For a single-package security bump, keep every other pin: delete that
+# package's hash lines and run the same compile command with this lock as its
+# input instead of `--print-requirements`. That reproduces every other block
+# byte-identically (measured on the aiohttp 3.14.4 bump, Dependabot 85-90);
+# `--print-requirements` re-resolves unpinned names and moved unrelated
+# packages when run on 2026-10-20.
 
 acme==5.7.0 \
     --hash=sha256:4be4fe6cf3809c3988d75fa1213ce8e784d9d5d8380cac63c2dca555e105653d \
