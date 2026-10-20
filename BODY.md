@@ -50,7 +50,7 @@ The planted-hash run is also the hash-list control, and it corrected its own des
 
 ## Red checks
 
-`nightly-status` is red at this head and it grades `main`, not this tree: its failing step reports the last scheduled run's conclusion on `main`, and this diff touches no reporter input, so it stands red whatever this branch does. `pr-contract` was red at the previous head because `## Head` still named the pre-row head while CI ran on the row commit; `## Head` now names the head CI runs on.
+`nightly-status` is red at this head and it grades `main`, not this tree: its failing step reports the last scheduled run's conclusion on `main`, and this diff touches no reporter input, so it stands red whatever this branch does. `pr-contract` was red at the previous head because `## Head` still named the pre-row head while CI ran on the row commit, and again at this head because the two `## Friction` bullets ended their `Carry:` markers inside a code span, which `carry_audit.py` reads as a quoted example rather than a marker; both markers now stand bare, and the carrier passes locally with 0 findings. The cheaper detector is `python3 -I tools/audit/carry_audit.py check --body <body>` — under a second, local, and already wired into `prepr.sh`.
 
 Two local reds are answered here.
 
@@ -63,5 +63,5 @@ none.
 
 ## Friction
 
-- `fixer-brief: contradiction`: the brief scopes the bump to "the version line plus every hash line for the package", but the typing lock cannot hold aiohttp 3.14.4 beside `yarl==1.24.5`, aiohttp 3.14.4's resolver floor is `yarl>=1.25.1`, and `homeassistant==2026.9.3` pins both exactly. Fixed inside the same group and the same advisory closure, as `yarl==1.25.1` under the file's existing override mechanism. `Carry: dismissed: same group, same two files; the header carries the drop condition`
-- `null-control: unenforced`: a single planted hash can pass because pip selects among a package's published artifacts (universal2 and arm64 both listed, one chosen per run), so the control must alter every hash for the package. `Carry: dismissed: group-local technique, recorded above and in the seat report`
+- `fixer-brief: contradiction`: the brief scopes the bump to "the version line plus every hash line for the package", but the typing lock cannot hold aiohttp 3.14.4 beside `yarl==1.24.5`, aiohttp 3.14.4's resolver floor is `yarl>=1.25.1`, and `homeassistant==2026.9.3` pins both exactly. Fixed inside the same group and the same advisory closure, as `yarl==1.25.1` under the file's existing override mechanism. Carry: dismissed: same group, same two files; the header carries the drop condition
+- `null-control: unenforced`: a single planted hash can pass because pip selects among a package's published artifacts (universal2 and arm64 both listed, one chosen per run), so the control must alter every hash for the package. Carry: dismissed: group-local technique, recorded above and in the seat report
