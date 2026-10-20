@@ -183,8 +183,8 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-COP-PARTLOAD | IN | 2 | queued | - | opus/opus | yes: mandated approval under 6175172275 | Found by R10-SETPOINT-BOOST's demand analysis. |  |
 | R10-UPDATE-PR-LOCK | IN | 1 | done | - | opus/opus | yes: mandated approval under 6175172275 | RCA (2026-10-20, recurrence 2): two update_pr.sh runs on one branch share the fixed worktree $HPO_STATE_DIR/pr/upd-<branch> and its log; each force-removes t... |  |
 | R10-UPDATE-PR-SIGNALS | IN | 1 | queued | - | opus/opus | yes: mandated approval under 6175172275 | Signal-safe update_pr.sh: a TERM, INT, HUP or SIGKILL of a running update must not free the branch lock while its push still runs. |  |
-| R10-HANDOFF-ARCHIVE | IN | 1 | not-started | - | sonnet/opus | - | Owner request (tvofi, 2026-10-20): move and archive the top-level `handoff/round9` tree to its durable home. |  |
-| R10-DEPENDABOT-AIOHTTP | IN | 1 | not-started | - | sonnet/opus | - | Owner report (tvofi, 2026-10-20): six open Dependabot alerts on the default branch, all aiohttp, three advisories x two manifests. |  |
+| R10-HANDOFF-ARCHIVE | IN | 1 | in-progress | - | sonnet/opus | - | Owner request (tvofi, 2026-10-20): move and archive the top-level `handoff/round9` tree to its durable home. |  |
+| R10-DEPENDABOT-AIOHTTP | IN | 1 | in-progress | - | sonnet/opus | - | Owner report (tvofi, 2026-10-20): six open Dependabot alerts on the default branch, all aiohttp, three advisories x two manifests. |  |
 
 ## ETA
 
