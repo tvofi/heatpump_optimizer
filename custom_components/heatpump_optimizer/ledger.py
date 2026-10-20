@@ -48,6 +48,10 @@ CAPACITY_PEAK_META = "capacity_peak_kw"
 #: its estimate scales by (#2255 item 2).
 SETTLED_HOURS_META = "settled_hours"
 
+#: The month's spot samples: one fold per priced settlement, beside the
+#: coverage fold the same call makes.
+SPOT_PRICE_META = "spot_price"
+
 #: The lines that are metered energy at the spot price: what every contract
 #: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
 ENERGY_LINES = ("spot", "immersion")
@@ -185,7 +189,7 @@ class MonthlyLedger:
         """
         if dt > 0:
             self.observe_meta_mean(when, SETTLED_HOURS_META, dt)
-        self.observe_meta_mean(when, "spot_price", spot)
+        self.observe_meta_mean(when, SPOT_PRICE_META, spot)
         self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
 
     def add_savings_settlement(
@@ -306,12 +310,22 @@ class MonthlyLedger:
     def _coverage_factor(self, now: datetime) -> float:
         """Open-month scale: the month's hours over the hours it settled.
 
-        Falls back to the calendar-day ratio for a month booked before the
-        coverage meta existed. Every estimated figure takes this one factor.
+        The coverage is the month's only when it began with the month's
+        first settlement: the call folding it folds a spot sample at most
+        once, so a complete coverage has at least as many folds. A month
+        booked before the coverage meta existed (an upgrade mid-month) has
+        fewer, and its hours describe the upgrade's tail, not the lines it
+        would scale (#2255's coverage under v7.0.1: months of bookings over
+        minutes of hours). That month, like one with no coverage, falls back
+        to the calendar-day ratio. Every estimated figure takes this one
+        factor.
         """
-        entry = self.months.get(month_key(now), {}).get("meta", {}).get(SETTLED_HOURS_META)
+        meta = self.months.get(month_key(now), {}).get("meta", {})
+        entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
         settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
-        if settled > 0:
+        folds = int(entry["count"]) if isinstance(entry, dict) else 0
+        spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
+        if settled > 0 and folds >= spot_folds:
             return max(1.0, month_hours(now) / settled)
         return pro_rata_factor(now)
 
@@ -463,7 +477,7 @@ def freeze_month_report(
             else None
         ),
     }
-    for key, name, digits in (("mean_spot_price", "spot_price", 4),
+    for key, name, digits in (("mean_spot_price", SPOT_PRICE_META, 4),
                               ("capacity_peak_kw", CAPACITY_PEAK_META, 2)):
         mean = ledger.meta_mean(month, name)
         if mean is not None:
