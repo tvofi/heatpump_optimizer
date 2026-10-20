@@ -1,0 +1,8 @@
+carry_audit on the live body (CI-equivalent, no --roster-ref):
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+
+pr-contract runs at head (red-then-green, twice):
+118508185309	completed	success	started=2026-10-20T07:28:20Z
+118502573687	completed	success	started=2026-10-20T07:12:17Z
+118500521433	completed	failure	started=2026-10-20T07:06:12Z
