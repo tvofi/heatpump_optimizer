@@ -569,7 +569,7 @@ class Tick:
             self._files[n] = self._last_files
         self.owner_reviews(S, prs)
         self.body_staleness(S, prs)
-        self.open_pr_cap(S, prs)
+        self.cap_levels(S, prs)
         self.verdict_levels(S, prs)
         self.relay_owed(S)
         for head, ns in sorted(by_head.items()):
@@ -578,7 +578,7 @@ class Tick:
                           f"{head[:12]}: {', '.join('#' + str(x) for x in ns)}"
                           " (duplicate CI, ambiguous red)", flag=True)
 
-    def open_pr_cap(self, S: str, prs: list) -> None:
+    def cap_levels(self, S: str, prs: list) -> None:
         """Two level lines every pass (tvofi, 2026-10-20, moving 2026-10-18's
         open-PR cap to dispatch): `WIP: N/6 (open PRs M)`, N the roster's
         `in-progress` groups through roster_lib (`pr_cap.py`'s dispatch-gate
