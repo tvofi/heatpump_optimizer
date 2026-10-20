@@ -25,27 +25,72 @@ WT=$P/upd-${BR//\//-}
 # force-removed a second run's live worktree under its prepr: "Unable to read current working
 # directory", tools/ files missing, the other run's body in the shared log (2026-10-19/20: the
 # orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
-# ONE holder process, not by an fd of this shell: an fd here is inherited by every command the
-# run starts, and a `git gc --auto` that git detaches kept it after the run ended (#2469's round-1
-# review). The holder's file is non-inheritable (PEP 446) and it starts nothing; the kernel frees
-# the lock when the holder dies, and the holder dies with this shell: the EXIT trap ends it, and
-# it exits by itself once its parent is gone (a SIGKILLed run) -- so no stale lock either way.
-python3 -I -c 'import fcntl, os, sys, time
+# ONE holder process, never by an fd of this shell: every command the run starts inherits such an
+# fd, and a `git gc --auto` git detached kept it after the run ended (#2469 round 1). The holder's
+# file is non-inheritable (PEP 446). The lock is freed only when nothing this run started can
+# still be in $WT (#2469 round 2: `kill <pid>`, daemonize.py's stop, freed it under a live push):
+#   - a normal end: the EXIT trap ends the holder;
+#   - TERM, INT or HUP: upd_stop asks the holder, which reads the run's process tree while it is
+#     whole, TERMs it, and holds the lock until every one of those processes has exited;
+#   - SIGKILL, which no trap sees: the holder re-reads the tree each second, and once its parent
+#     is gone it holds the lock until the last tree it read has exited.
+python3 -I -c 'import fcntl, os, signal, subprocess, sys, time
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError: sys.exit(75)
-p = os.getppid(); f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
-while os.getppid() == p: time.sleep(2)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
-trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
+p, me = os.getppid(), os.getpid()
+f.truncate(0); f.write("%d %d\n" % (p, me)); f.flush()
+signal.signal(signal.SIGINT, signal.SIG_IGN); signal.signal(signal.SIGHUP, signal.SIG_IGN)
+def tree(roots):
+    try: w = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid="], capture_output=True, text=True).stdout.split()
+    except OSError: return set(roots)
+    up, out, todo = {}, set(), list(roots)
+    for a, b in zip(w[0::2], w[1::2]): up.setdefault(int(b), []).append(int(a))
+    while todo:
+        for c in up.get(todo.pop(), []):
+            if c != me and c not in out: out.add(c); todo.append(c)
+    return out
+def live(xs):
+    r = set()
+    for x in xs:
+        try: os.kill(x, 0); r.add(x)
+        except ProcessLookupError: pass
+        except PermissionError: r.add(x)
+    return r
+seen, stop = set(), []
+def on_stop(*_):
+    s = tree([p])
+    for x in s:
+        try: os.kill(x, signal.SIGTERM)
+        except OSError: pass
+    seen.update(s); stop.append(1)
+    with open(sys.argv[1] + ".stopping", "w") as g: g.write("%d\n" % len(s))
+signal.signal(signal.SIGUSR2, on_stop)
+while os.getppid() == p and not stop:
+    s = tree([p])
+    if not stop: seen.clear(); seen.update(s)
+    time.sleep(1)
+while True:
+    seen = live(seen)
+    if not seen: break  # mut:drain
+    seen |= tree(seen); time.sleep(0.3)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
+trap '{ [ -n "${UPD_STOPPING:-}" ] || { kill "$LKP"; wait "$LKP"; }; } 2>/dev/null || :' EXIT  # mut:unlock
 k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
 upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
   wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$WT.lock" 2>/dev/null || :)
   [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $WT.lock (its holder exited $rc)"
-  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended but started processes that have not,"; fi
   echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
 }
 [ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
+upd_stop() { # TERM/INT/HUP: the holder ends what this run started and keeps the lock until it has
+  local k=0; trap '' TERM INT HUP; UPD_STOPPING=1
+  kill -USR2 "$LKP" 2>/dev/null || exit 143
+  while [ ! -e "$WT.lock.stopping" ] && [ $k -lt 100 ]; do sleep 0.05; k=$((k + 1)); done
+  exit 143
+}
+rm -f "$WT.lock.stopping"; trap upd_stop TERM INT HUP  # mut:stop
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -80,5 +125,8 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
+# In the background and waited for: a trapped TERM interrupts `wait` at once, where it would
+# wait for a foreground push to finish first.
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 & PUSHP=$!
+wait "$PUSHP" || pr_push_failed $WT.log
 echo "HEAD=$H"
