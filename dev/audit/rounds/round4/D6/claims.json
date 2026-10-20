@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented='7.0.1' measured='7.0.1'",
+  "result": "documented='7.0.2' measured='7.0.2'",
   "verdict": "true",
   "truth": ""
  },

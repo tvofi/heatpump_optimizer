@@ -4223,7 +4223,7 @@
       "parts_missing": [],
       "process_state": "(c) RCA-BULK-2 item 3 was carried out as a printed count with no budget row; plants are per past instance, and the barrier unit is one instrument in one language",
       "countermeasure": "build: name_kept_members ratchet row (38) and field_coverage census arm perturb-to-red with a gate row per census; card language arm carried to #2259 item 2 (#2373); instrument coverage named in this row's barrier",
-      "landed": null,
+      "landed": "ecdeb42c (#2441)",
       "in_tree_home": "dev/audit/rca/R10-N-structure-blind.md",
       "doc": [
         "dev/audit/rca/R10-N-structure-blind.md"
