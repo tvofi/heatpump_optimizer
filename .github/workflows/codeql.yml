@@ -181,7 +181,14 @@ jobs:
     # a required context through `needs`, so the steps below decide.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, not 30: `Analyze (python)` is a required context whose runtime swings
+    # with runner load, and the 30-minute cap sat inside that spread -- on
+    # 2026-10-20 it was cancelled at the cap three times (2bd5e90f 30:19,
+    # 4e5801eb 30:09, 916431ae 30:07, each while uploading results rather than
+    # hung) while a rerun of 4e5801eb finished in 21.5 minutes (job
+    # 118701134345). 45 leaves ~11 minutes over the longest observed run;
+    # tests/entities.py refuses a lower value.
+    timeout-minutes: 45
     # One language failing must not cancel the others: each leg is its own
     # analysis and its own evidence.
     strategy:
