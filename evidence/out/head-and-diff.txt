@@ -1,0 +1,17 @@
+git diff --stat 9e39a471 1a9b90965
+ dev/programme/delivery/2487.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+files in three-dot diff
+dev/programme/delivery/2487.md
+tests/requirements-ci.txt
+tests/requirements-typing.txt
+
+VERSION/manifest/notes diff lines:
+       0
+
+base versions
+
+merge-tree:
+938ac2b7322eabbe07db58fbb5105b301c53680b
+merge-tree rc=0

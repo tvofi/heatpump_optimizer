@@ -1,0 +1,6 @@
+RESULT ci aiohttp version=3.14.4 hashes=161 pypi=161 equal=True
+RESULT typing aiohttp version=3.14.4 hashes=161 pypi=161 equal=True
+RESULT ci==typing aiohttp hash sets equal=True
+RESULT typing yarl version=1.25.1 hashes=138 pypi=138 equal=True
+RESULT ci yarl version=1.25.1 hashes=138 (unchanged from base)
+RESULT package counts ci baseline=14 head=14 typing baseline=112 head=112

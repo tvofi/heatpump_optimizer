@@ -1,0 +1,7 @@
+open alerts: 6
+90 aiohttp GHSA-5wr8-gcqf-gqf3 tests/requirements-typing.txt open None
+89 aiohttp GHSA-494j-54xm-rwp3 tests/requirements-typing.txt open None
+88 aiohttp GHSA-2g87-pp6c-29x5 tests/requirements-typing.txt open None
+87 aiohttp GHSA-5wr8-gcqf-gqf3 tests/requirements-ci.txt open None
+86 aiohttp GHSA-494j-54xm-rwp3 tests/requirements-ci.txt open None
+85 aiohttp GHSA-2g87-pp6c-29x5 tests/requirements-ci.txt open None
