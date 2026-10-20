@@ -8,11 +8,11 @@ Three groups touching `coordinator.py` are in progress at the replan instant (`F
 
 ## Head
 
-2275ba66cf98aafa169797235acfd930464e0b3a
+b8558f0d087fbc54e11453c49b9174efd21c2260
 
 ## Mutation proof
 
-`python3 -I tools/plan/replan.py --self-test` runs 19 checks. The planted cases separate refusal from warning by exit code: an over-cap wave (eight groups in flight at one instant) makes `--check` exit 1, and a dependency cycle makes the command exit 2, each asserted in the self-test by running the command in a subprocess. The run also plants an inherited group ahead of its dependency and proves the plan records it and passes `--check`, that deleting the record refuses, and that deleting the inherited-coordinator record refuses. Two builds from identical inputs are asserted byte-identical.
+`python3 -I tools/plan/replan.py --self-test` prints 32 ok lines. The planted cases separate refusal from warning by exit code: an over-cap wave makes `--check` exit 1, and a dependency cycle makes the command exit 2, each asserted by running the command in a subprocess. The run plants an inherited group ahead of its dependency and proves the plan records it and passes `--check`, that deleting the record refuses, and that deleting the inherited-coordinator record refuses; two builds from identical inputs are byte-identical. A mutation harness then proves an UNMUTATED copy of the file, with `durations.json` beside it, exits 0 -- the null control, without which a copy missing its durations file fails for free -- and deletes six production lines one at a time: the earliest-attempt selection, the coordinator cap, longest-path dispatch, the patch-stamp cadence, the CI formula and the cancelled-leg price. Each mutant's self-test must exit 1, and the harness prints the target line and its rc.
 
 ## Null control
 
