@@ -343,6 +343,7 @@ const DECLARED = {
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
+  'pinned tools/policy/agreement_restore.py': { none: 'reads the wave-script restore list in governance.yml and the agreement reader\'s imports; both are code, and its own self-test plants the missing-pathspec and wildcard arms' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
 }
 

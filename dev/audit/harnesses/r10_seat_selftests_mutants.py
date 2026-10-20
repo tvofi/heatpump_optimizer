@@ -9,11 +9,15 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S30 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+S31-S33 are #2444's three unpinned push lines in handoff_push.sh, S34 its
+unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
+carry's own mutant (`true`, and `exit 0` for the merge), and the step's
+offline self-test must redden.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
@@ -92,16 +96,28 @@ MUTANTS = [
     ("S28", "offline_spy.py", "and bool(URL_RE.search(parts[2])))", "and False)"),
     ("S29", "selftest_wiring.py", 'return [COMMENT_RE.sub("", x) for x in out]', "return out"),
     ("S30", "selftest_wiring.py", "return 1 if unwired else 0", "return 0"),
+    # #2444's fourth forward-carry: the push and merge lines their own
+    # self-tests did not reach. Each mutant is the carry's, verbatim.
+    ("S31", "handoff_push.sh", "push_app 2  # mut:push-update",
+     "true  # mut:push-update"),
+    ("S32", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+     "true  # mut:push-open"),
+    ("S33", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+    ("S34", "merge_pr.sh",
+     "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+     "exit 0  # mut:merge"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
+# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
+# the mutant drops the delivery_row dispatch, so that tally is never printed.
 WRAPPERS = [
     ("S08", "handoff_push.sh",
-     '[ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test',
-     '[ "${1:-}" = --self-test ] && exit 0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
+     'r=0; :'),
     ("S12", "open_pr.sh",
      'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
      'exit $r; }'),
