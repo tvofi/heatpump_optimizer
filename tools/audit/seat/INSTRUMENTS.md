@@ -222,14 +222,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
   `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
   not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
-  <BODY.md> <issues>` (issues = the body's closing keywords), then
+  <BODY.md> <issues>` (issues = the body's closing keywords; BODY.md is written
+  to a per-run `cloud-body.*` directory under the state dir and removed after,
+  since prepr refuses a body directly in a shared temp root), then
   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
   existing PR, so the open-PR soft cap is untouched (an update is not an open).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
-  `OWED handoff-update`, and retried only when the handoff moves. Every
+  `OWED handoff-update`, and retried only when the handoff moves. An update that
+  exits 75 is `update_pr.sh`'s BUSY (another run holds the branch's
+  `upd-<branch>.lock`, typically the orchestrator's own update of that PR): it is
+  not recorded, and the next pass retries it. Every
   `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
   appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
   the same way (a fixer's return the orchestrator has not opened, or a merged
