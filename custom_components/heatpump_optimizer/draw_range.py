@@ -54,7 +54,7 @@ MIN_SAMPLES = 48
 LOW_PERCENTILE = 10.0
 HIGH_PERCENTILE = 90.0
 #: A sample disagrees with the plan when one of asked and drawn exceeds the
-#: other by this factor ...
+#: other by this factor ... (null control)
 DISAGREE_FACTOR = 1.25
 #: ... and the clamp engages when this share of running samples disagree.
 DISAGREE_SHARE = 0.25
