@@ -1,0 +1,6 @@
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2578141Z UNROUTED body item 8bf963e9 (## Forward-carry) [section]: '- Countermeasure A, for a fixer group: `dev/audit/rca/nightly-ha-pyspy-timeout.md` section 5. It names the sit'
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2579226Z UNROUTED body item e9a0a138 (## Forward-carry) [section]: '- Countermeasure C: a draft for tvofi, RCA section 4.'
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2580237Z UNROUTED body item 95e5268e (## Forward-carry) [section]: '- Not added to `dev/audit/config/bugclasses.json`. This is a CI-lane race, not an audit class; that is the orc'
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2581190Z UNROUTED body item 80917e61 (## Forward-carry) [section]: 'https://claude.ai/code/session_01C26mXCF4djAbnjhBir49QZ'
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2582287Z UNROUTED body item 72b1cb4d (## Friction) [section]: '- defect-root-cause: unenforced: a red-check answer is written per PR, with no cross-run count. #2379 and #241'
+pr-contract	Every finding the body records names its destination	2026-10-20T07:06:37.2583025Z CARRY-AUDIT: 5 finding item(s): 0 routed, 5 unrouted, 0 bad destination(s)

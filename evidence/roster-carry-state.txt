@@ -1,0 +1,3 @@
+group: R10-RCA-NIGHTLY-PYSPY
+carry: []
+brief: Root-cause record for the recurring nightly-ha (stable) red: hb:positive_control fails when its single py-spy dump --nonblocking sample times out at 30 s (py-spy 0.4.2 on CPython 3.14.6). Record only; the fix it names is routed by its own Carry lines.

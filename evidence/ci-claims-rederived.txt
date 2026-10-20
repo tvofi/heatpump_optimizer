@@ -1,0 +1,10 @@
+Re-derivation of the RCA's CI-side claims against the GitHub API (head 202cb8874ef72b82d9db49a6ecd77f28ad22838a).
+A fix-review seat cannot re-run the local lane (container lane is CI-only), so
+only the API-side claims are re-derived here; the local figures are the seat's.
+
+FAILED job 117649075688: nightly-ha (stable) | failure; timeout lines=2; digest=sha256:33afb0659d78; nightly-ha (stable)	UNKNOWN STEP	2026-10-18T10:19:18.7420395Z   FAIL hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False]
+FAILED job 117731309720: nightly-ha (stable) | failure; timeout lines=2; digest=sha256:33afb0659d78; nightly-ha (stable)	UNKNOWN STEP	2026-10-18T16:49:31.0519105Z   FAIL hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False]
+FAILED job 117738343906: nightly-ha (stable) | failure; timeout lines=2; digest=sha256:33afb0659d78; nightly-ha (stable)	UNKNOWN STEP	2026-10-18T17:20:55.8625676Z   FAIL hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; py-spy rc=0 names it: False]
+
+GREEN  job 117746567958: nightly-ha (stable) | success; py-spy rc=0 lines=1; Python v3.14.6; digest=sha256:33afb0659d78
+GREEN  job 117731855696: nightly-ha (stable) | success; py-spy rc=0 lines=1; Python v3.14.6; digest=sha256:33afb0659d78
