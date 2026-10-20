@@ -74,7 +74,7 @@ FOLLOW_SLOPE_MIN = 0.5
 #: commands through a flow set-point (``command``) is idle while the held
 #: set-point is the gate, and its meter then reads the circulation pump and
 #: the controller, which on some pumps sit above ``RUNNING_FLOOR_KW``.
-IDLE_WINDOW = 48
+IDLE_WINDOW = 96
 #: The idle draw is the median of at least this many idle readings ...
 MIN_IDLE = 12
 #: ... and a sample at or below this multiple of it is that draw, not the
