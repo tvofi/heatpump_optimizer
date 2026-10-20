@@ -6,7 +6,7 @@
 
 This module is the one place the roster schema is read, and the one owner of
 which roster a tool reads (`roster_path`). The wave computation is
-`gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
+`gen_table_rev3.py`'s (the round-9 alt archive tag `archive/handoff/audit-r9-alt`), the
 critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
