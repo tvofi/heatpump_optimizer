@@ -273,6 +273,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+  `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
+  (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
+  push line replaced by `true` reddens it (#2444).
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -282,7 +285,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--mandate <comment-id>` and reads that #201 mandate live; `--ready` marks a
   draft ready. Refusal: a verdict or head mismatch stops the merge before the
   merge API call; a draft without `--ready`, or owner mode with no mandate in
-  force, refuses before anything posts.
+  force, refuses before anything posts. `--self-test` also drives the whole
+  script offline over a scratch clone and a fake `gh`, so the `gh pr merge …
+  --match-head-commit` line is pinned: replaced by `exit 0` it records no
+  merge and the null control reddens (#2444).
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through
@@ -540,13 +546,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
-- `selftest_wiring.py` — refuses a self-testing file under
-  `tools/audit/seat/` that no workflow `run:` line, comments removed, invokes
-  with its self-test (`--check`, `--self-test`). Runs first among the seat
-  steps of `instrument-self-tests`. When: adding a seat instrument with a
-  `--self-test`; add its step in the same pull request. Refusal: each unwired
-  file by path; a mention in a comment, a step name or a `--check` call does
-  not wire it.
+- `selftest_wiring.py` — refuses a self-testing file under `tools/` (widened
+  from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:`
+  line, comments removed, invokes with its self-test (`--check`,
+  `--self-test`). Runs first among the seat steps of
+  `instrument-self-tests`. When: adding a tool with a `--self-test`; add its
+  step in the same pull request. Refusal: each unwired file by path; a
+  mention in a comment, a step name or a `--check` call does not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
   pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,

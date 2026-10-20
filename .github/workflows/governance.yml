@@ -459,12 +459,12 @@ jobs:
           python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
           grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
 
-      # Every self-testing seat instrument (R10-SEAT-SELFTESTS-CI). The check
-      # refuses a file under tools/audit/seat/ whose text carries a
-      # `--self-test` entry point while no workflow run line, comments
-      # removed, names it with its self-test -- so the next instrument added
-      # there without a step reddens this job on its own pull request, where
-      # the scoped gate (tools/audit/ is INERT) would select nothing. Each
+      # Every self-testing tool (R10-SEAT-SELFTESTS-CI, widened by #2444's
+      # forward-carry). The check refuses a file under tools/ whose text
+      # carries a `--self-test` entry point while no workflow run line,
+      # comments removed, names it with its self-test -- so the next tool
+      # added there without a step reddens this job on its own pull request,
+      # where the scoped gate (tools/ is INERT) would select nothing. Each
       # step after it was measured offline under offline_spy.py: no socket,
       # no gh/curl/wget/ssh/scp/nc call, no git call reaching a URL remote.
       # The push and merge drivers (handoff_push, open_pr, update_pr,
@@ -479,6 +479,34 @@ jobs:
           python3 -I tools/audit/seat/selftest_wiring.py --self-test | tee "$RUNNER_TEMP/sw-self-test.txt"
           grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
           python3 -I tools/audit/seat/selftest_wiring.py --check
+
+      # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
+      # wiring check above counts every tools/ file now, so each of these has
+      # a step here or it reddens that check; four that the carry's weaker
+      # substring rule called wired were named only in a comment, as a
+      # variable's value, or with a non-self-test flag (`--install`,
+      # `--report`, `--hooks`). One step: each is offline over its own
+      # fixtures or over this checkout, and a refusal names the program.
+      - name: Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/archscore/gate.py --self-test
+          python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/merge_throughput.py --self-test
+          bash tools/audit/worktree_gc.sh --self-test
+          python3 -I tools/coverage/partition.py --self-test
+          python3 -I tools/merge/ledger_merge.py --self-test
+          node tools/policy/policy_lint.mjs --self-test
+          python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
+          bash tools/pr/approve_held_runs.sh --self-test
+          python3 -I tools/pr/head_note.py --self-test
+          python3 -I tools/release/stamp.py --self-test
+          python3 -I tools/policy/agreement_restore.py --self-test
+          # The wave-script restore list is derived, never carried: every .py
+          # file the agreement reader loads must be restored from the base,
+          # or a head whose readers agree still reads divergent (#2423).
+          python3 -I tools/policy/agreement_restore.py --check
 
       - name: Show the CI watcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -529,12 +557,13 @@ jobs:
           python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
           grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
 
-      - name: Show the handoff push (its self-test is delivery_row.sh's) refusing its own fixtures
+      - name: Show the handoff push and its row writer refusing their own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
+          grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
 
       - name: Show the handover prompt refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -880,6 +909,10 @@ jobs:
           # Each program at its path before and after the reorganisation (R9-RO-2):
           # the diff lists what PINNED holds of them, skipping the half it lacks,
           # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          # The `tests/` and `tools/` entries this reader needs are DERIVED from
+          # its import closure, never carried:
+          # `python3 -I tools/policy/agreement_restore.py --check` names any
+          # closure file this list misses (the #2423 `divergent=2`).
           git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
@@ -888,14 +921,20 @@ jobs:
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tests/coverage_ratchet.py' \
+            'tests/delivery_status.py' \
             'tests/entities.py' \
             'tests/gate_lock.py' \
             'tests/issue996_count.py' \
             'tests/nightly_ha.py' \
             'tests/replay.py' \
             'tests/structure.py' \
+            'tests/throwaway_git.py' \
             'tools/audit/round4/D11/d11lib.py' \
             'tools/audit/round4/D11/governance_cost.py' \
+            'tools/audit/seat/merge_train.py' \
+            'tools/audit/seat/queue_pre_flight.py' \
+            'tools/audit/seat/ref_privacy.py' \
+            'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
@@ -903,6 +942,7 @@ jobs:
             'tools/pr/*.sh' \
             'tools/seat/*.sh' \
             'tools/coverage/*.sh' \
+            'tools/release/stamp.py' \
             'dev/audit/*.sh' \
             'tools/policy/record-predicate' \
             'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
@@ -913,6 +953,25 @@ jobs:
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+
+      # The restore list is derived from the agreement reader's import
+      # closure, never carried (#2423's false `divergent=2`). Skipped, with
+      # the reason printed, while the base does not carry the derivation: on
+      # the pull request that lands it, the restored reader is the base's and
+      # the check would measure a list this job has not yet been able to
+      # derive against. From the next pull request on, the base's copy runs
+      # against this pull request's governance.yml, which is the invariant the
+      # job depends on.
+      - name: Refuse a restore list that misses a reader the agreement lane loads
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "$PINNED:tools/policy/agreement_restore.py" 2>/dev/null; then
+            echo "restore-closure lane: the base does not carry the derivation; skipped"
+          else
+            python3 -I tools/policy/agreement_restore.py --check
+          fi
 
       - name: Drive the wave script's branching
         run: if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs; else node tools/policy/check-wave-script.mjs; fi
