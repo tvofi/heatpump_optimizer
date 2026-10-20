@@ -350,6 +350,42 @@ def dump(roster) -> str:
     return json.dumps(roster, indent=1)
 
 
+def commit_roster(checkout, worktree, rel, roster, message, push, branch,
+                  lint_cwd=None, label="") -> int:
+    """THE write path: dump, commit, lint-gate, push -- shared by every caller.
+
+    `main()` calls it after one of its ops; `roster_sync.py` calls it after
+    the ops it derived, so the two cannot drift apart in formatting, in the
+    no-op rule, or in the gate. Returns 0 or 3 (the lint gate refused);
+    a failed git command raises Refuse, which each caller prints.
+
+    The round-trip rule: a write that reproduces the roster's own bytes
+    commits and pushes nothing and is still a success, so a re-run of an
+    op -- or a sync pass with nothing to derive -- is idempotent.
+    """
+    path = Path(worktree) / rel
+    path.write_text(dump(roster), encoding="utf-8")
+    if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
+        print(f"no change: {label} wrote the roster's own bytes "
+              "(byte-identical); nothing to commit or push")
+        return 0
+    run(["git", "-C", str(worktree), "commit", "-q", "-am", message])
+    head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
+    ok, detail = lint_gate(checkout, lint_cwd, path)
+    if not ok:
+        print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
+              f"the commit is local at {branch} {head[:12]}; nothing pushed",
+              file=sys.stderr)
+        return 3
+    print("lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout")
+    if push:
+        run(["git", "-C", str(worktree), "push", "-q", "origin", branch])
+        print(f"pushed {branch} at {head}")
+    else:
+        print(f"ready: {branch} at {head} (no --push)")
+    return 0
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -429,30 +465,9 @@ def main(argv=None) -> int:
             op_set_resume(roster, a.group, a.field, value)
         else:
             op_append_carry(roster, a.group, value)
-        path.write_text(dump(roster), encoding="utf-8")
-        if not run(["git", "-C", str(a.worktree),
-                    "status", "--porcelain"]).strip():
-            # A no-op edit reproduces the roster's own bytes (the round-trip
-            # rule): nothing to commit, nothing to push, still a success --
-            # re-running an op is idempotent.
-            print(f"no change: {a.op} {a.group} wrote the roster's own "
-                  "bytes (byte-identical); nothing to commit or push")
-            return 0
-        run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
-        head = run(["git", "-C", str(a.worktree), "rev-parse", "HEAD"]).strip()
-        ok, detail = lint_gate(a.checkout, a.lint_cwd, path)
-        if not ok:
-            print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
-                  f"the commit is local at {branch} {head[:12]}; nothing pushed",
-                  file=sys.stderr)
-            return 3
-        print("lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout")
-        if a.push:
-            run(["git", "-C", str(a.worktree), "push", "-q", "origin", branch])
-            print(f"pushed {branch} at {head}")
-        else:
-            print(f"ready: {branch} at {head} (no --push)")
-        return 0
+        return commit_roster(a.checkout, a.worktree, rel, roster, msg,
+                             a.push, branch, a.lint_cwd,
+                             label=f"{a.op} {a.group}")
     except Refuse as e:
         print(f"roster_edit: REFUSED: {e}", file=sys.stderr)
         return 2

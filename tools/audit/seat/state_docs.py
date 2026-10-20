@@ -47,6 +47,16 @@ instead of silently losing that merge from the record. It takes no lock and
 cancels nothing, so it is safe beside a merge train. `--once` is one pass --
 a caller looping that form needs `--tip-file`, the loop's memo kept on disk;
 `--interval` is the sleep between passes.
+
+`beat --apply` runs the roster-sync step (`roster_sync.py`) at the START of
+every pass, before the memo check, so an open pull request that moved no ref
+is still recorded: the repository-measured half of `resume.stage` is derived
+(MERGED -> done at the merge commit, OPEN -> in-progress) and written through
+`roster_edit.py`'s lint gate. Without `--apply` the beat derives nothing; a
+dry run per interval would print the same lines forever, so the dry-run form
+is `roster_sync.py`'s own. A sync that writes moves the roster ref, and the
+pass then regenerates the docs for it; a sync that refuses (an unreadable
+`gh` read) is not recorded, so the next pass retries it.
 """
 from __future__ import annotations
 
@@ -65,6 +75,7 @@ SEAT = Path(__file__).resolve().parent
 sys.path.insert(0, str(SEAT))
 import roster_lib  # noqa: E402  which roster, hence which round
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
+import roster_sync  # noqa: E402  the roster-sync step `beat --apply` runs
 #: The beat's default watched ref and sleep. The tip a pass reads is a full
 #: ref name, so a short name that happens to be a prefix matches nothing.
 WATCH_REF = "refs/heads/main"
@@ -268,6 +279,30 @@ def beat_main_argv(a) -> list:
     return argv
 
 
+def sync_pass(a) -> int:
+    """The roster-sync step a `--apply` beat runs each pass.
+
+    Only the repository-measured half of the roster: merged -> done at the
+    merge commit, open -> in-progress, a merged body's `Carry: <group>` items
+    appended. It goes through roster_sync's own write path -- roster_edit's
+    ops, dump and lint gate -- so the beat owns the cadence, never a second
+    derivation. Without `--apply` the beat derives nothing: a dry run per
+    interval would print the same lines forever, so the dry-run form is
+    roster_sync.py's own.
+    """
+    argv = ["--repo", a.repo, "--checkout", a.checkout, "--apply"]
+    if a.roster_file:
+        argv += ["--roster-file", a.roster_file]
+    else:
+        if a.roster_ref:  # else roster_edit's default: main, round branch
+            argv += ["--roster-ref", a.roster_ref]
+        if a.roster_path:
+            argv += ["--roster-path", a.roster_path]
+    if a.pr_state:
+        argv += ["--pr-state", a.pr_state]
+    return roster_sync.main(argv)
+
+
 def beat_pass(a, recorded: str | None) -> tuple[int, str | None]:
     """One pass: `(return code, the tip to record)`.
 
@@ -275,11 +310,23 @@ def beat_pass(a, recorded: str | None) -> tuple[int, str | None]:
     costs one `ls-remote` and no generation at all. A moved tip refreshes
     the roster ref and regenerates through `main()`'s own guarded path.
 
+    With `--apply` the roster-sync step runs FIRST, every pass, because a
+    pull request can be opened or merged without moving a ref the pass reads:
+    the memo check below would never see it. A sync that wrote moves the
+    roster ref, so this pass regenerates the docs for it; a sync refusal is
+    not recorded, and the next pass retries it.
+
     The tip is recorded on a 0 from `main()` ALONE: a refusal -- a failed
     generation or a push the remote rejected -- returns the tip that was
     already recorded, so the next pass still sees the ref as moved and
     retries, rather than losing that merge from the record.
     """
+    if a.apply:
+        rc = sync_pass(a)
+        if rc != 0:
+            print(f"beat: roster-sync returned {rc}; nothing recorded, the "
+                  "next pass retries", file=sys.stderr)
+            return rc, recorded
     tip = remote_tip(a.checkout, a.watch_ref)
     if tip is None:
         raise Refuse(f"origin has no {a.watch_ref}")
@@ -327,6 +374,10 @@ def beat(a) -> int:
     """
     if a.self_test:
         return run_self_test()
+    if a.apply and a.roster_file:
+        print("state_docs: REFUSED: --apply needs a branch to write; "
+              "--roster-file is a read-only source", file=sys.stderr)
+        return 2
     recorded = read_tip(a.tip_file)
     try:
         while True:
@@ -399,6 +450,9 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
                             "caller has the loop's memo across invocations")
         p.add_argument("--once", action="store_true",
                        help="one pass, then exit; the beat always pushes")
+        p.add_argument("--apply", action="store_true",
+                       help="run the roster-sync step each pass and write its "
+                            "derived changes (roster_sync.py owns the dry run)")
     return p
 
 
@@ -864,6 +918,107 @@ def self_test() -> int:
             ok(f"arm 5: {script} with the branch absent reads main, and says so",
                "refused-then-landed" not in text and "absent" in err,
                (text[:200], err[-200:]))
+
+    # --- the roster-sync step (--apply) ------------------------------------
+    # A beat --apply derives the factual half of resume.stage from a pull
+    # request read: a merged PR makes its group done at the merge commit, an
+    # open one makes it in-progress, a deferred stage is left alone. Without
+    # --apply the roster branch is not written at all (the null control), and
+    # a second applying pass rewrites nothing (the round-trip rule).
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        seed = root / "seed"
+        (seed / roster_lib.ROSTERS_DIR).mkdir(parents=True)
+        (seed / ".claude" / "workflows").mkdir(parents=True)
+        (seed / ".claude/workflows/brief_lint.mjs").write_text(
+            "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
+            encoding="utf-8")
+        roster = {"repo": "fixture/state", "session": "r9-sync", "groups": [
+            {"group": "R9-MERGED", "lane": "L1", "issues": [], "fixes": [],
+             "after": [], "brief": "fixture merged.",
+             "resume": {"stage": "not-started", "branch": "handoff/r9-merged"}},
+            {"group": "R9-OPEN", "lane": "L1", "issues": [], "fixes": [],
+             "after": [], "brief": "fixture open.",
+             "resume": {"stage": "queued", "branch": "handoff/r9-open"}},
+            {"group": "R9-DEFER", "lane": "L1", "issues": [], "fixes": [],
+             "after": [], "brief": "fixture deferred.",
+             "resume": {"stage": "deferred", "branch": "handoff/r9-defer"}}]}
+        (seed / roster_lib.ROSTERS_DIR / "wave-r9-groups.json").write_text(
+            json.dumps(roster, indent=1) + "\n", encoding="utf-8")
+        throwaway_git_init(seed, "-q", "-b", "main")
+        git("-C", str(seed), "add", "-A")
+        git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
+        # the round's roster branch: the ref the sync writes and the beat reads
+        git("-C", str(seed), "branch", "handoff/audit-r9-roster")
+        env = dict(os.environ, GIT_INDEX_FILE=str(root / "sync-index"))
+        git("read-tree", "--empty", cwd=str(seed), env=env)
+        blob = git("hash-object", "-w", "--stdin", cwd=str(seed), env=env,
+                   input_text="keep me\n").strip()
+        git("update-index", "--add", "--cacheinfo",
+            f"100644,{blob},docs/keep.md", cwd=str(seed), env=env)
+        state0 = git("commit-tree", git("write-tree", cwd=str(seed), env=env),
+                     "-m", "seed state", cwd=str(seed)).strip()
+        bare = root / "origin.git"
+        throwaway_git_clone(seed, bare, "-q", "--bare")
+        git("-C", str(bare), "update-ref", f"refs/heads/{STATE_REF}", state0)
+        drv = root / "sync-drv"
+        throwaway_git_clone(bare, drv, "-q")
+        prstate = root / "sync-prs.json"
+        prstate.write_text(json.dumps([
+            {"number": 41, "state": "MERGED", "head": "handoff/r9-merged",
+             "mergeCommit": {"oid": "f" * 40}, "body": "## Friction\n\n- none\n"},
+            {"number": 42, "state": "OPEN", "head": "handoff/r9-open"},
+            {"number": 43, "state": "MERGED", "head": "handoff/r9-defer",
+             "mergeCommit": {"oid": "0" * 40}}]), encoding="utf-8")
+        mirror = root / "sync-mirror"
+        tipfile = root / "sync-tip"
+        sync_argv = ["beat", "--checkout", str(drv), "--repo", "fixture/state",
+                     "--roster-ref", "origin/handoff/audit-r9-roster",
+                     "--state-ref", STATE_REF, "--pr-state", str(prstate),
+                     "--mirror", str(mirror), "--tip-file", str(tipfile),
+                     "--once"]
+        roster_ref = "refs/heads/handoff/audit-r9-roster"
+        sync_roster = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+
+        def roster_bytes() -> str:
+            return git("-C", str(bare), "show", f"{roster_ref}:{sync_roster}")
+
+        def roster_tip() -> str:
+            return git("-C", str(bare), "rev-parse", roster_ref)
+
+        seed_bytes = roster_bytes()
+        # ARM 1 -- the null control: a beat WITHOUT --apply derives nothing.
+        rc = main(sync_argv)
+        ok("sync arm 1: a beat without --apply returns 0", rc == 0, rc)
+        ok("sync arm 1: and leaves the roster branch byte-identical",
+           roster_bytes() == seed_bytes)
+        # ARM 2 -- with --apply the derived stages land, through the lint gate.
+        tipfile.unlink(missing_ok=True)
+        rc = main(sync_argv + ["--apply"])
+        ok("sync arm 2: a beat --apply returns 0", rc == 0, rc)
+        synced = roster_lib.groups_of(json.loads(roster_bytes()))
+        ok("sync arm 2: merged -> done at the merge commit",
+           synced["R9-MERGED"]["resume"]["stage"] == "done"
+           and synced["R9-MERGED"]["resume"]["commit"] == "f" * 40,
+           synced["R9-MERGED"]["resume"])
+        ok("sync arm 2: open -> in-progress with its number",
+           synced["R9-OPEN"]["resume"]["stage"] == "in-progress"
+           and synced["R9-OPEN"]["resume"].get("pr") == 42,
+           synced["R9-OPEN"]["resume"])
+        ok("sync arm 2: a deferred stage is left alone",
+           synced["R9-DEFER"]["resume"]["stage"] == "deferred",
+           synced["R9-DEFER"]["resume"])
+        ok("sync arm 2: the pushed plan table carries the derived stage",
+           "| R9-MERGED | L1 | 1 | done |" in git(
+               "-C", str(bare), "show", f"{STATE_REF}:{WRITE_SET[0]}"))
+        # ARM 3 -- the round-trip rule: the next pass derives the same set and
+        # writes nothing, so the branch tip and the bytes do not move.
+        tip, before = roster_tip(), roster_bytes()
+        tipfile.unlink(missing_ok=True)
+        rc = main(sync_argv + ["--apply"])
+        ok("sync arm 3: a second --apply pass returns 0", rc == 0, rc)
+        ok("sync arm 3: and moves nothing (byte-identical roster)",
+           roster_tip() == tip and roster_bytes() == before)
 
     # --- which round (R10-TICK d) ------------------------------------------
     # The state ref and dir follow the roster's round. A ref carrying round
