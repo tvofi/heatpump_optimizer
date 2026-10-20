@@ -188,13 +188,13 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-COP-PARTLOAD | IN | 1 | queued | #2501 | opus/opus | yes: mandated approval under 6175172275 | Found by R10-SETPOINT-BOOST's demand analysis. |  |
 | R10-UPDATE-PR-LOCK | IN | 1 | done | - | opus/opus | yes: mandated approval under 6175172275 | RCA (2026-10-20, recurrence 2): two update_pr.sh runs on one branch share the fixed worktree $HPO_STATE_DIR/pr/upd-<branch> and its log; each force-removes t... |  |
 | R10-UPDATE-PR-SIGNALS | IN | 1 | queued | #2502 | opus/opus | yes: mandated approval under 6175172275 | Signal-safe update_pr.sh: a TERM, INT, HUP or SIGKILL of a running update must not free the branch lock while its push still runs. |  |
-| R10-HANDOFF-ARCHIVE | IN | 1 | in-progress | - | sonnet/opus | - | Owner request (tvofi, 2026-10-20): move and archive the top-level `handoff/round9` tree to its durable home. |  |
-| R10-DEPENDABOT-AIOHTTP | IN | 1 | in-progress | - | sonnet/opus | - | Owner report (tvofi, 2026-10-20): six open Dependabot alerts on the default branch, all aiohttp, three advisories x two manifests. |  |
-| R10-ORCH-MACHINERY | IN | 2 | not-started | - | -/- | yes: Mandated approval under 6175172275 for the orchestrator-owned instruments; any change to a policy file (CLAUDE.md, dev/governance, .claude/workflows, the PR template) is tvofi's and is approved before merging, per CLAUDE.md. | The orchestration machinery, built to the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (design) and review/orch-machine... |  |
-| R10-CARD-VOICE | UI | 2 | not-started | - | -/- | - | The card's setup page, to the owner's chosen design. |  |
+| R10-HANDOFF-ARCHIVE | IN | 1 | in-progress | #2503 | sonnet/opus | - | Owner request (tvofi, 2026-10-20): move and archive the top-level `handoff/round9` tree to its durable home. |  |
+| R10-DEPENDABOT-AIOHTTP | IN | 1 | in-progress | #2504 | sonnet/opus | - | Owner report (tvofi, 2026-10-20): six open Dependabot alerts on the default branch, all aiohttp, three advisories x two manifests. |  |
+| R10-ORCH-MACHINERY | IN | 2 | not-started | #2505 | -/- | yes: Mandated approval under 6175172275 for the orchestrator-owned instruments; any change to a policy file (CLAUDE.md, dev/governance, .claude/workflows, the PR template) is tvofi's and is approved before merging, per CLAUDE.md. | The orchestration machinery, built to the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (design) and review/orch-machine... |  |
+| R10-CARD-VOICE | UI | 2 | not-started | #2506 | -/- | - | The card's setup page, to the owner's chosen design. |  |
 | R10-THERMAL-POWER-OPTION | SW | 1 | not-started | #2507 | opus/opus | - | Fold (e) of #1955, added by tvofi on 2026-10-04 and left unbuilt when the issue closed. |  |
-| R10-LEARNER-DEFAULT | LR | 1 | not-started | - | sonnet/opus | - | Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. |  |
-| R10-MUTANT-SKIP | IN | 1 | not-started | - | opus/opus | - | Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothi... |  |
+| R10-LEARNER-DEFAULT | LR | 1 | not-started | #2508 | sonnet/opus | - | Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. |  |
+| R10-MUTANT-SKIP | IN | 1 | not-started | #2509 | opus/opus | - | Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothi... |  |
 
 ## ETA
 
