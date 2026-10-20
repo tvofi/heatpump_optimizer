@@ -6,6 +6,7 @@
 # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
 # dev/programme/HANDOVER.md names it.
 set -uo pipefail
+PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 # The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
 # writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
 . "$(dirname -- "$0")/delivery_row.sh"
@@ -21,7 +22,7 @@ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
 git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
 CODE=$(git rev-parse "$CODE")
-git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
 # The body is read from the sha origin ANSWERED for the ref, never FETCH_HEAD.
@@ -34,7 +35,7 @@ tip=$(git ls-remote origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null | awk 'N
 if [ -n "$tip" ] && git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
   git show "$tip:BODY.md" > "$B" || { echo "no BODY.md at handoff-body/$TOPIC"; exit 1; }
 else
-bf=${BODYPATH:-$(git diff --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --name-only "$CODE" "$T")"; exit 1; }
+bf=${BODYPATH:-$(git diff --no-renames --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --no-renames --name-only "$CODE" "$T")"; exit 1; }  # layout:old=tools/audit/handoff (a transport root prepr.sh still reads)
 git show "${T}:${bf}" > "$B"
 fi
 python3 - "$B" <<'E'
@@ -63,12 +64,11 @@ if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # updat
   # A previous head with no row (a refused second push below) gains it here, or it never would.
   _added=$(ensure_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")") || { echo "ROW commit for #$N failed"; exit 1; }
   H=$(git -C "$WT" rev-parse HEAD)
-  python3 - "$B" "$H" "$CODE" "$N" "$_added" <<'E3'
-import sys
+  PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" "$_added" <<'E3'
+import sys; from head_note import prefix
 p,H,C,N,A=sys.argv[1:6]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
 how="then adds one commit containing only its own row" if A else "which carried its own row"
-s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, %s `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,how,N)+s[i:]
+s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head, %s `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,how,N))
 open(p,'w').write(s)
 E3
   if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
@@ -83,11 +83,10 @@ if [ -n "$MM" ]; then
   ( cd "$WT" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q origin/main ) || { echo "MERGE CONFLICT merging origin/main"; exit 1; }
   ( cd "$WT" && python3 tests/env_drift.py --drop-inherited "$(git -C "$WT" rev-parse origin/main)" >/dev/null 2>&1; if ! git diff --quiet; then GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git commit -qam "claims: drop the claims main already carries after the main merge"; fi )
   MH=$(git -C "$WT" rev-parse HEAD)
-  python3 - "$B" "$MH" "$CODE" "$(git rev-parse origin/main)" <<'E2'
-import sys
+  PYTHONPATH="$PRT" python3 - "$B" "$MH" "$CODE" "$(git rev-parse origin/main)" <<'E2'
+import sys; from head_note import prefix
 p,H,C,M=sys.argv[1:5]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` merges origin/main `%s` into the authored head `%s`, with no hand resolution.\n\n"%(H,M[:8],C)+s[i:]
+s=prefix(s,"`%s` merges origin/main `%s` into the authored head `%s`, with no hand resolution.\n\n"%(H,M[:8],C))
 open(p,'w').write(s)
 E2
 fi
@@ -99,11 +98,10 @@ gh pr edit $N --title "$TITLE" >/dev/null
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
 commit_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")" >/dev/null || exit 1
 H=$(git -C "$WT" rev-parse HEAD)
-python3 - "$B" "$H" "$CODE" "$N" <<'E'
-import sys
+PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" <<'E'
+import sys; from head_note import prefix
 p,H,C,N=sys.argv[1:5]; s=open(p).read()
-i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi

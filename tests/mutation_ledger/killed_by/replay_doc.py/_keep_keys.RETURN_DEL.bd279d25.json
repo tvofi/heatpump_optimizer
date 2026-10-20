@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_keep_keys RETURN_DEL bd279d25",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return cast(Json, clean_value(out, dropped))  # a dict cleans to a dict",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

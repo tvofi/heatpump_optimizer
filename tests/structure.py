@@ -130,12 +130,17 @@ Metrics (definitions, one line each; the code is the authority):
                               member, so a member reached only from its own
                               body, or from dead members, is dead. The live
                               members an untyped load of a name two classes
-                              define keeps alive are printed: the shape this
-                              cannot measure, on the record. A receiver the
+                              define keeps alive are name_kept_members: the
+                              shape this cannot decide, counted. A receiver the
                               source types -- an annotation, a constructor, a
                               return annotation, an attribute every store of
                               which types (``ReceiverTypes``, D7-s3-01) --
                               reaches its class's family only
+  name_kept_members           the live members dead_methods keeps only
+                              because an untyped ``x.n`` loads a name another
+                              class also defines. Each may be dead; the row
+                              only falls, so a new one types its receiver or
+                              is deleted (R10-N-structure-blind)
   coordinator_private_reach   ``<coordinator>._x`` reads, plus
                               PRIVATE_WRITE_WEIGHT x each write (a store, a
                               delete, an in-place mutation of what the slot
@@ -2362,6 +2367,10 @@ def measure() -> dict:
         "import_cycle_modules": sum(len(c) for c in cycles),
         "dead_top_level_symbols": len(dead_symbols),
         "dead_methods": len(dead_methods),
+        # The shape dead_methods cannot decide, counted so it cannot grow
+        # unseen: printed only, it rose 124 -> 152 across v6.7.14..v7.0.0
+        # with the ratchet green (R10-N-structure-blind).
+        "name_kept_members": len(name_kept),
         "coordinator_attrs": len(writers),
         "coordinator_multiassigned_attrs": sum(1 for w in writers.values() if len(w) > 1),
         "coordinator_private_reach": sum(
@@ -2450,8 +2459,8 @@ def print_report(result: dict) -> None:
         print(f"  {rel}:{line}  {cls}.{name}")
     print("  dead_methods = %d (methods and properties; receiver-resolved,"
           " reachability from live code)" % metrics["dead_methods"])
-    print("  unmeasured: %d live member(s) kept only by an untyped x.name load of a"
-          " name another class also defines" % len(tables["name_kept"]))
+    print("  name_kept_members = %d live member(s) kept only by an untyped x.name load"
+          " of a name another class also defines" % len(tables["name_kept"]))
     for rel, cls, name in tables["name_kept"]:
         print(f"    {rel}  {cls}.{name}")
     print("  untyped by design: %d store(s) through a computed name (setattr(x, name, v),"

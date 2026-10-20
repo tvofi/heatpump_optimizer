@@ -544,6 +544,47 @@ SCENARIO_BASIN_TOLERANCE = float(
 #: body where a human would see it. So this is a literal, not a read.
 SCENARIO_WORK_MIN_COVERED = 40
 
+
+def coverage_floors(
+    table: dict, n_population: int, n_sweep: int
+) -> tuple[int, int, str | None]:
+    """``(work_floor, calls_floor, cites)``: the two coverage floors, one rule.
+
+    The literal above, or the owner's override for THIS branch -- a committed
+    ``coverage_floor_override`` entry in the budget table that may only LOWER
+    the floor, must cite the ruling that sanctioned it, and is ignored in
+    favour of the stricter literal when malformed (``cites`` is None then).
+    The production-call check's floor is the same share of its population
+    (one scenario per family) as the work floor is of the sweep, rounded up,
+    so an override reaches both checks or neither: a re-plan the owner
+    sanctioned for the solver-work floor re-plans the same families under
+    the production-call meter (#201 comment 6240984157, step 3).
+
+    An override may also carry ``calls_floor``, the production-call floor as
+    measured, for when the share of the work floor rounds above it; it may
+    only lower that floor below the share of the override's own work floor,
+    so withdrawing it never lowers the floor, and a malformed one is the
+    share rule.
+    """
+    def share(f: int) -> int:
+        return -(-n_population * f // n_sweep)
+
+    def lowers(v: object, literal: int) -> bool:
+        return (isinstance(v, int) and not isinstance(v, bool)
+                and 0 < v < literal)
+
+    floor, cites = SCENARIO_WORK_MIN_COVERED, None
+    override = table.get("coverage_floor_override")
+    if isinstance(override, dict):
+        ov_floor, ov_cites = override.get("floor"), override.get("cites")
+        if (lowers(ov_floor, SCENARIO_WORK_MIN_COVERED)
+                and isinstance(ov_cites, str) and ov_cites.strip()):
+            floor, cites = ov_floor, ov_cites
+            ov_calls = override.get("calls_floor")
+            if lowers(ov_calls, share(floor)):
+                return floor, ov_calls, cites
+    return floor, share(floor), cites
+
 #: The baseline half of the solver-work comparison: the tree this run's
 #: counts are judged against. GOLDEN_REF, because this is the same question
 #: tests/env_drift.py asks about the same pair of trees -- tests/run.sh
@@ -3432,6 +3473,77 @@ if __name__ == "__main__":
         f"{len(_pop)} members for {len(_fam)} families",
     )
 
+    # The owner's coverage-floor override reaches BOTH coverage floors (#201
+    # comment 6240984157, step 3): until then it lowered the solver-work
+    # floor only, so a sanctioned re-plan still reddened the production-call
+    # floor, which is the same share of the families. Driven through the one
+    # function both checks read, and pinned at the two sites that read it.
+    _n_sweep = len(sweep_combinations())
+    _lit = coverage_floors({}, len(_pop), _n_sweep)
+    _ov = coverage_floors(
+        {"coverage_floor_override": {"floor": 30, "cites": "ruling"}},
+        len(_pop), _n_sweep,
+    )
+    _bad = [
+        coverage_floors({"coverage_floor_override": o}, len(_pop), _n_sweep)
+        for o in ({"floor": 45, "cites": "r"}, {"floor": True, "cites": "r"},
+                  {"floor": 30, "cites": " "}, {"floor": 30.0, "cites": "r"}, 30)
+    ]
+    R.check(
+        "coverage floors: an override lowers the production-call floor with "
+        "the solver-work floor, and a malformed one is the literal for both",
+        _lit == (SCENARIO_WORK_MIN_COVERED,
+                 -(-len(_pop) * SCENARIO_WORK_MIN_COVERED // _n_sweep), None)
+        and _ov == (30, -(-len(_pop) * 30 // _n_sweep), "ruling")
+        and _ov[1] < _lit[1]
+        and all(b == _lit for b in _bad),
+        f"literal {_lit}, override {_ov}, malformed {_bad}",
+    )
+    # An override may also name the production-call floor outright (D2-s2-01,
+    # the orchestrator's ruling on #201 comment 6240984157 step 3): CI judged
+    # 18 of 54 and 6 of 20, and the share rule rounds 18 of 54 up to 7 of 20,
+    # so an override at the measured work count still reddened the calls
+    # check. An explicit floor is held as written; one that is malformed or
+    # not below the share of the override's own work floor falls back to the
+    # share rule -- so withdrawing it never lowers the floor, which is what
+    # lets budget_raise_gate.py read a withdrawal as routine (#2368 review).
+    _lit_calls = _lit[1]
+    _both = coverage_floors(
+        {"coverage_floor_override": {"floor": 18, "calls_floor": 6,
+                                     "cites": "ruling"}},
+        len(_pop), _n_sweep,
+    )
+    _share18 = (18, -(-len(_pop) * 18 // _n_sweep), "ruling")
+    _bad_calls = [
+        coverage_floors({"coverage_floor_override": {
+            "floor": 18, "calls_floor": c, "cites": "ruling"}},
+            len(_pop), _n_sweep)
+        for c in (_lit_calls, _lit_calls + 3, _share18[1], _share18[1] + 3,
+                  0, -1, True, 6.0, "6", None)
+    ]
+    R.check(
+        "coverage floors: an override naming both floors is held to both, "
+        "and a malformed production-call floor is the share rule",
+        _both == (18, 6, "ruling")
+        and all(b == _share18 for b in _bad_calls),
+        f"both {_both}, share {_share18}, malformed calls {_bad_calls}",
+    )
+    _floor_reads = {
+        t.id: getattr(getattr(n.value, "func", None), "id", None)
+        for n in ast.walk(ast.parse(open(__file__, encoding="utf-8").read()))
+        if isinstance(n, ast.Assign)
+        for t in (n.targets[0].elts if isinstance(n.targets[0], ast.Tuple)
+                  else n.targets)
+        if isinstance(t, ast.Name) and t.id in ("_floor", "_calls_floor")
+    }
+    R.check(
+        "coverage floors: both coverage checks take their floor from "
+        "coverage_floors, so an override cannot reach one and not the other",
+        _floor_reads == {"_floor": "coverage_floors",
+                         "_calls_floor": "coverage_floors"},
+        f"assignments read {_floor_reads}",
+    )
+
     # 2026-09-05 CI ubuntu-latest, consecutive main pushes, same tree:
     # shoulder/tariff+pv+cycle at 775.5x (pass, ref 52.3 ms) vs 808.2x /
     # 817.7x (fail, ref 42.7-43.7 ms) against the 782.11 M1 ceiling.
@@ -4890,7 +5002,10 @@ if __name__ == "__main__":
             )
             # The work check's own floor, as a share: a branch that re-plans
             # more of the families than it may of the sweep is told so.
-            _calls_floor = -(-len(_calls_pop) * SCENARIO_WORK_MIN_COVERED // len(sweep_combinations()))
+            # The owner's override reaches this floor too (coverage_floors).
+            _, _calls_floor, _ = coverage_floors(
+                budget_table, len(_calls_pop), len(sweep_combinations())
+            )
             R.check(
                 f"the production-call check covers at least {_calls_floor} "
                 f"of {len(_calls_pop)} families",
@@ -4937,23 +5052,14 @@ if __name__ == "__main__":
         # LOWER the floor below the literal, never above it, must cite the
         # ruling that sanctioned it, and anything malformed is ignored in
         # favour of the stricter literal.
-        _floor = SCENARIO_WORK_MIN_COVERED
-        _floor_override = budget_table.get("coverage_floor_override")
-        if isinstance(_floor_override, dict):
-            _ov_floor = _floor_override.get("floor")
-            _ov_cites = _floor_override.get("cites")
-            if (isinstance(_ov_floor, int)
-                    and not isinstance(_ov_floor, bool)
-                    and 0 < _ov_floor < SCENARIO_WORK_MIN_COVERED
-                    and isinstance(_ov_cites, str) and _ov_cites.strip()):
-                _floor = _ov_floor
-                if baseline_work:
-                    _cover_why = (
-                        f"owner override active: floor {_floor} per "
-                        f"{_ov_cites}; {len(drift.replanned)} re-planned by "
-                        f"this branch here, {len(drift.only_here)} with no "
-                        f"baseline solve"
-                    )
+        _floor, _, _ov_cites = coverage_floors(budget_table, 1, 1)
+        if _ov_cites is not None and baseline_work:
+            _cover_why = (
+                f"owner override active: floor {_floor} per "
+                f"{_ov_cites}; {len(drift.replanned)} re-planned by "
+                f"this branch here, {len(drift.only_here)} with no "
+                f"baseline solve"
+            )
         R.check(
             "the solver-work check still covers most of the sweep",
             _work_covered >= _floor,

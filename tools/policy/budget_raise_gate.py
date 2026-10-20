@@ -164,6 +164,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
     "tests/stress_budgets.json": [
         (("coverage_floor_override", "cites"), FREE),
         (("coverage_floor_override", "floor"), OVERRIDE),
+        (("coverage_floor_override", "calls_floor"), OVERRIDE),
         (("*", "ratio"), MAX),
         (("*", "rss_peak_mb"), MAX),
         (("*", "rss_attrib_mb"), MAX),
@@ -562,17 +563,27 @@ def _body(repo: str, pr: str) -> str:
     return json.loads(out.stdout).get("body") or ""
 
 
-def gate(base: str, head: str, pr: str, repo: str) -> int:
-    mb = _git("merge-base", base, head).strip()
-    tree = {sha: set(_git("ls-tree", "-r", "--name-only", sha).splitlines()) for sha in (mb, head)}
+def raises_between(mb: str, head: str, ls, show) -> tuple[list[str], list[str]]:
+    """(budget paths, raises) from the merge base `mb` to `head`: THE reading
+    of which budget leaves went the wrong way, shared by `gate` and
+    merge_train.py's `raise_hold` (the train's approve and its pre-flight),
+    so the train holds exactly what this check refuses. `ls(sha)` names every
+    tracked path at `sha`; `show(sha, path)` is its text, None when absent."""
+    tree = {sha: set(ls(sha)) for sha in (mb, head)}
     # A budget file and a capped file are named old, and read where each end
     # holds them, so a move pull request compares a file with itself.
     head_files = {canon(f) for f in tree[head]}
     paths = sorted({canon(p) for t in tree.values() for p in t if p.endswith(SUFFIX)})
     raises: list[str] = []
     for p in paths:
-        raises += file_raises(p, _show(mb, locate(p, tree[mb].__contains__)),
-                              _show(head, locate(p, tree[head].__contains__)), head_files.__contains__)
+        raises += file_raises(p, show(mb, locate(p, tree[mb].__contains__)),
+                              show(head, locate(p, tree[head].__contains__)), head_files.__contains__)
+    return paths, raises
+
+
+def gate(base: str, head: str, pr: str, repo: str) -> int:
+    mb = _git("merge-base", base, head).strip()
+    paths, raises = raises_between(mb, head, lambda sha: _git("ls-tree", "-r", "--name-only", sha).splitlines(), _show)
     print(f"# merge base {mb[:12]}, head {head[:12]}: {len(paths)} budget file(s): {', '.join(paths)}")
     rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid),
                        lambda: _body(repo, pr))
@@ -748,6 +759,17 @@ def self_test() -> int:
           raised(T, t0, {k: v for k, v in t0.items() if k != "coverage_floor_override"}), False)
     check("stress: an override granted is a raise",
           raised(T, {k: v for k, v in t0.items() if k != "coverage_floor_override"}, t0), True)
+    # The override's optional production-call floor is a floor of its own
+    # (D2-s2-01): absent is the share rule, the stricter state.
+    t1 = {**t0, "coverage_floor_override": {**t0["coverage_floor_override"], "calls_floor": 6}}
+    check("stress: a production-call floor added to an override is a raise",
+          raised(T, t0, t1), True)
+    check("stress: the production-call floor lowered is a raise",
+          raised(T, t1, {**t1, "coverage_floor_override": {**t1["coverage_floor_override"], "calls_floor": 5}}), True)
+    check("stress: the production-call floor raised is routine",
+          raised(T, t1, {**t1, "coverage_floor_override": {**t1["coverage_floor_override"], "calls_floor": 7}}), False)
+    check("stress: the production-call floor withdrawn is routine (the share rule is stricter)",
+          raised(T, t1, t0), False)
 
     Y = "tests/typing_budgets.json"
     y0 = {"_comment": ["x"], "ruler": {"mypy": "2.3.1", "third_party": ["numpy"]}, "type_ignores": 0,
