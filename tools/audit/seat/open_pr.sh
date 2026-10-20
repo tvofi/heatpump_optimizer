@@ -13,6 +13,7 @@
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
+trap 'pr_reap' EXIT  # a run that ends with anything of its own still live ends it too
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 # The open-PR soft cap (pr_cap.py; tvofi, 2026-10-18): --over-cap "<reason>" first overrides it.
 OVER=; OVER_SET=; if [ "${1:-}" = --over-cap ]; then [ $# -ge 2 ] || pr_refuse "--over-cap needs a reason"; OVER=$2; OVER_SET=1; shift 2; fi
@@ -41,7 +42,10 @@ if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%
 open(p,'w').write(s)
 E0
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || pr_push_failed $D/p1.log
+# Asynchronous, so a TERM interrupts the `wait` and pr_args.sh reaps the tree: a
+# trap is deferred while a foreground child runs (pr_args.sh's why).
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
+pr_wait $! $D/p1.log
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
 commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
@@ -53,5 +57,6 @@ s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 || pr_push_failed $D/p2.log
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 &
+pr_wait $! $D/p2.log
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"

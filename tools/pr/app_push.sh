@@ -46,7 +46,10 @@
 # installation token are written only as curl header files inside the private
 # mode-700 directory, never onto a command line and never printed. An EXIT
 # trap revokes the installation token (DELETE /installation/token) and removes
-# that directory on every path, the refusals and a failed POST included. The
+# that directory on every path, the refusals and a failed POST included.
+# TERM/INT/HUP end the whole descendant tree (pr_args.sh's pr_signal_traps):
+# prepr runs asynchronously so the trap is not deferred behind it, and an
+# orphaned prepr must not keep burning CPU after the pusher is stopped. The
 # one read that is not an App call -- the open-pull-request query -- goes
 # through `gh` as whatever GH_TOKEN the caller set, exactly as `app_approve.sh`
 # reads; only the App calls carry the JWT or the token.
@@ -100,6 +103,13 @@
 # prepr and review, main's commits passed on main, and CI's pr-contract and
 # suite run at the new head before the train merges.
 set -uo pipefail
+
+# pr_args.sh's signal reap: a stopped pusher ends the whole tree it started, and
+# prepr below runs asynchronously so a trap is not deferred behind it.
+PR_ARGS=$(cd "$(dirname -- "$0")/../audit/seat" 2>/dev/null && pwd)/pr_args.sh
+[ -f "$PR_ARGS" ] || { printf 'app_push: REFUSE: no pr_args.sh beside this script at %s\n' "$PR_ARGS" >&2; exit 1; }
+. "$PR_ARGS"
+pr_signal_traps
 
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
@@ -353,10 +363,17 @@ push_and_open() {
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
   # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
-  local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
+  # Asynchronous, so a TERM interrupts the `wait` and pr_signal_traps reaps the
+  # tree (a trap is deferred while a foreground child runs).
+  local prepr prepr_pid="" prepr_rc=0
+  prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
-  [ "$bonly" = 1 ] || [ "$skip" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
-    || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+  if [ "$bonly" = 0 ] && [ "$skip" = 0 ]; then
+    ( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!
+    wait "$prepr_pid" || prepr_rc=$?
+    [ "$prepr_rc" = 0 ] \
+      || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+  fi
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
   # clean. A dirty worktree would push a sha whose tree the body never
@@ -387,8 +404,7 @@ push_and_open() {
 
   umask 077
   PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
-  trap cleanup EXIT
-  trap 'exit 130' INT TERM HUP
+  trap 'cleanup; pr_reap' EXIT
   # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
   chmod 700 "$PRIV"
   b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
@@ -480,8 +496,10 @@ trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
 cp "$(dirname -- "$SELF")/head_note.py" "$W/tool/"
-# The real guard, at the path the copy resolves it by (../audit/seat/).
-mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/"
+# The real guard, at the path the copy resolves it by (../audit/seat/), and the
+# signal reap it sources from there.
+mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/" \
+  && cp "$(dirname -- "$SELF")/../audit/seat/pr_args.sh" "$W/audit/seat/"
 FAILS=0; N=0
 st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
 SHA=1111111111111111111111111111111111111111

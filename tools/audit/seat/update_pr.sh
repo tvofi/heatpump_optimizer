@@ -10,8 +10,8 @@
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch: a second run while one holds the branch's lock ($WT.lock) exits 75, BUSY,
-# having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
-# keeps the lock until its push has ended.
+# having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP)
+# run reaps its push's whole tree and ends (pr_args.sh), then frees the lock.
 # --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
@@ -29,8 +29,9 @@ WT=$P/upd-${BR//\//-}
 # orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
 # one holder process; this shell holds no fd on it, so nothing the run starts can (a detached
 # `git gc --auto` kept an inherited one). The EXIT trap ends the holder before the run returns;
-# TERM/INT/HUP are trapped, and bash runs the trap once the foreground push has finished, so a
-# stopped run frees the lock after its push; a SIGKILLed run's holder exits once its parent is gone.
+# TERM/INT/HUP (pr_args.sh) reap the push's whole tree and exit, which runs that trap too, so a
+# stopped run ends its push rather than leaving it to burn on after the shell; a SIGKILLed run's
+# holder exits once its parent is gone.
 python3 -I -c 'import fcntl, os, sys, time
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -39,7 +40,7 @@ p = os.getppid()
 f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
 while os.getppid() == p: time.sleep(2)  # mut:watch
 sys.exit(0)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
-trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
+trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :; pr_reap' EXIT  # mut:unlock
 k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
 upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
@@ -49,7 +50,6 @@ upd_unlocked() { # the holder did not take the lock: BUSY (75) when another hold
   echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
 }
 [ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
-trap 'exit 143' TERM INT HUP  # mut:stop
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -84,5 +84,8 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
+# Asynchronous, so a TERM interrupts the `wait` and pr_args.sh reaps the tree: a
+# trap is deferred while a foreground child runs (pr_args.sh's why).
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 &
+pr_wait $! $WT.log
 echo "HEAD=$H"
