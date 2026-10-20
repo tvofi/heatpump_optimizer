@@ -365,10 +365,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 ready.discard(n)
                 pending.discard(n)
         while ready and free_slot() is not None:
-            candidates = sorted(n for n in ready if n not in start_t)
-            if not candidates:
-                break
-            n = pick(candidates, t)
+            n = pick(sorted(ready), t)
             if n is None:
                 break
             s = free_slot()
@@ -399,9 +396,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         #    while every slot is busy with work and no ready group waits is
         #    sharing a gate run for free. Slots free and dependents release at
         #    this instant.
-        waiting = bool([n for n in ready if n not in start_t]) and (
-            free_slot() is None
-            or pick(sorted(n for n in ready if n not in start_t), t) is None)
+        waiting = bool(ready) and (free_slot() is None or pick(sorted(ready), t) is None)
         if finished and (waiting or t >= min(finished.values()) + batch_window
                          or (not running and not ready and not pending)):
             batch = sorted(finished, key=lambda n: (work_end[n], n))
@@ -427,9 +422,10 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                         carry = []
             for n in batch:
                 for c in children[n]:
-                    # A group already started (an inherited fixer admitted
-                    # ahead of its dependency) must not be released a second
-                    # time when that dependency later merges.
+                    # THE invariant that keeps a started group out of `ready`:
+                    # an inherited fixer admitted ahead of its dependency must
+                    # not be released a second time when that dependency later
+                    # merges (it would start, stamp and merge twice).
                     if c not in start_t and all(a in merged_t for a in deps[c]):
                         ready.add(c)
 
