@@ -1,5 +1,0 @@
-=== gate self-test override lines ===
-  ok   stress: the override lowered is a raise
-  ok   stress: the override withdrawn is routine (the literal is stricter)
-  ok   stress: an override granted is a raise
-budget_raise_gate self-test: 239 checks, 0 failed

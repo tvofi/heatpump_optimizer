@@ -1,0 +1,128 @@
+at_utc: 2026-10-20T13:37:50Z
+merge-base: 76bb45628745ff8843f61c1708641f271643a224
+=== three-dot diff stat (merge-base...HEAD) ===
+ dev/audit/config/bugclasses.json | 2 +-
+ dev/programme/delivery/2485.md   | 1 +
+ tests/stress_budgets.json        | 5 -----
+ 3 files changed, 2 insertions(+), 6 deletions(-)
+
+=== full three-dot diff ===
+diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
+index 057abc65c..3ddebf0e8 100644
+--- a/dev/audit/config/bugclasses.json
++++ b/dev/audit/config/bugclasses.json
+@@ -4223,7 +4223,7 @@
+       "parts_missing": [],
+       "process_state": "(c) RCA-BULK-2 item 3 was carried out as a printed count with no budget row; plants are per past instance, and the barrier unit is one instrument in one language",
+       "countermeasure": "build: name_kept_members ratchet row (38) and field_coverage census arm perturb-to-red with a gate row per census; card language arm carried to #2259 item 2 (#2373); instrument coverage named in this row's barrier",
+-      "landed": null,
++      "landed": "ecdeb42c (#2441)",
+       "in_tree_home": "dev/audit/rca/R10-N-structure-blind.md",
+       "doc": [
+         "dev/audit/rca/R10-N-structure-blind.md"
+diff --git a/dev/programme/delivery/2485.md b/dev/programme/delivery/2485.md
+new file mode 100644
+index 000000000..511edbc2f
+--- /dev/null
++++ b/dev/programme/delivery/2485.md
+@@ -0,0 +1 @@
++- [#2485](https://github.com/tvofi/heatpump_optimizer/pull/2485) — **open**, stress: drop the inherited coverage_floor_override; the literal floors apply (R10-STAMP) (R10-STAMP)
+diff --git a/tests/stress_budgets.json b/tests/stress_budgets.json
+index 094d7e4d5..2f2979dd6 100644
+--- a/tests/stress_budgets.json
++++ b/tests/stress_budgets.json
+@@ -1,9 +1,4 @@
+ {
+-  "coverage_floor_override": {
+-    "calls_floor": 6,
+-    "cites": "#201 comment 6240984157 (D2-s2-01 ruling, step 3, mandate 6175172275) and the orchestrator's ruling on its floors: every hot-water scenario re-plans because the tank's price changed; CI at 74f23814e judged 18 of 54 scenarios (solver work) and 6 of 20 families (production calls), the floors set here",
+-    "floor": 18
+-  },
+   "flat/1z/dhw": {
+     "ratio": 14.33,
+     "rss_attrib_mb": 8.5,
+
+=== delta 22ed5ed7 (round-1 head) .. 478cc27e, non-ledger paths ===
+custom_components/heatpump_optimizer/accuracy.py
+custom_components/heatpump_optimizer/coordinator.py
+custom_components/heatpump_optimizer/draw_range.py
+custom_components/heatpump_optimizer/inputs.py
+custom_components/heatpump_optimizer/pump_arbiter.py
+custom_components/heatpump_optimizer/store.py
+custom_components/heatpump_optimizer/thermal_model.py
+dev/audit/harnesses/r10_setpoint_boost.py
+dev/programme/delivery/2465.md
+tests/closures.json
+tests/features.py
+tests/mutation_ledger/killed_by/coordinator.py/_valve_write_problem.GUARD_OFF.2cd65d11.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.0be99a4d.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.3b4c559c.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.44f86dcd.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.56bfbaa7.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.9b5abfbf.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._aligned.RETURN_DEL.60927c27.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.BOOLOP.36d04abf.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.142ccd7f.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.36d04abf.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.68ba76e1.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.8c2bccfa.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.9222b098.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.a10fdc16.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.RETURN_DEL.36d04abf.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._evidence.CMP_BOUND.3a7f8343.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._evidence.CMP_BOUND.3e86f7a9.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.BOOLOP.991fadb4.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.991fadb4.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.ac5977ac.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.BOOLOP.2726f21e.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.CMP_BOUND.2726f21e.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.idle_kw.CMP_BOUND.b41a24df.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.idle_kw.RETURN_DEL.b41a24df.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.BOOLOP.625bb538.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.BOOLOP.a7dfc40f.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.CMP_BOUND.625bb538.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.GUARD_OFF.557a8ad5.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.GUARD_OFF.cbc3e7e9.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observe.GUARD_OFF.e9d91e73.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.CMP_BOUND.6a3aae44.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.CMP_BOUND.d8191c92.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.CMP_BOUND.f1a7d35b.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.GUARD_OFF.6a3aae44.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.GUARD_OFF.d8191c92.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.observed.RETURN_DEL.ba41bee7.json
+tests/mutation_ledger/killed_by/draw_range.py/_command_cells.BOOLOP.6111075f.json
+tests/mutation_ledger/killed_by/draw_range.py/_command_cells.RETURN_DEL.6111075f.json
+tests/mutation_ledger/killed_by/draw_range.py/_stored_idle.CMP_BOUND.d95cb3ca.json
+tests/mutation_ledger/killed_by/draw_range.py/fold.CMP_BOUND.8c264f30.json
+tests/mutation_ledger/killed_by/draw_range.py/fold.GUARD_OFF.8c264f30.json
+tests/mutation_ledger/killed_by/draw_range.py/follows_ask.BOOLOP.7a9f8c07.json
+tests/mutation_ledger/killed_by/draw_range.py/follows_ask.BOOLOP.c5289931.json
+tests/mutation_ledger/killed_by/draw_range.py/follows_ask.CMP_BOUND.7a9f8c07.json
+tests/mutation_ledger/killed_by/draw_range.py/follows_ask.CMP_BOUND.c5289931.json
+tests/mutation_ledger/killed_by/inputs.py/@module.CONST.0e4ab691.json
+tests/mutation_ledger/killed_by/inputs.py/_on_step.CMP_BOUND.94ce3139.json
+tests/mutation_ledger/killed_by/inputs.py/_on_step.RETURN_DEL.df955f7f.json
+tests/mutation_ledger/killed_by/inputs.py/quantise_setpoint_c.CLAMP_DROP.d6c6d067.json
+tests/mutation_ledger/killed_by/inputs.py/quantise_setpoint_c.CLAMP_DROP.f00b74a6.json
+tests/mutation_ledger/killed_by/inputs.py/quantise_setpoint_c.GUARD_OFF.28fe16ee.json
+tests/mutation_ledger/killed_by/inputs.py/quantise_setpoint_c.GUARD_OFF.998f9edd.json
+tests/mutation_ledger/killed_by/inputs.py/quantise_setpoint_c.RETURN_DEL.6672b360.json
+tests/mutation_ledger/killed_by/inputs.py/setpoint_step.BOOLOP.901cc8a6.json
+tests/mutation_ledger/killed_by/inputs.py/setpoint_step.CMP_BOUND.901cc8a6.json
+tests/mutation_ledger/killed_by/inputs.py/setpoint_step.RETURN_DEL.901cc8a6.json
+tests/mutation_ledger/killed_by/inputs.py/write_setpoint_c.RETURN_DEL.04bf7d0b.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/_bounded.RETURN_DEL.138085e7.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_command.GUARD_OFF.ec595179.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_command.RETURN_DEL.872828fe.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/_gate_c.RETURN_DEL.a82d03a2.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/desired.RETURN_DEL.4ae227c1.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/desired.RETURN_DEL.e2e74004.json
+tests/mutation_ledger/killed_by/pump_arbiter.py/flow_command.RETURN_DEL.a9be4e4c.json
+tests/mutation_ledger/killed_by/thermal_model.py/modulation_floor_flow_c.CMP_BOUND.431e5f53.json
+tests/mutation_ledger/killed_by/thermal_model.py/modulation_floor_flow_c.GUARD_OFF.23198a09.json
+tests/mutation_ledger/killed_by/thermal_model.py/modulation_floor_flow_c.RETURN_DEL.431e5f53.json
+tests/mutation_ledger/killed_by/thermal_model.py/modulation_floor_flow_c.RETURN_DEL.eb4d73bd.json
+tests/mutation_ledger/survivor_triage/pump_arbiter.py/_flow_target.CLAMP_DROP.38a077e7.json
+
+=== PR's own files in that delta (expect none) ===
+(none)

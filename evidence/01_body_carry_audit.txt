@@ -1,0 +1,19 @@
+body sha256: b074690674fcf0d22d7a5a1f791119f85738a82eded09bd693536f605474cee4  body-at-head.md
+body read from gh pr view --json body at 2026-10-20T13:36:35Z
+--- carry_audit.py check --body ---
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+exit=0
+--- Forward-carry section in the live body ---
+- `pr-contract` is red at both heads. `carry_audit.py check --body` returns `UNROUTED body item 522e1cd9 (## Forward-carry)` because that section began `none.` and then recorded items, a shape its grammar refuses. Answer: the cheaper detector is `carry_audit.py` itself — seconds, local, and already wired into `prepr.sh` — so it exists, was run, and is cheap; the section now reads a genuine `none.` and the #2445 stamp-time items live in the R10-STAMP roster entry (named in the opening paragraph).
+- `tests/stress.py`: `shoulder: cheaper than holding the setpoint` (4.67 vs 3.96) is red at both the before and after heads on this arm64 box. `tests/stress.py`: `the probed scenarios' memory peaks stay within their recorded budgets` (`typical_slab/shoulder` attributable RSS 24.5 MiB against a recorded 9.4) is red in the after run only. Neither is this diff: the before head differs from `origin/main` only in the ledger scalar, the diff touches no production code, the memory pass reads only the recorded peaks (not `coverage_floors`), the economics check passed in the archived canonical-environment log `dev/archive/handoff/r9-f2-solver-4/ev/stress_base.log:101`, and `main`'s Tests push run at a25de7a68 concluded success. Both runs were taken on a box at load average 44-56 with two other seats building. The cheaper detector is CI's canonical-environment run, which already executes `stress.py`; the standing cost of a local duplicate is the 15-20 minutes per run this seat paid.
+- `tests/harness_headers.py` was left unrun locally: it produced no output within 240 s under the same load. CI runs it on every push, so it is left to CI at this head rather than reported green.
+- The scoped scripts and `structure.py` were green at the fix head; `structure.py` was re-run green at this head. The stress run and `harness_headers.py` are left to CI at this head.
+
+## Forward-carry
+
+none.
+
+## Friction
+
+none
+

@@ -1,173 +1,133 @@
-Fix review: blocked 22ed5ed703125446b70f18eac07dc75b5592a53a root-cause-unanswered: pr-contract went red at this head on the body's unrouted `## Forward-carry`, and the body neither names nor answers it
+Fix review: merge 478cc27efd03d59d97899cff0d67f2e912ce7918
 
-bus-nonce: 7a86ac0b7292a0842998cf8fcba50633
+bus-nonce: 4162309a01046b05b79c53f3e102f4aa
 
 ## Head
 
-Measured `22ed5ed703125446b70f18eac07dc75b5592a53a`, the head the body's `## Head` names.
-During the review the head moved to `478cc27efd03d59d97899cff0d67f2e912ce7918`, a
-coordinator-directed recarry merging `origin/main` (`76bb45628745`, #2465's merge
-commit) into the branch. Per the dispatch I keep this verdict at 22ed5ed7 and
-measure the delta and the floors at the new head below. The block holds at **both**
-heads (pr-contract is red at 478cc27e too; see Red checks), so it is not a
-head-moved block.
+Round 2. Measured `478cc27efd03d59d97899cff0d67f2e912ce7918` in a detached worktree at
+`/Users/timmalmstrom/hpo-seats/r10s3/rev-2485-r2`; `origin/main` is `76bb45628745` and the merge base
+is `origin/main`, so the PR's own diff is the three-dot one. The PR head read from the API at
+13:30Z, again at 13:39Z and again immediately before posting at 13:49Z is `478cc27e`. The body was
+read from the pull request
+(`gh pr view 2485 --json body`, sha256 `b074690674fc…cee4`), not from any file the fixer kept.
 
-## Direction — the change is a withdrawal, not a raise (brief 1)
+## The round-1 block is cleared, and by the checker's own run
 
-The diff removes `tests/stress_budgets.json`'s `coverage_floor_override`
-(`floor` 18, `calls_floor` 6) and touches no other budget. That override could only
-ever *lower* the floors: `coverage_floors` accepts it only when
-`0 < floor < SCENARIO_WORK_MIN_COVERED` (`tests/stress.py` `lowers()`), and the
-literal is 40. So the override was a one-sided easing (40/15 -> 18/6), and removing
-it restores the stricter literal (40/15). A tightening needs no owner review; a
-loosening would.
+`## Forward-carry` in the live body is exactly `none.`; the #2445 stamp-time items moved to the
+opening paragraph and to the R10-STAMP roster entry (verified below). Against the live body:
 
-`python3 -I tools/policy/budget_raise_gate.py --base origin/main --head HEAD --pr 2485`:
+    python3 -I tools/audit/carry_audit.py check --body body-at-head.md
+    CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)   [exit 0]
 
-- at 22ed5ed7: `RESULT budget_raises=0 count` / `PASS: no budget raise; no owner review is owed`
-- at 478cc27e (vs origin/main 76bb4562): `RESULT budget_raises=0 count` / `PASS`
+`pr-contract` at this head, read from `/repos/tvofi/heatpump_optimizer/commits/478cc27e/check-runs`
+(never `gh pr checks`): the push-time run `39427351196` (13:04:44–13:05:06) failed on the old body;
+the body edit at 13:29:44 fired run `39430873112` (created 13:29:48), which concluded **success** at
+13:30:17. Its own log states `red checks the body must answer: nightly-status`,
+`PR-BODY: 0 error(s) in /tmp/pr-body.md`, `CARRY-AUDIT: 0 finding item(s)` and
+`no version edit: origin/main...478cc27e moves none of VERSION, the manifest version or a notes
+heading`. A green run over the edited body, not a red hidden behind a tick. All of this head's
+workflows had concluded by 13:48:28Z, when `closures` completed success; the Tests run's only
+failing job is `nightly-status` (job 118643700213), and the only failing `pr-contract` run is the
+push-time one the edited-body run superseded.
 
-The gate's own self-test separates the two directions and passes 239/0:
+## Direction and derivation — re-measured, not inherited
 
-    ok   stress: the override lowered is a raise
-    ok   stress: the override withdrawn is routine (the literal is stricter)
-    ok   stress: an override granted is a raise
+The diff removes `tests/stress_budgets.json`'s `coverage_floor_override` (`floor` 18,
+`calls_floor` 6); nothing else in any budget file moved. It is a withdrawal, not a raise:
 
-So a re-added override is a raise the gate would refuse, and the committed head is
-its withdrawal — routine. Not a raise wearing a withdrawal's clothes.
+- `coverage_floors` accepts the override only through `lowers()`, which is one-sided by
+  construction (`tests/stress.py`: `isinstance(v, int) and not isinstance(v, bool) and 0 < v < literal`).
+  I ran the controls: floor 45 (≥ the literal 40) -> `(40, 15, None)`; floor 0 -> `(40, 15, None)`;
+  no `cites` -> `(40, 15, None)`; floor 18 with `calls_floor` 6 -> `(18, 6, cites)`; floor 18 without
+  it -> `(18, 7, cites)` (the share rule, rounded up). The override could only ever lower the floors.
+- At this head, from the committed function and table: **54 scenarios, 20 families,
+  `(40, 15, None)`**. The same table with the override restored returns `(18, 6, cites)`.
+- Budget gate at this head (`--base origin/main --head 478cc27e --pr 0`):
+  `RESULT budget_raises=0 count` / `PASS: no budget raise; no owner review is owed`.
+- The mutation proof, as the gate's own comparison sees it: base = this head's tree, head = the same
+  tree with the override re-added (my throwaway commit `caa477d5`) -> two
+  `RAISE … coverage_floor_override: override added at N (absent is the strict state)` and
+  `RESULT budget_raises=2 count` / `REFUSED`. Against `origin/main` as the base the same mutant shows
+  no change, because it is byte-identical to the base — the gate compares base against head, so that
+  arm is a null control, not a mutation. The gate self-test separates the directions and passes
+  `239 checks, 0 failed`, including `the override withdrawn is routine (the literal is stricter)`.
+- Class check: the only budget leaf the gate classifies `OVERRIDE` is `coverage_floor_override`
+  (`tests/stress_budgets.json`), and `git grep coverage_floor_override -- '*budgets.json'` at this
+  head returns nothing. The class is one seam and this PR closes it; no seam is left unnamed.
 
-## Derivation, not a carried number (brief 2)
+## §Response to the round-1 verdict
 
-Re-derived with the committed function, not the body's figure:
+1. *`## Forward-carry` grammar* — a genuine `none.`; `carry_audit` returns 0 items. Answered in the
+   body and confirmed by `pr-contract`'s green run.
+2. *`pr-contract` red named and answered* — `## Red checks` names it and gives the cheaper detector
+   (`carry_audit.py`, seconds, local, already in `prepr.sh`); the body records that it was not run
+   before the push, which is the `defect-root-cause.md` question answered rather than restated.
+3. *`## Head` re-pointed* — says `478cc27e`, the measured head.
+4. *The block's own paragraph* — the #2445 stamp-time substance is in the opening paragraph and its
+   destinations are in the R10-STAMP roster entry; see Forward-carry.
 
-    RESULT coverage_floors(table, 20, 54) with override  = (18, 6), cites set
-    RESULT coverage_floors(table, 20, 54) without override = (40, 15), cites None
-    RESULT sweep_scenarios=54  calls_population=20
-    RESULT own_share(40,20,54)=15   (matches the function's share rule)
-    RESULT control: re-add override -> (18, 6)
-    RESULT control: override floor 45 (> literal) is ignored -> (40, 15)
+Nothing round 1 raised is answered only in a commit message.
 
-Same numbers at the #2465 tree (478cc27e): 54 scenarios, 20 families, (40, 15). The
-54 scenario rows are untouched — the JSON goes 55 keys (54 + override) to 54 keys,
-and `git diff` shows only the override key removed. Evidence:
-`evidence/02_rederive_22ed5ed7.txt`, `evidence/03_rederive_478cc27e.txt`.
+## Red checks
 
-## Ledger edit (brief 3)
+- `nightly-status` failure at 13:05:54–13:06:07 — **not this head's**, and exempt: it grades `main`
+  and reads Actions run metadata, not this diff (the workflow's own red list agrees: `red checks the
+  body must answer: nightly-status` is printed for the body to ignore by the exemption). It is the
+  only failing job in this head's Tests run; every other job, `closures` included (13:32:37–13:48:28),
+  concluded success.
+- The body's `## Red checks` also records its local `tests/stress.py` reds (shoulder economics, and
+  the `typical_slab/shoulder` RSS on the after run) with a cheaper-detector answer: CI's
+  canonical-environment lane, standing cost a 15–20 minute local duplicate. I did not re-run the
+  solver; this head's `fast (3.14)` run passed, and `tests/closures.json` maps
+  `tests/stress_budgets.json` to `tests/entities.py`, `tests/harness_headers.py` and
+  `tests/stress.py`, so the scoped `fast` lane is the run that settles them at this head.
+- `mutation` is green; the diff writes no production line, so no mutant is drawn — the PR's mutation
+  evidence is the budget gate's two directions above, which I re-ran.
+- `closures` at this head concluded success at 13:48:28Z; the Tests run's only failing job is
+  `nightly-status`.
 
-`dev/audit/config/bugclasses.json` row `R10-N-structure-blind` gains
-`"landed": "ecdeb42c (#2441)"`. The field pre-existed (base value `null`), so no
-field was invented. `ecdeb42c` is `Merge pull request #2441 from
-tvofi/fix/r10-archscore-census`, an ancestor of `origin/main`.
-`python3 tools/audit/fold_ledger.py check` -> `0 violation(s)`.
-Evidence: `evidence/04_ledger.txt`.
+## Forward-carry
 
-## Claim files and suspension (brief 4)
+`## Forward-carry` is `none.`; the branch owes no new carry. The stamp-time items the opening
+paragraph names are in the head tree's R10-STAMP roster entry
+(`dev/programme/rosters/wave-r10-groups.json`, the group's `carry` array, lines 4053 and 4056–4058):
+the #2368 override withdrawal this PR performs, the flat-price control ruling to record in the
+release notes, the Pi `process_time` after the stamp, and the invariant-not-a-count instruction —
+each stated as owed at/after the stamp, i.e. as a precondition, not an opportunity.
 
-Both claim files are byte-identical to the merge base
-(`git diff --quiet <base> -- tests/golden/claimed_drift.txt
-tests/golden/card_claimed_drift.txt` returns 0). The stamp's own rule
-`tools/release/stamp.py::restore_suspended` finds **0** suspension notes at the
-head and changes nothing; its positive control on `daca95c5d^` finds 19
-` suspends ` lines and fires (12 restored, 7 stale, changed=True), so the rule is
-not vacuous. Evidence: `evidence/05_claims_bytecompare.txt`,
-`evidence/05_suspension.txt`.
+## Usual
 
-## Red checks (brief 5)
-
-Read from the head's own check-runs API (not `gh pr checks`).
-
-- `nightly-status` red — **exempt**. It reads Actions run metadata only, not any
-  file this diff touches; the failure is the scheduled `slow` lane at main's
-  `0c298f6` (job 118512165515), and the job itself states it is not a required
-  context. Orchestrator's to fix on main.
-- `pr-contract` red — **this PR's, and unanswered**. `pr-contract` is a required
-  context (ruleset 23698884). At 22ed5ed7 its push-time run (job 118637666157)
-  failed in `carry_audit.py`:
-
-      UNROUTED body item 522e1cd9 (## Forward-carry) [section]:
-        "none. The stamp-time items R10-STAMP's roster entry carries from #2445 ..."
-
-  I reproduced it against the live body:
-  `python3 -I tools/audit/carry_audit.py check --body body.md` -> same 1 unrouted
-  item (`evidence/08_carry_audit_repro.txt`). Cause: the section begins `none.`
-  and then *records* items, which `carry_audit`'s `NONE_ITEM` rule deliberately
-  refuses ("a `none` that goes on to record something is not one", #2341) — so it
-  is a finding item with no `Carry:` marker. The body's `## Red checks` does not
-  name or answer `pr-contract`. At 478cc27e it is red again
-  (`evidence/07_checks_478cc27e.txt`).
-
-The body's local stress reds (shoulder economics 4.67 vs 3.96 at both heads; RSS
-24.5 vs 9.4 MiB after only) are the fixer's local runs, not CI checks; I did not
-re-run the stress solver, and CI's `fast`/`coverage` lanes at 478cc27e settle the
-actual coverage.
-
-## #2465 caveat and the carry (brief 6, coordinator items 1-2)
-
-#2465 is now merged (`76bb4562`). The delta
-`git diff --name-only 22ed5ed7 478cc27e` is exactly #2465's file set and, crucially,
-**does not touch `tests/stress_budgets.json` or `dev/audit/config/bugclasses.json`**
-(nor `dev/programme/delivery/2485.md`) — none of this PR's own files
-(`evidence/09_delta_22ed5ed7_478cc27e.txt`). On that basis a `merge` verdict would
-carry to 478cc27e on the delta.
-
-The floors question, measured on the #2465 tree: `coverage_floors(table, 20, 54)`
-still returns `(40, 15)` and the counts still read 54 scenarios / 20 families
-(`evidence/03_rederive_478cc27e.txt`). This is structural, not luck: the population
-is `sweep_combinations()` (static `SEASONS`/`BUILDINGS`/literal specs in
-`tests/stress.py`) and `calls_population(combos, table)` (family keys from
-`case_key` over the same statics + the budget table). #2465 changes production code
-and `tests/features.py`, none of which these read, and it does not touch
-`tests/stress.py` or the table. So #2465 does not move the floors. What I cannot
-settle locally is the *actual covered count* against the floor; CI's `stress`
-lane at 478cc27e settles that.
-
-The stamp should still re-run its own end-merge floor re-derivation after the
-**final** recarry (it is cheap and the body's protocol promises it), but there is
-no floor risk from #2465 itself.
-
-## Usual (brief 7)
-
-Diff is three files; `VERSION` (7.0.1), the manifest version and the
-`RELEASE_NOTES.md` heading are untouched. The body's `## Head` names 22ed5ed7 (my
-measured head); the live head is 478cc27e, so a re-post must re-point `## Head`.
-`merge-tree --write-tree origin/main HEAD` -> rc 0, no conflict. `structure.py` ->
-`STRUCTURE RATCHET PASSED`; `env_drift.py --claims-only origin/main` -> ok.
-
-## The block, and its fix (body-only)
-
-The budget direction, derivation, ledger, claim files and suspension all verify;
-the sole blocker is the required `pr-contract` red, which the body does not answer.
-The forward-carry's *substance* is fine — I confirmed the stamp-time items are
-already in the roster (`dev/programme/rosters/wave-r10-groups.json:4056-4058`,
-"Owed at the stamp"/"Owed after the stamp"), so this branch owes no new carry.
-
-Fix:
-
-1. In `## Forward-carry`, either make it a genuine `none.` (the items are already
-   carried by the R10-STAMP roster) or route each with
-   `Carry: R10-STAMP` — do not leave a `none.` followed by prose.
-2. Add `pr-contract` to `## Red checks` with its answer: the cheaper detector is
-   `carry_audit.py check --body` (seconds, standing cost ~0), which was not run
-   before push.
-3. Re-point `## Head` to the live head.
-4. A body edit re-runs `pr-contract` at the same head; a round-2 verdict can then
-   carry the delta/floors results above.
-
-Carry: dismissed: body-only fix to this PR's own `## Forward-carry`, re-run pr-contract.
+- Claim files byte-identical to the merge base; `env_drift.py --claims-only origin/main` ->
+  `claims hygiene: origin/main ok`. Suspension notes at this head: 0 in both claim files, with the
+  positive control on `daca95c5d^` reading 19.
+- `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading are untouched (my three-dot diff
+  shows only the three files below; `pr-contract`'s own version step agrees).
+- `structure.py` -> `STRUCTURE RATCHET PASSED`; `fold_ledger.py check` -> 0 violations;
+  `tests/closure.py selftest` -> `ALL 124 closure shrink pins PASSED`; `tests/layout.py` ->
+  `layout self-test: ok`; `git merge-tree --write-tree origin/main HEAD` -> rc 0, no conflict.
+- Diff is three files against the merge base: the override removal, the `landed: "ecdeb42c (#2441)"`
+  ledger field (that commit is `Merge pull request #2441 …`, on main, and `fold_ledger` accepts it),
+  and the PR's own delivery row. The delta from round 1's head `22ed5ed7` to this head is #2465's
+  file set only — production files, `tests/features.py`, `tests/closures.json`, the mutation ledger
+  and `delivery/2465.md` — and does not touch this PR's three files, so round 1's substantive
+  findings carry unchanged.
+- Figures I could not re-derive and did not adopt as verified: the two whole-run stress CPU medians
+  (0.928x / 0.985x), the RSS figures, and the fix-head scoped-gate counts (`3 script(s) run`, the
+  2358 entity checks). They are local runs, not cheap to repeat, and CI's lanes at this head are the
+  authority for the suite.
 
 ## RESULT
 
-    RESULT budget_raises=0 at 22ed5ed7 (gate PASS) and at 478cc27e (gate PASS)
-    RESULT override withdrawn: floors 18/6 -> literal 40/15 (a tightening, not a raise)
-    RESULT coverage_floors base=(18, 6, cites) head=(40, 15, None); control re-add -> (18, 6)
-    RESULT sweep_scenarios=54 calls_population=20 at both heads (incl. #2465 tree)
-    RESULT ledger: field pre-existed (null); ecdeb42c (#2441) on main; fold_ledger 0 violations
-    RESULT claim files byte-identical to merge base; suspension notes at head = 0 (control = 19)
-    RESULT delta 22ed5ed7..478cc27e = #2465 only; misses stress_budgets.json and bugclasses.json
-    RESULT pr-contract RED (required) at 22ed5ed7 and 478cc27e; carry_audit UNROUTED ## Forward-carry
-    RESULT nightly-status RED but exempt (reads Actions metadata, not the diff; unrequired)
-    RESULT structure.py PASS; env_drift --claims-only ok; merge-tree rc 0
+    RESULT pr-contract: push run 39427351196 failed 13:05:06; edited-body run 39430873112 succeeded 13:30:17
+    RESULT carry_audit check --body (live body) = 0 finding item(s), 0 unrouted, 0 bad destination(s)
+    RESULT budget gate at 478cc27e: budget_raises=0, PASS; mutant (override added) = 2 RAISEs, REFUSED
+    RESULT floors at 478cc27e: 54 scenarios, 20 families, (40, 15, None); mutant (18, 6, cites)
+    RESULT lowers() one-sided: floor>=40, floor=0 and missing cites all fall back to (40, 15)
+    RESULT claim files byte-identical; suspension notes 0 (control 19); VERSION/manifest/notes untouched
+    RESULT structure PASS; fold_ledger 0 violations; closure selftest 124 pins; layout ok; merge-tree rc 0
+    RESULT nightly-status red but exempt; no other red at this head; closures succeeded 13:48:28
+    RESULT head re-read at 13:49:34Z: still 478cc27e; live body sha256 unchanged (b0746906…)
+    RESULT delta 22ed5ed7..478cc27e = #2465 only, does not touch this PR's three files
 
-Not verified: the local stress economics/RSS reds (no solver re-run on this box; CI's
-stress lane at 478cc27e settles the covered count), and the actual covered count
-against the 40/15 floors.
+Not re-run locally and left to CI at this head: `tests/stress.py`, `tests/harness_headers.py`,
+`tests/entities.py` (the scoped set), and the full gate.

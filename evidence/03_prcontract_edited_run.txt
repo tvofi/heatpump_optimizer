@@ -1,0 +1,9 @@
+run 39430873112 (PR contract, edited event) conclusion: success
+run 39427351196 (PR contract, push event) conclusion: failure
+--- key lines from the successful edited-event run ---
+List the red checks at this head	2026-10-20T13:30:08.1133863Z ^[[36;1mprintf 'red checks the body must answer: %s\n' \^[[0m
+List the red checks at this head	2026-10-20T13:30:08.9621360Z red checks the body must answer: nightly-status
+Check the body against the contract	2026-10-20T13:30:13.5666904Z   record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
+Check the body against the contract	2026-10-20T13:30:13.5668439Z PR-BODY: 0 error(s) in /tmp/pr-body.md
+Refuse a version, manifest-version or notes-heading edit	2026-10-20T13:30:14.2784619Z no version edit: origin/main...478cc27efd03d59d97899cff0d67f2e912ce7918 moves none of VERSION, the manifest version or a notes heading
+Every finding the body records names its destination	2026-10-20T13:30:14.3487435Z CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)

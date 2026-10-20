@@ -1,0 +1,39 @@
+at_utc: 2026-10-20T13:37:51Z
+=== structure ratchet ===
+
+STRUCTURE RATCHET PASSED
+
+=== env_drift claims only ===
+claims hygiene: origin/main ok
+
+=== fold_ledger ===
+fold_ledger: 42 classes, 734 instances, 121 in-tree judge survivors (rounds [8, 10]), 113 rca entries
+fold_ledger: 0 violation(s)
+
+=== closure selftest ===
+ALL 124 closure shrink pins PASSED
+
+=== layout ===
+layout self-test: ok
+
+=== claim files vs merge base (expect empty) ===
+(end)
+
+=== VERSION/manifest/notes (expect empty) ===
+(end)
+
+=== suspension notes (restore_suspended rule) ===
+HEAD claimed_drift: 0
+HEAD card_claimed_drift: 0
+control daca95c5d^ claimed_drift: 19
+
+=== merge-tree origin/main HEAD ===
+5deb7f224f01cb47100857a053b77b4afde0ed72
+rc=0
+
+=== R10-STAMP roster carry (head tree) ===
+3461:    "Source: #2445 Friction. fixer.md missing-instrument: a features check that compares a mapping against an imported constant pins nothing about the constant's value; only tests/mutation_table.py --pin-killed showed it. Owed in fixer
+4053:    "From R10-PUMP-MODEL-D2 (#2368): its tests/stress.py override sets the solver-work floors at 18 and calls_floor at 6 for that branch, and nothing expires it at merge, so every later PR inherits those floors. The stamp's stress re-r
+4056:    "Source: #2445 Forward-carry. Flat-price null control for R10-SETPOINT-POWER weakened from plan identity to \"never worse\": the relaxed solver start also unsticks flat-price solves (20 of 32 census cells move, all lower). Ruled by
+4057:    "Source: #2445 Forward-carry. Raspberry Pi CPU of the relaxed setpoint start is estimated only (+8 to +16 s per clamped solve, from +2.0 to +2.7 s measured on arm64). Owed after the stamp: a measured process_time on the owner's Pi 
+4058:    "Source: #2445 review (merge verdict 40c4e119) Friction. Two equivalent-mutant survivors and one architecture-dependent figure, folded so none is dropped: (1) X5, the hot-water path passing first=0 instead of len(extra_starts), sur

@@ -1,6 +1,0 @@
-INPROGRESS	browser
-INPROGRESS	coverage
-INPROGRESS	fast (3.14)
-failure	nightly-status
-failure	pr-contract
-neutral	CodeQL

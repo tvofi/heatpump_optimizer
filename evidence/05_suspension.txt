@@ -1,3 +1,0 @@
-RESULT HEAD:tests/golden/claimed_drift.txt: suspends_lines=0 restored=[] stale=[] changed=False
-RESULT HEAD:tests/golden/card_claimed_drift.txt: suspends_lines=0 restored=[] stale=[] changed=False
-RESULT daca95c5d^:claimed_drift.txt: suspends_lines=19 restored=['flat_prices', 'shoulder_two_zone', 'capacity_tariff_15min', 'cycling_cost', 'everything_on', 'narrow_band', 'shoulder', 'winter_two_zone_dhw', 'direct_flow_carnot', 'fuse_guard', 'precip_snow', 'tariff_plus_two_zone'] stale=['valve_storage_smart_write', 'wood_two_tank', 'wood_two_tank_smart_write', 'wood_coil', 'valve_upper_direct_slab', 'winter_two_zone_no_dhw', 'valve_storage'] changed=True
