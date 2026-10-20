@@ -61,6 +61,7 @@ With no hold code, the automerge step proceeds for every hold read — including
 - `PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only 2dadcdc8cbcc2da860e5043b54d0c899038da506` → `claims hygiene: 2dadcdc8cbcc2da860e5043b54d0c899038da506 ok`; both claim files are byte-identical to the base.
 - `PYTHONPATH=tests/hastub python3 tests/closure.py selftest` → `ALL 124 closure shrink pins PASSED`; `PYTHONPATH=tests/hastub python3 tests/layout.py` → `layout self-test: ok`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check --ref HEAD` → `0 refused, 0 stale allow entries`.
+- `printf '{}' | gh api --method POST repos/tvofi/heatpump_optimizer/git/commits --input - --jq .sha` → `HTTP 422`, `"message", "tree" weren't supplied`: the endpoint parses exactly the invocation and payload keys `hold_refresh()` sends, and an empty payload creates nothing.
 - The bound: `merge_train.py`'s `polls` default 24 and `HEARTBEAT_SECONDS` 240 → one CI wait ≤ 5760 s; `HOLD_MAX_AGE_S=14400` is above that plus a `--main-moved-tries` recovery. Re-derive by reading the four constants.
 - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` (a `run_always` script; run under the exclusive gate lease through `tests/gate_lock.py`) → `ALL 109 HARNESS HEADER CHECKS PASSED`.
 
