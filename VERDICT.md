@@ -1,60 +1,48 @@
-Fix review: blocked 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1 flaky-arm: the unmutated SIGKILL arm fails 7/7 runs in the cloud seat container, because PID 1 reaps orphans about 1.4 s late and the holder counts the zombie, so the lock frees about 2.05 s after the push and the arm allows 1.5 s; pr_args 58/0 does not reproduce there, and mut:holdgrp cannot be told apart from the head
+Fix review: blocked 67ee6adfd712786da12241bf59bb5b78030c2d80 ci-red: pr-contract is red on both of this head's runs (carry_audit BAD-DEST x3: R10-UPDATE-PR-SIGNALS was not on main yet); the code verifies clean, and a head that merges origin/main at or after 1e30f876 routes 3/3
 
-bus-nonce: 76f0c1f880106cdac586744f90d7222d
+bus-nonce: 1808b2e15cb51d3f259ff03e92c6a423
 
-Round 4 of R10-UPDATE-PR-LOCK (a minimal re-cut under the three-round rule). Measured head: 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1 (code c9dd299c). It was still the head of the PR and the branch when this was posted (ev/heads-at-post.txt). origin/main is bb5b21a88. My copy of the roles is current: the role diff against origin/main is empty.
+Round 5 of R10-UPDATE-PR-LOCK: the split that the three-round rule required after round 4 (98fe31c2, blocked flaky-arm). Measured at head 67ee6adfd712786da12241bf59bb5b78030c2d80 (code head 931e9a0f). The PR head was re-read before writing this, and it is unchanged. The fix-review contract on main matches the head's copy (the roles diff is empty).
 
-## RESULT lines
+## The block, and only the block
 
-RESULT head-measured 98fe31c26da80c46441a32bde66c2c3ef9ac5bc1
-RESULT merge-tree origin/main: clean, rc=0, tree c0c787587394893d4cad18567a2f8d6b5973d59a (ev/merge-tree.txt)
-RESULT ci-check-runs (commit check-runs API): every completed run is success, skipped or neutral (CodeQL). instrument-self-tests passed, with `pr_args self-test: 58 checks, 0 failed` and `cloud_relay self-test: 74 checks, 0 failed`. Analyze (python) was still in progress when I read them.
-RESULT pr_args-self-test-head, cloud container, unmutated: 58 checks, 1 failed on 7 of 7 runs (4 run one after another, ev/base-seq*.out; 3 run at the same time, ev/base-par*.out). The failing arm every time is "update_pr: a SIGKILLed run keeps the lock until its push has ended; then the next run takes it".
-RESULT pr_args-origin-main: 46 checks, 0 failed (ev/main-counts.txt), which matches the body
-RESULT cloud_relay-head: 74/0. cloud_relay on origin/main: 69/0. Both match the body.
-RESULT mainupd (origin/main's update_pr.sh under the head's harness): 58 checks, 5 failed, which matches the body's "5 failed"
-RESULT removed-mechanisms: gone. The push is in the foreground (update_pr.sh:93). There is no killpg, stop handshake, parent-pid watch or zombie filter in update_pr.sh, and tools/pr/prepr.sh is not in the diff, so 7a2 is gone.
+- `pr-contract` failed on both of this head's runs: 118467040392 and 118467201379, started at 05:13:17Z and 05:13:52Z. Its log shows `carry_audit.py check` with 3 BAD-DEST lines: `R10-UPDATE-PR-SIGNALS is not a group of the roster`.
+- Roster #2475 merged as 1e30f876 at 05:36:19Z, after both runs. It is not an ancestor of this head. carry_audit reads the roster from the checked-out tree, so re-running the same merge ref stays red.
+- Against origin/main 558d509d, and against the merged tree 10ebe02c, `carry_audit.py check --body` prints `3 routed, 0 unrouted, 0 bad destination(s)`. At this head it prints `0 routed ... 3 bad`.
+- The fix is a head that merges origin/main (the merge is clean), so that pr-contract runs fresh.
+- This is not posted as root-cause-unanswered. No pr-contract run started after the head's last workflow concluded (Analyze (python), 05:31:22Z), and contract step 11 withholds that class until one has.
+- The body's `## Red checks` answers only round 0's pr-contract reds. The next body should name this one too. Its cheaper detector is the one the body already gives, `carry_audit.py check` run by hand against origin/main before the push. Here it was run before the roster merged.
+- No code defect was found. Every other item below verifies.
 
-## Root cause of the failing arm (mine, reproduced)
+## RESULT lines (cloud container, Linux)
 
-- PID 1 in this container (`process_api`) reaps an orphaned child only after a delay. ev/zombie-lifetime.txt (z2.sh) shows a killed group's orphan staying `Z` for about 1.4 s.
-- The holder's `group()` counts every process whose pgid is the run's, and `ps -A -o pgid=` lists zombies. So after a SIGKILL, the push stub's zombie keeps the group non-empty for one or two more 1 s polls.
-- Measured with lat.sh, a replica of the holder: the lock frees 2.049 to 2.060 s after the push ends, on 8 of 8 trials (ev/lock-free-latency.txt).
-- stoprun starts run 3 only 1.5 s after `ended`, so run 3 gets BUSY. ev/dbg.txt shows out3 as `update_pr: BUSY: the lock holder of run 16847, which has ended but started processes that have not`.
-- Adding about 0.1 s of extra work before run 3 (one `ps` dump, ev/dbg2.txt) makes it pass. So this is a timing margin that depends on the host's init, not a logic error in the arm. On GitHub's runner the arm passes.
-- The production effect:
-  - Where init reaps late, the lock outlives the push by the reaping delay, which is harmless.
-  - Where PID 1 never reaps (a container whose PID 1 does not wait on orphans), every run on that branch is BUSY for good after one SIGKILL.
-  - Round 4 removed the zombie filter that dealt with this. The fix could restore it with an arm that pins it, which this container would provide, or keep the filter removed and widen the arm's wait by polling run 3 with a bound. That choice is the fixer's.
+- RESULT self-test pr_args at head: `pr_args self-test: 56 checks, 0 failed` on 8 of 8 runs. 5 were sequential (seq1-5). 3 ran at once (par1-3), alongside the 10 mutant runs and the base-tree runs. This is the container where round 4's SIGKILL arm failed 7 of 7. The `a SIGKILLed run leaves no stale lock` arm is ok in all 8.
+- RESULT self-test cloud_relay at head: `cloud_relay self-test: 74 checks, 0 failed` on 5 of 5 runs.
+- RESULT base a65438c4, its own scripts: `pr_args 46 checks, 0 failed` and `cloud_relay 69 checks, 0 failed`. Both match the body.
+- RESULT the head's pr_args with the base `update_pr.sh`: `56 checks, 3 failed`, namely the BUSY arm, the TERM arm, and the `mut:unlock` mutant arm. This matches the body.
 
-## Mutation proof (each mutant applied by me to the real source, the self-test run in its own worktree; ev/<name>.diff and .out)
+Mutants: each one is a copy at the head with the full self-test run. Each named arm FAILs.
 
-These ran nine at a time, under load. The named arm fails in each:
+| mutant | result | the named arm fails |
+|---|---|---|
+| `mut:lock` deleted | 2 failed | BUSY (75) arm: yes |
+| `mut:unlock` deleted | 4 failed | `the lock holder has exited by the time a run returns`: yes |
+| `mut:stop` deleted | 1 failed | TERM arm: yes |
+| `mut:watch` deleted | 2 failed | TERM arm: yes |
+| hand `while True: time.sleep(2)` | 1 failed | `a SIGKILLed run leaves no stale lock`: yes |
+| shell-fd lock of 49577add, spliced in | 5 failed | `a child the run left detached does not hold the lock`: yes |
+| relay body back to `mktemp "${TMPDIR:-/tmp}/cloud_body.XXXXXX"` | 2 failed | the body-path check and the dir-removed check: yes |
+| relay final `rm -rf "$bd"` deleted | 1 failed | dir-removed: yes |
+| relay `urc = 75` line deleted | 3 failed | retried, not recorded failed, not logged OWED: yes |
 
-| mutant | result |
-|---|---|
-| lock | BUSY arm FAIL |
-| unlock | "the lock holder has exited by the time a run returns" FAIL |
-| stop | TERM arm FAIL |
-| drain | SIGKILL arm FAIL (and TERM) |
-| pgrp | SIGKILL arm FAIL (and TERM) |
-| holdgrp | SIGKILL arm FAIL only |
+The mechanisms that moved out are gone from `update_pr.sh`. Grep finds no setsid, pgrp, pgid, drain, holdgrp, `ps` or setpgid. The only `mut:` lines are lock, unlock, stop, watch and prtopic, the last of which predates this PR.
 
-- shellfd (my own revert: the shell opens fd 9 and the holder flocks it) fails the "detached child" arm.
-- oldfd (49577add's update_pr.sh, the body's revert) fails the "detached child" arm, as the body says.
-- relay-body fails both body-path checks. relay-rm fails the "directory is removed" check. relay-75 fails "tried again", "not recorded failed" and "nor logged OWED". All three match the body.
+carry_audit routes 3 of 3 against origin/main. The roster group R10-UPDATE-PR-SIGNALS carries all three items verbatim. Its brief states the control as a precondition: every arm deterministic, waits on a condition, never a fixed window. It also covers the ps dependency.
 
-Every mechanism the body claims has a mutant, and I found none without one. But in this container the SIGKILL arm fails unmutated, so the drain, pgrp and holdgrp mutants "failing" it shows nothing here.
+Merge: `git merge-tree --write-tree origin/main 67ee6adf` exits 0 with tree 10ebe02c. No claim file is touched.
 
-Worse, the harness's own `mut:holdgrp` arm passes vacuously here: it checks that out3 is BUSY, and the unmutated head's out3 is also BUSY. In this container the holdgrp mutant cannot be told apart from the head. The drain and pgrp mutant arms, which check that out2 is not BUSY, still separate from the head.
+VERSION, the manifest and RELEASE_NOTES are untouched. There is no golden or claim drift. The diff is 5 files: update_pr.sh, pr_args.sh, cloud_relay.sh, INSTRUMENTS.md and the delivery row.
 
-During the parallel mutant runs, several unrelated arms also failed (for example the TERM main arm under mut:lock and mut:drain). That is consistent with a timing-sensitive harness under load.
+CI from the check-runs API: 49 runs. Every run is success or skipped except the two pr-contract failures above; see ev/ci-check-runs.txt.
 
-## Other checks
-
-- VERSION, the manifest version and the notes heading are not touched. No claim file, budget, closures.json or INERT entry is in the diff.
-- The body's Head paragraph names 98fe31c2 and code c9dd299c, which matches what I measured.
-- Forward-carry: the body says `none`. The `ps` dependency was carried by the orchestrator at roster 25e9cdee (on origin/handoff/audit-r10-roster) to R10-ROSTER-OPS, and that carry states its control (an arm with `ps` off PATH that requires a refusal).
-- The rc-75 trigger is answered in the body: the round-0 pr-contract reds and their cheaper detector.
-- A minor point, not blocking: under `set -e`, any command inside update_pr.sh that exits 75 also reads to the relay as BUSY and is retried forever, not recorded. Today only the lock path exits 75.
-- I built my own instruments: run.sh, lat.sh, z2.sh and zomb.sh, all in ev/. There is no committed finder harness for this instrument fix beyond the PR's own self-test.
+Instruments: the harness is the PR's own self-test arms, run unmodified. The mutants were built by me: grep -v of each `# mut:` line, the hand `while True` edit, and a python splice of 49577add's lock block for the shell-fd mutant. I also built the cloud_relay sed edits that emulate the base lines.
