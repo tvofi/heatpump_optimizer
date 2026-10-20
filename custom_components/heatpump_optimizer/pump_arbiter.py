@@ -328,11 +328,11 @@ def step_duty(result: Any, now: datetime) -> str | None:
 
     The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
     (D7-arch3-04). It used to travel through an attribute on the function
-    object, cleared by a decorator's ``finally``: one module-level slot for a
-    per-plan value, read by every caller that passed none, and left set if the
-    body raised between the reads. No production reader runs off the loop, so
-    the harm was the channel rather than a live race, and the channel is what
-    is gone.
+    object, set here and cleared by a decorator's ``finally`` so a later
+    floorless caller did not inherit it: one module-level slot for a per-plan
+    value, read by every caller that passed none. No production reader runs off
+    the loop, so the harm was the channel and the second piece of state that
+    kept it clean, not a live race.
     """
     stamps = list(getattr(result, "timestamps", None) or [])
     i = bisect.bisect_right(stamps, now) - 1
