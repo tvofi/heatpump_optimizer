@@ -1,0 +1,1701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harmony 2 · The setup page's controls and the Badge decision</title>
+<style>
+
+    
+      .mini {
+        --hpo-primary: var(--primary-color, #03a9f4);
+        --hpo-on-primary: var(--text-primary-color, #ffffff);
+        --hpo-text: var(--primary-text-color, #212121);
+        --hpo-text-2: var(--secondary-text-color, #727272);
+        --hpo-surface: var(--card-background-color, #ffffff);
+        --hpo-divider: var(--divider-color, #e0e0e0);
+        --hpo-surface-2: #f7f9fb;
+        --hpo-ink: #212121;
+        --hpo-ink-2: #727272;
+        --hpo-accent: #026aa8;
+        --hpo-heat: #d2601f;
+        --hpo-ok: #1c7350;
+        --hpo-ok-bg: #e8f1ed;
+        --hpo-warn: #8a5a00;
+        --hpo-warn-bg: #fbf1de;
+        --hpo-crit: #b3261e;
+        --hpo-crit-bg: #fbe9e7;
+        --hpo-plot: #ffffff;
+        --hpo-series-price: #4a3aa7;
+        --hpo-series-dhw_slots: #d2403f;
+        --hpo-series-space_slots: #2a78d6;
+        --hpo-series-actioned: #008a70;
+        --hpo-series-quiet_silent: #6b2fa0;
+        --hpo-series-quiet_off: #5c5346;
+        --hpo-series-outdoor: #3b7dd8;
+        --hpo-series-dhw_temp: #c2477a;
+        --hpo-series-house_temp: #008300;
+        --hpo-series-solar: #d4561f;
+        --hpo-space-1: 4px;
+        --hpo-space-2: 8px;
+        --hpo-space-3: 12px;
+        --hpo-space-4: 16px;
+        --hpo-space-5: 24px;
+        --hpo-radius-s: 6px;
+        --hpo-radius-m: 12px;
+        --hpo-radius-pill: 999px;
+        --hpo-text-xs: 12px;
+        --hpo-text-sm: 13px;
+        --hpo-text-md: 15px;
+        --hpo-text-lg: 18px;
+      }
+      ha-card { padding: 12px 12px 8px 12px; }
+      ha-card.clickable { cursor: pointer; }
+      .header {
+        font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
+        color: var(--hpo-text, #212121);
+        display: flex; align-items: center; gap: 8px;
+      }
+      /* R9-UI-3: the mark, the title and the status pill share one wrapping
+         line that takes the free width, so the expand button keeps the
+         right edge whether or not a pill is drawn, and on a phone a long
+         title pushes the pill under itself rather than off the card. */
+      .header .head-main {
+        flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;
+        align-items: center; gap: var(--hpo-space-1, 4px) var(--hpo-space-3, 12px);
+      }
+      .header .title {
+        min-width: 0; font-size: var(--hpo-text-lg, 18px); font-weight: 600;
+      }
+      .hpo-mark { width: 28px; height: 28px; flex: 0 0 auto; display: block; }
+      .hpo-mark .mark-pool { fill: var(--hpo-heat, #d2601f); }
+      .hpo-mark .mark-line {
+        fill: none; stroke: var(--hpo-accent, #026aa8); stroke-width: 3.6;
+        stroke-linecap: round; stroke-linejoin: round;
+      }
+      /* The status pill: always a word as well as a colour, each pair one of
+         the design of record's measured status pairs. */
+      .status-pill {
+        display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+        font-size: var(--hpo-text-xs, 12px); font-weight: 500; line-height: 1.4;
+        padding: 3px 10px 3px 8px; border-radius: var(--hpo-radius-pill, 999px);
+        white-space: nowrap;
+      }
+      .status-pill::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: currentColor; flex: 0 0 auto;
+      }
+      .status-pill.tone-ok {
+        color: var(--hpo-ok, #1c7350); background: var(--hpo-ok-bg, #e8f1ed);
+      }
+      .status-pill.tone-idle {
+        color: var(--hpo-ink-2, #727272);
+        background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .status-pill.tone-warn {
+        color: var(--hpo-warn, #8a5a00); background: var(--hpo-warn-bg, #fbf1de);
+      }
+      .status-pill.tone-crit {
+        color: var(--hpo-crit, #b3261e); background: var(--hpo-crit-bg, #fbe9e7);
+      }
+      .status-pill.tone-accent {
+        color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
+      }
+      /* The four figure tiles (D2b): one style for all of them, two across
+         at every width, as the mockup draws them. Four across was keyed to
+         the viewport, so a narrow dashboard column on a wide window broke
+         a price unit mid-word. A value wraps only between words, and a word
+         wider than its tile still breaks rather than clips: a tile is never
+         a scroll container. */
+      .tiles {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--hpo-space-2, 8px); padding: 0 4px var(--hpo-space-2, 8px) 4px;
+      }
+      /* A surface-2 block re-points the text tokens at the ink literals, so
+         every descendant that reads --hpo-text or --hpo-text-2 is paired
+         with the surface it sits on, whatever the HA theme's own text. */
+      .tile, .hl-stat, .hl-narrative {
+        --hpo-text: var(--hpo-ink, #212121);
+        --hpo-text-2: var(--hpo-ink-2, #727272);
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface-2, #f7f9fb);
+        border-radius: var(--hpo-radius-m, 12px);
+        padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
+      }
+      .tile-k {
+        display: block; font-size: var(--hpo-text-xs, 12px);
+        color: var(--hpo-text-2, #727272);
+      }
+      .tile-v {
+        display: block; margin-top: 2px; font-size: var(--hpo-text-lg, 18px);
+        font-weight: 600; font-variant-numeric: tabular-nums;
+        color: var(--hpo-text, #212121); overflow-wrap: break-word;
+      }
+      .tile.accent .tile-v .tile-n { color: var(--hpo-accent, #026aa8); }
+      .tile-u {
+        margin-left: 3px; font-size: var(--hpo-text-xs, 12px); font-weight: 500;
+        color: var(--hpo-text-2, #727272);
+      }
+      .expand, .close {
+        flex: 0 0 auto; display: inline-flex; align-items: center;
+        justify-content: center; background: transparent; border: none;
+        padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
+        color: var(--hpo-text-2, #727272); font: inherit;
+      }
+      .expand:hover, .close:hover { color: var(--hpo-text, #212121); }
+      .expand:focus-visible, .close:focus-visible,
+      .chip:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: 2px;
+      }
+      /* The SVG's keyboard-reachable parts: slot targets and lanes. The
+         ring is drawn on the slot-hit rect, the one that actually takes
+         focus, so it shows the target's real extent, not the ink's
+         (D4-02). */
+      .slot-hit:focus-visible, .lane:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: 1px;
+      }
+      /* The setup rows ring themselves with their own stroke rather than
+         an outline. An outline on an SVG rect is painted around the
+         element's box in the viewport, where the row's neighbours and the
+         diagram's edges cut it: the reporter saw a ring with only its top
+         and left sides left. A stroke is part of the drawing, so all four
+         sides are visible, and the rect is inset far enough to keep them
+         so: it starts 4 units inside the box, which is 2 clear of the
+         contour at x+2, and is 2 units shorter than the 17-unit row
+         pitch, which leaves 1 unit of air above and below. At
+         stroke-width 2, centred on the path, the ring needs exactly 1 of
+         those units on each side and touches nothing.
+         It is a :focus-visible rule, not :focus, so a mouse click leaves
+         no ring behind while a keyboard user keeps one. */
+      .setup-hit:focus-visible {
+        outline: none;
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
+        stroke: var(--hpo-primary, #03a9f4); stroke-width: 2;
+      }
+      .headline {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 0 4px 8px 4px;
+      }
+      /* The savings and score stay (CLAUDE.md: never delete working
+         functionality merely to fit), drawn in the tile style above. */
+      .hl-stats {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--hpo-space-2, 8px);
+      }
+      .hl-label {
+        display: block; font-size: var(--hpo-text-xs, 12px);
+        color: var(--hpo-text-2, #727272);
+      }
+      .hl-value {
+        display: block; margin-top: 2px; font-size: var(--hpo-text-md, 15px);
+        font-weight: 600; font-variant-numeric: tabular-nums;
+        color: var(--hpo-text, #212121); overflow-wrap: break-word;
+      }
+      /* D4-06: the always-visible form of the baseline qualifier that used
+         to live only in the hover title. Kept small and muted so it reads
+         as a footnote, not a second value competing with the number. */
+      .hl-caveat {
+        display: block; font-size: 0.82em; font-weight: 400;
+        color: var(--hpo-text-2, #727272);
+      }
+      /* R9-UX-8: the narrative is one surface-2 panel of rows (label left,
+         kWh over cost right), not italic prose. Columns auto-fit, never more
+         than two: one on a phone, two once the card is about 720 px wide.
+         A media query would read the viewport, not the card's own column
+         on a desktop dashboard. */
+      .hl-narrative {
+        list-style: none; margin: 6px 0 0; font-size: var(--hpo-text-sm, 13px);
+        display: grid; gap: var(--hpo-space-2, 8px) var(--hpo-space-5, 24px);
+        grid-template-columns: repeat(auto-fit,
+          minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
+      }
+      .nl {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: var(--hpo-space-3, 12px); align-items: baseline;
+        line-height: 1.35; overflow-wrap: anywhere;
+      }
+      .nl-status { color: var(--hpo-text-2, #727272); }
+      /* nowrap is what keeps "1.22 SEK" whole: only the label wraps. */
+      .nl-num {
+        display: flex; flex-direction: column; align-items: flex-end;
+        white-space: nowrap; font-variant-numeric: tabular-nums;
+      }
+      .nl-kwh { font-weight: 600; }
+      .nl-cost, .nl-status .nl-kwh {
+        font-size: var(--hpo-text-xs, 12px); font-weight: 400;
+        color: var(--hpo-text-2, #727272);
+      }
+      /* R5-D4-02 (#1319): the score is a control (role="button" and tabindex
+         arrive after render) and must clear the 24 px target floor. It used
+         to grow an invisible hit box with padding and an equal negative
+         margin; as a tile (R9-UI-3) its own padding is the target, and
+         htmlTargetFloor's 44 px coarse minimum still applies on top. */
+      .hl-stat.hl-score { cursor: pointer; }
+      /* Click-opened score breakdown (#2): one row per sub-score. */
+      .score-breakdown {
+        display: flex; flex-direction: column; gap: 6px;
+        padding: 6px 8px; margin-top: 2px;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 6px;
+      }
+      .sb-row { display: flex; flex-direction: column; gap: 1px; }
+      .sb-head {
+        display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+      }
+      .sb-name { font-weight: 600; color: var(--hpo-text, #212121); }
+      .sb-bar {
+        flex: 1; height: 4px; border-radius: 2px;
+        background: var(--hpo-divider, #e0e0e0);
+        overflow: hidden; display: inline-block;
+      }
+      .sb-fill {
+        display: block; height: 100%;
+        background: var(--hpo-primary, #03a9f4);
+      }
+      .sb-val { font-weight: 600; color: var(--hpo-text, #212121); }
+      .sb-na {
+        font-weight: 400; color: var(--hpo-text-2, #727272);
+        font-style: italic;
+      }
+      .sb-text { font-size: 0.78em; color: var(--hpo-text-2, #727272); }
+      .legend {
+        display: flex; flex-direction: column; gap: 4px; padding: 0 2px 8px 2px;
+      }
+      .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      /* One rule, two surfaces: the legend's own chips and the layout bar's
+         buttons are the same control, so the bar cannot drift into an
+         unstyled set of boxes beside them (R10-UX-SETUP). */
+      .chip, .layout-bar button {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 14px; padding: 3px 10px; cursor: pointer;
+        font-size: 0.82em; user-select: none; background: transparent;
+        color: var(--hpo-text, #212121); font-family: inherit;
+      }
+      .chip .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        display: inline-block; flex: 0 0 auto;
+      }
+      .chip.off {
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
+        text-decoration: line-through;
+      }
+      /* #822: this chip used to be cursor: not-allowed; opacity: 0.3, which
+         was wrong twice. The opacity put the label at 1.90:1 in the light
+         theme and 2.36:1 in dark, against a 4.5:1 floor -- the same defect
+         #261 fixed on .chip.off, and fixed there by expressing the state
+         with a colour and a line rather than with opacity. And the cursor
+         claimed the chip was inert while a click on it toggles
+         this.hidden[key] and persists, exactly like every other chip: all
+         seven chips are the card's only tab stops.
+         So the state is carried by the DOT, which is a graphic and answers to
+         WCAG 1.4.11's 3:1, and by italics -- never by fading the text. */
+      .chip.nodata {
+        font-style: italic;
+        border-style: dashed;
+      }
+      .chip.nodata .dot { opacity: 0.35; }
+      /* The sentence a chip's title attribute used to be the only home for,
+         set as a footnote under the chips (R9-UI-3) with a dashed swatch,
+         since what it explains is a dashed line. Secondary text now that
+         the token layer gives it a 4.5:1 literal fallback in both themes:
+         the #888 the card used to fall back to measured 3.54:1 on white. */
+      .legend-note {
+        margin: 0 2px 2px 2px;
+        font-size: 0.76em; line-height: 1.35;
+        color: var(--hpo-text-2, #727272);
+      }
+      .legend-note::before {
+        content: ""; display: inline-block; width: 18px; margin-right: 6px;
+        vertical-align: middle; border-top: 1.5px dashed currentColor;
+      }
+      .chartwrap { position: relative; width: 100%; }
+      /* Overlaid on the chart so the row costs no layout height -- the
+         expanded dialog's height budget is already the tight one. Kept out of
+         the top-right corner, which the solar axis uses. */
+      .viewctl {
+        position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 2px; z-index: 4;
+        opacity: 0; transition: opacity 120ms ease-in-out;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .viewctl { transition: none; }
+      }
+      .chartwrap:hover .viewctl,
+      .viewctl:focus-within { opacity: 1; }
+      /* No hover on touch, so the controls have to be permanently visible
+         there: they are the only way to zoom without a trackpad. */
+      @media (hover: none) {
+        .viewctl { opacity: 1; }
+      }
+      .viewctl button {
+        width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
+        font: inherit; font-size: 0.85em; cursor: pointer;
+        border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.35em;
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
+      }
+      .viewctl button:disabled { opacity: 0.4; cursor: default; }
+      .chartwrap.pannable svg { cursor: grab; }
+      svg { width: 100%; height: auto; display: block; }
+      /* Only the chart claims raw touch input — a horizontal drag on it is
+         a pan, not a scroll. Claiming it on every svg also swallowed touch
+         on the setup diagram, where nothing consumes the gesture outside
+         the editor: on a phone the diagram fills the dialog, so a finger
+         landing on it could not scroll the page at all, which read as a
+         setup page that cannot be seen (#40 feedback, item 1). The editor
+         re-claims the diagram while a drag must move a box, below. */
+      .chartwrap svg { touch-action: none; }
+      .empty {
+        padding: 28px 12px; text-align: center;
+        color: var(--hpo-text-2, #727272); line-height: 1.5em;
+        /* D4-04 (#259): the diagnostic names entity ids, and a 45-character
+           monospace id is wider than a phone tile. Without this it painted
+           up to 47 px outside the card box and gave the document 40 px of
+           horizontal scroll -- in the no-plan state, the one the dashboard
+           card picker previews to someone who has configured nothing yet.
+           "anywhere", not "break-word": only anywhere also shrinks the
+           min-content width, which is what the h-scroll came from. */
+        overflow-wrap: anywhere;
+      }
+      .empty code { color: var(--hpo-text, #212121); }
+      .tooltip {
+        position: absolute; pointer-events: none; z-index: 5;
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
+        color: var(--hpo-text, #212121);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
+      }
+      /* The value rows keep the tooltip's nowrap: "House temperature:
+         22 °C" broken across two lines is worse than a wider box, and these
+         rows are short by construction.
+
+         The prose blocks below must NOT. tt-shared carried a
+         max-width of 180px that could never do anything, because it
+         inherited white-space: nowrap from .tooltip and never overrode
+         it: a ~110-character sentence rendered as one unbroken ~500 px line
+         inside a box told to be 180 px wide, and spilled out of it and over
+         whatever sat beside the chart. tt-reason is prose too and had no
+         width bound at all. Both now wrap, and both carry a width. */
+      .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
+      .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
+      .tooltip .tt-shared {
+        margin-top: 3px;
+        font-size: 0.85em;
+        font-style: italic;
+        color: var(--hpo-text-2, #727272);
+        white-space: normal;
+        max-width: 220px;
+      }
+      .tooltip .tt-reason {
+        margin-top: 4px; padding-top: 4px; font-style: italic;
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text-2, #727272);
+        white-space: normal;
+        max-width: 220px;
+      }
+      /* R9-UX-1: why an idle step is idle. Prose, so it wraps like
+         tt-reason. It comes last in the box, and on a chart too short for
+         all of it fitWhy drops its last lines rather than letting the box
+         run out of the chart or clipping text. */
+      .tooltip .tt-why {
+        margin-top: 4px; padding-top: 4px;
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text-2, #727272);
+        white-space: normal;
+        max-width: 260px;
+      }
+      .tooltip .tt-why .why-head { color: var(--hpo-text, #212121); }
+      .tooltip .tt-why ul { margin: 2px 0; padding-left: 1.1em; }
+      .tooltip .dot {
+        width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      }
+
+      /* Expanded view.
+
+         The width used to be min(96vw, calc((100vh - 168px) * RATIO)), where
+         168px was a hardcoded guess at how tall the chrome around the chart
+         would be. That guess was made when the dialog was a header, a legend
+         and a chart; it never grew with the override banner, the delta row,
+         the third button, the status line or the Temperatures section. Once
+         the real chrome passed the budget the content ran past the dialog's
+         painted background instead of being contained -- 449px past it at
+         1400x700, measured.
+
+         Worse than a stale number, it was a feedback loop: a shorter viewport
+         made the dialog *wider*, and _scaleDialogFont derives the font every
+         piece of chrome is sized from off the measured width, so the chrome
+         grew in the same direction as the overflow.
+
+         So the height budget is gone. The dialog is a flex column bounded by
+         the viewport; the header and legend keep their natural height and
+         everything below them scrolls. The width is still tied to viewport
+         height, but only to keep the chart a sensible size -- nothing depends
+         on guessing the chrome, and being wrong now costs a scrollbar rather
+         than spilled content.
+
+         The chart keeps its exact aspect ratio deliberately. It is drawn with
+         preserveAspectRatio="none", so constraining its height instead would
+         stretch every axis label horizontally. */
+      .dlg.expanded {
+        box-sizing: border-box;
+        width: min(96vw, calc(78vh * 2.3684210526315788), 1700px);
+        max-width: 96vw;
+        /* vh is the *large* viewport: on a phone it includes the strip behind
+           a retracted URL bar, so a dialog sized in vh can sit partly under
+           browser chrome. dvh tracks what is actually visible. The vh line is
+           the fallback for engines without dvh, and is no worse than the
+           unbounded height this replaced. */
+        max-height: 92vh;
+        max-height: 92dvh;
+        display: flex;
+        flex-direction: column;
+        border: none; border-radius: 12px; padding: 16px;
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        overflow: hidden;
+      }
+      .dlg-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        /* R7-D4-01 (#1454): a width:100% table whose min-content width
+           exceeds this box overflows it, and hidden put that overflow
+           outside every gesture -- the savings table's right-aligned percent
+           column was the instance, painted where no scroll could reach it.
+           auto reaches it instead, and costs nothing at a width where
+           nothing overflows. */
+        overflow-x: auto;
+        /* Room for the scrollbar so it never lands on top of the chart. */
+        scrollbar-gutter: stable;
+      }
+      .dlg.expanded::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .dlg-head {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
+      }
+      .dlg-head .title { flex: 1 1 auto; min-width: 0; }
+      .dlg.expanded .dlg-head,
+      .dlg.expanded .legend { flex: 0 0 auto; }
+      .chartwrap.big { aspect-ratio: 900 / 380; }
+      .chartwrap.big svg { height: 100%; }
+
+      /* The legend, header and what-if panel are plain HTML, so unlike the
+         chart they do not scale with the dialog: left alone they stay at card
+         size no matter how large the dialog gets, which is what made them
+         look cramped beside a chart three times their size.
+
+         Everything below is therefore in em, and _scaleDialogFont sets the
+         one font size they all derive from once the dialog has been laid
+         out. Container query units would express this in CSS alone, but
+         container-type: inline-size also applies inline-axis containment,
+         and a dialog sized by its contents then has nothing to size from. */
+      .dlg.expanded .legend {
+        font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
+      }
+      .dlg.expanded .dlg-head {
+        font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
+      }
+      .dlg.expanded .chip {
+        font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
+        gap: 0.45em; border-width: 1.5px;
+      }
+      .dlg.expanded .chip .dot { width: 0.72em; height: 0.72em; }
+      .dlg.expanded .tooltip {
+        font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
+      }
+      .dlg.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
+      .dlg.expanded .whatif { font-size: 1em; }
+      .dlg.expanded .close svg { width: 1.4em; height: 1.4em; }
+
+      /* Dialog page tabs and the setup page (item 33) */
+      /* R7-D4-02 (#1455): flex: 0 0 auto cannot shrink below its content,
+         and .dlg.expanded hides the spill rather than showing it -- the
+         longer Swedish tab label was cut off at phone width. Shrinkable and
+         wrappable, the row is never wider than the dialog it sits in. */
+      .dlg-tabs { display: flex; gap: 0.3em; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
+      .dlg-tab {
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text-2, #727272);
+        border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
+        font: inherit; font-size: 0.85em;
+      }
+      .dlg-tab.active {
+        color: var(--hpo-text, #212121);
+        border-color: var(--hpo-primary, #03a9f4);
+      }
+      .dlg-tab:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4);
+        outline-offset: 2px;
+      }
+      .setup-page { padding: 0.5em 0.25em; }
+      .setup-svg { width: 100%; height: auto; display: block; }
+      /* The card (R10-UX-SETUP): the same surface, border and radius a
+         tile wears, painted on the rect that is also the geometry carrier
+         the tests and the drag editor read. ONE outline per box -- the
+         hand-drawn silhouettes it replaced drew a second one over this
+         rect's edge, which is the "wobbly double border" the owner's
+         screenshot names -- and opaque, so a pipe routed behind a card is
+         covered by it instead of crossing the text inside it. */
+      /* Everything inside a card takes its ink from the SAME darkMode switch
+         as the card's own surface: one pair, one switch, which is the rule
+         the tiles follow. A card that took its text from the theme's
+         variables would paint the theme's dark secondary grey on its own
+         light literal whenever Home Assistant reports darkMode false for a
+         theme that is dark -- measured at 2.63:1 on the HA dark arm before
+         this rule existed (R10-UX-SETUP). */
+      .setup-svg > g {
+        --hpo-text: var(--hpo-ink, #212121);
+        --hpo-text-2: var(--hpo-ink-2, #727272);
+      }
+      .setup-box {
+        fill: var(--hpo-surface-2, #f7f9fb);
+        stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
+      }
+      /* The rule under a card's title, in the card's own border colour: it
+         divides the header band from the rows, it is not a second outline. */
+      .setup-accent {
+        fill: none; stroke: var(--hpo-divider, #e0e0e0);
+        stroke-width: 1; pointer-events: none;
+      }
+      .setup-pipe-dot {
+        fill: var(--hpo-surface, #ffffff);
+        stroke: var(--hpo-text-2, #727272);
+        stroke-width: 1.5; opacity: 0.8; pointer-events: none;
+      }
+      .setup-flow {
+        fill: none; stroke: var(--hpo-text-2, #727272);
+        stroke-width: 1.5; opacity: 0.55; pointer-events: none;
+      }
+      .setup-pipe {
+        fill: none; stroke: var(--hpo-text-2, #727272);
+        stroke-width: 1.5; opacity: 0.55;
+      }
+      .setup-title {
+        font-size: 13px; font-weight: 600;
+        fill: var(--hpo-text, #212121);
+      }
+      .setup-slot {
+        font-size: 12px; fill: var(--hpo-text, #212121);
+        font-variant-numeric: tabular-nums;
+      }
+      /* An unset input, drawn only when its box's folded block is open: the
+         secondary text colour, never the weight of a reading. It used to be
+         set in the same colour AND bold value as a live row, which is what
+         crowded the readings out of the diagram (R10-UX-SETUP). */
+      .setup-slot.empty { fill: var(--hpo-text-2, #727272); }
+      .setup-slot.empty .setup-value { font-weight: 400; }
+      /* The folded block's own line: the count, in the same muted voice as
+         the rows it stands for. */
+      .setup-slot.folded { fill: var(--hpo-text-2, #727272); }
+      .setup-slot.extra { fill: var(--hpo-text-2, #727272); }
+      .setup-value { font-weight: 600; }
+      /* The Configure control, in the product's chip: the same border,
+         radius and label size a legend chip wears, so a button drawn inside
+         the diagram is the same object as a button drawn beside it. */
+      .setup-chip {
+        fill: transparent;
+        stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
+        pointer-events: none;
+      }
+      /* The twin under the pill is what takes the pointer, so it carries the
+         cursor and the hover state lights the pill it sits behind. */
+      .setup-chip-hit { fill: transparent; cursor: pointer; }
+      .setup-chip-hit:hover + .setup-chip {
+        stroke: var(--hpo-primary, #03a9f4);
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.08;
+      }
+      .setup-chip-label {
+        font-size: 11px; fill: var(--hpo-accent, #026aa8);
+        pointer-events: none;
+      }
+      .setup-hint {
+        color: var(--hpo-text-2, #727272);
+        font-size: 0.85em; padding: 0.5em 0.25em;
+      }
+      .setup-result {
+        color: var(--hpo-text-2, #727272);
+        font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+      }
+      .setup-hit { fill: transparent; cursor: pointer; }
+      /* fill-opacity, not opacity: element opacity would fade the focus
+         ring stroked on this same rect down to 12% as soon as the pointer
+         crossed a keyboard-focused row -- and :hover and :focus-visible
+         have equal specificity, so the later rule would win. Tinting only
+         the fill leaves the ring alone. */
+      .setup-hit:hover {
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
+      }
+      /* The folded block's own target says so differently: it is a
+         disclosure, not a slot, and a wash the width of the row would read
+         as the same control the chip beside it is. It carries no wash at
+         all. Declared after .setup-hit:hover, which has the same
+         specificity. */
+      .setup-fold-hit:hover {
+        fill: transparent; fill-opacity: 0;
+      }
+
+      /* The layout editor (v3.16.0, issue #40) */
+      .layout-bar {
+        display: flex; align-items: center; gap: 0.5em;
+        flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+      }
+      .layout-bar button:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4);
+        outline-offset: 2px;
+      }
+      /* A pressed toggle says so in the ink and not only in the border: the
+         accent is the token measured against the card, and a 1 px border
+         moving is a state a reader can miss at a glance. */
+      .layout-edit-toggle.on {
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-accent, #026aa8);
+      }
+      .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
+      .layout-verdict {
+        flex: 1 1 100%; font-size: 0.85em;
+        color: var(--hpo-text-2, #727272);
+      }
+      .layout-verdict.match { color: var(--hpo-text, #212121); }
+      /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
+         target, and clicking a pipe is how one is removed. */
+      .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+      /* With stroke: none an unfilled rect catches no pointer, so the
+         move cursor needs pointer-events back on the surface; hit rects
+         painted later still win over their own rows, and drags themselves
+         are geometric via _layoutBoxAt either way. */
+      .setup-svg.editing .setup-box { cursor: move; pointer-events: all; }
+      /* Ornament off while editing: pipes widen into click targets and
+         ports appear, and dots or chevrons under the pointer would only
+         lie about what is clickable. */
+      .setup-svg.editing .setup-pipe-dot,
+      .setup-svg.editing .setup-flow { display: none; }
+      /* A drag on a touch screen must move the box, not scroll the page. */
+      .setup-svg.editing { touch-action: none; }
+      .setup-pipe.layout-match {
+        stroke: var(--hpo-primary, #03a9f4); opacity: 0.9;
+      }
+      .setup-pipe.invalid {
+        stroke: var(--error-color, #db4437); opacity: 0.95;
+        stroke-dasharray: 6 4;
+      }
+      .layout-port {
+        fill: var(--hpo-surface, #ffffff);
+        stroke: var(--hpo-primary, #03a9f4); stroke-width: 1.5;
+        cursor: crosshair;
+      }
+      .layout-port-hit {
+        fill: #fff; fill-opacity: 0.001; stroke: none;
+        cursor: crosshair;
+      }
+      .layout-ghost {
+        fill: none; stroke: var(--hpo-primary, #03a9f4);
+        stroke-width: 1.5; stroke-dasharray: 4 3;
+      }
+      .setup-page { position: relative; }
+      .setup-picker {
+        position: absolute; left: 50%; top: 1em;
+        transform: translateX(-50%); z-index: 6;
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 0.5em; padding: 0.7em 0.8em;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        min-width: 16em; max-width: 90%;
+      }
+      .sp-title { font-weight: 600; padding-bottom: 0.4em; }
+      /* The filter and the list it narrows are one control, so they are
+         built out of one rule: an input that did not inherit the card's
+         colours would be unreadable on a dark theme, which is the sort of
+         thing that only shows up on somebody else's screen. */
+      .sp-filter, .sp-select {
+        width: 100%; font: inherit; padding: 0.3em;
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 0.3em;
+      }
+      .sp-filter {
+        box-sizing: border-box; margin-bottom: 0.4em;
+      }
+      .sp-filter:focus-visible, .sp-select:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4);
+        outline-offset: 1px;
+      }
+      .sp-actions {
+        display: flex; gap: 0.4em; padding-top: 0.5em;
+      }
+      .sp-actions button {
+        font: inherit; cursor: pointer; border-radius: 0.3em;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text, #212121);
+        padding: 0.25em 0.8em;
+      }
+      .sp-save { border-color: var(--hpo-primary, #03a9f4) !important; }
+      /* An Assign that is armed to CLEAR the slot is not the same button
+         any more, and it should not look like it. Same treatment as the
+         what-if save's confirmation, which this flow is modelled on. */
+      .sp-save.confirm {
+        border-color: #ca4c46 !important;
+        background: #ca4c46;
+        color: var(--hpo-on-primary, #ffffff); font-weight: 600;
+      }
+      .sp-note {
+        color: var(--hpo-text-2, #727272);
+        font-size: 0.8em; padding-top: 0.4em;
+      }
+
+      /* Editable slot lanes */
+      .slot-hit { cursor: grab; }
+      .slot.locked { cursor: not-allowed; }
+      .slot-handle { cursor: ew-resize; }
+      .lane { cursor: context-menu; }
+      /* A drag that selects the chart's text instead of moving the slot is
+         the single most common way this kind of editor feels broken. */
+      .lanes { user-select: none; }
+      .slot-menu {
+        position: absolute; z-index: 5;
+        background: var(--hpo-surface, #ffffff);
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 0.4em; padding: 0.2em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+      .slot-menu button {
+        display: block; width: 100%; text-align: left;
+        font: inherit; border: none; background: none; cursor: pointer;
+        padding: 0.4em 0.7em; border-radius: 0.3em;
+        color: var(--hpo-text, #212121);
+      }
+      .slot-menu button:hover {
+        background: var(--secondary-background-color, #eee);
+      }
+      .whatif .wi-section + .wi-section {
+        margin-top: 0.9em; padding-top: 0.7em;
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+      }
+      .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
+      .whatif .delta {
+        font-size: 1.25em; font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .whatif .wi-pin {
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-text, #212121);
+      }
+      .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
+
+      /* Savings table. Its figures are compared DOWN a column, which is what
+         decides the typography: proportional digits behind a left edge put
+         the decimal point at a different character offset in every row, so
+         the column cannot be read at all. Right-aligned on tabular figures,
+         with the currency moved into the head -- twelve repetitions of it
+         inside the cells were also what stopped the points lining up. */
+      .savings-table {
+        width: 100%; border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+      .savings-table th, .savings-table td { padding: 0.35em 0.5em; }
+      .savings-table th { text-align: left; font-weight: 600; }
+      .savings-table th.num, .savings-table td.num { text-align: right; }
+      .savings-table td.num { position: relative; }
+      .savings-table tr.estimated { font-style: italic; }
+      .savings-est { font-weight: 400; opacity: 0.75; }
+      /* The figure says how much; the bar says how much COMPARED WITH the
+         other months, which is the question a savings table is read to
+         answer and which a column of free-standing numbers cannot answer.
+         Drawn in currentColor, so it is the cell's own text laid over the
+         card at this opacity: perceptible in both stock themes, and light
+         enough that the figure over it keeps its own contrast. Anchored
+         right, where the numbers are, so the bars are comparable. A month
+         that COST money is hatched rather than merely coloured, so the
+         distinction survives monochrome and every form of colour blindness
+         -- the same second channel the series palette uses. */
+      .sv-mag {
+        position: absolute; right: 0; top: 12%; bottom: 12%;
+        background: currentColor; opacity: 0.16;
+        border-radius: 2px; pointer-events: none;
+      }
+      .sv-mag.neg {
+        background: repeating-linear-gradient(
+          45deg, currentColor 0 2px, transparent 2px 4px);
+      }
+      .sv-val { position: relative; }
+
+      /* The sensor advisor page (#1269): ranked rows, each one button so
+         the whole row is the target, sized by the every-pointer floor
+         above. The estimate badge rides the spread at reduced emphasis
+         (it is the savings table's own treatment of the same idea), and
+         an unpriced row's reason text is smaller rather than faded: it
+         must stay readable as prose, not pass as a de-emphasised
+         number. */
+      .advisor-page .adv-head {
+        display: flex; flex-wrap: wrap; gap: 4px 12px;
+        align-items: baseline; justify-content: space-between;
+        padding: 4px 0 2px 0;
+      }
+      .adv-title { font-weight: 600; }
+      .health-cols {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+        gap: 4px 16px; align-items: start;
+      }
+      .health-h { margin: 12px 0 4px 0; font-size: 1em; }
+      .health-row {
+        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        background: var(--secondary-background-color, #f5f5f5);
+      }
+      .health-support { margin-top: 12px; }
+      /* "What the model has learned" (R9-UX-7): a tabular value and an
+         evidence bar per learner, and the internal-gains strip in the
+         accent colour. Both wrap under the text on a narrow card. */
+      .model-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .model-bar {
+        flex: 0 0 5em; height: 6px; border-radius: 3px;
+        background: var(--hpo-divider, rgba(127, 127, 127, 0.3));
+      }
+      .model-bar > span {
+        display: block; height: 100%; border-radius: 3px;
+        background: var(--hpo-accent, #026aa8);
+      }
+      .gains-strip {
+        flex: 0 1 16em; display: flex; align-items: flex-end; gap: 2px; height: 2.6em;
+      }
+      .gains-bar {
+        flex: 1 1 0; border-radius: 2px 2px 0 0;
+        background: var(--hpo-accent, #026aa8);
+      }
+      .health-mark {
+        flex: 0 0 auto; width: 1.4em; height: 1.4em; border-radius: 50%;
+        border: 1.5px solid var(--hpo-divider, currentColor);
+        display: inline-flex; align-items: center; justify-content: center;
+        color: var(--hpo-ok, #1c7350); font-size: 0.85em;
+      }
+      .health-row[data-done="true"] .health-mark {
+        background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
+      }
+      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
+         a tabular value and at most one action, which wraps under the text
+         on a narrow card. */
+      .adv-inbox-row {
+        display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+        padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
+        background: var(--secondary-background-color, #f5f5f5);
+      }
+      .adv-text { flex: 1 1 14em; min-width: 0; }
+      .adv-text .adv-sub { display: block; font-size: 0.85em; opacity: 0.8; }
+      .adv-act {
+        font: inherit; cursor: pointer; padding: 0.3em 0.9em;
+        color: inherit; background: none;
+        border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
+      }
+      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .adv-basis { font-size: 0.85em; opacity: 0.75; }
+      .adv-note { font-size: 0.85em; padding: 0 0 8px 0; }
+      .adv-row {
+        display: flex; width: 100%; gap: 12px;
+        align-items: center; justify-content: space-between;
+        padding: 0.45em 0.7em; margin: 2px 0;
+        font: inherit; text-align: left; color: inherit;
+        background: none; border: 1px solid
+        var(--hpo-divider, #e0e0e0);
+        border-radius: 6px; cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .adv-label { flex: 1 1 auto; }
+      .adv-value { flex: 0 0 auto; text-align: right; }
+      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .adv-unpriced-head {
+        font-weight: 600; padding: 14px 0 2px 0;
+      }
+      .adv-unpriced-head + .adv-row .adv-value,
+      .adv-row.unpriced .adv-value {
+        font-size: 0.85em; max-width: 60%;
+      }
+
+      /* What-if simulator */
+      .whatif {
+        padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
+        border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        font-size: 0.95rem; color: var(--hpo-text, #212121);
+      }
+      .whatif .wi-row {
+        display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
+        margin-bottom: 0.7em;
+      }
+      .whatif .wi-field {
+        display: flex; align-items: center; gap: 0.55em;
+      }
+      .whatif .wi-field > span { white-space: nowrap; }
+      .whatif input[type="range"] { width: 10em; max-width: 100%; }
+      .whatif input[type="time"] {
+        font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: var(--hpo-surface, #ffffff);
+        color: var(--hpo-text, #212121);
+      }
+      .whatif .wi-value {
+        min-width: 3.5em; font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      .whatif .wi-group {
+        flex: 1 1 16em; min-width: 14em;
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-group-title {
+        font-weight: 600; font-size: 0.9em;
+        color: var(--hpo-text-2, #727272);
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .whatif .wi-hint {
+        font-size: 0.85em; color: var(--hpo-text-2, #727272);
+        line-height: 1.35em;
+      }
+      .whatif .wi-viewlimit {
+        font-size: 12px;
+        color: var(--hpo-text-2, #727272);
+        margin: 4px 0 6px;
+      }
+      .whatif .wi-viewreset {
+        font-size: 12px;
+        padding: 1px 8px;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        border-radius: 10px;
+        background: none;
+        color: var(--hpo-text, #212121);
+        cursor: pointer;
+      }
+      .lane-more { pointer-events: none; font-weight: 700; }
+      /* A stored value the setpoint no longer allows. Warning rather than
+         error: nothing is broken, but the number on screen is not the number
+         that was saved, and that must not pass unremarked. */
+      .whatif .wi-hint.wi-warn {
+        color: #a16900;
+      }
+      .whatif .wi-windows {
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-window {
+        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+      }
+      .whatif .wi-quiet {
+        flex: 1 1 16em; min-width: 14em;
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-quiet-window {
+        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+      }
+      /* Colour from reached DHW rules (wi-win-days, wi-hint, .whatif button). */
+      .whatif .wi-quiet-unenforced { font-size: 0.8em; }
+      .whatif .wi-quiet-frac-note { font-size: 0.85em; }
+      .whatif .wi-quiet-remove {
+        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+      }
+      .whatif .wi-add-quiet { align-self: flex-start; font-size: 0.9em; }
+      .whatif .wi-win-days {
+        font: inherit; font-size: 0.9em; max-width: 8.5em;
+        border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.3em;
+        background: transparent; color: var(--hpo-text, #212121);
+        padding: 0.15em 0.2em;
+      }
+      .whatif button {
+        font: inherit; cursor: pointer; border-radius: 1.1em;
+        border: 1px solid var(--hpo-divider, #e0e0e0);
+        background: transparent; color: var(--hpo-text, #212121);
+        padding: 0.35em 0.8em;
+      }
+      .whatif button:hover { border-color: var(--hpo-primary, #03a9f4); }
+      .whatif .wi-remove {
+        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+        color: var(--hpo-text-2, #727272);
+      }
+      .whatif .wi-remove:hover { color: #ca4c46; }
+      .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
+      .whatif .wi-apply {
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-text, #212121);
+        background: var(--hpo-surface, #ffffff);
+        font-weight: 600;
+      }
+      .whatif .wi-save {
+        border-color: #026aa8;
+        background: #026aa8;
+        color: var(--hpo-on-primary, #ffffff); font-weight: 600;
+      }
+      .whatif .wi-save.confirm {
+        border-color: #ca4c46;
+        background: #ca4c46;
+      }
+      .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
+      
+        .expand, .close, .viewctl button, .chip, .dlg-tab,
+        .layout-bar button, .whatif button, .whatif input[type="time"],
+        .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        /* The advisor page's ranked rows (#1269), the same HTML-button
+           surface as the picker's controls: the same floor. */
+        .adv-row, .adv-act,
+        .hl-stat.hl-score,
+        /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
+           control -- role="button", tabindex="0" and a click handler open the
+           score breakdown -- but the R5-D4-02 padding rule alone reaches 25 px
+           under a fine pointer and never the 44 px coarse floor, so under
+           touch it was the one control on the surface below the floor. */
+        /* The picker's own field and list, the same surface as the
+           .sp-actions buttons they sit above: without this the text field
+           laid out 23.19 px tall on a 375-768 px card, 0.81 px under the
+           floor (round-5 D4-02, #1220). */
+        .sp-filter, .sp-select,
+        .slot-menu button,
+        .away-strip label, .away-strip input[type="checkbox"],
+        .away-strip input[type="datetime-local"] {
+          min-height: 24px;
+          min-width: 24px;
+          box-sizing: border-box;
+        }
+        .whatif input[type="range"] {
+          min-height: 24px;
+        }
+        .chip, .dlg.expanded .chip {
+          padding: 0.45em 0.85em;
+          line-height: 1.25;
+        }
+        /* R9-UI-3: the card's own chips are compact pills -- 28 px drawn,
+           the floor above still the hit target -- in the token type scale. */
+        ha-card .chip {
+          padding: 2px 10px 2px 8px; min-height: 28px;
+          border-radius: var(--hpo-radius-pill, 999px);
+          font-size: var(--hpo-text-sm, 13px); white-space: nowrap; flex: 0 0 auto;
+        }
+        ha-card .chip .dot { width: 8px; height: 8px; }
+        .dlg-tab { padding: 0.35em 0.9em; }
+        .whatif button { padding: 0.45em 0.85em; }
+        .whatif .wi-remove {
+          min-width: 24px;
+          padding: 0 0.45em;
+        }
+        .viewctl button {
+          width: auto; height: auto;
+          min-width: 24px; min-height: 24px;
+        }
+      /* #823: .away-strip shipped with no rule matching it at all -- a 13px
+         checkbox, a 14px label and a 0px gap, so the two labels rendered as
+         "AwayReturn". Every other control block clears the card's own 24px
+         target floor; this one was simply never added to that rule
+         set (see htmlTargetFloor above). */
+      .away-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75em;
+      }
+      .away-strip label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+      }
+      .away-strip [data-away-status] {
+        flex: 1 1 100%;
+        color: var(--hpo-text-2, #727272);
+      }
+      .whatif .wi-result {
+        flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
+        color: var(--hpo-text-2, #727272);
+      }
+      .whatif .wi-result .wi-detail {
+        font-size: 0.88em; margin-top: 2px;
+      }
+      .whatif .wi-result.cheaper, .whatif .cheaper {
+        color: #24845d;
+      }
+      .whatif .wi-result.dearer, .whatif .dearer {
+        color: #ca4c46;
+      }
+      @media (max-width: 600px) {
+        .dlg.expanded { width: 96vw; padding: 12px; }
+        .dlg.expanded .legend { font-size: 1rem; }
+        /* Phone-width dialogs (#40 feedback, item 1): the header must be
+           allowed to wrap, or the Plan/Setup tabs are pushed out of reach
+           by the title; and the setup diagram scrolls sideways at a
+           readable, tappable size instead of shrinking every slot row to
+           fingernail height. */
+        .dlg-head { flex-wrap: wrap; row-gap: 6px; }
+        .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .setup-canvas svg { min-width: 560px; }
+        /* R9-UI-3: the card's chips one row that scrolls sideways instead
+           of five wrapped rows. */
+        .tile-v { font-size: var(--hpo-text-md, 15px); }
+        ha-card .legend-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+      }
+    
+  
+
+.mini.dark{
+  --hpo-text:#e1e1e1; --hpo-text-2:#9b9b9b;
+  --hpo-surface:#1c1c1c; --hpo-surface-2:#242a30; --hpo-divider:#3a3a3a;
+  --hpo-ink:#e1e1e1; --hpo-ink-2:#9b9b9b;
+  --hpo-accent:#4fb3f0; --hpo-heat:#d2601f;
+  --hpo-ok:#1fad6b; --hpo-ok-bg:#1c3027;
+  --hpo-warn:#e3b25a; --hpo-warn-bg:#352c1a;
+  --hpo-crit:#f28b82; --hpo-crit-bg:#3b2322;
+  --hpo-plot:#1c1c1c;
+}
+:root{--page:#eceff3;--review:#fff;--review-ink:#1d242b;--review-ink2:#5b6672;--review-line:#dde3e8;--blue:#e8f2f8}
+@media (prefers-color-scheme: dark){:root{--page:#0f1316;--review:#171c21;--review-ink:#e6e9ec;--review-ink2:#a8b1ba;--review-line:#333c45;--blue:#15242e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--review-ink);
+  font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;padding:24px 18px 56px}
+.wrap{max-width:1500px;margin:0 auto}
+h1{font-size:24px;letter-spacing:-.02em;margin:0 0 6px;font-weight:650}
+.lede{color:var(--review-ink2);max-width:88ch;margin:0 0 16px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+.seg{display:inline-flex;border:1px solid var(--review-line);border-radius:999px;overflow:hidden;background:var(--review)}
+.seg button{border:0;background:transparent;color:var(--review-ink2);font:inherit;font-size:12px;padding:0 12px;min-height:32px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--blue);color:var(--review-ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid #03a9f4;outline-offset:2px}
+h2{font-size:17px;margin:26px 0 4px}
+h2 .hint{font-weight:400;font-size:13px;color:var(--review-ink2);margin-left:8px}
+.section{margin:0 0 10px}
+.section > p{margin:0 0 10px;color:var(--review-ink2);max-width:90ch;font-size:13.5px}
+.pair{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;align-items:flex-start}
+.panel{flex:0 0 auto}
+.panel .cap{display:flex;gap:8px;align-items:baseline;margin:0 0 6px;font-size:13px}
+.panel .cap b{font-weight:650}
+.panel .cap span{color:var(--review-ink2);font-size:12px}
+.frame{width:var(--w,375px);flex:0 0 auto;container-type:inline-size;height:760px;border:1px solid var(--review-line);border-radius:12px;
+  overflow:hidden;background:#fff;position:relative}
+.frame.short{height:430px}
+/* The card's phone rules key on the viewport; a 375 px frame inside a wider
+   page needs their container-query twin, or the frame would show a rendering
+   no phone ever sees. Mirrors the card's @media (max-width: 600px) block. */
+@container (max-width: 600px){
+  .mini .dlg.expanded{padding:12px}
+  .mini .dlg.expanded .dlg-head{flex-wrap:wrap;row-gap:6px}
+  .mini .setup-canvas{overflow-x:auto}
+  .mini .setup-canvas svg{min-width:560px}
+  .mini .dlg.expanded .legend{font-size:1rem}
+}
+.mini{width:100%;height:100%;background:var(--hpo-surface,#fff);color:var(--hpo-text,#212121);position:relative}
+.mini .dlg.expanded{
+  position:relative;inset:auto;margin:0;width:100%;max-width:100%;height:100%;max-height:none;
+  border-radius:0;box-shadow:none;border:none;padding:16px;display:flex;flex-direction:column;overflow:hidden;
+  font-size:clamp(var(--base-min,12px), calc(var(--w,375px) * 0.96 * 0.0105), 21px);
+}
+.mini .dlg.expanded.frag{height:100%}
+.mini .dlg-body{max-height:none;overflow:auto;flex:1 1 auto;min-height:0}
+.after-tag{color:#1c7350}
+@media (prefers-color-scheme: dark){.after-tag{color:#1fad6b}}
+.badge path,.badge rect,.badge circle,.badge ellipse{fill:none;stroke:var(--hpo-accent,#026aa8);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.badge .badge-disc{fill:var(--hpo-surface,#fff);stroke:var(--hpo-divider,#e0e0e0);stroke-width:1}
+.board{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;margin:6px 0 0}
+.board .cell{background:var(--review);border:1px solid var(--review-line);border-radius:12px;padding:12px 14px;min-width:210px}
+.board h3{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--review-ink2)}
+.board .big{font-size:22px;font-weight:650;letter-spacing:-.01em}
+.board .small{font-size:12px;color:var(--review-ink2)}
+.note{background:var(--review);border:1px dashed var(--review-line);border-radius:12px;padding:14px 16px;margin:18px 0 0;font-size:13.5px}
+.note h3{margin:0 0 6px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--review-ink2)}
+.note ul{margin:8px 0 0;padding-left:20px}
+.note li{margin:4px 0;color:var(--review-ink2)}
+.note code{font:12px ui-monospace, SFMono-Regular, Menlo, monospace;background:var(--blue);padding:1px 4px;border-radius:4px;overflow-wrap:anywhere}
+
+      .after .layout-bar button{font-size:1em;border-radius:1.3em}
+    
+</style>
+</head>
+<body><div class="wrap">
+<h1>Harmony 2 · The setup page's controls and the Badge decision</h1>
+<p class="lede">The stylesheet declares the setup bar buttons and the legend chips the same control — "one rule, two surfaces",
+      it says — and names both in one rule at 0.82 em. Inside the dialog, a later rule raises <code>.chip</code> to 1 em and
+      a 1.3 em radius but never names <code>.layout-bar button</code>. So in the same dialog the two controls the stylesheet
+      declares identical render at <b>1 em</b> and <b>0.82 em</b> — 10.6 px beside 12.9 px at 1280, 9.8 px beside 12 px at
+      375. The proposal carries the dialog chip rule to the bar, and carries prototype 1's badges into the page on the
+      drawing's stroke and type tiers.</p>
+<div class="bar">
+  <div class="seg" role="group" aria-label="Frame width">
+    <button type="button" data-w="375" aria-pressed="true">375 px</button>
+    <button type="button" data-w="768" aria-pressed="false">768 px</button>
+    <button type="button" data-w="1280" aria-pressed="false">1280 px</button>
+  </div>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-btn="light" aria-pressed="true">Light</button>
+    <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<div class="section">
+      <h2>The setup page, whole<span class="hint">badges added; the bar buttons join the dialog chip rule</span></h2>
+      <p>Before: no type on any box; the tank bar and Edit layout buttons at 0.82 em. After: prototype 1's discs on the
+      outer corner of every box — the wood tank's disc is the spring — and the bar buttons at 1 em, the same rule as the
+      dialog's legend chips.</p>
+      <div class="pair">
+    <div class="panel"><div class="cap"><b>Before — shipped</b><span>no badges; bar buttons 0.82 em</span></div>
+      <div class="frame "><div class="mini"><div class="dlg expanded" style="--base-min:12px">
+        <div class="dlg-head">
+          <span class="title">Heat pump plan</span><span data-health-pill="stale" class="status-pill tone-warn">1 input stale</span>
+          <div class="dlg-tabs" role="tablist">
+            <button type="button" class="dlg-tab"
+         data-page="plan" role="tab"
+         aria-selected="false">Plan</button>
+            <button type="button" class="dlg-tab active"
+         data-page="setup" role="tab"
+         aria-selected="true">Setup</button>
+            <button type="button" class="dlg-tab"
+         data-page="savings" role="tab"
+         aria-selected="false">Savings</button>
+            <button type="button" class="dlg-tab"
+         data-page="advisor" role="tab"
+         aria-selected="false">Advisor</button>
+            <button type="button" class="dlg-tab"
+         data-page="health" role="tab"
+         aria-selected="false">Health</button>
+          </div>
+          <button type="button" class="close" title="Close"
+            aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+        
+        <div class="dlg-body">
+          <div class="setup-page">
+      
+      
+      <div class="layout-bar tank-bar" role="group" aria-label="Tanks">
+        <button type="button" class="layout-edit-toggle on" data-tank="dhw"
+          aria-pressed="true">DHW tank</button>
+        <button type="button" class="layout-edit-toggle on" data-tank="wood"
+          aria-pressed="true">Wood tank</button>
+      </div>
+      <div class="setup-canvas"><svg class="setup-svg" viewBox="0 0 720 294"
+    xmlns="http://www.w3.org/2000/svg" role="group"
+    aria-label="Configured system"><path class="setup-pipe" data-edge="heat_pump>buffer_tank"
+      d="M 216 112
+      C 256 112,
+        220 137.5, 260 137.5" /><circle class="setup-pipe-dot" cx="216" cy="112" r="2" /><circle class="setup-pipe-dot" cx="260" cy="137.5" r="2" /><path class="setup-flow" d="M 234.571 122.251 L 238.31 126.726 L 240.499 121.321" /><path class="setup-pipe" data-edge="buffer_tank>mixing_valve"
+        d="M 284 82
+        L 284 96" /><circle class="setup-pipe-dot" cx="284" cy="82" r="2" /><circle class="setup-pipe-dot" cx="284" cy="96" r="2" /><path class="setup-flow" d="M 287 92 L 284 87 L 281 92" /><path class="setup-pipe" data-edge="wood_tank>mixing_valve"
+      d="M 216 192
+      C 256 192,
+        220 49, 260 49" /><circle class="setup-pipe-dot" cx="216" cy="192" r="2" /><circle class="setup-pipe-dot" cx="260" cy="49" r="2" /><path class="setup-flow" d="M 240.915 123.583 L 238.056 118.501 L 234.917 123.415" /><path class="setup-pipe" data-edge="mixing_valve>upper_zone"
+      d="M 460 49
+      C 500 49,
+        464 40.5, 504 40.5" /><circle class="setup-pipe-dot" cx="460" cy="49" r="2" /><circle class="setup-pipe-dot" cx="504" cy="40.5" r="2" /><path class="setup-flow" d="M 483.437 48.742 L 482.852 42.94 L 478.008 46.187" /><path class="setup-pipe" data-edge="mixing_valve>lower_zone"
+      d="M 460 49
+      C 500 49,
+        464 112, 504 112" /><circle class="setup-pipe-dot" cx="460" cy="49" r="2" /><circle class="setup-pipe-dot" cx="504" cy="112" r="2" /><path class="setup-flow" d="M 478.816 77.696 L 482.127 82.496 L 484.804 77.316" /><path class="setup-pipe" data-edge="heat_pump>dhw_tank"
+      d="M 216 112
+      C 256 112,
+        220 234.5, 260 234.5" /><circle class="setup-pipe-dot" cx="216" cy="112" r="2" /><circle class="setup-pipe-dot" cx="260" cy="234.5" r="2" /><path class="setup-flow" d="M 234.904 170.35 L 238.065 175.249 L 240.9 170.154" /><path class="setup-pipe" data-edge="wood_tank>dhw_tank"
+      d="M 216 192
+      C 256 192,
+        220 234.5, 260 234.5" /><circle class="setup-pipe-dot" cx="216" cy="192" r="2" /><circle class="setup-pipe-dot" cx="260" cy="234.5" r="2" /><path class="setup-flow" d="M 234.732 210.544 L 238.187 215.241 L 240.706 209.982" />
+      <g>
+        <rect class="setup-box" x="16" y="16" width="200"
+          height="49" rx="10" />
+        <path class="setup-accent divider" d="M 32 37.5 L 200 37.5" />
+        <text class="setup-title" x="32"
+          y="33">Outside</text>
+        <text class="setup-slot" x="32" y="53"><tspan x="32" y="53">Outdoor temperature</tspan><tspan class="setup-value" x="200" y="53"
+          text-anchor="end">9.4 °C</tspan></text><rect class="setup-hit" data-key="outdoor_temp_entity"
+        tabindex="0" role="button" aria-label="Outdoor temperature — click to assign"
+        x="20" y="38.7" width="192"
+        height="19.6" rx="3">
+        <title>Outdoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="79" width="200"
+          height="66" rx="10" />
+        <path class="setup-accent divider" d="M 32 100.5 L 200 100.5" />
+        <text class="setup-title" x="32"
+          y="96">Heat pump</text>
+        <text class="setup-slot folded" x="32" y="116"><tspan x="32" y="116">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="heat_pump_switch_entity"
+        data-place="heat_pump"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="20" y="101.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="heat_pump"
+      tabindex="0" role="button"
+      aria-label="Configure: Heat pump telemetry" x="28" y="116.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heat pump telemetry</title></rect>
+      <rect class="setup-chip" x="32" y="119" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="40"
+        y="129.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="159" width="200"
+          height="66" rx="10" />
+        <path class="setup-accent divider" d="M 32 180.5 L 200 180.5" />
+        <text class="setup-title" x="32"
+          y="176">Wood furnace tank (500 L)</text>
+        <text class="setup-slot folded" x="32" y="196"><tspan x="32" y="196">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="wood_tank_top_entity"
+        data-place="wood_tank"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="20" y="181.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="wood_tank"
+      tabindex="0" role="button"
+      aria-label="Configure: Heating system and heat storage" x="28" y="196.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heating system and heat storage</title></rect>
+      <rect class="setup-chip" x="32" y="199" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="40"
+        y="209.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="16" width="200"
+          height="66" rx="10" />
+        <path class="setup-accent divider" d="M 276 37.5 L 444 37.5" />
+        <text class="setup-title" x="276"
+          y="33">4-way mixing valve (manual)</text>
+        <text class="setup-slot folded" x="276" y="53"><tspan x="276" y="53">2 optional inputs not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="mixing_valve_target_entity,valve_outlet_temp_entity"
+        data-place="mixing_valve"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 2 unset inputs" x="264" y="38.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="mixing_valve"
+      tabindex="0" role="button"
+      aria-label="Configure: Heating system and heat storage" x="272" y="53.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heating system and heat storage</title></rect>
+      <rect class="setup-chip" x="276" y="56" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="284"
+        y="66.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="96" width="200"
+          height="83" rx="10" />
+        <path class="setup-accent divider" d="M 276 117.5 L 444 117.5" />
+        <text class="setup-title" x="276"
+          y="113">Heat pump tank (750 L)</text>
+        <text class="setup-slot" x="276" y="133"><tspan x="276" y="133">Buffer tank</tspan><tspan x="276" y="150">temperature</tspan><tspan class="setup-value" x="444" y="133"
+          text-anchor="end">47.5 °C</tspan></text><rect class="setup-hit" data-key="buffer_tank_temp_entity"
+        tabindex="0" role="button" aria-label="Buffer tank temperature — click to assign"
+        x="264" y="121" width="192"
+        height="32" rx="3">
+        <title>Buffer tank temperature — click to assign</title></rect><text class="setup-slot extra" x="276"
+        y="167">stores up to 70 °C</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="193" width="200"
+          height="83" rx="10" />
+        <path class="setup-accent divider" d="M 276 214.5 L 444 214.5" />
+        <text class="setup-title" x="276"
+          y="210">Hot water tank</text>
+        <text class="setup-slot folded" x="276" y="230"><tspan x="276" y="230">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="dhw_temp_entity"
+        data-place="dhw_tank"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="264" y="215.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="dhw_tank"
+      tabindex="0" role="button"
+      aria-label="Configure: Hot water tank and inlet" x="272" y="230.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Hot water tank and inlet</title></rect>
+      <rect class="setup-chip" x="276" y="233" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="284"
+        y="243.4">Configure</text><text class="setup-slot extra" x="276"
+        y="264">refilled through a wood tank coil</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="16" width="200"
+          height="49" rx="10" />
+        <path class="setup-accent divider" d="M 520 37.5 L 688 37.5" />
+        <text class="setup-title" x="520"
+          y="33">Upper floor</text>
+        <text class="setup-slot" x="520" y="53"><tspan x="520" y="53">Indoor temperature</tspan><tspan class="setup-value" x="688" y="53"
+          text-anchor="end">21.3 °C</tspan></text><rect class="setup-hit" data-key="indoor_temp_entity"
+        tabindex="0" role="button" aria-label="Indoor temperature — click to assign"
+        x="508" y="38.7" width="192"
+        height="19.6" rx="3">
+        <title>Indoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="79" width="200"
+          height="66" rx="10" />
+        <path class="setup-accent divider" d="M 520 100.5 L 688 100.5" />
+        <text class="setup-title" x="520"
+          y="96">Lower floor (slab)</text>
+        <text class="setup-slot folded" x="520" y="116"><tspan x="520" y="116">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="lower_floor_temp_entity"
+        data-place="lower_zone"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="508" y="101.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="lower_zone"
+      tabindex="0" role="button"
+      aria-label="Configure: Sensors and entities" x="516" y="116.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Sensors and entities</title></rect>
+      <rect class="setup-chip" x="520" y="119" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="528"
+        y="129.4">Configure</text>
+      </g></svg></div>
+      
+      <div class="setup-hint">Click any sensor to assign it, or to clear it. An empty slot is a sensor this setup could use and does not have; it is shown on purpose.</div>
+      <div class="setup-result" role="status"></div></div>
+        </div>
+      </div></div></div></div>
+    <div class="panel"><div class="cap"><b>After — proposal</b><span class="after-tag">badges; bar buttons 1 em</span></div>
+      <div class="frame "><div class="mini after"><div class="dlg expanded" style="--base-min:12px">
+        <div class="dlg-head">
+          <span class="title">Heat pump plan</span><span data-health-pill="stale" class="status-pill tone-warn">1 input stale</span>
+          <div class="dlg-tabs" role="tablist">
+            <button type="button" class="dlg-tab"
+         data-page="plan" role="tab"
+         aria-selected="false">Plan</button>
+            <button type="button" class="dlg-tab active"
+         data-page="setup" role="tab"
+         aria-selected="true">Setup</button>
+            <button type="button" class="dlg-tab"
+         data-page="savings" role="tab"
+         aria-selected="false">Savings</button>
+            <button type="button" class="dlg-tab"
+         data-page="advisor" role="tab"
+         aria-selected="false">Advisor</button>
+            <button type="button" class="dlg-tab"
+         data-page="health" role="tab"
+         aria-selected="false">Health</button>
+          </div>
+          <button type="button" class="close" title="Close"
+            aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+        
+        <div class="dlg-body">
+          <div class="setup-page">
+      
+      
+      <div class="layout-bar tank-bar" role="group" aria-label="Tanks">
+        <button type="button" class="layout-edit-toggle on" data-tank="dhw"
+          aria-pressed="true">DHW tank</button>
+        <button type="button" class="layout-edit-toggle on" data-tank="wood"
+          aria-pressed="true">Wood tank</button>
+      </div>
+      <div class="setup-canvas"><svg class="setup-svg" viewBox="0 0 720 294"
+    xmlns="http://www.w3.org/2000/svg" role="group"
+    aria-label="Configured system"><path class="setup-pipe" data-edge="heat_pump>buffer_tank"
+      d="M 216 112
+      C 256 112,
+        220 137.5, 260 137.5" /><circle class="setup-pipe-dot" cx="216" cy="112" r="2" /><circle class="setup-pipe-dot" cx="260" cy="137.5" r="2" /><path class="setup-flow" d="M 234.571 122.251 L 238.31 126.726 L 240.499 121.321" /><path class="setup-pipe" data-edge="buffer_tank>mixing_valve"
+        d="M 284 82
+        L 284 96" /><circle class="setup-pipe-dot" cx="284" cy="82" r="2" /><circle class="setup-pipe-dot" cx="284" cy="96" r="2" /><path class="setup-flow" d="M 287 92 L 284 87 L 281 92" /><path class="setup-pipe" data-edge="wood_tank>mixing_valve"
+      d="M 216 192
+      C 256 192,
+        220 49, 260 49" /><circle class="setup-pipe-dot" cx="216" cy="192" r="2" /><circle class="setup-pipe-dot" cx="260" cy="49" r="2" /><path class="setup-flow" d="M 240.915 123.583 L 238.056 118.501 L 234.917 123.415" /><path class="setup-pipe" data-edge="mixing_valve>upper_zone"
+      d="M 460 49
+      C 500 49,
+        464 40.5, 504 40.5" /><circle class="setup-pipe-dot" cx="460" cy="49" r="2" /><circle class="setup-pipe-dot" cx="504" cy="40.5" r="2" /><path class="setup-flow" d="M 483.437 48.742 L 482.852 42.94 L 478.008 46.187" /><path class="setup-pipe" data-edge="mixing_valve>lower_zone"
+      d="M 460 49
+      C 500 49,
+        464 112, 504 112" /><circle class="setup-pipe-dot" cx="460" cy="49" r="2" /><circle class="setup-pipe-dot" cx="504" cy="112" r="2" /><path class="setup-flow" d="M 478.816 77.696 L 482.127 82.496 L 484.804 77.316" /><path class="setup-pipe" data-edge="heat_pump>dhw_tank"
+      d="M 216 112
+      C 256 112,
+        220 234.5, 260 234.5" /><circle class="setup-pipe-dot" cx="216" cy="112" r="2" /><circle class="setup-pipe-dot" cx="260" cy="234.5" r="2" /><path class="setup-flow" d="M 234.904 170.35 L 238.065 175.249 L 240.9 170.154" /><path class="setup-pipe" data-edge="wood_tank>dhw_tank"
+      d="M 216 192
+      C 256 192,
+        220 234.5, 260 234.5" /><circle class="setup-pipe-dot" cx="216" cy="192" r="2" /><circle class="setup-pipe-dot" cx="260" cy="234.5" r="2" /><path class="setup-flow" d="M 234.732 210.544 L 238.187 215.241 L 240.706 209.982" />
+      <g>
+        <rect class="setup-box" x="16" y="16" width="200"
+          height="49" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="214" cy="18" r="9" /><g transform="translate(214 18) scale(.92)"><path d="M-1.5-4.4 v5.4 a2.1 2.1 0 1 0 3 0 V-4.4 a1.5 1.5 0 0 0-3 0" /><path d="M0-2.4 v4" /></g></g>
+        <path class="setup-accent divider" d="M 32 37.5 L 200 37.5" />
+        <text class="setup-title" x="32"
+          y="33">Outside</text>
+        <text class="setup-slot" x="32" y="53"><tspan x="32" y="53">Outdoor temperature</tspan><tspan class="setup-value" x="200" y="53"
+          text-anchor="end">9.4 °C</tspan></text><rect class="setup-hit" data-key="outdoor_temp_entity"
+        tabindex="0" role="button" aria-label="Outdoor temperature — click to assign"
+        x="20" y="38.7" width="192"
+        height="19.6" rx="3">
+        <title>Outdoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="79" width="200"
+          height="66" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="214" cy="81" r="9" /><g transform="translate(214 81) scale(.92)"><rect x="-4" y="-4" width="8" height="8" rx="1.6" /><circle cx="0" cy="0" r="2.2" /><path d="M0-2.2 V0 M1.9 1.1 L0 0 M-1.9 1.1 L0 0" /></g></g>
+        <path class="setup-accent divider" d="M 32 100.5 L 200 100.5" />
+        <text class="setup-title" x="32"
+          y="96">Heat pump</text>
+        <text class="setup-slot folded" x="32" y="116"><tspan x="32" y="116">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="heat_pump_switch_entity"
+        data-place="heat_pump"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="20" y="101.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="heat_pump"
+      tabindex="0" role="button"
+      aria-label="Configure: Heat pump telemetry" x="28" y="116.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heat pump telemetry</title></rect>
+      <rect class="setup-chip" x="32" y="119" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="40"
+        y="129.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="159" width="200"
+          height="66" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="214" cy="161" r="9" /><g transform="translate(214 161) scale(.92)"><path d="M-4.6 0 c1.3-2.9 2.6-2.9 3.9 0 s2.6 2.9 3.9 0" /><circle cx="-5" cy="0" r="0.9" /><circle cx="5" cy="0" r="0.9" /></g></g>
+        <path class="setup-accent divider" d="M 32 180.5 L 200 180.5" />
+        <text class="setup-title" x="32"
+          y="176">Wood furnace tank (500 L)</text>
+        <text class="setup-slot folded" x="32" y="196"><tspan x="32" y="196">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="wood_tank_top_entity"
+        data-place="wood_tank"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="20" y="181.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="wood_tank"
+      tabindex="0" role="button"
+      aria-label="Configure: Heating system and heat storage" x="28" y="196.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heating system and heat storage</title></rect>
+      <rect class="setup-chip" x="32" y="199" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="40"
+        y="209.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="16" width="200"
+          height="66" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="458" cy="18" r="9" /><g transform="translate(458 18) scale(.92)"><path d="M-4-3 L4 3 L4-3 L-4 3 Z" /></g></g>
+        <path class="setup-accent divider" d="M 276 37.5 L 444 37.5" />
+        <text class="setup-title" x="276"
+          y="33">4-way mixing valve (manual)</text>
+        <text class="setup-slot folded" x="276" y="53"><tspan x="276" y="53">2 optional inputs not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="mixing_valve_target_entity,valve_outlet_temp_entity"
+        data-place="mixing_valve"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 2 unset inputs" x="264" y="38.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="mixing_valve"
+      tabindex="0" role="button"
+      aria-label="Configure: Heating system and heat storage" x="272" y="53.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Heating system and heat storage</title></rect>
+      <rect class="setup-chip" x="276" y="56" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="284"
+        y="66.4">Configure</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="96" width="200"
+          height="83" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="458" cy="98" r="9" /><g transform="translate(458 98) scale(.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /></g></g>
+        <path class="setup-accent divider" d="M 276 117.5 L 444 117.5" />
+        <text class="setup-title" x="276"
+          y="113">Heat pump tank (750 L)</text>
+        <text class="setup-slot" x="276" y="133"><tspan x="276" y="133">Buffer tank</tspan><tspan x="276" y="150">temperature</tspan><tspan class="setup-value" x="444" y="133"
+          text-anchor="end">47.5 °C</tspan></text><rect class="setup-hit" data-key="buffer_tank_temp_entity"
+        tabindex="0" role="button" aria-label="Buffer tank temperature — click to assign"
+        x="264" y="121" width="192"
+        height="32" rx="3">
+        <title>Buffer tank temperature — click to assign</title></rect><text class="setup-slot extra" x="276"
+        y="167">stores up to 70 °C</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="193" width="200"
+          height="83" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="458" cy="195" r="9" /><g transform="translate(458 195) scale(.92)"><path d="M-4-3 v4.6 a4 2.4 0 0 0 8 0 V-3" /><ellipse cx="0" cy="-3" rx="4" ry="1.5" /><path d="M0-0.6 c1.3 1.7 2.1 2.6 2.1 3.5 a2.1 2.1 0 0 1-4.2 0 C-2.1 2 -1.3 1.1 0-0.6 z" /></g></g>
+        <path class="setup-accent divider" d="M 276 214.5 L 444 214.5" />
+        <text class="setup-title" x="276"
+          y="210">Hot water tank</text>
+        <text class="setup-slot folded" x="276" y="230"><tspan x="276" y="230">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="dhw_temp_entity"
+        data-place="dhw_tank"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="264" y="215.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="dhw_tank"
+      tabindex="0" role="button"
+      aria-label="Configure: Hot water tank and inlet" x="272" y="230.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Hot water tank and inlet</title></rect>
+      <rect class="setup-chip" x="276" y="233" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="284"
+        y="243.4">Configure</text><text class="setup-slot extra" x="276"
+        y="264">refilled through a wood tank coil</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="16" width="200"
+          height="49" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="702" cy="18" r="9" /><g transform="translate(702 18) scale(.92)"><rect x="-4.5" y="-3" width="9" height="5" rx="1" /><path d="M-3-3 v5 M-1-3 v5 M1-3 v5 M3-3 v5" /></g></g>
+        <path class="setup-accent divider" d="M 520 37.5 L 688 37.5" />
+        <text class="setup-title" x="520"
+          y="33">Upper floor</text>
+        <text class="setup-slot" x="520" y="53"><tspan x="520" y="53">Indoor temperature</tspan><tspan class="setup-value" x="688" y="53"
+          text-anchor="end">21.3 °C</tspan></text><rect class="setup-hit" data-key="indoor_temp_entity"
+        tabindex="0" role="button" aria-label="Indoor temperature — click to assign"
+        x="508" y="38.7" width="192"
+        height="19.6" rx="3">
+        <title>Indoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="79" width="200"
+          height="66" rx="10" /><g class="badge" aria-hidden="true"><circle class="badge-disc" cx="702" cy="81" r="9" /><g transform="translate(702 81) scale(.92)"><path d="M-5 0 h10 v2.2 h-10 z" /><path d="M-5 4.4 l1.2-1.2 M-3.2 4.4 l1.2-1.2 M-1.4 4.4 l1.2-1.2 M0.4 4.4 l1.2-1.2 M2.2 4.4 l1.2-1.2" /></g></g>
+        <path class="setup-accent divider" d="M 520 100.5 L 688 100.5" />
+        <text class="setup-title" x="520"
+          y="96">Lower floor (slab)</text>
+        <text class="setup-slot folded" x="520" y="116"><tspan x="520" y="116">1 optional input not set</tspan></text><rect class="setup-hit setup-fold-hit"
+        data-fold="lower_floor_temp_entity"
+        data-place="lower_zone"
+        aria-expanded="false"
+        tabindex="0" role="button"
+        aria-label="Show the 1 unset inputs" x="508" y="101.7"
+        width="192" height="19.6" rx="3"></rect><rect class="setup-chip-hit" data-configure="lower_zone"
+      tabindex="0" role="button"
+      aria-label="Configure: Sensors and entities" x="516" y="116.7"
+      width="72.4" height="19.6"
+      rx="9.8"><title>Configure: Sensors and entities</title></rect>
+      <rect class="setup-chip" x="520" y="119" width="64.4"
+        height="15" rx="7.5" />
+      <text class="setup-chip-label" x="528"
+        y="129.4">Configure</text>
+      </g></svg></div>
+      
+      <div class="setup-hint">Click any sensor to assign it, or to clear it. An empty slot is a sensor this setup could use and does not have; it is shown on purpose.</div>
+      <div class="setup-result" role="status"></div></div>
+        </div>
+      </div></div></div></div>
+  </div>
+    </div>
+    <div class="section">
+      <h2>The control itself<span class="hint">measured, not imagined</span></h2>
+      <div class="board">
+        <div class="cell"><h3>Dialog legend chip — before</h3><div class="big">12.9 px</div><div class="small">1 em, 1.3 em radius (12.9 px at 1280)</div></div>
+        <div class="cell"><h3>Setup bar button — before</h3><div class="big">10.6 px</div><div class="small">0.82 em, 14 px radius (9.8 px at 375)</div></div>
+        <div class="cell"><h3>Setup bar button — after</h3><div class="big">12.9 / 14 px</div><div class="small">1 em and 1.3 em radius — the dialog chip's own rule</div></div>
+        <div class="cell"><h3>Card tile chip (not changed)</h3><div class="big">13 px</div><div class="small">token <code>--hpo-text-sm</code>; the tile's own surface</div></div>
+      </div>
+      <div class="note">
+        <h3>What the Badge decision still owes this page</h3>
+        <ul>
+          <li>The disc's glyph stroke is <b>1.5</b> units, the card's icon/pipe tier — not 1.6, which belongs to no tier.</li>
+          <li>The configure button's page-name line is <b>11 units</b>, the same tier as its Configure label and the
+            existing chip — not 10, which no drawing text uses.</li>
+          <li>The coil-state wording stays on its 11-unit lines; the badge adds no colour outside accent, divider and text-2.</li>
+          <li>The tile's 13 px chip is a different surface and is not touched: it is a token-sized pill on the card face,
+            not the dialog's 1 em control.</li>
+          <li>The badge is supplementary: the box's accessible name already carries the type and the coil state.</li>
+          <li>The disc is 18 drawing units: 14 px at a 375 px dialog and 30 px at 1280. It scales with the map like the
+            map's own labels (10.1 px title at 375), so it stays a symbol rather than becoming type.</li>
+        </ul>
+      </div>
+    </div>
+</div>
+<script>
+const setW = (w) => {
+  document.querySelectorAll(".frame").forEach((f) => f.style.setProperty("--w", w + "px"));
+  document.querySelectorAll("[data-w]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.w === String(w))));
+};
+const setTheme = (t) => {
+  document.querySelectorAll(".mini").forEach((m) => m.classList.toggle("dark", t === "dark"));
+  document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === t)));
+};
+document.querySelectorAll("[data-w]").forEach((b) => b.addEventListener("click", () => setW(b.dataset.w)));
+document.querySelectorAll("[data-theme-btn]").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+</script>
+</body></html>

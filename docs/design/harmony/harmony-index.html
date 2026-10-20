@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harmony — the card's design voice, page by page</title>
+<style>
+:root{--page:#eceff3;--card:#fff;--ink:#1d242b;--ink2:#5b6672;--line:#dde3e8;--blue:#e8f2f8;--accent:#026aa8;--ok:#1c7350}
+@media (prefers-color-scheme: dark){:root{--page:#0f1316;--card:#171c21;--ink:#e6e9ec;--ink2:#a8b1ba;--line:#333c45;--blue:#15242e;--accent:#4fb3f0;--ok:#1fad6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;padding:28px 20px 64px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:27px;letter-spacing:-.02em;margin:0 0 8px;font-weight:650}
+.lede{color:var(--ink2);max-width:85ch;margin:0 0 20px}
+.kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:0 0 6px}
+h2{font-size:18px;margin:34px 0 10px;letter-spacing:-.01em}
+h2 .n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;margin-right:9px;vertical-align:2px}
+.voice{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.v{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.v b{display:block;font-size:13px;letter-spacing:.02em;margin:0 0 4px}
+.v p{margin:0;font-size:13.5px;color:var(--ink2)}
+.v code,.t code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--blue);padding:1px 4px;border-radius:4px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:650;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.tag.hot{background:var(--blue);border-color:transparent;color:var(--accent)}
+.tag.none{color:var(--ok);border-color:currentColor}
+.props{display:flex;flex-direction:column;gap:14px;margin:14px 0 0}
+.prop{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:row;align-items:stretch}
+.prop .body{padding:16px 18px;flex:1 1 auto;min-width:0}
+.prop h3{margin:0 0 6px;font-size:16px}
+.prop p{margin:0 0 10px;font-size:13.5px;color:var(--ink2)}
+.prop .shot{flex:0 0 500px;height:250px;overflow:hidden;border-right:1px solid var(--line);background:#fafbfc;position:relative}
+.prop .shot iframe{width:1400px;height:800px;border:0;transform:scale(.4);transform-origin:top left;margin-top:-125px;pointer-events:none}
+@media (max-width: 760px){.prop{flex-direction:column}.prop .shot{flex:0 0 auto;width:100%;border-right:0;border-bottom:1px solid var(--line)}}
+.prop a{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none}
+.prop a:hover{text-decoration:underline}
+.load{display:inline-block;margin-top:4px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none}
+ul.tight{margin:8px 0 0;padding-left:20px;color:var(--ink2);font-size:13.5px}
+ul.tight li{margin:4px 0}
+.foot{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+</style>
+</head>
+<body><div class="wrap">
+<p class="kicker">Design pre-study · 2026-10-20 · probe/card-harmony-design</p>
+<h1>Harmony — the card's design voice, page by page</h1>
+<p class="lede">The card declares its own design system in two token tables and writes every rule against it.
+This study states that voice as a checkable list, enumerates every page and view from the card's own render paths,
+measures each page against the voice in a real browser at 375/768/1280 in light and dark, and prototypes four changes.
+The full argument, evidence and file:line anchors are in <a href="HARMONY.md">HARMONY.md</a>; this page is the index.</p>
+
+<h2>The voice in twelve lines</h2>
+<div class="voice">
+  <div class="v"><b>V1 · One base, 14 px</b><p>The card inherits the host's 14 px. The enlarged dialog must not render a role smaller than the tile. Its base is 12–12.9 px until the dialog itself is 1333 px wide.</p></div>
+  <div class="v"><b>V2 · Ramp 12/13/15/18</b><p><code>--hpo-text-xs…lg</code>. Headings 600, dialog chrome 500, never 700. Measured on the face: labels 12, chips 13, headline 15, number/title 18.</p></div>
+  <div class="v"><b>V3 · Captions 0.76–0.85 em</b><p>Footnotes, not a second ramp — and never below 12 px on an HTML surface, the ramp's smallest step.</p></div>
+  <div class="v"><b>V4 · A drawing is not text</b><p>Chart and setup map draw in viewBox units. The chart floors rendered axis text at 8 px; the map floors by a 560 px phone min-width. The ramp does not apply inside a drawing.</p></div>
+  <div class="v"><b>V5 · One surface/ink pair, one switch</b><p>A theme variable may be the first choice only where the ink is the theme's too. Otherwise the card's literal pair wins.</p></div>
+  <div class="v"><b>V6 · Status is a dot and a word</b><p>ok/warn/crit each carry a text and a background token; never colour alone.</p></div>
+  <div class="v"><b>V7 · Space 4/8/12/16/24</b><p>Card padding 12; dialog 16 (12 at ≤600 px); page 0.5 em × 0.25 em.</p></div>
+  <div class="v"><b>V8 · Radii 6/12/pill</b><p>Plus the dialog chip's 1.3 em and the map's 10-unit box radius. The drawn Configure control claims the legend chip's label size; it does not hold (measured).</p></div>
+  <div class="v"><b>V9 · Strokes 1/1.5/2/3.5</b><p>Outlines and dividers; icons and pipes; focus ring; editing pipes. Colour by role, never weight.</p></div>
+  <div class="v"><b>V10 · Targets 24 / 44 px</b><p>Every pointer / coarse, with SVG targets converted through <code>unitsPerPx</code>.</p></div>
+  <div class="v"><b>V11 · One decorative motion</b><p>The chart view-controls' 120 ms fade, off under <code>prefers-reduced-motion</code>.</p></div>
+  <div class="v"><b>V12 · One empty-state shape</b><p><code>.empty</code> — muted, centred, 28 px 12 px. Three pages use it; Savings is the exception.</p></div>
+</div>
+
+<h2>Every page and view: 23</h2>
+<p class="lede">A view is a root the card paints into — the card body or the dialog body — or a state that replaces a root's body.
+Panes that paint into a counted root are counted separately. Cross-checked against the 40 states in <code>tests/card_drift.mjs</code>
+and the three-entity <code>planStates()</code> in <code>tests/card_rig.mjs</code>.</p>
+<table>
+<tr><th>part</th><th>count</th><th>what</th></tr>
+<tr><td>Primary surfaces</td><td class="num">6</td><td>card face, Plan, Setup, Savings, Advisor, Health</td></tr>
+<tr><td>Page states</td><td class="num">4</td><td>no plan, setup not published, savings empty, advisor empty</td></tr>
+<tr><td>Panes</td><td class="num">10</td><td>what-if, tooltip, slot menu, score breakdown, away strip, wood alert, history panes, setup layout editor, setup picker, advisor inbox</td></tr>
+<tr><td>Chart data states</td><td class="num">3</td><td>history unavailable, pending, no power</td></tr>
+<tr><td><b>Total</b></td><td class="num"><b>23</b></td><td><b>18 pinned by the drift suite; 5 unpinned</b></td></tr>
+</table>
+<p class="lede" style="margin-top:10px">
+<b>18 of 23 are pinned</b> by the drift suite; the five unpinned are the Savings page, its empty state, the Health page,
+the setup not-published state and the advisor empty state. Two whole dialog pages and three empty states have no drift state.
+The 40 drift states are 40 scenarios over 23 views, plus <code>editor_schema</code>, which is the Lovelace editor — a separate surface outside the 23.</p>
+
+<h2>The audit, one line per surface</h2>
+<table>
+<tr><th>surface</th><th>below 12 px (HTML)</th><th>finding</th><th>verdict</th></tr>
+<tr><td>Card face</td><td class="num">5</td><td>the same three caption roles at 10.6–11.9 px on a 14 px base</td><td><span class="tag hot">H1, 0.1–1.4 px</span></td></tr>
+<tr><td>Plan</td><td class="num">21 / 22 / 22</td><td>dialog base 12.0–12.9 vs card 14; 17 of the nodes are in the what-if</td><td><span class="tag hot">H1</span></td></tr>
+<tr><td>Setup</td><td class="num">3</td><td>"one rule, two surfaces" broken: bar 9.8 vs chip 12; map type 8.6–21.5 by width</td><td><span class="tag hot">H1 + H2</span></td></tr>
+<tr><td>Savings</td><td class="num">0</td><td>data view clean; replay chart labels 6.2 px at 375, 23.9 at 1280; odd empty state</td><td><span class="tag hot">H4 + H3c</span></td></tr>
+<tr><td>Advisor</td><td class="num">4</td><td>row surface 1.20:1 in dark with the theme variable absent</td><td><span class="tag hot">H1 + H3a</span></td></tr>
+<tr><td>Health</td><td class="num">13</td><td>same row pair; the card's only 700 heading; 10 subtitles at 10.2</td><td><span class="tag hot">H1 + H3a + H3b</span></td></tr>
+</table>
+
+<h2>Proposals</h2>
+<p class="lede">Each page is self-contained: the card's own tokens, its captured stylesheet and markup, light/dark and 375/768/1280. "Before" is the shipped CSS; "after" differs only by the named rules.</p>
+<div class="props">
+  <div class="prop">
+    <div class="shot"><iframe src="harmony-1-type-floor.html" loading="lazy" title="H1 preview"></iframe></div>
+    <div class="body">
+      <h3>H1 · The dialog type floor</h3>
+      <p>Dialog base 12 → 14 (the card's own base) and every caption role at <code>max(12px, em)</code>. The largest finding, on every page.</p>
+      <a href="harmony-1-type-floor.html">Open the before/after →</a>
+    </div>
+  </div>
+  <div class="prop">
+    <div class="shot"><iframe src="harmony-2-setup-controls.html" loading="lazy" title="H2 preview"></iframe></div>
+    <div class="body">
+      <h3>H2 · Setup controls + the Badge</h3>
+      <p>Carry the dialog chip rule to the bar button the stylesheet already declares identical, and land the owner's Badge on the map's stroke and type tiers.</p>
+      <a href="harmony-2-setup-controls.html">Open the before/after →</a>
+    </div>
+  </div>
+  <div class="prop">
+    <div class="shot"><iframe src="harmony-3-sibling-states.html" loading="lazy" title="H3 preview"></iframe></div>
+    <div class="body">
+      <h3>H3 · Sibling surfaces and states</h3>
+      <p>Health/Advisor rows to the paired surface (1.20:1 → 11.08:1 dark), the 700 heading to 600, and the savings empty state to <code>.empty</code>.</p>
+      <a href="harmony-3-sibling-states.html">Open the before/after →</a>
+    </div>
+  </div>
+  <div class="prop">
+    <div class="shot"><iframe src="harmony-4-savings-chart.html" loading="lazy" title="H4 preview"></iframe></div>
+    <div class="body">
+      <h3>H4 · The Savings replay chart</h3>
+      <p>Give the third chart the setup map's existing phone treatment: labels 6.2 → 10.3 px at 375. Two CSS lines; take it first if only one.</p>
+      <a href="harmony-4-savings-chart.html">Open the before/after →</a>
+    </div>
+  </div>
+</div>
+
+<h2>No change needed</h2>
+<ul class="tight">
+  <li>The chart's 8 px axis floor and its viewBox units; the setup map's scaled type and its 560 px phone min-width.</li>
+  <li>The phone legend's <code>1rem</code> (16 px) and the tabs' 1.19 em — both are chrome sized for touch, not body text.</li>
+  <li>The 0.0105 width ratio, the tile's 13 px chip and 18 px title, the 6 px chip gap, the 14 px shared radius, the pill.</li>
+  <li>The map's 10-unit box radius and 1/1.5/3.5-unit strokes; the status pairs; the single 120 ms fade.</li>
+  <li>The Health page's absence of an empty state: its checklist is how the page says what is missing.</li>
+  <li>The em-based dialog chrome itself — the mechanism is right; it needs the base floored, not replaced.</li>
+</ul>
+
+<h2>Small corrections (one line each, no prototype)</h2>
+<ul class="tight">
+  <li><b>C1</b> — <code>var(--hpo-text-sm, 14px)</code> ×3 in <code>RECEIPT_CSS</code>; the token is 13 px. Latent, not visual.</li>
+  <li><b>C2</b> — the setup chip comment's claim of "the same label size a legend chip wears" is false by width (8.6–18.2 vs 12–12.9).</li>
+  <li><b>C3</b> — <code>DIALOG_FONT_PX_MAX = 21</code> is unreachable: the dialog width caps at 1700 → 17.85 px.</li>
+</ul>
+
+<p class="foot">Method: the card mounted in real Chromium from a frozen-date harness with a fixed state fixture; every size and contrast is a computed style,
+not a redrawing. The prototype pages are generated from the card's own rendered dialog markup and its own stylesheet, so the before panels are the shipped CSS.
+No live-card or test change is in this branch. Full evidence: <a href="HARMONY.md">HARMONY.md</a>.</p>
+</div>
+</body>
+</html>

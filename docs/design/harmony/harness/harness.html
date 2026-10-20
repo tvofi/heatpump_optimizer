@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card page harness</title>
+<style>
+  html,body{margin:0;min-height:100%}
+  body{background:#fafafa;font-family:Roboto, "Helvetica Neue", Arial, sans-serif;font-size:14px}
+  html[data-theme="dark"] body{background:#111;color:#fff}
+  #mount{padding:12px;max-width:1600px;margin:0 auto}
+</style>
+<script src="states.js"></script>
+<script>
+  const q0 = new URLSearchParams(location.search);
+  const spaceId = "sensor.heat_pump_optimizer_plan_space_heating";
+  const FROZEN = Date.parse(window.HPO_STATES[spaceId].attributes.forecast[0].t) + 6 * 3600000;
+  const RealDate = Date;
+  class FrozenDate extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [FROZEN])); }
+    static now() { return FROZEN; }
+  }
+  window.Date = FrozenDate;
+  document.documentElement.dataset.theme = q0.get("theme") === "dark" ? "dark" : "light";
+</script>
+<script src="../../../../custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"></script>
+</head>
+<body>
+<div id="mount"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const dark = q.get("theme") === "dark";
+  if (q.get("noplan") === "1") {
+    for (const k of Object.keys(window.HPO_STATES)) {
+      if (/plan_(space|dhw)_heating$|_plan_optimization_score$|_plan_predicted_savings$|_plan_narrative$|_plan_monthly_savings$/.test(k)) delete window.HPO_STATES[k];
+    }
+    delete window.HPO_STATES["sensor.heat_pump_optimizer_plan_space_heating"];
+    delete window.HPO_STATES["sensor.heat_pump_optimizer_plan_dhw_heating"];
+    for (const k of Object.keys(window.HPO_STATES)) if (/solar_irradiance/.test(k)) delete window.HPO_STATES[k];
+  }
+  const page = q.get("page") || "tile";
+  const card = document.createElement("heatpump-optimizer-card");
+  card.setConfig({ type: "custom:heatpump-optimizer-card" });
+  const hass = {
+    states: window.HPO_STATES,
+    themes: { darkMode: dark },
+    language: q.get("lang") || "en",
+    config: { unit_system: { temperature: "°C" }, currency: "SEK" },
+    callService: async () => ({}),
+    callWS: async () => ({}),
+    callApi: async () => [],
+    formatEntityState: (s) => (s && s.state) || "",
+  };
+  card.hass = hass;
+  document.getElementById("mount").appendChild(card);
+  if (page !== "tile") {
+    card.dialog.open();
+    card.dialog.page = page;
+    card._render();
+  }
+  window.HPO_CARD = card;
+</script>
+</body>
+</html>
