@@ -33247,11 +33247,13 @@ R.check(
 )
 
 
-def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str]:
+def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
     """coverage_tree.sh's reuse plan and floor re-validation under a stub
     interpreter: the first script is reused, the rest measured, and the stub
     grader reports a floor FAIL when asked to. Returns (non-reused metric
-    rows per script, executions per script, the stage's output)."""
+    rows per script, executions per script, the stage's output, and per
+    ledger -- out/scripts.tsv and out/per/provenance.tsv -- the rows each
+    script holds and how many of them say `reused`)."""
     with _tempfile.TemporaryDirectory() as td:
         d = Path(td)
         stub = d / "py"
@@ -33293,11 +33295,22 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str]:
                      if (d / "ran").is_file() else []):
             name = Path(line).stem
             ran[name] = ran.get(name, 0) + 1
-    return runs, ran, res.stdout[-400:] + res.stderr[-400:]
+        ledgers: dict = {}
+        for rel in ("out/scripts.tsv", "out/per/provenance.tsv"):
+            f = d / "work" / rel
+            rows = [r.split("\t") for r in (f.read_text().splitlines()
+                                            if f.is_file() else [])
+                    if r and not r.startswith("script\t")]
+            per: dict = {}
+            for r in rows:
+                per[r[0]] = per.get(r[0], 0) + 1
+            ledgers[Path(rel).name] = {
+                "rows": per, "reused": sum(1 for r in rows if r[1:2] == ["reused"])}
+    return runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers
 
 
-_CRV_RUNS, _CRV_RAN, _CRV_OUT = _coverage_revalidation(floor_fails=True)
-_CRV_NULL_RUNS, _CRV_NULL_RAN, _ = _coverage_revalidation(floor_fails=False)
+_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS = _coverage_revalidation(floor_fails=True)
+_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS = _coverage_revalidation(floor_fails=False)
 R.check(
     "the coverage floor re-validation re-measures only the scripts it reused",
     len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
@@ -33308,6 +33321,26 @@ R.check(
     "(want every script once: the reused one re-measured, no fresh one "
     f"twice); with the floor met: executions {_CRV_NULL_RAN} (want the "
     f"reused one absent, the null control); output: {_CRV_OUT!r}",
+)
+# The stage's two ledgers after a floor-FAIL re-validation: scripts.tsv (the
+# job summary's reuse count) and per/provenance.tsv (cached by a push as the
+# next pull request's base, where a stale `reused` row misnames a script the
+# re-validation re-measured). One row per script in each, none `reused`.
+# Null: with the floor met nothing is re-measured, so the reused script keeps
+# its one `reused` row in each -- a reader that sees no rows fails here.
+R.check(
+    "after a floor-FAIL re-validation each coverage ledger holds one row per "
+    "script and no `reused` row",
+    all(set(_CRV_LEDGERS[k]["rows"]) == set(_CRV_RAN)
+        and set(_CRV_LEDGERS[k]["rows"].values()) == {1}
+        and _CRV_LEDGERS[k]["reused"] == 0
+        and set(_CRV_NULL_LEDGERS[k]["rows"]) == set(_CRV_RAN)
+        and set(_CRV_NULL_LEDGERS[k]["rows"].values()) == {1}
+        and _CRV_NULL_LEDGERS[k]["reused"] == 1
+        for k in ("scripts.tsv", "provenance.tsv")) and len(_CRV_RAN) >= 2,
+    f"floor FAIL: {_CRV_LEDGERS} (want each of {sorted(_CRV_RAN)} once, 0 "
+    f"reused); floor met: {_CRV_NULL_LEDGERS} (want the same scripts once, 1 "
+    "reused, the null control)",
 )
 
 # The recorded budget is the every-script-measured-once count: the closures

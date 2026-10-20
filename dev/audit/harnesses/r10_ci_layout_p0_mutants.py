@@ -18,6 +18,7 @@ checks it is aimed at is among the FAIL lines; any other red reads OFF-TARGET.
   M4  the floor re-validation re-measures all      -> _coverage_revalidation
   M5  script_runs() counts `reused` rows again     -> _CIR_REUSE
   M6  script_runs_per_push loosened 53 -> 54       -> the every-script-once pin
+  M7  the reused-row ledger filter deleted         -> the ledger check (round-1 review)
 
 Prints one line per mutant with its exit code and the aimed checks that went
 red, then `RESULT survivors=<n>`; exit 1 when any survived or M0 failed.
@@ -54,6 +55,11 @@ MUTANTS: dict[str, tuple[list[tuple[str, str, str]], list[str]]] = {
            ["the CI ratchet counts no `reused` coverage row as a script run"]),
     "M6": ([("tests/ci_budgets.json", '"script_runs_per_push": 53', '"script_runs_per_push": 54')],
            ["one script run past the every-script-once budget"]),
+    "M7": ([("tools/coverage/coverage_tree.sh",
+             '    for _f in "$OUT/scripts.tsv" "$OUT/per/provenance.tsv"; do\n'
+             '      awk -F\'\\t\' \'$2!="reused"\' "$_f" > "$_f.tmp" && mv "$_f.tmp" "$_f"\n'
+             '    done\n', "")],
+           ["after a floor-FAIL re-validation each coverage ledger holds one row"]),
 }
 
 
