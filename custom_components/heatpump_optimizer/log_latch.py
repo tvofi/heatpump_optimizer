@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 
 #: Per owner, each persisting condition logged at WARNING and the text it was
 #: logged with. A side table on boost.py's precedent, so the latch costs the
-#: owner no attribute.
+#: owner no attribute. (null control)
 _HELD_CONDITIONS: WeakKeyDictionary[Any, dict[str, str]] = WeakKeyDictionary()
 
 
