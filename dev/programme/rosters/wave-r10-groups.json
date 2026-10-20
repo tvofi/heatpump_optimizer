@@ -4949,7 +4949,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fix",
-    "note": "split from #2469 (R10-UPDATE-PR-LOCK) at round 4 under the three-round rule"
+    "note": "In progress 2026-10-20 with an added deliverable: a stopped pusher leaves its whole descendant tree running. Six survivors measured on this box, 26 to 62 minutes old, every one needing a kill two levels down (closure.py record under a stopped prepr; app_push under a killed update_pr and open_pr). The shared seam is pr_args.sh pr_trap, which already installs the ERR stop report for open_pr.sh and update_pr.sh. Requirements: terminate the whole tree on TERM/INT, never a pattern kill, do not reap on a clean exit mid-work, and the null control must prove an unrelated sleeper survives. Fixer on handoff/r10-pusher-reap."
    },
    "class": "production",
    "group": "R10-UPDATE-PR-SIGNALS",
