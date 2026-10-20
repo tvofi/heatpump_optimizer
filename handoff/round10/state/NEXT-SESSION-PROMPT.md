@@ -29,7 +29,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-DEMAND-OVERBOOK (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-BUFFER-STORE (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-COP-PARTLOAD (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
-- R10-UPDATE-PR-SIGNALS (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-UPDATE-PR-SIGNALS (stage in-progress, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-HANDOFF-ARCHIVE (stage in-progress, branch `fix/r10-handoff-archive`, note `None`): `git fetch origin fix/r10-handoff-archive && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-DEPENDABOT-AIOHTTP (stage in-progress, branch `fix/r10-dependabot-aiohttp`, note `None`): `git fetch origin fix/r10-dependabot-aiohttp && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
