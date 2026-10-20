@@ -5157,7 +5157,9 @@
    "effort": "medium",
    "after": [],
    "carry": [],
-   "issues": [],
+   "issues": [
+    2509
+   ],
    "fixes": [],
    "brief": "Fold (e) of #1930, deferred as high risk and lost: #1975 closed #1930 with (a)-(d), the words survive only inside the done group R9-F10.16's brief, and nothing in round 10 names it (found by the 2026-10-20 slip screen). The option, verbatim: skipping a driver on a mutant line it never executes. In practice the mutation lane runs every driver against every mutant, and a driver whose tests never reach the mutated line cannot kill it, so those runs are pure cost; skipping them saves CI time with the same killing power. The risk is asymmetric: one wrong skip loses a real killer, the mutant survives, and the lane either reports a false survivor or hides a genuine test gap -- which is why the deferral demanded a 595-row replay. Build it measure-first, in this order, and do not reorder: (1) build the 595-row replay -- for every mutant/driver pair, record from a real run whether that driver executes the mutated line, and land the matrix as a checked-in artifact with its command; (2) enable a skip only where a matrix row says the driver never reaches the line -- no skip may be enabled without its row, and a pair with no row must run; (3) prove with a null control that the kill set under skipping is identical to the kill set without it on the whole matrix, and that the survivor set is unchanged. If the matrix shows no pair is skippable, record that measurement and stop: the answer is then a recorded refusal, not a feature. The 595 figure is the row count from #1930's harness at that head -- re-derive it, do not carry it.",
    "resume": {
