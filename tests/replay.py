@@ -373,9 +373,10 @@ COST_REF_EVERY = 8
 #: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs (R10-RCA-2205):
 #: a runner whose BLAS outruns its interpreter read the loop low, and the
 #: spread was 0.2441-0.405 (1.66x), the runner, not the code. Normalising by
-#: work on the SAME clock and of the SAME kind cancels the interpreter speed,
-#: so the ratio is the loop's work over this reference's, invariant across
-#: runners. Fixed iterations, no numpy, no data dependence, so every call
+#: work on the SAME clock and of the SAME kind cancels MOST of the interpreter
+#: factor, not all of it: the ratio keeps a residual runner-class spread, so it
+#: is bounded, not invariant, across runners. Fixed iterations, no numpy, no
+#: data dependence, so every call
 #: costs the same and no integration change can move it -- the property that
 #: makes ``reference_solve`` the right ruler for the solve, for the loop.
 #: SIZED to a couple of hundred ms, as ``reference_solve`` is: 1e6 steps read
