@@ -3420,7 +3420,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": null
+    "note": "Fell through wave 1: the finished work is pushed at handoff/r10-rca-harness-friction (d1611efe) with a body at handoff-body/r10-rca-harness-friction (a32fbfd1), and no pull request was ever opened; this brief still reads 'unpublished'. Queued for the next free seat: merge current main into the branch, re-run the harness at the new base, re-handoff."
    }
   },
   {
