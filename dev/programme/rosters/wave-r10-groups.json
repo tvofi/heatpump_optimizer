@@ -4490,7 +4490,7 @@
     "commit": "6219325ca20928f82c80880b1ed7fadf3e1c93b2",
     "last_step": "fixer",
     "next_step": "recarry",
-    "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."
+    "note": "Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its one path, the mandate id reaches proof_watch, refusal before any GitHub write) has no pull request. Owed: recarry and open; it touches tools/policy/budget_raise_gate.py, so the owner reviews."
    }
   },
   {
