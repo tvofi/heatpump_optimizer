@@ -4957,7 +4957,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": "fix/r10-handoff-archive",
-    "commit": "5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9"
+    "commit": "5fd7fbdfb87051270d66fec0ef2ed860ce12f6a9",
+    "next_step": "review at the PR head; the move is renames only"
    }
   },
   {
