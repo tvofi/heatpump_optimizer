@@ -37585,6 +37585,45 @@ R.check(
     _ren.savings_months(_feb10) == _feb.savings_months(_feb10),
     repr(_ren.savings_months(_feb10)),
 )
+# An upgrade mid-month: nine days booked the way the release before the
+# coverage meta did (a spot sample and the savings lines, no hours), then
+# one six-minute settlement under the coverage. The hours describe the
+# upgrade's tail, not the nine days of lines: scaled by 672 / 0.1 the row
+# read thousands of times its size, negative wherever the booked saving
+# was. The month is the calendar-day ratio's, as with no coverage at all.
+from heatpump_optimizer.ledger import pro_rata_factor as _sav_pro_rata
+_upg = _SavLedger()
+for _h in range(9 * 24):
+    _t = _SavDT(2026, 2, 1 + _h // 24, _h % 24, 0)
+    _upg.observe_meta_mean(_t, "spot_price", 1.0)
+    _upg.add_savings_settlement(_t, baseline_kw=0.5, actual_kwh=1.0, spot=1.0, dt=1.0)
+    _upg.add(_t, "spot", kwh=1.0, sek=1.0)
+_upg.observe_spot_and_settle_savings(_feb10, 1.0, {"baseline_kw": 0.5}, 0.1, 0.1)
+_upg.add(_feb10, "spot", kwh=0.1, sek=0.1)
+_upg_row = _upg.savings_months(_feb10)[0]
+_upg_booked = -0.5 * 9 * 24 - 0.05
+R.check(
+    "a month booked before its coverage began scales by the calendar-day ratio",
+    abs(_upg_row["savings_sek"] - _upg_booked * _sav_pro_rata(_feb10)) < 1e-9
+    and abs(_upg_row["actual_sek"] - (9 * 24 + 0.1) * _sav_pro_rata(_feb10)) < 1e-9,
+    repr(_upg_row),
+)
+# The null control: the same negative month with its coverage from the
+# first settlement keeps the hours' scale, the saving as small and as
+# negative as it was booked.
+_neg = _SavLedger()
+for _h in range(24):
+    _neg.observe_spot_and_settle_savings(
+        _SavDT(2026, 2, 9, _h, 0), 1.0, {"baseline_kw": 0.75}, 1.0, 1.0
+    )
+    _neg.add(_SavDT(2026, 2, 9, _h, 0), "spot", kwh=1.0, sek=1.0)
+_neg_row = _neg.savings_months(_feb10)[0]
+R.check(
+    "a negative month covered from its first settlement keeps the hours' scale",
+    abs(_neg_row["savings_sek"] - (-0.25 * 24) * 672.0 / 24.0) < 1e-9
+    and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
+    repr(_neg_row),
+)
 # An interval of no length settled no hours, so the stored coverage (the
 # payload the ledger store saves) takes no sample from it, as it takes none
 # from a backwards one.
