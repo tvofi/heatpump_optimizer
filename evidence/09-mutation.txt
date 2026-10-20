@@ -1,0 +1,4 @@
+# mutation: production Red-checks block reverted to single-`record` text
+# command: python3 -I tools/audit/seat/record_row.py --self-test
+2 self-test check(s) failed: main-state reporters named, body check passes the generated body over the reporter reds (rc 1: PR-BODY: 2 error(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdkcab60i/bodycheck/body.md)
+rc=1

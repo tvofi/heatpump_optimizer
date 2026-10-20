@@ -1,0 +1,1 @@
+record: delivery rows for #2480, #2483, #2484 (autofix)

@@ -1,0 +1,7 @@
+DELIVERY STATUS OK — 21 rowed, 3 pending, 0 overdue (overdue at 12 commits)
+  pending  #2465 76bb456 0 commit(s) since — fix(planner): heating floor above the flow gate, censore
+  pending  #2483 a2b25bb 1 commit(s) since — record: delivery rows for #2482 (autofix)
+  pending  #2480 d99b400 3 commit(s) since — fix(ci): one effective stale-contract follower run per P
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+rc=0
