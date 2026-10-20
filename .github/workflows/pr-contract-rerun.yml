@@ -54,6 +54,7 @@ permissions: {}
 
 jobs:
   rerun-stale-contract:
+    if: contains(fromJSON('["failure","timed_out","cancelled"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # `actions: write` is the re-run; `contents: read` is the checkout of the
