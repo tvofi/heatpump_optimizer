@@ -23,7 +23,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-PARTLOAD (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R10-UPDATE-PR-SIGNALS (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-BRIEFS-FOLD, R10-CI-LAYOUT, R10-DEEPLINK-HANDLERS, R10-FOLLOWER-DEBOUNCE, R10-FREQ-DEFROST, R10-I5-DOCS, R10-MERGE-PR-MANDATE, R10-MERGE-SUBJECT-HARDEN, R10-MUTATION-ANCHOR, R10-NIGHT-FOLDS, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-RCA-FRICTION, R10-REPLAY-LANE, R10-ROSTER-OPS, R10-SAV-COMFORT, R10-SAV-REASONS, R10-SETPOINT-BOOST, R10-STAMP, R10-TRAIN-HOLD, R10-UPDATE-PR-SIGNALS
+Ready next (after-edges satisfied; nothing open constrains them): R10-BRIEFS-FOLD, R10-CI-LAYOUT, R10-DEEPLINK-HANDLERS, R10-DEPENDABOT-AIOHTTP, R10-FOLLOWER-DEBOUNCE, R10-FREQ-DEFROST, R10-HANDOFF-ARCHIVE, R10-I5-DOCS, R10-MERGE-PR-MANDATE, R10-MERGE-SUBJECT-HARDEN, R10-MUTATION-ANCHOR, R10-NIGHT-FOLDS, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-RCA-FRICTION, R10-REPLAY-LANE, R10-ROSTER-OPS, R10-SAV-COMFORT, R10-SAV-REASONS, R10-SETPOINT-BOOST, R10-STAMP, R10-TRAIN-HOLD, R10-UPDATE-PR-SIGNALS
 
 ## Resume steps
 
