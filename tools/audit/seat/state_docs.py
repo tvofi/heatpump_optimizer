@@ -294,7 +294,7 @@ def sync_pass(a) -> int:
     if a.roster_file:
         argv += ["--roster-file", a.roster_file]
     else:
-        if a.roster_ref:  # else roster_edit's default: main, round branch
+        if a.roster_ref:  # else roster_sync's default: main, round branch
             argv += ["--roster-ref", a.roster_ref]
         if a.roster_path:
             argv += ["--roster-path", a.roster_path]
