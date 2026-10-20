@@ -2440,12 +2440,14 @@ PY
   # any exit a refusal also runs (R10-PREPR-CAP, #2267). The pool's own capacity
   # is `take_slot`'s and is driven in tests/entities.py; these rows pin the
   # WIRING the finding is about -- that a run takes one at all, where, and that
-  # the release rides an EXIT trap rather than a last line a mid-run refusal skips.
+  # the release rides an EXIT trap rather than a last line a mid-run refusal
+  # skips. Two traps carry an EXIT cleanup now: the success arm frees the slot,
+  # the failed-take arm clears its unleased marker, and both keep the run's rc.
   # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
   # the drained-scripts defect the row above this block refuses (row 4).
   st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
   st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
-  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
+  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 2 "and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status"
   st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
   st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
