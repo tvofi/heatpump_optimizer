@@ -584,7 +584,7 @@ def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
         inp, "space_setpoint", configured_flow_heat_c(inp.config, FLOW_HEAT_C), FLOW_GATE_C,
         rounding="down",
     )
-    if gate is None or ceiling is None or not isinstance(written[0], (int, float)):
+    if False:
         return None
     return FlowCommand(float(written[0]), gate, ceiling)
 
