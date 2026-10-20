@@ -22,11 +22,11 @@ Alternatives, and why each lost:
 
 ## Head
 
-`890fba053bdf3b3c7611f6a860be528665278259`, branched from origin/main `4a3cbcf62e6f5e7b6594d376d714388caf2915cf` (v7.0.1 plus #2460). Every figure below was taken at the head unless a line says merge base, which is a `git archive` of `4a3cbcf62` in seat scratch. `date -u`: 2026-10-19T23:52Z.
+`f7e98dbe17c1b6370c5783008aac9f1a502024e4`, branched from origin/main `4a3cbcf62e6f5e7b6594d376d714388caf2915cf` (v7.0.1 plus #2460). Every figure below was taken at the head unless a line says merge base, which is a `git archive` of `4a3cbcf62` in seat scratch. `date -u`: 2026-10-20T00:09Z.
 
 ## Mutation proof
 
-Hand mutants, `$SCRATCH/mut/mutants.py` (sha1 b2c6e6b7d7576e08c2ac2c08c6bdee347259b7d0). Each one is applied to a `git archive` copy of the head and run through `tools/audit/seat/features_block.py` over the draw_range 7a block and this group's block, then restored; `diff -rq` against the head reads identical afterwards. M0 (no mutation) is `ALL 68 FEATURES BLOCK PASSED`. Every mutant exits 1.
+Hand mutants, `$SCRATCH/mut/mutants.py` (sha1 4dc199600a1fa65347571d51683d15414aee951e). Each one is applied to a `git archive` copy of the head and run through `tools/audit/seat/features_block.py` over the draw_range 7a block and this group's block, then restored; `diff -rq` against the head reads identical afterwards. M0 (no mutation) is `ALL 69 FEATURES BLOCK PASSED`. Every mutant exits 1.
 
 | Mutant | Production edit | Goes red |
 |---|---|---|
@@ -39,11 +39,12 @@ Hand mutants, `$SCRATCH/mut/mutants.py` (sha1 b2c6e6b7d7576e08c2ac2c08c6bdee3472
 | M7 | a frequency-writing install counts as commanded | "null control: Observe, an indoor set-point, or a plan that writes the compressor frequency ... records no command" |
 | M8 | legacy evidence is kept by a commanded sample | "a record stored without commands is dropped by the first commanded sample ..." |
 | M9 | the service call rounds to tenths again | "no decimal reaches the service call on an entity that states no step ..." |
-| M10 | the floor rounds to nearest | "a floor rounds up, a ceiling down ...", "a Fahrenheit entity is quantised in Fahrenheit ..." |
+| M10 | the floor rounds to nearest | "a floor rounds up, a ceiling down ...", "a Fahrenheit entity is quantised in Fahrenheit ...", "a fractional inlet's floor rounds up through _flow_target ..." |
 | M11 | the ceiling rounds to nearest | "a floor rounds up, a ceiling down ..." |
 | M12 | the entity's step attribute is ignored | "no decimal reaches the service call ..." (the 0.5 and 0.1 step arms) |
 | M13 | quantised in °C on a °F entity | "a Fahrenheit entity is quantised in Fahrenheit ..." |
 | M14 | commands are not stored | "the commands and the idle readings survive the store ..." |
+| M15 | `_flow_target` drops `lo=min(floor_c, heat_c)`, so the arbiter's floor is no longer a minimum (the reviewer's R16 survivor) | "a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 ..." |
 
 The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/ci-autofix.md`). The 20 STALE PINs `ci_predict.py` names (the edited lines in `draw_range.py`, `inputs.py`, `pump_arbiter.py`, `thermal_model.py` and `_valve_write_problem`) are deleted by hand in this diff, so the bot pins the edited lines afresh.
 
@@ -72,7 +73,7 @@ The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/
   - the written set-point is 25.0, equal to `FLOW_GATE_C`;
   - the samples carry no timestamp or set-point, so pairing a draw with its write was not possible from the export.
 - Local green at the head:
-  - `tests/features.py`: `ALL 4247 FEATURE CHECKS PASSED`;
+  - `tests/features.py`: `ALL 4248 FEATURE CHECKS PASSED`;
   - `tests/structure.py`: `STRUCTURE RATCHET PASSED`;
   - the light scripts `scope.run` names: each exits 0, `tests/entities.py` reads `ALL 2351 ENTITY CHECKS PASSED` and the typing ruler `ALL 9 typing-ruler checks PASSED` / `ALL 12 typing-ruler source checks PASSED`;
   - `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against 4a3cbcf62e6f`.
@@ -80,7 +81,7 @@ The ledger record of these sites is `mutation-autofix`'s (`dev/governance/rules/
 
 ## Measured limitation (not fixed here)
 
-- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Its effect is booked-vs-delivered heat, which R10-DEMAND-OVERBOOK's brief names. No roster group owns identifying the set-point-to-draw gain itself; R10-DEMAND-OVERBOOK is the nearest owner, and the orchestrator may re-route it. Carry: R10-DEMAND-OVERBOOK
+- **The mapping reads the water temperature only at the floor.** The floor is relative to the inlet, the ceiling is absolute, and the levels between are linear in configured power. A pump's draw follows the set-point minus the water temperature, and it saturates. So the same level commands a different power at every tank temperature, and the gain between set-point and draw is unidentified on a set-point-driven install. Identifying that gain is R10-CEILING-PROBE's: its cheap-night `sysid.py` experiment measures drawn power against the commanded set-point. The booked-vs-delivered heat that follows from the gap is R10-DEMAND-OVERBOOK's, carried under `## Forward-carry`. Carry: R10-CEILING-PROBE
 - **Reaching the real maximum** needs either p_max configured at its true value (an owner question for tvofi, who is adjusting the config) or a deliberate ceiling probe. The probe is R10-CEILING-PROBE, folded into the cheap-night system-identification experiment (`sysid.py`). B is its prerequisite: the window now admits ceiling-commanded evidence only. Carry: R10-CEILING-PROBE
 
 ## Architecture score
@@ -91,7 +92,7 @@ n/a: no gate metric rises. `python3 tools/audit/archscore/vector.py` at the merg
 
 - `arch-score`: red at the earlier pushed head `a3aee5945`, "coord_footprint 2498->2505". The new `pump_arbiter.flow_command(coord)` was handed the coordinator and held 7 logic statements. Repaired at this head: `flow_command(coord)` is plumbing only (an alias of `coord.arbiter_inputs()`, an alias of `state_for(coord)`, and a delegating return), and the decision moved to `_flow_command(inp, state)`, which is handed neither. `python3 tools/audit/archscore/vector.py` at the merge base and at this head reads `coord_footprint` 2498 at both, and no key of the vector differs. Cheaper detector: none is missing, because `vector.py` runs locally and I had not run it before the first push. Standing cost: one local run per head that touches a function the coordinator is handed.
 - `pr-contract`: red at the PR head `345cdf586`. `carry_audit.py` read 3 unrouted items: the two under `## Measured limitation` and a `## Forward-carry` that said "none" while naming owner decisions. Each item now ends in `Carry: <group>`. Measured on this body: against `origin/handoff/audit-r10-roster` (`d8250cd44`) it reads `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)`. Against `origin/main` it reads `CARRY-AUDIT: 6 finding item(s): 0 routed, 0 unrouted, 6 bad destination(s)`, because none of the four groups is on main's roster yet. So `pr-contract` stays red until the roster PR merges. Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body` runs locally in seconds. prepr did not run it on this body, so the standing cost is one local run per body.
-- `mutation`: red at `a3aee5945` and predicted red at this head, because the added sites under `## Unpinned sites` have no ledger pin until `mutation-autofix` pins them on CI's run after the push. Cheaper detector: none is missing, because `tools/pr/ci_predict.py` already names every one locally before the push, at the cost of one local run. The hand mutants M1-M14 above kill each function's behaviour in this group's block. The red clears when the autofix pins land (`dev/governance/rules/ci-autofix.md`).
+- `mutation`: red at `a3aee5945` and predicted red at this head, because the added sites under `## Unpinned sites` have no ledger pin until `mutation-autofix` pins them on CI's run after the push. Cheaper detector: none is missing, because `tools/pr/ci_predict.py` already names every one locally before the push, at the cost of one local run. The hand mutants M1-M15 above kill each function's behaviour in this group's block. The red clears when the autofix pins land (`dev/governance/rules/ci-autofix.md`).
 
 ## Forward-carry
 
@@ -104,7 +105,7 @@ The destinations are groups in `dev/programme/rosters/wave-r10-groups.json` as i
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py --base origin/main` lists 56 added lines, which are 59 mutation sites: three `CMP_BOUND*2` lines count twice. CI's `mutation` job at the earlier head `a3aee5945` counted 58 over 55 lines. The extra line here is the `RETURN_DEL` on `flow_command`'s plumbing return, added by the arch-score repair below. `mutation-autofix` pins each one on CI's run. The hand mutants above show that this group's block kills each function's behaviour; M6 covers the plumbing return as well:
+`python3 tools/pr/ci_predict.py --base origin/main` lists 56 added lines, which are 59 mutation sites: three `CMP_BOUND*2` lines count twice. CI's `mutation` job at the earlier head `a3aee5945` counted 58 over 55 lines. The extra line here is the `RETURN_DEL` on `flow_command`'s plumbing return, added by the arch-score repair below. `mutation-autofix` pins each one on CI's run. The hand mutants above show that this group's block kills each function's behaviour; M6 covers the plumbing return as well, and M15 is the `pump_arbiter.py` `CLAMP_DROP` on `lo=min(floor_c, heat_c)`, which the reviewer found surviving (R16) and the fractional-inlet check now kills:
 - `custom_components/heatpump_optimizer/coordinator.py:669 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/draw_range.py:77 CONST`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/draw_range.py:79 CONST`: pinned by `mutation-autofix`

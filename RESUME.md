@@ -1,6 +1,6 @@
 # R10-SETPOINT-BOOST handoff note
 
-Code head 890fba053bdf3b3c7611f6a860be528665278259 on handoff/r10-setpoint-boost, base 4a3cbcf62e6f5e7b6594d376d714388caf2915cf.
+Code head f7e98dbe17c1b6370c5783008aac9f1a502024e4 on handoff/r10-setpoint-boost, base 4a3cbcf62e6f5e7b6594d376d714388caf2915cf.
 
 Orchestrator items (not Carry lines in the body):
 - Owner note: configured p_max at its true value (tvofi is adjusting the config).
@@ -14,6 +14,6 @@ Proposed new groups (from the demand analysis in the seat report):
 Predicted red: `mutation`; arch-score repaired (coord_footprint 2498 at base and head) (56 added lines, 59 sites, pinned by mutation-autofix after the push).
 
 Round 1 (verdict v-261901a6, carry-missing) answered with a body-only change; the code head is unchanged.
-- Carries: R10-CEILING-PROBE (real maximum; idle absorbing compressor draw), R10-DEMAND-OVERBOOK (over-booking; the set-point-to-draw mapping limitation, nearest owner, re-route if wrong), R10-BUFFER-STORE, R10-COP-PARTLOAD.
+- Carries: R10-CEILING-PROBE (real maximum; idle absorbing compressor draw), R10-DEMAND-OVERBOOK (over-booking, booked-vs-delivered heat); the set-point-to-draw mapping limitation goes to R10-CEILING-PROBE (coordinator decision), R10-BUFFER-STORE, R10-COP-PARTLOAD.
 - pr-contract stays BAD-DEST until the roster PR lands these groups on main.
-- Reviewer's R16 survivor (lo=min(floor_c, heat_c) in _flow_target unpinned): no code change this round, per the coordinator; a fractional-inlet check through _flow_target is the fix if wanted.
+- Reviewer's R16 survivor pinned at f7e98dbe1 (coordinator decision): the fractional-inlet check through _flow_target; M15 is red, M0-M14 are unchanged.
