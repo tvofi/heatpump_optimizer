@@ -205,7 +205,7 @@ pr_args_self_test() (
     rm -f "$t/held"; mkdir -p "$s/pr"
     git -C "$m" worktree add -q --detach "$s/pr/upd-fix-x" && touch "$s/pr/upd-fix-x/live"
     if [ "$2" = 1 ]; then
-      python3 -I -c 'import fcntl, sys, time; f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[2], "w").close(); time.sleep(120)' \
+      python3 -I -c 'import fcntl, os, sys, time; f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); f.write("%d 0\n" % os.getpid()); f.flush(); open(sys.argv[2], "w").close(); time.sleep(120)' \
         "$s/pr/upd-fix-x.lock" "$t/held" & hp=$!
       while [ ! -e "$t/held" ] && [ $k -lt 200 ]; do sleep 0.1; k=$((k + 1)); done
     else echo 99999 > "$s/pr/upd-fix-x.lock"; fi
@@ -224,6 +224,32 @@ pr_args_self_test() (
   [ "$(cat "$t/rc")" != 0 ] && ! grep -qF "update_pr: BUSY" "$t/out" \
     && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
   ck "null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push" $?
+  # The lock dies with the run, whatever the run started (#2469's round-1 review: an fd of the
+  # run's shell was inherited by a `git gc --auto` git detached, which held the lock afterwards).
+  # detrun <mutant>: two runs on fix/x in ONE state directory, one after the other; during the
+  # first, a post-checkout hook (git runs it at `worktree add`) leaves a detached child behind.
+  detrun() {
+    local sd=$t/sd-$1 g hk=$m/.git/hooks/post-checkout
+    rm -rf "$t/s$i"; git -C "$m" worktree prune  # the last run's worktree holds fix/x
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    printf '#!/bin/sh\nsleep 30 </dev/null >/dev/null 2>&1 &\necho $! >> "%s/sleepers"\n' "$t" > "$hk"; chmod +x "$hk"
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
+    rm -f "$hk"; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
+    echo $? > "$t/rc"
+    [ -s "$t/sleepers" ] && kill $(cat "$t/sleepers") 2>/dev/null; rm -f "$t/sleepers"
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; rm -rf "$sd"
+  }
+  detrun -
+  grep -qF "update_pr: REFUSE: the push failed" "$t/out1" && ! grep -qF "update_pr: BUSY" "$t/out" \
+    && grep -qF "update_pr: REFUSE: the push failed" "$t/out" && ! grep -q STOPPED "$t/out"
+  ck "update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push" $?
+  detrun unlock
+  grep -qF "update_pr: BUSY" "$t/out"
+  ck "  mutant mut:unlock (its line deleted): the holder outlives the run and the next run is BUSY" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \

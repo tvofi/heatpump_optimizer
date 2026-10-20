@@ -222,7 +222,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
   `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
   not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
-  <BODY.md> <issues>` (issues = the body's closing keywords), then
+  <BODY.md> <issues>` (issues = the body's closing keywords; BODY.md is written
+  to a per-run `cloud-body.*` directory under the state dir and removed after,
+  since prepr refuses a body directly in a shared temp root), then
   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
