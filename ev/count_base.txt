@@ -1,0 +1,5 @@
+base lane-plan scripts: 34
+composed ['tests/boost_drift_replay.py']
+base coverage fast: 20
+103:DERIVED=$(grep -oE 'run "\$PYTHON" tests/[a-z_]+\.py' tests/run.sh \
+108:  fast)   SCRIPTS=$(echo "$DERIVED" | grep -vxE "env_drift|rolling|stress|validate|edge|backtest|optimality") ;;

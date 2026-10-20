@@ -1,0 +1,6 @@
+
+STRUCTURE RATCHET PASSED
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since d1db05dfcf2a
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: .github/workflows/ci.yml changes the gate itself, so every closure is suspect

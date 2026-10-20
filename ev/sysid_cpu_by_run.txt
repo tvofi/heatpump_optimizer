@@ -1,0 +1,13 @@
+118257300582 sysid_estimator_frontier.py: cpu=160.2s of the 480s bound | arch=1789s  python3 tests/arch_score.py
+118337404382 sysid_estimator_frontier.py: cpu=199.6s of the 480s bound | arch=2425s  python3 tests/arch_score.py
+118351012870 sysid_estimator_frontier.py: cpu=149.1s of the 480s bound | arch=1415s  python3 tests/arch_score.py
+118350962689 sysid_estimator_frontier.py: cpu=231.0s of the 480s bound | arch=2228s  python3 tests/arch_score.py
+118380549631 sysid_estimator_frontier.py: cpu=306.4s of the 480s bound | arch=2476s  python3 tests/arch_score.py
+before 39309509899 118255144487 sysid_estimator_frontier.py: cpu=161.0s arch=1811s hh=189s
+before 39309055147 118253614261 sysid_estimator_frontier.py: cpu=159.8s arch=1662s hh=190s
+before 39307877535 118249553963 sysid_estimator_frontier.py: cpu=142.5s arch=1814s hh=169s
+before 39302900612 118232431674 sysid_estimator_frontier.py: cpu=161.0s arch=1849s hh=190s
+before 39301525639 118227666855 sysid_estimator_frontier.py: cpu=159.6s arch=1793s hh=187s
+before 39299026662 118219004782 sysid_estimator_frontier.py: cpu=163.0s arch=1851s hh=191s
+before 39298637824 118217650545 sysid_estimator_frontier.py: cpu=164.0s arch=1851s hh=195s
+before 39293926561 118201424194 sysid_estimator_frontier.py: cpu=86.5s arch=1105s hh=106s

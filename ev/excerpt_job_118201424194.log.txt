@@ -1,0 +1,56 @@
+2026-10-19T17:25:36.9124888Z   GOLDEN_MODE: drift
+2026-10-19T17:59:24.7575251Z   ok   Prediction Accuracy stays bare for the same reason: it is a mean error
+2026-10-19T17:59:24.8255438Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exists
+2026-10-19T17:59:24.8255623Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
+2026-10-19T17:59:24.8255768Z   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=86.5s of the 480s bound
+2026-10-19T17:59:24.8255881Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exits 0
+2026-10-19T17:59:24.8256046Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py costs at most 50% of its CPU bound
+2026-10-19T17:59:24.8256219Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
+2026-10-19T17:59:24.8256389Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header
+2026-10-19T17:59:24.8256563Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_typical_s001 matches header
+2026-10-19T17:59:24.8256750Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_typical_s001 matches header
+2026-10-19T17:59:24.8256925Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_heavy_s001 matches header
+2026-10-19T17:59:24.8257099Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_heavy_s001 matches header
+2026-10-19T17:59:24.8257299Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_typical_s005 matches header
+2026-10-19T17:59:24.8257563Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_heavy_s005 matches header
+2026-10-19T17:59:24.8257746Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_armed matches header
+2026-10-19T17:59:24.8257940Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_gate_named matches header
+2026-10-19T17:59:24.8258222Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
+2026-10-19T17:59:24.8264476Z ALL 109 HARNESS HEADER CHECKS PASSED
+2026-10-19T17:59:24.8269303Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2026-10-19T17:59:24.8523492Z        0s  python3 tests/env_drift.py --claims-only 9d300ed118cec3ee02738286ac1893235ccc13f4
+2026-10-19T17:59:24.8523571Z        4s  python3 tests/closure.py selftest
+2026-10-19T17:59:24.8523646Z      297s  python3 tests/features.py
+2026-10-19T17:59:24.8523714Z      217s  python3 tests/entities.py
+2026-10-19T17:59:24.8523783Z        0s  python3 tests/block_duty.py
+2026-10-19T17:59:24.8523851Z        4s  python3 tests/doc_claims.py
+2026-10-19T17:59:24.8523916Z        0s  node tests/md_tables.mjs
+2026-10-19T17:59:24.8523985Z        1s  python3 tests/wood_advisor.py
+2026-10-19T17:59:24.8524063Z       11s  python3 tests/config_flow_steps.py
+2026-10-19T17:59:24.8524132Z        9s  python3 tests/structure.py
+2026-10-19T17:59:24.8524200Z     1105s  python3 tests/arch_score.py
+2026-10-19T17:59:24.8524274Z       36s  python3 tests/arch_score_head.py
+2026-10-19T17:59:24.8524343Z        0s  python3 tests/typing_ruler.py
+2026-10-19T17:59:24.8524477Z        0s  python3 tests/ha_contract.py
+2026-10-19T17:59:24.8524545Z        5s  python3 tests/manual_plan.py
+2026-10-19T17:59:24.8524610Z        0s  python3 tests/open_meteo.py
+2026-10-19T17:59:24.8524751Z        1s  python3 tests/solar_alignment.py
+2026-10-19T17:59:24.8524818Z        1s  python3 tests/guard_pins.py
+2026-10-19T17:59:24.8524887Z        1s  python3 tests/debug_collect.py
+2026-10-19T17:59:24.8524959Z       48s  python3 tests/finite_boundary.py
+2026-10-19T17:59:24.8525030Z      106s  python3 tests/harness_headers.py
+2026-10-19T17:59:24.8525095Z        3s  python3 tests/layout.py
+2026-10-19T17:59:24.8525169Z        2s  python3 tests/deployment_shape.py
+2026-10-19T17:59:24.8525313Z      196s  python3 tests/env_drift.py --all 9d300ed118cec3ee02738286ac1893235ccc13f4
+2026-10-19T17:59:24.8525379Z       17s  python3 tests/validate.py
+2026-10-19T17:59:24.8525442Z       25s  python3 tests/edge.py
+2026-10-19T17:59:24.8525507Z       72s  python3 tests/backtest.py
+2026-10-19T17:59:24.8525588Z      160s  python3 tests/boost_drift_replay.py
+2026-10-19T17:59:24.8525656Z       83s  python3 tests/optimality.py
+2026-10-19T17:59:24.8525723Z        1s  python3 tests/plan_view.py
+2026-10-19T17:59:24.8525789Z        0s  python3 tests/frontend.py
+2026-10-19T17:59:24.8525853Z       23s  node tests/card.mjs
+2026-10-19T17:59:24.8525921Z        0s  node tests/setup_qa_render.mjs
+2026-10-19T17:59:24.8526045Z        3s  node tests/card_drift.mjs 9d300ed118cec3ee02738286ac1893235ccc13f4
+2026-10-19T17:59:24.8526110Z      176s  python3 tests/stress.py
+2026-10-19T17:59:24.8526163Z     2027s  TOTAL (3 lane(s))

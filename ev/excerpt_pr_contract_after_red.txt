@@ -1,0 +1,5 @@
+2026-10-20T01:28:33.2461605Z [36;1mprintf 'red checks the body must answer: %s\n' \[0m
+2026-10-20T01:28:34.1241342Z red checks the body must answer: fast (3.14)
+2026-10-20T01:28:42.1341420Z   record   red-history           11 commit(s) between origin/main and this head, every failure conclusion across them: closures, fast (3.14)
+2026-10-20T01:28:42.1343691Z   ERROR   [pr-body] /tmp/pr-body.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+2026-10-20T01:28:42.1344851Z PR-BODY: 1 error(s) in /tmp/pr-body.md
