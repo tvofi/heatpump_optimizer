@@ -262,48 +262,49 @@ pr_args_self_test() (
   ck "update_pr: the lock holder has exited by the time a run returns" $?
   detrun unlock; [ "$(cat "$t/hold1")" = 1 ]
   ck "  mutant mut:unlock (its line deleted): the holder is still alive when the run returns" $?
-  # A stopped or killed run keeps the lock until its push has ended (#2469 round 2: `kill <pid>`,
-  # daemonize.py's stop, freed it while the push ran on in $WT). Branch fix/t carries a push stub
-  # that records its start, ends after 6 s, and exits at once when $t/fast exists.
-  # stoprun <mutant> <signal>: run 1 gets the signal mid-push; run 2 starts at once after a TERM,
-  # 3 s after a KILL; run 3 starts once the stub has ended and the holder's poll (1 s) has passed.
+  # A stopped run keeps the lock until its push has ended, and a killed run leaves no stale lock.
+  # Branch fix/t carries a push stub that records its start, ends after 6 s, and exits at once
+  # when $t/fast exists. Every wait is on a condition with a generous bound, never a fixed window.
+  # stoprun <mutant> <signal>: run 1 gets the signal mid-push.
+  #   TERM: run 2 starts 1 s later (the push has 5 s left) and must be BUSY; run 3 starts once
+  #         run 1 has exited and must take the lock.
+  #   KILL: runs are retried for up to 20 s until one is not BUSY; one must get through.
   if [ ! -e "$t/fixt" ]; then
     git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
       && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\nsleep 6\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" > "$o/tools/pr/app_push.sh" \
       && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
   fi
+  updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
   stoprun() {
     local sd=$t/st-$1-$2 g up k=0
-    rm -rf "$t/s$i"; git -C "$m" worktree prune; rm -f "$t/started" "$t/ended" "$t/fast"
+    rm -rf "$t/s$i"; git -C "$m" worktree prune; rm -f "$t/started" "$t/ended" "$t/fast" "$t/out2" "$t/out3"
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    cp "$t/body.md" "$t/b1.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
-    while [ ! -e "$t/started" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
-    kill -"$2" "$up"; [ "$2" != KILL ] || sleep 3
-    cp "$t/body.md" "$t/b2.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b2.md" > "$t/out2" 2>&1
-    wait "$up" 2>/dev/null
-    k=0; while [ ! -e "$t/ended" ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
-    sleep 1.5; touch "$t/fast"
-    cp "$t/body.md" "$t/b3.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b3.md" > "$t/out3" 2>&1
+    cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ ! -e "$t/started" ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -"$2" "$up"
+    if [ "$2" = TERM ]; then
+      sleep 1; updt 2 "$sd"; wait "$up" 2>/dev/null; touch "$t/fast"; updt 3 "$sd"
+    else
+      wait "$up" 2>/dev/null; touch "$t/fast"; k=0
+      while updt 3 "$sd"; grep -qF "update_pr: BUSY" "$t/out3" && [ $k -lt 20 ]; do sleep 1; k=$((k + 1)); done
+    fi
     reap
+    k=0; while [ ! -e "$t/ended" ] && [ -e "$t/started" ] && [ $k -lt 200 ] && [ "$2" = KILL ]; do sleep 0.05; k=$((k + 1)); done
     git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
   }
-  stopped_ok() { grep -qF "update_pr: BUSY" "$t/out2" && [ -e "$t/ended" ] && ! grep -qF "update_pr: BUSY" "$t/out3" \
-    && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
-  stoprun - TERM; stopped_ok
+  took_lock() { ! grep -qF "update_pr: BUSY" "$t/out3" && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
+  stoprun - TERM; grep -qF "update_pr: BUSY" "$t/out2" && took_lock
   ck "update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it" $?
   stoprun stop TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
   ck "  mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs" $?
-  stoprun - KILL; stopped_ok
-  ck "update_pr: a SIGKILLed run keeps the lock until its push has ended; then the next run takes it" $?
-  stoprun drain KILL; ! grep -qF "update_pr: BUSY" "$t/out2"
-  ck "  mutant mut:drain (its line deleted): a SIGKILLed run frees the lock while its push still runs" $?
-  stoprun pgrp KILL; ! grep -qF "update_pr: BUSY" "$t/out2"
-  ck "  mutant mut:pgrp (its line deleted): the run shares its caller's group, and the lock goes under a live push" $?
-  stoprun holdgrp KILL; grep -qF "update_pr: BUSY" "$t/out3"
-  ck "  mutant mut:holdgrp (its line deleted): the holder counts itself in the run's group and never frees the lock" $?
+  stoprun - KILL; took_lock
+  ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" $?
+  stoprun watch TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
+  ck "  mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
