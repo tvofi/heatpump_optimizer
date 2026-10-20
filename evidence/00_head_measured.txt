@@ -1,0 +1,4 @@
+PR #2485 reviewed at head 22ed5ed703125446b70f18eac07dc75b5592a53a
+live head at post time: 478cc27efd03d59d97899cff0d67f2e912ce7918 (recarry of origin/main 76bb4562, #2465)
+measured: 2026-10-20T13:11:00Z
+budget direction: coverage_floors 18/6 -> 40/15 (override withdrawn, literal restored)

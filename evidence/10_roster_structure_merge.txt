@@ -1,0 +1,13 @@
+=== R10-STAMP roster carry of #2445 stamp-time items ===
+4056:    "Source: #2445 Forward-carry. Flat-price null control for R10-SETPOINT-POWER weakened from plan identity to \"never worse\": the relaxed solver start also unsticks flat-price solves (20 of 32 census cells move, all lower). Ruled by the orchestrator under mandate 6175172275: the control for solver-start changes is \"never worse, and every flat-price move lowers the objective\". Owed at the stamp: record the ruling in the release notes and in the measurement-discipline control list.",
+4057:    "Source: #2445 Forward-carry. Raspberry Pi CPU of the relaxed setpoint start is estimated only (+8 to +16 s per clamped solve, from +2.0 to +2.7 s measured on arm64). Owed after the stamp: a measured process_time on the owner's Pi install at the release head and its base, and cap the relaxed pass's maxiter if a clamped solve exceeds the update-interval budget.",
+4058:    "Source: #2445 review (merge verdict 40c4e119) Friction. Two equivalent-mutant survivors and one architecture-dependent figure, folded so none is dropped: (1) X5, the hot-water path passing first=0 instead of len(extra_starts), survives because no fixture passes extra_starts; the first-structural-start index is unchecked on both paths. Owed: a fixture with extra_starts whose plan differs when first is wrong; control X5 red, null control unmutated green. (2) X6, the warm pass also getting a relaxed start, changes cost only. (3) The census figures depend on the architecture: arm64 spread 24/0/8, flat 20/0/12; x86_64 23/0/9, 16/0/16. The invariant (higher = 0, every moved plan lower) holds on both. Owed at the stamp: quote the invariant, not a literal count, in the release notes.",
+
+=== structure.py ===
+
+STRUCTURE RATCHET PASSED
+=== env_drift --claims-only ===
+claims hygiene: origin/main ok
+=== merge-tree conflict check vs origin/main ===
+5deb7f224f01cb47100857a053b77b4afde0ed72
+merge-tree rc=0

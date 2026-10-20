@@ -1,0 +1,10 @@
+
+=== Stress and economics ===
+RESULT sweep_scenarios=54 calls_population=20
+RESULT literal=40
+RESULT own_share(40,20,54)=15
+RESULT own_share(18,20,54)=7
+RESULT coverage_floors(base_with_override)=(18, 6) cites_set=True
+RESULT coverage_floors(head_no_override)=(40, 15) cites=None
+RESULT control_readd_override=(18, 6)
+RESULT control_override_above_literal_ignored=(40, 15)
