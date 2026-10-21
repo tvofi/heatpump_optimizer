@@ -1,0 +1,18 @@
+== python3 -I tests/structure.py
+STRUCTURE RATCHET PASSED
+rc=0
+== python3 -I tests/layout.py --guard --base 265d3bf1a
+layout: GUARD: 0 refusal(s) against 265d3bf1acc1
+rc=0
+== python3 -I tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 265d3bf1acc1
+rc=0
+== node tools/policy/policy_lint.mjs
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+== python3 -I tools/policy/agreement_py.py --self-test
+agreement_py self-test: 7 checks, 0 failed
+rc=0
+TOTAL: 0 error(s) across 41 policy file(s)
+CI PREDICT: no closures or fast red predicted against 265d3bf1acc1 (a data-file read is not seen)
+rc=0
