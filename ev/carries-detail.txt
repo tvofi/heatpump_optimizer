@@ -1,0 +1,48 @@
+**R10-BRIEFS-FOLD (`dev/governance/dimensions/D7.md`).** The folded brief can cite `shape_copies` as a finder's census of rule families below the clone window. It should cite it with its stated limits: spelling-blind, weight 0, and C23 load-bearing only for copies below the window (`ABOUT.md`, part 5). The roster carry is the orchestrator's to write. (from #2401 body, Forward-carry; fix review 625
+From #2521: tests/README.md line 272 cites `tools/audit/harnesses/k1725_blas_kernel_gap.py`, which does not exist; correct it to `dev/audit/harnesses/k1725_blas_kernel_gap.py`. The file is policy, so it rides this group.
+D2 step 5, gains arm precondition (from #2563 round 1 review, carry-missing): a probe of the internal-gains learner must run at a converged heat-loss level with a genuine gain, because at an unconverged level the learner no longer measures anything. At the #2563 head the sweep enumerator's own probe_internal_gains dies with TypeError: 'NoneType' object is not iterable on the unconverged level. Con
+---
+{"stage":"in-progress","branch":"handoff/r10-merge-pr-mandate","commit":"6219325ca20928f82c80880b1ed7fadf3e1c93b2","last_step":"fixer","next_step":"recarry","note":"Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."}
+{"stage":"done","branch":"handoff/r10-merge-pr-mandate","commit":"22615537a497c87cf0560ecc7dd09faac52b1de5","last_step":"fixer","next_step":"recarry","note":"Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its one path, the mandate id reaches proof_watch, refusal before any GitHub write) has no pull request. Owed: recarry and open; it touches tools/policy/budget_raise_gate.py, so the owner reviews."}
+---
+diff --git a/dev/programme/carries/carry-201.json b/dev/programme/carries/carry-201.json
+index 509dd714a..09975f003 100644
+--- a/dev/programme/carries/carry-201.json
++++ b/dev/programme/carries/carry-201.json
+@@ -13,7 +13,7 @@
+     "the in-tree brief of a stage with no live roster group."
+   ],
+   "issue": 201,
+-  "stage": "any later seat that stamps a release (tools/release/stamp.py, the deploy-key tag push of dev/governance/decisions/0009-agent-identities-for-author-and-approver.md step 5); the D13 dimension of a later audit round (dev/governance/dimensions/D13.md is its method, dev/audit/rounds/round5/D13/seat-a/dora_cfr.py its harness); the D11 dimension of a later audit round, whose method dev/governance/dimensions/D11.md is and whose subject is .github/workflows/governance.yml; and the D0 dimension of a later audit round, whose method dev/governance/dimensions/D0.md is and whose capture harness is tests/optimality.py; the next planning seat (the schedule model at tools/plan/replan.py and the page it feeds); and the roster owner's next re-record of the roster's wave field",
++  "stage": "any later seat that stamps a release (tools/release/stamp.py, the deploy-key tag push of dev/governance/decisions/0009-agent-identities-for-author-and-approver.md step 5); the D13 dimension of a later audit round (dev/governance/dimensions/D13.md is its method, dev/audit/rounds/round5/D13/seat-a/dora_cfr.py its harness); the D11 dimension of a later audit round, whose method dev/governance/dimensions/D11.md is and whose subject is .github/workflows/governance.yml; and the D0 dimension of a later audit round, whose method dev/governance/dimensions/D0.md is and whose capture harness is tests/optimality.py; and any later seat that repairs the nightly-ha positive control in tests/nightly_ha.py (the check is `check_hb_positive_control`, and the sites the RCA names are the py-spy call and the heartbeat pin); the next planning seat (the schedule model at tools/plan/replan.py and the page it feeds); and the roster owner's next re-record of the roster's wave field",
+   "carries": [
+     {
+       "from": "the round-5 D11-02 finding (#1301), whose fix is rule \"rows\" in tools/release/stamp.py -- the stamp now re-applies `record`'s own predicate to the window it is about to close",
+@@ -99,6 +99,13 @@
+       "remeasure": "At your own merge base, on a worktree of origin/main: `python3 -I tools/audit/seat/record_row.py --enumerate --since $(git describe --tags --abbrev=0)` then `--plan`, and read the planned-row count; repeat with `--since v6.7.13`, the earliest tag that reaches the oldest stale row. The two counts differ by exactly the rows the beat's window cannot reach. Do not carry 18 and 85: the last tag moves with every release, and both counts are functions of main's tip and of which rows were written pre-merge. A seat that reads the two counts as equal has either re-derived the window or found that it has since widened; run the wide window before concluding either.",
+       "brief": "Constraint on record upkeep, and the owed action this lane leaves behind. The record-autofix beat (`tools/audit/seat/record_row.py`, driven by the `record-autofix` job) corrects ONLY the merges its tag window covers -- `--enumerate` reads `<last tag>..HEAD`, deliberately, since re-reading the whole history on every push is the cost it refuses -- so a row that went stale BEFORE the last tag is corrected by no automatic run, however correct the merge predicate now is. The next seat to do record upkeep owes one explicit run of the correction over a window that reaches the defect: `python3 -I tools/audit/seat/record_row.py --enumerate --since v6.7.13`, then `--plan` and `--apply` with `--root` at a worktree of origin/main. Measured at 7cd5a588c that plans the 103 stale rows this lane's fix exists to correct, plus the 2 merges that carry no row at all and are written rather than rewritten, one line per file, and re-plans to 0 -- the beat's own convergence, asked for over a window wide enough to include the rows. Nothing widens the tag window on its own, so this is a precondition on the record being correct rather than a recommendation: the fix converges the record inside the window it is run over, and the rows behind the tag are corrected only when a seat asks for them."
+     },
++    {
++      "from": "the R10-RCA-NIGHTLY-PYSPY record (#2479), whose RCA is dev/audit/rca/nightly-ha-pyspy-timeout.md: the nightly-ha (stable) red is `hb:positive_control` failing when its single `py-spy dump --nonblocking` call times out at 30 s against CPython 3.14.6 / py-spy 0.4.2",
++      "effect": "narrows",
++      "control": "The RCA measures the class from CI's own job logs, not from argument: three failed nightly-ha jobs each carry two `py-spy did not run: TimeoutExpired` lines and `FAIL hb:positive_control`, and two green jobs at the same image digest read `py-spy rc=0` with `Python v3.14.6`; the null is the green pair, which shows the sample can succeed. The perturbation that would void the finding is a green job whose positive control ran with no py-spy call at all.",
++      "remeasure": "At your own merge base: read the nightly-ha job logs for the newest three reds and the newest greens and compare the `py-spy` line and the `hb:positive_control` verdict, as the RCA's section 1 does. The container lane is CI-only, so the local reproduction in the RCA is a claim to re-run there, not a measurement a seat can take on the stock box.",
++      "brief": "Constraint, not an opportunity: `check_hb_positive_control` passes on ONE racy sample. A repair must not simply retry until it succeeds (that converts a measured red into a flaky green); it must either take the sample with a method whose failure is distinguishable from a real hang, or make the check's sample deterministic. The countermeasure the RCA proposes (A) and its demonstration obligation are in dev/audit/rca/nightly-ha-pyspy-timeout.md section 5; carry the demonstration with the fix. The RCA's proposal (C) is an owner decision and is not this carry."
++    },
+     {
+       "from": "the round-10 planning pull request that added tools/plan/replan.py; its cross-check of the out-of-tree plan documents against the roster found the wave table stale",
+       "effect": "invalidates",
+diff --git a/dev/programme/delivery/2559.md b/dev/programme/delivery/2559.md
+new file mode 100644
+index 000000000..0f7a35b40
+--- /dev/null
++++ b/dev/programme/delivery/2559.md
+@@ -0,0 +1 @@
++- [#2559](https://github.com/tvofi/heatpump_optimizer/pull/2559) — **open**, roster(r10): 17 new groups, stages and carries since #2467 (R10-ROSTER-OPS)
+ dev/programme/carries/carry-201.json       |   9 +-
+ dev/programme/rosters/critical-path.json   |  17 +
+ dev/programme/rosters/wave-r10-groups.json | 876 ++++++++++++++++++++++++++---
+ 3 files changed, 809 insertions(+), 93 deletions(-)
+ls: cannot access '/home/user/heatpump_optimizer/tools/audit/harnesses/k1725_blas_kernel_gap.py': No such file or directory
+/home/user/heatpump_optimizer/dev/audit/harnesses/k1725_blas_kernel_gap.py
+272:`tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
