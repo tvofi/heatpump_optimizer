@@ -3449,6 +3449,7 @@
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
+   "dev/audit/harnesses/pulse_replay.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
