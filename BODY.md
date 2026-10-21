@@ -25,11 +25,13 @@ SIGKILL stays out of scope, because no trap runs. The KILL arm of `update_pr.sh`
 
 ## Head
 
-`b5b91be95a2dd08a1d8daab07c406c07a8509e97` is the code head, and everything below was measured there. It merges origin/main `5226fd2d` into `6945363d7f67cae739baafc7ac3f4601068a9d28`, my last commit. Origin/main's tip was read at 2026-10-21T15:40:08Z. The merge touched none of the eight files this PR changes (`git diff --quiet 6945363d7 b5b91be95 -- <the eight>` exit 0), and it needed no hand resolution. `6945363d7` itself sits on PR head `c071fa5f37abdac0da2284547b9282549eb4d607` and merges origin/main `e7c66485`. `prepr` runs with `PREPR_SKIP_CLOSURES=1` (the owner's ruling), so the scoped gate was derived separately and is in `## Figures`.
+`e856439273f4ac037b1d0390b0147b3385e201b7` is the code head, and everything below was measured there. It is `b5b91be95a2dd08a1d8daab07c406c07a8509e97` (round 1's code head) plus two commits: a merge of origin/main `49c222280d4650f4c608385cb95856e1a937a5b2` (read 2026-10-21T17:26:21Z; `git merge-tree --write-tree origin/main e856439273f4ac037b1d0390b0147b3385e201b7` prints a tree id and exits 0, so it is clean) and one line in `pr_args.sh` (below). The merge touched none of the seven scripts this PR changes besides `pr_args.sh` (`git diff --quiet 6945363d7 f119f5e93 -- <the seven>` exit 0). `prepr` runs with `PREPR_SKIP_CLOSURES=1` (the owner's ruling), so the scoped gate was derived separately and is in `## Figures`.
+
+**Round 2: the throwaway-git refusal.** The update of the PR was refused by the `governance.yml` step `Refuse a throwaway git repository built without the shared helper`. The site was `pr_args.sh`'s census fixture, which built its scratch tree with `rm -rf "$c"; mkdir -p "$c"; git -C "$c" init -q`. It now calls `throwaway_git_init "$c" -q`, the helper that `pr_args.sh --self-test` already sourced from `tests/throwaway_git.sh` for its other fixtures (so the auto-maintenance repack cannot outlive `rm -rf`). That is the only raw `git init` or `git clone` in this diff: `git diff $(git merge-base origin/main HEAD)...HEAD | grep -nE '^\+.*\bgit\b.*\b(init|clone)\b'` prints nothing at this head, and the same grep at `b5b91be95` printed the one line (the null control). `python3 -I tests/throwaway_git.py --check` printed `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD` here, and `REFUSE tools/audit/seat/pr_args.sh:462` at the merge before the fix.
 
 ## Mutation proof
 
-Every mutant was applied to the committed head and restored with `git checkout -- <file>`, and `git status --short` was empty afterwards. The runner is a scratch `mut.sh` that applies one exact-match replacement, runs the named self-test, and prints its `FAIL` lines.
+Every mutant was applied to the committed head (re-run at `e856439273f4ac037b1d0390b0147b3385e201b7`; a scratch `mut.py` asserts each anchor occurs once) and restored with `git checkout -- <file>`, and `git status --short` was empty afterwards. The runner is a scratch `mut.sh` that applies one exact-match replacement, runs the named self-test, and prints its `FAIL` lines.
 
 - **M0, the null run:** no change to any line. `pr_args self-test: 74 checks, 0 failed`.
 - **M1 `handoff_push.sh`, `pr_exit_trap` dropped from its source line:** 4 failed.
@@ -40,11 +42,11 @@ Every mutant was applied to the committed head and restored with `git checkout -
 - **M2 `handoff_push.sh`, `hp_push` run in the foreground:** 2 failed, the two census arms.
   - The census flags it as `a push runs in the foreground`. The first M2 run, before `6945363d7`, survived: the census read `2>&1` as a background `&`. The check now strips redirections, and a self-test arm pins exactly that shape.
 - **M3 `remerge_main.sh`, `pr_exit_trap` dropped:** 3 failed: `remerge_main: TERM reaps the whole descendant tree, and the pusher is gone` and the two census arms.
-- **M4 `open_pr.sh`, the first push back in the foreground:** 3 failed: `open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it` and the two census arms.
+- **M4 `open_pr.sh`, the first push (`> $D/p1.log 2>&1 &`) back in the foreground:** 9 failed, among them `open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it` and the two census arms. The other six are open_pr arms that no longer see their open-count fixture; round 1 recorded 3 with a different foreground edit of the same line.
 - **M5 `cloud_relay.sh`, `pr_exit_trap` dropped:** `cloud_relay self-test: 75 checks, 1 failed`, `a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)`.
 - **M6 `app_push.sh`, `pr_exit_trap cleanup` dropped:** `app_push self-test: 139 checks, 11 failed`. The failures include `and leaves none of prepr's tree alive (R10-PUSHER-REAP) (got '3', want '0')`, and ten token-revoke and private-directory arms.
 - **M7 `merge_train.py`, `p.terminate()` turned into `p.kill()`:** `merge_train self-test: 200 checks, 1 failed`, `a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)`.
-- **M8 `merge_train.py`, `main`'s `stop_on_signal()` call deleted:** the census prints `OPEN tools/audit/seat/merge_train.py runner-py: a stop SIGKILLs or orphans its tool`.
+- **M8 `merge_train.py`, `main`'s `stop_on_signal()` call deleted:** `pr_args self-test: 74 checks, 2 failed`, the two census arms.
 - **M9 `merge_train.py`, the handler's `raise SystemExit(128 + signum)` turned into `return None`:** 1 failed, the same arm as M7.
 - **Built-in mutants.** `pr_args.sh`'s self-test runs each one on copies of the scripts, and each arm passes only because its mutant shows the defect:
   - `mut:exitreap` (`pr_exit_trap`'s trap line): the open_pr, handoff_push and remerge_main survivor arms.
@@ -74,9 +76,9 @@ The new arms for `cloud_relay.sh`, `app_push.sh` and `merge_train.py` live insid
 
 ## Figures
 
-Measured at `b5b91be95a2dd08a1d8daab07c406c07a8509e97`. origin/main `5226fd2d11b71deddd359c328f7ec1805e22b752` was read at 2026-10-21T15:40:08Z.
+Measured at `e856439273f4ac037b1d0390b0147b3385e201b7`. origin/main `49c222280d4650f4c608385cb95856e1a937a5b2` was read at 2026-10-21T17:26:21Z.
 
-- **The class's seams.** Rule: `bash tools/audit/seat/pr_args.sh --pushers <rev>`, the git grep above with the dispositions in `PR_PUSHERS`. It returns 16 paths at the merge base `e7c66485`, at `c071fa5f` and at this head.
+- **The class's seams.** Rule: `bash tools/audit/seat/pr_args.sh --pushers <rev>`, the git grep above with the dispositions in `PR_PUSHERS`. It returns 16 paths at this head (the 16 `ok` lines of `--pushers`); the base and `c071fa5f` columns below are round 1's readings, unchanged by round 2.
 
   | seat | disposition | base `e7c66485` | `c071fa5f` | this head |
   |---|---|---|---|---|
@@ -120,6 +122,7 @@ Measured at `b5b91be95a2dd08a1d8daab07c406c07a8509e97`. origin/main `5226fd2d11b
 
 ## Red checks
 
+- **`governance` at the round-1 head, the throwaway-git step.** Its cheaper detector is `python3 -I tests/throwaway_git.py --check`, a one-second local run that `prepr.sh` does not make and that I did not run before round 1's push; the cause was a hand-built fixture repository in a self-test I added. Fixed in `## Head`. Trigger named here; its analysis belongs to `root-cause.md`'s seat.
 - **`pr-contract` at `c071fa5f`.** `carry_audit.py` refused 3 unrouted body items: the `## Forward-carry` "none -- …" sentence and both `## Friction` lines. The body caused it, not the code, and this body is written fresh: `## Forward-carry` and `## Friction` are each a bare `none`. A cheaper detector already exists, `carry_audit.py`'s own check, which `prepr.sh` runs before the push. The previous body went out without that run's refusal being acted on. I am naming the trigger here; its analysis belongs to `root-cause.md`'s seat.
 - **`nightly-status`** grades `main`. This diff (eight `tools/` scripts) does not reach anything it reads.
 
