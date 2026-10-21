@@ -890,9 +890,8 @@ def self_test() -> int:
         check("a prefix resolving only to a blob does not resolve to a commit",
               "does not resolve" in bad.get("C-BLOB", ""), bad)
         lone = root / "no-origin"
-        git("init", "-q", str(lone))
-        git("-C", str(lone), "-c", "user.name=t", "-c", "user.email=t@t",
-            "commit", "-q", "--allow-empty", "-m", "x")
+        throwaway_git_init(lone, "-q")
+        git("-C", str(lone), "commit", "-q", "--allow-empty", "-m", "x")
         head = git("-C", str(lone), "rev-parse", "HEAD")
         bad = dict(invalid_commits(str(lone), {"groups": [
             {"group": "C-NOMAIN", "resume": {"stage": "done", "commit": head}}]}))
