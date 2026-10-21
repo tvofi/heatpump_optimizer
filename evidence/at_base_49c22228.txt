@@ -1,0 +1,2 @@
+app_push self-test: 135 checks, 0 failed
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired
