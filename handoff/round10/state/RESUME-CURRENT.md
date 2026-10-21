@@ -58,7 +58,6 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-FLOW-TOOLKIT-MEASURE (wave 1, 0 satisfied edge(s))
 - R10-FLOW-YIELD-PROBE (wave 1, 0 satisfied edge(s))
 - R10-FLY-CAP-LINE (wave 1, 0 satisfied edge(s))
-- R10-FLY-CARRY-DOC-CONTEXT (wave 1, 0 satisfied edge(s))
 - R10-FLY-DEPGRAPH-STALE (wave 1, 0 satisfied edge(s))
 - R10-HANDOVER-REFRESH (wave 1, 0 satisfied edge(s))
 - R10-INPUT-STALENESS (wave 1, 0 satisfied edge(s))
