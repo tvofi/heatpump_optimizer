@@ -929,8 +929,9 @@ def self_test() -> int:
         root = Path(td)
         seed = root / "seed"
         (seed / roster_lib.ROSTERS_DIR).mkdir(parents=True)
-        (seed / ".claude" / "workflows").mkdir(parents=True)
-        (seed / ".claude/workflows/brief_lint.mjs").write_text(
+        lint = seed / roster_sync.roster_edit.BRIEF_LINT_NEW
+        lint.parent.mkdir(parents=True)
+        lint.write_text(
             "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
             encoding="utf-8")
         roster = {"repo": "fixture/state", "session": "r9-sync", "groups": [

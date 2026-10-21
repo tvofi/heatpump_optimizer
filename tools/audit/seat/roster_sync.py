@@ -540,9 +540,9 @@ def self_test() -> int:
         tmp.mkdir(parents=True, exist_ok=True)
         seed = tmp / "seed"
         seed.mkdir()
-        (seed / ".claude" / "workflows").mkdir(parents=True)
-        (seed / ".claude/workflows/brief_lint.mjs").write_text(lint_src,
-                                                               encoding="utf-8")
+        (seed / roster_edit.BRIEF_LINT_NEW).parent.mkdir(parents=True)
+        (seed / roster_edit.BRIEF_LINT_NEW).write_text(lint_src,
+                                                      encoding="utf-8")
         (seed / ROSTER).parent.mkdir(parents=True, exist_ok=True)
         (seed / ROSTER).write_text(roster_edit.dump(ROSTER_FIXTURE),
                                    encoding="utf-8")

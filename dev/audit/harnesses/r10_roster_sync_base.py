@@ -81,8 +81,8 @@ def fixture(root: Path) -> tuple[Path, Path, Path, Path]:
     """(bare origin, driver clone, roster branch, pr fixture) for one run."""
     seed = root / "seed"
     seed.mkdir(parents=True)
-    (seed / ".claude" / "workflows").mkdir(parents=True)
-    (seed / ".claude/workflows/brief_lint.mjs").write_text(
+    (seed / "tools" / "policy").mkdir(parents=True)
+    (seed / "tools/policy/brief_lint.mjs").write_text(
         "console.log('TOTAL: 0 error(s) across 1 file(s)');\n", encoding="utf-8")
     roster = {"repo": "fixture/state", "session": "r9-sync", "groups": [
         {"group": "R9-MERGED", "lane": "L1", "issues": [], "fixes": [],
