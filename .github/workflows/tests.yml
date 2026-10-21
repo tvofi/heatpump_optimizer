@@ -2880,6 +2880,22 @@ jobs:
         with:
           python-version: "3.13"
 
+      # The window fetch's decisions -- the list call's retry, the refusal of
+      # an empty or partial body as a failed fetch (never an empty window),
+      # and the skip of an artifact that expired before its zip download --
+      # are in tests/ci_ratchet.py, not in a heredoc, so --self-test drives
+      # them with no network. The step is here, in the job that runs them,
+      # and tests/entities.py also pins it: a self-test no run line names is
+      # one the tree never runs (tools/audit/seat/selftest_wiring.py's rule).
+      #
+      # Why the refusal moved out: on 2026-10-20 the inline
+      # `gh api … --jq … > window.json || true` returned a body gh's jq
+      # engine could not parse, `|| true` swallowed the exit code, and the
+      # next step died on `json.load` of a 0-byte file with a traceback that
+      # named nothing (CI job 118878630676).
+      - name: Self-test the window fetch and parse
+        run: python3 -I tests/ci_ratchet.py --self-test
+
       - name: Gather this run's and the recent window's metrics
         env:
           GH_TOKEN: ${{ github.token }}
@@ -2895,45 +2911,11 @@ jobs:
           # run of the last 15 runs that are not this one, whatever their
           # event -- the scoping metric reads pull_request runs, the push
           # counts read push runs, and every line carries its own event and
-          # run id, so the ratchet groups them itself.
-          # The run association is read as .workflow_run.id with a .run_id
-          # fallback: the artifacts list API stopped returning .run_id
-          # (null for every artifact, 2026-10-12), which left the old
-          # query selecting on null -- null != GITHUB_RUN_ID is true, so
-          # THIS run's own artifacts passed the exclusion and unique_by
-          # over a null run collapsed the window to one artifact per
-          # name, double-counting this run's lanes (96 = 63 + 33 on the
-          # first grade). Both must stay null-safe.
-          gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[]
-                   | select(.name | startswith("ci-metrics-"))
-                   | select(.expired == false)
-                   | select((.workflow_run.id // .run_id // 0)
-                            != ($ENV.GITHUB_RUN_ID | tonumber))
-                   | {id: .id, run: (.workflow_run.id // .run_id),
-                      name: .name, at: .created_at}]
-                  | sort_by(.at) | reverse
-                  | unique_by(.run, .name)' > "$RUNNER_TEMP/window.json" || true
-          python3 - "$RUNNER_TEMP/window.json" "$M" <<'EOF'
-          import json, os, subprocess, sys, zipfile
-          window, out = sys.argv[1], sys.argv[2]
-          arts = json.load(open(window))[:45]
-          print(f"window: {len(arts)} ci-metrics artifact(s)")
-          repo = os.environ["GITHUB_REPOSITORY"]
-          for art in arts:
-              z = os.path.join(out, f"a{art['id']}.zip")
-              with open(z, "wb") as fh:
-                  subprocess.run(
-                      ["gh", "api", f"repos/{repo}/actions/artifacts/"
-                       f"{art['id']}/zip"], stdout=fh, check=True)
-              with zipfile.ZipFile(z) as f:
-                  for n in f.namelist():
-                      if n.endswith(".tsv"):
-                          dst = os.path.join(out, f"w{art['id']}-"
-                                             + os.path.basename(n))
-                          with open(dst, "wb") as wh:
-                              wh.write(f.read(n))
-          EOF
+          # run id, so the ratchet groups them itself. The run association is
+          # read as .workflow_run.id with a .run_id fallback (the list API
+          # stopped returning .run_id on 2026-10-12); both stay null-safe in
+          # ci_ratchet.window_entries, which owns the selection now.
+          python3 -I tests/ci_ratchet.py --gather --metrics-dir "$M"
       - name: Fetch the recent push runs' durations
         env:
           GH_TOKEN: ${{ github.token }}
@@ -4223,6 +4205,59 @@ jobs:
                     || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
                 done
           }
+          # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A merge train
+          # merges pull requests itself, and a record pull request landing
+          # from this beat while it waits on CI moves main under it: #2291,
+          # #2295 and #2299 each merged mid-train on 2026-10-15 and stopped
+          # or re-carried #2284 and #2290. CI cannot see the train's local
+          # pidfile, so tools/audit/seat/merge_train.py publishes
+          # refs/heads/train-hold while a real run is live and deletes it at
+          # its closing line (hold_refresh/hold_release). The ref points at a
+          # commit made at publication, whose committer date is the age here:
+          # younger than HOLD_MAX_AGE_S is a live train, so the pull request
+          # stays open for a later beat; at or past it the hold is stale (a
+          # crashed train moved nothing, so no rows went overdue) and this
+          # beat proceeds. The train refreshes the ref on every queue item,
+          # every recarry and before every CI-wait sleep, so the longest gap
+          # between refreshes is ONE PHASE -- a recarry (5-15 min inside
+          # app_push's prepr) or a poll (min(POLL_SECONDS, HEARTBEAT_SECONDS)
+          # = 240 s), never a whole wait or a whole batch. HOLD_MAX_AGE_S=3600
+          # is above the longest such phase by more than 3x. A date ahead of
+          # this runner's clock is unknowable, never young (#775); an absent
+          # ref leaves the pre-fix behaviour. GET /commits/<ref> answers 422
+          # "No commit found for SHA" for an absent ref (measured live
+          # 2026-10-20), not 404, so both arms are the silent absence; any
+          # other code is logged. record_row.py's own --automerge-check is
+          # untouched.
+          HOLD_REF=train-hold
+          HOLD_MAX_AGE_S=3600
+          hold_code=$(curl -sS -o "$RUNNER_TEMP/train-hold.json" -w '%{http_code}' \
+            -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/commits/$HOLD_REF") || hold_code=000
+          if [ "$hold_code" = 200 ]; then
+            hold_age=$(python3 -I - "$RUNNER_TEMP/train-hold.json" <<'PY'
+          import json, sys
+          from datetime import datetime, timezone
+          at = json.load(open(sys.argv[1]))["commit"]["committer"]["date"]
+          print(int((datetime.now(timezone.utc)
+                     - datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds()))
+          PY
+            ) || hold_age=unreadable
+            case "$hold_age" in
+              *[!0-9-]*|'')
+                echo "::warning::the train hold's age is unreadable ($hold_age); treated as absent" ;;
+              *)
+                if [ "$hold_age" -lt 0 ]; then
+                  echo "::warning::the train hold's committer date is ahead of this runner's clock; age unknowable, treated as stale"
+                elif [ "$hold_age" -lt "$HOLD_MAX_AGE_S" ]; then
+                  echo "::notice::a merge train is live (hold ${hold_age}s old); #$NUM waits for a later beat"
+                  say skip-train-hold; exit 0
+                else
+                  echo "::warning::the train hold is ${hold_age}s old (bound ${HOLD_MAX_AGE_S}s); treated as stale"
+                fi ;;
+            esac
+          elif [ "$hold_code" != 404 ] && [ "$hold_code" != 422 ]; then
+            echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
+          fi
           HEAD=$(pr_field 'd["head"]["sha"]') || {
             echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
           if ! guard; then
