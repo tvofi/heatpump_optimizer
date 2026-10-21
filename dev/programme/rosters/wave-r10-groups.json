@@ -5034,7 +5034,7 @@
    "resume": {
     "stage": "done",
     "branch": "fix/r10-dependabot-aiohttp",
-    "commit": "d4f937d6e7efdd8ee22bd5023d10734d75d08085",
+    "commit": "e7c664856776542bf60bd770c98aba1eaadb4041",
     "note": "delivered by #2487"
    }
   },
