@@ -1,0 +1,19 @@
+== dry-run, live PR 2578, current body; curl write-guarded
+  record   red-history           8 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
+
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/bcd7c8f9-c2a0-576d-ab09-6ed3b40ead5f/scratchpad/tmp.UJZAVAmLay/body2578.md
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+body_patch: DRY-RUN: the contract passed at 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20; would PATCH https://api.github.com/repos/tvofi/heatpump_optimizer/pulls/2578 as hpo-author with {"body": "R10-FLOW-BODY-PATCH (Lean flow study K14, expedite). No tool PATCHed a pull request's body alone: `app_push.
+
+real	0m6.481s
+user	0m0.749s
+sys	0m0.221s
+== bad body
+  ERROR   [pr-body] /tmp/claude-0/-home-user-heatpump-optimizer/bcd7c8f9-c2a0-576d-ab09-6ed3b40ead5f/scratchpad/tmp.UJZAVAmLay/bad.md: no `## Friction` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.
+  ERROR   [pr-body] /tmp/claude-0/-home-user-heatpump-optimizer/bcd7c8f9-c2a0-576d-ab09-6ed3b40ead5f/scratchpad/tmp.UJZAVAmLay/bad.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/governance.yml), so the 
+
+PR-BODY: 8 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/bcd7c8f9-c2a0-576d-ab09-6ed3b40ead5f/scratchpad/tmp.UJZAVAmLay/bad.md
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+body_patch: REFUSE: the body does not pass the contract at 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20 (above): it is NEVER sent; repair it and run this again
+guard log:
+     18 curl read
