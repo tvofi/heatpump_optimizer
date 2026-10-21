@@ -1,0 +1,17 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 37e135a31..911c9f7f6 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6432,11 +6432,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         hass = self.hass
+         _audit_price_units(hass, cfg)
+         try:
+-            session = (
+-                None
+-                if _entity_price_source(cfg)
+-                else async_get_clientsession(hass)
+-            )
++            session = None if _entity_price_source(cfg) else async_get_clientsession(hass)
+             verdict, payload = await pull_prices(
+                 session, cfg, _price_entity_state(hass, cfg)
+             )

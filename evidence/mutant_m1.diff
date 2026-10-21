@@ -1,0 +1,22 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb1f8964d..dfb9c29d7 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10563,7 +10563,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # path that stopped listening — three cycles of routine MPC
+             # idle must not stand control down.
+             watch_active = (
+-                self._commanded_power() > 0.05 and not defrosting and reported >= hz_min
++                self._commanded_power() > 0.05 and reported >= hz_min
+             )
+             if self._freq_watchdog.note_report(reported, active=watch_active):
+                 # Three consecutive divergent ticks: the hardware is not
+@@ -10595,7 +10595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 )
+         if (
+             self._measured_power is None or self._immersion_active
+-            or defrosting or _freq_fold_blocked(self)
++            or _freq_fold_blocked(self)
+         ):
+             return
+         self._freq_map.observe(

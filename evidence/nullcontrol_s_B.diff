@@ -1,0 +1,31 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb1f8964d..4736ac372 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10658,7 +10658,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         mode = self._freq_mode()
+         recommended = None
+         exhausted = False
+-        if source is not None:
++        if mode != "unconfigured":
+             target = self._commanded_power() or 0.0
+             recommended = self._freq_map.recommend(target, hz_min, hz_max)
+             # "Running flat out on faith" must be visible: the flat-out
+@@ -10675,9 +10675,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "evidence_exhausted": exhausted,
+             "commanded_hz": self._freq_watchdog.commanded,
+             "range_hz": (
+-                [round(hz_min, 1), round(hz_max, 1)] if source is not None else None
++                [round(hz_min, 1), round(hz_max, 1)]
++                if mode != "unconfigured"
++                else None
++            ),
++            "map": (
++                self._freq_map.summary(hz_min, hz_max)
++                if mode != "unconfigured"
++                else {}
+             ),
+-            "map": self._freq_map.summary(hz_min, hz_max) if source is not None else {},
+         }
+         if source is not None:
+             # Only a configured view gains the key, so the unconfigured

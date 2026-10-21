@@ -1,0 +1,3 @@
+RESULT class_excess_loc=18295 count
+RESULT max_class_loc=8537 count
+RESULT seam_cut_total=718 count

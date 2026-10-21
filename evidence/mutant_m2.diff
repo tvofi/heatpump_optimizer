@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb1f8964d..1aeb21ea6 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10595,7 +10595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 )
+         if (
+             self._measured_power is None or self._immersion_active
+-            or defrosting or _freq_fold_blocked(self)
++            or _freq_fold_blocked(self)
+         ):
+             return
+         self._freq_map.observe(

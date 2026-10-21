@@ -1,0 +1,17 @@
+contamination | heat_loss(+gains,+solar) | cop_scale(+health,+envelope) | flow_bias | buffer_cooling | curve_learner | defrost_derate | accuracy | freq_map
+clean | INGEST | INGEST | INGEST | INGEST | INGEST | INGEST | INGEST | INGEST
+RESULT clean.learners_ingesting=8 count
+external_heat | frozen | frozen | frozen | frozen | frozen | frozen | frozen | INGEST
+RESULT external_heat.learners_ingesting=1 count
+defrost | frozen | frozen | frozen | frozen | frozen | INGEST | frozen | INGEST
+RESULT defrost.learners_ingesting=2 count
+pump_offline | frozen | frozen | frozen | frozen | frozen | frozen | frozen | INGEST
+RESULT pump_offline.learners_ingesting=1 count
+open_window | frozen | frozen | frozen | frozen | frozen | frozen | frozen | INGEST
+RESULT open_window.learners_ingesting=1 count
+RESULT freq_map_clean_folds=8 count
+RESULT freq_map_defrost_folds=0 count
+RESULT cop_gate_on_defrost='defrosting'
+RESULT thread_factor=1.000
+RESULT load1=0.38
+RESULT swapins=0
