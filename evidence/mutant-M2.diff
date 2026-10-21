@@ -1,2 +1,0 @@
-511d510
-<   [ -n "${PREPR_RECORD_CLOSURES:-}" ] && return 0

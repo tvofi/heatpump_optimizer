@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 65c156d1d..5eed6c559 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -2942,7 +2942,7 @@ step "claims hygiene" $? "$CLAIMS_LINE"
+ if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
+   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
+ else
+-  closures_step "$BASE"
++  CLOSURES_LINE=$(closures_line "$BASE")
+   case $? in
+     3) say skip "closures" "$CLOSURES_LINE" ;;
+     0) step "closures" 0 "$CLOSURES_LINE" ;;

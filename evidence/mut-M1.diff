@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 65c156d1d..5d40b2760 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -510,7 +510,6 @@ claims_line() { # rc 0 holds, 1 refused
+ closures_records_here() { # rc 0 record scoped closures on this machine, 1 leave them to CI
+   [ "${PREPR_RECORD_CLOSURES:-}" = 1 ] && return 0
+   case "$(uname -s 2>/dev/null)" in Linux*) return 0 ;; esac
+-  return 1
+ }
+ 
+ # The recorder is `derive_closures.sh` unless PREPR_RECORD names another one

@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 65c156d1d..06841ada2 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -567,7 +567,6 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
+         ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+           kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
+         wait "$rpid"
+-        kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
+         set +m
+       fi
+       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
