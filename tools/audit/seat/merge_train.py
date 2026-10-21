@@ -226,6 +226,7 @@ import functools
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -234,6 +235,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 HEX = frozenset("0123456789abcdef")
+
+# A stopped train ends the tool it is running (R10-PUSHER-REAP). A TERM or HUP
+# unwinds like Ctrl-C (stop_on_signal), so Train._run TERMs the tool -- whose own
+# EXIT trap (pr_args.sh) reaps the tool's tree -- and waits for it. An untrapped
+# TERM ended the train with remerge_main.sh's app_push and its prepr still
+# running; subprocess.run's own handler SIGKILLs, which runs no trap.
+TOOL_STOP_SECONDS = 10  # the tool's reap grants its tree 2 s (pr_args.sh's PR_REAP_TENTHS)
+
+
+def stop_on_signal() -> None:
+    """TERM and HUP raise SystemExit(128 + signal), so a stop unwinds through
+    Train._run's handler and the train's own `finally` blocks."""
+    def unwind(signum, _frame):
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, unwind)
 
 # EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
 # dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
@@ -495,8 +512,18 @@ class Train:
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
-        r = subprocess.run(argv, cwd=cwd, input=stdin, capture_output=True, text=True)
-        return r.returncode, r.stdout + r.stderr
+        with subprocess.Popen(argv, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              stdin=None if stdin is None else subprocess.PIPE) as p:
+            try:
+                out, err = p.communicate(stdin)
+            except BaseException:  # a stop (stop_on_signal): TERM the tool, never a bare SIGKILL
+                p.terminate()
+                try:
+                    p.wait(TOOL_STOP_SECONDS)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+                raise
+        return p.returncode, out + err
 
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
@@ -2776,9 +2803,67 @@ def _self_test() -> int:
           sleep=lambda s: None, polls=2).wait_ci(H0)
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
+    _stop_self_test(check)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _stop_self_test(check) -> None:
+    """R10-PUSHER-REAP: a TERMed train ends the tool Train._run is running, and
+    the tool's tree with it. The tool sources the real pr_args.sh and starts a
+    two-level sleep tree recorded by pid; the driver is a python3 process
+    running Train._run on it, TERMed once all three pids are recorded. The null
+    control is the same driver without stop_on_signal: the tree survives, so
+    the arm can see the defect it pins."""
+    with tempfile.TemporaryDirectory() as d:
+        tool, pids = Path(d) / "tool.sh", Path(d) / "pids"
+        tool.write_text(f'. "{ROOT}/tools/audit/seat/pr_args.sh"; pr_exit_trap\n'
+                        f'echo $$ >> "{pids}"\n'
+                        f"bash -c 'sleep 30 & echo $! >> \"$0\"; wait' \"{pids}\" & echo $! >> \"{pids}\"\n"
+                        "wait\n")
+
+        def alive() -> list[int]:
+            got = [int(x) for x in pids.read_text().split()] if pids.exists() else []
+            live = []
+            for k in got:
+                try:
+                    os.kill(k, 0)
+                    live.append(k)
+                except OSError:
+                    pass
+            return live
+
+        def stopped(install: bool) -> tuple[int | None, int]:
+            pids.write_text("")
+            drv = ("import sys; sys.path.insert(0, sys.argv[1]); import merge_train as m; "
+                   + ("m.stop_on_signal(); " if install else "") + "m.Train._run(['bash', sys.argv[2]])")
+            p = subprocess.Popen([sys.executable, "-c", drv, str(Path(__file__).resolve().parent), str(tool)])
+            for _ in range(200):
+                if len(pids.read_text().split()) >= 3:
+                    break
+                time.sleep(0.05)
+            p.terminate()
+            try:
+                rc = p.wait(15)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                rc = None
+            for _ in range(30):  # a killed child can be a zombie for a moment
+                if not alive():
+                    break
+                time.sleep(0.1)
+            left = alive()
+            for k in left:  # by pid, never a pattern
+                os.kill(k, signal.SIGKILL)
+            return rc, len(left)
+
+        rc, left = stopped(True)
+        check("a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)",
+              rc == 143 and left == 0)
+        rc, left = stopped(False)
+        check("  null control: without stop_on_signal the train dies and its tool's tree survives",
+              left == 3)
 
 
 def _batch_self_test(check) -> None:
@@ -3475,6 +3560,7 @@ def main(argv: list[str]) -> int:
         sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
         return _self_test()
+    stop_on_signal()
     a = _parser().parse_args(argv)
     if a.cmd == "wait-ci":
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)

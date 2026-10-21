@@ -86,6 +86,9 @@
 # push-verdict command (the self-test's stub; it takes <pr> <verdict> <ev>).
 set -uo pipefail
 HERE=$(cd "$(dirname -- "$0")" && pwd)
+# A stopped relay ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+# trap reaps it, and the update runs asynchronously so an INT does not wait behind it.
+. "$HERE/pr_args.sh"; pr_exit_trap
 
 die() { echo "cloud_relay: refused: $*" >&2; return 2; }
 
@@ -204,7 +207,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; rm -rf "$bd"; continue; }
     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
-    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 || urc=$?
+    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 &
+    wait $! || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
     if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
@@ -437,6 +441,18 @@ self_test() {
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   chk "pass runs both arms once and returns" 0 pass --log "$LOG"
   chk "the pass fired the handoff arm" 0 test -e "$t/updated"
+  # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
+  # update stub records itself and a two-level sleep tree by pid, then blocks.
+  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/tpids" & echo $! >> "%s/tpids"\nwait\n' "$t" "$t" "$t" > "$t/tree.sh"; chmod +x "$t/tree.sh"
+  rm -f "$t/state/cloud-handoff-failed"; : > "$t/tpids"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+  local rp k tn live p
+  HPO_RELAY_UPDATE=$t/tree.sh bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+  k=0; while [ "$(wc -l < "$t/tpids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+  tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -TERM "$rp"; wait "$rp"
+  k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
+    { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+  chk "a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)" 0 test "$tn $live" = "3 0"
+  for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }

@@ -47,9 +47,10 @@
 # mode-700 directory, never onto a command line and never printed. An EXIT
 # trap revokes the installation token (DELETE /installation/token) and removes
 # that directory on every path, the refusals and a failed POST included.
-# TERM/INT/HUP end the whole descendant tree (pr_args.sh's pr_signal_traps):
-# prepr runs asynchronously so the trap is not deferred behind it, and an
-# orphaned prepr must not keep burning CPU after the pusher is stopped. The
+# Every exit, TERM/INT/HUP included, ends the whole descendant tree too
+# (pr_args.sh's pr_exit_trap): prepr runs asynchronously so an INT does not wait
+# behind it, and an orphaned prepr must not keep burning CPU after the pusher is
+# stopped. The
 # one read that is not an App call -- the open-pull-request query -- goes
 # through `gh` as whatever GH_TOKEN the caller set, exactly as `app_approve.sh`
 # reads; only the App calls carry the JWT or the token.
@@ -104,24 +105,27 @@
 # suite run at the new head before the train merges.
 set -uo pipefail
 
-# pr_args.sh's signal reap: a stopped pusher ends the whole tree it started, and
-# prepr below runs asynchronously so a trap is not deferred behind it.
+# pr_args.sh's reap: a stopped pusher ends the whole tree it started, and prepr
+# below runs asynchronously so an INT does not wait behind it. The one EXIT trap
+# also runs cleanup (below), which is a no-op until $PRIV exists.
 PR_ARGS=$(cd "$(dirname -- "$0")/../audit/seat" 2>/dev/null && pwd)/pr_args.sh
 [ -f "$PR_ARGS" ] || { printf 'app_push: REFUSE: no pr_args.sh beside this script at %s\n' "$PR_ARGS" >&2; exit 1; }
 . "$PR_ARGS"
-pr_signal_traps
 
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 die() { printf 'app_push: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 cleanup() {
+  [ -n "$PRIV" ] || return 0  # before the private directory exists there is nothing to revoke
   if [ -s "$PRIV/token.h" ]; then
     curl -fsS -X DELETE -H @"$PRIV/token.h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
       || printf 'app_push: warning: revoking the installation token failed; it expires within the hour\n' >&2
   fi
   rm -rf "$PRIV"
 }
+PRIV=""
+pr_exit_trap cleanup
 
 # push.sh's classification, over a JSON listing: `[]` POSITIVELY means no
 # pull request is open, an array naming a number names one, and anything
@@ -363,8 +367,8 @@ push_and_open() {
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
   # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
-  # Asynchronous, so a TERM interrupts the `wait` and pr_signal_traps reaps the
-  # tree (a trap is deferred while a foreground child runs).
+  # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+  # the tree (pr_args.sh's why).
   local prepr prepr_pid="" prepr_rc=0
   prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
@@ -404,7 +408,6 @@ push_and_open() {
 
   umask 077
   PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
-  trap 'cleanup; pr_reap' EXIT
   # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
   chmod 700 "$PRIV"
   b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
@@ -514,11 +517,18 @@ printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' 
 cp "$W/id/hpo-author.pem" "$W/badid/"; printf '4242a\n' > "$W/badid/hpo-author.appid.txt"
 printf '## Head\n\n`%s`\n\n## Mutation proof\n\nm\n\n## Null control\n\nn\n\n## Figures\n\nnone\n\n## Red checks\n\nnone\n\n## Forward-carry\n\nnone\n\n## Friction\n\nnone\n' "$SHA" > "$W/body.md"
 
-# The stub prepr.sh: logs its arguments, passes, or refuses on a marker file.
+# The stub prepr.sh: logs its arguments, passes, or refuses on a marker file;
+# on `prepr-tree` it starts a two-level sleep tree recorded by pid and blocks,
+# so a stopped app_push can be judged by what survives it.
 cat > "$W/tool/prepr.sh" <<'STUB'
 #!/bin/bash
 printf 'prepr %s\n' "$*" >> "$STUB/log"
 [ -f "$STUB/prepr-fails" ] && { echo "prepr: REFUSE" >&2; exit 1; }
+if [ -f "$STUB/prepr-tree" ]; then
+  echo $$ >> "$STUB/pids"
+  bash -c 'sleep 30 & echo $! >> "$0"; wait' "$STUB/pids" & echo $! >> "$STUB/pids"
+  wait; exit 1
+fi
 echo "PRE-PR: stub ok"
 STUB
 # The stub gh: only the open-pull-request query, answered from a fixture.
@@ -702,6 +712,22 @@ mkcase preprfail; : > "$W/preprfail/prepr-fails"
 run preprfail o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: prepr fails, so nothing is minted, pushed or posted"
 st "$(calls preprfail curl)" 0 "no curl call at all: the refusal precedes the mint"
 st "$(grep -c '^git .*push' "$W/preprfail/log")" 0 "and no push either (the ok case above is the healthy arm: it pushes exactly once)"
+
+# R10-PUSHER-REAP: app_push TERMed while prepr runs ends prepr's whole tree.
+# Its own pid, not a wrapping subshell's, gets the signal; every pid is
+# polled, since a killed child can be a zombie for a moment.
+alive_of() { local p n k=0; while :; do n=0
+  for p in $(cat "$1" 2>/dev/null); do kill -0 "$p" 2>/dev/null && n=$((n + 1)); done
+  if [ "$n" = 0 ] || [ "$k" -ge 30 ]; then echo "$n"; return; fi; sleep 0.1; k=$((k + 1)); done; }
+mkcase stopped; : > "$W/stopped/prepr-tree"; : > "$W/stopped/pids"
+( export STUB="$W/stopped" PATH="$W/bin:$PATH" TMPDIR="$W/stopped/tmp" HPO_IDENTITY_DIR="$W/id"
+  exec bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stopped/out" 2> "$W/stopped/err" ) & ap=$!
+k=0; while [ "$(wc -l < "$W/stopped/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+st "$(wc -l < "$W/stopped/pids" | tr -d ' ')" 3 "the stopped case's prepr tree started (three pids)"
+kill -TERM "$ap"; wait "$ap"; st $? 143 "app_push TERMed mid-prepr exits 143"
+st "$(alive_of "$W/stopped/pids")" 0 "and leaves none of prepr's tree alive (R10-PUSHER-REAP)"
+st "$(calls stopped curl)" 0 "and minted nothing"
+for p in $(cat "$W/stopped/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
 
 mkcase leaky; : > "$W/leaky/leaky-log"
 run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"

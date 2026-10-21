@@ -11,6 +11,13 @@ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head not
 # writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
 . "$(dirname -- "$0")/delivery_row.sh"
 [ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test
+# A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+# trap reaps it, and each push runs asynchronously (hp_push) so an INT does not wait behind it.
+. "$(dirname -- "$0")/pr_args.sh"; pr_exit_trap
+hp_push() { # <log>: app_push.sh, asynchronously, into <log>; its status is not this run's
+  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} > "$1" 2>&1 &
+  wait $! || :
+}
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
 # The main checkout is the one this script's checkout shares its object store with; a PR's
 # worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
@@ -72,7 +79,7 @@ s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head
 open(p,'w').write(s)
 E3
   if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2 | cut -c1-200
+  hp_push "$B.push.log"; grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -2 | cut -c1-200
   gh pr edit $N --title "$TITLE" >/dev/null
   echo "RESULT pr=$N head=$H (update)"; exit 0
 fi
@@ -91,7 +98,7 @@ open(p,'w').write(s)
 E2
 fi
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2); echo "$out" | cut -c1-200
+hp_push "$B.push.log"; out=$(grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -2); echo "$out" | cut -c1-200
 N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
 gh pr edit $N --title "$TITLE" >/dev/null
 [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
@@ -105,5 +112,5 @@ s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -1 | cut -c1-200
+hp_push "$B.push.log"; grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -1 | cut -c1-200
 echo "RESULT pr=$N head=$H"

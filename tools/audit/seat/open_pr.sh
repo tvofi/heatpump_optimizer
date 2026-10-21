@@ -13,7 +13,7 @@
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
-trap 'pr_reap' EXIT  # a run that ends with anything of its own still live ends it too
+pr_exit_trap  # every exit, a stop signal's included, ends the tree this run started
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 # The soft cap gates DISPATCH, not opening (pr_cap.py; tvofi, 2026-10-20):
 # opening is how work leaves work-in-progress. --over-cap "<reason>" is still
@@ -45,8 +45,8 @@ if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%
 open(p,'w').write(s)
 E0
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-# Asynchronous, so a TERM interrupts the `wait` and pr_args.sh reaps the tree: a
-# trap is deferred while a foreground child runs (pr_args.sh's why).
+# Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+# the tree (pr_args.sh's why).
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
 pr_wait $! $D/p1.log
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')

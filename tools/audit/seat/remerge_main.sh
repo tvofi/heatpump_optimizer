@@ -11,7 +11,11 @@
 # claimnotes driver"); the default states none. merge_train.py calls this.
 # The worktree may be detached: it is reset to origin/<branch> before the merge.
 set -uo pipefail
+# A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+# trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
+. "$(dirname -- "$0")/pr_args.sh"
 PR=$1; W=$2; BR=$3; B=$4; shift 4
+PL=$B.push.log; pr_exit_trap 'rm -f "$PL"'
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
 ( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ) || { echo "MERGE CONFLICT $PR"; exit 1; }
@@ -22,6 +26,7 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
 # line and does not name the prepr step; the step line is the one before it.
 # tail -1 | cut -c1-120 kept only the die (measured on #1974 and #1975).
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 || true)
+PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1 &
+wait $! || :; push_out=$(cat "$PL")
 printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED' || true
 sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"

@@ -29,9 +29,9 @@ WT=$P/upd-${BR//\//-}
 # orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
 # one holder process; this shell holds no fd on it, so nothing the run starts can (a detached
 # `git gc --auto` kept an inherited one). The EXIT trap ends the holder before the run returns;
-# TERM/INT/HUP (pr_args.sh) reap the push's whole tree and exit, which runs that trap too, so a
-# stopped run ends its push rather than leaving it to burn on after the shell; a SIGKILLed run's
-# holder exits once its parent is gone.
+# bash runs that trap when TERM/INT/HUP end the shell too, and it reaps the push's whole tree
+# (pr_args.sh), so a stopped run ends its push rather than leaving it to burn on after the shell;
+# a SIGKILLed run's holder exits once its parent is gone.
 python3 -I -c 'import fcntl, os, sys, time
 f = open(sys.argv[1], "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -40,7 +40,7 @@ p = os.getppid()
 f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
 while os.getppid() == p: time.sleep(2)  # mut:watch
 sys.exit(0)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
-trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :; pr_reap' EXIT  # mut:unlock
+pr_exit_trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
 k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
 upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
@@ -84,8 +84,8 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-# Asynchronous, so a TERM interrupts the `wait` and pr_args.sh reaps the tree: a
-# trap is deferred while a foreground child runs (pr_args.sh's why).
+# Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+# the tree (pr_args.sh's why).
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 &
 pr_wait $! $WT.log
 echo "HEAD=$H"
