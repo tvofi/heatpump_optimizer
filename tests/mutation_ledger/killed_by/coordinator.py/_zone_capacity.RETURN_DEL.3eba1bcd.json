@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_zone_capacity RETURN_DEL 3eba1bcd",
+  "killed_by": "tests/features.py",
+  "old": "    return _house_loss_terms(params)[1]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3688cf25977ca71b4406be942df9592577d9b42e: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

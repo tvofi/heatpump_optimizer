@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss GUARD_OFF b929c414",
+  "killed_by": "tests/features.py",
+  "old": "        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3688cf25977ca71b4406be942df9592577d9b42e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
