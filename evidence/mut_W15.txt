@@ -1,0 +1,3 @@
+W15 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W15: app_push self-test: 182 checks, 1 failed
+    W15 FAIL the body contract ran in its place, pr-contract's command at the head, with the pull request's own title (got '0', want '1')

@@ -1,0 +1,5 @@
+W9 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W9: app_push self-test: 182 checks, 3 failed
+    W9 FAIL and the carry check pr-contract runs (carry_audit.py check), on the same body (got '0', want '1')
+    W9 FAIL --row-only: a body whose finding names no destination refuses (carry_audit.py), though the contract passed (got '0', want '1')
+    W9 FAIL and nothing was minted or pushed (got '015', want '000')

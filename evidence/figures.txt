@@ -1,0 +1,28 @@
+$ carry_audit check --body
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+$ policy_lint --pr-body
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+/tmp/claude-0/-home-user-heatpump-optimizer/ddae7cd2-d482-5556-ac95-53c60d92741c/scratchpad/rev/ev/pr_body_at_review.md
+  ERROR   [pr-body] /tmp/claude-0/-home-user-heatpump-optimizer/ddae7cd2-d482-5556-ac95-53c60d92741c/scratchpad/rev/ev/pr_body_at_review.md: `## Head` does not name HEAD, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: HEAD is not a full commit SHA.
+
+PR-BODY: 1 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/ddae7cd2-d482-5556-ac95-53c60d92741c/scratchpad/rev/ev/pr_body_at_review.md
+rc=1
+$ throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+rc=0
+$ closure select
+  MODE: SCOPED -- 27 script(s) run, 6 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+$ closure select vs current base
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+$ structure
+STRUCTURE RATCHET PASSED
+$ archscore
+Architecture score: dS +0.0000 NULL
+$ archscore vs base
+Architecture score: dS +0.0000 NULL
+$ at code head 4b46b23: closure select --diff f2fb1b0e9
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.

@@ -1,0 +1,3 @@
+W7 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W7: app_push self-test: 182 checks, 1 failed
+    W7 FAIL naming both shas, and nothing was minted or pushed (got '018', want '100')

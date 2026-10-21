@@ -1,0 +1,3 @@
+W8 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W8: app_push self-test: 182 checks, 1 failed
+    W8 FAIL the contract was handed gh's stored token, so its red-history walk reads the ancestry reds prepr's 7c reads (got '00', want '11')
