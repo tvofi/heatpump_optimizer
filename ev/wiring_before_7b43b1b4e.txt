@@ -1,0 +1,3 @@
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=1

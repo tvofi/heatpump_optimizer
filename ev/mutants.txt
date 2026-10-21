@@ -1,0 +1,15 @@
+== mutant delete
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=1
+== mutant comment
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=1
+== mutant no-flag
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=1
+== restored
+selftest_wiring: 71 self-testing, 71 wired, 0 unwired
+rc=0

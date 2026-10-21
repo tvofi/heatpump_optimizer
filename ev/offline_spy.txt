@@ -1,0 +1,3 @@
+offline_spy: tools/pr/gate_priority.py rc=0 network=0 remote_git=0 git=58 subprocess=58 backstop=none offline | gate_priority self-test: 12 checks, 0 failed
+offline_spy: 1 files, 0 refused
+rc=0

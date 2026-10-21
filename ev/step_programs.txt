@@ -1,0 +1,16 @@
+15
+python3 -I tools/audit/archscore/gate.py --self-test
+python3 -I tools/audit/check_scopes.py --self-test --repo .
+python3 -I tools/audit/merge_throughput.py --self-test
+bash tools/audit/worktree_gc.sh --self-test
+python3 -I tools/coverage/partition.py --self-test
+python3 -I tools/merge/ledger_merge.py --self-test
+python3 -I tools/plan/replan.py --self-test
+node tools/policy/policy_lint.mjs --self-test
+python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
+bash tools/pr/approve_held_runs.sh --self-test
+python3 -I tools/pr/gate_priority.py --self-test
+python3 -I tools/pr/head_note.py --self-test
+python3 -I tools/release/stamp.py --self-test
+python3 -I tools/policy/agreement_py.py --self-test
+python3 -I tools/policy/agreement_py.py --restore
