@@ -67,6 +67,7 @@ from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
 from .payload import (
     CurrentAction,
+    IDLE_REASONS,
     REASON_COMFORT_FLOOR,
     REASON_CHEAP_PRICE,
     REASON_PREHEAT_WEATHER,
@@ -1256,14 +1257,10 @@ def cycling_penalty_batch(
 
 
 # ---------------------------------------------------------------------------
-# Plan reason codes (item 16): the codes are the payload's vocabulary
-# (``payload.py``); which of them mean idle is the solver's own grouping.
+# Plan reason codes (item 16): the codes and which of them mean idle are the
+# payload's vocabulary (``IDLE_REASONS``), because the settlement reads the
+# same grouping to decide whether a step's reason can explain a metered draw.
 # ---------------------------------------------------------------------------
-
-_IDLE_REASONS = frozenset({
-    REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
-    REASON_IDLE_DEARER, REASON_IDLE_COASTING,
-})
 
 
 def _padded(values: np.ndarray | None, n: int) -> np.ndarray:
@@ -1506,7 +1503,7 @@ def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
     if not blocked:
         return reasons
     return [
-        REASON_PUMP_MODE if reason in _IDLE_REASONS else reason
+        REASON_PUMP_MODE if reason in IDLE_REASONS else reason
         for reason in reasons
     ]
 

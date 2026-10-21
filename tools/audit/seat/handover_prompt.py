@@ -179,7 +179,7 @@ def _fixture_roster() -> dict:
                 "after": after, "brief": f"fixture {gid}",
                 "fixerModel": "sonnet", "reviewerModel": "opus",
                 "resume": {"stage": stage, "branch": f"handoff/{gid.lower()}",
-                           "note_file": f"handoff/round9/fix/resume/{gid}.md"}}
+                           "note_file": f"handoff/r9-fixture/fix/resume/{gid}.md"}}
     return {"repo": "fixture/roster", "session": "fixture-r9", "fork": "db878b29",
             "groups": [
         g("R9-A", "L1", [], "done"),
@@ -211,7 +211,7 @@ def _self_test() -> int:
     # in-flight: B (in-review) generates a pickup command; not-started C and
     # done A do not.
     check("in-flight pickup command", "git fetch origin handoff/r9-b" in text
-          and "handoff/round9/fix/resume/R9-B.md" in text)
+          and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
     check("not-started group has no pickup", "handoff/r9-c" not in text)
     check("done group has no pickup", "handoff/r9-a" not in text)
     # ready-next taken from the resume doc when given.
