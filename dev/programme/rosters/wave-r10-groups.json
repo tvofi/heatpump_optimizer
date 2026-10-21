@@ -3281,9 +3281,9 @@
    "architect_note": "",
    "brief": "Split from R10-DEEPLINK-CENSUS by the orchestrator under the three-round rule (round 8 of #2345 found a third missed written spelling). Close #2317's remaining class: navigation written in a card handler the census's dynamic arm does not drive. Drive every keydown, pointer, wheel and focus handler the card registers, through the instrumented surface, the way clicks are driven today. Controls, green at #2345's head by design: the driver's RV1-RV7 plants (history[\"back\"](), history?.back(), destructured back, createElementNS form, .action = variable, Object.assign action, whole written form navigation) and Y1; each of RV1-RV3 and RV5-RV7 must go red once its handler is driven, and RV1c and RV5c must stay red. RV4 is different (#2345 round-9 review, RD4 vs RD5): a form appended to document.body, outside the card's shadow root, and submitted by a button's click() escapes BOTH arms even inside a press the census already drives (RD4 rc=0 fails=0; RD5, the same form in the shadow root, is red). The cause is that the dynamic arm reads the shadow root only, so ANY markup appended outside it escapes, not only a form (#2345 round-10 review: RD6, an <a> with a run-time-built href appended to document.body and click()ed, rc=0; RD6c, the same anchor in the shadow root, red). Driving handlers alone cannot close it, and a form-submit instrument cannot close RD6: the dynamic arm MUST read markup at the document level; RD4 and RD6 must go red, RD5 and RD6c stay red. Once the dynamic arm covers those handlers, drop the static arm to bare-name rows with no spelling list (fixer.md step 17; a spelling list is the shape #1874 refused). Re-measure every figure at your own merge base.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-deeplink-handlers",
-    "commit": null,
+    "commit": "575dad30d9172dc77acf252bcc7c58b25948c457",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": null
