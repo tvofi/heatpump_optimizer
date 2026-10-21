@@ -26,6 +26,23 @@ Plants:
                               code span.
   M6_dry_run_writes           the `--apply` gate is dropped, so a dry run
                               writes the roster.
+  M7_exact_match_only         the `<topic>-` arm is dropped, so a head
+                              `r9-arm-p0` no longer answers for `r9-arm`.
+  M8_sibling_decides          the longest-topic rule is dropped, so a
+                              sibling's PR also decides the shorter topic.
+  M9_carry_dedupe_dropped     an item the destination already holds is
+                              appended again.
+  M10_issue_dest_appended     the group-token filter is dropped, so an issue
+                              destination is planned (and refused) as a group.
+  M11_rc_path_no_reset        a lint-refused commit is left on the local
+                              branch (the exception path's reset is M-free).
+  M12_length_test             a short `resume.commit` is invalid by length,
+                              the test the design removed.
+  M13_off_main_accepted       a commit off origin/main is a valid record.
+  M14_ambiguous_accepted      an ambiguous prefix is a valid record.
+  M15_record_invalid_silent   a RECORD-INVALID finding is not printed.
+  M16_open_head_on_main       an open group's handoff head must be on
+                              origin/main too, so a live handoff is invalid.
 """
 import subprocess
 import sys
@@ -63,6 +80,36 @@ PLANTS = {
     "M6_dry_run_writes": [
         (SRC, "        if not a.apply:",
               "        if False:  # M6")],
+    "M7_exact_match_only": [
+        (SRC, "if t and (name == t or name.startswith(t + \"-\"))]",
+              "if t and name == t]  # M7")],
+    "M8_sibling_decides": [
+        (SRC, "                if n == longest:",
+              "                if True:  # M8")],
+    "M9_carry_dedupe_dropped": [
+        (SRC, "if text in (g.get(\"carry\") or []) or (dest, text) in appends:",
+              "if (dest, text) in appends:  # M9")],
+    "M10_issue_dest_appended": [
+        (SRC, "                if not carry_audit.GROUP_TOK.match(dest):",
+              "                if False:  # M10")],
+    "M11_rc_path_no_reset": [
+        (SRC, "            if rc != 0:\n                _reset(made, base)",
+              "            if rc != 0:\n                pass  # M11")],
+    "M12_length_test": [
+        (SRC, "        if not SHA_RE.match(sha):",
+              "        if len(sha) != 40 or not SHA_RE.match(sha):  # M12")],
+    "M13_off_main_accepted": [
+        (SRC, "    if not on_main:",
+              "    if False:  # M13")],
+    "M14_ambiguous_accepted": [
+        (SRC, "    if len(commits) > 1:",
+              "    if False:  # M14")],
+    "M15_record_invalid_silent": [
+        (SRC, "            print(f\"roster_sync: RECORD-INVALID {gid} {why}\")",
+              "            pass  # M15")],
+    "M16_open_head_on_main": [
+        (SRC, "        if len(commits) == 1 and not roster_lib.is_open(g):",
+              "        if len(commits) == 1:  # M16")],
 }
 
 

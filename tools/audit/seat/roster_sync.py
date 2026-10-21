@@ -28,12 +28,23 @@ rewritten; every other stage -- `deferred`, `refused`, `refuted`, `absorbed`,
 printed as skipped. The self-test refuses a stage the tree's rosters carry
 that neither tuple classifies, so a new wording is classified deliberately.
 
-BRANCH MATCHING is the design's rule (`dev/audit/machinery`, 6.4): the topic
-is the basename of `resume.branch` (else the lowercased group id), and a
-pull request's head matches when its name, minus a `handoff-body/`, `handoff/`
-or `fix/` prefix and a trailing `-pr`, equals the topic or starts with
-`<topic>-`. An exact-name rule finds 2 of the live roster's 48 merged groups;
-this one finds 47, because a group's PR rides `fix/<topic>` or `<topic>-pr`.
+BRANCH MATCHING is the design's B13 rule (`handoff/orch-machinery` 09174d94,
+`dev/audit/design/orch-machinery/DESIGN.md` section 6.4): the topic is the
+basename of `resume.branch` (else the lowercased group id), and a pull
+request's head matches when its name, minus a `handoff-body/`, `handoff/` or
+`fix/` prefix, equals the topic or starts with `<topic>-`. The rule's trailing
+`-pr` needs no strip of its own: `<topic>-pr` already starts with `<topic>-`.
+A head two groups' topics match belongs to the LONGER topic only, so a
+sibling's pull request (`r10-deeplink-census` against `r10-deeplink`) never
+decides the shorter group's stage.
+
+RECORD-INVALID is the design's commit predicate (6.4, item 3): every
+`resume.commit` is resolved by prefix (`git rev-parse --disambiguate`) in the
+checkout and must name one commit, and a done group's must be an ancestor of
+`origin/main` (an open group's records its handoff head, which is not yet);
+an unresolvable, ambiguous or off-main record is printed as
+`RECORD-INVALID <group> <why>`. It is a finding about the record, not a
+refusal of the pass, so it never stops the derived writes.
 
 THE WRITE PATH is `roster_edit.py`'s, not a second one: its ops, its
 load-validate-dump (`dump`) and its lint gate, through the one
@@ -82,10 +93,8 @@ DERIVABLE_STAGES = ("not-started", "planned", "queued", "in-progress",
 #: do not cover. `deferred` and `refuted` are the tree's own rosters' words;
 #: `refused`, `absorbed` and `rca-done` are the orchestrator's and design 6.4's.
 PROTECTED_STAGES = ("deferred", "refused", "refuted", "absorbed", "rca-done")
-#: The branch prefixes a topic is read past, and the suffix a pull-request
-#: branch adds (design 6.4's B13 rule).
+#: The branch prefixes a topic is read past (design 6.4's B13 rule).
 PREFIXES = ("handoff-body/", "handoff/", "fix/")
-PR_SUFFIX = "-pr"
 OPEN, MERGED, CLOSED = "OPEN", "MERGED", "CLOSED"
 DEFAULT_LIMIT = 1000
 SHA_RE = roster_edit.SHA_RE  # the one sha grammar: a second spelling is refused
@@ -191,13 +200,10 @@ def pr_body(pr: PR, repo: str, pr_state: str | None) -> str:
 # --------------------------------------------------------------- the derive
 def norm_head(name: str) -> str:
     """A pull request's head branch as the topic it answers for: one working
-    prefix off, one `-pr` suffix off (design 6.4's B13 rule)."""
+    prefix off (design 6.4's B13 rule; its `-pr` is the `<topic>-` arm's)."""
     for prefix in PREFIXES:
         if name.startswith(prefix):
-            name = name[len(prefix):]
-            break
-    if name.endswith(PR_SUFFIX):
-        name = name[:-len(PR_SUFFIX)]
+            return name[len(prefix):]
     return name
 
 
@@ -211,19 +217,23 @@ def topic_of(group: dict) -> str:
 
 
 def matches(roster: dict, prs: list[PR]) -> dict[str, list[PR]]:
-    """group id -> the pull requests whose normalized head answers for it."""
-    by_topic: dict[str, list[PR]] = {}
+    """group id -> the pull requests whose normalized head answers for it.
+
+    A head is the longest matching topic's alone: `r10-stale-paths-2` is
+    R10-STALE-PATHS-2's, never also R10-STALE-PATHS's, whose topic it only
+    extends. Groups sharing one topic share its pull requests."""
+    topics = {g["group"]: topic_of(g) for g in roster.get("groups", [])}
+    out: dict[str, list[PR]] = {gid: [] for gid, t in topics.items() if t}
     for pr in prs:
-        by_topic.setdefault(norm_head(pr.head), []).append(pr)
-    out: dict[str, list[PR]] = {}
-    for g in roster.get("groups", []):
-        topic = topic_of(g)
-        if not topic:
-            continue
-        hits = [pr for name, prs_ in by_topic.items()
-                for pr in prs_ if name == topic or name.startswith(topic + "-")]
-        out[g["group"]] = sorted(hits, key=lambda p: p.number)
-    return out
+        name = norm_head(pr.head)
+        hits = [(len(t), gid) for gid, t in topics.items()
+                if t and (name == t or name.startswith(t + "-"))]
+        if hits:
+            longest = max(n for n, _ in hits)
+            for n, gid in hits:
+                if n == longest:
+                    out[gid].append(pr)
+    return {gid: sorted(v, key=lambda p: p.number) for gid, v in out.items()}
 
 
 def chosen(hits: list[PR]) -> PR | None:
@@ -280,6 +290,58 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
                                   stage, pr.state))
             transitions.append(pr)
     return changes, skips, transitions
+
+
+def commit_verdict(prefix: str, commits: list[str],
+                   on_main: bool | None) -> str | None:
+    """Why a `resume.commit` record is invalid, or None (design 6.4, item 3):
+    `commits` are the commit objects the prefix resolves to, `on_main`
+    whether the one commit is an ancestor of origin/main (None: unread)."""
+    if not commits:
+        return f"{prefix} does not resolve to a commit"
+    if len(commits) > 1:
+        return f"{prefix} is ambiguous ({len(commits)} commits)"
+    if on_main is None:
+        return f"{prefix}: ancestry against origin/main is unreadable"
+    if not on_main:
+        return f"{prefix} is not an ancestor of origin/main"
+    return None
+
+
+def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
+    """(group, why) for every `resume.commit` that is not one commit, or,
+    on a done group, not one on origin/main. The length test is gone: a
+    unique 12-hex prefix on main is a valid record (the design's B3)."""
+    out = []
+    for g in roster.get("groups", []):
+        sha = (g.get("resume") or {}).get("commit")
+        if not sha:
+            continue
+        sha = str(sha)
+        if not SHA_RE.match(sha):
+            out.append((g["group"], f"{sha!r} is not 7-40 lowercase hex"))
+            continue
+        r = subprocess.run(["git", "-C", checkout, "rev-parse",
+                            f"--disambiguate={sha}"],
+                           capture_output=True, text=True)
+        objs = r.stdout.split() if r.returncode == 0 else []
+        commits = []
+        if objs:
+            types = subprocess.run(
+                ["git", "-C", checkout, "cat-file", "--batch-check"],
+                input="\n".join(objs) + "\n", capture_output=True, text=True)
+            commits = [ln.split()[0] for ln in types.stdout.splitlines()
+                       if ln.split()[1:2] == ["commit"]]
+        on_main = True  # an open group records its handoff head: resolve only
+        if len(commits) == 1 and not roster_lib.is_open(g):
+            rc = subprocess.run(["git", "-C", checkout, "merge-base",
+                                 "--is-ancestor", commits[0], "origin/main"],
+                                capture_output=True).returncode
+            on_main = {0: True, 1: False}.get(rc)
+        why = commit_verdict(sha, commits, on_main)
+        if why:
+            out.append((g["group"], why))
+    return out
 
 
 def carry_plan(roster: dict, transitions: list[PR], repo: str,
@@ -390,6 +452,8 @@ def sync(a) -> int:
         roster = json.loads(run(["git", "-C", a.checkout, "show",
                                  f"{base}:{rel}"]))
         changes, skips, transitions = derive(roster, prs)
+        for gid, why in invalid_commits(a.checkout, roster):
+            print(f"roster_sync: RECORD-INVALID {gid} {why}")
         # The carries are judged against the roster this pass will write: a
         # destination this pass makes done refuses the carry, and the stage
         # writes are applied in memory first on a copy.
@@ -524,9 +588,11 @@ def self_test() -> int:
     n = [0]
 
     def check(name: str, ok, got="") -> None:
+        # Printed as it fails, so a later crash cannot swallow a named red.
         n[0] += 1
         if not ok:
             fails.append(f"{name} (got: {got})")
+            print("FAIL", fails[-1], flush=True)
 
     def git(*args, cwd=None, env=None, input_text=None) -> str:
         return run(["git", *args], cwd=cwd, input_text=input_text).strip()
@@ -565,8 +631,11 @@ def self_test() -> int:
     def calls(drv: Path, state: Path, *extra) -> tuple[int, str, str]:
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            rc = main(["--checkout", str(drv), "--repo", "fixture/roster",
-                       "--pr-state", str(state), *extra])
+            try:
+                rc = main(["--checkout", str(drv), "--repo", "fixture/roster",
+                           "--pr-state", str(state), *extra])
+            except Exception as e:  # a crash is a named red, not an abort
+                rc = f"CRASH {type(e).__name__}: {e}"
         return rc, out.getvalue(), err.getvalue()
 
     groups = [
@@ -598,13 +667,37 @@ def self_test() -> int:
         {"group": "R9-PREFIX", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "prefix",
          "resume": {"stage": "not-started", "branch": "handoff/r9-pre"}},
+        # Matches only through the `<topic>-` arm: its PR rides `r9-arm-p0`.
+        {"group": "R9-ARM", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "arm",
+         "resume": {"stage": "not-started", "branch": "handoff/r9-arm"}},
+        # Sibling pairs: a topic another group's topic extends.
+        {"group": "R9-SIB", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "sib",
+         "resume": {"stage": "done", "branch": "handoff/r9-sib",
+                    "commit": "f" * 40}},
+        {"group": "R9-SIB-2", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "sib 2",
+         "resume": {"stage": "not-started", "branch": "handoff/r9-sib-2"}},
+        {"group": "R9-PAIR", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "pair",
+         "resume": {"stage": "not-started", "branch": "handoff/r9-pair"}},
+        {"group": "R9-PAIR-2", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "pair 2",
+         "resume": {"stage": "not-started", "branch": "handoff/r9-pair-2"}},
+        # A destination already holding the item a merged body carries.
+        {"group": "R9-HELD", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "held", "carry": ["already held. Carry: R9-HELD"],
+         "resume": {"stage": "not-started"}},
     ]
     ROSTER_FIXTURE = {"repo": "fixture/roster", "session": "r9-sync",
                       "groups": groups}
     BODY = ("## Friction\n\n"
             "- the widget parser drops a unit. Carry: R9-DEST\n\n"
             "- a quoted example `Carry: R9-DEST` in a code span routes nothing.\n\n"
-            "- a real finding for a done group. Carry: R9-OVER\n")
+            "- a real finding for a done group. Carry: R9-OVER\n\n"
+            "- already held. Carry: R9-HELD\n\n"
+            "- an issue keeps its own record. Carry: #77\n")
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
          "mergeCommit": {"oid": "a" * 40}, "body": "## Friction\n\n- none\n"},
@@ -617,6 +710,11 @@ def self_test() -> int:
          "mergeCommit": {"oid": "e" * 40}, "body": BODY},
         {"number": 16, "state": "CLOSED", "headRefName": "handoff/r9-nopr"},
         {"number": 17, "state": "OPEN", "headRefName": "handoff/r9-prefix"},
+        {"number": 18, "state": "MERGED", "headRefName": "fix/r9-arm-p0",
+         "mergeCommit": {"oid": "1" * 40}, "body": "## Friction\n\n- none\n"},
+        {"number": 19, "state": "OPEN", "headRefName": "fix/r9-sib-2"},
+        {"number": 20, "state": "MERGED", "headRefName": "fix/r9-pair-2",
+         "mergeCommit": {"oid": "2" * 40}, "body": "## Friction\n\n- none\n"},
     ]
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -640,6 +738,13 @@ def self_test() -> int:
               and "the destination is done" in out, out)
         check("the dry run says the human disposition is left alone",
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
+        check("the dry run plans no append of an item the destination holds",
+              "carry R9-HELD +=" not in out, out)
+        check("an issue destination is neither appended nor refused (it keeps "
+              "its own record)", "#77" not in out, out)
+        check("a commit the checkout does not hold is RECORD-INVALID, printed "
+              "and not a refusal", rc == 0 and "RECORD-INVALID R9-DONE "
+              + "b" * 40 + " does not resolve" in out, out)
 
         # APPLY: the derived stages, the merge commit, the carry, and nothing
         # for a branch without a deciding pull request.
@@ -675,6 +780,27 @@ def self_test() -> int:
               by["R9-DEST"].get("carry"))
         check("a Carry: to a done group is refused, not appended",
               "carry" not in by["R9-OVER"], by["R9-OVER"].get("carry"))
+        check("a head matching only through the <topic>- arm decides its group",
+              by["R9-ARM"]["resume"]["stage"] == "done"
+              and by["R9-ARM"]["resume"].get("commit") == "1" * 40,
+              by["R9-ARM"]["resume"])
+        check("a sibling's open PR decides the sibling and never reopens the "
+              "shorter topic's done group",
+              by["R9-SIB-2"]["resume"]["stage"] == "in-progress"
+              and by["R9-SIB-2"]["resume"].get("pr") == 19
+              and by["R9-SIB"]["resume"]
+              == roster_lib.groups_of(ROSTER_FIXTURE)["R9-SIB"]["resume"],
+              (by["R9-SIB"]["resume"], by["R9-SIB-2"]["resume"]))
+        check("a sibling's merge moves only the sibling to done",
+              by["R9-PAIR-2"]["resume"]["stage"] == "done"
+              and by["R9-PAIR"]["resume"]["stage"] == "not-started",
+              (by["R9-PAIR"]["resume"], by["R9-PAIR-2"]["resume"]))
+        check("a carry the destination already holds is not appended twice",
+              by["R9-HELD"].get("carry") == ["already held. Carry: R9-HELD"],
+              by["R9-HELD"].get("carry"))
+        check("no group's carry takes an issue destination's item",
+              not any("#77" in t for g in r["groups"] for t in g.get("carry") or []),
+              [g.get("carry") for g in r["groups"]])
         check("no PR, or a closed-unmerged PR, changes nothing",
               by["R9-NOPR"]["resume"]["stage"] == "not-started"
               and by["R9-PREFIX"]["resume"]["stage"] == "not-started",
@@ -713,6 +839,45 @@ def self_test() -> int:
         check("the lint gate refuses the push rc 3", rc == 3, (rc, out, err))
         check("and the branch did not land", branch not in branches(bare2),
               branches(bare2))
+        check("and the refused pass leaves no local commit (the rc path's reset)",
+              git("-C", str(drv2), "rev-parse", f"refs/heads/{branch}")
+              == git("-C", str(bare2), "rev-parse", "refs/heads/main"),
+              git("-C", str(drv2), "log", "--oneline", "-3", branch))
+
+        # RECORD-INVALID (design 6.4, item 3): resolution by prefix, not length.
+        main_sha = git("-C", str(drv), "rev-parse", "origin/main")
+        tree = git("-C", str(drv), "rev-parse", "origin/main^{tree}")
+        side = git("commit-tree", tree, "-p", main_sha, "-m", "off main",
+                   cwd=str(drv))
+        rec = {"groups": [
+            {"group": "C-FULL", "resume": {"stage": "done", "commit": main_sha}},
+            {"group": "C-SHORT", "resume": {"stage": "done",
+                                            "commit": main_sha[:12]}},
+            {"group": "C-NONE", "resume": {"commit": "c35302773738"}},
+            {"group": "C-OFF", "resume": {"stage": "done", "commit": side[:12]}},
+            {"group": "C-OPEN", "resume": {"stage": "in-progress",
+                                           "commit": side[:12]}},
+            {"group": "C-UPPER", "resume": {"commit": "ABCDEF123456"}},
+            {"group": "C-NULL", "resume": {"commit": None}},
+        ]}
+        bad = dict(invalid_commits(str(drv), rec))
+        check("a full sha on origin/main is a valid record",
+              "C-FULL" not in bad, bad)
+        check("a unique 12-hex prefix on origin/main is valid (no length test)",
+              "C-SHORT" not in bad, bad)
+        check("an unresolvable prefix is RECORD-INVALID",
+              "does not resolve" in bad.get("C-NONE", ""), bad)
+        check("a done group's commit off origin/main is RECORD-INVALID",
+              "not an ancestor of origin/main" in bad.get("C-OFF", ""), bad)
+        check("an open group's handoff head off origin/main is valid",
+              "C-OPEN" not in bad, bad)
+        check("a value outside the sha grammar is RECORD-INVALID",
+              "C-UPPER" in bad and "C-NULL" not in bad, bad)
+        check("an ambiguous prefix is RECORD-INVALID",
+              "ambiguous" in (commit_verdict("abcdef1", ["a" * 40, "b" * 40],
+                                             None) or ""))
+        check("an unreadable ancestry is RECORD-INVALID, never valid",
+              commit_verdict("abcdef1", ["a" * 40], None) is not None)
 
         # A REFUSED PUSH is recoverable: the pass's local commit is dropped, so
         # the next pass is not blocked by "unpushed commits would be lost".
@@ -754,8 +919,6 @@ def self_test() -> int:
           bool(seen), sorted(seen))
 
     print(f"roster_sync self-test: {n[0]} checks, {len(fails)} failed")
-    for f in fails:
-        print("FAIL", f)
     return 1 if fails else 0
 
 

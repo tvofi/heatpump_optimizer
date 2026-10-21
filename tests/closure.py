@@ -633,6 +633,21 @@ INERT_EXCEPT = (
     # openat), so they stay under the docs/ prefix. The arm also opens
     # DISCLAIMER.md for the page's DISCLAIMER.md#disclaimer claims.
     "docs/index.html",
+    # #2298: the image-size arm of tests/doc_claims.py OPENS each PNG a sized
+    # <img> on a published page names, to read its IHDR, so those files are
+    # its reads, not stat()s: a re-exported screenshot of another height
+    # selects the script. The rest of docs/img/ stays under the prefix. A new
+    # sized <img> adds its PNG here, as a new reader doc does above.
+    "docs/img/card/advisor-light.png",
+    "docs/img/card/card-plan-chart.png",
+    "docs/img/card/options-hot-water-by-day.png",
+    "docs/img/card/plan-why-light.png",
+    "docs/img/model/card-dhw-band-weekly.png",
+    "docs/img/readme/how-it-works.png",
+    "docs/img/setup/01-first-screen.png",
+    "docs/img/setup/03-menu.png",
+    "docs/img/setup/04-quick-setup.png",
+    "docs/img/setup/08-setup-overview.png",
     # R9-WEB-3: the same arm opens the stylesheet the built pages link, to refuse
     # a third-party @import or url() in it; the route docs/index.html took.
     "docs/site/docs.css",
@@ -764,6 +779,13 @@ INERT_EXCEPT = (
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",
+    # #2554: state_docs.py imports roster_sync.py, the roster-sync step
+    # `beat --apply` runs, and roster_sync imports roster_edit.py and
+    # carry_audit.py, so entities.py's load of the beat reads all three.
+    # closures run 119202770035 was UNDER-SCOPED on exactly these.
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/carry_audit.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the

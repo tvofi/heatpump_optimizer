@@ -66,7 +66,8 @@
 #     `bus.sh dispatch <pr> <new head> cloud`, and appends
 #       OWED reviewer-fire <pr> <head40> <nonce> <utc>
 #     to the log: firing the cloud reviewer stays with the orchestrator. It only
-#     UPDATES an existing PR (a soft cap counts opens, and an update is not one).
+#     UPDATES an existing PR (the soft cap counts roster groups in progress at
+#     dispatch; an update neither opens a PR nor enters WIP).
 #     A handoff already contained in its PR, or with no body ref, does nothing;
 #     a topic whose update failed is noted in `<ledger>.handoff-failed` by
 #     `<topic> <code-sha>` and retried only when handoff/<topic> moves, with an
