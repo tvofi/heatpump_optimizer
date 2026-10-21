@@ -189,16 +189,20 @@
   ok   6b leaves a scoped diff's recordings to CI off Linux by default, owing no recorder interpreter
   ok   and the skip line names the CI context and the autofix job that own them
   ok   and names the opt-in that records locally instead
-  FAIL 6b's opt-in records off Linux for a lane that needs a first-green head (got 3, wanted 0)
-  FAIL and the opt-in still refuses a closure its recording does not cover (null control) (got 3, wanted 1)
+[1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+  ok   6b's opt-in records off Linux for a lane that needs a first-green head
+[1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+  ok   and the opt-in still refuses a closure its recording does not cover (null control)
+  ok   and PREPR_RECORD_CLOSURES=0 is no opt-in: the recordings stay CI's
 [1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
   ok   6b on Linux still records and still refuses an uncovered closure (null control)
   ok   6b skips a diff it cannot scope (full), recording nothing
   ok   and the full case's line is byte-identical to the one it printed before the platform decision
   ok   and a skip-case diff still skips
   ok   and the skip case's line is byte-identical too
-  ok   the reap arm's recorder starts under the step
-  ok   a TERM to the prepr leaves no recorder running behind it (the orphan this closes)
+  ok   a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes)
+  ok   a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes
+  ok   a TERM to the prepr's process group ends it and its recorder
   ok   6b drives the scoped set through the --scripts-from lane runner
   ok   and makes no serial --single call beside it (the merge-base arm's failure)
   ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
@@ -294,7 +298,7 @@ AssertionError: queue-base
   ok   transport: merging a main that carries a transport file passes (null control)
   ok   transport: a body written in a merge's own resolution is refused
   ok   transport: an unreadable range is refused, never passed
-  FAIL a change to prepr.sh owes the self-test (got 1, wanted 0)
+  ok   a change to prepr.sh owes the self-test
   ok   a change to a program a step runs owes the self-test
   ok   a change to a fixture owes the self-test
   ok   a change to none of them owes nothing (null control)
@@ -330,5 +334,4 @@ AssertionError: queue-base
   ok   gate_priority.py's derived-default self-test passes
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-318 passed, 3 failed
-rc=2 secs=158
+323 passed, 0 failed

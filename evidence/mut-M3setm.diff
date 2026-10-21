@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 65c156d1d..9a79e0f3a 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -560,7 +560,6 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
+         # `$$` stays the top-level prepr inside this function's job, and
+         # `closures_step` keeps the prepr's own signal traps prompt, so a KILL,
+         # a TERM to the prepr alone and a signal to its group all end it.
+-        set -m
+         GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+           --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1 &
+         rpid=$!

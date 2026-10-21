@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 65c156d1d..173e4439b 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -594,7 +594,7 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
+ closures_step() { # merge base; sets CLOSURES_LINE, returns closures_line's rc
+   local out r
+   out=$(mktemp)
+-  closures_line "$1" > "$out" & wait "$!"; r=$?
++  closures_line "$1" > "$out"; r=$?
+   CLOSURES_LINE=$(cat "$out"); rm -f "$out"; return "$r"
+ }
+ 

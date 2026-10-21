@@ -1,0 +1,88 @@
+R10-PREPR-CAP {
+ "group": "R10-PREPR-CAP",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [
+  2267
+ ],
+ "fixes": [],
+ "findings": [
+  "R10-PREPR-CAP lead"
+ ],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "S",
+ "wave": 1,
+ "files": [
+  "tools/pr/prepr.sh",
+  "tests/gate_lock.py"
+ ],
+ "hot_files": [],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [],
+ "carry": [
+  "Measure before fixing; an independent reviewer is owed (it is the orchestrator's own instrument)."
+ ],
+ "architect_note": null,
+ "resume": {
+  "stage": "in-progress",
+  "branch": "handoff/r10-prepr-cap",
+  "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
+  "last_step": null,
+  "next_step": "dispatch a fixer once every `after` group is done",
+  "note": "Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane that needs a first-green head; the local re-record duplicated CI required closures context plus closures-autofix and cost 10-25 min per handoff. CORRECTION 2026-10-21: the figure first recorded here (108 ok, 0 FAIL, 12 skip, read as never having refused) was WRONG. The step line format is REFUSE, not FAIL, and the filter could not see the word. Re-counted over the same logs: 108 ok, 13 skip, 3 REFUSE, and 10 REFUSE lines in a looser pass; the fixer measured 15 in its own corpus. So the step does catch under-scoped closures locally and the ruling cost side is not zero. Recommendation on record: keep the skip as the default and force the local check with PREPR_RECORD_CLOSURES=1 on diffs touching tests/closures.json, tests/closure.py, or adding a read of an INERT file - the class that actually refused. Same change makes closures_line reap its recorder on TERM: stopped preprs left derive_closures reparented to launchd for 20-38 min. Fixer on handoff/r10-prepr-closures."
+ },
+ "brief": "`tools/pr/prepr.sh` runs unleased and each seat starts one independently, so the tick read 8+ concurrent preprs (each spawning its nested `--self-test`) and load hit ~168 on 8 cores; `nudge.md` \u00a78's \"up to four\" is advisory \u2014 the tick counts and flags it, nothing blocks a fifth.\n\nTake the gate lease beyond `stress.py`: `tests/gate_lock.py` gains a **slot-counted lease beside the exclusive one** \u2014 default **4** slots (a slot-count environment override, clamped to \u2264 4 without the owner), taken FIFO with the existing lease/expiry/orphan-steal machinery, released on exit; `needs-lease` grows a third answer **`slot`** beside `lease`/`none`. `prepr.sh` takes **one slot for its whole life** and exports a slot-label environment variable so its heavy steps (self-test ~172 s, mutants drive ~127 s, the scoped closures recordings) run *inside* that slot and do not re-acquire; `tests/derive_closures.sh` takes a slot only **standalone** (else 
+R10-PREPR-UNPINNED-RED {
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [],
+ "fixes": [],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "S",
+ "hot_files": [],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": true,
+ "owner_gate": null,
+ "rca": [],
+ "after": [],
+ "carry": [],
+ "architect_note": null,
+ "group": "R10-PREPR-UNPINNED-RED",
+ "findings": [],
+ "wave": 3,
+ "files": [
+  "tools/pr/prepr.sh"
+ ],
+ "brief": "Found by the R10-TRUST-RELATIVE recarry seat (#2435, no defer): when tools/pr/prepr.sh step 6d prints a mutation site the diff adds unpinned, the body may still say the mutation lane is green, and pr-contract reddens only after CI. Make prepr refuse a body whose ## Red checks does not name mutation while step 6d reports an unpinned added site. Control: a body omitting mutation with an unpinned site is refused, the same body naming it passes, and a diff with no unpinned site is unaffected.",
+ "resume": {
+  "stage": "done",
+  "branch": "handoff/r10-prepr-unpinned-red",
+  "commit": "0fd52fd729949380d3927c1ae8ec386de3625f4a",
+  "last_step": null,
+  "next_step": "fixer",
+  "note": null
+ }
+}

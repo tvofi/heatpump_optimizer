@@ -182,34 +182,33 @@
   ok   6a passes a branch that writes its own claim (null control)
   ok   pr-body exempts a main-graded red when the diff only ADDS its own delivery row
   ok   and still owes it when the diff edits a row the base had (null control)
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
-  FAIL 6b passes a scoped script its committed closure covers (null control) (got 1:, wanted 0:scoped recordings are covered)
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
-  FAIL 6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED (got 1:, wanted 1:UNDER-SCOPED)
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
-  FAIL 6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED (got 1:, wanted 1:failed while being recorded)
+  ok   6b passes a scoped script its committed closure covers (null control)
+  ok   6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED
+  ok   6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED
   ok   6b skips a diff that reaches no selectable script, recording nothing
   ok   6b leaves a scoped diff's recordings to CI off Linux by default, owing no recorder interpreter
   ok   and the skip line names the CI context and the autofix job that own them
   ok   and names the opt-in that records locally instead
-[1]+  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
-  FAIL 6b's opt-in records off Linux for a lane that needs a first-green head (got 1, wanted 0)
-[1]+  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
+[1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+[2]+  Done                    ( : )
+  ok   6b's opt-in records off Linux for a lane that needs a first-green head
+[1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+[2]+  Done                    ( : )
   ok   and the opt-in still refuses a closure its recording does not cover (null control)
-[1]+  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
-/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/mut/M3wd.sh: line 573: wpid: unbound variable
+  ok   and PREPR_RECORD_CLOSURES=0 is no opt-in: the recordings stay CI's
+[1]-  Done                    GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+[2]+  Done                    ( : )
   ok   6b on Linux still records and still refuses an uncovered closure (null control)
   ok   6b skips a diff it cannot scope (full), recording nothing
   ok   and the full case's line is byte-identical to the one it printed before the platform decision
   ok   and a skip-case diff still skips
   ok   and the skip case's line is byte-identical too
-  ok   the reap arm's recorder starts under the step
-  ok   a TERM to the prepr leaves no recorder running behind it (the orphan this closes)
-  FAIL 6b drives the scoped set through the --scripts-from lane runner (got 1, wanted 0)
+  FAIL a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes) (got gone:alive, wanted gone:gone)
+  FAIL a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes (got gone:alive, wanted gone:gone)
+  FAIL a TERM to the prepr's process group ends it and its recorder (got gone:alive, wanted gone:gone)
+  ok   6b drives the scoped set through the --scripts-from lane runner
   ok   and makes no serial --single call beside it (the merge-base arm's failure)
-  FAIL 6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm) (got 1, wanted 0)
+  ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
   ok   and the recorder received that interpreter as $PYTHON
   ok   6b refuses an override that cannot parse the tree instead of recording under it
   ok   and the step's refusal names the venv build command
@@ -302,7 +301,7 @@ AssertionError: queue-base
   ok   transport: merging a main that carries a transport file passes (null control)
   ok   transport: a body written in a merge's own resolution is refused
   ok   transport: an unreadable range is refused, never passed
-  FAIL a change to prepr.sh owes the self-test (got 1, wanted 0)
+  ok   a change to prepr.sh owes the self-test
   ok   a change to a program a step runs owes the self-test
   ok   a change to a fixture owes the self-test
   ok   a change to none of them owes nothing (null control)
@@ -338,5 +337,4 @@ AssertionError: queue-base
   ok   gate_priority.py's derived-default self-test passes
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-314 passed, 7 failed
-rc=2 secs=165
+320 passed, 3 failed
