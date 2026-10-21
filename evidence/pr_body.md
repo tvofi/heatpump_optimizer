@@ -1,0 +1,91 @@
+rca: R10-RCA-HARNESS-FRICTION, the root-cause record for the friction keys `harness` (#2331), `class-open` (#2353) and `mutation-vacuous` (#2409), routing `mutation (family)` (#2410) to its owner. One cause: a step in a contract that defines a block class does not teach the word `VERDICT_CLASSES` has for it. Step 6 of `fix-review.md` taught `harness: class-open` (#1414), and step 1 taught no word, so one obligation was keyed under several words and the cron filed it twice. Process state (c). The fix teaches both words (policy). The detector that was held while #2390 edited the same file is now in `check-wave-script.mjs`. The branch also carries the orchestrator's fold of #2423 into section 11 of `orchestrator.md` (policy). Part of #201.
+
+Closes #2331
+
+#2353 and #2409 are disposed by the record, and the orchestrator closes them by hand after the merge. #2410 leaves this group for R10-POLICY-LINT-FAMILY.
+
+## Head
+
+`1019d18de448a9569c65a704410c331046cbe868` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2561.md`. The authored code head is `bbac16edff999adb26d89c8a89a8db8da379cf1f`.
+
+`9b3563051c441774069a8ce61e2b489a7775c4c2` merges origin/main `03b49e152` into the authored code head `bbac16edff999adb26d89c8a89a8db8da379cf1f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+`bbac16edff999adb26d89c8a89a8db8da379cf1f`. It is three commits on `ae41e0569`, which is a merge of origin/main `df6ca4bc6858f2796f694035e6f53e46e237e33b` into the old handoff tip `d1611efe6b7d7bd0d6fdb1651924d015aed3f74d`. That tip was 905 commits behind. It is a merge, not a rebase.
+
+Every figure below was taken at this head, or for the window at origin/main `df6ca4bc`, between 2026-10-21T08:00Z and 08:52Z. Since then origin/main has moved to `0cc148b2f` (#2519, #2542: `tools/audit/seat/merge_train.py`, `tests/entities.py`, delivery rows). `git merge-tree --write-tree origin/main HEAD` exits 0.
+
+**Merge resolution.** Two files conflicted:
+- `dev/audit/config/bugclasses.json`. The `ledgermerge` driver refused it (see Friction). Both sides add an `_rca` entry after `R10-RCA-2205`: this branch's `R10-RCA-HARNESS-FRICTION` and main's `R10-RCA-TRAIN-RAISE-HOLD`. The merged file keeps both, entry by entry. Main's entry is byte-identical to origin/main's (`json.load` of both, compared on that key). The file is re-serialised in `fold_ledger.py`'s own form (`json.dumps(indent=2, ensure_ascii=False)`, no trailing newline). Main's file round-trips in that form too.
+- `dev/governance/roles/orchestrator.md`, the section-4 preflight paragraph. Main rewrote it ("It misleads three ways ..."), and this branch had cut two clauses from the old text to pay for #2423's section-11 clause. The merge takes main's paragraph whole (`git diff origin/main` shows nothing in section 4 except the payment below). It keeps this branch's section-11 line, "never a custom `--subject`, four readers parse it (#2423)". Section 4 paid for that line again in `6331299b8`, by cutting the narrative tail "— a third-hand path to the same outcome, and it has occurred".
+
+## Approval
+
+Owed: tvofi's approval at merge, under mandate 6175172275, for the two policy files. These are `dev/governance/roles/fix-review.md` steps 1, 6 and 8 and `dev/governance/roles/orchestrator.md` sections 4 and 11. It has not been given, and nothing here claims it.
+
+What changes what a seat must do:
+- In step 1, a reviewer blocking on a surviving mutant writes `blocked <sha> mutation-vacuous: <mutant>`.
+- In step 6, a reviewer blocking on an undispositioned seam writes `blocked <sha> class-open: <seam>`, not `harness: class-open <seam>`.
+- In section 11, a direct merge passes no custom `--subject`.
+
+Step 8 and section 4 only cut words: step 8's "rather than reporting a number as confirmed" restated its bold lead, and section 4's tail was narrative.
+
+## Mutation proof
+
+Each mutant was applied to this head's tree, run with `node tools/policy/check-wave-script.mjs`, and restored (`git status --short` empty after each):
+- **M1, step 6 put back to the #1414 spelling** `harness: class-open <seam>`: rc=1, `FAIL fix-review.md teaches "class-open" as a reason under another class: blocked <sha> harness: class-open <seam>`. No other check failed.
+- **M2, the shadow predicate's body replaced by `return null`**: rc=1, `FAIL the shadow predicate fires on the #1414 spelling (negative control)`.
+- **M3, step 1's word misspelt `mutation-vacous`**: rc=1, `FAIL fix-review.md teaches block class "mutation-vacous", and VERDICT_CLASSES carries it`. This is the existing taught-word arm.
+- **M4, step 1 put back to main's prose**: rc=0, 200 passed. No arm pins that step 1 is present. The record's section 8 refuses a presence arm.
+
+In each line above, the script's `FAIL (probe, expected) threw: deliberate` line is a self-probe that prints on every run, and it is not counted.
+
+## Null control
+
+- `check-wave-script.mjs` with the detector applied to unmodified origin/main `df6ca4bc` (a scratch worktree): rc=1, 200 passed, 1 failed. The one failure is step 6's example. At this head: rc=0, 202 passed. The predicate's own null control, `harness: class-rule-missing`, is in the script.
+- The class-reach census of the record's section 4 (a `node -e` read of `VERDICT_CLASSES` and every backticked `blocked <sha> <w>:` example under `dev/governance/roles/` and `dev/governance/dimensions/`). At origin/main it reads `taught 6`, with 1 shadow (fix-review.md step 6). At this head it reads `taught 8`, with 0 shadows.
+- `fold_ledger.py check` with this entry's `in_tree_home` pointed at a missing file prints `DANGLING: ... is not a file under dev/audit/rca` and `1 violation(s)`. At this head it prints 0 violations.
+- `gh api .../pulls/N/files | grep -c '^custom_components/'` returns 4 on #2365 and #2391, so the rule can return non-zero. It returns 0 on the other ten.
+
+## Figures
+
+The window is `v7.0.0..origin/main` at `df6ca4bc`, read 2026-10-21, and it slides. Re-derive with the commands below rather than carrying the numbers.
+- `git rev-list --count d1611efe6b7d7bd0d6fdb1651924d015aed3f74d..df6ca4bc6858f2796f694035e6f53e46e237e33b`: 905, the old tip's distance behind the main it was merged with.
+- `GITHUB_TOKEN=$(gh auth token) node tools/policy/policy_lint.mjs --stats --since v7.0.0` (run in a worktree at `df6ca4bc`): rc=0, 434 s, 234 merged PRs and 116 with a parsable verdict. Counted as distinct PRs / entries, it gives harness 15/23, class-open 5/7, mutation-vacuous 5/6 and mutation (family) 7/8. Saved as `dev/audit/rca/harness-friction/stats_v7.0.0.txt`.
+- `git log --first-parent --format=%s v7.0.0..origin/main`, subjects `Merge pull request #N`, gives 229 (`window_prs.txt`). The rule differs from `--stats`'s 234, which also recovers merges through `/commits/<sha>/pulls`.
+- A per-PR fetch of `gh api --paginate .../issues/N/comments` and `.../pulls/N/reviews` (first line of each body, per `rounds.py`'s docstring) found 0 failures in 229. `python3 dev/audit/rca/harness-friction/rounds.py <dir>` gives 102 blocked verdicts (`blocked_rounds.tsv`). Every `--stats` count above reproduces from that file, keyed on its class column.
+- The class-open fold (key column `class-open`) gives 26 entries over 15 PRs. 19 of the 26 are spelt `harness: class-open`, over 13 PRs. 11 of the 26 re-blocked a PR that already had a class-open block. Minutes to the next verdict: sum 7148, median 128.5.
+- The mutation obligation, as the union of the class words `mutation-vacuous`, `test-vacuous`, `vacuous-test`, `vacuous-check`, `mutant-survives`, `mutation-survivor` and `mutation`, covers 12 distinct PRs. 10 of them change no `custom_components/` file.
+- `node tools/policy/policy_lint.mjs --budgets`: fix-review.md 140/140 lines and ~2443/2451 tokens (main ~2451). orchestrator.md 318/319 and ~4511/4513 (main 319 and ~4512). Corpus ~61143 (main ~61152). No cap moved, because no `*_budgets.json` is in the diff.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 41 policy file(s)`, rc=0. At the merge commit, before `6331299b8`, it read `about 4526 tokens across its lines exceeds its cap of 4513`.
+- `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`, rc=0. `node tools/policy/rules_sync.mjs --check`: rc=0.
+- `node tools/policy/check-wave-script.mjs`: rc=0, 202 passed, 0 failed.
+- Detector cost: five runs of `check-wave-script.mjs`, twice per tree. At main the means were 0.193 s and 0.201 s, and at this head 0.201 s and 0.185 s. The difference between trees is inside the spread between repeats of one tree.
+- `python3 tools/audit/fold_ledger.py check`: `0 violation(s)`, with 114 rca entries.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 -I tools/audit/archscore/gate.py --base df6ca4bc6858f2796f694035e6f53e46e237e33b --head HEAD --body <this body>`: `PASS: dS +0.0000 NULL, no gate metric rose`.
+- **Gate scope.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`. The script is `tests/entities.py`. Under `PYTHONPATH=tests/hastub` with the CI venv's Python 3.14 it prints `ALL 2360 ENTITY CHECKS PASSED`, rc=0. Its `FAIL` lines are its own planted probes. The `run_always` lines (`env_drift.py --claims-only origin/main`, `closure.py selftest`, `layout.py`, `harness_headers.py`) each give rc=0. The claim files are not in the diff.
+- **The class's seams** (fixer.md step 8). The rule is the detector itself, a walk over every contract verdict example, plus the census above. The detector returns one seam, step 6, which is closed in this diff. The census returns step 1, also closed in this diff, and 9 untaught `VERDICT_CLASSES` words. Their dispositions are in the record's section 4: the two `root-cause-*` words are R10-BRIEFS-FOLD's carry, and the rest are blocks no window split above threshold.
+
+## Red checks
+
+none. No pull request exists yet, so no check has run on this head. Locally, everything the scoped gate names is green (Figures).
+
+## Forward-carry
+
+- The detector in `tools/policy/check-wave-script.mjs` lands in this PR. That spends the R10-BRIEFS-FOLD roster carry, "The first group to edit tools/policy/check-wave-script.mjs after #2390 ... lands it". The BRIEFS-FOLD fixer re-reads `fix-review.md` steps 1 and 6 at its merge base. Any new verdict example it writes for step 11 (`root-cause-detectable:`, `root-cause-unrecorded:`) must put the word first, because the detector now refuses a taught word in the reason position. Carry: R10-BRIEFS-FOLD
+- The refused unconditional `fixer.md` step 8 (record section 8) is already item 11 of that group's brief, and the tooling-mutant substance of #2409 is its item 1. Re-measure both at that group's merge base with `rounds.py`, not from this record's numbers. Carry: R10-POLICY-FIXER-MD
+- #2410's family arm now reads 7/8: `mutation-vacuous`'s 5 PRs plus #2390 (`mutation`) and #2444 (`mutation-survivor`). The member `mutation-vacuous` fired its own line in the same window, so 5 occasions are filed twice. The family's member list also misses `test-vacuous`, `vacuous-test`, `vacuous-check` and `mutant-survives` (record section 5). Control: the distinct-PR list in `dev/audit/rca/harness-friction/blocked_rounds.tsv`. Carry: R10-POLICY-LINT-FAMILY
+- #2428 (`carry-missing`), #2436 (`other`) and #2437 (`root-cause-unanswered`) are in this group's roster issues, but this record neither measures their cause nor disposes them. `blocked_rounds.tsv` reproduces their `--stats` counts (12/15, 3/3, 5/7). The three `other` blocks are literal `other:` verdicts (#2294, #2404, #2406), not words split away from a taught one. Carry: #2428
+- The same applies to #2436, which the line above measures. Carry: #2436
+- The same applies to #2437. Its 7 blocks name 4 different checks, and none recurs across 3 PRs (`pr-contract` #2404 #2485, `wave-script` #2404 #2406, `fast` #2347, `arch-score` #2444). Carry: #2437
+- #2429 (`.claude/rules/ci-autofix.md`) and #2438 (`.claude/rules/finding-propagation.md`) are friction rule ids read from PR bodies' `## Friction` sections, which this record's verdict enumeration does not read. Carry: #2429
+- The same applies to #2438. Carry: #2438
+- Roster carry "Source: #2452 Friction", about the cost of `tests/card.mjs`. It records a priced, deliberate cost (fresh render per drive) and does not touch this record's cause. Carry: dismissed: a cost the source itself justifies, with no obligation or instance count for this group to dispose
+- Roster carry from R10-RCA-NIGHTLY-PYSPY, which says a red-check answer has no cross-run count. Over this window, the `root-cause-unanswered` blocks name no check on 3 or more PRs (the #2437 line above), so no instance count clears the bar the carry itself sets. Carry: #2437
+
+## Friction
+
+ledger_merge: unenforced: the `ledgermerge` driver routes `dev/audit/config/bugclasses.json` (`.gitattributes`) but can never merge it. `_format()` accepts only `json.dumps(...) + "\n"`, and `fold_ledger.py`, the file's writer, writes no trailing newline. `ledger_merge._format(<origin/main's bugclasses.json>)` returns `None`, and the same text plus `"\n"` returns `{'indent': 2}`. So every `_rca` conflict is refused with "a side is not in its writer's own JSON format" and is resolved by hand, and the self-test misses this because it builds its sides with `+ "\n"`. Carry: #201
+
+prepr: unclear: in a cloud seat whose environment provisions the CI venv at `/opt/hpo/venv-ci`, `tools/pr/prepr.sh` looks for `$HPO_STATE_DIR/venv-ci/bin/python3` under its default state directory. Its `closures` step and five `6b` self-tests therefore refused with "no interpreter that parses the tree was found". The same run under `HPO_STATE_DIR=/opt/hpo` was clean, with rc=0. Nothing in the seat brief names the variable. Carry: #201

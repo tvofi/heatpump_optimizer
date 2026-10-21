@@ -1,0 +1,11 @@
+== policy_lint
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== fold_ledger
+fold_ledger: 0 violation(s)
+== rules_sync
+rc=0
+== budgets
+tools/audit/briefs/orchestrator.md               318  319     4511  4513 
+tools/audit/briefs/fix-review.md                 140  140     2443  2451 
+corpus:        ~61143 tokens, cap 61026 +band 500 = 61526
+TOTAL: 0 error(s) across 41 policy file(s)
