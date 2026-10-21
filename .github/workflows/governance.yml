@@ -600,6 +600,13 @@ jobs:
           python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
           grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
 
+      - name: Show the programme pulse refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/pulse.py --self-test | tee "$RUNNER_TEMP/pulse-self-test.txt"
+          grep -Eq '^pulse self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pulse-self-test.txt"
+
       - name: Show the record-row generator refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |

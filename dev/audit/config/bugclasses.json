@@ -2287,6 +2287,47 @@
       "reason": "P4 -> excluded: #1293 closed as refuted after filing (the fix is net-negative on the shoulder cell)"
     }
   ],
+  "N-silent-stop": {
+    "kind": "instrument",
+    "mechanism": "The programme's liveness is not a level anyone can read: every consumer (merge train, tick, state beat, wt_sync, and the session's opener, verdict-routing and record turns) is a process or a turn on one host, launched by hand and recorded nowhere on origin (daemonize.py keeps no bookkeeping), and the only watchdog, sweep step 5's tick watcher, runs inside the session it would have to watch -- so when the session or its host stops, every consumer and its only detector stop together and the silence reads as nothing owed",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 stop-2026-10-16",
+      "R10 stop-2026-10-17",
+      "R10 stop-2026-10-20",
+      "R10 stop-2026-10-21"
+    ],
+    "detector": "tools/audit/seat/pulse.py: per consumer, an input an off-host producer delivered to origin that the consumer's footprint has not answered within a bound (opener via bus.sh orphans and the newest opening, verdict at an open head, state ref behind main's oldest unfollowed move); fail-closed UNREADABLE; replayed by dev/audit/harnesses/pulse_replay.py over 10-15..10-21 (opener STOPPED during I1, state-beat during I2 and four unreported 10-19 windows, 0 windows under a null perturbation)",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "detector",
+    "nearest_existing": "N-orphaned-handoff",
+    "mechanism_difference": "N-orphaned-handoff is one obligation (a handoff owing a pull request) that no check enumerates while the session runs; here the session or host itself stops, so every consumer stops at once with its watchdog, and the defect is the absence of any observer off the host -- 2026-10-18's failing-open bus.sh is that class's, not this one's",
+    "aliases": [
+      "new: the programme stops silently when the orchestrator's session or host stops"
+    ],
+    "non_round_note": "The four round-10 instances are orchestrator stops named by date, each recorded by a takeover note on #201 (6216882536, 6240942713, 6285467757, 6310926491); not audit findings, not in register_rows.tsv. Counted because the class is round-10 and the three-instance audit rule is what it met, as R9-ROW-STALE counts its incidents. The 2026-10-19 state-beat windows the class search found are listed, not counted.",
+    "non_round_instances": [
+      "2026-10-19 state beat silent while main moved: 11:15Z-11:45Z, 13:15Z, 15:00Z-16:45Z, 19:00Z-20:45Z"
+    ],
+    "rca": [
+      "R10-RCA-ORCH-CONTINUITY"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    },
+    "per_round": {
+      "R10": 4
+    },
+    "total": 4,
+    "max_per_round": 4
+  },
   "_rca": {
     "RCA-546-paired-artifacts": {
       "class": null,
@@ -4227,6 +4268,24 @@
       "in_tree_home": "dev/audit/rca/R10-N-structure-blind.md",
       "doc": [
         "dev/audit/rca/R10-N-structure-blind.md"
+      ]
+    },
+    "R10-RCA-ORCH-CONTINUITY": {
+      "class": "N-silent-stop",
+      "level": "class",
+      "subject": "N-silent-stop class: when the orchestrator's session or host stops, every consumer stops with its only watchdog and the programme stops silently (4 instances, round 10)",
+      "trigger": "class (4 instances in round 10)",
+      "date": "2026-10-21",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier: the off-host schedule (a scheduled cloud probe, recommended, or an hourly CI cron) is the owner's call"
+      ],
+      "process_state": "(a) no process watched the session or host from outside it; sweep step 5 watches the tick seat from inside the session",
+      "countermeasure": "tools/audit/seat/pulse.py (detector, three arms, fail-closed), its self-test in governance.yml instrument-self-tests, sweep step 5; 8.2 s a run, 3.3 min/day hourly off-host against a measured 3.0 h/day (4.8 h x 0.63/day)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md"
       ]
     }
   },
