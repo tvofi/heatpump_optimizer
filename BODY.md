@@ -22,7 +22,8 @@ one spelling now answers, and the view no longer re-derives it.
 
 `0be6047ca`, branched from `origin/main` `4e5801eb5064`; every figure below is taken at this head unless a line says
 another one. The evidence head is `2f8071ef5`: the two commits above it delete the stale mutation-ledger row and record
-the structure budgets, so every production line those figures measured is identical here.
+the structure budgets, so every production line those figures measured is identical here. The PR head `de28f656` is
+this head plus the orchestrator's delivery row, and no production line moves under that commit.
 
 Prepr's closures recordings were skipped (`PREPR_SKIP_CLOSURES=1`) under the coordinator's owner ruling for the rest of
 this wave: CI's required `closures` context re-records them and `closures-autofix` repairs an UNDER-SCOPED result, while
@@ -51,11 +52,13 @@ The unmodified tree, the finder's harness, the same 8 intervals (baseline `git a
 defrost arm reads 0. `tests/features.py` carries the same arms as checks: a `defrosting=False` interval folds, and
 without the fix the divergent defrost arm trips the watchdog.
 
-The harness's `--perturb` arm (patch `_freq_fold_blocked` to refuse defrost) no longer separates at the head: the fold
-reads the predicate before the gate, so 8 -> 0 -> 0. That is the route the fix took, named here because the harness's
-reported text did not move. The control that separates at the head is the clean arm against the defrost arm. Its
-learner table's `freq_map` column still reads INGEST on the defrost row for the same reason: the column asks
-`_freq_fold_blocked` alone, which this diff deliberately leaves unchanged.
+The harness's `--perturb` arm (patch `_freq_fold_blocked` to refuse defrost) is vacuous at the head: the fold reads the
+predicate before the gate, so it reads 8 -> 0 -> 0. It is named because the harness's own reported text did not move.
+The finding is still measurable at the head: deleting `or defrosting` alone takes the defrost arm from 0 folds to 8 (the
+reviewer's single-term plant; my mutation proof deletes both terms and reads the same 8), and the unmutated control that
+separates is the clean arm against the defrost arm. The harness's learner table's `freq_map` column still reads INGEST on
+the defrost row for the same reason as `--perturb`: the column asks `_freq_fold_blocked` alone, which this diff
+deliberately leaves unchanged.
 
 ## Figures
 
@@ -79,13 +82,16 @@ learner table's `freq_map` column still reads INGEST on the defrost row for the 
   ledger row was deleted.
 - `1 of 84 OPTIMALITY CHECKS FAILED`, the same check, at the baseline export: `PYTHONPATH=tests/hastub python3
   tests/optimality.py`.
-- `9 of 110 STRESS CHECKS FAILED` at the same export, including `shoulder: cheaper than holding the setpoint
-  [4.67 vs 3.96]`: `PYTHONPATH=tests/hastub python3 tests/stress.py`. Eight of the nine are the export having no `.git`
-  (seven name `origin/main` unresolvable for the solver-work baseline, one the memory record); the ninth is the shoulder
-  check the head also fails, with the same numbers.
-- `P2 owners: defrost_standoff is decided only by its owner or a dispositioned site, its owner exists, no disposition
-  is stale, the rule is live`: `PYTHONPATH=tests/hastub python3 tests/entities.py`. The fact's one other
-  decision-context read of the flag is dispositioned at
+- `8 of 110 STRESS CHECKS FAILED` at the same export, including `shoulder: cheaper than holding the setpoint
+  [4.67 vs 3.96]`: `PYTHONPATH=tests/hastub python3 tests/stress.py`. Seven name `origin/main` unresolvable (the export
+  has no `.git`, so the solver-work baseline cannot be captured); the eighth is the shoulder check the head also fails,
+  with the same numbers. My own run printed a ninth, a memory-record reading (`RSS 3.50 MiB vs recorded 13.70 MiB`) that
+  did not reproduce on the reviewer's re-run of the same export; it is not claimed.
+- The registry row for `defrost_standoff` passes (`PYTHONPATH=tests/hastub python3 tests/entities.py`). What its shape
+  pins is a decision-context read of `*.defrosting`: direct, `bool(...)`, `not` and walrus all hit, as the reviewer
+  planted each at `de28f656`. A copy to a local first (`d = signals.defrosting; if d:`) is **not** matched (0 hits on
+  the same plant), so the barrier's boundary is named here: it pins the flag's read, not a local derived from it. The
+  one other read the rule returns is dispositioned at
   `coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen`, the plant-wide gate that owns the reason string every
   learner is frozen with and which the map deliberately ignores for external heat (#781).
 
@@ -103,8 +109,10 @@ test, which moves no logic statement.
   pinned by `mutation-autofix`: with the guard off the watchdog never runs, and `persistent divergence stands control
   down to latch` fails.
 - `custom_components/heatpump_optimizer/coordinator.py:10679 GUARD_OFF` on `if source is not None:` (the view's
-  `source` key) — pinned by `mutation-autofix`: with it off the unconfigured view gains `source: None`, and `an
-  unconfigured view gains no key, so the published unconfigured dict is unchanged` fails.
+  `source` key) — pinned by `mutation-autofix`: with the guard off a configured view loses `source`, so `a number install
+  publishes source=number beside its unchanged keys` and `a frequency sensor alone observes, on the options' range, and
+  learns a map` both fail. The unconfigured arm is unchanged by this mutant (`source` stays absent), so `an unconfigured
+  view gains no key` is not its killer.
 - `custom_components/heatpump_optimizer/freq_control.py:78 RETURN_DEL` on `return bool(defrosting)` — pinned by
   `mutation-autofix`: the predicate then returns None, which is not a defrost, and `a defrost interval never teaches the
   frequency map` fails (Mutation proof).
@@ -117,7 +125,15 @@ test, which moves no logic statement.
 ## Red checks
 
 The scoped gate at `2f8071ef5` ends `4 TEST SCRIPT(S) FAILED`; the two commits after it are the repairs, and two of the
-four reds are this branch's. No check is expected to be red in CI at this head.
+four reds are this branch's. CI's required `mutation` also runs red at the PR head `de28f656`; both branch reds and that
+one are answered below.
+
+- `mutation` (required), red at `de28f656`: the job refuses the five mutation sites the diff adds (four keys;
+  `coordinator.py:10563 CMP_BOUND*2` is two). Each is named and dispositioned under `## Unpinned sites`. The standing
+  repair is `mutation-autofix`, which pins the sites a driver kills (`ci-autofix.md`: do not duplicate it), and
+  `mutation-pins (1)` was in flight at this head when the body was written. Cheaper detector: `tools/pr/ci_predict.py
+  --base origin/main` is source-only, names every added site in seconds, and prepr step 6d runs it — so this red was
+  visible before the push and is the instrument's, not a surprise. Standing cost: one local prepr.
 
 - `tests/optimality.py`, `1 of 84 OPTIMALITY CHECKS FAILED` on `one|summer_negative|shoulder: a recorded claim still
   has a gap`. Not this branch: `_CERT_CLAIMS`' own comment in the script records it as an arm64-only reading (the seat's
