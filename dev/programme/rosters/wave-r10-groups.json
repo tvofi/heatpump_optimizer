@@ -5265,6 +5265,47 @@
     "next_step": "dispatch a fixer",
     "note": null
    }
+  },
+  {
+   "group": "R10-RCA-HANDOFF-SLIP",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "dev/audit/rca/N-orphaned-handoff.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "The root-cause analysis for the orphaned-handoff class (handoffs no pull request carried): one new record under dev/audit/rca, already handed off on handoff/r10-rca-handoff-slip and awaiting its pull request. Review checks the four products root-cause.md requires: the named cause, the process state, the cost test with numbers, and the countermeasure or recorded refusal.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-handoff-slip",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
   }
  ]
 }
