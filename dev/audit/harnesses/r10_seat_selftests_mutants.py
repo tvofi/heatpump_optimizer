@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 and the per-file ids (tick_loop-N, heartbeat-N) each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
@@ -102,6 +102,12 @@ MUTANTS = [
     ("S34", "tick_loop.sh",
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
+    ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
+    ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+    ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
+    ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
+    ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
