@@ -695,6 +695,17 @@ PY
   return 4
 }
 
+# The one line a refused body check is reported by: the red gate's own
+# sentence when a red went unnamed, else the first ERROR policy_lint printed,
+# else its count line. The count alone (`PR-BODY: N error(s)`) names no
+# ground, and step 7 appends its budget verdict to it, so three refusals for a
+# prose `## Friction` line read as a budget refusal (R10-FLY-BUDGET-LEAF).
+body_refusal() { # policy_lint output file -> one line
+  local l
+  l=$(grep -m1 'does not name it' "$1") || l=$(grep -m1 'ERROR' "$1") || l=$(tail -1 "$1")
+  printf '%s (%s error line(s) in all)' "${l#"${l%%[! ]*}"}" "$(grep -c 'ERROR' "$1")"
+}
+
 # Step 7's whole body: the predicted budget red, then the body check fed it.
 # rc 0 the body answers, 1 refused.
 #
@@ -716,7 +727,7 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   out=$(mktemp)
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
-  else printf '%s -- %s' "$(grep -m1 'does not name it' "$out" || tail -1 "$out")" "$raised"; fi
+  else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
   rm -f "$out"; return "$r"
 }
 
@@ -1028,7 +1039,7 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   else
     # The refusal printed is the red gate's own sentence, not this wrapper's,
     # so the row that reads it pins WHICH check refused.
-    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(grep -m1 'does not name it' "$out" || tail -1 "$out")"
+    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
   fi
   rm -f "$out"; return "$r"
 }
@@ -1474,6 +1485,16 @@ EOS
   got=$(ra red red-answered.md)
   st "${got%%:*}" 0 "the same ancestry with a body that names the red passes (null control)"
   case "$got" in *'answers every red'*) st 1 1 "and the ok line names what was answered";; *) st 0 1 "and the ok line names what was answered";; esac
+  # A refusal on any ground but the red prints THAT ground, not only the count
+  # (R10-FLY-BUDGET-LEAF): #2545, #2558 and #2582 were refused for a prose
+  # `## Friction` line and the step printed `PR-BODY: N error(s)`, so the
+  # reason had to be re-derived by hand. The plant is the answered fixture
+  # with its Friction line turned to prose; red-answered.md above is its null.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/red-answered.md" >"$RA/friction-prose.md"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    reds_line "$RA/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 1 "an answered red with a prose ## Friction line is refused"
+  case "$got" in *'`## Friction` line does not parse'*) st 1 1 "and the refusal prints the error, not only its count";; *) st 0 1 "and the refusal prints the error, not only its count";; esac
   got=$(ra green red-answered.md)
   st "${got%%:*}" 0 "an ancestry whose only failure is pr-contract's own run passes (the exclusion key)"
   case "$got" in *'no red check run stands'*) st 1 1 "and the ok line says no red stands, so green was measured, not assumed";; *) st 0 1 "and the ok line says no red stands, so green was measured, not assumed";; esac
@@ -1535,6 +1556,13 @@ EOS
   case "$got" in *'no budget leaf raised'*) st 1 1 "and the ok line says no raise was found, so the gate ran";; *) st 0 1 "and the ok line says no raise was found, so the gate ran";; esac
   got=$(bl base docs unnamed-red.md)
   st "${got%%:*}" 0 "a diff touching no budget file passes"
+  # The same plant through step 7 (R10-FLY-BUDGET-LEAF): no raise, so the
+  # line ends `no budget leaf raised`, and what precedes it must be the error.
+  # `bl base docs unnamed-red.md` above is its null control.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/unnamed-red.md" >"$BR/friction-prose.md"
+  got=$(GIT_DIR="$BR/.git" body_line "$BR/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" base docs)
+  st $? 1 "a body with a prose ## Friction line is refused before the push"
+  case "$got" in *'`## Friction` line does not parse'*'no budget leaf raised'*) st 1 1 "and the refusal prints the error ahead of the budget verdict";; *) st 0 1 "and the refusal prints the error ahead of the budget verdict";; esac
   got=$(bl nogate raise unnamed-red.md)
   case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
