@@ -2723,7 +2723,9 @@ check("the hand-scheduled reason has a label",
         },
         basis: ["spot", "grid_fee", "capacity"],
         total_sek: 612, capacity_peak_kw: 5.8, compressor_starts: 212,
-        reasons: { scheduled: { kwh: 200, sek: 96 }, cheap_price: { kwh: 900, sek: 312 } },
+        reasons: { scheduled: { kwh: 200, sek: 96 }, cheap_price: { kwh: 900, sek: 312 },
+          boost: { kwh: 30, sek: 21 }, comfort_mode: { kwh: 20, sek: 14 },
+          system_identification: { kwh: 10, sek: 7 }, untagged: { kwh: 5, sek: 3 } },
       }],
       plan_replay: {
         day: "2026-02-14", start: "2026-02-14T00:05:00+01:00", step_minutes: 15,
@@ -2751,6 +2753,27 @@ check("the hand-scheduled reason has a label",
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
+  // R10-SAV-REASONS carry (#2256): the settlement's whole-action causes are
+  // named on the receipt, not printed as the raw token.
+  const rcpBars = (rcpPage.match(/receipt-bar"><span>[^<]*/g) || []).map((b) => b.split("<span>")[1]);
+  check("UX-6: boost, comfort mode, step-response and unattributed money are named on the receipt",
+    ["A boost you turned on", "Comfort mode you selected",
+      "Measuring the house (step-response test)", "No plan step to attribute it to"]
+      .every((l) => rcpBars.includes(l))
+    && !rcpBars.some((l) => /^[a-z_]+$/.test(l)), rcpBars.join(" | "));
+  // The class, not the instance: every reason code the integration publishes
+  // has a label, read off payload.py's REASON_ constants. The idle sub-codes
+  // are the one exception: they carry no money and the card words them
+  // through IDLE_SUB_ORDER, never this map.
+  {
+    const payloadSrc = fs.readFileSync("custom_components/heatpump_optimizer/payload.py", "utf8");
+    const codes = [...payloadSrc.matchAll(/^REASON_[A-Z_]+ = "([a-z_]+)"$/gm)].map((m) => m[1]);
+    const labels = fn("REASON_LABELS");
+    const idleSub = new Set(fn("IDLE_SUB_ORDER"));
+    const unlabelled = codes.filter((c) => !idleSub.has(c) && !labels[c]);
+    check("every reason code payload.py publishes has a card label (idle sub-codes aside)",
+      codes.length > 0 && unlabelled.length === 0, `codes ${codes.length}; unlabelled ${unlabelled.join(",")}`);
+  }
   check("UX-6: yesterday's replay names the promise and the measurement",
     /Yesterday: the plan against reality/.test(rcpPage) &&
     /Promised by the plan at 00:05/.test(rcpPage) && /Measured/.test(rcpPage) &&

@@ -384,6 +384,10 @@ const STRINGS = {
       "cannot heat rooms (hot-water-only or cooling). Switch the unit " +
       "to a heating mode.",
     "reasons.idle": "Not heating",
+    "reasons.boost": "A boost you turned on",
+    "reasons.comfort_mode": "Comfort mode you selected",
+    "reasons.system_identification": "Measuring the house (step-response test)",
+    "reasons.untagged": "No plan step to attribute it to",
     // R9-UX-1: why an idle step is idle, inferred from the published fields.
     "why.space_off": "Space heating off",
     "why.dhw_off": "Hot water off",
@@ -1077,6 +1081,10 @@ const STRINGS = {
       "-- kan inte värma huset (endast varmvatten eller kylning). Ställ " +
       "om aggregatet till ett värmeläge.",
     "reasons.idle": "Värmer inte",
+    "reasons.boost": "En boost som du slog på",
+    "reasons.comfort_mode": "Komfortläge som du valde",
+    "reasons.system_identification": "Mäter huset (stegsvarstest)",
+    "reasons.untagged": "Inget planerat steg att knyta det till",
     "why.space_off": "Husvärmen av",
     "why.dhw_off": "Varmvattnet av",
     "why.both_off": "Husvärmen och varmvattnet av",
@@ -2475,6 +2483,12 @@ const REASON_LABELS = {
   manual_plan: "reasons.manual_plan",
   pump_mode: "reasons.pump_mode",
   idle: "reasons.idle",
+  // The settlement's whole-action causes (R10-SAV-REASONS, #2256): energy a
+  // receipt books under them is the overlay's or the experiment's, not a step's.
+  boost: "reasons.boost",
+  comfort_mode: "reasons.comfort_mode",
+  system_identification: "reasons.system_identification",
+  untagged: "reasons.untagged",
 };
 
 /** Whether two point series are the same curve, to the plotted precision.
