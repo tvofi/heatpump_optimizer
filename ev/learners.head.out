@@ -1,0 +1,9 @@
+RESULT house.sunlit.samples=0
+RESULT house.dark.samples=8
+RESULT lower.sunlit.samples=0
+RESULT lower.dark.samples=1
+RESULT refit.sunlit.pairs=0
+RESULT refit.dark.pairs=192
+RESULT gains.unconverged.rel_dev=0.0000
+RESULT gains.converged.rel_dev=1.9800
+rc=0

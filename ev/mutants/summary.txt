@@ -1,0 +1,41 @@
+RESULT R01_house_gate_off rc=1 3 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: a sunlit interval takes no house heat-loss sample  [8 samples, scale 1.0828567056280798]
+      FAIL #2223: the sunlit interval is still the aperture learner's  [aperture samples 8.0, heat-loss 8]
+      FAIL #2223: the detector is fed the interval even when the heat-loss fold refuses it  [last_fed datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc), heat-loss 6]
+RESULT R04_settled_clause_del rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the hour shape waits for the heat-loss level  [profile [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 
+RESULT R07_sample_solar_dropped rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: an accuracy sample records the sun its prediction was made under  [1 samples, sun None]
+RESULT R10_to_dict_drop rc=1 
+    KeyError: 'solar_radiation'
+RESULT R13_gains_threshold_0 rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the hour shape waits for the heat-loss level  [profile [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 
+RESULT R02_lower_gate_off rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the lower-floor split takes a night interval and refuses a sunlit one  [night 1.010 on 1 samples, day 1.010 on 1]
+RESULT R05_gauge_ge rc=1 2 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the refit's dark gauge is the tree's, inclusive at the threshold  [50 -> None, 50.5 -> None]
+      FAIL #2223: the dark gauge is inclusive at its own threshold, and unknown is dark  [0 -> False, None -> False, 50 -> True, 50.5 -> True]
+RESULT R08_pending_solar_none rc=0 ALL 4284 FEATURE CHECKS PASSED
+RESULT R11_gate_before_aperture rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the sunlit interval is still the aperture learner's  [aperture samples 0.0, heat-loss 0]
+RESULT R03_refit_gate_off rc=1 3 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the refit's dark gauge is the tree's, inclusive at the threshold  [50 -> (0.0, 6.0), 50.5 -> (0.0, 6.0)]
+      FAIL #2223: a sunlit window offers the refit no pair at all  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None}]
+      FAIL #2223: a half-sunny window folds only its dark half  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None} against {'scale': 1.16, 'band_percent': 10,
+RESULT R06_gauge_1000 rc=1 9 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the refit's dark gauge is the tree's, inclusive at the threshold  [50 -> (0.0, 6.0), 50.5 -> (0.0, 6.0)]
+      FAIL #2223: a sunlit window offers the refit no pair at all  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None}]
+      FAIL #2223: a half-sunny window folds only its dark half  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None} against {'scale': 1.16, 'band_percent': 10,
+      FAIL sunny intervals are the aperture learner's business, never this one's
+      FAIL #2223: the dark gauge is inclusive at its own threshold, and unknown is dark  [0 -> False, None -> False, 50 -> False, 50.5 -> False]
+      FAIL #2223: a sunlit interval takes no house heat-loss sample  [8 samples, scale 1.0828567056280798]
+      FAIL #2223: the sunlit interval is still the aperture learner's  [aperture samples 8.0, heat-loss 8]
+      FAIL #2223: the detector is fed the interval even when the heat-loss fold refuses it  [last_fed datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc), heat-loss 6]
+      FAIL #2223: the lower-floor split takes a night interval and refuses a sunlit one  [night 1.010 on 1 samples, day 1.010 on 1]
+RESULT R09_from_dict_drop rc=1 1 of 4284 FEATURE CHECKS FAILED
+      FAIL #2223: the sample carries the interval's sun through its stored form  [a legacy sample (no field) must load as unknown, not as zero]
+RESULT R12_gate_before_cusum rc=1 3 of 4284 FEATURE CHECKS FAILED
+      FAIL a bias scaling with the sun never trips the detector: the feed passes the interval's sun in kWh/m², and the fit learns its slope  [evidence [], reference [0.0, 0.0, 0.0] (sun slope -1.33 K per kWh/m²)]
+      FAIL #2223: the sunlit interval is still the aperture learner's  [aperture samples 0.0, heat-loss 0]
+      FAIL #2223: the detector is fed the interval even when the heat-loss fold refuses it  [last_fed None, heat-loss 0]
+RESULT R14_pending_solar_line_deleted rc=0 ALL 4284 FEATURE CHECKS PASSED

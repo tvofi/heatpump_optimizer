@@ -1,0 +1,25 @@
+SEAM accuracy.py heat_loss_refit instance
+SEAM coordinator.py _async_learn_house_heat_loss instance
+SEAM coordinator.py _async_learn_lower_floor_loss instance
+SEAM coordinator.py _fold_solar_aperture guarded
+SEAM coordinator.py _fold_internal_gains instance
+SEAM diagnosis.py attribute not applicable
+SEAM drift.py update not applicable
+SEAM flow_lift.py observe not applicable
+SEAM price_model.py observe_day not applicable
+SEAM sysid.py _lm_solve not applicable
+SEAM sysid.py _slab_ua_profile_halfwidth not applicable
+SEAM sysid.py identify guarded
+SEAM sysid.py identify_slab guarded
+CONTROL positive PASS (re-finds D2-s3-71 site)
+CONTROL null PASS count=0
+CONTROL perturbation PASS count 0->1
+PROBE-NULL house_ua PASS
+PROBE _async_learn_house_heat_loss FAIL ua_scale=0.925 at aperture_err=+0.30 (truth 1.000)
+PROBE _async_learn_lower_floor_loss FAIL lower_ratio=0.925 gated=False
+PROBE heat_loss_refit FAIL refit_scale=0.937
+PROBE _fold_internal_gains FAIL gains_max_rel_dev=0.820 at ua_err=+10% (truth 0)
+PROBE-GUARD _fold_solar_aperture PASS aperture_scale=1.003 at ua_err=+10% (truth 1.000)
+PROBE-BARRIER house_ua sunny-gated PASS
+UNCLASSIFIED 0
+rc=0

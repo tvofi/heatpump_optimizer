@@ -1,0 +1,20 @@
+########## RESULT lines ##########
+RESULT class_excess_loc=18299 count
+RESULT const_modules_over_50=3 count
+RESULT coordinator_attrs=148 count
+RESULT coordinator_multiassigned_attrs=115 count
+RESULT coordinator_private_reach=0 count
+RESULT dead_methods=0 count
+RESULT dead_top_level_symbols=1 count
+RESULT duplication_copies=17 count
+RESULT functions_cc_over_15=30 count
+RESULT functions_cc_over_25=8 count
+RESULT import_cycle_modules=0 count
+RESULT max_cc=45 count
+RESULT max_class_loc=8541 count
+RESULT max_method_loc=373 count
+RESULT methods_over_150=17 count
+RESULT methods_over_200=9 count
+RESULT name_kept_members=38 count
+RESULT seam_cut_total=718 count
+RESULT thread_factor=1.0 ratio

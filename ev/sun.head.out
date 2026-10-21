@@ -1,0 +1,7 @@
+RESULT check.bias0.1.per_day=[0, 0, 0, 0] end_tripped=False
+RESULT check.bias0.4.per_day=[0, 0, 0, 0] end_tripped=False
+RESULT check.bias1.0.per_day=[0, 20, 0, 0] end_tripped=False
+RESULT census.bias0.1.per_day=[0, 0, 0, 0] end_tripped=False
+RESULT census.bias0.4.per_day=[0, 27, 0, 0] end_tripped=False
+RESULT census.bias1.0.per_day=[0, 39, 38, 30] end_tripped=False
+rc=0

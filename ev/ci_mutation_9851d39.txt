@@ -1,0 +1,12 @@
+mutation job 119307477218 (run 39624885628), head 9851d39de867653f4fdc4412c3a1eea8dcb5f7b3, concluded failure 2026-10-21T15:22:20Z:
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:9041 CMP_BOUND: or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+MUTATION TABLE REFUSED -- 4092 unpinned site(s) against 4097 at the ratchet base 929275e8a3f79ad5e118a82f94ec6ecee306e7c0, 1 of them added by this diff. ... record it under killed_by or survivor_triage and the count falls back.
+
+mutation job 119313674771 (run 39626496066), head 56297e445e024470f5816c3a3bcedcefd01b1e12, concluded failure 2026-10-21T15:33:42Z:
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:9041 CMP_BOUND: or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+MUTATION TABLE REFUSED -- 4092 unpinned site(s) against 4097 at the ratchet base b6a38f858d6157c7abb499121870bdcd156987e7, 1 of them added by this diff.
+
+pr-contract jobs 119307473296 / 119307750595 (head 9851d39) and 119312999350 / 119313315665 (head 56297e44), each:
+UNROUTED body item 1492c8f9 (## Figures) [lead]: "- **Residual net of the UA fold's ΔT part:** ..."
+CARRY-AUDIT: 6 finding item(s): 5 routed, 1 unrouted, 0 bad destination(s)
+(preflight "clean no refusal"; prepr --version-edit "no version edit")

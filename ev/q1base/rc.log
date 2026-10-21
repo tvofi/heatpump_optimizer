@@ -1,0 +1,21 @@
+rc=0 --plant P1 --scenario autumn
+rc=0 --plant P5 --scenario autumn
+rc=0 --plant P4 --scenario autumn
+rc=0 --plant P0 --scenario autumn
+rc=0 --plant P2 --scenario autumn
+rc=0 --plant P3 --scenario autumn
+rc=0 --plant P1 --scenario indep
+rc=0 --plant P1 --scenario flat
+rc=0 --plant P2 --scenario indep
+rc=0 --plant P3 --scenario indep
+rc=0 --plant P2 --scenario flat
+rc=0 --plant P3 --scenario flat
+rc=0 --plant P4 --scenario flat
+rc=0 --plant P5 --scenario indep
+rc=0 --plant P5 --scenario flat
+rc=0 --plant P1 --scenario autumn --delivery 0.6
+rc=0 --plant P0 --scenario autumn --delivery 0.6
+rc=0 --plant P4 --scenario indep
+rc=0 --plant P0 --scenario autumn --delivery 0.4
+rc=0 --plant P1 --scenario autumn --delivery 0.4
+DONE

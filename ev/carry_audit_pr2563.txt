@@ -1,0 +1,4 @@
+UNROUTED #2563 body item 1492c8f9 (## Figures) [lead]: "- **Residual net of the UA fold's ΔT part:** `net_of_ua_part.rel_dev=0.0000` and `net_of_ua_part.positive_rel_"
+UNROUTED #2563 review 6317463517 item b29dfdfd (## Non-blocking (each with a destination)) [section]: 'Round: first review by this seat.'
+UNROUTED #2563 review 6317463517 item f2a90213 (## Non-blocking (each with a destination)) [section]: 'bus-nonce: 4781a1280f18f8b3240d780b7dc421bf'
+CARRY-AUDIT #2563: 10 finding item(s): 7 routed, 3 unrouted, 0 bad destination(s)

@@ -1,0 +1,24 @@
+          restore-keys: pool-seconds-
+
+      # Survivors are listed for a human verdict, never triaged here
+      # (ci-autofix.md); the step is green on them, and red only when the
+      # run itself refused or crashed, which leaves no status behind.
+      - name: Drive a slice of the unpinned stock
+        shell: bash
+        run: |
+          set -o pipefail
+          out="$RUNNER_TEMP/mutation-ledger"
+          python3 tests/mutation_table.py \
+            --scope full --drain "$out" --max 40 --jobs 3 \
+            --seed "$(date -u +%Y%m%d)" --budget-minutes 270 \
+            --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
+            | tee "$RUNNER_TEMP/mutation-ledger.txt"
+          test -s "$out/status"
+          {
+            echo "### mutation-ledger: $(cat "$out/status")"
+            echo
+            echo "Sites left for a human verdict (killing check or survivor_triage):"
+            echo '```'
+            cat "$out/survivors.txt" 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
