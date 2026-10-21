@@ -326,6 +326,13 @@ INERT = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
+    # The plan model (`tools/plan/replan.py` and the measured durations it
+    # reads) is run by hand at a wave edge and read by the out-of-tree
+    # renderer that draws the page; no gate script opens it. An inert home of
+    # the same kind as the four above, and `tests/entities.py`'s
+    # must-classify check names it too -- a new file there still has to be
+    # classified, it is just classified as unread.
+    "tools/plan/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
     # under tests/ reads them. Same reason `.claude/` is here -- save the
     # policy files `_is_citation_source` below reads back out of it.
@@ -787,6 +794,14 @@ INERT_EXCEPT = (
     "tools/policy/friction_issues.mjs",
     "tools/policy/policy_lint_mutants.mjs",
     "tools/policy/rules_sync.mjs",
+    # R10-TRAIN-HOLD (issue #2302): tests/entities.py reads this file's
+    # HOLD_REF constant, so the record beat's ref name and the train's cannot
+    # drift apart (the TRAIN-HOLD block's cross-half pin). The `tools/audit/`
+    # prefix would keep it INERT while entities.py opens it -- the #357
+    # contradiction the 0c216ecc closures job reported as INERT READS
+    # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
+    # and an edit to the train selects tests/entities.py.
+    "tools/audit/seat/merge_train.py",
 )
 
 
