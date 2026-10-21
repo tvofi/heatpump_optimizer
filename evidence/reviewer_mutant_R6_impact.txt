@@ -1,0 +1,7 @@
+hold file bytes: 0000000   4   1
+head: held 41 rc=0
+-  while IFS= read -r l || [ -n "$l" ]; do
++  while IFS= read -r l; do
+R6 mutant: held 41 rc=1 (silent hold-none)
+cloud_relay self-test: 137 checks, 0 failed
+  ok   a last line without a newline is read

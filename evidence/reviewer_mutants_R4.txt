@@ -1,0 +1,6 @@
+cloud_relay self-test: 137 checks, 0 failed
+/bin/bash: line 1: /tmp/claude-0/hst/cloud-handoff-hold: No such file or directory
+usage: cloud_relay.sh <pr> <nonce> <head40>
+mutant CLI held 41 rc=2
+head CLI held 41 rc=0
+head CLI held 42 rc=1
