@@ -12,6 +12,10 @@
 # One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
 # the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
 # reaps its push's whole tree and ends (pr_args.sh's pr_exit_trap), and frees the lock only once that push has ended.
+# With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
+# own verdict replaces the full prepr with the body contract when the push is exactly this PR's
+# row added onto its live head under the body plus this run's note, and runs prepr otherwise; its
+# `app_push: ROW-ONLY:` line, naming which and why, is printed here. A code sha never asks.
 # --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
@@ -67,8 +71,10 @@ pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an a
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+RO=""; [ "$C" != - ] || RO=--row-only  # mut:rowonly
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $B $ISS > $WT.log 2>&1 &
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
 pr_wait $! $WT.log
+grep -h '^app_push: ROW-ONLY:' $WT.log || :
 echo "HEAD=$H"
