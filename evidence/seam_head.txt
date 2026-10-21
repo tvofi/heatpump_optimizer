@@ -1,0 +1,25 @@
+.github/workflows/governance.yml:          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+.github/workflows/governance.yml:        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --report; else node tools/policy/policy_lint.mjs --report; fi|| true
+.github/workflows/governance.yml:        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
+.github/workflows/governance.yml:        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; fi|| true
+.github/workflows/merge-main.yml:              sleep 5; waited=$((waited + 5)); ids=$(held_at "$branch" "$sha" || true)
+.github/workflows/merge-main.yml:            ids=$(held_at "$branch" "$sha" || true)
+.github/workflows/tests.yml:                       | sort_by(.created_at) | .[-1].id // empty' || true)
+.github/workflows/tests.yml:              --dir "$M" || echo "no ci-metrics-$lane artifact this run"
+.github/workflows/tests.yml:              git fetch -q origin "+refs/heads/record/autofix:refs/remotes/origin/record/autofix" || true
+.github/workflows/tests.yml:            cat "$RUNNER_TEMP/merge-resp.json" || true
+.github/workflows/tests.yml:            cat "$out/survivors.txt" 2>/dev/null || true
+.github/workflows/tests.yml:            git fetch --quiet origin main || true
+.github/workflows/tests.yml:            git fetch --quiet origin main || true
+.github/workflows/tests.yml:            grep -E 'PIN NOT REPRODUCED|pin not re-verified|PIN RE-VERIFICATION' "$f" || echo "no pinned site drawn"
+.github/workflows/tests.yml:            pull --rebase --autostash origin "$HEAD_REF" || true
+.github/workflows/tests.yml:            pull --rebase --autostash origin "$HEAD_REF" || true
+.github/workflows/tests.yml:            pull --rebase --autostash origin "$HEAD_REF" || true
+.github/workflows/tests.yml:            tools/audit/w5-partition/coverage_tree.sh fast || true
+.github/workflows/tests.yml:            tools/coverage/coverage_tree.sh fast || true
+.github/workflows/tests.yml:          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+.github/workflows/tests.yml:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+.github/workflows/tests.yml:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+.github/workflows/tests.yml:          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+.github/workflows/tests.yml:          [ -z "$APPROVER" ] || echo "::add-mask::$APPROVER"
+.github/workflows/tests.yml:          done || true

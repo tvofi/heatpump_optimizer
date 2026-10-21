@@ -1,0 +1,22 @@
+ci-ratchet: artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
+ci-ratchet: artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
+ci-ratchet: artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+ci-ratchet: artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+ci-ratchet: artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+  ok   an empty response refuses, naming the 0-byte fetch and its run (not an empty window)
+  ok   a whitespace-only artifacts response refuses (not an empty window)
+  ok   a truncated artifacts response refuses (not an empty window)
+  ok   a no artifacts list artifacts response refuses (not an empty window)
+  ok   a good response still yields the window (the null control)
+  ok   a duplicate (run, name) keeps the newest copy
+  ok   an artifact with no created_at does not outrank a dated copy
+  ok   an expired artifact, another name and THIS run are all out
+  ok   the .run_id fallback attributes a null .workflow_run
+  ok   the cut is taken in (run, name) order, as jq's unique_by emitted it
+  ok   a failed list call is retried and the retry's window is used
+  ok   an rc 0 with 0 bytes is retried too, not read as a window
+  ok   spent attempts refuse by name (exit code, attempts), no traceback
+ci-ratchet: skipping expired artifact 12 (ci-metrics-closures): gh: Artifact has expired (HTTP 404)
+  FAIL an expired artifact is skipped and the rest of the window survives -- ci-ratchet: downloading artifact 12 (ci-metrics-closures) failed: gh exited 1: gh: Artifact has expired (HTTP 404)
+  ok   a non-expiry download failure still refuses by name
+ci-ratchet self-test: 15 checks, 1 failed
