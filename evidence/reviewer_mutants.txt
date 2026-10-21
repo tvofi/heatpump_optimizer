@@ -1,0 +1,6 @@
+RESULT mutant=M0 [(0, ['plan_page self-test: 36 checks, 0 failed']), (0, ['self-test: 0 failed'])]
+RESULT mutant=A-blobless-accepted verdict=killed [(0, ['plan_page self-test: 36 checks, 0 failed']), (1, ['FAIL a plan pinning no roster blob is refused as unknowable: plan.json is stale: built from roster blob , but :dev/programme/rosters/wave-r9-groups.json is now 50dff6acba6a; re-run tools/plan/replan.py --out <plan.json>', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1", 'self-test: 2 failed'])]
+RESULT mutant=B-model-record-refusal verdict=SURVIVED [(0, ['plan_page self-test: 36 checks, 0 failed']), (0, ['self-test: 0 failed'])]
+RESULT mutant=C-check_plan-dropped verdict=SURVIVED [(0, ['plan_page self-test: 36 checks, 0 failed']), (0, ['self-test: 0 failed'])]
+RESULT mutant=D-caption-drawn-count verdict=SURVIVED [(0, ['plan_page self-test: 36 checks, 0 failed']), (0, ['self-test: 0 failed'])]
+RESULT mutant=E-ref-override-ignored verdict=SURVIVED [(0, ['plan_page self-test: 36 checks, 0 failed']), (0, ['self-test: 0 failed'])]
