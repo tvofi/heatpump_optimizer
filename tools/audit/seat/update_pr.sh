@@ -9,8 +9,8 @@
 # 40-hex and inside origin/handoff/<topic>, the topic being HANDOFF_TOPIC, else the branch less
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
-# One run per branch: a second run while one holds the branch's lock ($WT.lock) exits 75, BUSY,
-# having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
+# One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
+# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
 # keeps the lock until its push has ended.
 # With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
 # own verdict replaces the full prepr with the body contract when the push is exactly this PR's
@@ -28,32 +28,7 @@ pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
-# One run per branch. $WT and $WT.log are fixed per branch, and the line below that removes $WT
-# force-removed a concurrent run's live worktree under its prepr (2026-10-19/20: the
-# orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is flock(2) held by
-# one holder process; this shell holds no fd on it, so nothing the run starts can (a detached
-# `git gc --auto` kept an inherited one). The EXIT trap ends the holder before the run returns;
-# TERM/INT/HUP are trapped, and bash runs the trap once the foreground push has finished, so a
-# stopped run frees the lock after its push; a SIGKILLed run's holder exits once its parent is gone.
-python3 -I -c 'import fcntl, os, sys, time
-f = open(sys.argv[1], "a")
-try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-except BlockingIOError: sys.exit(75)
-p = os.getppid()
-f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
-while os.getppid() == p: time.sleep(2)  # mut:watch
-sys.exit(0)' "$WT.lock" </dev/null >/dev/null 2>&1 & LKP=$!
-trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
-k=0; while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$WT.lock" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
-upd_unlocked() { # the holder did not take the lock: BUSY (75) when another holder has it
-  local rc=0 o; kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $WT.lock did not report within 20 s"
-  wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$WT.lock" 2>/dev/null || :)
-  [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $WT.lock (its holder exited $rc)"
-  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
-  echo "update_pr: BUSY: $o holds $BR's worktree $WT; nothing was changed, run again when it ends" >&2; exit 75
-}
-[ "$(cat "$WT.lock" 2>/dev/null)" = "$$ $LKP" ] || upd_unlocked  # mut:lock
-trap 'exit 143' TERM INT HUP  # mut:stop
+pr_branch_lock "$WT.lock" "$BR" "$WT"  # one run per branch, with open_pr.sh (pr_args.sh)
 cd "$M"
 if [ "$C" != - ]; then
   T=${HANDOFF_TOPIC:-${BR#fix/}}
@@ -63,7 +38,11 @@ if [ "$C" != - ]; then
   pr_code_in_handoff "$C" "$T"
 fi
 git fetch -q origin "$BR" main
-OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do [ "$o" = "$WT" ] || { [ -z "$(git -C $o status --porcelain)" ] && git -C $o checkout -q --detach; }; done
+OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
+  [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
+  git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_refuse "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
+  git -C $o checkout -q --detach
+done
 git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
 [ -d $WT ] && git worktree remove --force $WT
 git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
