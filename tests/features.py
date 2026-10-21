@@ -19057,6 +19057,48 @@ R.check(
     f"{_nf_smp._accuracy.samples[-1].solar_radiation if _nf_smp._accuracy.samples else None}",
 )
 
+
+# And the capture too: the coordinator's own prediction under a sunlit sky,
+# settled half an hour later in the dark, reaches the tracker with its sun,
+# so the refit refuses that pair. The dark capture is the control arm: the
+# same drive forms a pair, so the refusal is the sun's and nothing else's.
+def _nf_settled(sun):
+    coord = _t2_coord()
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
+    )
+    coord._current_state.room_temperature = 21.0
+    coord._current_state.outdoor_temperature = -2.0
+    coord.hass.states.set("sensor.indoor", FakeState("21.0"))
+    t0 = datetime(2026, 1, 21, 12, 0, tzinfo=UTC)
+    dt_util.freeze(t0)
+    try:
+        coord._current_state.solar_radiation = sun
+        coord._record_accuracy()
+        coord._current_state.solar_radiation = 0.0
+        dt_util.freeze(t0 + timedelta(minutes=30))
+        coord._record_accuracy()
+    finally:
+        dt_util.freeze(None)
+    if not coord._accuracy.samples:
+        return None, None
+    sample = coord._accuracy.samples[-1]
+    return sample.solar_radiation, _rs_acc._refit_pair(
+        sample, _RS_MIN_DT, _RS_MAX_RES
+    )
+
+
+_nf_cap_sun, _nf_cap_pair = _nf_settled(640.0)
+_nf_cap_dark_sun, _nf_cap_dark_pair = _nf_settled(0.0)
+R.check(
+    "#2223: the coordinator's sunlit prediction settles with its sun, and the refit refuses it",
+    _nf_cap_sun == 640.0 and _nf_cap_pair is None
+    and _nf_cap_dark_sun == 0.0 and _nf_cap_dark_pair is not None,
+    f"sunlit: sun {_nf_cap_sun} pair {_nf_cap_pair}; "
+    f"dark: sun {_nf_cap_dark_sun} pair {_nf_cap_dark_pair}",
+)
+
 # --- #2 the heat-curve bias -------------------------------------------------------
 _cl_t4 = CurveLearner()
 _d2 = datetime(2026, 1, 10, 23, 0, tzinfo=UTC)
