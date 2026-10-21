@@ -17,7 +17,8 @@ Plants, one per refusal of the two ops and per round-trip property:
   C1-C5  drop-carry: an absent carry, no match (silently drops entry 0), an
          ambiguous match (silently drops the first), a negative index (drops
          the last), a non-integer index (silently drops entry 0).
-  C6     drop-carry of the last entry leaves `"carry": []`.
+  C6     the last drop deletes the `carry` key (the byte round-trip
+         regression; the live roster's empty shape is `"carry": []`).
   C7     drop-carry by index drops the neighbour.
   C8     drop-carry's unknown group.
   P1-P3  the argparse refusals: index and --match together, neither, and
@@ -26,10 +27,16 @@ Plants, one per refusal of the two ops and per round-trip property:
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
+    python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
 
 Null control: `--null` runs the self-test with no plant, which must print
-rc=0 fails=0.
+rc=0 fails=0. `--self-test` does not run the plants -- one costs the target's
+own minute -- and pins instead the preconditions the sweep rests on: every
+anchor occurs exactly once in the target as it stands, every mutant parses,
+and report()/select() keep their shapes.
 """
+import contextlib
+import io
 import re
 import subprocess
 import sys
@@ -59,8 +66,8 @@ PLANTS = {
            "        if not i < len(carry):\n"),
     "C5": ("            i = int(index)\n",
            '            i = int(index) if index.lstrip("-").isdigit() else 0\n'),
-    "C6": ('    if not carry:\n        del g["carry"]\n',
-           '    if False:\n        del g["carry"]\n'),
+    "C6": ("    del carry[i]\n",
+           '    del carry[i]\n    if not carry:\n        del g["carry"]\n'),
     "C7": ("    del carry[i]\n", "    del carry[i - 1]\n"),
     "C8": ('    g = _need(roster, group)\n    carry = g.get("carry")',
            f'    {DETACHED}\n    carry = g.get("carry")'),
@@ -72,7 +79,7 @@ PLANTS = {
 }
 
 
-def self_test():
+def target_self_test():
     r = subprocess.run([sys.executable, TARGET, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
@@ -87,17 +94,68 @@ def report(name, rc, fails, tail):
         print("    crash tail:", *tail, sep="\n      ")
 
 
+def select(names):
+    """The plants a run names, and any name the table does not hold."""
+    chosen = names or list(PLANTS)
+    return chosen, [n for n in chosen if n not in PLANTS]
+
+
+def self_test():
+    passed = failed = 0
+
+    def ck(name, ok):
+        nonlocal passed, failed
+        passed, failed = passed + ok, failed + (not ok)
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}")
+
+    text = (ROOT / TARGET).read_text()
+    for name, (old, new) in PLANTS.items():
+        ck(f"{name}: anchor occurs once in {TARGET}", text.count(old) == 1)
+        ck(f"{name}: the plant changes the text", new != old)
+        try:
+            compile(text.replace(old, new), TARGET, "exec")
+            ok = True
+        except SyntaxError:
+            ok = False
+        ck(f"{name}: the mutant parses", ok)
+
+    def rendered(rc, fails, tail):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            report("X", rc, fails, tail)
+        return out.getvalue().splitlines()
+
+    ck("a killed plant prints its tally and drops the (got:) suffix",
+       rendered(1, ["FAIL a (got: 2)"], [])
+       == ["RESULT mutant=X rc=1 fails=1", "    FAIL a"])
+    ck("a crash with no FAIL line prints its tail",
+       rendered(1, [], ["Traceback", "boom"])
+       == ["RESULT mutant=X rc=1 fails=0", "    crash tail:",
+           "      Traceback", "      boom"])
+    ck("a survivor prints fails=0 and no tail",
+       rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
+    ck("no names selects every plant", select([]) == (list(PLANTS), []))
+    ck("a named plant is kept", select(["A1"]) == (["A1"], []))
+    ck("an unknown plant is returned for refusal",
+       select(["ZZ"]) == (["ZZ"], ["ZZ"]))
+
+    print(f"r10_roster_ops_mutants self-test: {passed + failed} checks, "
+          f"{failed} failed")
+    return 1 if failed else 0
+
+
 def main(argv):
     path = ROOT / TARGET
+    if argv == ["--self-test"]:
+        return self_test()
     if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", TARGET],
                       cwd=ROOT).returncode != 0:
         print(f"refusing: {TARGET} differs from HEAD", file=sys.stderr)
         return 2
     if argv == ["--null"]:
-        report("null", *self_test())
+        report("null", *target_self_test())
         return 0
-    names = argv or list(PLANTS)
-    unknown = [n for n in names if n not in PLANTS]
+    names, unknown = select(argv)
     if unknown:
         print(f"unknown plant(s): {unknown}", file=sys.stderr)
         return 2
@@ -112,7 +170,7 @@ def main(argv):
                       file=sys.stderr)
                 return 2
             path.write_bytes(text.replace(old, new).encode("utf-8"))
-            rc, fails, tail = self_test()
+            rc, fails, tail = target_self_test()
             path.write_bytes(original)
             report(name, rc, fails, tail)
             if not fails:
