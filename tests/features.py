@@ -42609,15 +42609,14 @@ R.check(
 # #2257: the price tiles' days ride the same save, so a restart resumes their
 # 30-day mean instead of starting it over.
 _t3_pt = _t3_coord()
-price_tiles.record(price_tiles.book(_t3_pt), "target_plus_1", {"target_temp": 22.0},
-                   {"monthly_held_cost_delta": 30.0}, datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_t3_pt_tile = {"overrides": {"target_temp": 22.0}, "days": [{"day": "2026-01-15", "sum": 30.0, "count": 1}]}
+price_tiles.book(_t3_pt)["target_plus_1"] = _t3_pt_tile
 _t3_pt._ledger_store = _T3SavingStore()
 _t3_drive(_t3_pt, "_async_save_ledger")
 _t3_pt_saved = _t3_pt._ledger_store.saved[0].get("price_tiles") if _t3_pt._ledger_store.saved else None
 R.check(
     "#2257: the ledger save carries the price tiles' book, day by day",
-    _t3_pt_saved == price_tiles.book(_t3_pt)
-    and _t3_pt_saved["target_plus_1"]["days"] == [{"day": "2026-01-15", "sum": 30.0, "count": 1}],
+    _t3_pt_saved == {"target_plus_1": _t3_pt_tile},
     repr(_t3_pt_saved),
 )
 _t3_sv_full = _t3_coord()
