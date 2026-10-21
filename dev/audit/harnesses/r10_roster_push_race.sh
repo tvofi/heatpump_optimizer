@@ -23,12 +23,14 @@ TREE=${1:?usage: r10_roster_push_race.sh <tree> [shared|separate|solo]}
 MODE=${2:-shared}
 LINT_S=${LINT_S:-3}
 PY=${PYTHON:-python3}
+# shellcheck source=tests/throwaway_git.sh
+. "$(cd "$(dirname "$0")/../../.." && pwd)/tests/throwaway_git.sh"
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
-export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+race() {
+throwaway_git_env
 R=dev/programme/rosters/wave-r9-groups.json
-git init -q -b main "$T/seed"
+throwaway_git_init "$T/seed" -q -b main
 mkdir -p "$T/seed/tools/policy" "$T/seed/dev/programme/rosters"
 printf "await new Promise(r => setTimeout(r, %d));\nconsole.log('TOTAL: 0 error(s) across 1 file(s)');\n" \
   "$((LINT_S * 1000))" > "$T/seed/tools/policy/brief_lint.mjs"
@@ -39,9 +41,9 @@ g = lambda n: {"group": n, "lane": "L1", "issues": [], "fixes": [], "after": [],
 open(sys.argv[1], "w").write(json.dumps({"repo": "x", "groups": [g("R9-A"), g("R9-B")]}, indent=1))
 PYS
 git -C "$T/seed" add -A && git -C "$T/seed" commit -qm seed
-git clone -q --bare "$T/seed" "$T/origin.git"
-git clone -q "$T/origin.git" "$T/drvA"
-git clone -q "$T/origin.git" "$T/drvB"
+throwaway_git_clone -q --bare "$T/seed" "$T/origin.git"
+throwaway_git_clone -q "$T/origin.git" "$T/drvA"
+throwaway_git_clone -q "$T/origin.git" "$T/drvB"
 CHK_B=$T/drvB
 [ "$MODE" = shared ] && CHK_B=$T/drvA
 edit() { # checkout worktree op group value
@@ -77,3 +79,5 @@ report() { # name rc log needle
 report A "$RA" "$T/A.log" carry-from-A
 [ "$MODE" != solo ] && report B "$RB" "$T/B.log" stage-from-B
 echo "mode=$MODE silent_losses=$silent false_reports=$false refused_edits=$refused pushes=$(git -C "$T/origin.git" rev-list --count "$before..$tip")"
+}
+( race )
