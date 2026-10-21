@@ -19,6 +19,9 @@ or a bad destination) under carry_audit.audit():
             with its own `Carry:`; the rest under `## Evidence`.
   planted   reshaped plus one Evidence bullet stating a defect and deferring
             it -- the null control: a heading smuggles nothing.
+  attack    reshaped plus one Evidence bullet whose defect shares its sentence
+            with a check that is not a required one: the carve-out frees the
+            check's clause, never its sentence.
 
   RESULT v<pr>_<form>=<n not routed>
 
@@ -27,12 +30,15 @@ EXPECTED RESULT (head of r10-verdict-item-barrier):
   RESULT v2513_evidence=1 RESULT v2544_evidence=1 RESULT v2547_evidence=1
   RESULT v2513_reshaped=0 RESULT v2544_reshaped=0 RESULT v2547_reshaped=0
   RESULT v2513_planted=1 RESULT v2544_planted=1 RESULT v2547_planted=1
+  RESULT v2513_attack=1 RESULT v2544_attack=1 RESULT v2547_attack=1
 At the merge base (289426c1f) the reshaped forms read 0, 1, 0 and the planted
 1, 2, 1: #2544's CI paragraph ("does not block the PR") is refused under any
 heading. At the head the evidence forms still refuse #2513 and #2547 (their
 own deferral: "noted for a later tightening", "advisory") and #2544 (a
 post-merge check that "still has to be done", which the base never flagged):
 what moves to `## Evidence` unedited is caught wherever it hands something on.
+The attack forms read 0, 0, 0 at 90788b1e5, whose carve-out freed its whole
+sentence; 1, 2, 1 at the base (#2544 as planted) and 1, 1, 1 at the head.
 
     python3 dev/audit/harnesses/r10_verdict_item_barrier.py [--fetch]
     python3 dev/audit/harnesses/r10_verdict_item_barrier.py --whatif DIR
@@ -242,6 +248,7 @@ LIFT = {
            "not block. Carry: dismissed: binds whichever lands second"),
 }
 PLANT = "- The stale-head guard misses a deleted ref; deferred to a later round.\n"
+ATTACK = "- composed-proof is not a required check, and the stale-head guard misses a deleted ref, not blocking.\n"
 
 
 def forms(pr: int) -> dict[str, str]:
@@ -253,7 +260,8 @@ def forms(pr: int) -> dict[str, str]:
     kept = rest.replace(cut, "." if cut.startswith(" --") else "")
     reshaped = f"{first}\n\n## Findings\n\n{finding}\n\n## Evidence\n{kept}"
     return {"verbatim": body, "evidence": f"{first}\n\n## Evidence\n{rest}",
-            "reshaped": reshaped, "planted": reshaped.rstrip("\n") + "\n\n" + PLANT}
+            "reshaped": reshaped, "planted": reshaped.rstrip("\n") + "\n\n" + PLANT,
+            "attack": reshaped.rstrip("\n") + "\n\n" + ATTACK}
 
 
 def not_routed(text: str) -> int:

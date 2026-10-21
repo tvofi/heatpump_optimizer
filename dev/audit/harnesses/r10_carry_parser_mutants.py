@@ -61,7 +61,7 @@ F = ROOT / REL
 PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
           "ledger_unrouted")
 PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARRY_SECTIONS", "NONE_ITEM",
-            "TRAILER", "EVIDENCE_HEADING", "NOT_REQUIRED", "SENTENCE", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
+            "TRAILER", "EVIDENCE_HEADING", "NOT_REQUIRED", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
             "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
 MUTANTS = [
@@ -120,10 +120,16 @@ MUTANTS = [
     ("I-ev-deferred", 'else "evidence" if DEFERRED.search(t) or', 'else "evidence" if False or'),
     ("I-ev-nonblock", " or NONBLOCK.search(claims)\n", "\n"),
     ("I-ev-claims", "NONBLOCK.search(claims)", "NONBLOCK.search(t)"),
-    ("I-ev-carve", "if not NOT_REQUIRED.search(x))", "if True)"),
-    ("I-ev-split", "for x in SENTENCE.split(t) if", "for x in [t] if"),
-    ("P-sentence-semi", 'r"(?<=[.;!?])\\s+"', 'r"(?<=[.!?])\\s+"'),
+    ("I-ev-carve", 'claims = NOT_REQUIRED.sub(" ", t)', "claims = t"),
+    # the open form (round 1): the carve-out freed its whole sentence
+    ("I-ev-sentence", 'claims = NOT_REQUIRED.sub(" ", t)',
+     'claims = " ".join(x for x in re.split(r"(?<=[.;!?])\\s+", t) if not NOT_REQUIRED.search(x))'),
     ("P-notreq-a", 'r"not (?:a )?required', 'r"not required'),
+    ("P-notreq-clause", '(?:context|check)(?:,?', '(?:context|check)(?:QQ,?'),
+    ("P-notreq-comma", '(?:context|check)(?:,?\\s+', '(?:context|check)(?:\\s+'),
+    ("P-notreq-and", '(?:and\\s+)?(?:it', '(?:it'),
+    ("P-notreq-it", '(?:it\\s+)?"', '"'),
+    ("P-notreq-colon", '(?!\\s*:))?", re.I)', ')?", re.I)'),
     ("I-ev-inh", 'else "under lead" if inherited else "")\n        elif verdict:', 'else "under lead" if False else "")\n        elif verdict:'),
     ("I-bsec-block", "            block_sec = BLOCK_HEADING.search(sec) and not", "            block_sec = True and not"),
     ("I-bsec-nonblock", " and not NONBLOCK.search(sec)\n", "\n"),

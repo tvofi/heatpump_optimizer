@@ -31,7 +31,7 @@ starts an item without a bullet. A FINDING item:
            NOTE_HEADING (residual, owed, instrument findings ...) or led by LEAD.
   evidence a verdict's `## Evidence` section: an item led by LEAD, under a
            lead, saying DEFERRED (for a later, follow-up, residual ...), or
-           saying NONBLOCK outside a sentence that calls its check not a
+           saying NONBLOCK outside the clause that calls its check not a
            required one ("not a required context and does not block").
   both     a paragraph that is finding-shaped and ends in `:` is a lead: its
            bullets are the items, it is not one. The bus trailer, `RESULT`
@@ -95,12 +95,14 @@ NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
 # Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
 TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
 # A verdict's `## Evidence` section. NONBLOCK is read there too (a nit or a
-# defect left in place says "not blocking" under any heading), except in a
-# sentence saying its check is not a required one: a check's state, not a note.
-# An item opening with LEAD, under a lead, or saying DEFERRED is a finding.
+# defect left in place says "not blocking" under any heading), except in the
+# clause saying its check is not a required one and, joined by `,` or `and`
+# alone, does not block: a check's state, not a note. Only that clause is
+# freed; a NONBLOCK word anywhere else in its sentence, or one leading a `:`,
+# is read. An item opening with LEAD, under a lead, or saying DEFERRED is a finding.
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
-NOT_REQUIRED = re.compile(r"not (?:a )?required (?:context|check)", re.I)
-SENTENCE = re.compile(r"(?<=[.;!?])\s+")
+NOT_REQUIRED = re.compile(r"not (?:a )?required (?:context|check)(?:,?\s+(?:and\s+)?(?:it\s+)?"
+                          r"(?:does not block|is not blocking|not blocking|non-?blocking)(?!\s*:))?", re.I)
 DEFERRED = re.compile(r"follow-?up|(?:for|to|in|until) (?:a |the )?later\b|out of scope|not fixed here"
                       r"|known[- ]open|distinct finding|residual|caveat|observation|still (?:has|have|needs?) to",
                       re.I)  # NONBLOCK's own words (deferred, minor, advisory ...) are read beside it
@@ -194,7 +196,7 @@ def items(text: str, verdict: bool) -> list[dict]:
         if TRAILER.match(first) or VERDICT.match(first):
             pass
         elif verdict and EVIDENCE_HEADING.match(sec):
-            claims = " ".join(x for x in SENTENCE.split(t) if not NOT_REQUIRED.search(x))
+            claims = NOT_REQUIRED.sub(" ", t)
             why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t) or NONBLOCK.search(claims)
                    else "under lead" if inherited else "")
         elif verdict:
@@ -880,7 +882,7 @@ def _self_test() -> int:
         ("under the Evidence heading a check that does not block, not said to be unrequired, is a note", head,
          verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"),
          [("evidence", U)]),
-        ("the carve-out is its sentence's: a nit after it is a finding (#2441's shape)", head,
+        ("the carve-out is its clause's: a nit after it is a finding (#2441's shape)", head,
          verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check and does not block. One nit, "
                     "not blocking: the usage string still lists the arm names by hand.\n"), [("evidence", U)]),
         ("a defect left in place, not blocking, under the Evidence heading is a finding (#2465's shape)", head,
@@ -923,6 +925,21 @@ def _self_test() -> int:
     item_grammar += [("a `;` ends a sentence: a nit after a not-required check's clause is a finding", head,
                       verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check; "
                                  "one nit, not blocking: x.\n"), [("evidence", U)])]
+    # The carve-out frees the check's own clause, never its sentence: each
+    # nit or defect sharing a sentence with it is a finding (round 2's attack).
+    item_grammar += [(f"a {k} beside a not-required check's clause is a finding", head,
+                      verdict_of("merge", f"## Evidence\n\n- {v}\n"), [("evidence", U)]) for k, v in (
+        ("nit", "nightly-status is not a required check, and one nit is not blocking: the usage string."),
+        ("minor defect", "composed-proof is not a required check and a minor defect stays, not blocking."),
+        ("defect", "The guard misses a deleted ref, which is not a required check to fix, so not blocking."),
+        ("parenthetical defect", "The floor is written 0.27 K low (not a required check) and is not blocking."),
+        ("colon-led nit", "composed-proof is not a required check, not blocking: the guard misses a ref."))]
+    item_grammar += [("the check's clause frees `, and it is not blocking` (null control)", head,
+                      verdict_of("merge", "## Evidence\n\n- nightly-status is not a required check, and it "
+                                 "is not blocking.\n"), [])]
+    item_grammar += [("... and `, non-blocking`", head,
+                      verdict_of("merge", "## Evidence\n\n- composed-proof: not a required check, non-blocking.\n"),
+                      [])]
     item_grammar += [("a later-stage compound is no deferral", head,
                       verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
     for name, text, comments, want in item_grammar:
