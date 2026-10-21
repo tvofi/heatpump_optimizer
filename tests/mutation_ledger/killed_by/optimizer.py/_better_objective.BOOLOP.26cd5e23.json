@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_better_objective BOOLOP 26cd5e23",
+  "killed_by": "tests/features.py",
+  "old": "    if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: BOOLOP (`if np.isfinite(ro) or (not np.isfinite(lo) or ro < lo - 1e-9):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
