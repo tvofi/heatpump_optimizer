@@ -1,0 +1,102 @@
+2c2
+< index 1782d1d41..e5fd0a75b 100644
+---
+> index 42510b609..580dc2dc4 100644
+76c76
+< @@ -880,6 +911,11 @@ jobs:
+---
+> @@ -891,6 +922,11 @@ jobs:
+88c88
+< @@ -888,14 +924,20 @@ jobs:
+---
+> @@ -899,14 +935,20 @@ jobs:
+109c109
+< @@ -903,6 +945,7 @@ jobs:
+---
+> @@ -914,6 +956,7 @@ jobs:
+117c117
+< @@ -922,7 +965,10 @@ jobs:
+---
+> @@ -933,7 +976,10 @@ jobs:
+130c130
+< index e4657d622..dfa38028a 100644
+---
+> index cd61db831..38209f232 100644
+137,138c137,138
+< -HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S30 each plant one production-line
+< +HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+---
+> -HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+> +HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 each plant one production-line
+143c143
+< +S31-S33 are #2444's three unpinned push lines in handoff_push.sh, S34 its
+---
+> +S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+150,153c150,153
+< @@ -92,16 +96,28 @@ MUTANTS = [
+<      ("S28", "offline_spy.py", "and bool(URL_RE.search(parts[2])))", "and False)"),
+<      ("S29", "selftest_wiring.py", 'return [COMMENT_RE.sub("", x) for x in out]', "return out"),
+<      ("S30", "selftest_wiring.py", "return 1 if unwired else 0", "return 0"),
+---
+> @@ -102,16 +106,28 @@ MUTANTS = [
+>      ("S34", "tick_loop.sh",
+>       '    relay_start "$out.relay" "$relay"\n    # 76:',
+>       '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+156c156
+< +    ("S31", "handoff_push.sh", "push_app 2  # mut:push-update",
+---
+> +    ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
+158c158
+< +    ("S32", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+---
+> +    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+160,161c160,161
+< +    ("S33", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+< +    ("S34", "merge_pr.sh",
+---
+> +    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+> +    ("S38", "merge_pr.sh",
+189c189
+< index ddf0c334f..e876e458d 100644
+---
+> index 15afd32f6..acdeab519 100644
+192c192
+< @@ -660,6 +660,14 @@ INERT_EXCEPT = (
+---
+> @@ -675,6 +675,14 @@ INERT_EXCEPT = (
+208c208
+< index 9020e90ee..081767d62 100644
+---
+> index 873cc4d0b..d5675da2e 100644
+211c211
+< @@ -1542,11 +1542,13 @@
+---
+> @@ -1552,11 +1552,13 @@
+225c225
+< @@ -3417,8 +3419,12 @@
+---
+> @@ -3427,8 +3429,12 @@
+238c238
+< @@ -4278,7 +4284,7 @@
+---
+> @@ -4288,7 +4294,7 @@
+248c248
+< index caa071d7e..66636a398 100644
+---
+> index 3b71cfa00..7d502fc68 100644
+273c273
+< @@ -540,13 +546,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+---
+> @@ -559,13 +565,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+434c434
+< index 0f4a1fffc..de8fe5173 100755
+---
+> index 7a99cb27a..8b5ff6ae7 100755
+437c437
+< @@ -121,6 +121,59 @@ P
+---
+> @@ -124,6 +124,59 @@ P
+497c497
+< @@ -166,7 +219,7 @@ sleep 10
+---
+> @@ -169,7 +222,7 @@ sleep 10

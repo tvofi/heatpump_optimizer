@@ -1,0 +1,12 @@
+## merge-tree vs origin/main 57f0c9c77cfd5958e0a2443e158bea8326bedae2
+b146576c5ad6f20744b3ab09383f157803f655c8
+rc=0
+merged tree b146576c5ad6f20744b3ab09383f157803f655c8
+selftest_wiring: 72 self-testing, 72 wired, 0 unwired
+rc=0
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+rc=0
+## main's new commits touching tools/ or workflows:
+## roster carry at tip 23ef06dc6cc719917e593174b3a12977cd054071
+R10-CI-LAYOUT-P1 not-started 1
+R10-CI-LAYOUT-P2 not-started 1

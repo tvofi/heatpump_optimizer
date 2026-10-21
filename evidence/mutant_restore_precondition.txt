@@ -1,0 +1,7 @@
+401:    if restore_check(root, reader):
+ tools/policy/agreement_py.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL and --out refuses to answer on it (the precondition, not a report)
+agreement_py self-test: 7 checks, 1 failed
+rc=1
+agreement_py self-test: 7 checks, 0 failed
