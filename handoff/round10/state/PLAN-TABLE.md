@@ -118,7 +118,7 @@ gantt
 | R10-LOOP-CPU | PM | 2 | not-started | **#2237** | opus/opus | - | `estimate_recovery_hours` in custom_components/heatpump_optimizer/away.py runs a model kernel on the event loop (183 loop kernel calls over 6 cycles; `_repla... |  |
 | R10-SAV-BASELINE | SV | 3 | done | **#2255** | opus/opus | - | Owner-reported (tvofi, 2026-10-14), savings items 1, 2 and 5: September shows 1435.11 SEK saved (81 %) against a plain-thermostat baseline, which is implausi... |  |
 | R10-SAV-REASONS | SV | 1 | done | #2256 | opus/opus | - | Owner-reported savings items 3 and 4: "Not heating" is the most expensive attribution category (137.58 SEK), and idle time cannot cost the most, so the reaso... |  |
-| R10-ADVISOR | UI | 1 | not-started | #2253, #2257 | opus/opus | - | Owner-reported Advisor items: (6) the "worth doing" savings swing day to day; use a longer horizon, for example a 30-day rolling average. |  |
+| R10-ADVISOR | UI | 1 | in-progress | #2253, #2257 | opus/opus | - | Owner-reported Advisor items: (6) the "worth doing" savings swing day to day; use a longer horizon, for example a 30-day rolling average. |  |
 | R10-SCORES | UI | 2 | not-started | #2238, #2258 | opus/opus | - | Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, be... |  |
 | R10-REGISTRY-LEAK | PM | 1 | done | **#2231** | sonnet/opus | - | `_STATES` in custom_components/heatpump_optimizer/early_cutoff.py is a module-level registry keyed by a coordinator: setup adds an entry and unload never rem... |  |
 | R10-PUMP-MODEL | PM | 1 | done | #2232, #2238 | opus/opus | - | 1. |  |
