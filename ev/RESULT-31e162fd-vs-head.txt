@@ -1,0 +1,8 @@
+RESULT 31e162fd3a1207db596539b2330af1d274c36c85 groups=108 done=51 carries=254
+RESULT 802b38503eb5de20e87c278ba7923508a50c0f1f groups=108 done=52 carries=257
+R10-BRIEFS-FOLD	not-started	20	not-started	21
+R10-CI-LAYOUT-P1	not-started	2	not-started	3
+R10-CI-LAYOUT-P2	not-started	1	not-started	2
+R10-MERGE-PR-MANDATE	in-progress	0	done	0
+-- text-edited groups (brief/issues/fixes/findings differ)
+-- carries removed (base carry text absent at head)

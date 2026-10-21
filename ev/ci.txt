@@ -1,0 +1,5 @@
+check-runs for 802b38503eb5de20e87c278ba7923508a50c0f1f (MCP get_check_runs, 41 runs, read ~14:10Z 2026-10-21)
+failure: nightly-status (grades main; diff touches only dev/programme/ -> not this PR's, defect-root-cause.md)
+in_progress: coverage, fast (3.14)
+success: typing, browser, pr-contract x2, briefs, mutation, closure-scope, CodeQL analyses, arch-score x2, budget-raise-gate x2, env-matrix, wave-script, policy-docs, instrument-self-tests, delivery-status, validate-hacs, scope, hassfest, cancel-superseded x2
+neutral: CodeQL; skipped: mutation-*, slow, nightly-ha, recheck-gate, record*, kernel-points, delivery-status-publish

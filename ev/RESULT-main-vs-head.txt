@@ -1,0 +1,64 @@
+RESULT origin/main groups=91 done=43 carries=201
+RESULT 802b38503eb5de20e87c278ba7923508a50c0f1f groups=108 done=52 carries=257
+R10-ADVISOR	not-started	10	in-progress	11
+R10-ARCH-SHAPES	not-started	5	not-started	6
+R10-BRIEFS-FOLD	not-started	18	not-started	21
+R10-CARD-VOICE	NEW	NEW	not-started	6
+R10-CI-LAYOUT	not-started	14	in-progress	27
+R10-CI-LAYOUT-P1	NEW	NEW	not-started	3
+R10-CI-LAYOUT-P2	NEW	NEW	not-started	2
+R10-CI-RATCHET-RED	done	0	in-progress	0
+R10-DEEPLINK-HANDLERS	planned	0	done	0
+R10-DEPENDABOT-AIOHTTP	NEW	NEW	done	0
+R10-FAHRENHEIT	done	3	done	4
+R10-FOLLOWER-DEBOUNCE	in-progress	0	done	0
+R10-FREQ-DEFROST	not-started	1	in-progress	1
+R10-HANDOFF-ARCHIVE	NEW	NEW	done	0
+R10-HANDOVER-REFRESH	NEW	NEW	in-progress	1
+R10-HEAT-METER	not-started	4	not-started	5
+R10-I5-DOCS	not-started	1	in-progress	2
+R10-LEARNER-DEFAULT	NEW	NEW	not-started	0
+R10-MERGE-PR-MANDATE	in-progress	0	done	0
+R10-MUTANT-SKIP	NEW	NEW	not-started	0
+R10-NIGHT-FOLDS	not-started	5	in-progress	5
+R10-ORCH-MACHINERY	NEW	NEW	not-started	10
+R10-PLAN-ARTIFACT	NEW	NEW	in-progress	0
+R10-POLICY-LINT-FAMILY	not-started	3	not-started	5
+R10-PREPR-CAP	done	1	in-progress	1
+R10-RCA-FRICTION	not-started	1	in-progress	2
+R10-RCA-HANDOFF-SLIP	NEW	NEW	in-progress	0
+R10-RCA-NIGHTLY-PYSPY	in-progress	0	done	0
+R10-RCA-ORCH-CONTINUITY	NEW	NEW	in-progress	0
+R10-REGISTRY-LEAK	done	1	done	3
+R10-REPLAY-CAP	NEW	NEW	in-progress	0
+R10-REPLAY-LANE	not-started	3	in-progress	5
+R10-ROSTER-OPS	in-progress	3	in-progress	6
+R10-ROSTER-PUSH-RACE	NEW	NEW	in-progress	0
+R10-SAV-REASONS	not-started	2	done	2
+R10-SETPOINT-BOOST	in-progress	0	done	0
+R10-STAMP	not-started	9	done	10
+R10-THERMAL-POWER-OPTION	NEW	NEW	not-started	0
+R10-TICK-ORCH	done	1	done	2
+R10-TICK-OWED-LEVEL	NEW	NEW	in-progress	1
+R10-TICK-RELAY-DECOUPLE	NEW	NEW	in-progress	0
+R10-TRAIN-HOLD	not-started	0	done	0
+R10-UPDATE-PR-LOCK	in-progress	0	done	0
+R10-UPDATE-PR-SIGNALS	queued	1	in-progress	1
+-- text-edited groups (brief/issues/fixes/findings differ)
+R10-ADVISOR
+R10-BUFFER-STORE
+R10-CEILING-PROBE
+R10-CI-LAYOUT
+R10-COP-PARTLOAD
+R10-DEMAND-OVERBOOK
+R10-MERGE-PR-MANDATE
+R10-MERGE-SUBJECT-HARDEN
+R10-MUTATION-ANCHOR
+R10-RCA-FRICTION
+R10-REPLAY-LANE
+R10-ROSTER-OPS
+R10-SAV-COMFORT
+R10-SCORES
+R10-SENSOR-PAYLOAD
+R10-UPDATE-PR-SIGNALS
+-- carries removed (base carry text absent at head)
