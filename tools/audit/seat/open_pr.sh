@@ -14,8 +14,12 @@
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
-# The open-PR soft cap (pr_cap.py; tvofi, 2026-10-18): --over-cap "<reason>" first overrides it.
+# The soft cap gates DISPATCH, not opening (pr_cap.py; tvofi, 2026-10-20):
+# opening is how work leaves work-in-progress. --over-cap "<reason>" is still
+# accepted so existing callers do not break; it says it is advisory and is
+# otherwise ignored. The open count below is information.
 OVER=; OVER_SET=; if [ "${1:-}" = --over-cap ]; then [ $# -ge 2 ] || pr_refuse "--over-cap needs a reason"; OVER=$2; OVER_SET=1; shift 2; fi
+[ -z "$OVER_SET" ] || printf '%s: --over-cap is advisory: %s (the cap gates dispatch, not opening)\n' "$PR_NAME" "$OVER" >&2  # mut:overadvisory
 pr_need_args 4 $# "open_pr.sh [--over-cap <reason>] <topic> <code-sha> <title> <group> [intended-issue...]"
 pr_code_sha_shape "$2"
 export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
@@ -29,8 +33,7 @@ git fetch -q origin handoff/$T handoff-body/$T
 pr_code_in_handoff "$C" "$T"
 git cat-file -e "$PR_BT:BODY.md" 2>/dev/null || pr_refuse "handoff-body/$T ($PR_BT) holds no BODY.md"
 git show "$PR_BT:BODY.md" > $D/body.md
-if [ -n "$OVER_SET" ]; then python3 -I "$SEAT/pr_cap.py" gate --repo $R --over-cap "$OVER" || exit 1  # mut:capcall
-else python3 -I "$SEAT/pr_cap.py" gate --repo $R || exit 1; fi  # mut:capcall
+python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
 git worktree add -q -b $BR $WT $C
 cd $WT
 git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
