@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index cf474d95d..2adc47f7d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10562,7 +10562,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # idle must not stand control down.
+             watch_active = (
+                 self._commanded_power() > 0.05 and reported >= hz_min
+-                and not defrost_interval(self._pump_signals.defrosting)
+             )
+             if self._freq_watchdog.note_report(reported, active=watch_active):
+                 # Three consecutive divergent ticks: the hardware is not

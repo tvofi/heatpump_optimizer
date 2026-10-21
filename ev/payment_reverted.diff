@@ -1,0 +1,45 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index cf474d95d..aea7130d3 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -287,6 +287,7 @@ from . import diagnosis
+ from .freq_control import (
+     FREQ_MODE_CONTROL,
+     FREQ_MODE_OBSERVE,
++    FREQ_SOURCE_NUMBER,
+     FREQ_WRITE_EPSILON_HZ,
+     FREQ_WRITE_MIN_INTERVAL_S,
+     FrequencyMap,
+@@ -10536,8 +10537,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         evidence is about the write path, not about what the meter reads.
+         """
+         ctx = getattr(self, "_ctx", self)
++        configured = ctx._config.freq_control_mode
+         if (
+-            ctx._config.freq_control_mode != FREQ_MODE_CONTROL
++            configured != FREQ_MODE_CONTROL
+             or not ctx._config.compressor_freq_entity
+         ) and self._freq_fallback:
+             # The user switched back to observe — or removed the entity
+@@ -10550,10 +10552,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             self._freq_watchdog.reset()
+             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
+             self._spawn(self._async_save_thermal_learning())
+-        reported, hz_min, hz_max, _source = self._freq_entity_reading()
++        reported, hz_min, hz_max, source = self._freq_entity_reading()
+         if reported is None:
+             return
+-        if self._freq_mode() == FREQ_MODE_CONTROL:
++        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+             # Divergence is only meaningful while the plan is actually
+             # asking for the compressor AND the reading is in its running
+             # range: an idle pump reading 0 Hz overnight, or one pausing
+@@ -10607,7 +10609,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
+         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
+             return
+-        _reported, hz_min, hz_max, _source = self._freq_entity_reading()
++        _reported, hz_min, hz_max, source = self._freq_entity_reading()
+         target = self._freq_map.recommend(
+             self._commanded_power() or 0.0, hz_min, hz_max
+         )

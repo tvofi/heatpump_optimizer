@@ -1,0 +1,5 @@
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:1012 GUARD_OFF: if _cop_fold_blocked(coord) or defrost_interval(coord._pump_
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:10595 GUARD_OFF: if self._measured_power is None or _freq_fold_blocked(self):
+CI PREDICT: 2 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures or fast red predicted against 22615537a497 (a data-file read is not seen)
+EXIT=0
