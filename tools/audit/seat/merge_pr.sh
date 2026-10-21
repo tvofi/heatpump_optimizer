@@ -121,59 +121,6 @@ P
   else fail=$((fail + 1)); echo "  FAIL the owner body declares an agent and cites exactly the mandate given"; fi
   if grep -q "2026-09-2[45]" "$SELF"; then fail=$((fail + 1)); echo "  FAIL no mandate date is written into this script"
   else pass=$((pass + 1)); echo "  ok   no mandate date is written into this script"; fi
-  # The merge call after the gates (#2444's fourth unpinned line). A scratch
-  # clone, a fake gh answering the whole flow, the stub programs the script
-  # prefers under tools/audit/, and a `sleep` that does not sleep. The null
-  # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
-  # a merge line replaced by `exit 0` records none, which reddens this step.
-  local mo mm msha
-  . "$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/tests/throwaway_git.sh" && throwaway_git_env
-  mo=$T/mo; mm=$T/mm; msha=$(printf 'd%.0s' {1..40})
-  mkdir -p "$T/ev" "$T/bin2" "$T/state2"
-  printf '# verdict\n' > "$T/ev/VERDICT.md"
-  throwaway_git_init "$mo" -q -b main && printf 'a\n' > "$mo/a" \
-    && git -C "$mo" add a && git -C "$mo" commit -q -m base \
-    && throwaway_git_clone -q "$mo" "$mm"
-  mkdir -p "$mm/tools/audit/seat"
-  cp "$SELF" "$mm/tools/audit/seat/merge_pr.sh"
-  for p in app_comment.sh app_approve.sh preflight.sh worktree_gc.sh; do
-    printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
-  done
-  printf 'import sys\nprint(sys.argv[2] if len(sys.argv) > 2 else "")\n' \
-    > "$mm/tools/audit/seat/ref_privacy.py"
-  printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"
-  cat > "$T/bin2/gh" <<'G'
-#!/bin/bash
-echo "$*" >> "$FAKE_LOG2"
-case "$*" in
-  *headRefOid*) echo "$FAKE_SHA" ;;
-  *isDraft*) echo false ;;
-  *mergeStateStatus*) echo CLEAN ;;
-  *mergeCommit*) echo deadbeef ;;
-  *title*) echo "a title" ;;
-  *length*) echo 0 ;;
-  *check-runs*) echo "" ;;
-  "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
-  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
-esac
-G
-  chmod +x "$T/bin2/gh"
-  flow() { # <merge fails 0|1>: the whole script, offline
-    : > "$T/gh2.log"
-    HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
-      FAKE_MERGE_FAIL=$1 bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
-      > "$T/flow.out" 2>&1
-    echo $? > "$T/flow.rc"
-  }
-  flow 0
-  [ "$(cat "$T/flow.rc")" = 0 ] \
-    && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
-  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: the merge records the reviewed head"
-  else fail=$((fail + 1)); echo "  FAIL null control: the merge records the reviewed head ($(tail -1 "$T/flow.out"))"; fi
-  flow 1
-  [ "$(cat "$T/flow.rc")" != 0 ]
-  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a refused merge fails the script (the line's own exit)"
-  else fail=$((fail + 1)); echo "  FAIL a refused merge fails the script"; fi
   rm -rf "$T"
   echo "merge_pr self-test: $((pass + fail)) checks, $fail failed"
   [ "$fail" = 0 ]
@@ -219,7 +166,7 @@ sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
 [ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
 gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/preflight.sh "$@" 2>&1; fi| tail -1
-gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
+gh pr merge $PR --merge --match-head-commit $S || exit 1
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
 bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main

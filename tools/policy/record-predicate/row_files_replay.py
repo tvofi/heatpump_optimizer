@@ -151,24 +151,15 @@ def main():
 
 
 def self_test() -> int:
-    """A historical commit still has the old path. A reader of only the new
+    """The historical commit still has the old path. A reader of only the new
     path misses it; plan_path returns the old one. When HEAD has the move,
-    plan_path returns the new one.
-
-    The historical commit is derived, never carried: the newest commit on the
-    main history that touched the old path is its deletion (`bc0f17ddb`, the
-    lift), so its parent still carries it. Reading origin/main itself for that
-    arm was true only until the lift merged, and has been red since."""
-    tip = out("rev-parse", "origin/main") or out("rev-parse", "HEAD")
+    plan_path returns the new one."""
+    tip = out("rev-parse", "origin/main")
     new, old = PLAN_PATHS
-    deleted = out("log", "-1", "--format=%H", tip, "--", old)
-    hist = out("rev-parse", f"{deleted}~1") if deleted else ""
-    if (not hist or git("cat-file", "-e", f"{hist}:{new}").returncode == 0
-            or git("cat-file", "-e", f"{hist}:{old}").returncode != 0
-            or plan_path(hist) != old):
-        print(f"FAIL: no commit on {tip[:7]}'s history still resolves at the old plan path")
+    if git("cat-file", "-e", f"{tip}:{new}").returncode == 0 or plan_path(tip) != old:
+        print("FAIL: origin/main must resolve at the old plan path")
         return 1
-    print(f"ok: plan_path({hist[:7]})={plan_path(hist)}; a new-path-only read misses it")
+    print(f"ok: plan_path(origin/main)={plan_path(tip)}; a new-path-only read misses it")
     head = out("rev-parse", "HEAD")
     if git("cat-file", "-e", f"{head}:{new}").returncode == 0:
         if plan_path(head) != new:

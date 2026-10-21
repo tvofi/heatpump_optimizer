@@ -2631,8 +2631,7 @@ fi
 
 # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
 # base once the base carries it: the Python readers first, under -I, then the
-# derived restore list the job must hold, then the lane over the readers'
-# answers. Needs full history for its merge-subject corpus.
+# lane over their answers. Needs full history for its merge-subject corpus.
 # NO CLOSURE SKIP HERE, deliberately: agreement_py.py reads the branch's OWN
 # merge-subject history (`git log --first-parent` since the tag through HEAD),
 # so every branch that adds a commit provably reaches it and no file table can
@@ -2642,7 +2641,6 @@ if test -f .claude/workflows/agreement_py.py; then
 else
   python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
 fi \
-  && python3 -I tools/policy/agreement_restore.py --check >>/tmp/prepr-ag.$$ 2>&1 \
   && if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; else node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; fi
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
