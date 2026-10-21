@@ -1,4 +1,8 @@
-Part of #201. Group: R10-FLOW-RELAY-HOLD (registration pending: roster PR-B).
+Part of #201.
+
+Group: R10-FLOW-RELAY-HOLD (registration pending: roster PR-B)
+
+Pack file: dev/programme/flow-study/roster/groups/R10-FLOW-RELAY-HOLD.json at PACK_SHA f89bfb4e on branch claude/dazzling-gauss-7l3u2b.
 
 `cloud_relay.sh`'s handoff arm updated every open PR whose `handoff/<topic>` tip was ahead of its head, with no way to exclude one. The roster PR's topic is `audit-r10-roster`, the branch every `roster_edit.py` push (forward-carries included) lands on, so a freeze had to stop all roster pushes (K13a). This adds the hold the study specifies:
 
@@ -42,12 +46,16 @@ The unmodified tree (`origin/main` 5226fd2d1): the self-test reports `74 checks,
 
 ## Red checks
 
-none
+nightly-status (grades main): it grades main, not this head, so this diff neither caused nor can clear it.
 
 ## Forward-carry
 
-R10-ORCH-MACHINERY's `handoff` job must read `<state>/cloud-handoff-hold` through `cloud_relay.sh held <pr>` (or the same grammar and refusal) rather than re-parse it. Carry: R10-ORCH-MACHINERY. R10-FLOW-ROSTER-FREEZE writes the hold automatically while a reviewer is live; it must write only valid lines, since a malformed file refuses the whole pass. Carry: R10-FLOW-ROSTER-FREEZE. (Both groups are named in the pre-study, K13a seams; the pending-group rule is satisfied because neither is this group.)
+n/a: the receiving group R10-FLOW-ROSTER-FREEZE registers with roster PR-B, so the orchestrator carries the finding there (see Notes).
 
 ## Friction
 
 none
+
+## Notes
+
+Finding for the receiving group R10-FLOW-ROSTER-FREEZE (not yet on the roster): it writes the hold automatically while a reviewer is live, and must write only valid lines, since a malformed file refuses the whole handoff pass. Separately, R10-ORCH-MACHINERY's `handoff` job must read `<state>/cloud-handoff-hold` through `cloud_relay.sh held <pr>` (or the same grammar and refusal) rather than re-parse it.
