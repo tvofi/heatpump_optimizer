@@ -32624,19 +32624,40 @@ R.check(
 )
 _pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
 _pt_restored = {"stale": {"days": _pt_days[:1]}}
+_pt_admit = lambda name, part: _pt_store.admitted("ledger", {"price_tiles": {name: part}})  # noqa: E731
 price_tiles.restore(
     _pt_restored,
-    {"target_plus_1": {"overrides": {"target_temp": 22.0}, "days": [*_pt_days[:2], _pt_bad_day]},
+    {"target_plus_1": {"overrides": {"target_temp": 22.0}, "days": [*_pt_days[:2], _pt_bad_day, "junk"],
+                       "min_room_temperature": "warm", "computed_at": "2026-02-08T10:00:00+01:00"},
+     "target_minus_1": {"days": _pt_days[:1], "computed_at": "2026-02-08T10:00:00"},
+     "power_cap_75": {"days": [_pt_bad_day]},
      "not_a_tile": {"days": _pt_days[:1]}},
-    lambda name, part: _pt_store.admitted("ledger", {"price_tiles": {name: part}}),
+    _pt_admit,
 )
 R.check(
-    "#2257: a stored tile loads day by day: a day outside its domain costs that day alone, "
-    "and the load replaces the book",
-    sorted(_pt_restored) == ["target_plus_1"]
+    "#2257: a stored tile loads day by day and field by field: a day or a field outside "
+    "its domain costs itself alone, a tile with no day left is dropped, and the load "
+    "replaces the book",
+    sorted(_pt_restored) == ["target_minus_1", "target_plus_1"]
     and _pt_restored["target_plus_1"]["days"] == _pt_days[:2]
-    and _pt_restored["target_plus_1"]["overrides"] == {"target_temp": 22.0},
+    and _pt_restored["target_plus_1"]["overrides"] == {"target_temp": 22.0}
+    and _pt_restored["target_plus_1"]["computed_at"] == "2026-02-08T10:00:00+01:00"
+    and "min_room_temperature" not in _pt_restored["target_plus_1"],
     repr(_pt_restored),
+)
+R.check(
+    "#2257: a naive stored stamp is dropped, never published as an instant",
+    "computed_at" not in _pt_restored["target_minus_1"],
+    repr(_pt_restored["target_minus_1"]),
+)
+_pt_shapes = {"stale": {"days": _pt_days[:1]}}
+price_tiles.restore(_pt_shapes, None, _pt_admit)
+_pt_shapes_none = dict(_pt_shapes)
+price_tiles.restore(_pt_shapes, {"target_plus_1": 5, "target_minus_1": {"days": "x"}}, _pt_admit)
+R.check(
+    "#2257: a store with no tiles, or tiles of the wrong shape, loads an empty book",
+    _pt_shapes_none == {} and _pt_shapes == {},
+    f"{_pt_shapes_none!r} {_pt_shapes!r}",
 )
 
 

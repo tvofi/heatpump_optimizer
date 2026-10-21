@@ -65,7 +65,7 @@ def book(owner: Any) -> dict[str, dict[str, Any]]:
 
 def per_month(delta: float, horizon_hours: float) -> float:
     """A cost difference over a solve's horizon, scaled to a month."""
-    return delta * MONTH_HOURS / max(horizon_hours, 1.0)
+    return delta * MONTH_HOURS / horizon_hours
 
 
 def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:

@@ -10448,8 +10448,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._price_tile_cursor += 1
             return
         self._price_tile_cursor += 1
-        if not answer.get("error"):
-            price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
+        # An error answer carries no figure, so the tile records nothing.
+        price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
 
     def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
