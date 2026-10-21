@@ -1,0 +1,8 @@
+tools/audit/seat/INSTRUMENTS.md:232:  Hold: `cloud-handoff-hold` under the state dir lists PR numbers, one per line
+tools/audit/seat/cloud_relay.sh:78:#     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
+tools/audit/seat/cloud_relay.sh:190:hold_file() { echo "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-handoff-hold"; }
+tools/audit/seat/cloud_relay.sh:191:hold_list() { # the held PR numbers, one per line; rc 2 when the hold file is malformed. No file = no hold.
+tools/audit/seat/cloud_relay.sh:200:  l=$(hold_list) || return 2; grep -qxF "$1" <<< "$l"; }
+tools/audit/seat/cloud_relay.sh:204:  held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }
+tools/audit/seat/cloud_relay.sh:425:  hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$
+dev/audit/harnesses/r10_seat_selftests_mutants.py:108:    ("S36", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),

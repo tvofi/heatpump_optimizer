@@ -1,0 +1,31 @@
+R1-del-hold-read KILLED rc=1 :: cloud_relay self-test: 137 checks, 34 failed
+   R1-del-hold-read   FAIL a held PR whose handoff is ahead is not updated (rc=1, want 0)
+   R1-del-hold-read   FAIL and prints HELD with the handoff tip it did not apply (rc=1, want 0)
+   R1-del-hold-read   FAIL the HELD line is printed once per pass (rc=1, want 0)
+R2-del-held-skip KILLED rc=1 :: cloud_relay self-test: 137 checks, 7 failed
+   R2-del-held-skip   FAIL a held PR whose handoff is ahead is not updated (rc=1, want 0)
+   R2-del-held-skip   FAIL and prints HELD with the handoff tip it did not apply (rc=1, want 0)
+   R2-del-held-skip   FAIL the HELD line is printed once per pass (rc=1, want 0)
+R3-del-owed-log SURVIVED rc=0 :: cloud_relay self-test: 137 checks, 0 failed
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+AssertionError: pattern only in self-test
+R4-held-cli-dispatch NOT-PLANTED
+R5-del-file-check SURVIVED rc=0 :: cloud_relay self-test: 137 checks, 0 failed
+R6-no-lastline SURVIVED rc=0 :: cloud_relay self-test: 137 checks, 0 failed
+R7-held-substr KILLED rc=1 :: cloud_relay self-test: 137 checks, 1 failed
+   R7-held-substr   FAIL held <pr> matches the whole line (#4 is not #41) (rc=0, want 1)
+R8-held-ignore-malformed KILLED rc=1 :: cloud_relay self-test: 137 checks, 9 failed
+   R8-held-ignore-malformed   FAIL and held refuses it too (rc=1, want 2)
+   R8-held-ignore-malformed   FAIL and held refuses it too (rc=1, want 2)
+   R8-held-ignore-malformed   FAIL and held refuses it too (rc=1, want 2)
+R9-held-arg-check KILLED rc=1 :: cloud_relay self-test: 137 checks, 1 failed
+   R9-held-arg-check   FAIL held refuses a non-number (rc=1, want 2)
+R10-zero-ok KILLED rc=1 :: cloud_relay self-test: 137 checks, 8 failed
+   R10-zero-ok   FAIL a malformed hold file ('0') refuses the pass (rc 2) (rc=0, want 2)
+   R10-zero-ok   FAIL and holds none: the PR is not updated (rc=1, want 0)
+   R10-zero-ok   FAIL and names the refusal (rc=1, want 0)
+R11-comments-refused KILLED rc=1 :: cloud_relay self-test: 137 checks, 1 failed
+   R11-comments-refused   FAIL comments and blank lines are allowed and hold nothing (rc=1, want 0)
+R12-held-after-failed SURVIVED rc=0 :: cloud_relay self-test: 137 checks, 0 failed
+R13-held-before-ancestor SURVIVED rc=0 :: cloud_relay self-test: 137 checks, 0 failed
