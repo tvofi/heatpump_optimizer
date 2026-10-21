@@ -5566,9 +5566,9 @@
    "brief": "tools/audit/seat/roster_edit.py --push can report success for an edit that never reached origin when two seats edit the roster branch from one parent (2026-10-21: append-carry b622ec9f1 lost under set-stage 2f37a1cb6). Reproduce with two concurrent edits in a scratch bare repo, fix so a non-fast-forward rejection re-applies the op on the new tip or refuses with a non-zero exit (never force), extend the self-test, and search the other seat pushers for the same swallowed exit status.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-roster-push-race",
-    "commit": null
+    "commit": "3a9c6f849be82d0625461699f9400d8b53879e1d"
    }
   },
   {
