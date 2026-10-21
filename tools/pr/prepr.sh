@@ -2140,15 +2140,21 @@ PY
   # such orphans ran 20 and 38 minutes, and they fed the box's load. The
   # driver is the prepr as step 6b runs it: a bash of its own, so its `$$` is
   # the pid the watchdog polls, with the prepr's signal traps installed and
-  # the step's own `closures_step` call. It leads its own process group, so the
-  # group arm signals the prepr's group and nothing of this self-test. The
-  # sleeper stands for the recorder; under the step it leads its own group.
+  # step 6b's own statement, read out of this file at its `6b.` marker, so a
+  # change to that call site is what the arms run. It leads its own process
+  # group, so the group arm signals the prepr's group and nothing of this
+  # self-test. The sleeper stands for the recorder, and forks one lane as
+  # derive_closures.sh forks its recording lanes, so an arm sees a reap of
+  # the recorder's pid that orphans its group. A process counts as alive by
+  # its `ps` state, not `kill -0`: a container's PID 1 may leave a zombie
+  # unreaped, and `kill -0` reads a zombie as alive.
   PREPR_ABS=$(cd "$(dirname "$PREPR_PATH")" && pwd)/$(basename "$PREPR_PATH")
   SP="$CLM/sleeper.pid"
   cat > "$CLM/sleeper.sh" <<EOF
 #!/bin/bash
+( sleep 300 ) & echo "\$!" > "$SP.lane"
 echo "\$\$" > "$SP"
-sleep 300
+wait
 EOF
   chmod +x "$CLM/sleeper.sh"
   cat > "$CLM/drv.sh" <<EOF
@@ -2156,32 +2162,37 @@ EOF
 cd "$CLM/r" || exit 9
 eval "\$(awk '/^rc=0\$/{exit} {print}' '$PREPR_ABS')"
 exit_on_signals
+say() { :; }; step() { :; }
+unset PREPR_SKIP_CLOSURES; BASE=fork
 export PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1
-closures_step fork
+eval "\$(awk '/^# --- 6b\./{f=1} f&&/^if /{p=1} p{print} p&&/^fi\$/{exit}' '$PREPR_ABS')"
 EOF
   chmod +x "$CLM/drv.sh"
   ( cd "$CLM/r" && git checkout -q cl ) >/dev/null 2>&1
-  reap_arm() { # signal, prepr|group; sets REAP to "<prepr>:<recorder>" alive 5 s after the signal
-    local dpid spid i
-    : > "$SP"
+  alive() { local s; s=$(ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s#Z}" = "$s" ]; }
+  reap_arm() { # signal, prepr|group; sets REAP to "<prepr>:<recorder>:<lane>" alive 5 s after the signal
+    local dpid spid lpid i
+    : > "$SP"; : > "$SP.lane"
     ( set -m; bash "$CLM/drv.sh" </dev/null >/dev/null 2>&1 & echo "$!" > "$CLM/drv.pid" )
     dpid=$(cat "$CLM/drv.pid")
     for i in $(seq 1 1200); do [ -s "$SP" ] && break; sleep 0.1; done
-    spid=$(cat "$SP" 2>/dev/null)
-    if [ -z "$spid" ]; then REAP=unstarted; kill -KILL -- -"$dpid" 2>/dev/null; return; fi
+    spid=$(cat "$SP" 2>/dev/null); lpid=$(cat "$SP.lane" 2>/dev/null)
+    if [ -z "$spid" ] || [ -z "$lpid" ]; then REAP=unstarted; kill -KILL -- -"$dpid" 2>/dev/null; return; fi
     if [ "$2" = group ]; then kill -"$1" -- -"$dpid"; else kill -"$1" "$dpid"; fi
     for i in $(seq 1 50); do
-      kill -0 "$dpid" 2>/dev/null || kill -0 "$spid" 2>/dev/null || break; sleep 0.1
+      alive "$dpid" || alive "$spid" || alive "$lpid" || break; sleep 0.1
     done
-    REAP="$(kill -0 "$dpid" 2>/dev/null && echo alive || echo gone):$(kill -0 "$spid" 2>/dev/null && echo alive || echo gone)"
-    kill -KILL -- -"$spid" "$spid" -"$dpid" "$dpid" 2>/dev/null
+    REAP=""
+    for i in "$dpid" "$spid" "$lpid"; do REAP="$REAP$(alive "$i" && echo alive || echo gone):"; done
+    REAP=${REAP%:}
+    kill -KILL -- -"$spid" "$spid" "$lpid" -"$dpid" "$dpid" 2>/dev/null
   }
   reap_arm KILL prepr
-  st "$REAP" gone:gone "a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes)"
+  st "$REAP" gone:gone:gone "a KILL to the prepr leaves no recorder or recorder lane running behind it (the orphan the watchdog closes)"
   reap_arm TERM prepr
-  st "$REAP" gone:gone "a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes"
+  st "$REAP" gone:gone:gone "a TERM to the prepr alone ends it, its recorder and the recorder's lane at once, not when the recording finishes"
   reap_arm TERM group
-  st "$REAP" gone:gone "a TERM to the prepr's process group ends it and its recorder"
+  st "$REAP" gone:gone:gone "a TERM to the prepr's process group ends it, its recorder and the recorder's lane"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
   # per script pays the SUM of the recordings where the lane run pays a lane
