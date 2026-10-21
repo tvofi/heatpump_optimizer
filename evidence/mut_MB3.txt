@@ -1,0 +1,19 @@
+mutant MB3 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index dbd80104c..1c10fa5d5 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -140,7 +140,7 @@ def published(tiles: Mapping[str, Mapping[str, Any]], today: date) -> dict[str,
+     figure, how many days that mean covers, and no per-day book."""
+     out: dict[str, PriceTile] = {}
+     for name, tile in tiles.items():
+-        days = _within(list(tile.get("days") or []), today)
++        days = _within(list(tile.get("days") or []), today)[-1:]
+         if not days:
+             continue
+         mean = sum(d["sum"] / d["count"] for d in days) / len(days)
+features rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #2257: a tile keeps the last 30 local days and publishes the mean of their daily means  [30 days from {'day': '2026-01-11', 'sum': 21.0, 'count': 2} -> {'target_plus_1': {'overrides': {}, 'monthly_cost_delta': 39.5, 'horizon_days': 1}}]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4276 FEATURE CHECKS FAILED

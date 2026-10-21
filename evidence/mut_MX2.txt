@@ -1,0 +1,21 @@
+mutant MX2 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c03d49b30..9b967268a 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7896,8 +7896,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         score = stored.get("operation_score")
+         if isinstance(score, (int, float)) and np.isfinite(score):
+             self._operation_score = float(np.clip(score, 0.0, 100.0))
+-        price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
+-            "ledger", {"price_tiles": {name: part}}))
+ 
+     def _schedule_ledger_save(self) -> None:
+         """Persist the ledger without blocking the settlement path."""
+features rc=0
+finite_boundary rc=1
+  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['ledger']]
+1 of 106 FINITE BOUNDARY CHECKS FAILED
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+ALL 4276 FEATURE CHECKS PASSED

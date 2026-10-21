@@ -1,0 +1,18 @@
+mutant MX1 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c03d49b30..e93926a47 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7915,7 +7915,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                     "score_day": self._score_day,
+                     "operation_score": self._operation_score,
+                     "fuse_advisor": dict(self._fuse_advisor),
+-                    "price_tiles": price_tiles.book(self),
+                     "fuse_advisor_at": (
+                         self._fuse_advisor_at.isoformat()
+                         if self._fuse_advisor_at is not None
+features rc=0
+finite_boundary rc=0
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+ALL 4276 FEATURE CHECKS PASSED

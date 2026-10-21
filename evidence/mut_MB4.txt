@@ -1,0 +1,17 @@
+mutant MB4 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index dbd80104c..0f8831892 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -170,5 +170,5 @@ def restore(out: dict[str, dict[str, Any]], raw: Any, admit: Callable[[str, Any]
+         kept = {k: v for k, v in tile.items() if k != "days" and admit(name, {k: v})}
+         if not _aware(kept.get("computed_at")):
+             kept.pop("computed_at", None)  # a naive stamp is no instant (F3.1)
+-        if days:
++        if days and len(days) == len(tile["days"]):
+             out[str(name)] = {**kept, "days": days}
+features rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #2257: a stored tile loads day by day and field by field: a day or a field outside its domain costs itself alone, a tile with no day left is dropped, and the load replaces the book  [{'target_minus_1': {'days': [{'day': '2026-01-11', 'sum': 21.0, 'count': 2}]}}]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4276 FEATURE CHECKS FAILED

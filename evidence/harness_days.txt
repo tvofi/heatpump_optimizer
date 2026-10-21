@@ -1,0 +1,45 @@
+RESULT day  0 winter_typical  outdoor  +1.5 start 21.0 base   -56.0   +13.0 | head   -67.9   +67.9 | published   -67.9   +67.9
+RESULT day  1 winter_moderate outdoor  +5.4 start 20.4 base   -49.4   +59.9 | head   -56.6   +56.6 | published   -62.2   +62.2
+RESULT day  2 winter_narrow   outdoor  +7.4 start 21.7 base   -90.3   +81.2 | head   -64.2   +64.2 | published   -62.9   +62.9
+RESULT day  3 shoulder        outdoor  +6.7 start 21.0 base   -61.5   +56.4 | head   -37.5   +37.5 | published   -56.5   +56.5
+RESULT day  4 winter_extreme  outdoor  +3.6 start 20.4 base   -84.8   +38.2 | head  -128.9  +128.9 | published   -71.0   +71.0
+RESULT day  5 winter_typical  outdoor  -0.6 start 21.7 base   -42.1    +0.0 | head   -72.2   +72.2 | published   -71.2   +71.2
+RESULT day  6 flat            outdoor  -3.7 start 21.0 base  -184.0  +153.7 | head   -64.4   +64.4 | published   -70.2   +70.2
+RESULT day  7 winter_typical  outdoor  -4.4 start 20.4 base    +0.0    +0.0 | head   -81.9   +81.5 | published   -71.7   +71.6
+RESULT day  8 winter_moderate outdoor  -2.4 start 21.7 base   -76.1   +24.5 | head   -70.8   +70.8 | published   -71.6   +71.5
+RESULT day  9 winter_narrow   outdoor  +1.5 start 21.0 base  -117.2   +72.6 | head   -75.3   +75.3 | published   -72.0   +71.9
+RESULT day 10 shoulder        outdoor  +5.4 start 20.4 base   -90.5   +45.1 | head   -38.8   +38.8 | published   -68.9   +68.9
+RESULT day 11 winter_extreme  outdoor  +7.4 start 21.7 base   -65.1   +70.2 | head  -116.6  +116.6 | published   -72.9   +72.9
+RESULT day 12 winter_typical  outdoor  +6.7 start 21.0 base   -29.1   +60.1 | head   -59.0   +59.0 | published   -71.8   +71.8
+RESULT day 13 flat            outdoor  +3.6 start 20.4 base  -114.0  +100.4 | head   -51.6   +51.6 | published   -70.4   +70.4
+RESULT day 14 winter_typical  outdoor  -0.6 start 21.7 base   -42.1    +0.0 | head   -72.2   +72.2 | published   -70.5   +70.5
+RESULT day 15 winter_moderate outdoor  -3.7 start 21.0 base   -85.4    +0.1 | head   -74.0   +74.0 | published   -70.7   +70.7
+RESULT day 16 winter_narrow   outdoor  -4.4 start 20.4 base  -133.0  +158.1 | head   -90.8   +90.7 | published   -71.9   +71.9
+RESULT day 17 shoulder        outdoor  -2.4 start 21.7 base   -58.3   +77.7 | head   -44.5   +44.5 | published   -70.4   +70.4
+RESULT day 18 winter_extreme  outdoor  +1.5 start 21.0 base   -86.4   +73.8 | head  -136.5  +136.5 | published   -73.9   +73.8
+RESULT day 19 winter_typical  outdoor  +5.4 start 20.4 base   -60.1   +24.4 | head   -61.1   +61.1 | published   -73.2   +73.2
+RESULT day 20 flat            outdoor  +7.4 start 21.7 base   -69.4  +101.3 | head   -46.7   +46.7 | published   -72.0   +71.9
+RESULT day 21 winter_typical  outdoor  +6.7 start 21.0 base   -39.8   +49.4 | head   -59.0   +59.0 | published   -71.4   +71.4
+RESULT day 22 winter_moderate outdoor  +3.6 start 20.4 base   -81.5   +41.5 | head   -59.4   +59.4 | published   -70.9   +70.8
+RESULT day 23 winter_narrow   outdoor  -0.6 start 21.7 base   -42.8  +217.8 | head   -80.0   +80.0 | published   -71.2   +71.2
+RESULT day 24 shoulder        outdoor  -3.7 start 21.0 base  -138.8    +9.7 | head   -46.5   +46.5 | published   -70.2   +70.2
+RESULT day 25 winter_extreme  outdoor  -4.4 start 20.4 base   -60.2    +0.0 | head  -164.5  +163.6 | published   -73.9   +73.8
+RESULT day 26 winter_typical  outdoor  -2.4 start 21.7 base    +0.0    +0.0 | head   -76.4   +76.4 | published   -74.0   +73.9
+RESULT day 27 flat            outdoor  +1.5 start 21.0 base  -120.5  +100.1 | head   -54.7   +54.7 | published   -73.3   +73.2
+RESULT day 28 winter_typical  outdoor  +5.4 start 20.4 base   -60.1   +24.4 | head   -61.1   +61.1 | published   -72.9   +72.8
+RESULT day 29 winter_moderate outdoor  +7.4 start 21.7 base   -52.2   +72.5 | head   -53.7   +53.7 | published   -72.2   +72.2
+RESULT day 30 winter_narrow   outdoor  +6.7 start 21.0 base   -93.4   +67.6 | head   -65.4   +65.4 | published   -72.1   +72.1
+RESULT day 31 shoulder        outdoor  +3.6 start 20.4 base   -96.7   +55.1 | head   -40.7   +40.7 | published   -71.6   +71.6
+RESULT day 32 winter_extreme  outdoor  -0.6 start 21.7 base   -93.1   +77.0 | head  -145.1  +145.1 | published   -74.3   +74.2
+RESULT day 33 winter_typical  outdoor  -3.7 start 21.0 base    +0.0    +0.0 | head   -79.9   +79.9 | published   -75.7   +75.7
+RESULT day 34 flat            outdoor  -4.4 start 20.4 base  -262.8   +14.2 | head   -66.0   +66.0 | published   -73.6   +73.6
+RESULT day 35 winter_typical  outdoor  -2.4 start 21.7 base    +0.0    +0.0 | head   -76.4   +76.4 | published   -73.8   +73.7
+RESULT day 36 winter_moderate outdoor  +1.5 start 21.0 base   -74.5   +62.6 | head   -62.9   +62.9 | published   -73.7   +73.7
+RESULT day 37 winter_narrow   outdoor  +5.4 start 20.4 base   -57.3  +121.0 | head   -67.7   +67.7 | published   -73.2   +73.2
+RESULT day 38 shoulder        outdoor  +7.4 start 21.7 base   -63.3   +42.6 | head   -36.8   +36.8 | published   -72.1   +72.1
+RESULT day 39 winter_extreme  outdoor  +6.7 start 21.0 base   -75.0   +82.3 | head  -118.7  +118.7 | published   -73.5   +73.5
+RESULT days base non_monotone 5/40 warmer_not_costing 3/40 cooler std 48.5 range -262.8..+0.0 warmer std 48.6 range +0.0..+217.8
+RESULT days head non_monotone 0/40 cooler std 29.6 range -164.5..-36.8 warmer std 29.5 range +36.8..+163.6
+RESULT days head published over days 30-40 non_monotone 0/11 cooler std 1.1 range -75.7..-71.6 warmer std 1.1 range +71.6..+75.7
+VERDICT days head monotone every day; base non-monotone on 5 of 40 days
+rc=0
