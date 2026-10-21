@@ -46,6 +46,12 @@ entry where this one adds a separate `roster_sync.py` entry after
 
 ## Head
 
+`d87648d02b63a4c5e5f70573d1a10d2060b509a6` merges origin/main `265d3bf1a` into the authored code head `66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+This round is the body alone: the code head is unchanged at `d87648d02b63a4c5e5f70573d1a10d2060b509a6`,
+and only the two `Carry:` destinations below and `## Red checks` moved (see
+pr-contract there).
+
 66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3, merge base and `origin/main`
 0cc148b2f80fe224ffe2c504b29fd4f0908183df at 2026-10-21T08:57Z. It merges
 `origin/main` into the previous handoff tip a6d8a78ef (no conflict) and adds
@@ -142,6 +148,19 @@ tools/audit/seat/roster_sync.py` and `RESULT ... unregistered=1` at
 - `python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`.
 - `python3 tools/audit/archscore/score.py --diff 0cc148b2f80f` ->
   `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/audit/carry_audit.py check --body <body>` against the
+  roster at origin/main 03b49e152: the previous body -> `CARRY-AUDIT: 4
+  finding item(s): 2 routed, 0 unrouted, 2 bad destination(s)`, rc 1 (the
+  null control: CI's refusal reproduced); this body -> `CARRY-AUDIT: 5
+  finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)`, rc 0.
+- The detectors the brief names do not see this refusal, measured on the
+  previous (refused) body: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh
+  <old body>` at d87648d02 -> `PRE-PR: d87648d02b63...`, rc 0; `node
+  tools/policy/policy_lint.mjs --pr-body <old body> --head d87648d02...
+  --red nightly-status` (main's copy, as CI restores it) -> `PR-BODY: 0
+  error(s)`, rc 0. On this body both again read rc 0, and
+  `node tools/policy/figure_lint.mjs --pr-body` at the head refuses none of
+  this body's figures (its `FIGURES:` line is the count).
 - Not re-taken: the previous body's live-roster dry run (`roster_sync.py
   --checkout .` over `origin/handoff/audit-r10-roster`) and the 2-versus-47
   branch-matching count both read `gh pr list`, and `gh` is unauthenticated
@@ -162,6 +181,18 @@ tools/audit/seat/roster_sync.py` and `RESULT ... unregistered=1` at
   `Path(__file__).resolve().parents[3]`. Answered: the cheaper detector is the
   same check's `inline_scan()`, about a second; the repair is the canonical
   `repo_root()` inlined verbatim (026b7250d), not a suppression.
+- `pr-contract` at d87648d02, step `carry_audit.py check --body`:
+  `BAD-DEST body item b79e7e68` and `00bf85b5`, `R10-ORCH-MACHINERY is not a
+  group of the roster` (the design note's group name, never added to
+  `wave-r10-groups.json`). Answered: both items now carry to `#201`, owned
+  through `dev/programme/carries/carry-201.json`, the in-tree brief of a stage
+  with no live roster group; no live group's brief names `ci_predict.py` or
+  `cloud_dispatch.py`. The cheaper detector is the same command run on the
+  body file before `body_push.sh`, `python3 -I tools/audit/carry_audit.py
+  check --body <body.md>`, under a second; neither `policy_lint.mjs
+  --pr-body` nor `prepr.sh` nor `body_push.sh`'s predictor runs it (see
+  `## Forward-carry`), so the refusal cost one CI round of pr-contract and
+  this body seat.
 - `nightly-status` is main's, not this branch's: the replay
   `loop_cpu_ratio` budget. Carry: R10-REPLAY-CAP
 
@@ -171,7 +202,12 @@ tools/audit/seat/roster_sync.py` and `RESULT ... unregistered=1` at
   the layout guard, so a handoff whose diff adds a retired path passes it and
   is refused only at the orchestrator's prepr: at 32fcfae00, where the guard
   printed 3 refusals, `ci_predict.py --base origin/main` printed `CI PREDICT:
-  no closures or fast red predicted` with rc 0. Carry: R10-ORCH-MACHINERY
+  no closures or fast red predicted` with rc 0. Carry: #201
+- No pre-push instrument runs the body's carry audit: `grep -rn carry_audit
+  tools/pr/ tools/audit/seat/*.sh .github/workflows/*.yml` names only
+  `pr-contract.yml`'s `check --body` step and `governance.yml`'s self-test, so
+  a body with a destination outside the roster passes `prepr.sh` and
+  `body_push.sh` and is first refused by CI (this round). Carry: #201
 - `ref_privacy.py --check` enforces nothing on a macOS seat: its site scan
   keys on `\b`, which the host's `git grep -E` does not honour (recorded by
   the previous round on main's own checkout). Carry: R10-POLICY-GATE-SCOPING
@@ -185,7 +221,7 @@ tools/audit/seat/roster_sync.py` and `RESULT ... unregistered=1` at
   import), and `gh` was unauthenticated. A venv was built from
   `tests/requirements-ci.txt` under 3.13 for the gate runs. The payload's
   brief also names `tools/audit/seat/prepr.sh`, which does not exist; prepr
-  is `tools/pr/prepr.sh`. Carry: R10-ORCH-MACHINERY
+  is `tools/pr/prepr.sh`. Carry: #201
 - ref_privacy: unenforced: the host's `git grep -E '\b'` finds no word
   boundary on a macOS seat, so `--check` is green-on-nothing there (see
   Forward-carry). Carry: R10-POLICY-GATE-SCOPING
@@ -198,3 +234,4 @@ Behaviour change: `state_docs.py beat` gains `--apply`, which each pass runs
 `roster_edit.py`'s lint gate; the default (no `--apply`) is unchanged, and the
 new one-shot form is a dry run unless `--apply` is given. Rollback: revert this
 merge; nothing reads `resume.pr` and no other behaviour moved.
+
