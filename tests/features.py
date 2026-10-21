@@ -18994,6 +18994,32 @@ R.check(
     f"hour 7 {(_nf_levelled._internal_gains_profile or [None] * 24)[7]!r} "
     f"vs prior {_nf_g0}",
 )
+# The gate is inclusive: a level whose confidence sits exactly on the
+# threshold has converged. No integer sample count lands on 0.9 itself, so
+# the threshold is moved onto one the learner does reach, and the count just
+# under it is the control that must still wait.
+import heatpump_optimizer.coordinator as _nf_cm  # noqa: E402
+from heatpump_optimizer.coordinator import house_loss_confidence as _nf_conf  # noqa: E402
+
+_nf_edge_n = 114
+_nf_edge_threshold = _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE
+_nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_conf(_nf_edge_n)
+try:
+    _nf_edge = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_edge._house_heat_loss_samples = _nf_edge_n
+    _nf_edge._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+    _nf_under = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_under._house_heat_loss_samples = _nf_edge_n - 1
+    _nf_under._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+finally:
+    _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_edge_threshold
+R.check(
+    "#2223: a heat-loss level exactly on the confidence threshold has converged",
+    _nf_edge._internal_gains_profile is not None
+    and _nf_under._internal_gains_profile is None,
+    f"on the threshold {_nf_edge._internal_gains_profile is not None}, "
+    f"one sample under {_nf_under._internal_gains_profile is not None}",
+)
 
 _nf_low_day = _two_zone_learner(lower_entity="sensor.lower")
 _nf_low_r_day, _nf_low_n_day = _drive_lower(
