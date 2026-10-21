@@ -5222,6 +5222,49 @@
     "next_step": "dispatch a fixer",
     "note": null
    }
+  },
+  {
+   "group": "R10-REPLAY-CAP",
+   "lane": "RP",
+   "kind": "defect",
+   "class": "defect",
+   "issues": [
+    2272
+   ],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tests/replay.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Main's nightly slow lane is red: schedule run 39387919507 (2026-10-20) failed loop_cpu_ratio 0.1114 over its budget 0.111 in tests/replay.py's cost budgets, so nightly-status is red on every PR. The unopened handoff raises it to 0.124. The fixer first establishes whether the excess is noise or growth (repeated measurement at main, the merge that moved it), seeks a real payment (loop CPU work belongs to R10-LOOP-CPU and is carried there, not built here), and raises only to the measured value with a raise justification and an architecture-score line under mandate 6175172275. Control: the metric at main with the budget unchanged.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-replay-cap",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
   }
  ]
 }
