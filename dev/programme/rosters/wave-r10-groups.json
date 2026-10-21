@@ -7026,6 +7026,49 @@
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    }
+  },
+  {
+   "group": "R10-FLY-CARRY-DOC-CONTEXT",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/pr/app_approve.sh"
+   ],
+   "hot_files": [
+    "tools/pr/app_approve.sh"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "P17: app_approve.sh carry condition (3): a context-only line difference introduced by main carries in *.md files, where only ' '-prefixed context lines may differ and their count must be unchanged; +/- lines byte-identical; code files strict. Fixture controls: md-context yes / py-context no / +line no. Evidence #2547 90bab078->71a577c9 INSTRUMENTS.md L166 context.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-carry-doc-context",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
