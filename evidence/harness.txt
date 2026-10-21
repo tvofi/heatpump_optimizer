@@ -1,0 +1,18 @@
+== base default
+RESULT tree=df6ca4bc6 passes=3 refs=5 disposed=1 log_lines=24 printed=22 distinct=7 match=no
+== base null
+RESULT tree=df6ca4bc6 passes=1 refs=5 disposed=0 log_lines=10 printed=8 distinct=8 match=yes
+== base passes=10 refs=20
+RESULT tree=df6ca4bc6 passes=10 refs=21 disposed=1 log_lines=235 printed=233 distinct=23 match=no
+== mb default
+RESULT tree=6961f0663 passes=3 refs=5 disposed=1 log_lines=24 printed=22 distinct=7 match=no
+== mb null
+RESULT tree=6961f0663 passes=1 refs=5 disposed=0 log_lines=10 printed=8 distinct=8 match=yes
+== mb passes=10 refs=20
+RESULT tree=6961f0663 passes=10 refs=21 disposed=1 log_lines=235 printed=233 distinct=23 match=no
+== head default
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+== head null
+RESULT tree=90bab078d passes=1 refs=5 disposed=0 log_lines=5 printed=8 distinct=8 match=yes
+== head passes=10 refs=20
+RESULT tree=90bab078d passes=10 refs=21 disposed=1 log_lines=5 printed=23 distinct=23 match=yes

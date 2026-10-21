@@ -1,0 +1,14 @@
+tools/audit/seat/INSTRUMENTS.md:218:  `cloud-relay.log` under the state directory), the file the orchestrator
+tools/audit/seat/INSTRUMENTS.md:401:  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`)
+tools/audit/seat/cloud_relay.sh:54:# <state>/cloud-relay.log, which the orchestrator reads):
+tools/audit/seat/cloud_relay.sh:94:relay_log() { printf '%s' "${LOG:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relay.log}"; }
+tools/audit/seat/cloud_relay.sh:95:logline() { mkdir -p "$(dirname -- "$(relay_log)")" && printf '%s %s\n' "$1" "$(date -u +%FT%TZ) $2" >> "$(relay_log)"; }
+tools/audit/seat/cloud_relay.sh:101:  local lv; lv=$(relay_log).level
+tools/audit/seat/cloud_relay.sh:162:  local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
+tools/audit/seat/cloud_relay.sh:241:      mkdir -p "$(dirname -- "$(relay_log)")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +
+tools/audit/seat/orchestrator_tick.py:250:                 relay_log: str | None = None,
+tools/audit/seat/orchestrator_tick.py:265:        self.relay_log = relay_log or os.path.join(
+tools/audit/seat/orchestrator_tick.py:267:            "cloud-relay.log")
+tools/audit/seat/orchestrator_tick.py:698:        for name, path in (("log", self.relay_log), ("level", self.relay_log + ".level")):
+tools/audit/seat/orchestrator_tick.py:2165:        kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
+tools/audit/seat/orchestrator_tick.py:3372:            t = tick(relay_log=str(lg))
