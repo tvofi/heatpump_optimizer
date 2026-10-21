@@ -39,7 +39,7 @@ none (no check red on this branch; `entities.py` 2375 pass, structure passes). `
 
 ## Forward-carry
 
-Seam note for the groups that consume this: the owner half (three standing trigger prompts: Opus fixer, Opus reviewer, Sonnet fixer, each fetching `dispatch/<role>-<topic>`) is the owner's, per R15; the seam with R10-ORCH-MACHINERY (dispatch through `bus.sh dispatch` so the `reviewer-fire` close is written; add the seat to `workers.json`) is not built here: `dispatch_group` takes `pr` and `nonce` for a reviewer but mints neither. Carry: R10-ORCH-MACHINERY (already carries this seam in the roster group `carry`; no pending group is pointed to).
+Seam note for the groups that consume this: the owner half (three standing trigger prompts: Opus fixer, Opus reviewer, Sonnet fixer, each fetching `dispatch/<role>-<topic>`) is the owner's, per R15; the seam with R10-ORCH-MACHINERY (dispatch through `bus.sh dispatch` so the `reviewer-fire` close is written) is not built here: `dispatch_group` takes `pr` and `nonce` for a reviewer but mints neither. Carry: R10-ORCH-MACHINERY (already carries this seam in the roster group `carry`; no pending group is pointed to).
 
 ## Friction
 
