@@ -12,11 +12,13 @@ Fixes #2302.
 
 ## Head
 
-`ddfbf8ac730f5e9b2c6e5ca1bc142fff4e764cd0`
+`a8c8287f57e09c808e47597910bd9791c93a3579`
+
+`prepr.sh` ran with `PREPR_SKIP_CLOSURES=1` (the owner's ruling for this wave), so prepr's closures step was skipped here; CI's `closures` job is the authority for it.
 
 ## Mutation proof
 
-Train half, `python3 -I tools/audit/seat/merge_train.py --self-test` (each mutant applied, the suite run, the line restored; the restored file re-runs at 197/197):
+Train half, `python3 -I tools/audit/seat/merge_train.py --self-test` (each mutant applied, the suite run, the line restored; the restored file re-runs at 198/198):
 
 - Delete the start-of-run `hold_refresh()` (the arming stays) — the per-item refresh still creates the ref, so the counts shift and T1 reds these two, **not** the first-merge check: `FAIL the hold is refreshed once per queue item, so one long item cannot age it stale` and `FAIL a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it`.
 - Delete the `hold_release()` before `TRAIN DONE` so only the `finally` releases — `FAIL a real train holds the record beat before its first merge and releases it before the closing line (issue #2302)`.
@@ -25,6 +27,8 @@ Train half, `python3 -I tools/audit/seat/merge_train.py --self-test` (each mutan
 - Change `if code or not is_sha(sha):` to `if code:` — `FAIL an unreadable hold commit does not stop the train: logged, no ref, no delete`.
 - Delete the `hold_refresh()` inside `wait_ci()` — `FAIL a CI wait that outlives one poll refreshes the hold mid-wait, so the bound can be shorter than a wait`.
 - Delete the `hold_refresh()` before a recarry — `FAIL a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it`.
+- **The batch arm** (`_batch` is the `train.sh` path): delete its start `hold_refresh()` with the arming kept — rc 1, `198 checks, 1 failed`, `FAIL a real-base batch publishes the record-beat hold before it merges anything (the primary path is armed, not only the serial one)`.
+- Delete both `_batch`'s `hold_armed = True` and its start `hold_refresh()` — rc 1, `198 checks, 1 failed`, the same `FAIL a real-base batch publishes the record-beat hold…`. Before this repair both of these mutants left the suite green; the new check reads the stub's call order (commit → ref → first merge) on a `--base main` batch of one, where no wait sleeps and no proof refreshes, so the start publish is the only hold write before the merge.
 
 Workflow half: `tests/entities.py`'s TRAIN-HOLD block (executed over a stubbed API) run against each mutant of the step:
 
@@ -59,7 +63,7 @@ For the two findings this repair adds, the null control is the pre-repair head `
 
 ## Figures
 
-- `python3 -I tools/audit/seat/merge_train.py --self-test` → `merge_train self-test: 197 checks, 0 failed`.
+- `python3 -I tools/audit/seat/merge_train.py --self-test` → `merge_train self-test: 198 checks, 0 failed`.
 - `PYTHONPATH=tests/hastub python3 tests/entities.py` → `ALL 2362 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED` (no row moved: the diff touches no `custom_components/` file).
 - `python3 tests/closure.py select --diff 2dadcdc8cbcc2da860e5043b54d0c899038da506 --workdir <dir>`; `scope.txt` → `MODE: FULL -- every test script runs, nothing is scoped out.` (the diff touches `tests.yml`, a gate file), and `scope.run` is empty.
@@ -72,11 +76,17 @@ For the two findings this repair adds, the null control is the pre-repair head `
 - `gh api repos/tvofi/heatpump_optimizer/git/ref/heads/main --jq .object.sha` → a 40-hex sha: the ref route resolves (the alternative F2 repair, if the commits route is ever changed).
 - `gh api repos/tvofi/heatpump_optimizer/commits/train-hold` → `HTTP 422`, `No commit found for SHA: train-hold` (measured live with no hold published): the absence code the step now treats as silent.
 - The bound: `merge_train.py`'s `polls` default 24, `HEARTBEAT_SECONDS` 240, `POLL_SECONDS` 300, and a recarry's 5–15 min; the refresh sites are `one()`, `recarry()`, `wait_ci()`'s pre-sleep line, and the run's opening. Re-derive by reading those constants and call sites.
+- `GH_TOKEN=$(gh auth token) PYTHONPATH=tests/hastub python3 tests/nightly_status.py --repo tvofi/heatpump_optimizer` → `NIGHTLY FAILED: slow failed last night. scheduled run 39387919507 … failing jobs: slow failure …`: the instrument reproduces the `## Red checks` red and names the lane, which is main's.
+- `./tests/derive_closures.sh --single tests/entities.py` → `done tests/entities.py (exit 0)`, `closure: updated 1 closure(s)`, `tests/entities.py 335 files` (the +1 is `tools/audit/seat/merge_train.py`; the 3 files the new read set would have dropped were kept by the union). The recorded `seconds` moved 324.8 → 670.4 with the local re-derive (a Darwin box under load; a timing-only change, the closure set is what the gate reads).
+- `python3 tests/closure.py selftest` → `ALL 124 closure shrink pins PASSED` after the change; `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
 - Box load across the local runs: `load1=83.74` at `2026-10-20T15:22:48Z` and `load1=58.08` at `2026-10-20T18:25:11Z` (`uptime`; the box is shared), so no wall-clock figure here is attributable to this change.
 
 ## Red checks
 
-`none` at handoff: the branch's checks are CI's to run (the diff is a gate file, so every scoped/test lane runs).
+- `nightly-status` (red at the PR head; run 39493172097). It names main's scheduled run 39387919507 (`2026-10-20T07:39:11Z`, head `0c298f6`), whose `slow` job failed `tests/replay.py`: `synthetic-dhw-only.json: cycle_cost [1 offender: loop_cpu_ratio 0.1114 over its budget 0.111]`, `1 of 93 replay checks FAILED`. That is main's run, measured at 07:45Z, before this branch's first commit (`17197336f`, 16:52Z), and none of this diff's files is an input to the replay lane (the diff is the `record-autofix` job in `tests.yml`, `tools/audit/seat/merge_train.py`, `tests/entities.py`, and the closure recording). Cheaper detector: none exists for the failure itself — `loop_cpu_ratio` is a property of that runner's loop, and the slow lane's own run is the only thing that computes it; `tests/nightly_status.py --repo tvofi/heatpump_optimizer` (run here, one API read) names the lane and the run in seconds but cannot compute the ratio, so it separates "which lane" only. The fix and its proof belong to the nightly lane's owner (the orchestrator drains main's reds): re-record the fixture or re-budget `loop_cpu_ratio` in `tests/replay.py`'s own cycle-cost table (not a `*_budgets.json`; a raise is the owner's, 0013), then dispatch `tests.yml` on `main` and name that run id here, as the job itself instructs. This branch does not touch `tests/replay.py` or its recording.
+- `closures` (run 39493172097, job 118884971127): `INERT READS UNDER-APPROXIMATED … tests/entities.py: tools/audit/seat/merge_train.py`. This diff makes `tests/entities.py` open `merge_train.py` — the TRAIN-HOLD block reads its `HOLD_REF` constant so the two halves cannot name different branches — and `tools/audit/` keeps `merge_train.py` INERT, which would have the merge fast path treat a change to it as unread for that script (the #357 INERT-and-recorded contradiction). **The classification moved, and why**: `merge_train.py` leaves the `tools/audit/` prefix via `tests/closure.py`'s `INERT_EXCEPT` and lands in `tests/entities.py`'s recorded closure, so an edit to the train selects that script; the recording is re-derived with `./tests/derive_closures.sh --single tests/entities.py` and merged into `tests/closures.json` in this branch. The first merge refused the pair (`closure: files on the INERT list are actually read by tests`), which is the mechanism working; after `merge_train.py` joined `INERT_EXCEPT`, `--single` exited 1 on exactly one check, `every tracked file is either measured or deliberately classified` — the chicken-and-egg `gate-scoping.md` documents — so the two-step route recorded and merged (`--record-only --out-dir`, then `merge --in-dir … --partial --allow-failures`; the raw record names `merge_train.py` in its 332 files), and a clean `--single` then exited 0 with the classification satisfied. `tests/closures.json` carries both the read and `rc: 0`. Cheaper detector: it exists and was skipped — `prepr.sh`'s closures step is the local check that records a script's reads, and this wave's `PREPR_SKIP_CLOSURES=1` ruling skipped it (the cost the ruling buys); its standing cost is one script's re-derive (~16 min here) against the gate's ~20-minute full pass.
+- `closures-autofix` (job 118895327353): `AUTOFIX: skip-merge-failed — THE REPAIR DID NOT HAPPEN`, nothing pushed. It repairs only a run it may trust, and the same head's `closures` job was red; the repair is the same recorded read, committed here, so no autofix is owed once the check re-runs.
+- `pr-contract` (run 39493177280): red because this body's previous `## Red checks` did not name `nightly-status`; this body names it and the closures pair, and the check re-runs at the new head. Step-11 timing does not apply — the missing text was the body's own, not a check reading an artifact it does not name.
 
 ## Forward-carry
 
