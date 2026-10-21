@@ -1,0 +1,32 @@
+roster_lib: no roster readable at origin/main; reading origin/main
+RESULT PASS | live holder past lease keeps its slot | 
+RESULT PASS | dead holder past lease reclaimed | 
+RESULT PASS | dead holder reclaimed before its lease expiry | 
+RESULT PASS | no-pid expired freed, no-pid fresh respected | freed=True fresh_kept=True
+RESULT PASS | slot-status counts a live past-lease holder and an unleased run | past_lease=['0:holder'] unleased=['prepr-x']
+RESULT PASS | clear_unleased empties the count | unleased=[]
+RESULT PASS | a dead unleased marker is pruned | unleased=[]
+RESULT PASS | take_slot with no owner_pid records this process | pid=55651
+RESULT PASS | aging promotes an aged normal past a younger urgent | 
+RESULT PASS | null control: below the window priority still orders | 
+RESULT PASS | malformed/out-of-range priorities parse to 0 or clamp | parsed=[0, 0, 0, 2, 0, 0, 1]
+RESULT PASS | rewrite keeps priority and queued_at | 
+RESULT PASS | marker answers when no env and no git | 
+RESULT PASS | env overrides marker | 
+RESULT PASS | malformed env is skipped, not fatal (marker answers) | 
+RESULT PASS | malformed marker with no git resolves to 0, no crash | 
+RESULT PASS | nonexistent repo resolves to 0, no crash | 
+RESULT PASS | live: listed group -> 1 | 
+RESULT PASS | live: unlisted/unmapped branch -> 0 | 
+RESULT PASS | live: ref lacking the file -> 0 | 
+RESULT PASS | live: nonexistent ref -> 0 | 
+RESULT PASS | malformed env on a listed branch falls through to derived 1 (documented skip) | got=1
+RESULT PASS | throwaway: listed -> 1 | 
+RESULT PASS | throwaway: empty list -> 0 | 
+RESULT PASS | throwaway: non-list -> 0 | 
+RESULT PASS | throwaway: non-string item -> 0 | 
+RESULT PASS | throwaway: not json -> 0 | 
+RESULT PASS | throwaway: no critical key -> 0 | 
+RESULT PASS | aging window between the pool floor and the lease | 69 < 600 < 1800
+RESULT PASS | PRIORITY_MAX is 2 (aging lands at the top band) | PRIORITY_MAX=2
+SUMMARY 30/30 checks passed

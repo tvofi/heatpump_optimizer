@@ -1,0 +1,2 @@
+gate-scoping.md lines=      61 bytes=    3169 tokens_by_bytes4=792
+caps lines 61 tokens 794

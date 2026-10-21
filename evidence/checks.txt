@@ -1,0 +1,53 @@
+head measured: baa75f58ae7f9c00334d92da24d3285e1b047277
+origin/main merge-base: 3b941800cc975d9e4a8e585b851d423e8e2b64ca
+date: 2026-10-21T05:37:14Z  load1: 2.88 4.47 4.47
+--- check-runs at head (name conclusion) ---
+completed failure nightly-status
+completed skipped ci-ratchet
+completed skipped claims-autofix
+completed skipped closures-autofix
+completed skipped delivery-status-publish
+completed skipped kernel-points (${{ matrix.coretype }})
+completed skipped mutation-autofix
+completed skipped mutation-ledger
+completed skipped mutation-ledger-push
+completed skipped mutation-nightly
+completed skipped mutation-pin-plan
+completed skipped mutation-pins
+completed skipped nightly-ha
+completed skipped recheck-gate
+completed skipped record
+completed skipped record-autofix
+completed skipped slow
+completed success Analyze (actions)
+completed success Analyze (javascript-typescript)
+completed success Analyze (python)
+completed success CodeQL
+completed success arch-score
+completed success arch-score
+completed success briefs
+completed success browser
+completed success budget-raise-gate
+completed success budget-raise-gate
+completed success cancel-superseded
+completed success cancel-superseded
+completed success closure-scope
+completed success closures
+completed success composed-proof
+completed success coverage
+completed success coverage-ratchet
+completed success delivery-status
+completed success env-matrix
+completed success fast (3.14)
+completed success graders-head-copy
+completed success hassfest
+completed success instrument-self-tests
+completed success lane-proofs
+completed success mutation
+completed success policy-docs
+completed success pr-contract
+completed success pr-contract
+completed success scope
+completed success typing
+completed success validate-hacs
+completed success wave-script
