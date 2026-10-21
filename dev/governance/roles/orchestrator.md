@@ -84,8 +84,7 @@ and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. The same applies to roster text, which a seat
-will paraphrase into its own body — a third-hand path to the same outcome, and it
-has occurred.
+will paraphrase into its own body.
 
 **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
 filter, not as proof.** It checks **four** reference forms, and **four is not
