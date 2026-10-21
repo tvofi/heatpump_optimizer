@@ -3676,6 +3676,29 @@ def _p2_match_literal_domain(domains):
     return m
 
 
+def _p2_match_defrost_decides(n, parents):
+    """A decision-context read of the pump's defrost flag (D7-s2-01).
+
+    The flag itself is ``*.defrosting``. A read passed straight to the owner,
+    ``defrost_interval(x.defrosting)``, is the owner deciding, not a second
+    reading of the flag, even inside an ``if`` or a bool op: the fold gate
+    and the watchdog both ask it that way. Any other decision-context read is
+    a hit.
+    """
+    par = parents.get(n)
+    if isinstance(par, ast.Call) and n in par.args and (
+        getattr(par.func, "id", None) == "defrost_interval"
+        or getattr(par.func, "attr", None) == "defrost_interval"
+    ):
+        return False
+    return (
+        isinstance(n, ast.Attribute)
+        and n.attr == "defrosting"
+        and isinstance(n.ctx, ast.Load)
+        and _p2_decides(n, parents)
+    )
+
+
 _P2_STAMPS = {"last_updated", "last_changed", "last_reported"}
 #: The cycle path: where a fenced step's direct call is an unfenced sibling.
 _P2_CYCLE = {"_async_update_data", "async_run_optimization", "_apply_action"}
@@ -3971,6 +3994,25 @@ def _p2_registry(sources):
                      "floored instant: it returns a slot number between 0 and "
                      "QUARTERS_PER_HOUR, and no datetime at all",
              }),
+        # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
+        # compressor's own evidence -- the meter reads the cycle the pump runs
+        # to clear its own coil, and the reported Hz is what executes the
+        # defrost rather than an answer to the command. One predicate,
+        # defrost_interval, owns the reading; the map's fold and the
+        # watchdog's ``active`` both consult it, where before the fold folded
+        # every defrost interval and the watchdog counted every one.
+        dict(fact="defrost_standoff", finding="D7-s2-01",
+             match=_p2_match_defrost_decides,
+             owners=["freq_control.py::defrost_interval"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                     "the plant-wide gate: it decides whether ANY learner "
+                     "ingests the interval and owns the reason string it "
+                     "returns. The frequency map deliberately folds intervals "
+                     "that gate freezes (external heat, #781), so the "
+                     "frequency pair's own predicate decides the two "
+                     "frequency questions the gate cannot express",
+             }),
     ]
 
 
@@ -4133,6 +4175,12 @@ _P2_PLANTS["slot_floor_rule"] = (
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+)
+_P2_PLANTS["defrost_standoff"] = (
+    "\n\ndef _p2_plant(signals):\n"
+    "    if signals.defrosting:\n"
+    "        return 1\n"
+    "    return 0\n"
 )
 _p2_planted = {
     fact: _p2_fails(_p2_scan(
