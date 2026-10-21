@@ -1,0 +1,26 @@
+== W1-widen-b
+FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '001', want '110')
+FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '001', want '110')
+FAIL real git: the same commit with one more file runs prepr (null control) (got 'HEAD d78d7a3d is the live head f35feae2 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, 
+FAIL real git: a rewrite of a row the live head carries runs prepr (got 'HEAD 48f6e346 is the live head 648824d6 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the b
+app_push self-test: 167 checks, 4 failed
+== W2-widen-a
+FAIL ... prepr ran once, the one line names why (HEAD has 2 parent(s), not one commit on the live head), and no row-only check ran (got '001', want '110')
+app_push self-test: 167 checks, 1 failed
+== W3-drop-d
+FAIL ... prepr ran once, the one line names why (the body file is not the live pull-request body under one new), and no row-only check ran (got '001', want '110')
+FAIL real git: a body that is not the live one under one new note runs prepr (got 'HEAD 70fa149d is the live head ec5531ae plus one commit adding only dev/programme/delivery/7.md, one open row for #7,
+app_push self-test: 167 checks, 2 failed
+== W4-drop-open
+app_push self-test: 167 checks, 0 failed
+== W5-drop-checks
+FAIL the body contract ran in its place, pr-contract's command at the head, with the pull request's own title (got '0', want '1')
+FAIL --row-only: a body the contract refuses refuses, though prepr was skipped (got '0', want '1')
+FAIL and nothing was minted or pushed (got '015', want '000')
+app_push self-test: 167 checks, 3 failed
+== W6-codesha-asks
+delivery_row self-test: 5 checks, 0 failed
+  FAIL null control: a code sha never asks for --row-only, so its push runs the full prepr
+pr_args self-test: 57 checks, 1 failed
+== W7-skip-pin
+app_push self-test: 167 checks, 0 failed
