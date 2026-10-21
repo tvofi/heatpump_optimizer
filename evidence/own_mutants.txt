@@ -1,0 +1,10 @@
+RESULT own-mutant='M1 finished node never marked done' rc=1 fails=0 traceback=True [] []
+RESULT own-mutant='M2 drop pops last not i' rc=1 fails=4 traceback=False ['roster_edit self-test: 98 checks, 4 failed'] ['FAIL drop-carry by index drops that entry (got: )', 'FAIL drop-carry by match drops that entry (got: )', 'FAIL drop-carry of the last entry leaves the key empty (got: )']
+RESULT own-mutant='M3 cycle test inverted to finished' rc=1 fails=0 traceback=True [] []
+RESULT own-mutant='M4 match is prefix not substring' rc=0 fails=0 traceback=False ['roster_edit self-test: 94 checks, 0 failed'] []
+RESULT own-mutant='M5 after stored sorted' rc=0 fails=0 traceback=False ['roster_edit self-test: 94 checks, 0 failed'] []
+RESULT own-mutant='M6 strip removed' rc=0 fails=0 traceback=False ['roster_edit self-test: 94 checks, 0 failed'] []
+RESULT own-mutant='M7 dash not special' rc=1 fails=2 traceback=False ['roster_edit self-test: 96 checks, 2 failed'] ['FAIL set-after - clears the edges (got: )', 'FAIL no-op set-after rc (got: )']
+RESULT own-mutant='M8 dup check removed' rc=1 fails=1 traceback=False ['roster_edit self-test: 95 checks, 1 failed'] ['FAIL set-after duplicate edge refused (got: )']
+restored
+rc=0

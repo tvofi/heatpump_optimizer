@@ -1,0 +1,5 @@
+check run 119161123049 nightly-status (head 6b46b4f8ba93ae7574312493a03fd7e0c1d2b725), job log tail via GitHub MCP get_job_logs:
+  failing jobs:
+    slow  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/39387919507/job/118512165515
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.
+##[error]Process completed with exit code 1.

@@ -1,0 +1,73 @@
+RESULT mutant=A1 rc=1 fails=1
+    FAIL set-after unknown after-group refused
+RESULT mutant=A2 rc=1 fails=1
+    FAIL set-after self-edge refused
+RESULT mutant=A3 rc=1 fails=1
+    FAIL set-after duplicate edge refused
+RESULT mutant=A4 rc=1 fails=3
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+    FAIL refused set-after moved nothing
+RESULT mutant=A5 rc=1 fails=2
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+RESULT mutant=A6 rc=1 fails=1
+    FAIL set-after unknown group refused
+RESULT mutant=A7 rc=1 fails=2
+    FAIL no-op set-after reports no change and commits nothing
+    FAIL no-op set-after is byte-identical
+RESULT mutant=C1 rc=1 fails=1
+    FAIL drop-carry with no carry refused
+RESULT mutant=C2 rc=1 fails=5
+    FAIL drop-carry absent match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+RESULT mutant=C3 rc=1 fails=6
+    FAIL drop-carry ambiguous match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C4 rc=1 fails=4
+    FAIL drop-carry negative index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=C5 rc=1 fails=6
+    FAIL drop-carry non-integer index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C6 rc=1 fails=2
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C7 rc=1 fails=4
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C8 rc=1 fails=1
+    FAIL drop-carry unknown group refused
+RESULT mutant=P1 rc=1 fails=4
+    FAIL drop-carry index and --match together refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=P2 rc=1 fails=1
+    FAIL drop-carry neither index nor --match refused
+RESULT mutant=P3 rc=1 fails=4
+    FAIL set-after names no op flag
+    FAIL --match on another op refused
+    FAIL refused drop-carry moved nothing
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=D1 rc=1 fails=3
+    FAIL dump round-trips the canonical bytes
+    FAIL no-op set-resume is byte-identical
+    FAIL no-op set-after is byte-identical
+plants: 19, without a FAIL line: none
+rc=0
