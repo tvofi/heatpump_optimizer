@@ -1,8 +1,0 @@
-  all                      W14:30 PRs 44 verdicts 81 real 4 (0.09/PR) book 32 (0.73/PR) incidence 4/44 (0.09) first-pass 19/41
-  all                      S14:30 PRs 8 verdicts 11 real 1 (0.12/PR) book 5 (0.62/PR) incidence 1/8 (0.12) first-pass 2/5
-  all                      W14:45 PRs 47 verdicts 85 real 7 (0.15/PR) book 31 (0.66/PR) incidence 6/47 (0.13) first-pass 20/44
-  all                      S14:45 PRs 11 verdicts 16 real 4 (0.36/PR) book 5 (0.45/PR) incidence 3/11 (0.27) first-pass 3/8
-  all                      W15:00 PRs 48 verdicts 85 real 7 (0.15/PR) book 30 (0.62/PR) incidence 6/48 (0.12) first-pass 20/44
-  all                      S15:00 PRs 12 verdicts 18 real 5 (0.42/PR) book 5 (0.42/PR) incidence 4/12 (0.33) first-pass 3/9
-  all                      W15:15 PRs 49 verdicts 86 real 7 (0.14/PR) book 29 (0.59/PR) incidence 6/49 (0.12) first-pass 21/45
-  all                      S15:15 PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
