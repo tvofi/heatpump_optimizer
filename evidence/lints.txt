@@ -1,0 +1,18 @@
+## brief_lint
+== dev/programme/carries/carry-201.json ==
+  -- 0 error(s), 0 warning(s)
+
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+carries head 19
+carries mb 17
+## policy_lint body
+
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/c99bdc47-bc4e-562c-af88-053def456a6f/scratchpad/tmp.wKhAwBwNHG/ev/body.md
+## wiring
+selftest_wiring: 39 self-testing, 39 wired, 0 unwired
+## fold
+fold_ledger: 0 violation(s)
+## tmp
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 1ebc737e7e18
+## version

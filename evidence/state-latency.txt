@@ -1,3 +1,0 @@
-RESULT state-latency to 2026-10-21T08:00Z: moves=213 followed=213 within30=196 p90=9.3 min_other=49.2 n_other=17
-RESULT state-latency to 2026-10-21T09:00Z: moves=215 followed=215 within30=198 p90=9.3 min_other=49.2 n_other=17
-RESULT state-latency to 2026-10-21T09:20Z: moves=215 followed=215 within30=198 p90=9.3 min_other=49.2 n_other=17
