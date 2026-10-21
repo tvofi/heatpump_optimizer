@@ -1,0 +1,28 @@
+Head b96aab8b85f167f25ac72ba840ef10095f655229; excerpts read via the GitHub MCP job-log tool (the blob URL returned 403 in this seat).
+
+closures (job 119202770035, SCOPE_CASE: full), concluded failure 12:18:16Z:
+INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+  committed `inert_reads` does not list for it; the merge fast path
+  would treat a change to it as unread (R9-F10.9d). Re-derive:
+  ./tests/derive_closures.sh --single <script>
+    tests/entities.py: tools/audit/carry_audit.py
+    tests/entities.py: tools/audit/seat/roster_edit.py
+    tests/entities.py: tools/audit/seat/roster_sync.py
+##[error]Process completed with exit code 1.
+
+closures-autofix (job 119216792955), concluded failure 12:18:32Z:
+closure: files on the INERT list are actually read by tests:
+  tools/audit/carry_audit.py
+  tools/audit/seat/roster_edit.py
+  tools/audit/seat/roster_sync.py
+AUTOFIX: skip-merge-failed
+closures-autofix: skip-merge-failed -- THE REPAIR DID NOT HAPPEN.
+
+pr-contract (job 119217234807), started 12:19:20Z, concluded failure:
+FIGURES: 19 resolved, 2 not verified, 0 refused
+no version edit: origin/main...b96aab8b85f167f25ac72ba840ef10095f655229 moves none of VERSION, the manifest version or a notes heading
+BAD-DEST body item b79e7e68: R10-ORCH-MACHINERY: R10-ORCH-MACHINERY is not a group of the roster
+BAD-DEST body item 00bf85b5: R10-ORCH-MACHINERY: R10-ORCH-MACHINERY is not a group of the roster
+CARRY-AUDIT: 4 finding item(s): 2 routed, 0 unrouted, 2 bad destination(s)
+
+nightly-status (119197313217): failure -- grades main (body: replay loop_cpu_ratio, Carry: R10-REPLAY-CAP).

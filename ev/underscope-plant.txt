@@ -1,0 +1,8 @@
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  changed files (1), measured against the recorded closures in tests/closures.json:
+      tools/audit/seat/roster_sync.py
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 89 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 87 files, no changed file is in its measured closure)
