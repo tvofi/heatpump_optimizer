@@ -1,0 +1,60 @@
+# Fix review #2527 -- reviewer's own measurements
+# Final head measured: de28f656ba17e2e381471d8d3a50dffdf2840cfc
+# Code head measured:  4f2ac0cac5cfb97bee9fa34df590e20e32f658e3 (delta = delivery row only)
+# Baseline export:     4e5801eb50644df94ccf18650afbb2cc99e854b4 (branch point)
+# Box: macOS arm64, load1 28-40 during runs.
+
+# 1. Finder harness (sha1 5b77f874... at both ends), PYTHONPATH=tests/hastub
+baseline: freq_map_clean_folds=8  freq_map_defrost_folds=8  --perturb defrost=0
+head:     freq_map_clean_folds=8  freq_map_defrost_folds=0  --perturb defrost=0
+head-mutant (delete `or defrosting` from the fold guard):
+          freq_map_clean_folds=8  freq_map_defrost_folds=8
+# => --perturb is vacuous at head as disclosed; the clean-vs-defrost arm and the
+#    one-line deletion still separate 0 -> 8. Finding measurable.
+
+# 2. Base-arm64 reds
+baseline optimality: 1 of 84 FAILED -- one|summer_negative|shoulder: a recorded claim still has a gap (not stale) [gap 0.0000%]
+baseline stress:     8 of 110 FAILED (body says 9) -- incl shoulder: cheaper than holding the setpoint [4.67 vs 3.96];
+                     7 are "origin/main does not resolve"; no memory-record failure reproduced.
+
+# 3. P2 defrost_standoff matcher (matcher extracted verbatim from committed entities.py)
+RESULT case=direct-if hits=1
+RESULT case=bool-call hits=1
+RESULT case=not-and hits=1
+RESULT case=walrus hits=1
+RESULT case=copy-to-local hits=0   <-- gap confirmed
+
+# 4. Unpinned sites, lane-exact mutations (mutant trees = git archive head, no .git)
+baseline in an archive tree = 1 of 4261 (recorded_at='unknown', an artefact of no .git)
+s1  coordinator.py:10555 GUARD_OFF `if False:`  -> 5 of 4261, incl
+    FAIL persistent divergence stands control down to observe and latches   (the body's named check)
+s2  coordinator.py:10679 GUARD_OFF `if False:`  -> 3 of 4261, incl
+    FAIL a number install publishes source=number beside its unchanged keys
+    FAIL a frequency sensor alone observes, on the options' range, and learns a map
+    (the body's named check "an unconfigured view gains no key" does NOT fail)
+s3  freq_control.py:78 RETURN_DEL `pass`        -> 3 of 4261, incl
+    FAIL a defrost interval never teaches the frequency map
+    FAIL defrost ticks never stand control down
+
+# 5. Structure budgets and their payment
+head:            class_excess_loc=18299 max_class_loc=8541 seam_cut_total=718  RATCHET PASSED
+payments reverted (defrost fix kept):
+                 class_excess_loc=18306 max_class_loc=8548 seam_cut_total=719
+commit 0be6047ca states the reason; all three moved down.
+
+# 6. Whole-tree checks at head
+entities: ALL 2360 ENTITY CHECKS PASSED
+env_drift --all: NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+VERSION / manifest / claim files: unchanged vs merge base
+git merge-tree --write-tree origin/main HEAD: rc=0
+carry_audit pr 2527: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+figure_lint: 8 resolved, 2 not verified, 0 refused
+features at head: ALL 4261 pass in a .git worktree (recorded_at_sha=3b941800...);
+                 the only failure in a no-.git archive copy is the recorded_at check,
+                 which is environmental.
+
+# 7. CI at de28f656b
+mutation: failure (MUTATION TABLE REFUSED, 5 added unpinned sites)  [REQUIRED check]
+nightly-status: failure (grades main; diff touches none of its reads)
+closures, fast (3.14), mutation-pins (1): in progress
+pr-contract, delivery-status: success
