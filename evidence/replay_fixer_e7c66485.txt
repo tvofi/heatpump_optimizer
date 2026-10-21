@@ -1,0 +1,10 @@
+== base 
+END
+== base --pending mutation typing closures
+OVERLAP: batch/replay at e7c664856776 is not green (closures, mutation, typing) after #N's unproved merge: revert it first; --overlap logs it and does not wait
+END
+== h2 
+END
+== h2 --pending mutation typing closures
+OVERLAP: batch/replay at e7c664856776 is still running (closures, mutation, typing): a wait, not red; --overlap does not wait
+END

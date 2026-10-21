@@ -1,0 +1,2 @@
+RESULT driver-installed claim-only None -> None
+RESULT driver-installed content+claim ['tools/audit/seat/roster_edit.py', 'MERGE-CLAIM: resolved tests/golden/claimed_drift.txt'] -> content conflict in tools/audit/seat/roster_edit.py, MERGE-CLAIM: resolved tests/golden/claimed_drift.txt: back to the owning fixer; the resolution changes reviewed code, so its verdict does not carry

@@ -1,0 +1,12 @@
+== perturb_typing_red base
+RESULT log: OVERLAP: batch/replay at aaaaaaaaaaaa is not green (Analyze (python), browser, fast (3.14), typing) after #N's unproved merge: revert it first; --overlap logs it and does not wait
+== perturb_typing_red h2
+RESULT log: OVERLAP: batch/replay at aaaaaaaaaaaa is RED (typing) after #N's unproved merge: revert it first; --overlap logs it and does not wait
+RESULT classify(main req): ('red', ['Analyze (python)', 'browser', 'fast (3.14)'], ['typing'])
+RESULT classify(pr req): ('red', ['Analyze (python)', 'browser', 'fast (3.14)'], ['typing'])
+== perturb_settled base
+RESULT log: (none)
+== perturb_settled h2
+RESULT log: (none)
+RESULT classify(main req): ('green', [], [])
+RESULT classify(pr req): ('green', [], [])
