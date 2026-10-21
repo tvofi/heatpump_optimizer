@@ -1,0 +1,18 @@
+selftest_wiring: 39 self-testing, 39 wired, 0 unwired
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (7), measured against the recorded closures in tests/closures.json:
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 89 files, no changed file is in its measured closure)
+SyntaxError: f-string: f-string: expecting '}'
+ModuleNotFoundError: No module named 'voluptuous'
