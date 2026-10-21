@@ -101,9 +101,9 @@ TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
 NOT_REQUIRED = re.compile(r"not (?:a )?required (?:context|check)", re.I)
 SENTENCE = re.compile(r"(?<=[.;!?])\s+")
-DEFERRED = re.compile(r"\bdeferred\b|follow-?up|(?:for|to|in|until) (?:a |the )?later\b|not owed here"
-                      r"|out of scope|not fixed here|known[- ]open|distinct finding|residual|caveat|observation"
-                      r"|advisory|\bminor\b|secondary note|owed to the record|still (?:has|have|needs?) to", re.I)
+DEFERRED = re.compile(r"follow-?up|(?:for|to|in|until) (?:a |the )?later\b|out of scope|not fixed here"
+                      r"|known[- ]open|distinct finding|residual|caveat|observation|still (?:has|have|needs?) to",
+                      re.I)  # NONBLOCK's own words (deferred, minor, advisory ...) are read beside it
 # The words a seat uses for "this is not done here". LEAD keys an item's first
 # words (or, in a body, its section heading); NONBLOCK flags a verdict item
 # wherever it says so, and is what a blocking section still lets through.
@@ -915,11 +915,14 @@ def _self_test() -> int:
     ]
     item_grammar += [(f"DEFERRED reads {w!r} under the Evidence heading", head,
                       verdict_of("merge", f"## Evidence\n\n- the check is {w} here.\n"), [("evidence", U)])
-                     for w in ("deferred", "a follow-up", "out of scope", "not fixed here", "known-open",
+                     for w in ("a follow-up", "out of scope", "not fixed here", "known-open",
                                "a distinct finding", "residual", "for later", "moved to a later round",
-                               "fixed in the later pass", "left until later", "a caveat", "an observation", "advisory",
-                               "minor", "a secondary note", "owed to the record", "still has to",
-                               "still have to", "still needs to", "not owed here")]
+                               "fixed in the later pass", "left until later", "a caveat", "an observation",
+                               "still has to", "still have to", "still needs to", "deferred", "advisory",
+                               "minor", "a secondary note", "owed to the record", "not owed here")]
+    item_grammar += [("a `;` ends a sentence: a nit after a not-required check's clause is a finding", head,
+                      verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check; "
+                                 "one nit, not blocking: x.\n"), [("evidence", U)])]
     item_grammar += [("a later-stage compound is no deferral", head,
                       verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
     for name, text, comments, want in item_grammar:

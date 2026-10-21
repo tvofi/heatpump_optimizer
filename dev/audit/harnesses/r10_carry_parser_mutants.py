@@ -122,6 +122,7 @@ MUTANTS = [
     ("I-ev-claims", "NONBLOCK.search(claims)", "NONBLOCK.search(t)"),
     ("I-ev-carve", "if not NOT_REQUIRED.search(x))", "if True)"),
     ("I-ev-split", "for x in SENTENCE.split(t) if", "for x in [t] if"),
+    ("P-sentence-semi", 'r"(?<=[.;!?])\\s+"', 'r"(?<=[.!?])\\s+"'),
     ("P-notreq-a", 'r"not (?:a )?required', 'r"not required'),
     ("I-ev-inh", 'else "under lead" if inherited else "")\n        elif verdict:', 'else "under lead" if False else "")\n        elif verdict:'),
     ("I-bsec-block", "            block_sec = BLOCK_HEADING.search(sec) and not", "            block_sec = True and not"),
