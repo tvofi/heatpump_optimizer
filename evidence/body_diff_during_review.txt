@@ -1,0 +1,6 @@
+71c71
+< none
+---
+> At head 4ef1a8270f3bd30bc6c313c950f6f44713a1442d every check concluded green, skipped or neutral except `nightly-status`. `nightly-status` grades `main`, not this diff: it reads the last concluded scheduled run of `tests.yml` (run 39563978649, 2026-10-21 07:43Z, head c77f89dc, conclusion failure; the two scheduled runs before it, 39387919507 and 39218718759, also failed). This pull request touches no file under `.github/` and no test lane (`git diff --stat` against the merge base lists `dev/programme/delivery/2567.md`, `tools/audit/seat/INSTRUMENTS.md`, `tools/audit/seat/pr_args.sh`, `tools/audit/seat/update_pr.sh` and `tools/pr/app_push.sh`), so the red cannot be this pull request's own. The red stays until the first scheduled run after the cause on main is fixed. The cheaper detector is the one that already exists: the scheduled run's own failing job, which `nightly-status` merely reports; no cheaper one exists for a red that grades a scheduled lane, and its standing cost is nil.
+79a80
+> 

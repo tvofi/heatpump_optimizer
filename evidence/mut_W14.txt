@@ -1,0 +1,12 @@
+W14 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W14: app_push self-test: 182 checks, 10 failed
+    W14 FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (HEAD has 2 parent(s), not one commit on the live head), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (parent 1 22222222 is not the live pull-request head 55555555), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (the body file is not the live pull-request body under one new), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (no open pull request whose live head reads back), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran (got '002', want '110')
+    W14 FAIL ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran (got '002', want '110')

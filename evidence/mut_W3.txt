@@ -1,0 +1,3 @@
+W3 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W3: app_push self-test: 182 checks, 1 failed
+    W3 FAIL real git: a body that is not the live one under one new note runs prepr (got 'HEAD c18bad74 is the live head f5997bb9 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note', want 'the body file is not the live pull-request body under one new `## Head` note')
