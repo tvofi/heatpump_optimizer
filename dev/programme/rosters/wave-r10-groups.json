@@ -3992,7 +3992,8 @@
     "PR 1 and PR 2 move jobs under the umbrella: `instrument-self-tests`'s new steps and `wave-script`'s restore pathspecs must move with the jobs they grade, or the drift this PR closes reopens. Carry: R10-CI-LAYOUT",
     "`ci-ratchet`'s `critical_path_minutes` red on main's push runs (run 39548715713, `56.5` against `54.825`): not paid here; PR 1/PR 2 own the job graph that moves it, under B4's window. Carry: R10-CI-LAYOUT",
     "defect-root-cause: unenforced: a program added beside a pinned grader is refused by the base's `field_coverage` registry on the pull request that adds it, and no pre-push instrument runs the base's registry over the head, so the red surfaced only in CI. Carry: R10-CI-LAYOUT",
-    "fixer: cost: the seats run macOS `/bin/bash` 3.2 and CI runs bash 5; a self-test that passes on every seat failed in CI on an unset arithmetic name, and no seat can reproduce the difference. Carry: R10-CI-LAYOUT"
+    "fixer: cost: the seats run macOS `/bin/bash` 3.2 and CI runs bash 5; a self-test that passes on every seat failed in CI on an unset arithmetic name, and no seat can reproduce the difference. Carry: R10-CI-LAYOUT",
+    "Item E's three `INERT_EXCEPT` entries follow the recording, but the call site that reads them is unnamed; if a later seat finds the read is an artefact of the recorder's in-process path, the three go back to INERT with the artefact fixed. Either way the entries only over-select. Carry: R10-CI-LAYOUT"
    ],
    "architect_note": null,
    "resume": {
