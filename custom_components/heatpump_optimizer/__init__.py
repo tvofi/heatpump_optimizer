@@ -77,7 +77,7 @@ _LAZY_ATTRS = {
     "HeatPumpOptimizerCoordinator": "coordinator",
     # The four service schemas the test suite pokes through the package root
     # (the facade rule): they are defined in -- and re-exported from --
-    # services.py, along with everything else the twelve services are made of.
+    # services.py, along with everything else the domain's services are made of.
     "SERVICE_SCHEMA_APPLY_MANUAL_PLAN": "services",
     "SERVICE_SCHEMA_APPLY_SCHEDULE": "services",
     "SERVICE_SCHEMA_CLEAR_MANUAL_PLAN": "services",
@@ -263,7 +263,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Register the domain's services, once, before any entry (action-setup).
 
     Home Assistant calls this when the integration loads, whether or not a
-    config entry exists yet, so the twelve services are known -- and an
+    config entry exists yet, so the services are known -- and an
     automation naming one validates -- while every entry is unloaded. The
     handlers resolve the entry or entries they act on when a call arrives
     (``_loaded_entries``) and refuse a call that finds none loaded. Nothing
@@ -362,7 +362,7 @@ async def async_setup_entry(
 async def _async_register_services(hass: HomeAssistant) -> None:
     """Register the domain's services (the handlers live in ``services``).
 
-    Thin seam since #222: schemas, the twelve handlers and the eleven
+    Thin seam since #222: schemas, the handlers and the
     ``hass.services.async_register`` calls are ``services.py``'s; this only
     forwards, so ``async_setup`` keeps one registration path and nothing is
     captured per entry.
