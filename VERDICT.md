@@ -1,52 +1,37 @@
-Fix review: blocked bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e body-stale: figures and item 6 describe round 1, not this head (corpus 62423 vs 62892, caps 46/666 and 35/521 vs 60/878 and 53/778, 0012 superseded-in-part vs revoked)
+Fix review: blocked bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e spec-unmet: CLAUDE.md role row for design-review.md keeps the retired two-revise-rounds rule
 
-Round 2 of PR #2586 (R10-FLOW-DESIGN-POLICY), reviewed from a detached worktree at bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty (merge base is origin/main 57f0c9c77), so the contract I read is current. The head was re-read before writing and is still bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e.
+bus-nonce: 574c59fdd9cb535f9ae31690827f144e
 
-## Blocking
+Round 2 of fix review for PR #2586 (round 1 blocked, comment 6324652583, ruling-unmet). Measured head bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e (tree identical to d2ba1e18); merge base 57f0c9c77cfd5958e0a2443e158bea8326bedae2 = origin/main. Roles dir current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
 
-- The PR body's figures and description are round 1's and are not true at this head (fix-review steps 7 and 8). The body's `## Head` section says the figures were "measured" at 87c3672f, and the numbers it quotes are those of that commit:
-  - `## Figures` and `## Red checks` (budget-raise-gate) quote `corpus_tokens` 61026 → 62423 and "about 62423 against a recorded cap of 62423". At this head `--budgets` prints `~62892 tokens, cap 62892`, and the budget file records 62892 (ev/budgets_head.txt).
-  - `## Figures` quotes `designer.md` 46 / 666 and `design-review.md` 35 / 521. At this head they measure and are capped at 60 / 878 and 53 / 778.
-  - Item 6 says decision 0012 gets a "Superseded in part (2026-10-21)" section and that "its cadence, its one enforcement point and D14's stop rule stand". The head says the opposite: 0012 is "Revoked ... kept as history", and its new section is "Revoked (2026-10-21)". `## Approval` still cites only R16's "voids", not the addendum (#201 comment 6322712314).
-  - Item 1 and the spec line say the contracts come "from the drafts at the pack commit" ddacf98. The head re-derives them from pin 30c57744a (commit d2ba1e185).
+## Block
 
-  The `## Raise justification` therefore names a raise (62423) that is not the one in the diff. The owner's approving review at this head would approve a raise of 1866 tokens, while the body justifies one of 1397. The fix: re-take `## Figures`, `## Raise justification`, `## Red checks`, item 1, item 6 and `## Approval` at this head. The tree needs no change. Carry: dismissed: blocking this head, the fixer's body re-take
+- `CLAUDE.md:119` (the always-loaded index) describes `design-review.md` as "only `Design review: approve` dispatches the fixer, and two `revise` rounds go to the orchestrator". That is the drafts' retired rule. The pin at 30c57744a dropped it, and this head's `design-review.md` replaces it with "Three notes at most … the designer re-cuts to the minimal shape … remaining points become carries". The body says the "after two revise rounds" sentence is gone and calls the `CLAUDE.md` row "unchanged". The row is indeed unchanged from round 1 (`git show d3e34be5:CLAUDE.md` line 119 is the same text), which is how the stale rule survived. The index and the contract now give an L/XL design loop two different exits: escalate to the orchestrator after 2 rounds, or re-cut after 3 notes. Fix: reword the row to match the contract, for example "… dispatches the fixer; a third `revise` sends the designer to re-cut". Plant P1 in `ev/mutants.txt` shows that wording keeps `policy_lint` at TOTAL 0, so no budget moves. Carry: dismissed: fixer repairs this branch
 
-## Verified at this head
+## Verified (brief items 1–4)
 
-- **Item (1), 0012 revoked.** 0012's Status line reads "Revoked 2026-10-21 (owner addendum 6322712314); kept as history", with a new "Revoked (2026-10-21)" section, and the old "the rest of this record stands" sentence is gone. 0014 item 1 reads "0012 is revoked ... no part of it binds a seat, its moratorium included". The `policy_lint.mjs` comment now says "revoked 2026-10-21 by decision 0014 and kept as history: it recorded a process moratorium". I ran `git grep -iE 'moratorium|decision 0012|0012-process'` outside 0012, the release notes, delivery rows and audit rounds, and got 11 hits (ev/grep_0012.txt). Every one is history (an archived roster, rosters r9 and r10, the R9-RO-PC1 rca, the tmp_paths.py provenance note), 0014 itself, or the revoked-record comment. None describes a moratorium in force. Carry: dismissed: verified, no action needed
-- **Item (2), contracts against pin 30c57744a.** The head has the pin's content in both files:
-  - `designer.md` has "A note, not a stop" with the owner-reported, judge-verified and cannot-state branches.
-  - `design-review.md` has "Notes for the fixer are findings, not revise points", "Decisions are routed, not revised" (`decision: orchestrator|owner`) and "Three notes at most".
-  - Both state the Carry grammar `Carry: <group> (item <id>)` / `Carry: dismissed: <reason of two or more words> (item <id>)`, colon required.
+- (1) 0012 reads "Status: Revoked 2026-10-21 (owner addendum 6322712314); kept as history", and its last section is "Revoked (2026-10-21)". The addendum is tvofi's comment 6322712314 (2026-10-21T17:49:45Z), which says revoked, file kept. 0014's title and item 1 say revoked. `policy_lint.mjs` is a comment-only edit in the past tense. `git grep -iE 'moratorium|0012'` outside history (roles, rules, CLAUDE.md, AGENTS.md, .claude, tools/policy) finds only 0014 and numeric strings.
+- (2) `designer.md` and `design-review.md` match the pin section by section. The match covers "A note, not a stop" (3 bullets, the stop case kept), "Notes for the fixer are findings, not revise points", "Decisions are routed, not revised" (`decision: orchestrator|owner`), "Three notes at most", and the carry grammar with `Carry: dismissed: <reason of two or more words> (item <id>)`, colon, in both files. The PR's deliberate changes are present: the R17 threshold (L/XL, no approved design, pre-study or prototype; matches RULINGS-201-3 R17), the hard 1-h box, and `design-verdict/<group>`. `tests/seam_map.json`, which `designer.md` cites, exists.
+- (3) Every budget figure re-derives at this head (`ev/head_checks.txt`, `ev/main_checks.txt`). The aggregates match the body: corpus ~62892 (cap 62892), at main ~61142 (cap 61026); always 3498; fixer 6173; record 7321; policy 9906. Per-file rows are designer 60/878 and design-review 53/778, each cap equal to its measurement. Mutants M1, M2/M2b, M3 and M3b reproduce exactly as the body states (`ev/mutants.txt`). `rules_sync --check` is ok, `brief_lint` rc 0, and STRUCTURE RATCHET PASSED. `archscore --diff origin/main` prints `Architecture score: dS +0.0000 NULL`, which matches `## Raise justification`.
+- (4) `git merge-tree --write-tree origin/main bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e` exits 0 (tree 25c64dc7). Check-runs at this head (`ev/check_runs.tsv`, 52 runs): the reds are `budget-raise-gate` (×4) and `nightly-status` (×1), and `## Red checks` answers both. `pr-contract` succeeded at 20:23:50Z, after the last red concluded at 20:23:36Z.
 
-  The deliberate changes are kept: the R17 threshold (every L/XL with no approved design, pre-study or prototype), the hard 1-h box, token counts, and `design-verdict/<group>`. The pin's draft lists `product-tradeoff-regression` among step 7's verdict words; the head keeps it in step 2 only, which is immaterial. Carry: dismissed: verified, no action needed
-- **Item (3), caps and mutants.** At this head the per-file caps equal the measurements (60/60, 878/878 and 53/53, 778/778), and `corpus_tokens` 62892 equals the measured value. The mutants (ev/mutants.txt):
-  - M1 (drop the two CLAUDE.md rows) gives 2 `[index]` errors, TOTAL 2.
-  - M4: 62391 (measured minus band minus 1) gives one `[budgets] (whole corpus)` error, and 62392 gives TOTAL 0.
-  - M2 (61026) gives one corpus error.
+## Non-blocking observations
 
-  `score.py --diff origin/main` gives `dS +0.0000 NULL`; the null control `--diff origin/main origin/main` gives `dS +0.0000 NULL` (ev/archscore.txt). Carry: dismissed: verified, no action needed
-- **Item (4), red checks and merge.**
-  - `budget-raise-gate` is red ×3 by design and is answered by name (with stale figures, blocked above).
-  - `nightly-status` is red. The body answers it as main's scheduled-run red, and the diff touches nothing under `.github/` or any test lane (step 11).
-  - The latest `pr-contract` (19:57:48Z) started after the last red concluded (19:52:17Z), and it is green.
-  - `fast (3.14)`, `coverage` and `Analyze (python)` were still in progress when I read the checks.
-  - `git merge-tree --write-tree origin/main bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e` is clean: tree 25c64dc7, exit 0 (ev/merge_tree.txt).
-  - VERSION, the manifest and the notes heading are untouched (ev/diffstat.txt).
+- `dev/programme/rosters/wave-r10-groups.json` (main and the roster ref 23ef06dc) still briefs the in-progress R10-RCA-ORCH-CONTINUITY seat that "Decision 0012 forbids a new policy file, lint class or rules entry until 2026-10-31". That constraint is void under the addendum, and it limits the seat's choice of countermeasure. The stale text is in the roster, not in this diff. Carry: R10-RCA-ORCH-CONTINUITY
+- `design-review.md` step 7 lists `architecture-unsound`, `class-open` and `harness` but not `product-tradeoff-regression`, which its own step 2 uses. The list says "where they fit", so it is not exhaustive and this is not a defect. Carry: dismissed: illustrative list, non-exhaustive
+- `closures` was still `in_progress` at this head when read at 2026-10-21T20:31:53Z (started 20:08:27Z), so its conclusion is not part of this verdict. Carry: dismissed: heavy lane still running
 
-  Carry: dismissed: verified, no action needed
+## Carry index
 
-## RESULT
+carry_audit.py hashes the whole item, marker included, so no item can quote its own id. These lines repeat each marker with its id.
 
-RESULT policy_lint: TOTAL 0 error(s) across 43 policy file(s), FIXTURE ok
-RESULT policy_lint --budgets: corpus ~62892 cap 62892 (+500); designer 60/878 cap 60/878; design-review 53/778 cap 53/778
-RESULT mutant M1: TOTAL 2 [index]; M4 62391: TOTAL 1 [budgets]; 62392: TOTAL 0; M2 61026: TOTAL 1
-RESULT archscore --diff origin/main: dS +0.0000 NULL (null control +0.0000 NULL)
-RESULT merge-tree vs origin/main 57f0c9c77: clean, exit 0
-RESULT 0012 revoked per addendum: PASS
-RESULT spec-match vs pin 30c57744a: PASS
-RESULT body figures at head: FAIL (62423 vs 62892; 46/666 vs 60/878; 35/521 vs 53/778; item 6 superseded-in-part vs revoked)
-RESULT carry_audit --roster-ref origin/handoff/audit-r10-roster check: CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s) (a blocked verdict is all block sections, so no item ids; every bullet ends in a Carry: marker)
+- Carry: dismissed: fixer repairs this branch (item 66ab37aa)
+- Carry: R10-RCA-ORCH-CONTINUITY (item 3703aa13)
+- Carry: dismissed: illustrative list, non-exhaustive (item d441b8ee)
+- Carry: dismissed: heavy lane still running (item 87822ce4)
 
-bus-nonce: ef107ce82343a8de954c5225807b79f7
+RESULT policy_lint TOTAL=0 files=43 corpus=62892/62892 designer=60/878 design-review=53/778
+RESULT mutants M1=2err M2=1err M2b=0 M3=1err M3b=1err P1(row-corrected)=0
+RESULT merge-tree rc=0
+RESULT reds budget-raise-gate,nightly-status answered; closures in_progress
+RESULT index-contract-mismatch CLAUDE.md:119 "two revise rounds go to the orchestrator" vs design-review.md "Three notes at most … re-cut"

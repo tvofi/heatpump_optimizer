@@ -1,17 +1,18 @@
-M1:
+head bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e
+== M1-delete-claude-rows
   ERROR   [index] CLAUDE.md: does not name `dev/governance/roles/design-review.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
   ERROR   [index] CLAUDE.md: does not name `dev/governance/roles/designer.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
 TOTAL: 2 error(s) across 43 policy file(s)
-corpus_tokens=62391:
-corpus_tokens=62392:
-corpus_tokens=61026:
-corpus_tokens=62391:
-(whole corpus)
-  ERROR   [budgets] (whole corpus): about 62892 tokens exceeds the cap of 62891 (the recorded 62391 plus the working band of 500). Moving prose between policy f
+== M2-corpus-62391
+  ERROR   [budgets] (whole corpus): about 62892 tokens exceeds the cap of 62891 (the recorded 62391 plus the working band of 500). Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.
 TOTAL: 1 error(s) across 43 policy file(s)
-corpus_tokens=62392:
+== M2b-corpus-62392
 TOTAL: 0 error(s) across 43 policy file(s)
-corpus_tokens=61026:
-(whole corpus)
-  ERROR   [budgets] (whole corpus): about 62892 tokens exceeds the cap of 61526 (the recorded 61026 plus the working band of 500). Moving prose between policy f
+== M3-designer-tokens-877
+  ERROR   [budgets] dev/governance/roles/designer.md: about 878 tokens across its lines exceeds its cap of 877 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
 TOTAL: 1 error(s) across 43 policy file(s)
+== M3b-design-review-lines-52
+  ERROR   [budgets] dev/governance/roles/design-review.md: 53 lines exceeds its cap of 52. Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 43 policy file(s)
+== P1-claude-row-corrected
+TOTAL: 0 error(s) across 43 policy file(s)
