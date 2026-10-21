@@ -14,20 +14,22 @@ This PR also carries the roster branch's commits since #2559 merged:
 
 - `c185c7257`: a carry of #2567's forward-carry (carry_audit beside prepr) onto R10-POLICY-FIXER-MD.
 - The merge seat's set-stage commits: `e80c0132a` (R10-ROSTER-OPS to done), `be1b9fa17` (R10-DEPENDABOT-AIOHTTP, its commit) and `5c51bdf6d` (R10-TICK-RELAY-DECOUPLE to done at `e9febe622`).
+- Two appended carries of PR #2572's forward-carry items: `9dc08aac2` (item `6ce59610`, the Advisor's rows moved to a new act, onto R10-UX-HEALTH) and `23ef06dc6` (item `4c077302`, the `_price_tiles` note, onto R10-LIVESTATE). `23ef06dc6` is the tip of `handoff/audit-r10-roster`.
 
 It leaves #201 open and closes nothing by keyword.
 
 ## Head
 
-The authored code head is `f424d993d15f9ba103680ecf88a710539f789bcf` (`handoff/audit-r10-roster`). `git diff --name-only $(git merge-base origin/main f424d993d)...f424d993d` lists five files:
+The PR head is `fe1365f0f992b1d53d79c8e0a1d94804a74f53d8` (`fix/audit-r10-roster`): a merge of `origin/main` into `4099baa44`, which merges `origin/handoff/audit-r10-roster` at `23ef06dc6cc719917e593174b3a12977cd054071`. The authored code head is that `23ef06dc6`, not `f424d993d` (the earlier authored head, now an ancestor). `git diff --name-only $(git merge-base origin/main fe1365f0f)...fe1365f0f` lists six files, merge base `f2fb1b0e9`:
 
 - `dev/programme/rosters/wave-r10-groups.json`
 - `dev/programme/round10/rechain/rechain-decision.md` (new)
 - `dev/programme/round10/rechain/rechain-drops.json` (new)
 - `dev/programme/round10/rechain/rechain-adds.json` (new)
 - `tests/layout.json`
+- `dev/programme/delivery/2576.md` (new; the orchestrator's delivery row for this PR, `df70cb6bc`, on the PR head and not on the handoff branch)
 
-The three new files sit under `dev/programme/`, a prefix on `tests/closure.py`'s `INERT` list, and none matches `is_handover`. `tests/layout.json` gains one glob, `dev/programme/round10/**`, beside the existing `dev/programme/round9/**` in the `dev/programme` category. Without it, the layout guard refused the first open with `placement: dev/programme/round10/rechain/rechain-adds.json is in 0 categories of tests/layout.json`. `tests/layout.json` is code-owned (`.github/CODEOWNERS`), so this PR needs the code-owner approval.
+The three new `rechain/` files sit under `dev/programme/`, a prefix on `tests/closure.py`'s `INERT` list, and none matches `is_handover`. `tests/layout.json` gains one glob, `dev/programme/round10/**`, beside the existing `dev/programme/round9/**` in the `dev/programme` category. Without it, the layout guard refused the first open with `placement: dev/programme/round10/rechain/rechain-adds.json is in 0 categories of tests/layout.json`. `tests/layout.json` is code-owned (`.github/CODEOWNERS`), so this PR needs the code-owner approval.
 
 ## Mutation proof
 
@@ -35,15 +37,15 @@ n/a: roster state and programme evidence only; no production or test code.
 
 ## Null control
 
-The 96 roster groups outside the twelve edited ones are unchanged. `python3 -I tools/audit/carry_audit.py --roster-ref origin/main --roster-ref origin/handoff/audit-r10-roster sweep --from-dir <empty dir>` reports `ROSTER-DRIFT` (text that main holds and the branch lacks) for exactly the twelve groups whose note or brief this PR rewrites, and for no other group. Group count is 108 at both ends. Every carry list is unchanged except R10-POLICY-FIXER-MD's (5 to 6, `c185c7257`).
+The `architect_note` and `brief` of the 96 roster groups outside the twelve edited ones are unchanged. `python3 -I tools/audit/carry_audit.py --roster-ref origin/main --roster-ref origin/handoff/audit-r10-roster sweep --from-dir <empty dir>` reports `ROSTER-DRIFT` (text that main holds and the branch lacks) for exactly the twelve groups whose note or brief this PR rewrites, and for no other group. Group count is 108 at both ends, with the same group ids. Three carry lists differ from main, and every other group's is unchanged: R10-LIVESTATE 8 to 9 (`23ef06dc6`), R10-UX-HEALTH 5 to 6 (`9dc08aac2`) and R10-POLICY-FIXER-MD 5 to 6 (`c185c7257`). Re-derive: load `dev/programme/rosters/wave-r10-groups.json` by `git show` at `origin/main` and at `fe1365f0f`, compare each group's `carry` list by group id, and print each group whose list differs; the null control is a list that would differ, which prints a fourth group (none does).
 
 ## Figures
 
-- Critical-path depth over the open groups goes from 11 to 8. Run `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `python3 tools/audit/seat/plan_table.py --roster-ref f424d993d` and read the swimlane table's last wave column (`roster_lib.depth_of` and `critical_path`). The path after: R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-ARCH-DOCS.
+- Critical-path depth over the open groups goes from 11 to 8. Run `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `python3 tools/audit/seat/plan_table.py --roster-ref fe1365f0f992b1d53d79c8e0a1d94804a74f53d8` and read the ETA table's wave count and the critical-path line (`roster_lib.depth_of` and `critical_path`); the two runs print 11 and 8 wave(s) of work. The path after: R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-ARCH-DOCS.
 
 ## Red checks
 
-- `nightly-status`: it grades main (the nightly run), not this branch, so it is red at every head, main's own tip included. This diff changes only `dev/programme/rosters/wave-r10-groups.json`, three new files under `dev/programme/round10/rechain/` and one glob in `tests/layout.json`, and `nightly-status` reads none of them, so the red is not this PR's.
+- `nightly-status`: it grades main (the nightly run), not this branch, so it is red at every head, main's own tip included. This diff changes only `dev/programme/rosters/wave-r10-groups.json`, three new files under `dev/programme/round10/rechain/`, one glob in `tests/layout.json` and the delivery row `dev/programme/delivery/2576.md`, and `nightly-status` reads none of them, so the red is not this PR's.
 
 ## Forward-carry
 
