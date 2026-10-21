@@ -88,7 +88,7 @@ PREFIXES = ("handoff-body/", "handoff/", "fix/")
 PR_SUFFIX = "-pr"
 OPEN, MERGED, CLOSED = "OPEN", "MERGED", "CLOSED"
 DEFAULT_LIMIT = 1000
-SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+SHA_RE = roster_edit.SHA_RE  # the one sha grammar: a second spelling is refused
 #: A carry item is prose in the roster's array; the parser returns it as a
 #: bullet, so the marker is dropped and the item's own words are kept.
 BULLET = re.compile(r"\A\s*(?:[-*+]|\d+[.)])\s+")
