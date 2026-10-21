@@ -1,0 +1,3 @@
+    MANDATE_COVERS_CODE_OWNED, "an owner approval of code-owned paths")[0]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'MANDATE_COVERS_CODE_OWNED' is not defined

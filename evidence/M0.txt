@@ -1,0 +1,9 @@
+== python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 242 checks, 0 failed
+rc=0
+== bash tools/audit/seat/merge_pr.sh --self-test
+merge_pr self-test: 14 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 36 checks, 0 failed
+rc=0
