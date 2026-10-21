@@ -241,6 +241,7 @@ pr_args_self_test() (
 echo $$ > "$REAP_DIR/started"
 echo $$ >> "$REAP_DIR/pids"
 [ -e "$REAP_DIR/fast" ] && exit 1
+[ -e "$REAP_DIR/stubborn" ] && { bash -c 'trap "" TERM; sleep 30' & echo $! >> "$REAP_DIR/pids"; }
 if [ -e "$REAP_DIR/ok" ]; then
   bash -c 'sleep 1' reap-child "$REAP_DIR/mark" & echo $! >> "$REAP_DIR/pids"
   wait; exit 0
@@ -635,6 +636,39 @@ STUB
   ck "  mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives" "$(survived)"
   ck "  mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)" \
      "$( ! grep -qF "update_pr: BUSY" "$t/out2" && echo 0 || echo 1 )"
+  # The lock outlives the push (main's pr_branch_lock, kept by the reap): the push holds a child
+  # that ignores TERM, so the reap's grace runs ~2 s before its KILL. heldrun <mutant>: TERM run 1
+  # mid-push, then poll; "early" when the holder is gone while a pid of the push is still alive.
+  # Mutant afterreap (sed, not a `# mut:` line) frees the lock BEFORE the reap: pr_exit_trap's order reversed.
+  heldrun() {
+    local sd=$t/hd-$1 up k=0 hp p a
+    rm -rf "$t/s$i"; git -C "$m" worktree prune
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok"; : > "$REAP_DIR/pids"; : > "$REAP_DIR/stubborn"
+    if [ "$1" = afterreap ]; then copyin -; sed -i 's/pr_reap; eval "${PR_AFTER_REAP:-:}"/eval "${PR_AFTER_REAP:-:}"; pr_reap/' "$m/tools/audit/seat/pr_args.sh"
+    else copyin "$1"; fi
+    cp "$t/body.md" "$t/b1.md"
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 5 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
+    echo none > "$t/early"
+    case $hp in ''|0|1|*[!0-9]*) echo nohold > "$t/early" ;; esac
+    kill -TERM "$up"; k=0
+    while kill -0 "$up" 2>/dev/null && [ $k -lt 80 ]; do
+      if ! kill -0 "$hp" 2>/dev/null; then
+        a=0; for p in $(cat "$REAP_DIR/pids"); do kill -0 "$p" 2>/dev/null && [ "$(ps -o stat= -p "$p" | cut -c1)" != Z ] && a=1; done
+        [ "$a" = 1 ] && echo early > "$t/early"
+      fi
+      sleep 0.05; k=$((k + 1))
+    done
+    wait "$up" 2>/dev/null; rm -f "$REAP_DIR/stubborn"; rclean
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  heldrun -
+  ck "update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it" \
+     "$( [ "$(cat "$t/early")" = none ] && echo 0 || echo 1 )"
+  heldrun afterreap
+  ck "  mutant afterreap (pr_exit_trap's order reversed by sed: the lock freed before the reap): the holder is gone while the push still runs" \
+     "$( [ "$(cat "$t/early")" = early ] && echo 0 || echo 1 )"
   stoprun - KILL
   ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" "$( took_lock && echo 0 || echo 1 )"
   stoprun watch TERM
