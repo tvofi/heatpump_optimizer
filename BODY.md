@@ -29,58 +29,96 @@ The folds spelled out the zone-temperature and zone-capacity choices
 separately; each now answers from one pure helper. The house fold's two dt
 guards are one range check. Together these pay the coordinator's zero headroom.
 
-This body is re-cut at round 4 (`fixer.md`, "Past three rounds"). Every figure
-below was re-taken at the head named under `## Head`.
+A features check now drives the coordinator's own path for the refit's
+irradiance record: the prediction capture, then the settle into
+`_accuracy`. The round-2 fix review (comment 6325893059) found that both
+plumbing lines survived the whole scoped gate.
+
+The body was re-cut at round 4 (`fixer.md`, "Past three rounds"). This round
+re-takes only what its change and its merge of `origin/main` reach; `## Head`
+says which figures those are.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_011pFbVfDES2cn6uah2a5dGa
+https://claude.ai/code/session_011T53hYMqChYZy7Y7jzuTEu
 
 ## Head
 
-`9f0ed12e70c072d7b5b21b53a9345e25b70fd01d`.
+`d717b51486bf78df2e18b7bd3bdaf34abc23cc9b`.
 
-It is the PR head `baa01ed85` with three merges and no rebase:
-- `origin/main` at `f2fb1b0e9`;
-- the bot's pin commit `ac4d62106`;
-- `origin/main` at `57f0c9c77`, which is the merge base.
+It is the PR head `2f47581094ad66bd76ccfa6efff92aef90036aeb` plus two commits,
+with no rebase:
+- `5860e02e4`, the new features check (`tests/features.py` only);
+- a merge of `origin/main` at `1ebc737e7`.
 
-The last merge brought production changes in `coordinator.py` and
-`freq_control.py`. So every figure below was taken after it, against base
-`57f0c9c77`.
+The merge reaches no production code, harness or role contract.
+`git diff --name-only 57f0c9c77 1ebc737e7 | grep -E '^custom_components|^tests/features|^dev/governance/roles'`
+exits 1, printing nothing. So the harness, companion, enumerator, alternatives
+and carry-control figures under `## Figures` stand as taken at `9f0ed12e7`.
+The PR head's tree `df75d6ebc` is the same as that commit's, and the fix review
+re-derived every one of those figures at `2f4758109`.
 
-`git merge-tree --write-tree origin/main HEAD` exits 0. Measured on
-2026-10-21 (UTC) with `origin/main` at `57f0c9c77`. The base worktree is
-detached at `57f0c9c77`. Python is `/opt/hpo/venv-ci`.
+Re-taken at this head: the mutation proof, the scoped gate, structure, the
+architecture score and the carry audit. Measured on 2026-10-21 (UTC) with
+`origin/main` at `1ebc737e7`. Python is `/opt/hpo/venv-ci`.
+`git merge-base --is-ancestor origin/main HEAD` exits 0.
 
 ## Mutation proof
 
-This round's site is `coordinator.py:9041 CMP_BOUND`. The mutant changes
-`or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE` to `<=`. It was applied in
-place at this head's tree, on line 9041, and the run was
-`PYTHONPATH=tests/hastub python3 tests/features.py`:
-- one check failed, `#2223: a heat-loss level exactly on the confidence
-  threshold has converged`;
-- the check's detail read `on the threshold False, one sample under False`;
-- the run printed `1 of 4289 FEATURE CHECKS FAILED` (rc=1).
+The two plumbing mutants were each applied alone, in a detached `git worktree`
+at `5860e02e4`. `git diff --quiet 5860e02e4 HEAD -- custom_components tests/features.py`
+exits 0, so that is this head's production code and check file. Each run was
+`PYTHONPATH=tests/hastub python3 tests/features.py`, and the worktrees were then
+discarded.
 
-`coordinator.py` was then restored, and `git status --short` printed nothing.
+| site | mutant | failing checks | run |
+|---|---|---|---|
+| `coordinator.py:9796`, the pending capture in `_record_accuracy` | `"solar": ctx._current_state.solar_radiation` -> `"solar": None` | `#2223: the coordinator's sunlit prediction settles with its sun, and the refit refuses it` | `1 of 4290 FEATURE CHECKS FAILED`, rc=1 |
+| `coordinator.py:9718`, the settled `AccuracySample` | `solar_radiation=pending.get("solar")` -> `solar_radiation=None` | that check, and `#2223: an accuracy sample records the sun its prediction was made under` | `2 of 4290 FEATURE CHECKS FAILED`, rc=1 |
+| `coordinator.py:9041 CMP_BOUND`, `_fold_internal_gains` (round 4) | `<` -> `<=` | `#2223: a heat-loss level exactly on the confidence threshold has converged` | `1 of 4289 FEATURE CHECKS FAILED`, rc=1 |
 
-`mutation-autofix` drove the same mutant and recorded the pin in commit
-`ac4d62106`, file
-`tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_internal_gains.CMP_BOUND.c7930f6b.json`.
-That file's `reason` line is the instrument's own count.
+- **What the new check read under each plumbing mutant:**
+  `sunlit: sun None pair (0.0, 23.0); dark: sun None pair (0.0, 23.0)`.
+  - The stored sample lost the irradiance.
+  - So `accuracy._refit_pair` admitted the sunlit pair as a dark one. That is
+    the base behaviour #2223 closes.
+- **How the new check works.** It runs `_record_accuracy` twice under
+  `dt_util.freeze`:
+  - first at 12:00 with `_current_state.solar_radiation = 640.0`, which captures
+    the coordinator's own prediction;
+  - then at 12:30 under a dark sky (`0.0`), which settles that prediction into
+    `_accuracy`.
+  - It asserts that the tracker's last sample carries 640.0 and that
+    `_refit_pair` refuses it.
+  - The settle reads a dark sky on purpose: a sample that took the sun at settle
+    time rather than capture time also fails the check.
+- The round-4 site's mutant was not re-run at this head. Its line and its
+  check are unchanged.
+
+`mutation-autofix` pinned the 9041 site in `ac4d62106`. The two plumbing sites
+are values in a dict literal and a keyword argument. The ledger's mutant
+classes do not generate those, so this table is their proof.
 
 ## Null control
 
-- **The unmutated tree.** The same `tests/features.py` run printed
-  `ALL 4289 FEATURE CHECKS PASSED` (rc=0), and the `#2223` threshold check read
-  `ok`.
-- **That check's own control arm.** It is the same drive at 113 samples, one
-  under the moved threshold. It reads unformed both at the head and under the
-  mutant (`one sample under False` in both runs).
-  - The check encodes a design choice: the gate is inclusive. A level exactly
-    on the threshold has converged.
+- **The unmutated tree.** `tests/features.py` at this head printed
+  `ALL 4290 FEATURE CHECKS PASSED` (rc=0), and the new check reads `ok`.
+- **The new check's own control arm.** It is the same drive with a dark capture
+  (`0.0`). The check asserts that this arm settles with `0.0` and forms a refit
+  pair (`_refit_pair` not `None`).
+  - So the sunlit arm's refusal is the sun's. It is not a sample the refit
+    would refuse anyway.
+  - Before the arm had a plan trajectory, the drive settled `predicted_temp=None`
+    and both arms read `pair None`. The check failed on the dark arm, at the
+    head, unmutated. This is the vacuity the control exists to catch, and it
+    was repaired by setting `_mode = "auto"` and a plan trajectory before the
+    capture.
+- **The prior plumbing check** (`an accuracy sample records the sun its
+  prediction was made under`) hands `_record_accuracy` a built `pending`. So it
+  kills only the 9718 mutant and passes under the 9796 one, as the table shows.
+- **That check's own control arm.** The `#2223` threshold check's drive at 113
+  samples, one under the moved threshold, reads unformed at the head and under
+  its mutant (round 4).
 - **The flat-irradiance arm.** The aperture multiplies zero irradiance there,
   so `fixed_arm_spread` reads 0.0000 on P1..P5 (`.flat.g1.00`) at both ends.
 - **The companion's dark arms read the same at both ends:**
@@ -95,8 +133,9 @@ That file's `reason` line is the instrument's own count.
 
 ## Figures
 
-Every figure below is at base `57f0c9c77` and head `9f0ed12e7`, taken
-on 2026-10-21.
+The harness figures below are at base `57f0c9c77` and head `9f0ed12e7`, taken
+on 2026-10-21; `## Head` says why they stand at this head. The scoped gate,
+structure and carry audit were re-taken at this head.
 - Each harness ran from the head's copy. For the base run, the base worktree
   was the working directory. Each harness puts `tests` and `custom_components`
   on its path relative to the working directory, so it read the base tree.
@@ -235,12 +274,12 @@ Every seam the enumerator returns, against its disposition at this head:
   - `grep -c end_tripped=False OUT/sun.out` prints 6 at each end, of 6 lines.
   - So the features check stays at 0.4 K.
 
-**The scoped gate.**
+**The scoped gate**, re-taken at this head:
 `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D`
 prints `MODE: SCOPED -- 29 script(s) run, 4 scoped out.`
-- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=57f0c9c77 PYTHONPATH=tests/hastub bash tests/run.sh`
-  at this head ended rc=0 with `31 TEST SCRIPT(S) PASSED; 3 SCOPED OUT AND NOT RUN`.
-- Among those 31: `ALL 4289 FEATURE CHECKS PASSED`,
+- `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=1ebc737e7 PYTHONPATH=tests/hastub bash tests/run.sh`
+  ended rc=0 with `31 TEST SCRIPT(S) PASSED; 3 SCOPED OUT AND NOT RUN`.
+- Among them: `ALL 4290 FEATURE CHECKS PASSED`,
   `ALL 106 FINITE BOUNDARY CHECKS PASSED`, `ALL 2382 ENTITY CHECKS PASSED`,
   `ALL 113 STRESS CHECKS PASSED`, `ALL 109 HARNESS HEADER CHECKS PASSED` and
   `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
@@ -253,8 +292,9 @@ line of that gate. The three-dot diff names no `VERSION`, manifest,
 `RELEASE_NOTES.md`, golden or claim file.
 
 **Carry audit.**
-`python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body BODY.md`
-prints `CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)`.
+`python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body BODY.md`,
+with that ref at `23ef06dc6cc719917e593174b3a12977cd054071`, prints
+`CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)`.
 
 ## Architecture score
 
@@ -281,33 +321,24 @@ Both come from the two moved pure helpers. No metric rises.
 
 ## Red checks
 
-- **`mutation`.** At `baa01ed85` it read `MUTATION TABLE REFUSED`, with one
-  site added by this diff: `coordinator.py:9041 CMP_BOUND`.
-  - The killing check landed at `285845eb9`. A ledger pin is written only by
-    `mutation-autofix` after a push, so `mutation` reads red at that push until
-    the bot commits. The bot drove the site and pushed
-    `ac4d62106 ci: pin killed mutants`, which this head merges.
-  - The cheaper detector: `tools/pr/ci_predict.py` (`prepr.sh` step 6d) lists
-    the site before a push, in seconds. It warns rather than refuses, by design,
-    because the bot pins killed mutants (`ci-autofix.md`).
-- **`pr-contract`.** At `baa01ed85` CARRY-AUDIT refused one unrouted item: the
-  alternatives harness's ΔT-part line under `## Figures`.
-  - The PR still carried the round-2 body. The round-3 body, which routed that
-    item, never reached the PR.
-  - This body routes it under `## Forward-carry`.
-  - The cheaper detector is
-    `python3 -I tools/audit/carry_audit.py check --body FILE`, which takes
-    seconds; this body's result is under `## Figures`.
-- **`nightly-status`.** It grades `main`'s nightly run 39563978649
-  (`mutation-nightly` and `slow` red there), not this branch. That red is main's
-  and is owned by main's nightly lanes. This diff reaches no input those lanes
-  read.
+The check runs at the PR head `2f47581094ad66bd76ccfa6efff92aef90036aeb` (all
+concluded) list one failure. This head has not run in CI yet.
+- **`nightly-status`.** It grades `main`'s latest scheduled `Tests` run,
+  39563978649 (2026-10-21 07:43Z). Its failed jobs are `slow` and
+  `mutation-nightly` (from that run's jobs API), so the red is main's, not this
+  branch's. It is owned by main's nightly lanes, and this diff reaches no input
+  those lanes read.
+- `mutation` and `pr-contract`, red at `baa01ed85` in round 4, read success at
+  `2f4758109`. That round's body answers them: the bot pin `ac4d62106`, and
+  the body that routed the ΔT-part item.
 
 ## Unpinned sites
 
-`prepr.sh` step 6d (`tools/pr/ci_predict.py --base origin/main`) lists the site
-this diff adds: `custom_components/heatpump_optimizer/coordinator.py:9041
-CMP_BOUND`.
+Round 4's `prepr.sh` step 6d listed the one site this diff adds:
+`custom_components/heatpump_optimizer/coordinator.py:9041 CMP_BOUND`. This
+round adds no production line. At this head,
+`PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
+prints `CI PREDICT: no closures or fast red predicted against 1ebc737e7e18`.
 - It is killed by the value check `#2223: a heat-loss level exactly on the
   confidence threshold has converged` in `tests/features.py`.
 - It is pinned by `mutation-autofix` in `ac4d62106`.
@@ -322,7 +353,8 @@ CMP_BOUND`.
   - Carried to R10-BRIEFS-FOLD's `carry` list in
     `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`.
   - Verify with
-    `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | grep -c "drive the learners together"`.
+    `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | grep -c "drive the learners together"`,
+    which prints 1 with that ref at `23ef06dc6cc719917e593174b3a12977cd054071`.
 
   Carry: R10-BRIEFS-FOLD
 - **The delivery-shortfall arms move** (Figures). They are the commanded-power
@@ -340,6 +372,10 @@ CMP_BOUND`.
 - **The alternatives harness's ΔT-part line** (Figures) records a rejected
   design that was measured to fail. It is not an open defect.
   Carry: dismissed: rejected alternative measured in figures (item 1492c8f9)
+- **The fix review's vacuous-test block** (comment 6325893059): the refit's
+  irradiance record survived the scoped gate under the 9796 mutant. The new
+  check under `## Mutation proof` kills both plumbing mutants at this head.
+  Carry: dismissed: repaired at this head
 
 ## Friction
 
