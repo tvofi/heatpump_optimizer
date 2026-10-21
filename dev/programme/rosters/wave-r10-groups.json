@@ -4146,7 +4146,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-tick-selftest-ci",
-    "commit": "c35302773738",
+    "commit": "c3530277373ddf87652858f9ecb0ee1cf36f4347",
     "last_step": null,
     "next_step": "fixer",
     "note": null
