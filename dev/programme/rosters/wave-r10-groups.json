@@ -4907,7 +4907,7 @@
     "commit": "eef9165ee76bce9d2a2d438d8b4c60d8a4d8fc77",
     "last_step": null,
     "next_step": "review",
-    "note": null
+    "note": "delivered by #2469 (eef9165e)"
    },
    "class": "production",
    "group": "R10-UPDATE-PR-LOCK",
