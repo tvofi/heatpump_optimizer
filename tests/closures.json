@@ -4300,7 +4300,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 670.4
   },
   "tests/env_drift.py": {
