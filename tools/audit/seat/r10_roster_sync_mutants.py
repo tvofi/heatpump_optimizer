@@ -43,6 +43,14 @@ Plants:
   M15_record_invalid_silent   a RECORD-INVALID finding is not printed.
   M16_open_head_on_main       an open group's handoff head must be on
                               origin/main too, so a live handoff is invalid.
+  M17_unreadable_ancestry_ok  an unreadable ancestry (rc 128: no origin/main)
+                              reads as on main, so the record is valid.
+  M18_non_commit_counted      the commit-type filter is dropped, so a prefix
+                              resolving only to a blob counts as a commit.
+  M19_sha_grammar_dropped     the sha grammar is skipped, so a value outside
+                              it is refused only as unresolvable.
+  M20_shared_topic_first_only a pull request answers for the first group of
+                              a shared topic alone.
 """
 import subprocess
 import sys
@@ -110,6 +118,18 @@ PLANTS = {
     "M16_open_head_on_main": [
         (SRC, "        if len(commits) == 1 and not roster_lib.is_open(g):",
               "        if len(commits) == 1:  # M16")],
+    "M17_unreadable_ancestry_ok": [
+        (SRC, "on_main = {0: True, 1: False}.get(rc)",
+              "on_main = {0: True, 1: False}.get(rc, True)  # M17")],
+    "M18_non_commit_counted": [
+        (SRC, "if ln.split()[1:2] == [\"commit\"]]",
+              "if ln.split()]  # M18")],
+    "M19_sha_grammar_dropped": [
+        (SRC, "        if not SHA_RE.match(sha):\n            out.append",
+              "        if False:  # M19\n            out.append")],
+    "M20_shared_topic_first_only": [
+        (SRC, "                    out[gid].append(pr)\n",
+              "                    out[gid].append(pr)\n                    break  # M20\n")],
 }
 
 

@@ -871,13 +871,41 @@ def self_test() -> int:
               "not an ancestor of origin/main" in bad.get("C-OFF", ""), bad)
         check("an open group's handoff head off origin/main is valid",
               "C-OPEN" not in bad, bad)
-        check("a value outside the sha grammar is RECORD-INVALID",
-              "C-UPPER" in bad and "C-NULL" not in bad, bad)
+        check("a value outside the sha grammar is RECORD-INVALID, by the grammar",
+              "lowercase hex" in bad.get("C-UPPER", "")
+              and "C-NULL" not in bad, bad)
         check("an ambiguous prefix is RECORD-INVALID",
               "ambiguous" in (commit_verdict("abcdef1", ["a" * 40, "b" * 40],
                                              None) or ""))
         check("an unreadable ancestry is RECORD-INVALID, never valid",
               commit_verdict("abcdef1", ["a" * 40], None) is not None)
+        # The call sites, not the pure verdict: a prefix resolving only to a
+        # blob is no commit, and a checkout with no origin/main (rc 128) reads
+        # as unreadable ancestry, never as a valid done record.
+        blob = git("hash-object", "-w", "--stdin", cwd=str(drv),
+                   input_text="a blob, not a commit\n")
+        bad = dict(invalid_commits(str(drv), {"groups": [
+            {"group": "C-BLOB", "resume": {"stage": "done",
+                                           "commit": blob[:12]}}]}))
+        check("a prefix resolving only to a blob does not resolve to a commit",
+              "does not resolve" in bad.get("C-BLOB", ""), bad)
+        lone = root / "no-origin"
+        git("init", "-q", str(lone))
+        git("-C", str(lone), "-c", "user.name=t", "-c", "user.email=t@t",
+            "commit", "-q", "--allow-empty", "-m", "x")
+        head = git("-C", str(lone), "rev-parse", "HEAD")
+        bad = dict(invalid_commits(str(lone), {"groups": [
+            {"group": "C-NOMAIN", "resume": {"stage": "done", "commit": head}}]}))
+        check("a checkout with no origin/main reads the ancestry as unreadable",
+              "unreadable" in bad.get("C-NOMAIN", ""), bad)
+        # Groups sharing one topic share its pull requests: neither is the
+        # first group's alone.
+        twin = PR(77, MERGED, "fix/r9-twin", "f" * 40, "")
+        got = matches({"groups": [
+            {"group": "T-ONE", "resume": {"branch": "fix/r9-twin"}},
+            {"group": "T-TWO", "resume": {"branch": "handoff/r9-twin"}}]}, [twin])
+        check("groups sharing one topic share its pull requests",
+              got.get("T-ONE") == [twin] and got.get("T-TWO") == [twin], got)
 
         # A REFUSED PUSH is recoverable: the pass's local commit is dropped, so
         # the next pass is not blocked by "unpushed commits would be lost".
