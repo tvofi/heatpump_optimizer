@@ -78,6 +78,10 @@ from .payload import (
     PowerHeadroom,
     PriceTile,
     Pv,
+    REASON_BOOST,
+    REASON_COMFORT_MODE,
+    REASON_SYSTEM_IDENTIFICATION,
+    REASON_UNTAGGED,
     Scores,
     SolarForecastStep,
     SpaceForecastStep,
@@ -271,6 +275,7 @@ from .currency import declared_currency, resolve_currency
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
     MonthlyLedger,
+    explain_metered,
     freeze_month_report,
     month_key,
     restate_total,
@@ -5388,6 +5393,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
+            # Each fixed mode names the cause its draw books under (#2256).
             elif self._mode == MODE_COMFORT:
                 boost.adopt_plan(self, {
                     "power": self._thermal_model.params.max_electrical_power * 0.7,
@@ -5396,6 +5402,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 0.7,
                     "heat_pump_on": True,
                     "displace_value": min(4.0, self._ecl110_displace_max),
+                    "space_reason": REASON_COMFORT_MODE,
+                    "dhw_reason": REASON_COMFORT_MODE,
                 })
             elif self._mode == MODE_BOOST:
                 boost.adopt_plan(self, {
@@ -5405,6 +5413,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 1.0,
                     "heat_pump_on": True,
                     "displace_value": self._ecl110_displace_max,
+                    "space_reason": REASON_BOOST,
+                    "dhw_reason": REASON_BOOST,
                 })
             elif self._mode == MODE_OFF:
                 boost.adopt_plan(self, {
@@ -5414,6 +5424,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 0.0,
                     "heat_pump_on": False,
                     "displace_value": self._ecl110_displace_min,
+                    "space_reason": REASON_UNTAGGED,
+                    "dhw_reason": REASON_UNTAGGED,
                 })
             if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
                 self._current_action["price"] = self._get_current_price()
@@ -10038,27 +10050,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # them — the space share under the space slot's reason, the DHW
         # share under the DHW slot's. A partition, not a bonus column: the
         # reason lines must sum to the spot line, or every receipt built
-        # from them overstates. An interval without a tag (manual modes, a
-        # restart before the first solve) books as "untagged" rather than
-        # vanishing from the total.
-        space_reason = pending.get("space_reason") or "untagged"
-        dhw_reason = pending.get("dhw_reason") or "untagged"
+        # from them overstates. A reason names WHY the plan ran a channel, so
+        # a channel the plan was drawing nothing on books outside the plan
+        # (#2256); ``IDLE_REASONS`` is that grouping's one owner.
         metered_dhw = metered * dhw_share
         metered_space = metered - metered_dhw
-        if metered_space > 1e-9:
-            self._ledger.add(
-                when,
-                f"reason:{space_reason}",
-                kwh=metered_space,
-                sek=metered_space * spot,
-            )
-        if metered_dhw > 1e-9:
-            self._ledger.add(
-                when,
-                f"reason:{dhw_reason}",
-                kwh=metered_dhw,
-                sek=metered_dhw * spot,
-            )
+        for reason, kwh in explain_metered(
+            metered_space,
+            metered_dhw,
+            space_reason=pending.get("space_reason"),
+            dhw_reason=pending.get("dhw_reason"),
+        ):
+            self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
         if immersion_excess > 1e-6:
@@ -10856,12 +10859,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "heat_pump_on": override > 0.05,
             "mode": "system_identification",
-            # T6: the experiment's draw is not the plan's — settling it
-            # under the overridden plan's reason would book experiment
-            # energy as "cheapest hours" or whatever the plan happened to
-            # claim for this step.
-            "space_reason": None,
-            "dhw_reason": None,
+            # T6: the experiment's draw is not the plan's -- booking it under
+            # the overridden plan's reason would say "cheapest hours" or
+            # whatever the plan claimed for this step; the experiment is the
+            # cause and names itself (#2256).
+            "space_reason": REASON_SYSTEM_IDENTIFICATION,
+            "dhw_reason": REASON_SYSTEM_IDENTIFICATION,
         })
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment.
