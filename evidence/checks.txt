@@ -1,0 +1,6 @@
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+brief_lint rc=0
+## variants
+dev/governance/roles/design-review.md:45:**Decisions are routed, not revised.** A point only the orchestrator or owner
