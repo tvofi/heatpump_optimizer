@@ -1,6 +1,0 @@
-== base
-RESULT log: OVERLAP: batch/replay at aaaaaaaaaaaa is not green (Analyze (python), browser, closures, fast (3.14)) after #N's unproved merge: revert it first; --overlap logs it and does not wait
-== h2
-RESULT log: OVERLAP: batch/replay at aaaaaaaaaaaa is still running (Analyze (python), browser, closures, fast (3.14)): a wait, not red; --overlap does not wait
-RESULT classify(main req): ('wait', ['Analyze (python)', 'browser', 'closures', 'fast (3.14)'], [])
-RESULT classify(pr req): ('wait', ['Analyze (python)', 'browser', 'closures', 'fast (3.14)'], [])
