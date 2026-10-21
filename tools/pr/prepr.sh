@@ -2440,16 +2440,38 @@ PY
   # any exit a refusal also runs (R10-PREPR-CAP, #2267). The pool's own capacity
   # is `take_slot`'s and is driven in tests/entities.py; these rows pin the
   # WIRING the finding is about -- that a run takes one at all, where, and that
-  # the release rides an EXIT trap rather than a last line a mid-run refusal skips.
+  # the release rides an EXIT trap rather than a last line a mid-run refusal
+  # skips. Two traps carry an EXIT cleanup now: the success arm frees the slot,
+  # the failed-take arm clears its unleased marker, and both keep the run's rc.
   # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
   # the drained-scripts defect the row above this block refuses (row 4).
   st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
   st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
-  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
+  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 2 "and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status"
   st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
+  st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
+  st "$(grep -cF "slot-leased --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and clears the count on the way out"
   slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and takes it before the heavy steps begin"
+  # (7) The priority the slot-take reads is derived from the branch's group and
+  # exported BEFORE the take, so the lease's ticket carries it (tvofi,
+  # 2026-10-20). The derivation's own four arms are gate_priority.py's
+  # --self-test; these rows pin the WIRING -- that the main flow asks for it at
+  # all, and that the answer reaches the slot-take that queues on it.
+  st "$(grep -cF 'gate_priority.py --branch' <<<"$flow")" 1 "the main flow derives the branch's gate priority"
+  st "$(grep -cF 'export HPO_GATE_PRIORITY' <<<"$flow")" 1 "and exports it for the slot-take and every nested leased step"
+  prio_order=$(awk '/slot-take --label/{exit} /gate_priority.py --branch/{print "ok"}' <<<"$flow")
+  st "$prio_order" ok "and derives it before the heavy slot is taken"
+  # (8) The derived default is gate_priority.py's own: a listed group gets
+  # priority with no env and no marker, an unlisted or unresolvable branch
+  # stays FIFO, and every unreadable input is 0. Its self-test is hermetic --
+  # a throwaway roster and critical-path set -- so republishing the live set
+  # cannot redden this row. This is the copy that answers on every pull
+  # request: `tools/pr/` is INERT, so the suite never selects it.
+  out=$(python3 tools/pr/gate_priority.py --self-test 2>&1); r=$?
+  st "$r" 0 "gate_priority.py's derived-default self-test passes"
+  [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
   # The entry wires both before the first fixture is built: driving the two
   # helpers pins nothing if the self-test stops calling them (#1591's shape).
   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
@@ -2499,6 +2521,20 @@ case $? in
   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
 esac
 
+# --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
+# The lease is generic: it orders waiters by an integer and never decides who
+# deserves one. This step supplies the integer from tools/pr/gate_priority.py,
+# whose precedence is (1) $HPO_GATE_PRIORITY, (2) .gate-priority in the
+# worktree, (3) the default DERIVED from this branch's group in the round
+# roster and the critical-path set the orchestrator publishes at the roster
+# ref. Every unreadable answer is 0 -- FIFO -- never a crash and never a stuck
+# queue. It is exported before the slot-take so that take and every nested
+# leased step (run.sh, derive_closures.sh) carry the same priority.
+HPO_GATE_PRIORITY=$(python3 tools/pr/gate_priority.py --branch "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" 2>/dev/null)
+[ "$?" -eq 0 ] && [ -n "$HPO_GATE_PRIORITY" ] || HPO_GATE_PRIORITY=0
+export HPO_GATE_PRIORITY
+say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critical-path default)"
+
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
 # WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
 # steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
@@ -2510,7 +2546,10 @@ esac
 # HPO_SLOT_LABEL so a nested heavy step inherits it and joins this slot rather
 # than taking a second (`gate_lock.py holding_slot`). Released on any exit the
 # shell sees; a SIGKILL leaves the slot, which the next take steals once this
-# process is gone (`--owner-pid`). A fifth prepr waits at the back of the queue.
+# process is gone (`--owner-pid`). A run that outlives the 30-minute slot lease
+# KEEPS its slot while $$ lives: the pool's lease is a liveness handle, so load
+# cannot silently push this run beside an admitted fifth (R10-GATE-PRIORITY). A
+# fifth prepr waits at the back of the queue.
 # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
 # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
 SLOT_LABEL="prepr-$$"
@@ -2528,6 +2567,13 @@ else
     trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   else
     say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+    # R10-GATE-PRIORITY: a run that proceeds unleased is COUNTED in
+    # `gate_lock.py slot-status` (unleased=N), so the orchestrator sees an
+    # over-subscribed pool instead of inferring it from load. Removed on exit;
+    # a crashed run's marker is pruned once its pid is gone.
+    python3 tests/gate_lock.py slot-unleased --label "$SLOT_LABEL" --pid $$ >/dev/null 2>&1
+    trap "rc=\$?; python3 tests/gate_lock.py slot-leased --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
+    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   fi
   rm -f "$slot_stderr"
 fi
