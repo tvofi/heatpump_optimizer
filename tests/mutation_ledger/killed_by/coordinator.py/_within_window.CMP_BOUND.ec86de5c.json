@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_within_window CMP_BOUND ec86de5c",
+  "killed_by": "tests/entities.py",
+  "old": "    return value if value is None or lo <= value <= hi else None",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: CMP_BOUND (`return value if value is None or lo < value <= hi else None`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}
