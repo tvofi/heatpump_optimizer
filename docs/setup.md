@@ -67,7 +67,7 @@ flowchart TD
     T --> C{"5 · How do you want to<br/>describe your building?"}
     C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    C -- "Enter thermal values<br/>directly" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
     F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
     H --> I
