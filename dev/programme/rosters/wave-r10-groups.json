@@ -5392,6 +5392,47 @@
     "note": null
    },
    "brief": "Root cause for the recurring class: when an orchestrator session or its host stops, the programme stops silently. Instances: 2026-10-18 three cloud handoffs missed while the tick reported only changed refs; 2026-10-20 a session crash killed every loop and lost the ledger from 07:10Z to 13:20Z; 2026-10-21 a host restart killed the merge train, tick loop, state beat and wt_sync, leaving nine handoffs with no pull request (oldest 110 h), a blocked verdict unrouted for 8 h, ten merges unrecorded and the session ledger silent for 16 h, while the tick board had grown to 4.5 MB from replayed relay lines. Owed per root-cause.md: the named cause, the process state a-d with evidence, the class search, the cost test with numbers, and a countermeasure or recorded refusal. Three or more instances make this an audit class that owes a barrier (defect-root-cause.md). Scope it apart from R10-RCA-HANDOFF-SLIP (the orphaned-handoff record) and R10-TICK-OWED-LEVEL (the replay reader fix): cite them, do not redo them. Decision 0012 forbids a new policy file, lint class or rules entry until 2026-10-31; a countermeasure that is an instrument lands under tools/audit/seat with a self-test demonstrated failing on the defect and passing once fixed."
+  },
+  {
+   "group": "R10-TICK-RELAY-DECOUPLE",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "robustness",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/tick_loop.sh"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "Owns the relay invocation in tick_loop.sh only. R10-RCA-ORCH-CONTINUITY (concurrent, cloud) may add a continuity barrier elsewhere; neither rewrites the other block, and whichever merges second merges main and keeps both.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-tick-relay-decouple",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer dispatched 2026-10-21",
+    "note": null
+   },
+   "brief": "tools/audit/seat/tick_loop.sh runs cloud_relay.sh pass and orchestrator_tick.py serially each pass, so a relay pass that runs update_pr.sh (a full app_push.sh prepr, measured 27+ min on 2026-10-21 for #2525) leaves the tick board unwritten that whole time (tick.txt stale 66+ min while the loop was alive). Fix so the board is written every interval regardless of the relay: e.g. the relay pass runs as its own bounded or detached child with a lock so passes never overlap, and the tick still runs each interval; the TICK-PASS line reports relay=running when one is in flight. Never kill an update_pr mid-push. Self-test (tick_loop.sh --self-test, already wired) gains an arm: a stub relay that sleeps longer than the interval must not delay the tick write; demonstrate it failing on the current loop and passing on the fix, plus a null control with a fast relay. Cite R10-TICK-OWED-LEVEL and R10-RCA-ORCH-CONTINUITY; do not redo them. Run prepr with PREPR_SKIP_CLOSURES=1 (tvofi 2026-10-21)."
   }
  ]
 }
