@@ -1,0 +1,13 @@
+ CLAUDE.md                                          |  2 +
+ dev/governance/config/policy_budgets.json          |  6 ++-
+ .../0012-process-diet-and-round-cadence.md         | 14 +++--
+ ...design-seats-and-the-end-of-0012s-moratorium.md | 63 ++++++++++++++++++++++
+ dev/governance/roles/design-review.md              | 53 ++++++++++++++++++
+ dev/governance/roles/designer.md                   | 60 +++++++++++++++++++++
+ dev/governance/roles/fix-review.md                 | 10 ++--
+ dev/governance/roles/fixer.md                      |  8 +--
+ dev/governance/roles/orchestrator.md               | 19 +++----
+ dev/programme/delivery/2586.md                     |  1 +
+ tests/closures.json                                |  2 +
+ tools/policy/policy_lint.mjs                       |  8 +--
+ 12 files changed, 219 insertions(+), 27 deletions(-)

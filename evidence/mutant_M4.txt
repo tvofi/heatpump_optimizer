@@ -1,3 +1,0 @@
-(whole corpus)
-  ERROR   [budgets] (whole corpus): about 62423 tokens exceeds the cap of 62422 (the recorded 61922 plus the working band of 500). Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.
-TOTAL: 1 error(s) across 43 policy file(s)
