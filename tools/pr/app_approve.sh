@@ -99,9 +99,61 @@ while True:
     if i >= len(raw): break
     v, i = dec.raw_decode(raw, i); out.extend(v)'
 
+# --- the bounded retry of GitHub READS (R10-FLY-GH-READ-RETRY) --------------
+# Train 8 died on `REFUSE: could not read pull request #2547` after a 2667 s CI
+# wait: one read, no retry, and gh's stderr discarded so the failure's class
+# was lost. A read whose failure a later read can ride out -- a transport error
+# (Go's `Get "https://...": ...`, or gh's `error connecting to`), HTTP 5xx, 429,
+# or a 403 that names the secondary rate limit -- settles and reads again on
+# app_push.sh's read-back rule: 4 reads, settling READ_SLEEP * 3^(n-1), 5/15/45 s.
+# Every other failure -- 401, a permission 403, 404, 422, an unclassified
+# stderr -- refuses after its one call, as before, and so does a read that
+# answers but answers wrong (head moved, no verdict, an owned path): those are
+# judged by the callers, after a COMPLETED read, and never reach this loop. The
+# exhausted budget refuses with the last error kept. Writes (the token mint,
+# the review POST) are never retried: they go through curl, not this.
+READ_TRIES=4
+READ_SLEEP=5
+GH_ERR=""
+
+gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
+  local code
+  code=$(printf '%s\n' "$1" | sed -nE 's/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p' | tail -1)
+  case "$code" in
+    5??|429) return 0 ;;
+    403) printf '%s\n' "$1" | grep -qi 'secondary rate limit'; return ;;
+    ?*) return 1 ;;
+  esac
+  printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
+}
+
+# gh_read <var> <gh api args...>: sets <var> to the answer; on a refusal or a
+# spent budget returns 1 with GH_ERR holding gh's last stderr.
+gh_read() {
+  local _var=$1 _out _ef _try=1 _delay=$READ_SLEEP
+  shift
+  _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }
+  while :; do
+    if _out=$(gh api "$@" 2>"$_ef"); then
+      rm -f "$_ef"; printf -v "$_var" '%s' "$_out"; return 0
+    fi
+    GH_ERR=$(tr '\n' ' ' < "$_ef" | sed 's/ *$//')
+    [ -n "$GH_ERR" ] || GH_ERR="gh failed with nothing on stderr"
+    if ! gh_transient "$(cat "$_ef")" || [ "$_try" -ge "$READ_TRIES" ]; then
+      rm -f "$_ef"
+      [ "$_try" -eq 1 ] || GH_ERR="$GH_ERR (after $_try attempts)"
+      return 1
+    fi
+    printf 'app_approve: read %s/%s of %s: %s; sleeping %ss\n' "$_try" "$READ_TRIES" "${!#}" "$GH_ERR" "$_delay" >&2
+    sleep "$_delay"
+    _delay=$((_delay * 3))
+    _try=$((_try + 1))
+  done
+}
+
 check_pr() { # repo pr sha -> refuses unless open at exactly sha
   local js info state merged head
-  js=$(gh api "repos/$1/pulls/$2") || die "could not read pull request #$2 on $1"
+  gh_read js "repos/$1/pulls/$2" || die "could not read pull request #$2 on $1: $GH_ERR"
   info=$(printf '%s' "$js" | python3 -c 'import sys,json
 d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"]["sha"])') \
     || die "pull request #$2's JSON has no state or head"
@@ -264,11 +316,13 @@ approve() {
   [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
 
   check_pr "$repo" "$pr" "$sha"
-  local verdict vid vurl vline vbody
+  local comments verdict vid vurl vline vbody
+  gh_read comments --paginate "repos/$repo/issues/$pr/comments?per_page=100" \
+    || die "could not read the comments on #$pr: $GH_ERR"
   # The body rides as a fourth line with newlines folded to \x01, so a body
   # with spaces survives the shell round trip whole -- the evidence gate
   # below reads it, not only the first line.
-  verdict=$(gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" | python3 -c "$PAGES_PY"'
+  verdict=$(printf '%s' "$comments" | python3 -c "$PAGES_PY"'
 authors = set(sys.argv[1].split()); uid = int(sys.argv[2])
 vs = [c for c in out
       if (c.get("user") or {}).get("login") in authors and (c.get("user") or {}).get("type") == "Bot"
@@ -281,7 +335,7 @@ else:
     print(c["id"]); print(c["html_url"])
     print(c["body"].split("\n", 1)[0].strip())
     print((c.get("body") or "").replace("\n", "\x01"))' "$VERDICT_AUTHORS" "$VERDICT_AUTHOR_ID") \
-    || die "could not read the comments on #$pr"
+    || die "could not parse the comments on #$pr"
   [ "$verdict" != "NONE" ] \
     || die "no 'Fix review:' verdict on #$pr from the approver App ($VERDICT_AUTHORS, id $VERDICT_AUTHOR_ID); an approval needs 'Fix review: merge $sha'"
   vid=$(printf '%s\n'   "$verdict" | sed -n 1p)
@@ -403,10 +457,10 @@ for m in re.finditer(boundary + r"(~?/[^\s\x60\x22]+)", text, re.MULTILINE):
     || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $evsha"
 
   local owners files owned
-  owners=$(gh api "repos/$repo/contents/.github/CODEOWNERS?ref=main") \
-    || die "could not read .github/CODEOWNERS at ref=main (fail closed)"
-  files=$(gh api --paginate "repos/$repo/pulls/$pr/files?per_page=100") \
-    || die "could not list the files of #$pr (fail closed)"
+  gh_read owners "repos/$repo/contents/.github/CODEOWNERS?ref=main" \
+    || die "could not read .github/CODEOWNERS at ref=main (fail closed): $GH_ERR"
+  gh_read files --paginate "repos/$repo/pulls/$pr/files?per_page=100" \
+    || die "could not list the files of #$pr (fail closed): $GH_ERR"
   owned=$(printf '%s' "$files" | python3 -c "$PAGES_PY"'
 import base64, fnmatch
 text = base64.b64decode(json.loads(sys.argv[1])["content"]).decode()
@@ -530,6 +584,14 @@ python3 -c 'import sys,json,base64; print(json.dumps({"encoding": "base64", "con
 cat > "$W/bin/gh" <<'STUB'
 #!/bin/bash
 printf 'gh %s\n' "$*" >> "$STUB/log"
+# A queued failure: `fail-<read>` holds one gh stderr line per failing call,
+# popped in order; once it is empty the read answers as below.
+case "$*" in
+  "api repos/o/r/pulls/7") q=pulls ;; *comments*) q=comments ;; *CODEOWNERS*) q=codeowners ;; *files*) q=files ;; *) q="" ;;
+esac
+if [ -n "$q" ] && [ -s "$STUB/fail-$q" ]; then
+  head -1 "$STUB/fail-$q" >&2; tail -n +2 "$STUB/fail-$q" > "$STUB/fail-$q.n"; mv "$STUB/fail-$q.n" "$STUB/fail-$q"; exit 1
+fi
 case "$*" in
   "api repos/o/r/pulls/7")
     n=$(grep -c '^gh api repos/o/r/pulls/7$' "$STUB/log")
@@ -567,12 +629,18 @@ case "$url" in
   */installation/token) grep -q 'ghs_STUBTOKEN' "$hdr" || exit 22 ;;
   */repos/o/r/pulls/7/reviews)
     ls -l "$hdr" | cut -c1-10 > "$STUB/tokenmode"; cp "$hdr" "$STUB/tokencopy"; cp "$data" "$STUB/posted.json"
+    if [ -s "$STUB/refuse-post" ]; then cat "$STUB/refuse-post" >&2; exit 22; fi
     if [ -f "$STUB/refuse-post" ]; then echo "curl: (22) The requested URL returned error: 422" >&2; exit 22; fi
     python3 -c 'import sys,json; d=json.load(open(sys.argv[1])); print(json.dumps({"id": 5, "state": "APPROVED", "commit_id": d["commit_id"], "user": {"login": "hpo-approver[bot]"}}))' "$data" ;;
   *) exit 9 ;;
 esac
 STUB
-chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
+# `sleep` only logs, so the retry schedule is read off the log and costs nothing.
+cat > "$W/bin/sleep" <<'STUB'
+#!/bin/bash
+printf 'sleep %s\n' "$*" >> "$STUB/log"
+STUB
+chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl" "$W/bin/sleep"
 
 # The carry's fixture: a real repository whose `origin` is a local bare one,
 # so `git fetch` and the carry run for real and no case reaches the network.
@@ -1032,6 +1100,64 @@ st "$(calls postfail 'curl installation/token')" 1 "the token is revoked after t
 st "$(leftover postfail)" 0 "the private directory is gone after the failed POST"
 st "$(grep -c "$TOKEN" "$W/postfail/tokencopy")" 1 "(the token header file did exist during that POST)"
 st "$(leaks postfail)" 0 "and no token, JWT, key or signature text reached stdout or stderr"
+st "$(calls postfail 'curl repos/o/r/pulls/7/reviews')" 1 "the refused POST was sent exactly once"
+
+# The bounded retry of the GitHub READS (R10-FLY-GH-READ-RETRY). Train 8 died
+# on one unretried read of the pull request after a 2667 s CI wait; a read that
+# fails in transport, 5xx, 429 or a secondary-rate-limit 403 settles 5/15/45 s
+# (app_push.sh's read-back rule) and is read again. Anything else refuses after
+# one call, and no write is ever retried.
+TRANSPORT='Get "https://api.github.com/repos/o/r/pulls/7": net/http: TLS handshake timeout'
+mkcase r502 open false "$SHA" "$GOOD"; echo 'gh: Server Error (HTTP 502)' > "$W/r502/fail-pulls"
+run r502 o/r 7 "$SHA"; st $? 0 "train 8's shape: a 502 on the pull-request read, then an answer, is approved"
+st "$(calls r502 'gh api repos/o/r/pulls/7$')" 3 "the failed read was retried once (2 calls), then the pre-POST re-read (3)"
+st "$(grep -c '^sleep 5$' "$W/r502/log")" 1 "after one settle of 5 s"
+st "$(grep -c 'read 1/4 of repos/o/r/pulls/7: gh: Server Error (HTTP 502); sleeping 5s' "$W/r502/err")" 1 "and the settle is printed, never implied"
+mkcase rtransport open false "$SHA" "$GOOD"; echo "$TRANSPORT" > "$W/rtransport/fail-comments"
+run rtransport o/r 7 "$SHA"; st $? 0 "a transport error on the comments read, then an answer, is approved"
+st "$(calls rtransport 'gh api --paginate repos/o/r/issues/7/comments')" 2 "with exactly 2 calls to that read"
+mkcase r429 open false "$SHA" "$GOOD"; echo 'gh: API rate limit exceeded (HTTP 429)' > "$W/r429/fail-codeowners"
+run r429 o/r 7 "$SHA"; st $? 0 "a 429 on the CODEOWNERS read, then an answer, is approved"
+st "$(calls r429 'gh api repos/o/r/contents/.github/CODEOWNERS')" 2 "with exactly 2 calls to that read"
+mkcase rsecondary open false "$SHA" "$GOOD"
+echo 'gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)' > "$W/rsecondary/fail-files"
+run rsecondary o/r 7 "$SHA"; st $? 0 "a secondary-rate-limit 403 on the files read, then an answer, is approved"
+st "$(calls rsecondary 'gh api --paginate repos/o/r/pulls/7/files')" 2 "with exactly 2 calls to that read"
+mkcase rlast open false "$SHA" "$GOOD"; printf 'gh: HTTP 502\ngh: HTTP 502\ngh: HTTP 502\n' > "$W/rlast/fail-comments"
+run rlast o/r 7 "$SHA"; st $? 0 "three transient failures and an answer on the fourth read, the budget's last, are approved"
+st "$(calls rlast 'gh api --paginate repos/o/r/issues/7/comments')" 4 "with exactly 4 calls to that read"
+
+mkcase r404 open false "$SHA" "$GOOD"; echo 'gh: Not Found (HTTP 404)' > "$W/r404/fail-pulls"
+run r404 o/r 7 "$SHA"; st $? 1 "REFUSE: a 404 on the pull-request read"
+st "$(calls r404 'gh api repos/o/r/pulls/7$')" 1 "after exactly 1 call: no retry masks a refusal"
+st "$(grep -c '^sleep' "$W/r404/log")" 0 "and no settle"
+st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Not Found (HTTP 404)' "$W/r404/err")" 1 "naming the error gh gave"
+st "$(calls r404 curl)" 0 "and nothing was minted or posted"
+mkcase r403 open false "$SHA" "$GOOD"; echo 'gh: Resource not accessible by integration (HTTP 403)' > "$W/r403/fail-files"
+run r403 o/r 7 "$SHA"; st $? 1 "REFUSE: a permission 403 on the files read"
+st "$(calls r403 'gh api --paginate repos/o/r/pulls/7/files')" 1 "after exactly 1 call"
+mkcase r401 open false "$SHA" "$GOOD"; echo 'gh: Bad credentials (HTTP 401)' > "$W/r401/fail-comments"
+run r401 o/r 7 "$SHA"; st $? 1 "REFUSE: a 401 on the comments read"
+st "$(calls r401 'gh api --paginate repos/o/r/issues/7/comments')" 1 "after exactly 1 call"
+mkcase r422 open false "$SHA" "$GOOD"; echo 'gh: Validation Failed (HTTP 422)' > "$W/r422/fail-codeowners"
+run r422 o/r 7 "$SHA"; st $? 1 "REFUSE: a 422 on the CODEOWNERS read"
+st "$(calls r422 'gh api repos/o/r/contents/.github/CODEOWNERS')" 1 "after exactly 1 call"
+st "$(calls moved 'gh api repos/o/r/pulls/7$')" 1 "a readable but wrong head refuses after exactly 1 read"
+st "$(grep -c '^sleep' "$W/moved/log")" 0 "and no settle"
+st "$(calls none 'gh api --paginate repos/o/r/issues/7/comments')" 1 "a readable answer with no verdict refuses after exactly 1 read"
+
+mkcase rspent open false "$SHA" "$GOOD"
+printf 'gh: Server Error (HTTP 500)\n%s\ngh: HTTP 502\ngh: Service Unavailable (HTTP 503) the-last-one\n' "$TRANSPORT" > "$W/rspent/fail-pulls"
+run rspent o/r 7 "$SHA"; st $? 1 "REFUSE: four transient failures spend the budget"
+st "$(calls rspent 'gh api repos/o/r/pulls/7$')" 4 "after exactly 4 calls"
+st "$(grep '^sleep' "$W/rspent/log" | tr '\n' ' ')" "sleep 5 sleep 15 sleep 45 " "settling 5/15/45 s between them"
+st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Service Unavailable (HTTP 503) the-last-one (after 4 attempts)' "$W/rspent/err")" 1 "naming the last error"
+st "$(calls rspent curl)" 0 "and nothing was minted or posted"
+
+mkcase post502 open false "$SHA" "$GOOD"; echo 'curl: (22) The requested URL returned error: 502' > "$W/post502/refuse-post"
+run post502 o/r 7 "$SHA"; st $? 1 "a 502 on the review POST refuses: a write is never retried"
+st "$(calls post502 'curl repos/o/r/pulls/7/reviews')" 1 "after exactly 1 POST"
+st "$(grep -c '^sleep' "$W/post502/log")" 0 "and no settle"
 
 mkcase dry open false "$SHA" "$GOOD"
 run dry --dry-run o/r 7 "$SHA"; st $? 0 "--dry-run passes every refusal"
