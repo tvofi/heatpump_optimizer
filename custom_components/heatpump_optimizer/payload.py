@@ -49,8 +49,10 @@ if TYPE_CHECKING:
 
 # ---------------------------------------------------------------------------
 # The reason fields' vocabulary (``CurrentAction.space_reason`` /
-# ``dhw_reason`` and every plan row's ``reason``): the optimizer writes these
-# codes, the legionella guard and the card read them (item 16).
+# ``dhw_reason`` and every plan row's ``reason``): the optimizer writes the
+# plan-step codes, the coordinator and ``boost.py`` write the whole-action
+# causes below them, and the legionella guard and the card read them (item
+# 16). One vocabulary for both, because the settlement books either kind.
 # ---------------------------------------------------------------------------
 
 REASON_COMFORT_FLOOR = "comfort_floor"
@@ -93,6 +95,49 @@ REASON_MANUAL = "manual_plan"
 #: comfort floor the plan is missing would look for a bug in the optimizer
 #: instead of at the mode selector on the pump. See ``pump_mode.py``.
 REASON_PUMP_MODE = "pump_mode"
+
+#: A channel ran because the user laid a timed boost on it, or selected the
+#: global boost mode: the overlay asked for maximum heat, not the plan. The
+#: settlement books the boosted channel's energy under this code, because the
+#: plan's reason for that step describes what the *plan* wanted — often
+#: nothing — and an idle step carrying a boost's kilowatts is why "Not
+#: heating" was the costliest attribution category (#2256).
+REASON_BOOST = "boost"
+
+#: The user selected the global comfort mode, which commands a fixed share of
+#: nameplate power. Like ``REASON_BOOST`` it is a whole-action cause and not a
+#: plan step's reason; without it that mode's draw booked "untagged".
+REASON_COMFORT_MODE = "comfort_mode"
+
+#: The step-response experiment commanded this interval's draw. The action used
+#: to blank its reason, so the settlement could only say "untagged" about a
+#: draw whose cause it knew exactly (#2256).
+REASON_SYSTEM_IDENTIFICATION = "system_identification"
+
+#: No plan governed this interval's energy: a restart before the first solve, or
+#: a step whose reason says the plan was drawing nothing there while the meter
+#: saw a draw. The token is shipped — it is a ledger line and a receipt
+#: category — so the code keeps its name and gains a constant; a cause that is
+#: known books under its own code, never here.
+REASON_UNTAGGED = "untagged"
+
+#: The codes that say the plan drew NOTHING on the channel at this step:
+#: ``idle`` and its sub-codes, and a channel the pump's mode blocked. The
+#: settlement books a metered draw that lands on one of these as
+#: ``REASON_UNTAGGED`` (#2256): the step's own reason says there was no
+#: planned energy for it to name, so the draw needs a different cause. Every
+#: other code says the plan ran the channel, and explains the channel's draw
+#: whatever the meter's magnitude — a step below the modulation floor is duty
+#: cycling WITHIN it (``thermal_model.planned_draw_runs``), so a reading above
+#: the step's average is the pump's own cycling, not an unplanned draw.
+#:
+#: One owner: the optimizer's classifier, its blocked relabel and the
+#: settlement all read this set, so a new idle sub-code cannot be idle to one
+#: and planned to another.
+IDLE_REASONS = frozenset({
+    REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER, REASON_IDLE_COASTING, REASON_PUMP_MODE,
+})
 
 
 class CurrentAction(TypedDict, total=False):

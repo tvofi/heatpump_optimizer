@@ -1540,6 +1540,7 @@
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/seat/handover_prompt.py",
+   "tools/audit/seat/merge_train.py",
    "tools/audit/seat/plan_table.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/ref_privacy.py",
@@ -3493,6 +3494,7 @@
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
    "dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py",
    "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
+   "dev/audit/harnesses/sav_reasons_booking.py",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/superseded_runs.py",
@@ -4276,7 +4278,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 324.8
+   "seconds": 670.4
   },
   "tests/env_drift.py": {
    "rc": 0,
