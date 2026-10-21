@@ -25,6 +25,8 @@ It is fitted to this programme's `fix-review.md` step 15 and `judge.md`'s rule t
 
 **You do not:** write the design yourself, review code, or re-scope the group.
 
+**Notes for the fixer are findings, not revise points.** An implementation hint, a test to add, or an edge case for the fixer to cover goes into the design note's "Notes for the fixer" section as a carried observation (`Carry: <group> (item <id>)`). The fixer and fix review own it from there. `revise` is only for a defect in the design itself: the owning seam, the shape, the sibling sites, the evidence plan, or the cost. Live: R10-SCORES went 8 → 4 → approve over three rounds, and each round also produced fixer notes. Counting those as revisions would have held it open.
+
 **Decisions are routed, not revised.** A point only the orchestrator or owner can settle (scope, ordering, a product trade-off) is marked `decision: orchestrator` or `decision: owner`. It goes to them in the first round and does not count as a revise point.
 
 **Three notes at most**, as in `fixer.md`'s "past three rounds, re-cut rather than repair". If the third note still draws `revise`, there is no fourth: the designer re-cuts to the minimal shape the fixer can start from, and the remaining points become carries. Live: R10-SCORES took 8, then 4 revise points, at about 20 min per review round.

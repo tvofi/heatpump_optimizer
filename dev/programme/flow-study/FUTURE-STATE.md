@@ -443,3 +443,10 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - BODY-PATCH (#2578) is the fallback, after #2529 and #2580 on the mutants file.
     - #2567's `## Red checks: none` with `nightly-status` red is a real gap. It must be fixed before #2567 merges.
 76. **Design review:** the orchestrator marks owner-only and orchestrator-only points as decisions in its review briefs. SCORES's round 3 is out, and a third `revise` means a minimal re-cut.
+77. **The K14 interim is proven** (#2567: head `4ef1a827` unchanged; the body read back but for one trailing newline). It uses `update_pr.sh`'s private worktree, after clearing a dead-pid lock. "Moved" means the head SHA, not the body bytes. BODY-PATCH is sized as a wrapper around this path.
+78. **Design review: notes for the fixer are findings carried in the note, not revise points.** SCORES went 8 → 4 → approve.
+79. **Revision 18 is final.** The orchestrator completes the transition and the programme autonomously, under mandate 6319294694 (scope all, to 2026-11-04T18:14Z). It covers every owner decision in the plan.
+    - The amendment log on #201 continues the plan, and the resume protocol re-starts a session.
+    - Precedence for conflicts: policy, then rulings, then the prompt, then the pack, then defaults; and the tree beats the text.
+80. **The only physical exception is P2's ruleset PUT.** If the orchestrator's identity lacks admin, P2 is held merge-ready (never merged without the PUT) and the programme completes without it.
+81. **"Programme complete" is defined:** groups merged or deferred, main green and stamped, transition groups landed, CI-layout state, a final measurement comment, the handover refreshed. Then stop; round 11 starts on the owner's word.

@@ -67,3 +67,9 @@ The model's design switches are in `tools/simulate.py`'s header.
 - #2567's red is answered in its body.
 
 **Revision 17 (2026-10-21):** #2567's body fix uses K14's head-preserving path (`app_push.sh` at the exact head), never `update_pr.sh`. Rule 3's exception is corrected.
+
+**Revision 18 (2026-10-21), final:**
+- The prompt opens with "Autonomous completion": authority under the mandate, precedence, the amendment log on #201, the resume protocol, and the completion definition.
+- The K14 interim is proven.
+- Notes for the fixer in design review are findings.
+- The study channel is closed.

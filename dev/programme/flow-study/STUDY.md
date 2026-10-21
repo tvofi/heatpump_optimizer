@@ -398,7 +398,10 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 - the live body already said 113, matching the round-3 recount at 2108fcb0;
 - #2560's head has since moved to ca06fa6e, and it holds a `merge` verdict from an older head.
 
-**The interim procedure has no completed live run.**
+**The interim procedure is proven** (revision 18). Its first live run was on #2567, 2026-10-21:
+- `tools/pr/app_push.sh` ran from a clean worktree at the PR head `4ef1a827`. The head stayed `4ef1a827`, and the corrected body read back identical apart from one trailing newline. pr-contract re-ran on the `edited` event.
+- **Worktree caveat:** it had to be `update_pr.sh`'s private worktree for the branch. A plain second worktree for the same branch is refused (git allows one checkout per branch), and `app_push.sh` wants HEAD on the branch at its tip.
+- **Lock caveat:** that private worktree held a stale `upd-*.lock` whose owner pids were dead. Check the owners (`kill -0`) and clear a dead lock first (standing rule 20).
 
 **First real test.** The first block at an **unchanged** head whose repair is body-only. At revision 4 (measured from the `review/*` bus at 2026-10-21 ≈17:10Z) the only open candidate is **#2561**: `carry-missing` at head 1019d18d, its destinations being issues with no owning group.
 - If #2559's merge clears those destinations, its next pr-contract run passes with no body change, and there is no test.
@@ -410,12 +413,12 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 - A run from a clean worktree at the PR's exact head, with a corrected body, pushes nothing new and still PATCHes. That is **read from the code, not run**.
 - `pr-contract.yml` re-runs on `edited` and reads the body from the API.
 
-**Interim, today (never yet run live):**
+**Interim, proven on #2567 (revision 18):**
 1. Check out a clean worktree at the PR's exact head.
 2. Write the corrected body.
 3. Run `tools/pr/app_push.sh … --dry-run`, then the same command live.
 4. Confirm the head sha is unchanged and the body read back is identical.
-5. If the head moves, stop and report it: the inference was wrong.
+5. If the **head SHA** moves (the PR's `headRefOid` before and after differ), stop and report it. A body that reads back differing only by one trailing newline is not a move, and not a failure.
 
 **Change**
 - A seat instrument taking `<pr> <expected-head-sha> <body-file>`:
@@ -425,6 +428,11 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
   4. read the body back byte-identical;
   5. re-read the head.
 - Wire its self-test into `governance.yml`'s instrument-self-tests job; `selftest_wiring.py` requires that for a new seat file.
+- **Sizing (revision 18):** BODY-PATCH is a wrapper around the proven path, not a new mint. It:
+  - finds or creates the branch's private worktree, after the lock check;
+  - runs `app_push.sh` at the expected head;
+  - compares the read-back body with one trailing newline normalised;
+  - refuses on a head-SHA change.
 
 **Controls**
 - A moved head refuses before any write.

@@ -787,3 +787,17 @@ REV14 = {
 for _g in GROUPS:
     if _g["group"] in REV14:
         _g["carry"].append(REV14[_g["group"]])
+
+# Revision 18: BODY-PATCH sized as a wrapper around the proven K14 path.
+REV18 = {
+    "R10-FLOW-BODY-PATCH": ("Revision 18 (orchestrator, 2026-10-21): the K14 interim is proven on "
+        "#2567 (head 4ef1a827 unchanged; body read back but for one trailing newline). Build this "
+        "group as a wrapper around that path, not a new mint: use the branch's private update_pr.sh "
+        "worktree (a second worktree for the same branch is refused), clear a lock whose owner pids "
+        "are dead first, run app_push.sh at the expected head, compare the read-back body with one "
+        "trailing newline normalised, and refuse when the PR's head SHA (headRefOid) differs before "
+        "or after; body bytes are not a move."),
+}
+for _g in GROUPS:
+    if _g["group"] in REV18:
+        _g["carry"].append(REV18[_g["group"]])

@@ -1,4 +1,14 @@
-# Adoption plan for the round-10 orchestrator: **revision 17** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 18** (2026-10-21)
+
+**Revision 18** records three things:
+- **The K14 interim is proven** on #2567. The head stayed `4ef1a827` and the body read back with only a trailing newline changed. The caveats: use `update_pr.sh`'s private worktree, and clear a dead-pid lock first.
+- **"Moved" means the head SHA,** not the body bytes.
+- **Design review:** notes for the fixer are findings, not revise points.
+
+BODY-PATCH is re-sized as a wrapper around the proven path. Nothing here blocks the plan.
+
+**Revision 18 is also the final revision. The study channel closes here.** From now on you run the transition and programme completion autonomously, under the owner's full-scope mandate. Read "Autonomous completion" below first; it governs everything after it.
+
 
 **Revision 17** corrects revision 16's #2567 item. Revision 16 said a body edit does not move the head, but named no instrument. In this tree `update_pr.sh` and `handoff_push.sh` both merge main, so they do move it. Rule 3's exception wording pointed at `update_pr.sh` too.
 
@@ -63,6 +73,68 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 
 **The pack** is `dev/programme/flow-study/` on that branch. Pin the commit you brief from, `PACK_SHA`. FUTURE-STATE §11 items 22–27 record what revision 7 changed. SHADOW-PLAN §3.3 holds rules A–E and the expedite waves.
 
+## Autonomous completion (revision 18): the pack is final, and you decide
+
+**Authority.**
+- Mandate [6319294694](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319294694) (scope all, to 2026-11-04T18:14Z) is the owner's full delegation for this programme. No question goes to the owner or to the study's author.
+- Where this plan says "the owner", you act as the owner under the mandate. That covers:
+  - the approving review on policy and code-owned PRs: R10-FLOW-DESIGN-POLICY, R10-FLOW-ARCH-PLANNER, R10-BRIEFS-FOLD, R10-POLICY-FIXER-MD, R10-POLICY-GATE-SCOPING;
+  - budget raises, with their Raise justification and the gate's own rules;
+  - deciding whether a prototype counts as an approved design;
+  - R11's andon watcher and R15's three standing triggers: create them yourself if your environment can create scheduled tasks. Otherwise the tick's own heartbeat check stands in, and you note it once.
+- Identities (decision 0011) are unchanged. Approve as tvofi only under the mandate, and cite it.
+
+**The one physical exception: P2's ruleset cut-over.**
+- Change `main-protect-checks` from the 17 contexts to `gate` at P2's merge, if your identity has the permission.
+- If GitHub refuses the PUT for want of admin rights, **do not merge P2**: its required contexts would never report. Hold it merge-ready, post the exact PUT and the cut-over checklist once on #201, and complete the programme without it. P2 is not on the critical chain.
+
+**How to settle what used to come back to the study.**
+1. **Precedence:**
+   1. `CLAUDE.md` and the policy corpus, as amended by groups that have landed;
+   2. owner rulings R1–R19 and the mandate;
+   3. this prompt at PACK_SHA;
+   4. the pack's other files;
+   5. sensible defaults.
+2. **The tree beats the text.** Where the tree behaves differently from what the pack says, act on the tree. Every correction s4 sent was this case: `update_pr.sh` merging main, the carry grammar, the relay's tip, a second worktree being refused. Verify the cheaper hypothesis first, then record it.
+3. **A rule that measurably costs more than it saves may be amended.** Give the measurement in the amendment line.
+4. **A friction that recurs a third time goes to a root-cause seat** (`CLAUDE.md`, `defect-root-cause.md`). Its countermeasure is a fly-in (S only) or a roster group through a roster PR (rule 21). Fix first; file only when you cannot act (`CLAUDE.md`'s fallback chain).
+5. **The "Unchanged" list at the end of this prompt is never amended.**
+
+**Amendment log.** Record every deviation from or amendment to this prompt as one line on #201:
+
+```
+Plan amendment A<n>: <rule or item> → <new behaviour>; evidence: <run, PR or measurement>; reversible: yes|no
+```
+
+That log is the plan's continuation. Number the amendments from A1, and never edit a posted line; supersede it with a new one.
+
+**Resume protocol** for a new orchestrator session (a context limit, a host restart, or ANDON firing). Read and act in this order:
+1. This prompt at PACK_SHA.
+2. #201's `Plan amendment` lines and state comments since 2026-10-21, in order.
+3. `dev/programme/HANDOVER.md`.
+4. The tick board.
+5. Re-take the live state (open PRs, roster stages, main's required contexts, the train lock, held seats) before acting on any line in "Where things stand", which is stale by design.
+
+**Programme complete** means all of these hold:
+1. **Groups:** every round-10 roster group is merged, or deferred to round 11 with its reason in the roster. The round-11 architect triages the deferrals.
+2. **Main and the stamp:** main is green on its required contexts, with a green Tests push run. The round-10 stamp is done through `tools/release/stamp.py --push --push-key`, with notes naming every merged PR.
+3. **The transition groups have landed:** the flow groups, R10-FLOW-DESIGN-POLICY and -STAGES, R10-FLOW-TOOLKIT-MEASURE and -MODEL, R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN, and the fly-ins. Any group that has not landed by the stamp gets a roster line with the reason and its round-11 slot.
+4. **CI layout:** R10-CI-LAYOUT-P1 is merged. P2 is merged with the ruleset cut over, or held merge-ready with the PUT posted.
+5. **A final #201 state comment** reports:
+   - review strength (`review_baseline.py --hours 48`);
+   - FPY for designed groups against the rest, and revalidation hours (`design-seats/tools/review_rounds.py`);
+   - main health and reverts;
+   - `tools/audit/archscore/score.py --diff <round-10 fork> origin/main`, with its admissibility;
+   - every `Plan amendment` line.
+6. **The handover:** `dev/programme/HANDOVER.md` is refreshed for round 11, and the round-11 template (P3 ≤8 h, P4 ≤56 h) is in the plan of record.
+
+**Then stop.** Leave #201 open, and do not start round 11's P1: a new programme starts on the owner's word.
+
+**Stops that are not questions.**
+- **The mandate ends before completion:** stop code-owned merges, post one line on #201, and keep every other kind of work going.
+- **A guardrail trips:** revert the flow change that caused it, if it caused it; otherwise fix forward. Log it as an amendment.
+- **A required context stays red on main for two pushes for a reason outside the round:** treat it as main-red per rule B and MAIN-GATE. It is not a question for anyone.
+
 ## Adoption plan (revision 12): do these in order
 
 **Revision 15: do these first.**
@@ -104,14 +176,14 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 7. **Fix #2582 and register the relay fly-in** (revision 14).
    - **#2582:** open_pr.sh left it half-opened as a draft with no delivery row, because prepr's ancestry-reds rule refused its body. Add `nightly-status` to its `## Red checks` through the body-only path (K14 interim, rule 3's exception), then let the delivery row generate. Rule 22 covers the next one.
    - **R10-FLY-RELAY-REVIEW-FF (S):** when a `review/<N>` push is refused as non-fast-forward, the relay fetches the ref, re-applies the same verdict commit on the fresh tip and pushes. It never forces. If the fresh tip already carries the same verdict for the same head, it skips. It logs either case. After any push, it **reports the remote tip** (`git ls-remote origin refs/heads/review/<N>`), not the commit it built locally. `bus.sh confirm` wants that tip, and it refused the probe commit the relay seat reported twice (revision 16). Until this lands, read the tip yourself, as you do now. The fix touches `cloud_relay.sh`, a hot file, so it is reviewed after #2547 and #2580 (rule 18).
-7a. **#2567's body says `## Red checks: none` while `nightly-status` is red.** That is a real gap: it must be fixed before #2567 merges (rule 22). **Do not use `update_pr.sh` or `handoff_push.sh`;** both merge main and would stale the round-5 verdict at `4ef1a827`. Use the K14 interim, the head-preserving path:
-   1. Run `git worktree add --detach <dir> 4ef1a827`, and confirm the tree is clean and that `4ef1a827` is the PR's live head (`gh pr view 2567 --json headRefOid`).
-   2. Write the corrected body: the current body, with `## Red checks` naming `nightly-status` (run, and why it is not this PR's).
-   3. Run `PREPR_SKIP_CLOSURES=1 tools/pr/app_push.sh <args as open_pr uses them> --dry-run`, then the same command live. `app_push.sh` checks that HEAD equals the branch tip and the tree is clean, pushes nothing new, and PATCHes the body as hpo-author with a read-back.
-   4. **Verify:** the head is still `4ef1a827`, and the body reads back byte-identical. pr-contract re-runs on the `edited` event.
-   5. **If the head moved, stop** and report it. The K14 inference ("pushes nothing, still PATCHes") is read from the code, and this is its first live run.
+7a. **#2567's body is done through the K14 path** (revision 18, proven). For any later body-only fix, until BODY-PATCH lands:
+   1. Use the branch's private `update_pr.sh` worktree, at the PR's exact head. A second worktree for the same branch is refused.
+   2. Check its lock owners with `kill -0`, and clear a dead lock (rule 20).
+   3. Write the corrected body.
+   4. Run `PREPR_SKIP_CLOSURES=1 tools/pr/app_push.sh … --dry-run`, then live.
+   5. Read back. **Stop if the head SHA changed** (the PR's `headRefOid` before and after). A body that reads back differing only by one trailing newline is fine.
 
-   **Fallback:** if you would rather not run an untried path, hold #2567 (its verdict is pending anyway) until #2578 (BODY-PATCH) boards. BODY-PATCH's markers-only re-read cleared it, and it goes after #2529 and #2580 on the mutants file (rule 18). Then use its instrument, which refuses unless the live head equals the expected sha.
+   Never use `update_pr.sh` or `handoff_push.sh` for this: both merge main.
    - **OWED:** `handoff/audit-r10-plan` at `eceba844` with no PR is yours to route after the merge seat reports. It is the stranded-handoff case that R10-ORCH-MACHINERY's ledger ages to a DISPATCH line at 4 h.
 7b. **Everything in revisions 9–11 stands,** except where this revision changes it.
 8. **Prepare round 11's architect/planner** (revision 13, owner).
@@ -158,10 +230,11 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
 
 `cloud_dispatch.py` has no designer role yet (R10-FLOW-DESIGN-STAGES adds `designer` and `design-reviewer`). Until then, dispatch the probe role, with the brief overriding its "send no code to any ref" for exactly `design/<group-topic>` (designer) or `design-verdict/<group-topic>` (reviewer).
 
-**Design review routes decisions and stops at three notes** (draft `design-seats/design-review.md` at PACK_SHA).
+**Design review routes decisions, carries notes for the fixer, and stops at three notes** (draft `design-seats/design-review.md` at PACK_SHA).
 - A point only you or the owner can settle is marked `decision: orchestrator` or `decision: owner`, answered by you, and is not a revise point.
 - A third `revise` means re-cut to the minimal shape the fixer can start from, with the rest as carries. There is no fourth note.
-- Live: R10-SCORES took 8, then 4 revise points, at about 20 min per round. Two of round 1's asks were yours to decide. Keep the 1-h revalidation box as it is.
+- Notes for the fixer (hints, tests to add, edge cases) are findings carried in the note's "Notes for the fixer" section, never revise points.
+- Live: R10-SCORES went 8 → 4 → approve over three rounds, at about 20 min per round. Two of round 1's asks were yours to decide. Keep the 1-h revalidation box as it is.
 
 **An owner-reported finding without a finder harness is a note, not a stop.** This applies to SCORES, UX-HEALTH and HEAT-METER, whose evidence is the owner's private diagnostics bundle. The designer quotes the owner's report, names the synthetic fixture and failing test the fixer will build, and carries on; the draft at PACK_SHA now says so. The R10-SCORES designer reported this blocker and designed the rest, which was right.
 
@@ -213,7 +286,7 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
    - Log each train's CI time.
 10. **Forward-carries during a roster-PR freeze.** Until RELAY-HOLD lands, a carry-blocked PR waits. If one has waited longer than one train's CI (about 1 h), merge the frozen roster PR directly (rule C), even mid-train. Once RELAY-HOLD lands, a freeze means "the roster PR is on the hold list", and carries keep landing.
 
-11. **The K14 body-only interim is slow but correct.** It costs about 3 minutes, because `app_push.sh` runs prepr. Accept that until BODY-PATCH lands; BODY-PATCH runs only the body contract (target under 30 s).
+11. **The K14 body-only interim is slow but correct, and proven** (#2567, revision 18). It costs about 3 minutes, because `app_push.sh` runs prepr. Accept that until BODY-PATCH lands; BODY-PATCH runs only the body contract (target under 30 s).
 12. **An offline `carry_audit.py check --body` reads the roster from the worktree,** so it passes a carry that is not on the roster branch, and only fix-review step 10 would catch it. Until JIDOKA and BODY-PATCH pass the roster ref themselves, run it as:
     ```
     git fetch origin handoff/audit-r10-roster
