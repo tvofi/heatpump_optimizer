@@ -1,7 +1,9 @@
 """The Python-side readers of agreement.mjs, run as their own step.
 
-    python3 -I .claude/workflows/agreement_py.py --out FILE   # writes the JSON
-    python3 -I .claude/workflows/agreement_py.py --run        # writes it, then runs agreement.mjs on it
+    python3 -I tools/policy/agreement_py.py --out FILE   # writes the JSON
+    python3 -I tools/policy/agreement_py.py --run        # writes it, then runs agreement.mjs on it
+    python3 -I tools/policy/agreement_py.py --restore    # the restore precondition alone
+    python3 -I tools/policy/agreement_py.py --self-test
 
 agreement.mjs compares readers of one governance concept (class I4). The
 readers written in Python load production and test code (structure.py,
@@ -10,6 +12,20 @@ stamp.py, delivery_status.py, governance_cost.py). They run here, under
 change a reader it is graded by (codeowners_gap.py reads the interpreter off
 the line that starts the process); agreement.mjs only reads the JSON this
 writes and never names those files.
+
+THE RESTORE PRECONDITION (#2423). Those answers are the base's only if every
+file this reader loads was restored from the base. The wave-script job once
+restored a hand-written list that had drifted, and on a head whose readers
+agreed it read `divergent=2`: the base's reader ran against head copies of
+`tests/delivery_status.py`, `tools/release/stamp.py` and what they load. So the
+list is derived here, from this file's transitive import closure over the
+directories it puts on sys.path plus every file it loads through
+`locate("...")`, and `--out` and `--run` refuse to answer while a pathspec of
+that job's "Restore the check source from the base commit" step misses one
+(the file, a directory above it, or a glob whose `*` stays within one path
+segment). The check lives in this file and not beside it because a program
+added beside a pinned one runs as the pull request's own (governance.yml's
+policy-docs restore note) and is a registry entry the base cannot carry.
 """
 import ast
 import importlib.util
@@ -18,6 +34,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,6 +43,190 @@ sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tools/release")]
 from layout import locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
 # R9-RO-8: D11's library moved under dev/audit/rounds/. locate() names it where it is.
 sys.path.insert(0, str(ROOT / Path(locate("tools/audit/round4/D11/governance_cost.py")).parent))
+
+
+# --- the restore precondition ---------------------------------------------
+WORKFLOW = ".github/workflows/governance.yml"
+JOB = "wave-script"
+# The directories this reader puts on sys.path, then what the modules it loads
+# add: tests/, tools/release/, the D11 library's directory (both layouts),
+# tools/policy/ and tools/audit/seat/ (budget_raise), and tools/seat/.
+SEARCH = ("tools/policy", "", "tests", "tools/release", "tools/audit/seat",
+          "tools/seat", "tools/audit/round4/D11", "dev/audit/rounds/round4/D11",
+          "tools/audit/round6/D11/fix", "dev/audit/rounds/round6/D11/fix")
+
+
+def _resolve(root, mod):
+    for d in SEARCH:
+        p = (root / d / Path(*mod.split("."))).with_suffix(".py")
+        if p.is_file():
+            return p
+    return None
+
+
+def _loads(path):
+    """(module names imported, paths loaded through locate())."""
+    mods, dynamic = set(), []
+    for n in ast.walk(ast.parse(path.read_text())):
+        if isinstance(n, ast.Import):
+            mods.update(a.name for a in n.names)
+        elif isinstance(n, ast.ImportFrom) and n.level == 0 and n.module:
+            mods.add(n.module)
+            # `from sub import nested` may load a module, not an attribute.
+            mods.update(f"{n.module}.{a.name}" for a in n.names)
+        elif (isinstance(n, ast.Call) and getattr(n.func, "id", getattr(n.func, "attr", "")) == "locate"
+              and n.args and isinstance(n.args[0], ast.Constant) and isinstance(n.args[0].value, str)):
+            dynamic.append(n.args[0].value)
+    return mods, dynamic
+
+
+def closure(root, reader):
+    """Every .py file under root that `reader` loads, transitively, sorted."""
+    base, seen, stack = root.resolve(), set(), [reader]
+    while stack:
+        p = stack.pop()
+        try:
+            rel = p.resolve().relative_to(base).as_posix()
+        except ValueError:  # outside the tree: not the job's to restore
+            continue
+        if rel in seen:
+            continue
+        seen.add(rel)
+        try:
+            mods, dynamic = _loads(p)
+        except (OSError, SyntaxError):
+            continue
+        stack += [r for r in map(lambda m: _resolve(root, m), mods) if r]
+        for d in dynamic:
+            q = root / d
+            q = q if q.suffix == ".py" else q.with_suffix(".py")
+            if q.is_file():
+                stack.append(q)
+    return sorted(seen)
+
+
+def restore_specs(text):
+    """The wave-script restore step's pathspecs, as written."""
+    job = re.search(rf"^  {re.escape(JOB)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", text, re.M | re.S)
+    if not job:
+        raise ValueError(f"no `{JOB}` job")
+    step = re.search(r"- name: Restore the check source from the base commit\n(.*?)(?=\n      - |\Z)",
+                     job.group(1), re.S)
+    if not step:
+        raise ValueError("no restore step in the job")
+    listed = re.search(r'"\$PINNED" --(.*?)>\s*"\$RUNNER_TEMP/pinned\.list"',
+                       step.group(1).replace("\\\n", " "), re.S)
+    # Split on the single quote rather than match it with a regex, so this
+    # reader adds no grammar agreement.mjs has to register.
+    specs = listed.group(1).split("'")[1::2] if listed else []
+    if not specs:
+        raise ValueError("the restore step lists no pathspec")
+    return specs
+
+
+def covers(spec, rel):
+    """Git pathspec semantics as far as the restore list uses them: a plain
+    path is the file or a directory above it; a wildcard stays in one segment."""
+    spec = spec.rstrip("/")
+    if not any(ch in spec for ch in "*?["):
+        return rel == spec or rel.startswith(spec + "/")
+    pat = "".join("[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in spec)
+    return re.fullmatch(pat, rel) is not None
+
+
+def restore_check(root, reader):
+    """Print each closure file no restore pathspec covers; 0 when none."""
+    try:
+        files = closure(root, reader)
+        specs = restore_specs((root / WORKFLOW).read_text())
+    except (OSError, ValueError) as e:
+        print(f"agreement_py restore: {e}")
+        return 1
+    missing = [f for f in files if not any(covers(s, f) for s in specs)]
+    for f in missing:
+        print(f"  UNRESTORED {f}: no {JOB} restore pathspec covers it")
+    print(f"agreement_py restore: {len(files)} closure file(s), {len(files) - len(missing)} "
+          f"covered by the {JOB} restore list, {len(missing)} missing")
+    return 1 if missing else 0
+
+
+def self_test():
+    import contextlib
+    import io
+    passed = failed = 0
+
+    def ck(name, ok):
+        nonlocal passed, failed
+        passed, failed = passed + ok, failed + (not ok)
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}")
+
+    def run(root):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = restore_check(root, root / "tools/policy/agreement_py.py")
+        return rc, buf.getvalue()
+
+    def workflow(specs):
+        listed = "".join(f"            '{s}' \\\n" for s in specs)
+        return ("jobs:\n  wave-script:\n    steps:\n"
+                "      - name: Restore the check source from the base commit\n"
+                "        run: |\n"
+                '          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
+                f"{listed}"
+                '            > "$RUNNER_TEMP/pinned.list"\n'
+                "      - name: next\n        run: true\n"
+                "  record:\n    steps:\n      - run: true\n")
+
+    # A reader importing one module directly, one through `from`, and one
+    # through locate(); each loads another, so only the closure -- not a
+    # first-level read -- finds tests/deep.py and tools/release/stamp.py.
+    files = {
+        "tools/policy/agreement_py.py":
+            "import delivery_status\nfrom helper import thing\ndef load():\n    locate('tools/x/dyn.py')\n",
+        "tests/delivery_status.py": "import helper\n",
+        "tests/helper.py": "import deep\n",
+        "tests/deep.py": "from sub import nested\n",
+        "tests/sub/nested.py": "X = 1\n",
+        "tools/x/dyn.py": "import stamp\n",
+        "tools/release/stamp.py": "X = 1\n",
+        "tools/unused.py": "X = 1\n",
+        "tools/dropped.py": "import stamp\n",
+    }
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        for rel, body in files.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(body)
+        ck("the closure is transitive and includes a locate() load, not a file nothing imports",
+           closure(root, root / "tools/policy/agreement_py.py")
+           == ["tests/deep.py", "tests/delivery_status.py", "tests/helper.py", "tests/sub/nested.py",
+               "tools/policy/agreement_py.py", "tools/release/stamp.py", "tools/x/dyn.py"])
+        ck("a wildcard does not cross a slash, and a directory pathspec does",
+           covers("tests/*.py", "tests/deep.py") and not covers("tests/*.py", "tests/sub/deep.py")
+           and covers("tests", "tests/sub/deep.py") and covers("tests/deep.py", "tests/deep.py"))
+        wf = root / WORKFLOW
+        wf.parent.mkdir(parents=True)
+        wf.write_text(workflow(["tests", "tools/policy/agreement_py.py", "tools/x/dyn.py",
+                                "tools/release/stamp.py"]))
+        ck("a list that covers the closure passes (null control)", run(root)[0] == 0)
+        wf.write_text(workflow(["tests/delivery_status.py", "tests/helper.py", "tests/sub/nested.py",
+                                "tools/policy/agreement_py.py", "tools/x/dyn.py", "tools/release/stamp.py"]))
+        rc, out = run(root)
+        ck("a list missing one transitive reader exits 1 and names it",
+           rc == 1 and "UNRESTORED tests/deep.py" in out)
+        wf.write_text(workflow(["tests/*.py", "tools/policy/agreement_py.py", "tools/x/dyn.py",
+                                "tools/release/stamp.py"]))
+        rc, out = run(root)
+        ck("a wildcard pathspec over tests/ does not cover a nested file",
+           rc == 1 and "UNRESTORED tests/sub/nested.py" in out)
+        wf.write_text("jobs:\n  record:\n    steps:\n      - run: true\n")
+        ck("a workflow with no wave-script job is refused, not read as covered", run(root)[0] == 1)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = main(["--out", str(root / "ag.json")], root=root, reader=root / "tools/policy/agreement_py.py")
+        ck("and --out refuses to answer on it (the precondition, not a report)",
+           rc == 1 and not (root / "ag.json").exists())
+    print(f"agreement_py self-test: {passed + failed} checks, {failed} failed")
+    return 1 if failed else 0
 
 
 def git(*args):
@@ -189,7 +390,16 @@ def budget_raise():
     return out
 
 
-def main(argv):
+def main(argv, root=ROOT, reader=Path(__file__).resolve()):
+    if argv == ["--self-test"]:
+        return self_test()
+    if argv == ["--restore"]:
+        return restore_check(root, reader)
+    if not (argv == ["--run"] or argv[:1] == ["--out"] and len(argv) == 2):
+        print(__doc__)
+        return 2
+    if restore_check(root, reader):
+        return 1  # the precondition: an answer from unrestored readers is no verdict
     data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs(),
             "budget_raise": budget_raise()}
     if argv[:1] == ["--out"] and len(argv) == 2:
@@ -205,8 +415,6 @@ def main(argv):
             return subprocess.run(["node", str(ag), "--py-json", str(out)], cwd=ROOT).returncode
         finally:
             out.unlink(missing_ok=True)
-    print(__doc__)
-    return 2
 
 
 if __name__ == "__main__":
