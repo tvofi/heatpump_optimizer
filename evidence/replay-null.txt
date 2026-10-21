@@ -1,3 +1,0 @@
-replay: 609 samples every 15 min judged, 2026-10-15T00:00Z..2026-10-21T08:00Z; verdict arm n/a (refs overwritten)
-WINDOWS opener: 0 sample(s) stopped in 0 window(s): 
-WINDOWS state-beat: 0 sample(s) stopped in 0 window(s): 

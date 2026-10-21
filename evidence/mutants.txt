@@ -1,38 +1,14 @@
-RESULT M0 null: exit=0 fails=0 last='pulse self-test: 21 checks, 0 failed' err=''
-RESULT M1 backlog->True: exit=1 fails=4 last='pulse self-test: 17 checks, 4 failed' err=''
-    FAIL the 10-21 shape: a backlog older than the last opening is counted, not a stop
-    FAIL a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
-    FAIL the same handoff with an opening after it arrived is ok
-    FAIL the summary line counts the arms
-RESULT M2 consumed->presence: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL a verdict whose pull request merged or whose head moved is consumed
-RESULT M3 oldest->max: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL the state-beat age is the oldest main move the state ref has not followed
-RESULT M4 state None arm: exit=1 fails=0 last='  ok   unreadable inputs read UNREADABLE on every arm, never ok' err='TypeError: '>' not supported between instances of 'NoneType' and 'int''
-RESULT M5 unread last: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL an unread last opening is UNREADABLE, never ok
-RESULT M6 skew guard: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL a stamp ahead of the clock is never aged and is named skew
-RESULT M7 exit2: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
-RESULT R8 opener bound dropped: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL inputs younger than their bounds are ok on every arm
-RESULT R9 verdict bound->any: exit=1 fails=6 last='pulse self-test: 15 checks, 6 failed' err=''
-    FAIL null control: a healthy board is ok on all three arms
-    FAIL a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
-    FAIL main moved 60 min ago, the state ref did not follow: state-beat STOPPED, the rest ok
-    FAIL inputs younger than their bounds are ok on every arm
-    FAIL perturbation: a --verdict-h above the verdict's age reads it ok
-    FAIL --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
-RESULT R10 state st<mt dropped: exit=1 fails=5 last='pulse self-test: 16 checks, 5 failed' err=''
-    FAIL null control: a healthy board is ok on all three arms
-    FAIL the 10-21 shape: a beat that died with the train is not blamed while main is still
-    FAIL a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
-    FAIL --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
-    FAIL the summary line counts the arms
-RESULT R11 orphans rc check: exit=0 fails=0 last='pulse self-test: 21 checks, 0 failed' err=''
-RESULT R12 summary-line check: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL bus.sh rc 0 with no summary line is UNREADABLE
-RESULT R13 state bound->any: exit=1 fails=1 last='pulse self-test: 20 checks, 1 failed' err=''
-    FAIL inputs younger than their bounds are ok on every arm
-RESULT R14 verdict unreadable: exit=1 fails=0 last='  ok   an unread last opening is UNREADABLE, never ok' err='TypeError: 'NoneType' object is not iterable'
+== M0-null
+pulse self-test: 22 checks, 0 failed
+rc=0
+== M8-rc-clause
+  FAIL bus.sh rc 2 or more is UNREADABLE even beside a summary line
+pulse self-test: 21 checks, 1 failed
+rc=0
+== M1-backlog
+  FAIL the 10-21 shape: a backlog older than the last opening is counted, not a stop
+  FAIL a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
+  FAIL the same handoff with an opening after it arrived is ok
+  FAIL the summary line counts the arms
+pulse self-test: 18 checks, 4 failed
+rc=0
