@@ -5418,9 +5418,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-handover-refresh",
-    "commit": null,
+    "commit": "302f665711fb5c0c20f6d7c0be2cb1180217b875",
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-21",
     "note": null
