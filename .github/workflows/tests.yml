@@ -2886,16 +2886,23 @@ jobs:
         run: |
           set -euo pipefail
           M="$RUNNER_TEMP/metrics"; mkdir -p "$M"
-          # This run's three lanes, by name, from this run.
-          for lane in fast coverage closures; do
+          # The lanes that upload a ci-metrics-<lane> artifact.
+          LANES="fast coverage closures"
+          # This run's lanes, by name, from this run.
+          for lane in $LANES; do
             gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \
               --dir "$M" || echo "no ci-metrics-$lane artifact this run"
           done
           # The recent window: the newest ci-metrics artifact per lane per
-          # run of the last 15 runs that are not this one, whatever their
-          # event -- the scoping metric reads pull_request runs, the push
-          # counts read push runs, and every line carries its own event and
-          # run id, so the ratchet groups them itself.
+          # run, for each lane's last 15 runs that are not this one, whatever
+          # their event -- the scoping metric reads pull_request runs, the
+          # push counts read push runs, and every line carries its own event
+          # and run id, so the ratchet groups them itself.
+          # Listed lane by lane, by name: with ~18,000 artifacts in the
+          # repository the unfiltered listing answers HTTP 500 with an empty
+          # body (main's ci-ratchet red from run 39585970262, 2026-10-21),
+          # so a failed listing fails this step -- never `|| true`, which
+          # handed json.load an empty window.json.
           # The run association is read as .workflow_run.id with a .run_id
           # fallback: the artifacts list API stopped returning .run_id
           # (null for every artifact, 2026-10-12), which left the old
@@ -2904,16 +2911,19 @@ jobs:
           # over a null run collapsed the window to one artifact per
           # name, double-counting this run's lanes (96 = 63 + 33 on the
           # first grade). Both must stay null-safe.
-          gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[]
-                   | select(.name | startswith("ci-metrics-"))
-                   | select(.expired == false)
-                   | select((.workflow_run.id // .run_id // 0)
-                            != ($ENV.GITHUB_RUN_ID | tonumber))
-                   | {id: .id, run: (.workflow_run.id // .run_id),
-                      name: .name, at: .created_at}]
-                  | sort_by(.at) | reverse
-                  | unique_by(.run, .name)' > "$RUNNER_TEMP/window.json" || true
+          : > "$RUNNER_TEMP/lanes.json"
+          for lane in $LANES; do
+            gh api "repos/${{ github.repository }}/actions/artifacts?name=ci-metrics-$lane&per_page=100" \
+              --jq '[.artifacts[]
+                     | select(.expired == false)
+                     | select((.workflow_run.id // .run_id // 0)
+                              != ($ENV.GITHUB_RUN_ID | tonumber))
+                     | {id: .id, run: (.workflow_run.id // .run_id),
+                        name: .name, at: .created_at}]
+                    | sort_by(.at) | reverse | unique_by(.run)
+                    | sort_by(.at) | reverse | .[:15]' >> "$RUNNER_TEMP/lanes.json"
+          done
+          jq -s add "$RUNNER_TEMP/lanes.json" > "$RUNNER_TEMP/window.json"
           python3 - "$RUNNER_TEMP/window.json" "$M" <<'EOF'
           import json, os, subprocess, sys, zipfile
           window, out = sys.argv[1], sys.argv[2]

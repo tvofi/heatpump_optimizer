@@ -33424,6 +33424,101 @@ R.check(
     "control)",
 )
 
+# R10-FLY-CI-RATCHET-WINDOW: every main push run from 39585970262 (2026-10-21)
+# was red on ci-ratchet with a JSONDecodeError. With ~18,000 artifacts in the
+# repository, GitHub answers the unfiltered artifacts listing with an HTTP 500
+# and an empty body; `|| true` swallowed it and handed json.load an empty
+# window.json. The step now lists each lane by name and lets a failed listing
+# fail the step. Pinned by running the step's own `run:` text under a stub
+# `gh` that answers 500 to an unfiltered listing, as GitHub does; the lanes
+# come from the workflow's own ci-metrics upload names.
+_CRW_STEPS = (_yaml.safe_load(_TESTS_YML)["jobs"]["ci-ratchet"]["steps"])
+# Rendered as Actions renders it; any other expression would reach bash raw.
+_CRW_RUN = next(s["run"] for s in _CRW_STEPS
+                if s.get("name", "").startswith("Gather this run's")
+                ).replace("${{ github.repository }}", "o/r")
+_CRW_LANES = sorted(
+    s["with"]["name"].removeprefix("ci-metrics-")
+    for job in _yaml.safe_load(_TESTS_YML)["jobs"].values()
+    for s in job.get("steps") or []
+    if str(s.get("uses", "")).startswith("actions/upload-artifact")
+    and str((s.get("with") or {}).get("name", "")).startswith("ci-metrics-"))
+_CRW_GH = r'''#!/usr/bin/env python3
+import io, json, os, subprocess, sys, zipfile
+a = sys.argv[1:]
+if a[:2] == ["run", "download"]:
+    sys.exit(0)
+url = a[1]
+if url.endswith("/zip"):
+    art = url.split("/")[-2]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr(f"ci-metrics-{art}.tsv", "row\n")
+    sys.stdout.buffer.write(buf.getvalue())
+    sys.exit(0)
+with open(os.environ["CRW_LOG"], "a") as fh:
+    fh.write(url + "\n")
+query = dict(p.split("=", 1) for p in url.split("?", 1)[1].split("&"))
+if "name" not in query or os.environ.get("CRW_FAIL_ALL"):
+    print("gh: Server Error (HTTP 500)", file=sys.stderr)
+    sys.exit(1)
+lane = query["name"].removeprefix("ci-metrics-")
+arts = [{"id": f"{lane}{run}", "name": query["name"], "expired": False,
+         "workflow_run": {"id": run}, "run_id": None,
+         "created_at": f"2026-10-21T10:{run:02d}:00Z"}
+        for run in range(1, 21)]
+body = json.dumps({"total_count": len(arts), "artifacts": arts})
+sys.exit(subprocess.run(["jq", a[a.index("--jq") + 1]],
+                        input=body, text=True).returncode)
+'''
+
+
+def _crw_run(fail_all: bool) -> tuple[int, str, list[str], list[str]]:
+    """The gather step under the stub: (rc, stderr, listing URLs it asked
+    for, window files it extracted)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "bin").mkdir()
+        (d / "bin" / "gh").write_text(_CRW_GH)
+        (d / "bin" / "gh").chmod(0o755)
+        res = _subprocess.run(
+            ["bash", "-c", _CRW_RUN],
+            env={**_os.environ, "PATH": f"{d / 'bin'}:{_os.environ['PATH']}",
+                 "RUNNER_TEMP": str(d), "GITHUB_RUN_ID": "20",
+                 "GITHUB_REPOSITORY": "o/r", "CRW_LOG": str(d / "log"),
+                 "CRW_FAIL_ALL": "1" if fail_all else ""},
+            capture_output=True, text=True, timeout=120)
+        log = ((d / "log").read_text().splitlines()
+               if (d / "log").is_file() else [])
+        files = sorted(p.name for p in (d / "metrics").glob("w*.tsv")) \
+            if (d / "metrics").is_dir() else []
+        return res.returncode, res.stderr, log, files
+
+
+_CRW_OK = _crw_run(fail_all=False)
+_CRW_WANT = sorted(f"w{lane}{run}-ci-metrics-{lane}{run}.tsv"
+                   for lane in _CRW_LANES for run in range(5, 20))
+R.check(
+    "the ci-ratchet window lists each upload lane by name, newest 15 runs "
+    "each, this run excluded",
+    _CRW_LANES == sorted(("fast", *_cir.LANES)) and "${{" not in _CRW_RUN
+    and _CRW_OK[0] == 0
+    and sorted(u.split("name=")[1].split("&")[0] for u in _CRW_OK[2])
+    == [f"ci-metrics-{lane}" for lane in _CRW_LANES]
+    and _CRW_OK[3] == _CRW_WANT,
+    f"upload lanes={_CRW_LANES}, ratchet lanes={sorted(('fast', *_cir.LANES))}; "
+    f"rc={_CRW_OK[0]} listings={_CRW_OK[2]} files={_CRW_OK[3]} "
+    f"stderr={_CRW_OK[1][-400:]!r}",
+)
+_CRW_BAD = _crw_run(fail_all=True)
+R.check(
+    "a failed artifacts listing stops the gather step before the window is "
+    "read, naming the HTTP status (every listing answered 500)",
+    _CRW_BAD[0] != 0 and "HTTP 500" in _CRW_BAD[1]
+    and "Traceback" not in _CRW_BAD[1] and _CRW_BAD[3] == [],
+    f"rc={_CRW_BAD[0]} files={_CRW_BAD[3]} stderr={_CRW_BAD[1][-400:]!r}",
+)
+
 
 def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
     """coverage_tree.sh's reuse plan and floor re-validation under a stub
