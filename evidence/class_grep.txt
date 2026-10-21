@@ -1,0 +1,5 @@
+head:
+rc=1
+6684dee65:
+6684dee65:tools/audit/seat/cloud_dispatch.py:232:                   roster_ref: str = roster_lib.MAIN_REF, head: str = "", pr: str = "", nonce: str = "",
+6684dee65:tools/audit/seat/cloud_dispatch.py:443:    ap.add_argument("--roster-ref", default=roster_lib.MAIN_REF)
