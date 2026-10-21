@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 and the per-file ids (body_patch-1) each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
@@ -102,6 +102,10 @@ MUTANTS = [
     ("S34", "tick_loop.sh",
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
+    ("body_patch-1", "body_patch.sh",
+     '[ "$rbok" = 1 ] || die "#$pr could not be read back',
+     '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

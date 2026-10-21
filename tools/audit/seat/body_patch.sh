@@ -23,6 +23,11 @@
 #      identical to <body.md> modulo ONE trailing newline (GitHub appends one;
 #      app_push.sh's measured rule). A completed read that differs refuses at
 #      once; a read that could not be performed retries (3 reads, 2 s apart).
+# The contract runs the CALLER's checkout (its policy_lint, carry_audit and
+# roster), where pr-contract runs the base's policy_lint on the PR tree's
+# carry_audit; policy_lint's red-history walk reads only with GITHUB_TOKEN or
+# GH_TOKEN set, else it prints `skip red-history`. An offline pass can
+# therefore differ from pr-contract's.
 # The PATCH sets `body` only: it cannot move the head. `pr-contract` re-runs on
 # the `edited` event and reads the body from the API.
 #
@@ -67,7 +72,7 @@ if live != head:
     print("stale %s" % live); sys.exit(0)
 want = open(f).read(); got = d.get("body") or ""
 def eq1(a, b):
-    return a == b or (a.endswith("\n") and a[:-1] == b) or (b.endswith("\n") and b[:-1] == a)
+    return a == b or (a.endswith("\n") and a[:-1] == b) or (b.endswith("\n") and b[:-1] == a) # mut:eq1
 print("ok" if eq1(got, want) else "body")' "$1" "$2"
 }
 
@@ -78,8 +83,8 @@ contract() { # pr-json base head body -> rc
   local d; d=$(mktemp -d "${TMPDIR:-/tmp}/body_patch.XXXXXX") || return 1
   title=$(printf '%s' "$doc" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("title") or "")') || return 1
   author=$(printf '%s' "$doc" | python3 -c 'import sys, json; print((json.load(sys.stdin).get("user") or {}).get("login") or "")') || return 1
-  git diff --no-renames --name-only "$base...$head" > "$d/files" || { rm -rf "$d"; return 1; }
-  git diff --no-renames --name-only --diff-filter=a "$base...$head" > "$d/existing" || { rm -rf "$d"; return 1; }
+  git diff --no-renames --name-only "$base...$head" > "$d/files" || { rm -rf "$d"; return 1; } # mut:threedot
+  git diff --no-renames --name-only --diff-filter=a "$base...$head" > "$d/existing" || { rm -rf "$d"; return 1; } # mut:existing
   # One --red per name, as pr-contract passes them; a failed listing is a
   # refusal (an empty list read from a failed fetch is "no reds").
   gh api --paginate "repos/$REPO/commits/$head/check-runs" --jq '.check_runs[]
@@ -152,20 +157,23 @@ patch_body() {
     || die "the body PATCH on #$pr was refused; set the body by hand from $body"
 
   # 5. read it back: body identical, head unmoved.
-  local attempt=1 out
-  while :; do
+  # Only a read that says `ok` sets rbok; the OK line is printed past the
+  # guard alone, so exhausting the retries can never fall through to it.
+  local attempt=1 out rbok=0
+  while [ "$attempt" -le "$RB_TRIES" ]; do
     if out=$(curl -fsS -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr" 2>/dev/null); then
       v=$(printf '%s' "$out" | verdict "$expect" "$body")
       case "$v" in
-        ok) break ;;
+        ok) rbok=1; break ;;
         body) die "#$pr's body read back is not identical to $body modulo one trailing newline" ;; # mut:readback
         stale\ *) die "#$pr's head is now ${v#stale }, not $expect: the head moved around the write" ;; # mut:rbhead
         bad\ state=*) die "#$pr read back as ${v#bad }" ;;
       esac
     fi
-    [ "$attempt" -lt "$RB_TRIES" ] || die "#$pr could not be read back within $RB_TRIES attempts; re-read it by hand"
-    sleep "$RB_SLEEP"; attempt=$((attempt + 1))
+    attempt=$((attempt + 1))
+    [ "$attempt" -le "$RB_TRIES" ] && sleep "$RB_SLEEP"
   done
+  [ "$rbok" = 1 ] || die "#$pr could not be read back within $RB_TRIES attempts; re-read it by hand" # mut:rbexhaust
   printf 'body_patch: OK: #%s body patched and read back identical; head %s unmoved\n' "$pr" "$expect"
 }
 
@@ -191,14 +199,18 @@ cp "$SELF" "$W/tool/audit/seat/body_patch.sh"; cp "$HERE/../../pr/app_mint.sh" "
 printf '424242\n' > "$W/id/hpo-author.appid.txt"
 printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' > "$W/id/hpo-author.pem"
 # A real repository: base, then the head (adds b.txt), and a third commit the
-# "moved" head points at (adds c.txt), so a moved head is a real object.
+# "moved" head points at (adds c.txt), so a moved head is a real object. The
+# head edits a base file (a.txt) and adds one (b.txt); the base then moves on
+# (d.txt) off the same parent, so base is NOT an ancestor of the head.
 . "$HERE/../../../tests/throwaway_git.sh" # the one way a script builds a throwaway repository
 throwaway_git_init "$W/repo" -q
 ( cd "$W/repo" && throwaway_git_env \
   && echo a > a.txt && git add . && git commit -qm base && git rev-parse HEAD > "$W/base.sha" \
-  && echo b > b.txt && git add b.txt && git commit -qm head && git rev-parse HEAD > "$W/head.sha" \
-  && echo c > c.txt && git add c.txt && git commit -qm moved && git rev-parse HEAD > "$W/moved.sha" ) >/dev/null 2>&1
-BASE=$(cat "$W/base.sha"); HEAD=$(cat "$W/head.sha"); MOVED=$(cat "$W/moved.sha")
+  && echo a2 > a.txt && echo b > b.txt && git add a.txt b.txt && git commit -qm head && git rev-parse HEAD > "$W/head.sha" \
+  && echo c > c.txt && git add c.txt && git commit -qm moved && git rev-parse HEAD > "$W/moved.sha" \
+  && git checkout -q --detach "$(cat "$W/base.sha")" \
+  && echo d > d.txt && git add d.txt && git commit -qm main-moved && git rev-parse HEAD > "$W/base2.sha" ) >/dev/null 2>&1
+BASE=$(cat "$W/base2.sha"); HEAD=$(cat "$W/head.sha"); MOVED=$(cat "$W/moved.sha")
 printf '## Head\n\n`%s`\n\nthe corrected body, 113\n' "$HEAD" > "$W/body.md"
 
 cat > "$W/prjson.py" <<'PY'
@@ -254,9 +266,13 @@ case "$url" in
       python3 "$STUB/../prjson.py" store "$STUB/live.json" "$data"
     else
       n=$(cat "$STUB/get-n" 2>/dev/null || echo 0); n=$((n + 1)); printf '%s' "$n" > "$STUB/get-n"
+      # rbfail: every token read after the pre-write one cannot be performed
+      [ -f "$STUB/rbfail" ] && [ "$n" -ge 2 ] && exit 22
       # move-at-<n>: the n-th token read finds the head moved (1 = before the write, 2 = after it)
       if [ -f "$STUB/move-at-$n" ]; then
         python3 "$STUB/../prjson.py" get "$STUB/live.json" | python3 -c 'import sys, json; d = json.load(sys.stdin); d["head"]["sha"] = sys.argv[1]; print(json.dumps(d))' "$(cat "$STUB/../moved.sha")"
+      elif [ -f "$STUB/spaces" ] && [ "$n" -ge 2 ]; then
+        python3 "$STUB/../prjson.py" get "$STUB/live.json" | python3 -c 'import sys, json; d = json.load(sys.stdin); d["body"] = d["body"] + "  \n"; print(json.dumps(d))'
       elif [ -f "$STUB/mangle" ] && [ "$n" -ge 2 ]; then
         python3 "$STUB/../prjson.py" get "$STUB/live.json" | python3 -c 'import sys, json; d = json.load(sys.stdin); d["body"] = "edited by someone else\n"; print(json.dumps(d))'
       else
@@ -304,7 +320,8 @@ l3=$(grep -n '^curl GET repos/o/r/installation$' "$W/ok/log" | head -1 | cut -d:
 if [ "$l1" -lt "$l2" ] && [ "$l2" -lt "$l3" ] && [ "$l3" -lt "$l4" ]; then ORD=ordered; else ORD="head=$l1 lint=$l2 mint=$l3 patch=$l4"; fi
 st "$ORD" ordered "live head read, then the contract, then the mint, then the PATCH (#678's ordering)"
 st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check"
-st "$(cat "$W/ok/paths")" "b.txt" "its paths are what the head changes against the base (three-dot): b.txt, not the later c.txt"
+st "$(cat "$W/ok/paths")" "$(printf 'a.txt\nb.txt')" "its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt"
+st "$(cat "$W/ok/existing")" "a.txt" "its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt"
 st "$(grep -c "^carry_audit check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body"
 st "$(calls ok 'curl DELETE installation/token')" 1 "the installation token is revoked on exit"
 st "$(leftover ok)" 0 "the private directory is gone"
@@ -352,6 +369,14 @@ mkcase mangle; : > "$W/mangle/mangle"
 run mangle "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: the body read back is not the body sent"
 st "$(grep -c '^body_patch: OK' "$W/mangle/out")" 0 "and no OK line"
 st "$(calls mangle 'curl GET repos/o/r/pulls/7')" 2 "a completed mismatch is not retried (pre-write read plus one read-back)"
+mkcase spaces; : > "$W/spaces/spaces"
+run spaces "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: the body read back differs only in trailing whitespace beyond the one newline"
+st "$(grep -c '^body_patch: OK' "$W/spaces/out")" 0 "and no OK line"
+mkcase rbfail; : > "$W/rbfail/rbfail"
+run rbfail "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: no read-back can be performed (retry exhaustion)"
+st "$(grep -c '^body_patch: OK' "$W/rbfail/out")" 0 "and no OK line: a body never read back is not reported patched"
+st "$(grep -c 'could not be read back within 3 attempts' "$W/rbfail/err")" 1 "naming the reason"
+st "$(calls rbfail 'curl GET repos/o/r/pulls/7')" 4 "after the pre-write read and exactly 3 read-back attempts"
 mkcase refuse; : > "$W/refuse/refuse-patch"
 run refuse "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: GitHub refuses the PATCH"
 st "$(calls refuse 'curl DELETE installation/token')" 1 "(the token is revoked on a refusal too)"
@@ -377,8 +402,12 @@ mutant head   '/# mut:head$/s/.*/:/'
 mutant prew   '/# mut:prewrite$/s/.*/:/'
 mutant lint   '/# mut:contract$/s/.*/:/'
 mutant carry  '/# mut:carry$/s/.*/:/'
-mutant rb     '/# mut:readback$/s/.*/        body) break ;;/'
-mutant rbhead '/# mut:rbhead$/s/.*/        stale\\ *) break ;;/'
+mutant rb     '/# mut:readback$/s/.*/        body) rbok=1; break ;;/'
+mutant rbhead '/# mut:rbhead$/s/.*/        stale\\ *) rbok=1; break ;;/'
+mutant rbx    '/# mut:rbexhaust$/s/.*/:/'
+mutant eq1    '/# mut:eq1$/s/.*/    return a.strip() == b.strip()/'
+mutant exist  '/# mut:existing$/s/--diff-filter=a //'
+mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }
 mkcase m1 "$MOVED"; run m1 "$(MBP head)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$([ "$(calls m1 curl)" -gt 0 ] && echo minted)" minted "MUTANT head check deleted: the moved-head control now MINTS (the pre-write re-read still stops the write), so the control catches it"
@@ -392,6 +421,15 @@ mkcase m5; : > "$W/m5/mangle"; run m5 "$(MBP rb)" --repo o/r 7 "$HEAD" "$W/body.
 st "$rc$(grep -c '^body_patch: OK' "$W/m5/out")" 01 "MUTANT body read-back deleted: a mangled body now reads OK"
 mkcase m6; : > "$W/m6/move-at-2"; run m6 "$(MBP rbhead)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
 st "$rc$(grep -c '^body_patch: OK' "$W/m6/out")" 01 "MUTANT head re-read deleted: a head moved around the write now reads OK"
+
+mkcase m7; : > "$W/m7/rbfail"; run m7 "$(MBP rbx)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
+st "$rc$(grep -c '^body_patch: OK' "$W/m7/out")" 01 "MUTANT retry-exhaustion guard deleted: a body never read back now reads OK"
+mkcase m8; : > "$W/m8/spaces"; run m8 "$(MBP eq1)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
+st "$rc$(grep -c '^body_patch: OK' "$W/m8/out")" 01 "MUTANT read-back equality relaxed to strip(): a whitespace-only difference now reads OK"
+mkcase m9; run m9 "$(MBP exist)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(cat "$W/m9/existing")" "$(printf 'a.txt\nb.txt')" "MUTANT --diff-filter=a dropped: the existing list now holds the added file (the ok-run assertion catches it)"
+mkcase m10; run m10 "$(MBP dot2)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(cat "$W/m10/paths")" "$(printf 'a.txt\nb.txt\nd.txt')" "MUTANT two-dot diff: the paths now hold the base's own d.txt (the ok-run assertion catches it)"
 
 echo "body_patch self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
