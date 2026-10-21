@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 67836d0a7..e7d9c500c 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -101,7 +101,7 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
+     sleep 0.1
+     n=$((n + 1))
+   done
+-  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done
++  for p in "${PR_REAP_PIDS[@]}"; do :; done
+   return 0
+ }
+ pr_signal_exit() { # <status>: a stop signal -- reap the tree, then end the shell

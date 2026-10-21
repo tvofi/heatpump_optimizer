@@ -1,0 +1,10 @@
+MUTANT updfg: pr_args self-test: 62 checks, 2 failed
+      FAIL update_pr: TERM reaps the whole descendant tree, and the pusher is gone
+      FAIL update_pr: after the stop the lock is free, so the next run takes it
+AMUTANT traps: app_push self-test: 135 checks, 0 failed 
+   pr_args: pr_args self-test: 62 checks, 0 failed
+AMUTANT preprfg: FAIL naming the state the read answered (got '0', want '1') FAIL zero retries, zero settles: one read, no sleeping (got '0', want '10') app_push self-test: 135 checks, 59 failed 
+   pr_args: pr_args self-test: 62 checks, 0 failed
+AMUTANT exitreap: app_push self-test: 135 checks, 0 failed 
+   pr_args: pr_args self-test: 62 checks, 0 failed
+HEAD app_push: ok   the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles) app_push self-test: 135 checks, 0 failed 

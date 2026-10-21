@@ -1,0 +1,7 @@
+pr-contract job 119202885071 (started 2026-10-21T11:46:20Z, after the last workflow concluded 11:41:51Z) and push-time job 119182994704, both at c071fa5f37abdac0da2284547b9282549eb4d607, fail at the same step:
+python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md
+UNROUTED body item 7ccf959f (## Forward-carry) [section]: 'none -- no finding here changes how a later stage must work.'
+UNROUTED body item 2fae73cd (## Friction) [section]: '- daemonize-instrument: cost: ...'
+UNROUTED body item 979aedf2 (## Friction) [section]: '- entity-classification: unenforced: ...'
+CARRY-AUDIT: 3 finding item(s): 0 routed, 3 unrouted, 0 bad destination(s)
+##[error]Process completed with exit code 1.

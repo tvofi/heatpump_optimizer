@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index ece65e776..d1029283c 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -13,7 +13,6 @@
+ [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
+   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
+ PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
+-trap 'pr_reap' EXIT  # a run that ends with anything of its own still live ends it too
+ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+ # The open-PR soft cap (pr_cap.py; tvofi, 2026-10-18): --over-cap "<reason>" first overrides it.
+ OVER=; OVER_SET=; if [ "${1:-}" = --over-cap ]; then [ $# -ge 2 ] || pr_refuse "--over-cap needs a reason"; OVER=$2; OVER_SET=1; shift 2; fi

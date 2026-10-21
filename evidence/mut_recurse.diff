@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 67836d0a7..31b30a373 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -80,7 +80,7 @@ pr_descendants() { # <pid>: append every live descendant to PR_REAP_PIDS, a pare
+   local k
+   for k in $(pgrep -P "$1" 2>/dev/null); do
+     PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$k
+-    pr_descendants "$k"
++    :
+   done
+ }
+ pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never a group

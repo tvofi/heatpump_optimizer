@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index ece65e776..d6e4bd4ab 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -44,7 +44,7 @@ E0
+ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+ # Asynchronous, so a TERM interrupts the `wait` and pr_args.sh reaps the tree: a
+ # trap is deferred while a foreground child runs (pr_args.sh's why).
+-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
++PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || pr_push_failed $D/p1.log; true
+ pr_wait $! $D/p1.log
+ N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+ gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true

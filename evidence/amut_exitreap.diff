@@ -1,0 +1,13 @@
+diff --git a/tools/pr/app_push.sh b/tools/pr/app_push.sh
+index 0feaa444e..49480f1b5 100644
+--- a/tools/pr/app_push.sh
++++ b/tools/pr/app_push.sh
+@@ -404,7 +404,7 @@ push_and_open() {
+ 
+   umask 077
+   PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
+-  trap 'cleanup; pr_reap' EXIT
++  trap cleanup EXIT
+   # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
+   chmod 700 "$PRIV"
+   b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }

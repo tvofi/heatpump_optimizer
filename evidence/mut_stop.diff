@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 67836d0a7..c4512180d 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -85,7 +85,6 @@ pr_descendants() { # <pid>: append every live descendant to PR_REAP_PIDS, a pare
+ }
+ pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never a group
+   case $2 in ''|0|1|*[!0-9]*) return 0 ;; esac
+-  kill -"$1" "$2" 2>/dev/null || :  # mut:stop
+ }
+ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a bounded grace
+   local p alive n=0
