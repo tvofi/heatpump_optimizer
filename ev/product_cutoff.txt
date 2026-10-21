@@ -1,0 +1,3 @@
+L1 product True, all verdicts: [2368, 2445, 2463, 2465, 2488, 2511, 2527, 2529]
+L1 product True, verdicts <15:24Z: [2368, 2445, 2463, 2465, 2488, 2511, 2527]
+differs 2529 {'origin': 'none', 'fixer': 'none', 'size': 'L>=600', 'product': True} {'origin': 'none', 'fixer': 'none', 'size': 'L>=600', 'product': False} [('2026-10-21 10:51:39+00:00', 'blocked', '38ec7c60f'), ('2026-10-21 12:56:52+00:00', 'blocked', '044edcc2b'), ('2026-10-21 18:50:50+00:00', 'merge', '8f026328d')]
