@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S30 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
@@ -92,6 +92,16 @@ MUTANTS = [
     ("S28", "offline_spy.py", "and bool(URL_RE.search(parts[2])))", "and False)"),
     ("S29", "selftest_wiring.py", 'return [COMMENT_RE.sub("", x) for x in out]', "return out"),
     ("S30", "selftest_wiring.py", "return 1 if unwired else 0", "return 0"),
+    # r10-tick-relay-decouple: the relay runs detached under a lock, and the board never waits on it.
+    ("S31", "tick_loop.sh", '  if kill -0 "$hp" 2>/dev/null; then rrc=running; return 0; fi  # mut:detach\n', ""),
+    ("S32", "tick_loop.sh", "except BlockingIOError: sys.exit(75)\n", "except BlockingIOError: pass\n"),
+    ("S33", "tick_loop.sh",
+     '    [ "$rrc" = rc=holder-76 ] && { relay_reap "$out.relay" late; relay_start "$out.relay" "$relay"; }  # mut:reap\n',
+     ""),
+    # The base's serial relay step (0cc148b2f), the loop the fix replaced.
+    ("S34", "tick_loop.sh",
+     '    relay_start "$out.relay" "$relay"\n    # 76:',
+     '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
