@@ -1,0 +1,3 @@
+RESULT pngs_opened_by_arm=10 inert_except_pngs=10 closure_pngs_doc_claims=10
+RESULT opened==inert_except: True  opened==closure: True
+RESULT tracked_docs_img_png= 28
