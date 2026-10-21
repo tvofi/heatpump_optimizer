@@ -204,6 +204,7 @@ MUTANTS = [
     ("P-tsep", 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{3,}")', 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{4,}")'),
     ("P-fentry", '`?[A-Za-z0-9_./#-]+`?\\s*:\\s*`?[a-z-]+`?\\s*:")', '`?[A-Za-z0-9_./#-]+`?\\s*:")'),
     ("P-verdict-sha", '[0-9a-f]{7,40}\\b")', '[0-9a-f]{40}\\b")'),
+    ("P-later-compound", '|\\blater\\b(?!-)|', '|\\blater\\b|'),
     ("P-ev-word", 'EVIDENCE_HEADING = re.compile(r"evidence\\b", re.I)', 'EVIDENCE_HEADING = re.compile(r"evidence", re.I)'),
     ("P-block", 'BLOCK_HEADING = re.compile(r"\\bblock", re.I)', 'BLOCK_HEADING = re.compile(r"\\bblocked", re.I)'),
     # the patterns: the marker grammar's anchors and quantifiers

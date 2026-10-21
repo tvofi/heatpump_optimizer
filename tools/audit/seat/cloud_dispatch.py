@@ -93,7 +93,15 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
             f"exactly `Fix review: merge {head}` or `Fix review: blocked {head} <class>: <reason>` (no brackets; "
             f"the class is lower-case letters and dashes), in the format the role file gives, "
-            f"then a blank line, then `bus-nonce: {nonce}`; put the evidence in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head "
+            f"then a blank line, then `bus-nonce: {nonce}`, then the body in sections. A blocked verdict's "
+            f"block goes under `## Block`. Each finding this PR does not settle (a defect, a surviving "
+            f"mutant, a deferral, a follow-up, a task owed after the merge) is its own bullet under "
+            f"`## Findings` ending in its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>` "
+            f"(finding-propagation.md). Everything else (RESULT lines, re-runs, CI state, figures you "
+            f"could not re-derive) goes under `## Evidence`: tools/audit/carry_audit.py reads no item there "
+            f"as a finding unless it hands something on (later, deferred, follow-up, advisory, minor, "
+            f"residual, still has to ...), and the merge train parks a verdict holding a finding with no "
+            f"`Carry:`. Put the evidence files in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head "
             f"`{head}` (e.g. `ev/HEAD.txt` holding the head you reviewed, beside your command output): "
             f"bus.sh refuses a verdict whose `ev/` names no head. Do NOT run "
             f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
@@ -210,6 +218,9 @@ def self_test() -> int:
           head in msg and "abc123" in msg and "probe/rev-7-abc123" in msg and "bus-nonce: abc123" in msg)
     check("the reviewer is told a file under ev/ must contain the full head (bus.sh push-verdict requires it)",
           "file under `ev/` contain the full 40-hex head `" + head + "`" in msg and "ev/HEAD.txt" in msg)
+    check("the reviewer is told to separate findings, each with its own Carry:, from evidence",
+          "`## Findings` ending in its own `Carry: " in msg and "goes under `## Evidence`" in msg
+          and "`## Block`" in msg)
     check("the reviewer is given the unbracketed first-line grammar",
           "blocked " + head + " <class>: <reason>" in msg and "[class: reason]" not in msg)
     check("the prompt builds no repository (throwaway_git.py --check refuses a raw init)",

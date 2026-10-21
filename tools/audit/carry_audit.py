@@ -100,7 +100,7 @@ TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:)", re.I)
 # item opening with LEAD, under a lead, or saying DEFERRED anywhere.
 EVIDENCE_LINE = re.compile(r"^\W*(?:Evidence:|RESULT\b)", re.I)
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
-DEFERRED = re.compile(r"\bdeferred\b|follow-?up|\blater\b|out of scope|not fixed here|known[- ]open"
+DEFERRED = re.compile(r"\bdeferred\b|follow-?up|\blater\b(?!-)|not owed here|out of scope|not fixed here|known[- ]open"
                       r"|distinct finding|residual|caveat|observation|advisory|\bminor\b|secondary note"
                       r"|owed to the record|still (?:has|have|needs?) to", re.I)
 # The words a seat uses for "this is not done here". LEAD keys an item's first
@@ -904,7 +904,9 @@ def _self_test() -> int:
                      for w in ("deferred", "a follow-up", "later", "out of scope", "not fixed here", "known-open",
                                "a distinct finding", "residual", "a caveat", "an observation", "advisory",
                                "minor", "a secondary note", "owed to the record", "still has to",
-                               "still have to", "still needs to")]
+                               "still have to", "still needs to", "not owed here")]
+    item_grammar += [("a later-stage compound is no deferral", head,
+                      verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
     for name, text, comments, want in item_grammar:
         got = sorted((x["why"], x["status"]) for x in run(text, comments)["rows"])
         check(f"items: {name}", got == sorted(want))
