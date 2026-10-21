@@ -65,8 +65,8 @@ Cheaper detector: this PR adds one. `entities.py` (fast lane, every PR that touc
 
 ## Forward-carry
 
-none: the finding changes no later stage's brief. The roster row R10-FLY-CI-RATCHET-WINDOW is the orchestrator's to register.
+n/a: the finding changes no later stage's brief. The roster row R10-FLY-CI-RATCHET-WINDOW is the orchestrator's to register.
 
 ## Friction
 
-- gate-scoping: cost: a seat's `seat_venv.sh` requires Python 3.14.7, which `uv` cannot download in this cloud container ("No download found for request: cpython-3.14.7-linux-x86_64-gnu"); I measured on a 3.13 venv from the same hash-pinned `tests/requirements-ci.txt`. Carry: dev/programme/HANDOVER.md
+- gate-scoping: cost: a seat's `seat_venv.sh` requires Python 3.14.7, which `uv` cannot download in this cloud container ("No download found for request: cpython-3.14.7-linux-x86_64-gnu"); I measured on a 3.13 venv from the same hash-pinned `tests/requirements-ci.txt`. Carry: dismissed: cloud container lacks the Python 3.14.7 download, environment limit not a repo defect (item f8d1e900)
