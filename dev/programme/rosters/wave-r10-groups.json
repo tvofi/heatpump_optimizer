@@ -5220,7 +5220,9 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "\u00a71's first cause, the board replaying level lines as history, is the live defect `R10-TICK-OWED-LEVEL`'s brief in `dev/programme/rosters/wave-r10-groups.json` states. Its grammar must agree with the ledger's when that lands. Carry: R10-TICK-OWED-LEVEL (from #2545)"
+   ],
    "architect_note": "",
    "brief": "Found 2026-10-21 by the orchestrator: the tick board replays cloud_relay.sh's whole OWED history. The relay re-appends a timestamped level line (handoff-no-pr, probe-ref) for every undisposed ref on every pass, by design, and orchestrator_tick.py prints every OWED line with no later POSTED, so the log reached 35214 lines (about 281 distinct kind/ref pairs) and the board 4.5 MB with a dispatch list of 35317, which hid owed work. Fix: one owner of the log grammar treats level kinds as a level (newest pass, minus disposed ref+sha) and one-shot kinds as events; the board prints each currently-owed item once. Control: a single-pass log prints the same count before and after; a multi-pass log prints the distinct current set after. INSTRUMENTS.md entries for both instruments stay true in the same diff.",
    "resume": {
