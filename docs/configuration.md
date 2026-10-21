@@ -20,7 +20,7 @@ the integration from planning.
 
 ## Initial setup
 
-**Settings → Devices & services → Add integration → Heat Pump Optimizer.**
+**Settings → Devices & services → Add integration → Heat Pump Cost Optimizer.**
 
 The flow is not a straight line. After the two required screens, a menu asks
 how far to go now, and after the temperatures a second branch chooses how the
@@ -40,7 +40,7 @@ flowchart TD
     T --> C{"5 · How do you want to<br/>describe your building?"}
     C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    C -- "Enter thermal values<br/>directly" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
     F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
     H --> I
@@ -161,7 +161,7 @@ on, and a fresh install should not be given a two-zone model it did not ask
 for. If your house does have two independently modelled floors, turn it on
 afterwards on **Advanced settings → Thermal model (expert)**.
 
-**Enter thermal values directly (expert)** is for someone holding a real energy
+**Enter thermal values directly** is for someone holding a real energy
 declaration. It asks the model's own numbers:
 
 | Setting | Default | Range | What it means |
