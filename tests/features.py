@@ -18926,6 +18926,35 @@ R.check(
     f"scale {_nf_day._house_heat_loss_scale}",
 )
 
+
+def _nf_samples_after(dt_s):
+    """House heat-loss samples one dark interval of ``dt_s`` seconds folds."""
+    import homeassistant.util.dt as _dt_mod
+
+    c = _vent_coord()
+    observed = c._current_state.room_temperature
+    c._thermal_model.simulate_step = lambda prev, power, outdoor, **kw: (
+        _dc_replace(prev, room_temperature=observed + 0.3))
+    c._current_state.solar_radiation = 0.0
+    real_now = _dt_mod.now
+    try:
+        for t in (_T4, _T4 + timedelta(seconds=dt_s)):
+            _dt_mod.now = lambda t=t: t
+            _asyncio.run(c._async_learn_house_heat_loss())
+    finally:
+        _dt_mod.now = real_now
+    return c._house_heat_loss_samples
+
+
+# The one range check #2223 folded the two one-sided dt guards into keeps
+# both bounds inclusive, as the pair was: 0.15 h and 1.5 h each fold.
+_nf_dt = {s: _nf_samples_after(s) for s in (539, 540, 5400, 5401)}
+R.check(
+    "#2223: the house fold's interval window is inclusive at both bounds",
+    _nf_dt == {539: 0, 540: 1, 5400: 1, 5401: 0},
+    f"samples by interval seconds {_nf_dt}",
+)
+
 _nf_ap = _vent_coord(solar_aperture_learning_enabled=True)
 _feed_residual(_nf_ap, 0.4, 8, _T4, sun=[600.0] * 8)
 R.check(
