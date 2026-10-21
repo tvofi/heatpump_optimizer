@@ -1,0 +1,16 @@
+## structure
+
+STRUCTURE RATCHET PASSED
+## harness_headers
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+## archscore
+Architecture score: dS +0.0000 NULL
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since e9febe6224ea
+## harness_headers
+ALL 109 HARNESS HEADER CHECKS PASSED
+## closure selftest
+ALL 124 closure shrink pins PASSED
+## env_drift claims-only
+claims hygiene: origin/main ok

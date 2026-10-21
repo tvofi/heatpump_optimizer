@@ -1,0 +1,4 @@
++2866 28:            gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \
++2866 39:          # so a failed listing fails this step -- never `|| true`, which
++2866 51:            gh api "repos/${{ github.repository }}/actions/artifacts?name=ci-metrics-$lane&per_page=100" \
++2866 86:          gh api "repos/${{ github.repository }}/actions/workflows/tests.yml/runs?event=push&branch=main&per_page=8"
