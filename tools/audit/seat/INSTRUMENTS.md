@@ -370,7 +370,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   that measures the whole board — train liveness, stale queue entries, log/rc
   tail, prepr slots; per open PR the latest check-run per name, reds unanswered
   in `## Red checks`, missing delivery rows, moved verdicts with no carry,
-  BLOCKED, DIRTY with the conflicted files `git merge-tree` names (the
+  BLOCKED, DIRTY with the conflicted files `git merge-tree` names under
+  GitHub's merge, no local driver run (the
   claimnotes repair only when all are claim files; a content conflict goes
   back to its fixer), NOT REVIEWABLE at a head whose required context
   concluded red, zero-run heads, absent required contexts, twin heads, claim

@@ -121,11 +121,28 @@ MUTANTS = [
      "if files and any(f in claim_files for f in files):"),
     ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
     ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
+    ("merge_train-12", "merge_train.py",
+     '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
+     '    drivers = []\n'),
+    ("merge_train-13", "merge_train.py",
+     'return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]', "return []"),
+    ("merge_train-14", "merge_train.py", " or (code == 1) != (len(lines) > 1):", ":"),
+    ("merge_train-15", "merge_train.py", "            if m.group(1) not in reran.values():\n",
+     "            if True:\n"),
+    ("merge_train-16", "merge_train.py",
+     '            if runs is None:\n                self.log(f"OVERLAP:',
+     '            if False:\n                self.log(f"OVERLAP:'),
+    ("merge_train-17", "merge_train.py", "    if code not in (0, 1):\n        return None\n    names",
+     "    if False:\n        return None\n    names"),
+    ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
+     "        if False:\n            raise Stop(\"build\""),
     ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
     ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
     ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
+    ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

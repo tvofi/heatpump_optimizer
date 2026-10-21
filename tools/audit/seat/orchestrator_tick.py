@@ -3145,6 +3145,22 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
             total, failed = total + a, failed + f
+        # PRS (d): a pull request's head is judged on PR_ONLY too: a red
+        # pr-contract, read live from the ruleset, is not reviewable (null
+        # control: the same head with pr-contract green).
+        for concl, want in (("failure", True), ("success", False)):
+            t = tick(prs=[pr_obj(74, H1)], required_names=("tests", "pr-contract"),
+                     runs_at={H1: [run_obj("tests"), run_obj("pr-contract", conclusion=concl),
+                                   run_obj("codeql", conclusion="failure")]},
+                     bodies={74: "## Red checks\n\npr-contract: x\ncodeql: x\n"})
+            req = t.required("PRS")
+            t.one_pr("PRS", pr_obj(74, H1), None, req)
+            nr = [x["text"] for x in t.findings if x["text"].startswith("#74: NOT REVIEWABLE")]
+            a, f = check(f"K15 (d) PRS PR_ONLY pr-contract {concl}", [
+                ("the ruleset's PR_ONLY context is not among the main-graded names", req == ["tests"]),
+                (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
+                 (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
+            total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
         claim = CLAIM_FILES[0]
@@ -3162,6 +3178,48 @@ def self_test() -> int:
                 ("claimnotes only for claim files alone",
                  ("claimnotes" in dirty[0]) == (label == "claim files only") if dirty else False)])
             total, failed = total + a, failed + f
+
+        # PRS (c) against real git, through the tick's own Tick.git: a clone
+        # with the claimnotes driver installed (claim-files.md: every clone),
+        # which resolves a notes-only claim conflict GitHub reports DIRTY and
+        # prints MERGE-CLAIM to stderr.
+        tg = _module("throwaway_git_tick", "tests/throwaway_git.py")
+        for label, files, want in (
+                ("claim files only, driver installed", {claim: "# claims-for: 1\n# c\n"}, "claimnotes driver"),
+                ("content and claim, driver installed",
+                 {claim: "# claims-for: 1\n# c\n", "roster_edit.py": "c\n"},
+                 f"content conflict in roster_edit.py, {claim}: back")):
+            with tempfile.TemporaryDirectory() as d:
+                env = tg.throwaway_git_init(d, "-q", "-b", "main")
+
+                def rg(*argv):
+                    return subprocess.run(["git", *argv], cwd=d, env=env, capture_output=True, text=True).stdout
+
+                def commit(fs: dict, msg: str) -> None:
+                    for f, text in fs.items():
+                        (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                        (Path(d) / f).write_text(text)
+                    rg("add", "-A")
+                    rg("commit", "-qm", msg)
+
+                rg("config", "merge.claimnotes.driver",
+                   f"{sys.executable} {ROOT / 'tests/env_drift.py'} --merge-claim-file %O %A %B %L %P")
+                rg("remote", "add", "origin", d)
+                commit({claim: "# claims-for: 1\n", "roster_edit.py": "0\n",
+                        ".gitattributes": f"{claim} merge=claimnotes\n"}, "base")
+                rg("checkout", "-qb", "pr", "main")
+                commit(files, "pr")
+                rg("checkout", "-q", "main")
+                commit({claim: "# claims-for: 1\n# m\n", "roster_edit.py": "m\n"}, "main")
+                head = rg("rev-parse", "pr").strip()
+                t = tick(prs=[pr_obj(73, head, ms="DIRTY")], runs_at={head: [run_obj("tests")]}, checkout=d)
+                t._git = None  # the real runner, stdout and stderr as Tick.git reads them
+                t.one_pr("PRS", pr_obj(73, head, ms="DIRTY"), None, ["tests"])
+                dirty = [x["text"] for x in t.findings if x["text"].startswith("#73: mergeable state DIRTY")]
+                a, f = check(f"K15 (c) DIRTY real git, {label}", [
+                    ("one DIRTY line naming the classification", len(dirty) == 1 and want in dirty[0]),
+                    ("no MERGE-CLAIM line read as a file", not any("MERGE-CLAIM" in x for x in dirty))])
+                total, failed = total + a, failed + f
 
         # ---- D. non-standard conclusions ----
         for concl, want in (("cancelled", True), ("failure", False)):
