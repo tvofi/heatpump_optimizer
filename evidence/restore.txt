@@ -1,0 +1,2 @@
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+rc=0
