@@ -33,7 +33,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
   failing the contract check never reaches the remote. `--row-only`
-  (`update_pr.sh`'s) replaces prepr with the body contract only when the head
+  (`update_pr.sh`'s) replaces prepr with pr-contract's two body checks (the
+  contract, its red history read with prepr 7c's credential, and
+  `carry_audit.py check`) only when the head
   is the live head plus one commit adding exactly that PR's own open row and
   the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
@@ -453,7 +455,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `merge_train.required`), an unmergeable pull request and a head
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
-  every guard and touches nothing.
+  every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
+  `--mandate <comment-id>`, and refuses at launch without one.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
