@@ -1,0 +1,56 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             9fdc5846afe72a5edbd90a4c86cf92f74e62020c
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       heavy slot             taken slot=0 label=prepr-85715 expires_at=2026-10-21T02:55:39.320866+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 9fdc5846afe7
+  ok       pinned graders         
+  ok       self-test              303 passed, 0 failed
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 9fdc5846afe72a5edbd90a4c86cf92f74e62020c ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures or fast red predicted against 9fdc5846afe7 (a data-file read is not seen)
+  ok       no-copies              closure: no test file defines a symbol production also defines
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 9fdc5846afe7
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             4:both
+             6:every
+             11:each
+             16:all
+             28:all
+             39:both
+             41:no ignore is
+             53:every
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             3 of 11
+             10306 s
+             24 s
+             1 of 84
+             0.0000%
+             0.0000%
+             1 of 84
+             1 of 113
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-seats/r10s3/r10-sav-reasons-review/seat/body.md -- no budget leaf raised over 9fdc5846a...3449af66f
+  ok       figures                FIGURES: 10 resolved, 13 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  skip     push order             HEAD is detached, so no branch of this repository is the pull request's head
+  skip     ancestry reds          HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head
+
+PRE-PR: 3449af66fe527a9681f4308d732a236bc9f2fbd7 00000000000000000000000000
