@@ -1,0 +1,114 @@
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=1
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=1
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=1
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=samegroup A_rc=0 B_rc=0 commits=1
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=samegroup A_rc=0 B_rc=0 commits=1
+RUN A rc=0 reported_on_origin=NO edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=shared kind=samegroup A_rc=0 B_rc=0 commits=1
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=diffgroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.4BYDyFm1Ol/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.4BYDyFm1Ol/origin.git
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=diffgroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.rUfEJuNJuI/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.rUfEJuNJuI/origin.git
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=diffgroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.PhEKyU6JWh/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.PhEKyU6JWh/origin.git
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=samegroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.k44xTD60RS/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.k44xTD60RS/origin.git
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=samegroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.M8kwdzf3xj/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.M8kwdzf3xj/origin.git
+RUN A rc=2 reported_on_origin=none edit_on_origin=no
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=separate kind=samegroup A_rc=2 B_rc=0 commits=1
+  note| roster_edit: REFUSED: git -C /tmp/tmp.BwQZjjTPDt/wtA push -q origin handoff/roster (in .) failed: To /tmp/tmp.BwQZjjTPDt/origin.git
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=samegroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=samegroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5d433771a mode=solo kind=samegroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 3f1d8a774a85 -> 82aa53350371 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved decc80909df4 -> 7376961308eb under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved d9a557f96b66 -> 046276def33b under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 433614d21958 -> d24351c6e285 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 558ba28301bd -> 89bef326e1dd under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=shared kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 13ce7aeb4ff1 -> f92c5506e092 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved ae202f2f54d0 -> 657e4078786a under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 0895391e0397 -> e75114281786 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=diffgroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 0b3ca1922f07 -> d3a072079f57 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 49ed8bcad95a -> af3e0c206653 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved f049824f5e50 -> 32903888da11 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=separate kind=samegroup A_rc=0 B_rc=0 commits=2
+  note| roster_edit: lost a race: origin/handoff/roster moved 68006af9d9b9 -> 9e9daea00cbe under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=diffgroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=samegroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=samegroup A_rc=0 B_rc=- commits=1
+RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
+RESULT tree=5ffbaaaeb mode=solo kind=samegroup A_rc=0 B_rc=- commits=1

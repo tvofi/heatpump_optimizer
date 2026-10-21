@@ -1,0 +1,5 @@
+pushed edit-r9 at b936b519a55359a0b56c1db2b3d1829d4b3709bb
+roster_edit: REFUSED: --roster-path nope.json is not a file at /tmp/hpo-fr8-selftest-gs74thb3/wt5
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at /tmp/hpo-fr8-selftest-gs74thb3/wt6; pass --roster-path or --roster-ref
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-gs74thb3/drv3; pass --roster-path or --roster-ref
+roster_edit self-test: 76 checks, 0 failed

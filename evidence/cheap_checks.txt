@@ -1,0 +1,5 @@
+ref_privacy self-test: 66 checks, 0 failed
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 5d433771aa88
+layout rc=0
+ModuleNotFoundError: No module named 'voluptuous'
+STRUCTURE RATCHET PASSED
