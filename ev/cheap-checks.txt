@@ -1,0 +1,78 @@
+head 10f85c3ee7065d31230e292d7438e105efb9ff57 mb 5a755f53efda8c099af7d6a98fb0b22828a0593c
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+rc=0
+tests/entities.py
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Price entity is empty
+Unknown DSO catalog product not_a_swedish_dso_2026; not writing
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
+Failed to publish ECL110 displace command: mqtt unreachable
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Config entry version 8 is newer than the supported version 7; downgrade is not supported
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/home/user/heatpump_optimizer/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+gate_lock: waiting for the lease held by other until 2026-10-21 22:28:59.138231+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:28:59.781263+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:28:59.781263+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:28:59.781263+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:29:01.491092+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:29:02.195743+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:29:02.702782+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:29:02.702782+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 22:29:03.313887+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 22:29:03.517232+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 22:29:03.517232+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 22:29:03.923201+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 22:29:03.923201+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 22:27:04.304387+00:00)
+gate_lock: waiting for the lease held by seat until 2026-10-21 22:29:18.464133+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+ci-ratchet: artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+ci-ratchet: artifacts fetch attempt 2/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+ALL 2382 ENTITY CHECKS PASSED
+rc=0
+claims hygiene: 5a755f53efda8c099af7d6a98fb0b22828a0593c ok
+rc=0
+ALL 124 closure shrink pins PASSED
+rc=0
+layout self-test: ok
+rc=0
+ALL 109 HARNESS HEADER CHECKS PASSED
+rc=0
+STRUCTURE RATCHET PASSED
+rc=0
+Architecture score: dS +0.0000 NULL
+rc=0
+564:        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+nightly-filter-rc=1
+release-files-above
