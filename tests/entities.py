@@ -22710,6 +22710,9 @@ _INERT_TOOL_HOMES = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
+    # The schedule model and its measured durations: run by hand at a wave
+    # edge, read by no gate script (closure.py lists it as an inert home).
+    "tools/plan/",
 )
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
