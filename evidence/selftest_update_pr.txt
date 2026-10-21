@@ -58,7 +58,8 @@ delivery_row self-test: 5 checks, 0 failed
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha '1ed1af6' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha 'd86f89d' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 57 checks, 0 failed
+rc=0

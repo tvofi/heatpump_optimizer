@@ -1,64 +1,71 @@
-Fix review: blocked f16956542b2c4470de5a3e12fc843f97cef1840e mutation-survivor: W11 (row-only (c) drops its one-row conjunct) survives the self-test; a two-line row file skips prepr
+Fix review: blocked 54bf182104e450c0ac2e6eb007da59b9315e0565 carry-missing: not carried to R10-POLICY-FIXER-MD
 
-Reviewed head: f16956542b2c4470de5a3e12fc843f97cef1840e (re-read from the PR after CI concluded: unchanged). Review round: 2 by this PR's comments (one prior verdict, on 93015eca); the brief calls it round 3.
-Role file current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty. Worktree detached at the head.
-Evidence in ev/: HEAD.txt, mutants.py + mut.sh + mutants_result.txt, w11_demo.sh + w11_demo.txt, body_checks.txt, check_runs.tsv, merge_tree.txt, selftest_*.txt, pr_body_at_review.md.
+Reviewed head: 54bf182104e450c0ac2e6eb007da59b9315e0565, re-read from the PR at 2026-10-21T15:22Z and unchanged. This is review round 4, so `fixer.md` owes a re-cut, not a repair (fix-review.md). The cause here is in the roster, not the code.
+Role file is current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty. I worked from a detached worktree at the head.
+There is no roster group for R10-ROW-ONLY-UPDATE on origin/handoff/audit-r10-roster (2c76c3128) or on origin/main, so I reviewed against the PR body, as the earlier verdicts did.
+Evidence in ev/: HEAD.txt, head_reread.txt, mutants.py, mut.sh, mutants_result.txt, selftest_*.txt, body_checks.txt, forward_carry.txt, class_rule.txt, figures*.txt, merge_tree.txt, check_runs*.tsv and pr_body_at_review.md.
 
 ## Blocking
 
-1. **W11 survives: (c)'s "one row" conjunct is unpinned.** I deleted `len(ls) == 1 and ` from row_only_verdict's row read, so a row file with the open #N row on line 1 and any further lines passes (c). Result: `app_push self-test: 179 checks, 0 failed`.
-   - The body says (c) is "That file is one row", and "The row lint is (c)", so (c) is what replaces prepr's row lint on the skip. No arm drives a multi-line row file.
-   - ev/w11_demo.txt runs the production row_only_verdict against real git with a two-line 7.md: at the head it prints `... is not one open row anchored on #7`, rc=1. Under W11 it prints `prepr SKIPPED`'s reason, "one open row for #7", rc=0.
-   - This is the same shape as round 1's W4 (an unpinned conjunct of (c)). Missing test: a row file of two lines, the first the open anchored #7 row, must run prepr. The stub arm (`rocase` with a two-line `row`) and the real-git arm (`ensure_row` then append a line, amend) each kill it.
+1. **The forward-carry is not in the tree (step 10, finding-propagation.md "Enforcement").**
+   - The body's `## Forward-carry` records a finding that changes a later stage: prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's "body passes prepr" gate is not pr-contract's body gate. It routes the finding with `Carry: R10-POLICY-FIXER-MD`.
+   - That group on the roster branch (origin/handoff/audit-r10-roster at 2c76c3128bf6d4e0cf37488eb8d29af830df54a0) is `not-started` with 5 carries. None mentions carry_audit or #2567. `git log -S'carry_audit.py check'` on the roster file finds no commit (ev/forward_carry.txt). The same group on origin/main is the same.
+   - The body names no roster file or branch SHA for the carry.
+   - So the finding is recorded only in this PR, which is the case step 10 blocks. The precedent shows the expected shape: #2447's Forward-carry into this same group is in its `carry` array ("Source: #2447 ...").
+   - The marker passes `carry_audit.py check`, which proves only that the group exists, not that the carry landed.
+   - The fix: write the carry into R10-POLICY-FIXER-MD's `carry` on the roster branch. State the precondition (prepr runs `carry_audit.py check --body` beside step 7, or step 5 names it beside prepr) and the control (this PR's three pr-contract reds on 947d3631/93015eca, which prepr passed). Then name the roster SHA in the body.
+   - No code change is needed. Everything below holds at this head.
 
-## The four items of the previous block, at this head
+## Verified at this head
 
-1. W4 (open-status): killed. 2 failed (`oclosed`, `real git: a row anchored on #7 that is not open runs prepr`).
-2. W7 (row-only head pin): killed. 1 failed (`romoved`: got 018, want 100).
-3. pr-contract body: both pr-contract runs at this head are success (119272289018, 119273335117). My `carry_audit.py check --body` on the live body: `2 finding item(s): 2 routed, 0 unrouted`, rc=0.
-4. 7c ancestry reds: row_only_checks hands the contract gh_credential's token. W8 (drop the `gh auth token` fallback) is killed: 1 failed. The real walk, with gh's stored token and my own invocation at this head: `record red-history 7 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status`, `PR-BODY: 0 error(s)`.
+- **The previous block (W11) is killed.** Deleting `len(ls) == 1 and ` gives `app_push self-test: 182 checks, 2 failed`: `omulti` (got '002', want '110') and `real git: a row file of two lines, the first the open row anchored on #7, runs prepr`. My two variants of the same property are also killed, 2 failed each: W21 (`len(ls) >= 1`) and W22 (`splitlines()[:1]`).
+- **My mutants** (ev/mutants_result.txt; mut.sh restores the file, ending "restored to 54bf1821..."):
+  - M0: 182 checks, 0 failed.
+  - W1: 4 failed. This is my widening of (b) to `grep -qF "$row"` of the path; the body's W1 greps the row line.
+  - W2: 1 failed.
+  - W3: 1 failed. This is my `and 0` on (d)'s predicate; the body's W3 is `|| :`.
+  - W4: 2 failed.
+  - W5: 8 failed.
+  - W7: 1 failed.
+  - W8: 1 failed.
+  - W9: 3 failed.
+  - W10: 2 failed.
+  - W11: 2 failed.
+  - W12: 1 failed.
+  - W13: 2 failed.
+  - W15: 1 failed.
+  - W2, W4, W5, W7–W13 and W15 match the body's counts exactly. I did not re-derive the body's own W1, W3, W6, W14, W16, W18–W20 forms. Mine of the same predicates are all killed except W23, below.
+- **Null control.** The real-git `the same commit with one more file runs prepr (null control)` fails under W1, and `ensure_row's own row commit on the live head skips prepr` passes at M0. So the predicate separates a row-only commit from a row-plus-one-file commit. A code sha never asks for `--row-only`: `pr_args self-test: 57 checks, 0 failed` at the head, and the body's W6 kills it.
+- **Self-tests at the head:**
+  - `app_push self-test: 182 checks, 0 failed`
+  - `delivery_row self-test: 5 checks, 0 failed`
+  - `pr_args self-test: 57 checks, 0 failed`
+- **Class (step 6).** The body's rule, `sed -n '/^row_only_verdict() {/,/^}/p' tools/pr/app_push.sh | grep -o '_rv_no "[^"]*'`, returns 10 lines: 9 refusals and 1 success line (ev/class_rule.txt). That matches the body. Each refusal is pinned or has written triage in the body.
+- **Figures.** These reproduce at a8bb9a9c1, where the body states them (ev/figures_at_a8bb9.txt):
+  - `MODE: SCOPED -- 0 script(s) run, 33 scoped out` against 5d433771a
+  - `ALL 124 closure shrink pins PASSED`
+  - `layout self-test: ok`
+  - `claims hygiene: 5d433771... ok`
 
-## Mutants (my own, ev/mutants_result.txt; M0 = no replacement)
+  At this head: `MODE: SCOPED -- 0 script(s) run, 33 scoped out` against origin/main e7c664856, `Architecture score: dS +0.0000 NULL`, and `STRUCTURE RATCHET PASSED`. The `--diff 5d433771a` select at this head prints FULL, because main's own commits since 5d433771a are inside that range. That is not this PR's change.
+- **Not re-run.** harness_headers (109) and entities (2375): this container lacks `voluptuous`. I cite CI instead: `fast (3.14)` and `instrument-self-tests` are success at this head.
+- **Body checks on the live body at this head** (ev/body_checks.txt):
+  - `carry_audit.py check`: `2 routed, 0 unrouted`, rc=0.
+  - `policy_lint.mjs --pr-body`, given gh's token: `record red-history 10 commit(s) ... nightly-status` and `PR-BODY: 0 error(s)`.
+- **Merge.** `git merge-tree --write-tree origin/main(e7c664856) 54bf1821...` exits 0 with tree e3466b7de. There is no conflict.
+- **Untouched:** VERSION, the manifest, RELEASE_NOTES, claim files and goldens. The three-dot diff is 5 files. `## Head` names 54bf182104e450c0ac2e6eb007da59b9315e0565.
+- **CI** (check-runs API, ev/check_runs_final.tsv):
+  - Concluded, all success, skipped or neutral, except nightly-status: failure. nightly-status grades main's scheduled Tests run, and this diff (seat tooling plus its own row) does not reach what it reads, so it is not this PR's. The body answers it under `## Red checks`.
+  - pr-contract run 119298521309 started at 15:03:05Z, after nightly-status concluded at 15:02:40Z, and is success. So step 11 stands answered.
+  - Still in progress at 15:22Z: `coverage` and `Analyze (python)`. I judged on the rest.
 
-- M0: 179 checks, 0 failed.
-- W1, widening (b) to "the diff contains the row": 2 failed, including the real-git null control `the same commit with one more file runs prepr`. **So a diff touching one more file still runs prepr**, which is the brief's null control.
-- W2, `-eq 1` to `-ge 1`: 1 failed.
-- W3, dropping (d): 2 failed.
-- W4: 2 failed.
-- W5, replacing the row_only_checks call with `true`: 8 failed.
-- W6, `RO=--row-only` for every code sha: `pr_args self-test: 57 checks, 1 failed` (the null control: a code sha never asks).
-- W7: 1 failed.
-- W8: 1 failed.
-- W9, dropping the carry check: 3 failed.
-- W10, dropping (a)'s parent = live check: 2 failed.
-- **W11, dropping `len(ls) == 1`: 0 failed. SURVIVES.**
-- W12, dropping the anchor: 1 failed (orow).
-- W13, dropping the contract's rc propagation: 2 failed.
-- W14, skip taken unconditionally: 9 failed.
-- W15, `--head HEAD` instead of the judged sha: 1 failed.
+## Non-blocking
 
-These agree with the body's W1–W9 counts exactly.
+- W23 (deleting the `--row-only`/`--branch-only` refusal) survives: 182 checks, 0 failed. It fails closed anyway. With `--branch-only` the listing is never read, so `row_only_verdict` hits an unbound `$listing` under `set -u` before any mint. Carry: dismissed: defensive usage guard, the path fails closed without it
 
-## Figures re-derived at this head
+## Carry of the previous review's items
 
-- `app_push self-test: 179 checks, 0 failed`, `delivery_row self-test: 5 checks, 0 failed` and `pr_args self-test: 57 checks, 0 failed` all reproduce. The body states them at daa1d0dbd. This head adds only main's merge on top.
-- `closure.py select --diff 22615537a`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out` reproduces. The same holds against merge base 5d433771a.
-- `archscore --diff 22615537a`: `dS +0.0000 NULL` reproduces.
-- `carry_audit` 2 routed / 0 unrouted reproduces.
-- figure_lint on the body: `FIGURES: 13 resolved, 0 not verified, 0 refused`. preflight: clean.
-- Not re-run by me: entities, structure, closure selftest, layout and harness_headers. My container's python3 is 3.11, as the body's Friction says. Cited instead: CI at this head is green on fast, closures, instrument-self-tests and policy-docs.
+Carry: dismissed: the round-3 body was re-taken whole and no longer says this (item f053a70e)
+Carry: dismissed: the round-3 body was re-taken whole and no longer says this (item d3bf9b75)
 
-## Non-blocking (body accuracy, for the next push)
-
-- The body says the skip runs "the two body checks that pr-contract runs". pr-contract runs four body steps: the contract, figure_lint, preflight and carry_audit, plus the version-edit refusal. prepr runs figures (7a) and preflight too. The skip drops figures and preflight, and "Why the other prepr steps are not re-run" does not name them.
-- Under (b) and (d) both are functions of the live body plus the caller's note over a tree that changed only by the row, so the drop is defensible. But the body should say so, not undercount.
-
-## Other checks
-
-- Merge: `git merge-tree --write-tree origin/main(5d433771a) f16956542b2c4470de5a3e12fc843f97cef1840e` exits 0, tree fafc1251. There is no conflict.
-- VERSION, the manifest, RELEASE_NOTES, the claim files and goldens are untouched. The three-dot diff is 5 files.
-- `## Head` names f16956542b2c4470de5a3e12fc843f97cef1840e.
-- CI at this head (check-runs API, ev/check_runs.tsv), all concluded: everything is success or skipped, except **nightly-status: failure**. That check grades main's scheduled Tests run, and this diff (seat tooling plus its own row) does not reach what it reads, so it is not this PR's. The body answers it under `## Red checks`, and also answers the earlier pr-contract reds on 947d3631 and 93015eca.
-- Forward-carry: the body routes the prepr-lacks-carry_audit finding to R10-POLICY-FIXER-MD.
-
-bus-nonce: add37b67f64bb470070faa4b0f8e06af
+bus-nonce: b1b280e7efb0939ec05a8f6b4be26f74
