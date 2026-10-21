@@ -3434,6 +3434,7 @@
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/queue_pre_flight.py",
+   "tools/audit/seat/r10_roster_sync_mutants.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/selftest_wiring.py",
