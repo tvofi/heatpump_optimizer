@@ -628,8 +628,11 @@ def self_test() -> int:
     def calls(drv: Path, state: Path, *extra) -> tuple[int, str, str]:
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            rc = main(["--checkout", str(drv), "--repo", "fixture/roster",
-                       "--pr-state", str(state), *extra])
+            try:
+                rc = main(["--checkout", str(drv), "--repo", "fixture/roster",
+                           "--pr-state", str(state), *extra])
+            except Exception as e:  # a crash is a named red, not an abort
+                rc = f"CRASH {type(e).__name__}: {e}"
         return rc, out.getvalue(), err.getvalue()
 
     groups = [
@@ -848,7 +851,7 @@ def self_test() -> int:
             {"group": "C-SHORT", "resume": {"commit": main_sha[:12]}},
             {"group": "C-NONE", "resume": {"commit": "c35302773738"}},
             {"group": "C-OFF", "resume": {"commit": side[:12]}},
-            {"group": "C-UPPER", "resume": {"commit": main_sha[:12].upper()}},
+            {"group": "C-UPPER", "resume": {"commit": "ABCDEF123456"}},
             {"group": "C-NULL", "resume": {"commit": None}},
         ]}
         bad = dict(invalid_commits(str(drv), rec))
