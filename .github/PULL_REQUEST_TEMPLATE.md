@@ -31,8 +31,8 @@ exists.
 
 ## Forward-carry
 
-`none`, or per finding the path it lands in and `Carry: <dest>`.
+`none`, or the path of the brief, contract or roster this finding lands in.
 
 ## Friction
 
-`none`, or one line per event: `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence> Carry: <dest>`.
+`none`, or one line per event: `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`.

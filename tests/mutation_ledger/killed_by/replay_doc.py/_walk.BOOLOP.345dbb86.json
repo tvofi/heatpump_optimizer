@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_walk BOOLOP 345dbb86",
-  "killed_by": "tests/debug_collect.py",
-  "old": "                if places is not None and places > MAX_COORDINATE_DECIMALS:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`if places is not None or places > MAX_COORDINATE_DECIMALS:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
-}

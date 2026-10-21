@@ -59,7 +59,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-for _extra in ("tools/audit", "tests/hastub", "tests", "custom_components"):
+for _extra in ("tests/hastub", "tests", "custom_components"):
     sys.path.insert(0, str(ROOT / _extra))
 
 from harness import Results  # noqa: E402
@@ -2019,13 +2019,8 @@ CARD = PKG / "www" / "heatpump-optimizer-card.js"
 _TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
 
 
-# Module level, beside its one reader: an import at the top would shift every line below it, and carries cite them.
-from archscore.metrics.card import _IDENT  # noqa: E402
-
-
 def _tokens(text: str) -> set[str]:
-    """The card's JavaScript identifiers: the archscore card tokenizer's one grammar (``card._IDENT``)."""
-    return set(_IDENT.findall(text))
+    return set(re.findall(r"[A-Za-z_$][\w$]*", text))
 
 
 def check_private_mentions() -> None:

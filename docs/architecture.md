@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 80 modules, of which 28 import the
+knows nothing about Home Assistant: 78 modules, of which 28 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -73,8 +73,6 @@ custom_components/heatpump_optimizer/
 ├── notifier.py           # The documented events, fired from the payload on each update
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
-├── plan_step.py          # The plan step: its width, and which step an instant
-│                         #   falls in, for the solve and the pump arbiter
 ├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
 ├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
@@ -183,8 +181,6 @@ custom_components/heatpump_optimizer/
 ├── services.py           # The domain's 13 services: schemas, handlers and registration
 ├── debugger.py           # A week of cycle rows for one entry, kept across a
 │                         #   reload and carried by Download diagnostics
-├── replay_doc.py         # The replay document's allowlist and sanitiser, one
-│                         #   copy for that bundle and the repository's export
 ├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
 ├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
 │
@@ -201,7 +197,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-28 of the 80 modules import `homeassistant` at module level: `__init__`,
+28 of the 78 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
@@ -210,7 +206,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, 
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 51 modules are deliberately free of it, so each can be driven
+The other 49 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output

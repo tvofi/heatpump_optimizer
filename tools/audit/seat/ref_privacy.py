@@ -340,9 +340,6 @@ PUSHERS = {
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
-    "tools/audit/seat/cloud_dispatch.py": ("prompt", "a cloud reviewer's prompt naming probe/rev-<pr>-<nonce8> "
-                                           "from a PR number and 8 hex digits, under a constant seat identity; "
-                                           "the script itself pushes nothing"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
 }
@@ -739,10 +736,6 @@ def self_test() -> int:
            len(pairs) == 1 and "REFUSE" in r.stderr, f"{len(pairs)} ref(s); err={r.stderr[-300:]!r}")
 
         # body_push.sh, the handoff transport: its topic names the ref and the message.
-        # It runs the checkout's ci_predict.py first (R10-HANDOFF-PREPR-BOUNCE M2);
-        # the planted repository is no code head, so a stub predictor passes it.
-        Path(main, "tools/pr").mkdir(parents=True)
-        Path(main, "tools/pr/ci_predict.py").write_text("print('CI PREDICT: planted stub')\n")
         Path(td, "BODY.md").write_text("b\n")
 
         def body(topic: str) -> tuple[int, str]:

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:clean_value BOOLOP 743acbe4",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    if isinstance(node, str) and not text_ok(node):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`if isinstance(node, str) or not text_ok(node):`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
-}

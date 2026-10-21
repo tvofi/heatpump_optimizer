@@ -26,7 +26,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
+from .payload import ContractComparison, SavingsMonth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,18 +44,6 @@ BILLED_LINES = ("spot", "grid_fee", "capacity", "immersion", "wear")
 #: The month's billed peak, kW, beside the capacity line it prices.
 CAPACITY_PEAK_META = "capacity_peak_kw"
 
-#: Hours of settlement the month has seen: the open month's coverage, which
-#: its estimate scales by (#2255 item 2).
-SETTLED_HOURS_META = "settled_hours"
-
-#: The month's spot samples: one fold per priced settlement, beside the
-#: coverage fold the same call makes.
-SPOT_PRICE_META = "spot_price"
-
-#: The lines that are metered energy at the spot price: what every contract
-#: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
-ENERGY_LINES = ("spot", "immersion")
-
 
 def month_key(when: datetime) -> str:
     return when.strftime("%Y-%m")
@@ -65,11 +53,6 @@ def pro_rata_factor(now: datetime) -> float:
     """Calendar days in this month over max(1, day-of-month)."""
     days = calendar.monthrange(now.year, now.month)[1]
     return days / max(1, now.day)
-
-
-def month_hours(now: datetime) -> float:
-    """Hours in ``now``'s calendar month, as days x 24 (a DST hour ignored)."""
-    return 24.0 * calendar.monthrange(now.year, now.month)[1]
 
 
 def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
@@ -181,15 +164,8 @@ class MonthlyLedger:
         actual_kwh: float,
         dt: float,
     ) -> None:
-        """Sample spot for the month mean, then book savings if baseline exists.
-
-        The interval's hours fold into the month's coverage first, priced or
-        not: the open month's estimate scales by how much of the month was
-        settled, not by the calendar day (#2255 item 2).
-        """
-        if dt > 0:
-            self.observe_meta_mean(when, SETTLED_HOURS_META, dt)
-        self.observe_meta_mean(when, SPOT_PRICE_META, spot)
+        """Sample spot for the month mean, then book savings if baseline exists."""
+        self.observe_meta_mean(when, "spot_price", spot)
         self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
 
     def add_savings_settlement(
@@ -235,20 +211,12 @@ class MonthlyLedger:
         spot: float,
         dt: float,
     ) -> None:
-        """Book savings from a settled interval's pending snapshot.
-
-        Both sides are priced at spot plus the interval's per-kWh grid fee:
-        a thermostat that drew other kWh would have paid the fee on those,
-        and the bill the row is set against carries the fee line (#2255
-        item 5). A missing fee prices at spot alone, as the bill does.
-        """
-        fee = pending.get("grid_fee")
-        fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
+        """Book savings from a settled interval's pending snapshot."""
         self.add_savings_settlement(
             when,
             baseline_kw=pending.get("baseline_kw"),
             actual_kwh=actual_kwh,
-            spot=spot + fee_per_kwh,
+            spot=spot,
             dt=dt,
         )
 
@@ -287,86 +255,29 @@ class MonthlyLedger:
             if isinstance(entry, dict)
         }
 
-    def metered_energy(self, month: str) -> dict[str, float]:
-        """The month's metered kWh and their spot cost: ``ENERGY_LINES`` summed.
-
-        The one figure every contract settles on; the contract comparison
-        reads it rather than folding the immersion line back in itself.
-        """
-        parts = [self.line(month, name) for name in ENERGY_LINES]
-        return {
-            "kwh": sum(part["kwh"] for part in parts),
-            "sek": sum(part["sek"] for part in parts),
-        }
-
-    def month_cost(self, month: str) -> float:
-        """What the month cost: its receipt's total, from the same lines.
-
-        The receipt's headline and the savings row's actual are this one
-        figure (#2255 item 5); two sums over two sets of lines disagreed.
-        """
-        return billed_total(self.month_summary(month))[0]
-
-    def _coverage_factor(self, now: datetime) -> float:
-        """Open-month scale: the month's hours over the hours it settled.
-
-        The coverage is the month's only when it began with the month's
-        first settlement: the call folding it folds a spot sample at most
-        once, so a complete coverage has at least as many folds. A month
-        booked before the coverage meta existed (an upgrade mid-month) has
-        fewer, and its hours describe the upgrade's tail, not the lines it
-        would scale (#2255's coverage under v7.0.1: months of bookings over
-        minutes of hours). That month, like one with no coverage, falls back
-        to the calendar-day ratio. Every estimated figure takes this one
-        factor.
-        """
-        meta = self.months.get(month_key(now), {}).get("meta", {})
-        entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
-        settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
-        folds = int(entry["count"]) if isinstance(entry, dict) else 0
-        spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
-        if settled > 0 and folds >= spot_folds:
-            return max(1.0, month_hours(now) / settled)
-        return pro_rata_factor(now)
-
     def savings_months(self, now: datetime) -> list[SavingsMonth]:
-        """Published rows: months that booked savings_baseline, oldest first.
-
-        ``actual_sek`` is the month's bill (``month_cost``), the figure the
-        receipt states. ``savings_sek`` is the thermostat's cost less the
-        plan's over the intervals a plan covered, both priced alike, and
-        ``baseline_sek`` is the bill plus that saving: the lines no
-        thermostat model prices (capacity, wear, uncovered intervals) are
-        held equal on both sides rather than charged to one (#2255).
-
-        The open month is an estimate: every energy-proportional figure is
-        scaled by ``_coverage_factor``; the capacity line is already a
-        month figure (the running billed peak) and is not.
-        """
+        """Published rows: months that booked savings_baseline, oldest first."""
         open_key = month_key(now)
+        factor = pro_rata_factor(now)
         rows: list[SavingsMonth] = []
         for key in sorted(self.months):
             lines = self.months[key].get("lines") or {}
             if "savings_baseline" not in lines:
                 continue
-            saved = float(self.line(key, "savings_baseline")["sek"]) - float(
-                self.line(key, "savings_actual")["sek"]
-            )
-            actual_sek = self.month_cost(key)
+            baseline_sek = float(self.line(key, "savings_baseline")["sek"])
+            actual_sek = float(self.line(key, "savings_actual")["sek"])
             estimated = key == open_key
             if estimated:
-                factor = self._coverage_factor(now)
-                capacity = round(self.line(key, "capacity")["sek"], 2) if "capacity" in lines else 0.0
-                actual_sek = (actual_sek - capacity) * factor + capacity
-                saved *= factor
-            baseline_sek = actual_sek + saved
+                baseline_sek *= factor
+                actual_sek *= factor
+            savings_sek = baseline_sek - actual_sek
             rows.append(
                 {
                     "month": key,
                     "baseline_sek": round(baseline_sek, 2),
                     "actual_sek": round(actual_sek, 2),
-                    "savings_sek": round(saved, 2),
-                    "savings_pct": savings_pct(baseline_sek, saved),
+                    "savings_sek": round(savings_sek, 2),
+                    "savings_pct": savings_pct(baseline_sek, savings_sek),
                     "estimated": estimated,
                 }
             )
@@ -407,52 +318,6 @@ def billed_total(lines: Mapping[str, Mapping[str, float]]) -> tuple[float, list[
     """(total SEK, the billed lines it adds) of a receipt's published lines."""
     basis = [name for name in BILLED_LINES if name in lines]
     return round(sum(float(lines[name]["sek"]) for name in basis), 2), basis
-
-
-def explain_metered(
-    metered_space_kwh: float,
-    metered_dhw_kwh: float,
-    *,
-    space_reason: str | None,
-    dhw_reason: str | None,
-) -> list[tuple[str, float]]:
-    """``[(reason, kWh)]`` partitioning one interval's metered energy.
-
-    A reason names WHY a plan ran a channel. A channel the plan was drawing on
-    is explained by the reason for its step, whatever the meter's magnitude: a
-    step below the modulation floor is duty cycling within it, so a reading
-    above the step's average is the pump's own cycling and not an unplanned
-    draw. A channel the plan was drawing NOTHING on — ``payload.IDLE_REASONS``,
-    or no reason at all — cannot be explained by its step's reason, so its
-    metered share books ``REASON_UNTAGGED``: outside the plan. Until #2256
-    every metered kilowatt took the step's reason, so a plan idling at zero
-    while the meter saw a draw booked the whole draw as "idle", which made
-    "Not heating" the costliest category.
-
-    The split between the channels is the caller's — one meter serves both
-    circuits, so it is apportioned by what the plan asked each to draw. Pure,
-    and the arithmetic the receipt's partition rests on: the returned kWh sum
-    to ``metered_space_kwh + metered_dhw_kwh`` exactly, and no reason is
-    returned for a zero share.
-    """
-    shares: dict[str, float] = {}
-    for reason, metered in (
-        (space_reason, metered_space_kwh),
-        (dhw_reason, metered_dhw_kwh),
-    ):
-        kwh = float(metered)
-        if kwh <= 0.0:
-            continue
-        # The reason explains this channel's draw unless it says the plan was
-        # drawing nothing there, or there is no reason at all. Read as two
-        # branches, not a conditional expression: the truthiness test is what
-        # narrows ``str | None`` to the ``str`` the share is keyed by.
-        if reason and reason != REASON_UNTAGGED and reason not in IDLE_REASONS:
-            code = reason
-        else:
-            code = REASON_UNTAGGED
-        shares[code] = shares.get(code, 0.0) + kwh
-    return list(shares.items())
 
 
 def restate_total(report: dict[str, Any]) -> dict[str, Any]:
@@ -523,7 +388,7 @@ def freeze_month_report(
             else None
         ),
     }
-    for key, name, digits in (("mean_spot_price", SPOT_PRICE_META, 4),
+    for key, name, digits in (("mean_spot_price", "spot_price", 4),
                               ("capacity_peak_kw", CAPACITY_PEAK_META, 2)):
         mean = ledger.meta_mean(month, name)
         if mean is not None:

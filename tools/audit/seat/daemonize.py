@@ -162,15 +162,7 @@ def self_test() -> int:
             f"open({marker!r},'w').write('x');"
             "print('li'+'ne-one'); print('li'+'ne-two'); os._exit(0)"
         )
-        # An inherited PYTHONUNBUFFERED (a Linux container's default) makes
-        # the child unbuffered without -u and the check below vacuous: the
-        # forked child must not inherit it.
-        unbuf = os.environ.pop("PYTHONUNBUFFERED", None)
-        try:
-            pid = daemonize(["python3", "-c", child], log, tmp, {}, None)
-        finally:
-            if unbuf is not None:
-                os.environ["PYTHONUNBUFFERED"] = unbuf
+        pid = daemonize(["python3", "-c", child], log, tmp, {}, None)
         print(f"daemonize: child pid {pid}")
         # Poll, never sleep-fixed: a loaded box must not false-fail.
         got = ""
@@ -187,8 +179,6 @@ def self_test() -> int:
               f"pid={pid} " in got.splitlines()[0] + " ")
         check("child output reached the log unflushed (fork/setsid/dup2/-u)",
               "line-one" in got and "line-two" in got)
-        check("the logged argv carries the prepended -u",
-              " argv: python3 -u -c " in (got.splitlines()[:1] or [""])[0])
         i_banner, i_one = got.find("===== daemonize"), got.find("line-one")
         check("banner precedes the child's output in the log",
               i_banner != -1 and i_one != -1 and i_banner < i_one)

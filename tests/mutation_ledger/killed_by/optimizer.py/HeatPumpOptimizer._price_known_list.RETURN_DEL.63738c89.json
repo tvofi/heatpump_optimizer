@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._price_known_list RETURN_DEL 63738c89",
-  "killed_by": "tests/env_drift.py",
-  "old": "        return [bool(v) for v in self._price_known[:n_steps]]",
-  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=100."
-}

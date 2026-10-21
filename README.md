@@ -181,46 +181,6 @@ Everything else — indoor and outdoor thermometers, tank probes, a power meter 
 is optional. The optimizer runs without them and gets steadily better with each
 one you add.
 
-## Minimal working setup
-
-The two smallest setups that work, and what each piece is for. Every entity
-below is picked in the setup flow — see
-[Quick start](#quick-start--the-first-30-minutes).
-
-**Plan only — nothing is switched.** Two things, and setup will not finish
-without either:
-
-- **A price source:** a Tibber token, or a price entity exposing `raw_today` /
-  `raw_tomorrow` (Nord Pool or similar). Prices are what the plan is optimized
-  against. Setup asks again until you give one, and checks a Tibber token
-  with Tibber before it continues. If prices later stop arriving, the
-  optimizer skips planning until they are back rather than plan on invented
-  prices.
-- **A weather entity with hourly forecasts.** The forecast outdoor
-  temperature, wind and rain set how much heat the plan has to deliver hour
-  by hour. If a forecast fetch fails, plans continue on the last forecast,
-  marked stale.
-
-With only these two, the plan is published on sensors for your own
-automations to act on, and the optimizer switches nothing.
-
-**The smallest setup that controls the pump.** Add **a `switch` that turns the
-heat pump on and off** — the *Heat pump on/off switch* field on the
-*Optional sensors* screen. The optimizer then turns the pump on and off to follow its plan.
-Without it you are back to plan only. The switch is one
-of three control paths; the other two are in
-[Supported heat pumps and controls](#supported-heat-pumps-and-controls).
-
-**The next addition worth making: an indoor temperature sensor.** Without
-one, nothing measures the room: every plan starts from an assumed 21 °C, and
-the Indoor Temperature sensor and the thermostat's current temperature stay
-unavailable. With one, every plan starts from the room as it actually is,
-the house's heat-loss estimate is corrected against what the room really
-did, and — with the switch configured — a heating run is cut short if the
-room runs past what the plan expected within an interval. An outdoor
-temperature sensor matters less: without one, the weather forecast supplies
-the outdoor temperature.
-
 ## Supported heat pumps and controls
 
 Control goes through ordinary Home Assistant entities, over three paths. Each

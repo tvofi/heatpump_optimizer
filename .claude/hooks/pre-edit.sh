@@ -141,7 +141,6 @@ if [ "$SELF_TEST" = 1 ]; then
   st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[{\"old_string\":\"a\",\"new_string\":\"- body\"},{\"old_string\":\"b\",\"new_string\":\"## v9.9.9\\n\"}]}}" "a heading in a LATER edit is refused (one value per line, not one joined line)"
   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[{\"old_string\":\"x\",\"new_string\":\"- a body line\\n\"}]}}" "a MultiEdit body line is allowed (null control)"
   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":\"not a list\"}}" "a malformed edits value fails OPEN"
-  st refuse feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[7,{\"new_string\":\"## v9.9.9\\n\"}]}}" "a non-object entry does not hide a heading beside it"
   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/RELEASE_NOTES.md\",\"edits\":[7,null,{\"new_string\":5}]}}" "non-object edits entries fail OPEN"
   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/.claude/rules/gate-scoping.md\"}}"             "the SOURCE rule is allowed (null control)"
   st allow  feature "{\"tool_input\":{\"file_path\":\"$R/custom_components/heatpump_optimizer/const.py\"}}" "ordinary production code is allowed (null control)"

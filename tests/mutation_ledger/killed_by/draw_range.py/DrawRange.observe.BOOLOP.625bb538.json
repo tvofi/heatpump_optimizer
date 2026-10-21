@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.observe BOOLOP 625bb538",
+  "killed_by": "tests/features.py",
+  "old": "        if len(self.samples) >= MIN_SAMPLES and self._disagrees(cfg_min):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4dbe5aace7440d0a7d43a249892fc63da890338c: BOOLOP (`if len(self.samples) >= MIN_SAMPLES or self._disagrees(cfg_min):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:BufferTankTempSensor.native_value GUARD_OFF ce3645d2",
+  "killed_by": "tests/entities.py",
+  "old": "        if self.coordinator.data:",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

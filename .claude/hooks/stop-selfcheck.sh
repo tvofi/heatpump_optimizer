@@ -194,8 +194,8 @@ BASE=$(git merge-base origin/main HEAD 2>/dev/null) || exit 0
 # branch, modified in the worktree, staged in the index, and new and not yet
 # added. `git diff --name-only` alone compares the worktree with the INDEX, so a
 # change that was `git add`ed is in neither of the first two lists.
-CHANGED=$(git diff --no-renames --name-only "$BASE"...HEAD 2>/dev/null; git diff --no-renames --name-only 2>/dev/null
-          git diff --no-renames --cached --name-only 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
+CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null
+          git diff --cached --name-only 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
 touches_policy "$CHANGED" || exit 0
 
 # No node, no verdict. Refusing a turn because the checker is absent would

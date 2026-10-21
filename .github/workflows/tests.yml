@@ -144,57 +144,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
-  # R10-CI-CONCURRENCY. The concurrency group above cancels a superseded run
-  # only when both runs are in the pull request's group, and a bot-sent run
-  # (an approved autofix head) or a dispatch is not: it gets a group of its own
-  # on purpose, so it never cancels the run still running the other autofix
-  # jobs. The cost is the other half: such an OLDER run cannot be cancelled by a
-  # newer App push and finishes for a head nobody reads. This job, in the live
-  # App-sent run only, cancels the older runs of this workflow on this branch at
-  # another head SHA (tools/pr/cancel_superseded.py: live head, never a
-  # same-SHA twin, never main, never a bot-sent caller). The concurrency
-  # expression is unchanged. It holds `actions: write`, so it runs the BASE's
-  # copy of the program (restored from the pinned base, D11-s1-03); until that
-  # copy exists on the base it only says so.
-  cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Cancel this branch's runs at superseded heads
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.head_ref }}
-          RUN_ID: ${{ github.run_id }}
-          SENDER: ${{ github.event.sender.login }}
-        run: |
-          set -euo pipefail
-          # The merge commit's two parents are the base and the head, so a
-          # depth-2 checkout holds the base; a base that moved since is skipped.
-          if git cat-file -e "$PINNED:tools/pr/cancel_superseded.py" 2>/dev/null; then
-            git checkout "$PINNED" -- tools/pr/cancel_superseded.py
-            python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow tests.yml \
-              --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
-              --run-id "$RUN_ID" --sender "$SENDER"
-          else
-            echo "::notice::the base (or its commit) has no tools/pr/cancel_superseded.py yet; cancelling nothing"
-          fi
-
   # workflow_dispatch inputs exist only on the default branch. An autofix
   # push from this PR must retrigger before that lands, so recheck is also
   # true when HEAD's subject is `ci: …` (the autofix commit messages).
@@ -642,7 +591,7 @@ jobs:
   # `--warn-unused-ignores` does not provide, and it must not be the metric
   # that goes unchecked on the day this install fails.
   typing:
-    needs: [recheck-gate, closure-scope]
+    needs: [recheck-gate]
     if: >-
       !cancelled() && (
         github.event_name == 'push'
@@ -650,7 +599,7 @@ jobs:
         || github.event_name == 'merge_group'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck == 'true')
-      ) && needs.closure-scope.outputs.typing_skip != 'skip'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -1936,7 +1885,7 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
           for g in coverage_ratchet delivery_status; do
             if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
               echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -2192,9 +2141,6 @@ jobs:
       fast_skip: ${{ steps.skipfast.outputs.decision }}
       coverage_skip: ${{ steps.skipcoverage.outputs.decision }}
       browser_skip: ${{ steps.skipbrowser.outputs.decision }}
-      # O17: typing records no proof, so only lane_skip's Level 0 (a diff
-      # of rosters and delivery rows alone) can skip it.
-      typing_skip: ${{ steps.skiptyping.outputs.decision }}
       ls_branch: ${{ steps.laneskip.outputs.branch }}
       ls_base: ${{ steps.laneskip.outputs.base }}
       ls_diff: ${{ steps.laneskip.outputs.diff }}
@@ -2310,15 +2256,6 @@ jobs:
           echo "decision=$(cat "$RUNNER_TEMP/lane-skip/browser/decision")" >> "$GITHUB_OUTPUT"
           echo "state=$(cat "$RUNNER_TEMP/lane-skip/browser/state.json")" >> "$GITHUB_OUTPUT"
 
-      - name: Decide whether typing may skip
-        id: skiptyping
-        if: steps.laneskip.outputs.diff != ''
-        run: |
-          python tests/lane_skip.py decide --lane typing \
-            --diff-ref "${{ steps.laneskip.outputs.base }}" \
-            --workdir "$RUNNER_TEMP/lane-skip/typing"
-          echo "decision=$(cat "$RUNNER_TEMP/lane-skip/typing/decision")" >> "$GITHUB_OUTPUT"
-
       - id: decide
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
@@ -2345,7 +2282,7 @@ jobs:
             git fetch --quiet origin main || true
             MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
             if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
-              python tests/closure.py changed --base "$MB" --head "$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
             else
               : > "$RUNNER_TEMP/changed.txt"
             fi
@@ -2356,7 +2293,7 @@ jobs:
             # widening this change beyond the closures arm it is for.
             echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
           else
-            python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
             # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
             # outside custom_components/, MEASURED by `closure.py record` over a
             # real run of the lane (run 37764931838, both images, the same 37
@@ -2513,7 +2450,7 @@ jobs:
             git fetch --quiet origin main || true
             MAIN_TIP=$(git rev-parse --verify --quiet refs/remotes/origin/main) || MAIN_TIP=""
             if [ -n "$MAIN_TIP" ] && MB=$(git merge-base "$MAIN_TIP" HEAD); then
-              python tests/closure.py changed --base "$MB" --head "$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
+              git diff --name-only "$MB"..."$HEAD" > "$RUNNER_TEMP/changed.txt" 2>/dev/null || : > "$RUNNER_TEMP/changed.txt"
             else
               : > "$RUNNER_TEMP/changed.txt"
             fi
@@ -2521,7 +2458,7 @@ jobs:
           else
             BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
             HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
-            python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+            git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
           fi
           cat "$RUNNER_TEMP/changed.txt"
           python tests/closure.py affected \
@@ -2799,7 +2736,7 @@ jobs:
             exit 0
           fi
           BASE="${{ github.event.pull_request.base.sha }}"
-          python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
           if grep -qxE \
             'tools/coverage/coverage_tree\.sh|tools/coverage/composed_proof\.sh|tests/closure\.py|tests/composed_closures\.json|\.github/workflows/tests\.yml' \
             "$RUNNER_TEMP/changed.txt"; then

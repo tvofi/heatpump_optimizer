@@ -1,7 +1,5 @@
 {
  "archscore._inlined_bases": 0,
- "archscore.card_clone_copies": 108,
- "archscore.card_dead_definitions": 0,
  "archscore.computed_attr_access": 32,
  "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,
@@ -13,19 +11,17 @@
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
  "archscore.layer_violations": 22,
- "archscore.literal_clone_copies": 186,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
  "archscore.reflective_writes": 17,
- "archscore.shape_copies": 66,
  "archscore.shared_inplace_writes": 22,
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
  "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "Tightening, not a raise (R10-CI-LAYOUT PR 0): script_runs_per_push 68 -> 53. script_runs() no longer counts a `reused` coverage row (a copy that executes nothing), and the floor re-validation re-measures only the scripts it reused, so a push executes each script once per instrument. 53 = the closures lane's full plan (`tests/closure.py lane-plan --all-scripts`: 34) less the composed script it consumes from the coverage job (tests/composed_closures.json: 1), plus the coverage fast stage's scripts (coverage_tree.sh's DERIVED for `fast`: 20), derived at 4a3cbcf62; the window's no-reuse push runs 39213947578, 39217093836 and 39217450549 each read 53. No other row moves. Previous: R10-ARCHSCORE-COVERAGE part 5's new row archscore.shape_copies 66.",
- "recorded_at": "4a3cbcf62e6f5e7b6594d376d714388caf2915cf",
+ "reason": "New rows only (R10-ARCHSCORE-COVERAGE part 3): archscore.layer_violations 22, archscore.private_cross_module 17 and archscore.unused_boundary_imports 1, the three keys the new layering metric adds to the score vector, recorded at the values ci_ratchet.archscore_metrics() derives at 25e9c54ae (origin/main 12cf1764d merged: R10-FAHRENHEIT moved layer_violations 21 -> 22 and private_cross_module 19 -> 17 on main); a derived key with no row is refused as growth. No existing row moves. Previous re-record: archscore.hub_solve_writes 38 -> 41 (part 2, mandate 6175172275).",
+ "recorded_at": "25e9c54ae45cda607290a06c01b14215d81b45d7",
  "script_runs_full_case_pr": 68,
- "script_runs_per_push": 53
+ "script_runs_per_push": 68
 }

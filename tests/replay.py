@@ -67,8 +67,8 @@ and once per fixture:
                      must run the five per-cycle files ``COST_FILES`` names.
                      ``loop_cpu_ratio`` is the event-loop thread's own share
                      (the cycle's thread CPU less its executor jobs), banded
-                     the same way, because doubling a minority of the cycle
-                     stays inside the whole cycle's band (R9 D9-s2-02). The lane
+                     the same way, because doubling a tenth of the cycle stays
+                     inside the whole cycle's band (R9 D9-s2-02). The lane
                      then replays the fixture three more times with the
                      cycle's CPU, its memory peak, and its loop-thread work
                      doubled in memory, and each must turn it red.
@@ -327,31 +327,24 @@ COST_DETECTION = 2.0
 #: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
 #: its thread CPU less its executor jobs, plus the entity reads -- over the
 #: PURE-PYTHON reference (``reference_loop``), recorded and banded exactly as
-#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is a
-#: minority of the cycle, so doubling it at the band's centre moves
-#: ``cpu_ratio`` inside its sqrt(2) band. Entry allowed by tvofi (card B1).
-#: The ruler was changed from the BLAS solve to a pure-Python workload
-#: (#2270, owner decision 2026-10-15): the numerator is interpreter-bound and
-#: the solve is BLAS-bound, so the figure tracked the runner CLASS, not the
-#: code -- corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The
-#: series splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow)
-#: read 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
+#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is
+#: about a tenth of the cycle, so doubling it moves ``cpu_ratio`` far inside
+#: its sqrt(2) band. Entry allowed by tvofi (card B1). The ruler was changed
+#: from the BLAS solve to a pure-Python workload (#2270, owner decision
+#: 2026-10-15): the numerator is interpreter-bound and the solve is
+#: BLAS-bound, so the figure tracked the runner CLASS, not the code --
+#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The series
+#: splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow) read
+#: 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
 #: (loop_cpu 10.0 -> 13.5 ms, 1.35x) over the BLAS speed (ref_ms 28.6 ->
 #: 53.2 ms, 1.86x). Normalising by a workload of the loop's own kind, on its
-#: own clock, cancels MOST of the interpreter factor, not all of it: the
-#: numerator's work does not scale with the ruler's, so a runner that speeds
-#: the ruler faster than the cycle's own loop still lifts the figure. The
-#: scheduled slow lanes after #2339 read a tight 0.0868-0.0877 while their
-#: rulers sat 1.26x apart (loop_ref_ms 128-161), and 0.1114 on a runner
-#: 1.5-1.9x faster than those at the ruler (84.05 ms) whose loop CPU in
-#: absolute time fell (9.36 ms) -- the runner, not loop work, over the cap.
-#: ``dev/audit/harnesses/r10_replay_loopnorm.py --series`` derives the series
-#: by ruler era. Recorded at the CENTRE of its measured spread:
-#: twelve clean runs read 0.0618-0.0903 (median 0.0786) at load average
-#: 15-29; sqrt(2) x 0.0786 is 0.111, both edges inside (0.0555, 0.111], and
-#: a doubled loop arm ~0.156 is over the cap. The 0.1114 run falsifies that
-#: recording; re-recording from the series is a raise (above the measured
-#: median), which is the owner's under CLAUDE.md rule 2, not a lane fix.
+#: own clock, cancels the interpreter factor, so the figure is the loop's
+#: work over the reference's and does not move with the runner. Recorded at
+#: the CENTRE of its measured spread: twelve clean runs read 0.0618-0.0903
+#: (median 0.0786) at load average 15-29; sqrt(2) x 0.0786 is 0.111, both
+#: edges inside (0.0555, 0.111], and a doubled loop arm ~0.156 is over the
+#: cap. Re-centre at the next timed week, once the series carries the new
+#: figure across runners.
 #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
 #: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
 #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
@@ -373,10 +366,9 @@ COST_REF_EVERY = 8
 #: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs (R10-RCA-2205):
 #: a runner whose BLAS outruns its interpreter read the loop low, and the
 #: spread was 0.2441-0.405 (1.66x), the runner, not the code. Normalising by
-#: work on the SAME clock and of the SAME kind cancels MOST of the interpreter
-#: factor, not all of it: the ratio keeps a residual runner-class spread, so it
-#: is bounded, not invariant, across runners. Fixed iterations, no numpy, no
-#: data dependence, so every call
+#: work on the SAME clock and of the SAME kind cancels the interpreter speed,
+#: so the ratio is the loop's work over this reference's, invariant across
+#: runners. Fixed iterations, no numpy, no data dependence, so every call
 #: costs the same and no integration change can move it -- the property that
 #: makes ``reference_solve`` the right ruler for the solve, for the loop.
 #: SIZED to a couple of hundred ms, as ``reference_solve`` is: 1e6 steps read

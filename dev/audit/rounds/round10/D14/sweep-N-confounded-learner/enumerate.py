@@ -117,7 +117,7 @@ def _ua_walk(aperture_err, sunny_gate=None):
         # scale already removes (closed loop, as the coordinator replays)
         resid = (aperture_err * q_per_irr * irr + (scale - 1.0) * 0.15 * dT) * DT_H / C
         st = learner_newton_step(scale, 0.15, C, resid, dT, DT_H, trust_region=0.3,
-                                 alpha=0.02)
+                                 alpha=0.02, max_step_fraction=0.02)
         if st:
             scale = st[1]
     return scale

@@ -35,11 +35,7 @@ name: CodeQL
 # No paths-ignore or exclude: the default-setup configuration carried none
 # (the API response has no such fields -- it analyzed the whole repository),
 # and no other workflow in this repository filters paths, so adding one here
-# would silently narrow the finding set the other direction. A path filter
-# would also stop a required `Analyze` context from reporting at all. What
-# narrows instead is a pull request's leg whose diff that leg cannot read: the
-# `scope` job's tools/pr/codeql_scope.py (O17) says `skip`, the leg's steps
-# skip and its context reports success. Every other event analyzes.
+# would silently narrow the finding set the other direction.
 #
 # Default setup analyzed the default branch only, so `push` fires on main and
 # not on master, unlike hassfest/validate.
@@ -85,110 +81,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
-  # R10-CI-CONCURRENCY. The concurrency group above cancels a superseded run
-  # only when both runs are in the pull request's group, and a bot-sent run
-  # (an approved autofix head) or a dispatch is not: it gets a group of its own
-  # on purpose, so it never cancels the run still running the other autofix
-  # jobs. The cost is the other half: such an OLDER run cannot be cancelled by a
-  # newer App push and finishes for a head nobody reads. This job, in the live
-  # App-sent run only, cancels the older runs of this workflow on this branch at
-  # another head SHA (tools/pr/cancel_superseded.py: live head, never a
-  # same-SHA twin, never main, never a bot-sent caller). The concurrency
-  # expression is unchanged. It holds `actions: write`, so it runs the BASE's
-  # copy of the program (restored from the pinned base, D11-s1-03); until that
-  # copy exists on the base it only says so.
-  cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Cancel this branch's runs at superseded heads
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.head_ref }}
-          RUN_ID: ${{ github.run_id }}
-          SENDER: ${{ github.event.sender.login }}
-        run: |
-          set -euo pipefail
-          # The merge commit's two parents are the base and the head, so a
-          # depth-2 checkout holds the base; a base that moved since is skipped.
-          if git cat-file -e "$PINNED:tools/pr/cancel_superseded.py" 2>/dev/null; then
-            git checkout "$PINNED" -- tools/pr/cancel_superseded.py
-            python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow codeql.yml \
-              --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
-              --run-id "$RUN_ID" --sender "$SENDER"
-          else
-            echo "::notice::the base (or its commit) has no tools/pr/cancel_superseded.py yet; cancelling nothing"
-          fi
-
-  # Which legs may skip (O17). Read-only and credential-free: it reads the
-  # three-dot diff and runs the code-owned decision, nothing else. A failure
-  # here leaves the outputs empty, and every leg reads empty as analyze.
-  scope:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      actions: ${{ steps.decide.outputs.actions }}
-      javascript-typescript: ${{ steps.decide.outputs.javascript-typescript }}
-      python: ${{ steps.decide.outputs.python }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - id: decide
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          : > "$RUNNER_TEMP/changed.txt"
-          if [ "$EVENT" = pull_request ]; then
-            # Three dots: the pull request's own files, not main's since.
-            # `changed` lists both sides of a rename (git diff --no-renames):
-            # lib.py -> lib.md must reach the python leg as lib.py (#2405).
-            python3 -I tools/pr/codeql_scope.py changed --base "$BASE" \
-              --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
-          fi
-          for leg in actions javascript-typescript python; do
-            word=$(python3 -I tools/pr/codeql_scope.py decide --language "$leg" \
-              --event "$EVENT" --files-from "$RUNNER_TEMP/changed.txt")
-            echo "$leg=$word" >> "$GITHUB_OUTPUT"
-          done
-
   analyze:
     name: Analyze (${{ matrix.language }})
-    needs: scope
-    # Runs whatever `scope` concluded: a failed or skipped scope must not skip
-    # a required context through `needs`, so the steps below decide.
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    # 45, not 30: `Analyze (python)` is a required context whose runtime swings
-    # with runner load, and the 30-minute cap sat inside that spread -- on
-    # 2026-10-20 it was cancelled at the cap three times: 2bd5e90f 30:19, 11
-    # minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07, both
-    # while uploading results. A rerun of 4e5801eb finished in 21.5 minutes
-    # (job 118701134345). 45 leaves 14:41 over the longest observed run
-    # (45:00 - 30:19); tests/entities.py refuses a lower value.
-    timeout-minutes: 45
+    timeout-minutes: 30
     # One language failing must not cancel the others: each leg is its own
     # analysis and its own evidence.
     strategy:
@@ -196,14 +92,7 @@ jobs:
       matrix:
         language: [actions, javascript-typescript, python]
     steps:
-      # Only an explicit `skip` skips; empty (a failed scope) analyzes.
-      - name: Say what scope decided for this leg
-        env:
-          WORD: ${{ needs.scope.outputs[matrix.language] }}
-        run: |
-          echo "codeql scope for ${{ matrix.language }}: ${WORD:-analyze (no decision)}"
       - name: Checkout repository
-        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         # This job holds `security-events: write`; nothing it runs needs git
         # credentials, so none is left on disk (D11-s1-03's pin).
@@ -213,14 +102,12 @@ jobs:
       # build-mode is left at its default: none of the three languages above
       # is compiled, so no build step runs between init and analyze.
       - name: Initialize CodeQL
-        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        if: needs.scope.outputs[matrix.language] != 'skip'
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: "/language:${{ matrix.language }}"

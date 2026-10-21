@@ -206,7 +206,6 @@ class HeatPumpOptimizerCoordinator:
         self._learner = Learner(lambda: self._thermal_params)
         async_track_state_change_event(None, [], self._on_event)
         _register(self._on_package_callback)
-        async_track_state_change_event(None, [], _register(self._on_wrapped_callback))
 
     def _live(self):
         return self._thermal_params
@@ -218,9 +217,6 @@ class HeatPumpOptimizerCoordinator:
         pass
 
     def _on_package_callback(self, event):
-        pass
-
-    def _on_wrapped_callback(self, event):
         pass
 
     async def _async_update_data(self):
@@ -241,8 +237,6 @@ _HUB_PLANTS = {  # name -> (where, the plant, sites it adds)
     "an event callback handed to Home Assistant": ("event", "self._thermal_params.x = 1", 1),
     "null: a reader returning a collaborator, not a hub": ("cycle", "self._other().z = 1", 0),
     "null: a callback handed to a package function": ("package", "self._thermal_params.x = 1", 0),
-    "a callback a package function returns into a Home Assistant subscription (C16b)":
-        ("wrapped", "self._thermal_params.x = 1", 1),
 }
 
 
@@ -256,8 +250,7 @@ def hub_spellings() -> None:
             pkg.mkdir(parents=True)
             anchor = {"cycle": "    async def _async_update_data(self):\n        pass\n",
                       "event": "    def _on_event(self, event):\n        pass\n",
-                      "package": "    def _on_package_callback(self, event):\n        pass\n",
-                      "wrapped": "    def _on_wrapped_callback(self, event):\n        pass\n"}[where]
+                      "package": "    def _on_package_callback(self, event):\n        pass\n"}[where]
             (pkg / "coordinator.py").write_text(_HUB_PKG.replace(anchor, anchor.replace("pass", body) if body else anchor))
             common.reset_caches()
             common.load.cache_clear()

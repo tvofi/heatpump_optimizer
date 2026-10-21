@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/inputs.py:_on_step CMP_BOUND 94ce3139",
-  "killed_by": "tests/features.py",
-  "old": "    turns = near if abs(ratio - near) < 1e-6 else _ROUNDINGS[rounding](ratio)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: CMP_BOUND (`turns = near if abs(ratio - near) <= 1e-6 else _ROUNDINGS[rounding](ratio)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

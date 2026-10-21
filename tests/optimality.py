@@ -212,7 +212,7 @@ from unittest import mock as _mock_dhw
 from heatpump_optimizer import optimizer as _optm_dhw
 
 
-def _dhw_setup(tz, start=datetime(2026, 1, 15), price="winter_typical"):
+def _dhw_setup(tz, start=datetime(2026, 1, 15)):
     cfg = house(two_zone=tz)
     p = ThermalParameters.from_config(cfg)
     p.dhw_enabled = True
@@ -220,7 +220,7 @@ def _dhw_setup(tz, start=datetime(2026, 1, 15), price="winter_typical"):
     o = HeatPumpOptimizer(m, OptimizationConfig(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0))
-    pr = prices(price, start)
+    pr = prices("winter_typical", start)
     ot, wi, ra, so = weather("winter_cold", start)
     st = ThermalState(
         room_temperature=21.0, slab_temperature=22.0,
@@ -279,43 +279,41 @@ for _tz in (False, True):
 # polices is never binding (0 of 488 observed L-BFGS-B calls reached the
 # cap, worst nit 52 against 200/300), while ftol decides every plan and
 # until then no check in this file saw it -- production ftol loosened
-# 1000x-10000x (1e-6 -> 1e-3 / 1e-2 in optimizer.py's options dicts)
-# passed every check at the round-4 baseline while degrading the plan on
-# the production objective.
-#
-# The CELL is chosen by measurement, because whether a loosened stop rule
-# lands a worse plan is a property of the scenario and of the BLAS kernel's
-# summation order (#1725). Until D2-s2-01 it was _dhw_setup's own cell
-# (winter_typical prices, winter_cold weather); once the hot-water tank paid
-# one lift law there (#201 comment 6240984157), every loosening, both
-# sites or the multi-start refinement alone, at 1e-3 or 1e-2, landed on
-# production's own 60.96 SEK on every x86 kernel OpenBLAS can be forced to
-# (Haswell, SkylakeX, Sandybridge, Nehalem) and on CI's fast lane, so no
-# bound on that cell could separate a loosened stop rule from production.
-# dev/audit/harnesses/r10_ftol_cell_search.py raced production against the
-# three loosened arms on 36 cells (two-zone x six winter/shoulder price
-# profiles x three weathers, DHW on) under each of those kernels: this cell
-# -- winter_moderate prices, the curve whose cheap:dear ratio sits either
-# side of a store's break-even -- is the one two-zone cell where every
-# loosened arm is costlier than production on every kernel, and its four
-# readings are bit-identical (prod 80.2228, both sites 1e-3 81.5990, the
-# round-4 single-site 1e-3 81.5410, both sites 1e-2 83.0998 SEK).
-#
-# The ARM is the both-sites 1e-3 loosening (every _scoped_minimize call,
-# the multi-start refinement and the restart polish alike): its healthy gap
-# is +1.687%, and the bound is half that, 0.84%. The 1e-2 arm reads a
-# wider +3.462%, but a check keyed on it is green on a production loosened
-# 1000x -- that production lands 81.54-81.60, 1.80-1.88% under the 1e-2
-# arm -- so it would catch only the 10000x class. Keyed on the 1e-3 arm,
-# production loosened at either site class goes red: both sites 1e-3 IS
-# the arm (0.00%), the single-site 1e-3 class lands 0.07% under it, and a
-# both-sites 1e-2 production is costlier than it. The comparison is the
-# same priced cost score_plan gives every challenger here, not the
-# objective, and is not a hardcoded figure: loosen production toward the
-# arm and the two solves converge past the bound by construction.
+# 1000x-10000x (1e-6 -> 1e-3 / 1e-2 in optimizer.py's two options dicts)
+# passed all 14 checks at the round-4 baseline while degrading the plan
+# on the production objective. Until #1725 the arm loosened ftol to 1e-3
+# on the multi-start's refinement solves only (the optimizer.py:708
+# options dict), restart restored to 1e-6, mirroring that round's
+# single-site mutation exactly. That arm's landing point turned out not
+# to be a function of the check's inputs: measured with
+# dev/audit/harnesses/k1725_blas_kernel_gap.py at fab17619, same tree,
+# same wheels, only the OpenBLAS DYNAMIC_ARCH kernel varying, the arm
+# read 63.47 SEK on Haswell, 63.48 on Sandybridge, 61.09 on Nehalem
+# (the kernel Rosetta actually selects), 60.54 on Apple Accelerate, and
+# 63.47 on CI's own fast lane (mined from green Tests run logs, 7 runs
+# 2026-09-27) -- a 4.6% swing whose SIGN flips against the production
+# arm's robust 61.24-61.28, so the 0.1%-bound verdict was a property of
+# the runner's CPU, not of the tree. The arm now loosens BOTH ftol sites
+# (the refinement at optimizer.py:708 and the restart's polish at :563)
+# 10000x to 1e-2, no restart exemption: a stop rule that loose cannot
+# repair itself, and the arm is the one measured kernel-STABLE -- 64.97
+# SEK bit-identically in every one of those four environments, +5.04%
+# (Accelerate) to +5.74% (Haswell) over production. The trade is scope,
+# stated rather than implied: the round-4 single-site 1e-3 mutation now
+# reads 2.31% on CI-class kernels (red, bound 2.5%) but GREEN on the
+# kernels where that loosening lands a cheaper plan (Nehalem 61.09,
+# Accelerate 60.54; the harness measures its objective better there too)
+# -- on this scenario's priced quantities that loosened plan is not
+# worse, so no comparison can catch it there, and the old shape caught
+# it only by being the mutation itself, which is exactly what made the
+# healthy verdict kernel-chaotic. Single-zone is insensitive to ftol on
+# this scenario and the dhw-off two-zone cell is non-monotone under
+# loosening, which is why the check lives here and only here. Like
+# challenger 3, the bound is not a hardcoded objective: if production's
+# ftol is ever loosened toward the arm, the two solves converge and the
+# check fails by construction.
 R.section("stop rule (ftol) on a DHW-enabled two-zone solve (#921)")
-_o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(
-    True, price="winter_moderate")
+_o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
 _r7 = _o7.optimize(inputs=solve_inputs(
     initial_state=_st7,
     prices=_pr7,
@@ -335,7 +333,7 @@ _full_ms_7 = _optm_dhw._multi_start_minimize
 def _loose_ftol_7(*a, **kw):
     kw = dict(kw)
     _opts = dict(kw.get("options") or {})
-    _opts["ftol"] = 1e-3
+    _opts["ftol"] = 1e-2
     kw["options"] = _opts
     return _full_scoped_7(*a, **kw)
 
@@ -360,14 +358,27 @@ _c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
 pin_result("stop-rule loosened arm",_r7l,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
 print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
-# The bound is half the smallest healthy gap measured across kernels, the
-# derivation this check has used since #1207 (0.99 against 2.6%, then 2.5%
-# against #1725's 5.04%): 0.84 against +1.687%, every kernel of the
-# r10_ftol_cell_search.py matrix reading that gap to the digit.
+# The bound was 1% (0.99) against a 2.6% measured gap until #1207 dropped
+# the restart keep gate 2e-2 -> 2e-5 (owner directive, #1207 comment
+# c1329fe / database id 5750296026, 2026-09-20): the single-site arm's
+# tight restart then ADOPTED the sub-2% repairs it used to discard, so it
+# repaired most of what the loosened multi-start gave up and the measured
+# gap collapsed to 0.30%, leaving the 0.1% bound inside the arm's own
+# kernel swing (#1725, table above). The both-sites 1e-2 arm's gap is
+# measured, not assumed: +5.74% Haswell, +5.68% Sandybridge and Nehalem,
+# +5.04% Accelerate (k1725_blas_kernel_gap.py at fab17619), so the bound
+# sits at half the smallest environment's number, 2.5%, the same
+# derivation the file used at 0.99 against 2.6% -- every measured healthy
+# gap clears it with more than 2x headroom, and the failure construction
+# is unchanged: loosen production's ftol toward the arm and the two
+# solves converge past it -- measured red on the CI-class kernel at 0.00%
+# for a both-sites 1e-2 loosening, 2.29% for the round-4 single-site 1e-3
+# class (direct mutation runs), and 2.03% for both-sites 1e-3 (the
+# harness's 63.65 arm against the 64.97).
 R.check("the production stop rule (ftol) buys a materially better plan",
-        _v7l <= 1e-6 and _c70 <= _c7l * (1.0 - 0.0084),
-        f"ftol 1e-6 {_c70:.2f} vs loosened 1e-3 both sites {_c7l:.2f} "
-        f"({100.0*(_c7l-_c70)/_c7l:.2f}% gap, bound 0.84%)")
+        _v7l <= 1e-6 and _c70 <= _c7l * 0.975,
+        f"ftol 1e-6 {_c70:.2f} vs loosened 1e-2 both sites {_c7l:.2f} "
+        f"({100.0*(_c7l-_c70)/_c7l:.2f}% gap, bound 2.5%)")
 
 # Challenger 6: the ZERO-RANGE-BOUND path (#286/#287). Every solve above
 # leaves each variable a strictly positive range. One forced-off manual pin
@@ -708,13 +719,6 @@ _CERT_BARS = {
 def _cert_bar(name: str) -> float:
     """The gap this cell's checks compare against (see _CERT_BARS)."""
     return _CERT_BARS.get(name, _CERT_BAR)
-#: #2255 closed one|winter_narrow|shoulder (0.0000 % re-polish and ladder on
-#: CI's linux fast lane and on the arm64 seat): the thermostat reference now
-#: starts held, so its energy -- which seeds the anchor starts -- is the steady
-#: holding energy rather than a transient's. one|summer_negative|shoulder
-#: stays: CI's linux fast lane still measures ladder +10.55 % (obj 0.3058),
-#: though the arm64 seat reaches the basin (obj 0.2548, 0.0000 %); the gate's
-#: platform is the one that counts, so this claim reads stale on arm64 only.
 _CERT_CLAIMS = {
     "one|summer_negative|shoulder":
         "the optimum stores more than the baseline's energy and production's "
@@ -723,6 +727,9 @@ _CERT_CLAIMS = {
     "one|shoulder|winter_cold":
         "production stops at ftol=1e-6 short of its own fixed point; closing "
         "needs a tighter stop rule, refused on money (#1293).",
+    "one|winter_narrow|shoulder":
+        "a missed basin above the baseline anchor; closing needs the refused "
+        "production ladder (#1294).",
 }
 
 

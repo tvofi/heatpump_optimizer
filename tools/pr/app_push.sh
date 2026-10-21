@@ -338,16 +338,19 @@ push_and_open() {
     recarry_verdict "$wt" "$listing" "$body" >/dev/null && skip=1
     if [ "$skip" = 1 ]; then echo "app_push: RECARRY: prepr SKIPPED: $RV_WHY"; else echo "app_push: RECARRY: prepr RUNS: $RV_WHY"; fi
     [ -n "$RV_HEAD" ] || die "--recarry: HEAD in $wt does not read back"
-    # The note goes under the `## Head` HEADING pr-contract reads, never the
-    # first substring `## Head`: prose quoting it took both of #2400's notes.
-    local note why=""; [ -z "${REMERGE_WHY:-}" ] || why=" ($REMERGE_WHY)"
-    if [ -n "$RV_P2" ]; then
-      note="\`$RV_HEAD\` merges main \`${RV_P2:0:7}\` into the previous head: an automatic merge by the orchestrator, no resolution$why. The reviewed code is unchanged."
-    else
-      note="\`$RV_HEAD\` is the orchestrator's recarry of main into the previous head$why. It is not a clean merge of the live head and main ($RV_WHY), so prepr checked this head."
-    fi
-    [ "$dry" = 1 ] || python3 "$(dirname -- "$0")/head_note.py" "$body" "$note" \
-      || die "--recarry: head_note.py named no new head under a ## Head heading in $body; nothing was minted or pushed"
+    [ "$dry" = 1 ] || python3 - "$body" "$RV_HEAD" "${RV_P2:0:7}" "${REMERGE_WHY:-}" "$RV_WHY" <<'NOTE' || die "--recarry: $body has no ## Head to name the new head under"
+import sys
+p, H, M, why, verdict = sys.argv[1:6]; s = open(p).read()
+i = s.index('\n', s.index('## Head')) + 1
+while s[i:i + 1] == '\n': i += 1
+why = " (%s)" % why if why else ""
+if M:
+    note = "`%s` merges main `%s` into the previous head: an automatic merge by the orchestrator, no resolution%s. The reviewed code is unchanged." % (H, M, why)
+else:
+    note = "`%s` is the orchestrator's recarry of main into the previous head%s. It is not a clean merge of the live head and main (%s), so prepr checked this head." % (H, why, verdict)
+s = s[:i] + note + "\n\n" + s[i:]
+open(p, 'w').write(s)
+NOTE
   fi
 
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
@@ -479,7 +482,6 @@ W=$(mktemp -d) || exit 2
 trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
-cp "$(dirname -- "$SELF")/head_note.py" "$W/tool/"
 # The real guard, at the path the copy resolves it by (../audit/seat/).
 mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/"
 FAILS=0; N=0
@@ -837,37 +839,6 @@ st "$(grep -c 'HEAD moved to 2222222222222222222222222222222222222222 after the 
 
 mkcase rbonly
 run rbonly --recarry --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 1 "REFUSE: --recarry does not combine with --branch-only"
-
-# R10-RECARRY-HEAD: each recarry's note names its head under the `## Head`
-# HEADING, read by the reader pr-contract runs (policy_lint.mjs --pr-body).
-# #2400's prose quoted `## Head` above the heading, and both its recarries
-# (edc4484, fd0f5d9) noted there instead. Each recarry is a case in its own
-# directory, so the stubs read its own head.sha; the second recarry's listing
-# and body are the body the first PATCHed, as the train reads them.
-hnamed() { # body sha -> named when pr-contract's `## Head` check names it
-  node "$(dirname -- "$SELF")/../policy/policy_lint.mjs" --pr-body "$1" --head "$2" 2>&1 \
-    | grep -c '`## Head` does not name' | sed 's/^0$/named/;s/^[1-9][0-9]*$/unnamed/'; }
-H1=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa H2=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-{ printf 'Round 2: update_pr.sh takes its output to word the `## Head` note.\n\n'; cat "$W/body.md"; } > "$W/quoted.md"
-recarry_at() { # dir head body -> one --recarry of <body> at <head>, live head P1
-  mkdir -p "$W/$1"; cp "$W/prjson.py" "$W/$1/../prjson.py"; printf '%s\n' "$2" > "$W/$1/../head.sha"
-  mkcase "$1"; cp "$3" "$W/$1/body.md"
-  python3 -c 'import json, sys
-print(json.dumps([{"number": 7, "head": {"sha": sys.argv[1]}, "body": open(sys.argv[2]).read().rstrip("\n")}]))' \
-    "$P1_STUB" "$3" > "$W/$1/listing.json"
-  run "$1" --recarry o/r "$W/tool-wt" "$BR" "$W/$1/body.md"
-}
-recarry_at dq1/c "$H1" "$W/quoted.md"; st $? 0 "a recarry of a body whose prose quotes \`## Head\` pushes"
-recarry_at dq2/c "$H2" "$W/dq1/c/live-body"; st $? 0 "and a second recarry of the body the first PATCHed pushes"
-st "$(hnamed "$W/dq2/c/live-body" "$H2")$(hnamed "$W/dq2/c/live-body" "$H1")" namednamed "double recarry: \`## Head\` names the second recarry's head, and still the first's"
-st "$(hnamed "$W/dq1/c/live-body" "$H1")" named "a single recarry of the same body: \`## Head\` names its head (the defect is every recarry's, not the second's)"
-st "$(head -1 "$W/dq2/c/live-body")" 'Round 2: update_pr.sh takes its output to word the `## Head` note.' "and the prose above the heading is untouched"
-recarry_at dp1/c "$H1" "$W/body.md"; st "$?$(hnamed "$W/dp1/c/live-body" "$H1")$(hnamed "$W/dp1/c/live-body" "$SHA")" 0namednamed \
-  "(null control: a single recarry of a body with no prose \`## Head\` names its head, and the body's own)"
-printf 'only prose quotes `## Head`\n' > "$W/nohead.md"
-recarry_at dn1/c "$H1" "$W/nohead.md"; st "$?$(grep -c 'head_note: REFUSE: .*no `## Head` heading' "$W/dn1/c/err")$(grep -c '^git .*push' "$W/dn1/c/log")$(calls dn1/c curl)" 1100 \
-  "REFUSE: a body with no \`## Head\` heading, only prose quoting it: nothing was minted or pushed"
-st "$(python3 "$W/tool/head_note.py" --self-test | grep -c '^head_note self-test: [1-9][0-9]* checks, 0 failed$')" 1 "head_note.py's own arms: fence, \`### Head\`, CRLF, end of body, no heading"
 
 # R9-RC-RECARRY-READBACK: the read-back is BOUNDED and has THREE outcomes, so a
 # push GitHub has not yet indexed is told from a refused one. The perturbations

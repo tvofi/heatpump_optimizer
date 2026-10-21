@@ -4,7 +4,6 @@
   fold_ledger.py fold  --round N [--root DIR] [--dry-run]
   fold_ledger.py check [--root DIR] [--ledger FILE] [--judge FILE ...]
   fold_ledger.py refresh [--root DIR]
-  fold_ledger.py sync [--root DIR]
   fold_ledger.py --self-test
 
 `fold` is run by .claude/workflows/audit-verify.js after the class sweep. It
@@ -22,17 +21,7 @@ N for the round (judged, beyond_finding), and refuses:
   - a survivor already placed in another class.
 Two classes minted in one round with one `nearest` are counted as one class for
 the trigger. A new id also lands in finding.schema.json's class_guess enum,
-which check-wave-script.mjs holds equal to the ledger, and fold then runs
-`sync`.
-
-`sync` writes the schema's third and fourth readers, the generated block of
-.claude/workflows/audit-find.js (R10-TICK g, i): CLASS_GUESS, intake's class
-check, and FINDING_REPORT, the schema with its $refs inlined, which the finder
-is handed as its return schema, so the enums and types intake validates reach
-the finder at return. The workflow runtime has no filesystem, so the driver
-cannot read the file itself. agreement.mjs's finding-class-id and
-finder-report-form pairs refuse a block that parts from the schema; `sync`
-after a hand edit of the schema is the repair.
+which check-wave-script.mjs holds equal to the ledger.
 
 `check` runs in the wave-script lane of governance.yml (one pass, under a
 second) and refuses, printing one line each:
@@ -68,9 +57,6 @@ INSTANCE = re.compile(r"^R(\d+) (\S+)$")
 RCA_DIR = "dev/audit/rca"
 LEDGER = "dev/audit/config/bugclasses.json"
 SCHEMA = "dev/audit/config/finding.schema.json"
-FIND_WORKFLOW = ".claude/workflows/audit-find.js"
-BLOCK_BEGIN = "// FINDING-SCHEMA:BEGIN"
-BLOCK_END = "// FINDING-SCHEMA:END"
 
 
 def classes(led):
@@ -296,55 +282,7 @@ def fold(root, rnd, dry=False):
         ids = json.loads(m.group(2))
         ids = [i for i in ids if i != "new"] + [c for c in new if c not in ids] + ["new"]
         open(sp, "w").write(txt[:m.start(2)] + json.dumps(ids) + txt[m.end(2):])
-    sync(root)
     return 0
-
-
-def _inline(node, defs):
-    """The schema with every `{"$ref": "#/definitions/x"}` replaced by x."""
-    if isinstance(node, dict):
-        if set(node) == {"$ref"}:
-            ref = node["$ref"]
-            if not ref.startswith("#/definitions/") or ref.split("/")[-1] not in defs:
-                raise SystemExit(f"REFUSE: {SCHEMA} has a $ref this inliner cannot follow: {ref!r}")
-            return _inline(defs[ref.split("/")[-1]], defs)
-        return {k: _inline(v, defs) for k, v in node.items() if k not in ("$schema", "definitions")}
-    if isinstance(node, list):
-        return [_inline(v, defs) for v in node]
-    return node
-
-
-def _class_enum(schema):
-    ids = schema.get("definitions", {}).get("finding", {}).get("properties", {}).get("class_guess", {}).get("enum")
-    if not ids:
-        raise SystemExit(f"REFUSE: {SCHEMA} has no definitions.finding class_guess enum")
-    bad = [i for i in ids if not re.fullmatch(r"[A-Za-z0-9-]+", i)]
-    if bad:
-        raise SystemExit(f"REFUSE: class ids {bad} carry a character CLASS_GUESS would have to escape")
-    return sorted(ids)
-
-
-def finder_block(schema):
-    """The generated lines between the markers, from the parsed schema."""
-    return (f"const CLASS_GUESS = /^(({'|'.join(_class_enum(schema))}))$/\n"
-            f"const FINDING_REPORT = {json.dumps(_inline(schema, schema.get('definitions', {})), ensure_ascii=False)}\n")
-
-
-def sync(root):
-    """Rewrite audit-find.js's generated block from the schema; 1 when it moved."""
-    wp = os.path.join(root, FIND_WORKFLOW)
-    src = open(wp).read()
-    b, e = src.find(BLOCK_BEGIN), src.find(BLOCK_END)
-    if b < 0 or e < b:
-        raise SystemExit(f"REFUSE: {FIND_WORKFLOW} has no {BLOCK_BEGIN} .. {BLOCK_END} block to write")
-    start = src.index("\n", b) + 1
-    body = finder_block(json.load(open(os.path.join(root, SCHEMA))))
-    if src[start:e] == body:
-        print(f"fold_ledger: {FIND_WORKFLOW} already carries {SCHEMA}")
-        return 0
-    open(wp, "w").write(src[:start] + body + src[e:])
-    print(f"fold_ledger: wrote {FIND_WORKFLOW}'s CLASS_GUESS and FINDING_REPORT from {SCHEMA}")
-    return 1
 
 
 def _plant(root, ledger, judge=None, sweep=None, docs=()):
@@ -352,20 +290,14 @@ def _plant(root, ledger, judge=None, sweep=None, docs=()):
     os.makedirs(os.path.dirname(os.path.join(root, LEDGER)), exist_ok=True)
     os.makedirs(os.path.dirname(os.path.join(root, SCHEMA)), exist_ok=True)
     os.makedirs(os.path.join(root, "dev/audit/rounds/round2"), exist_ok=True)
-    os.makedirs(os.path.dirname(os.path.join(root, FIND_WORKFLOW)), exist_ok=True)
     json.dump(ledger, open(os.path.join(root, LEDGER), "w"), indent=2, ensure_ascii=False)
-    open(os.path.join(root, SCHEMA), "w").write(PLANT_SCHEMA)
-    open(os.path.join(root, FIND_WORKFLOW), "w").write(f"const a = 1\n{BLOCK_BEGIN} -- generated\nconst CLASS_GUESS = /stale/\n{BLOCK_END}\nconst b = 2\n")
+    open(os.path.join(root, SCHEMA), "w").write('{"class_guess": {"enum": ["P1", "P2", "new"], "description": "x"}}\n')
     if judge is not None:
         json.dump(judge, open(os.path.join(root, "dev/audit/rounds/round2/JUDGE.json"), "w"))
     if sweep is not None:
         json.dump(sweep, open(os.path.join(root, "dev/audit/rounds/round2/sweep-P1.json"), "w"))
     for dname in docs:
         open(os.path.join(root, RCA_DIR, dname), "w").write("# rca\n")
-
-
-PLANT_SCHEMA = ('{"type": "object", "required": ["findings"], "properties": {"findings": {"type": "array", "items": {"$ref": "#/definitions/finding"}}},\n'
-                ' "definitions": {"finding": {"type": "object", "properties": {"class_guess": {"enum": ["P1", "P2", "new"], "description": "x"}}}}}\n')
 
 
 def _entry(insts, **kw):
@@ -516,45 +448,12 @@ def self_test():
     expect("a sweep seam with no boolean beyond_finding is refused (the unit of count is a field, not a phrase)", err and "beyond_finding" in err)
     err, *_ = run_fold(_settle({"P1": _entry([]), "P2": _entry(["R2 D1-01"]), "_rca": {}}), jv)
     expect("a survivor already in another class is refused", err and "already in P2" in err)
-
-    # R10-TICK (g, i): the schema's two readers in the find workflow are written by the fold, never by hand.
-    def run_sync(led, judge, wf=None):
-        with tempfile.TemporaryDirectory() as t:
-            _plant(t, led, judge)
-            if wf is not None:
-                open(os.path.join(t, FIND_WORKFLOW), "w").write(wf)
-            import io
-            import contextlib
-            with contextlib.redirect_stdout(io.StringIO()):
-                try:
-                    fold(t, 2)
-                    first = open(os.path.join(t, FIND_WORKFLOW)).read()
-                    again = sync(t)
-                except SystemExit as e:
-                    return str(e), None, None
-            return None, first, again
-
-    mint = {"round": 2, "verdicts": [{"id": "D1-01", "verdict": "verified", "class": "P7", "class_mechanism": "m7", "nearest": "P2", "differs": "d"}]}
-    err, wf, again = run_sync(base, mint)
-    expect("a minted class reaches audit-find.js's CLASS_GUESS, the intake's third reader of the enum",
-           err is None and "\nconst CLASS_GUESS = /^((P1|P2|P7|new))$/\n" in wf)
-    rep = json.loads(wf.split("const FINDING_REPORT = ", 1)[1].split("\n", 1)[0]) if wf and "const FINDING_REPORT = " in wf else {}
-    expect("and FINDING_REPORT, the schema with its $ref inlined: the finder's return schema carries the new enum",
-           rep.get("properties", {}).get("findings", {}).get("items", {}).get("properties", {}).get("class_guess", {}).get("enum") == ["P1", "P2", "P7", "new"]
-           and "definitions" not in rep and "$ref" not in json.dumps(rep))
-    expect("the lines outside the block are kept, and a second sync changes nothing (idempotent)",
-           wf is not None and wf.startswith("const a = 1\n") and wf.endswith(f"{BLOCK_END}\nconst b = 2\n") and again == 0)
-    err, wf, _ = run_sync(base, jv)
-    expect("null control: a fold that mints nothing still writes the block from the unchanged enum",
-           err is None and "\nconst CLASS_GUESS = /^((P1|P2|new))$/\n" in wf)
-    err, *_ = run_sync(base, mint, wf="const a = 1\n")
-    expect("a workflow with no generated block is refused, never skipped", err and "no // FINDING-SCHEMA:BEGIN" in err)
     return 1 if fails else 0
 
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("mode", nargs="?", choices=("fold", "check", "refresh", "sync"))
+    ap.add_argument("mode", nargs="?", choices=("fold", "check", "refresh"))
     ap.add_argument("--root", default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     ap.add_argument("--round", type=int)
     ap.add_argument("--dry-run", action="store_true")
@@ -568,12 +467,9 @@ def main(argv):
         return check(a.root, a.ledger, a.judge)
     if a.mode == "refresh":
         return refresh(a.root)
-    if a.mode == "sync":
-        sync(a.root)
-        return 0
     if a.mode == "fold" and a.round:
         return fold(a.root, a.round, a.dry_run)
-    ap.error("a mode (fold --round N, check, refresh or sync) or --self-test")
+    ap.error("a mode (fold --round N, check or refresh) or --self-test")
 
 
 if __name__ == "__main__":

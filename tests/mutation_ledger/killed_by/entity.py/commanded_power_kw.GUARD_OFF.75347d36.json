@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:commanded_power_kw GUARD_OFF 75347d36",
+  "killed_by": "tests/entities.py",
+  "old": "    if space is None:",
+  "reason": "#1499 review: commanded_power_kw's no-power guard. `if space is None:` -> `if False:` makes float(None) raise for an action with no power: tests/entities.py rc=0 -> rc=1 (`no sensor crashes before the first update`, MeasuredPowerSensor). Measured at f16d004e, 2026-09-24."
+}

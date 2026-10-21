@@ -151,9 +151,9 @@ def main():
     cap, dT, dt = pa.upper_floor_thermal_mass, 26.0, 0.25
     for resid in (0.02, 0.1, 0.3):
         ta = learner_newton_step(s, U, cap, resid, dT, dt, trust_region=coord_mod._LEARNER_TRUST_REGION,
-                                 alpha=coord_mod.HOUSE_LOSS_ALPHA)
+                                 alpha=coord_mod.HOUSE_LOSS_ALPHA, max_step_fraction=coord_mod.HOUSE_LOSS_MAX_STEP)
         tb = learner_newton_step(1.0, U * s, cap, resid, dT, dt, trust_region=coord_mod._LEARNER_TRUST_REGION,
-                                 alpha=coord_mod.HOUSE_LOSS_ALPHA)
+                                 alpha=coord_mod.HOUSE_LOSS_ALPHA, max_step_fraction=coord_mod.HOUSE_LOSS_MAX_STEP)
         step_a = (ta[1] - s) * U
         step_b = (tb[1] - 1.0) * U * s
         print(f"RESULT newton_step_ua_ratio_B_over_A_resid{resid}={step_b / step_a:.4f}  "

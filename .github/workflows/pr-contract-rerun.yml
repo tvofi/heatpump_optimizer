@@ -20,40 +20,23 @@
 # files: a workflow it misses is the gap again.
 #
 # NO PULL REQUEST CODE RUNS. The checkout is the default branch's own commit,
-# the program is restored from it and run under `python3 -I`; the only values
-# taken from the triggering run are its id and head SHA, each checked as an
-# integer and as 40 hex characters before use, and the program is handed the
-# id of a run the API listed at that head. `head_branch` and every other string the pull request controls
+# the program is restored from it and run under `python3 -I`; the only value
+# taken from the triggering run is its id (an integer), and through the API its
+# head SHA. `head_branch` and every other string the pull request controls
 # stay out of the job. The pattern is budget-raise-gate-rerun.yml's.
-#
-# ONE EFFECTIVE RUN PER HEAD (R10-FOLLOWER-DEBOUNCE). Every watched completion
-# at a head starts this workflow, about eight per push; each red one used to
-# run the program, and each stale contract it found was re-run again. Now the
-# runs at one head share a concurrency group that cancels the older, and the
-# first step exits, on one API call, while another watched run at the head is
-# still queued or in progress: that run's own completion starts this workflow
-# again. So the job runs on every conclusion, not only a red one -- the last
-# completion may be green after an earlier red deferred to it -- and hands the
-# program the newest red watched run at the head, whose finish is the latest a
-# contract must post-date. With no red there, nothing re-runs.
 
 name: PR contract re-run
 
 on:
   workflow_run:
-    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Kernel points", "Tests", "Validate"]
+    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
     types: [completed]
-
-# The newest completion at a head supersedes every older follower of it; a
-# head SHA is hex the API computed, never a string the pull request wrote.
-concurrency:
-  group: pr-contract-rerun-${{ github.event.workflow_run.head_sha }}
-  cancel-in-progress: true
 
 permissions: {}
 
 jobs:
   rerun-stale-contract:
+    if: contains(fromJSON('["failure","timed_out","cancelled"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # `actions: write` is the re-run; `contents: read` is the checkout of the
@@ -62,46 +45,12 @@ jobs:
       actions: write
       contents: read
     steps:
-      # The one API call before any checkout: the runs at the head. WATCHED is
-      # `on.workflow_run.workflows` above, which tests/entities.py pins equal.
-      - name: Wait for the last watched run at the head
-        id: last
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          REPO: ${{ github.repository }}
-          WATCHED: '["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Kernel points", "Tests", "Validate"]'
-        run: |
-          set -euo pipefail
-          [[ "$RUN_ID" =~ ^[0-9]+$ && "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "REFUSED: run id or head sha malformed"; exit 1; }
-          gh api "repos/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=100" > "$RUNNER_TEMP/head-runs.json"
-          busy=$(jq --argjson w "$WATCHED" --argjson me "$RUN_ID" '[.workflow_runs[]
-            | select(.id != $me and (.name as $n | $w | index($n)) != null)
-            | select(.status == "queued" or .status == "in_progress" or .status == "requested" or .status == "pending")
-            | .id] | length' "$RUNNER_TEMP/head-runs.json")
-          red=$(jq -r --argjson w "$WATCHED" '[.workflow_runs[]
-            | select((.name as $n | $w | index($n)) != null and .status == "completed")
-            | select(.conclusion == "failure" or .conclusion == "timed_out" or .conclusion == "cancelled")]
-            | sort_by(.updated_at, .id) | last | .id // empty' "$RUNNER_TEMP/head-runs.json")
-          if [ "$busy" -gt 0 ]; then
-            echo "DEFER: $busy watched run(s) at ${HEAD_SHA:0:12} still queued or in progress; the last one's completion re-runs this"
-          elif [ -z "$red" ]; then
-            echo "NONE: no red watched run at ${HEAD_SHA:0:12}"
-          else
-            [[ "$red" =~ ^[0-9]+$ ]] || { echo "REFUSED: red run id malformed"; exit 1; }
-            echo "LAST: newest red watched run at ${HEAD_SHA:0:12} is $red"
-            echo "red=$red" >> "$GITHUB_OUTPUT"
-          fi
-
-      - if: steps.last.outputs.red != ''
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Restore the program from the default branch's commit
-        if: steps.last.outputs.red != ''
         env:
           PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
@@ -118,10 +67,9 @@ jobs:
           test -f .claude/workflows/contract_rerun.py || test -f tools/pr/contract_rerun.py
 
       - name: Re-run the contract a later red made stale
-        if: steps.last.outputs.red != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ steps.last.outputs.red }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

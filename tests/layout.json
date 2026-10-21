@@ -1,5 +1,5 @@
 {
- "_doc": "The target layout of the repository reorganisation (lane RO). Checked by tests/layout.py; the categories are ordered and a path must match exactly one. `retired` is generated with `python3 tests/layout.py --gen-retired <inventory.tsv>`; an entry's `since` names the pull request that made the move, and null means planned. `historical` prefixes keep the paths that were true when they were written (tvofi's D2), matched on a file's path or on where the move map puts it. `ref_namespaces` names prefixes that spell git refs, not directories (`handoff/` is the fixer hand-off branch namespace of decision 0011): a directory a move empties under one is not a moved path, because the spelling in a line is a branch name, and only the moved tree and an explicit entry are swept.",
+ "_doc": "The target layout of the repository reorganisation (lane RO). Checked by tests/layout.py; the categories are ordered and a path must match exactly one. `retired` is generated with `python3 tests/layout.py --gen-retired <inventory.tsv>`; an entry's `since` names the pull request that made the move, and null means planned. `historical` prefixes keep the paths that were true when they were written (tvofi's D2), matched on a file's path or on where the move map puts it.",
  "categories": [
   {
    "name": "root",
@@ -96,10 +96,9 @@
    "globs": [
     "tools/policy/**",
     "tools/pr/**",
-    "tools/audit/{judge_batch.py,check_scopes.py,carry_audit.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh,prose_counts_census.py}",
+    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh,prose_counts_census.py}",
     "tools/audit/seat/**",
     "tools/audit/archscore/**",
-    "tools/plan/**",
     "tools/coverage/**",
     "tools/devices/**",
     "tools/release/**",
@@ -628,11 +627,6 @@
    "since": 1994
   },
   {
-   "old": "handoff/round9/",
-   "new": "dev/archive/handoff/round9/",
-   "since": null
-  },
-  {
    "old": "icon.png",
    "new": null,
    "since": "1995"
@@ -937,18 +931,13 @@
  ],
  "historical": [
   "dev/archive/",
-  "dev/audit/config/bugclasses.json",
   "dev/audit/rounds/",
   "dev/programme/delivery/",
-  "dev/programme/plan-2026-09-open-issues.md",
   "dev/programme/rosters/",
   "dev/programme/round9/",
   "RELEASE_NOTES.md",
   "tests/golden/",
   "tests/mutation_ledger/",
   "tests/closures.json"
- ],
- "ref_namespaces": [
-  "handoff/"
  ]
 }

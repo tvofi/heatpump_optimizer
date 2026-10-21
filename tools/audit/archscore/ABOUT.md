@@ -52,14 +52,9 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C14 a parameter annotated with a package class holds an instance of it (`untyped_payload_keys.Flow.seed`), in any spelling `annotation_members` takes apart | a published dict moved behind an annotated helper, its keys read as gone (ARCH-s3, round 10: ten away keys); the type spelled `Union[None, X]` or `Annotated[X, ..]` (#2293 round-1 review) | 16, 16b, 16c |
 | C15 a call is what its callee returns; a hub handed over as a zero-argument reader (`lambda: ctx._thermal_params`, a method reference) or rebound onto a collaborator's attribute is the hub there (`common.Engine`) | a collaborator's hub held as a reader, its writes read as gone (D7-s1-83: ARCH2-s1's P1 prototype hid three spellings) | 19 |
 | C16 a coordinator method handed to code outside the package (an event, MQTT or timer callback) is a hub root (`hub_solve_writes.event_roots`) | a solve's hub write moved into an event callback (ARCH2-s2 P4's instrument half) | 20 |
-| C16b so is one handed to a package function that passes it on uncalled: hands it to code outside the package, or returns it (or a closure over it) into a call that does (`hub_solve_writes._passes_on`, `_consumed`) | the meter callback handed to Home Assistant through `def _pkg_wrap(cb): return cb` (#2311 round-1 review, F1) | 20b |
 | C17 a function-scope import is an edge of the layering graph (`metrics/layering.py`) | a solver import made lazy, the module read as freed of scipy (ARCH2-s4, round 10); re-spelled into the `else` of `if TYPE_CHECKING:` (24), under `if not TYPE_CHECKING:` (25), as an absolute self-import on the `from` form (27), on the plain dotted `import` with an alias (28) and with the full dotted read (29), through an absolute from-import's module binding (30), from the namespace ABOVE the package -- `import custom_components` aliased (32) and bare (35), `from custom_components import heatpump_optimizer` (33) and aliased (34) -- and as a constant-name `import_module` (26), by its `name` keyword (31), or through a module-level string constant (37), each of them runtime code. Ancestor and descendant are one predicate: the relation of a dotted name to the package's own path, at a dot boundary | 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 40 |
 | C18 a private name read through a module binding (`m._x`, `getattr(m, "_x")`, a resolved `import_module(..)._x`) crosses like its import | `from .m import _x` re-spelled `from . import m` and `m._x(..)`; the same respelled with the package's full path (27), off the binding a plain dotted `import` makes (28, 29), off the module binding an absolute from-import makes (30), from the namespace ABOVE the package (32 to 35), through an attribute or `getattr` chain rooted at one (36), and through a constant-name `import_module` (26), its `name`-keyword form (31) or a module-level string constant (37). A read that resolves to a module is also that module's EDGE, whether the name read off it is public or private -- which is what an import of an ancestor needs, since that statement loads no module of ours; the edge is added once, at the OUTERMOST point of the chain whose receiver resolves to a module, so a chain that walks past it still takes it (38, 39, 41) | 22, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41 |
 | C19 `unused_boundary_imports` (gate-only): a boundary import whose names the module never reads | each violating module climbs a layer with an unread `import homeassistant` | 23 |
-| C20 a literal spec is normalised: numbers by value, an in-package callee's positionals as the keywords they bind, keywords and dict items in order (`metrics/literal_clones.py`) | the copies of a selector re-spelled with float bounds (42); its positionals respelled as keywords (42c, #2373 review) | 42, 42c |
-| C21 a local, or a module constant (own, imported by name, or read through a module binding `m.X`), bound once to a spec reads as it | a selector's bound hoisted into a local (43), into module constants (42b, #2373 review), or into another module's constants read as `_c.X` (42d, #2373 round-2 review) | 43, 42b, 42d |
-| C22 a card function's own names are numbered by first use and its no-op and empty statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) or by a lone `;` (44c, #2373 round-2 review) | 44, 44b, 44c |
-| C23 `shape_copies` (gate-only): a function's own names are numbered, numbers, strings and `mod.X` abstracted as the clone window does (`metrics/shapes.py`) | a below-window rule copied with every name changed (`a3_shape_copies_control`); a private helper copied into its importer (also refused by `duplication_copies`) | 45 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -125,20 +120,6 @@ event writes `tests/arch_score_head.py` now lists as producers. C15 moves no cor
 every hub handle as a path. It closes the spellings the next refactor would use (attempt 19), and ARCH2-s1's
 `census_probe.py --tree proto` reads all three of its blind spellings as seen. Each counter carries a planted BAD and
 GOOD pair (`a3_hub_reader_*`, `a3_hub_event_write_*`) and an attempt; `ARCHSCORE_ABLATE=C15` or `C16` reopens its own.
-
-The #2311 review planted two moves on C16, and part 5 answers both. F1, under-fire, is closed by C16b: a
-callback handed to a package helper that returns it (`_pkg_wrap(self._on_power_event)`) read 41 -> 40 with the
-write unchanged, because a callback handed to a package function was never a root. Now a package function
-that passes its argument on uncalled roots it: one that hands it to a call outside the package, through
-any depth of package calls, or one that returns it (or a nested function or lambda over it) into a call
-that hands the result on. A returned reference whose result is discarded is not a root (#2401 round-1
-review: `tests/arch_score.py`'s null control), and neither is one bound to a local and handed on later,
-since the census does not follow a local. Today's tree still reads 41, and the plant
-reads 41 -> 41 (40 with `C16b` off). Attempt 20b. F2 is a precision note, not closed: a method reference handed
-to ANY call outside the package is a root, including one that never calls it (`_LOGGER.debug("%r",
-self.async_update_thermal_params)` reads 41 -> 48). The census cannot tell a subscription from a log argument,
-and it over-counts rather than misses the subscription. R10-LIVESTATE carries the 41 -> 38 control
-(`event_hub_writes.py`).
 
 ### What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
 
@@ -244,75 +225,6 @@ What it does not see, and no rule here closes:
 - `a3_private_cross_module_fix` is a pure rename of a private to a public name. Declaring a private public is a
   real change to an API and the metric is right to credit it, but it is this metric's cheapest move, and a D7
   brief quoting the counter should say so rather than read it as a decoupling.
-
-### What R10-ARCHSCORE-COVERAGE part 4 moved (the card, and literal specs)
-
-Three score metrics at the floor weight. `literal_clone_copies` (`metrics/literal_clones.py`) counts the copies of
-a declaration spelled as a call or literal more than once -- a selector, a schema, a record -- which sits inside one
-statement and so outside `duplication_copies`' windows: ARCH2-s5's F1 (the setup wizard reading its options-registry
-widgets) reads 186 -> 134 on it (ARCH2-s5's `arch_delta.py`, base `9061fbd3d`, with the round-2 instrument; 184 -> 132 before the module-binding fold). The card (`www/*.js`, read by a tokenizer in `metrics/card.py`, never a parser)
-gets `card_dead_definitions` (D7-s3-02's `textWidth` was its one; R10-UX-SETUP gave it callers, so today reads 0) and `card_clone_copies`, a 20-token window
-census; the window was calibrated on ARCH2-s5's four card patches, where 16 tokens read the finite-number owner (a
-dedupe) as one copy more. The shape census of N spellings of one rule is part 5's.
-
-The #2373 round-1 review planted three moves that read IMPROVES with nothing improved, and each is closed
-here with its attempt: three copies of a selector reading a bound from their own module constants (42b,
-C21 now folds a module constant bound once to a literal, its own module's or one imported by name), the
-same copies passing their positionals by keyword (42c, C20 binds a positional of an in-package callee to
-its parameter), and `void <n>;` after every second card `const`/`let` (44b, C22 drops a statement of
-literals, read identifiers and pure operators before windowing). Each read IMPROVES against the round-1
-instrument and reads NULL here; the counter's ablation reopens it.
-
-The round-2 review planted the next spelling of two of those classes, and both are closed with their attempt
-too: the copies reading their bound through a module binding, `from . import const as _c` and `_c.X` (42d, C21
-resolves an attribute read through `common.resolve_expr_static` to the module's constant, unless the function
-binds the root name itself), and a lone `;` after every second card `const`/`let` (44c, C22 drops an empty
-statement after a `;` or a `{`). Folding by value has a cost on honest code: two declarations that read
-different constants of equal value read as one spec. Today that is `store.py`'s `Domain` bounds for
-`house_heat_loss_scale` and `lower_floor_loss_ratio` (both 0.3 to 3.0 through `c.`), which count as one class of
-two in `literal_clone_copies`.
-
-What part 4's censuses do not see, and no rule here closes: a value computed at runtime or a constant bound
-twice; a constant read through an absolute import of the package (`import custom_components.<pkg>.m`, which
-the package index records as external); a card empty statement after a `}` (`if (x) {..};`), since tokens
-cannot tell a block's `}` from an object literal's or a function expression's, where the `;` ends the
-statement; a callee outside the package (its signature is not read) or a call through `*args`/`**kwargs`; a card
-no-op with an effect-shaped token (`if (0) {}`, `a.b;`, a call to an empty function) or a no-op inside a
-parenthesis; and a card copy re-spelled token by token below the 20-token window.
-
-The general limit, which the #2373 round-3 review named: C20 and C21 fold SPELLINGS of a value the census
-knows how to read -- a number, a keyword, a local, a module constant by name or through a binding -- and
-not the value itself. Any other route to an equal value reads as a different spec, and two such routes are
-measured open: a class-attribute constant (`class _H: L0 = 24`, read `_H.L0`) and a constant expression of
-equal value (`12 * 2` for `24`), each reading `literal_clone_copies` 186 -> 182 with nothing deduplicated.
-Closing one more route closes that route only; evaluating every expression to its value is what would
-close the class, and it is not done here. A census over literal specs is a floor on the copies, not a count
-of them.
-
-### What R10-ARCHSCORE-COVERAGE part 5 moved (the shape census, item 6)
-
-`shape_copies` (`metrics/shapes.py`) counts the members of every class of two or more functions with one SHAPE:
-the body with the function's own names numbered and numbers and strings abstracted (counter C23), which is the
-clone window's normalisation applied to the whole function. It reads what the window cannot: a rule that is a
-whole function below two statements or 30 nodes. On ARCH-s2's own seam rule for the payload-number guard
-(`shape_payload_guard.py`'s `family()`, at its baseline `554e2ecfa`) it joins 26 of the 35 implementations into
-3 classes; the other 9 are spelled differently, which is what a census on spellings cannot see.
-
-Item 6 asked for it to be calibrated first and weighted only if not gameable. Calibrated, it is **gate-only, weight 0**:
-
-- Weighted at the floor, the one corpus commit it lowers is BAD (`ca711b56`, 69 -> 68), which would read IMPROVES.
-- One statement re-spelled leaves a class while the rule is still written twice: `a3_shape_copies_respelled_control`
-  (BAD) reads NULL. A weight would pay that move.
-- As a tripwire it moves no recorded verdict: of the 45 corpus commits it rises on five BAD, two NEUTRAL and two
-  GOOD (`0323c5b8` 81 -> 83, `56cb0027` 84 -> 86), each already inadmissible; it is flat on the rest.
-- What it refuses that nothing else does is a new copy below the clone window: `a3_shape_copies_control` (a third
-  copy of `comfort_band.effective`'s one-statement rule in `presets.py`, every name changed) reads WORSENS through
-  `shape_copies` alone, and NULL with C23 off. Its GOOD plant (`a3_shape_copies_fix`: `config_flow` imports
-  `comfort_band.effective` instead of its own copy) reads NULL: weight 0 pays no dedupe, by construction.
-- Attempt 45 (a private helper copied into its importer under new names, which lowers `private_cross_module`) is
-  refused, but by `duplication_copies` as well: every private crossing on the pin is two to four statements, at the
-  clone window, so C23 is not what closes it, and the ablation does not reopen it. No scored metric on the pin can
-  be paid with a copy below the window; when one can, that is this counter's attempt to add.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

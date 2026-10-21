@@ -208,16 +208,7 @@ jobs:
       # program named on a pinned job's run line must be run there (prepr.sh's
       # pinned-grader reader). It runs only once the base carries it, so
       # it is always the base's pinned copy, and after `--hooks`, because its
-      # hooks arm drives that check again. The census rows' inputs --
-      # tests/ci_budgets.json, tests/ci_ratchet.py, tools/audit/archscore/ and
-      # the card -- are inputs too: without them a pull request uncapping a
-      # census row was caught only by the schedule (R10-ARCHSCORE-COVERAGE).
-      # A program file is named by a glob or its directory, never its own
-      # name, for the pinned-grader reason above.
-      # So are the homes the reorganisation moved its inputs to (tests/
-      # layout.json: policy_lint.mjs, counts.mjs and fixtures/ to tools/policy/,
-      # policy_budgets.json to dev/governance/config/), and the seam map the
-      # census copies; `.claude/workflows` alone no longer holds any of them.
+      # hooks arm drives that check again.
       - name: Refuse a governance check input field no check reads
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -228,7 +219,7 @@ jobs:
           set -euo pipefail
           if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*' tests/seam_map.json tests/ci_budgets.json 'tests/ci_ratchet*' tools/audit/archscore custom_components/heatpump_optimizer/www tools/policy dev/governance/config; then
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
             if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs; else node tools/policy/field_coverage.mjs; fi
@@ -245,10 +236,7 @@ jobs:
   # at the head, which `pr-contract` makes the body answer.
   instrument-self-tests:
     runs-on: ubuntu-latest
-    # 20, not 10: the seat self-tests below add about four minutes run
-    # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three.
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -351,13 +339,6 @@ jobs:
       - name: Show the merge-main bot refusing its own fixtures
         run: python3 tools/pr/merge_main_bot.py --self-test
 
-      # The superseded-run canceller (R10-CI-CONCURRENCY): the recorded pair
-      # 39090494028/39091600343 it must select, and the runs it must never
-      # cancel (a same-SHA twin, the live head, a bot-sent caller, main, a
-      # stale head), over a stub gh.
-      - name: Show the superseded-run canceller refusing its own fixtures
-        run: python3 tools/pr/cancel_superseded.py --self-test
-
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
@@ -389,15 +370,6 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
           grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
-
-      # Which CodeQL legs a pull request may skip (O17): every skip arm against
-      # its analyze null control, and every non-pull_request event analyzing.
-      # The tally line must say 0 failed.
-      - name: Show the CodeQL leg scope refusing every unsafe skip
-        run: |
-          set -o pipefail
-          python3 -I tools/pr/codeql_scope.py --self-test | tee "$RUNNER_TEMP/cqs-self-test.txt"
-          grep -Eq '^codeql_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cqs-self-test.txt"
 
       # The merge fast path (round-9 process review item 2B): each refusal class
       # against its null control, through the gate's own `closure.select`. The
@@ -435,242 +407,6 @@ jobs:
           python3 -I tools/audit/seat/ref_privacy.py --self-test
           python3 -I tools/audit/seat/ref_privacy.py --check
 
-      # The orchestrator sweep's renderer and its policy re-read predicate.
-      # The renderer's self-test renders the tracked template, so a step that
-      # cites an instrument the tree no longer has reddens here, not in the
-      # next session's sweep. Here for tmp_paths.py's reason.
-      - name: Render the sweep template, and the policy re-read predicate
-        run: |
-          set -euo pipefail
-          python3 -I tools/audit/seat/sweep_render.py --self-test | tee "$RUNNER_TEMP/sr-self-test.txt"
-          grep -Eq '^sweep_render self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sr-self-test.txt"
-          python3 -I tools/audit/seat/policy_reread_check.py --self-test | tee "$RUNNER_TEMP/prc-self-test.txt"
-          grep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"
-
-      # The orchestrator tick, over stubbed gh/git/pgrep/bus: no network, no
-      # `gh`, no subprocess. It loads roster_lib.py and budget_raise_gate.py
-      # from the tree, so a symbol either drops reddens here: #2406 removed
-      # `roster_lib.DEFAULT_ROSTER_REF`, and a tick still reading it crashed
-      # with AttributeError, seen first in review on #2422. A crash prints no
-      # tally, so the grep refuses it. Here for tmp_paths.py's reason.
-      - name: Show the orchestrator tick deciding its own fixtures
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
-          grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
-
-      # Every self-testing seat instrument (R10-SEAT-SELFTESTS-CI). The check
-      # refuses a file under tools/audit/seat/ whose text carries a
-      # `--self-test` entry point while no workflow run line, comments
-      # removed, names it with its self-test -- so the next instrument added
-      # there without a step reddens this job on its own pull request, where
-      # the scoped gate (tools/audit/ is INERT) would select nothing. Each
-      # step after it was measured offline under offline_spy.py: no socket,
-      # no gh/curl/wget/ssh/scp/nc call, no git call reaching a URL remote.
-      # The push and merge drivers (handoff_push, open_pr, update_pr,
-      # merge_pr) run their stubbed self-tests, never a push. The tally line
-      # must name 0 failures, as above; `!cancelled()` reports every step
-      # rather than the first red. queue_pre_flight.py has no step here: the
-      # carry check's step below runs it (#2404). Here for tmp_paths.py's
-      # reason.
-      - name: Refuse a self-testing seat instrument that no step runs
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/selftest_wiring.py --self-test | tee "$RUNNER_TEMP/sw-self-test.txt"
-          grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
-          python3 -I tools/audit/seat/selftest_wiring.py --check
-
-      - name: Show the CI watcher refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/ci-watch.sh --self-test | tee "$RUNNER_TEMP/ci-watch-self-test.txt"
-          grep -Eq '^ci-watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-watch-self-test.txt"
-
-      - name: Show the cloud dispatcher refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/cloud_dispatch.py --self-test | tee "$RUNNER_TEMP/cloud-dispatch-self-test.txt"
-          grep -Eq '^cloud_dispatch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-dispatch-self-test.txt"
-
-      - name: Show the cloud relay refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
-          grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
-
-      - name: Show the detached launcher refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/daemonize.py --self-test | tee "$RUNNER_TEMP/daemonize-self-test.txt"
-          grep -Eq '^SELF-TEST PASS$' "$RUNNER_TEMP/daemonize-self-test.txt"
-
-      - name: Show the delivery-row writer refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/delivery_row.sh --self-test | tee "$RUNNER_TEMP/delivery-row-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/delivery-row-self-test.txt"
-
-      - name: Show the failure-log reader refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/failure_logs.sh --self-test | tee "$RUNNER_TEMP/failure-logs-self-test.txt"
-          grep -Eq '^passed=[1-9][0-9]* failed=0$' "$RUNNER_TEMP/failure-logs-self-test.txt"
-
-      - name: Show the features block refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
-          grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
-
-      - name: Show the handoff push (its self-test is delivery_row.sh's) refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
-
-      - name: Show the handover prompt refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/handover_prompt.py --self-test | tee "$RUNNER_TEMP/handover-prompt-self-test.txt"
-          grep -Eq '^handover_prompt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handover-prompt-self-test.txt"
-
-      - name: Show the PR merger refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/merge_pr.sh --self-test | tee "$RUNNER_TEMP/merge-pr-self-test.txt"
-          grep -Eq '^merge_pr self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/merge-pr-self-test.txt"
-
-      - name: Show the moved-path reader refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/moved_paths.py --self-test | tee "$RUNNER_TEMP/moved-paths-self-test.txt"
-          grep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"
-
-      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/open_pr.sh --self-test | tee "$RUNNER_TEMP/open-pr-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
-
-      - name: Show the plan table refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
-          grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
-
-      - name: Show the PR argument builder refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
-
-      - name: Show the open-PR cap refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
-          grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
-
-      - name: Show the proof watcher refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/proof_watch.py --self-test | tee "$RUNNER_TEMP/proof-watch-self-test.txt"
-          grep -Eq '^proof_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/proof-watch-self-test.txt"
-
-      - name: Show the ref pruner refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
-          grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
-
-      - name: Show the record-row generator refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/record_row.py --self-test | tee "$RUNNER_TEMP/record-row-self-test.txt"
-          grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
-
-      - name: Show the resume renderer refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/resume_doc.py --self-test | tee "$RUNNER_TEMP/resume-doc-self-test.txt"
-          grep -Eq '^resume_doc self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/resume-doc-self-test.txt"
-
-      - name: Show the roster editor refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"
-          grep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"
-
-      - name: Show the roster library refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"
-          grep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"
-
-      - name: Show the twin-run reader refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/run_twins.py --self-test | tee "$RUNNER_TEMP/run-twins-self-test.txt"
-          grep -Eq '^run_twins self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/run-twins-self-test.txt"
-
-      - name: Show the seat venv recipe refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
-          grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
-
-      - name: Show the state-doc writer refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"
-          grep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"
-
-      - name: Show the tick loop refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
-          grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
-
-      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/update_pr.sh --self-test | tee "$RUNNER_TEMP/update-pr-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
-
-      - name: Show the offline spy refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/offline_spy.py --self-test | tee "$RUNNER_TEMP/offline-spy-self-test.txt"
-          grep -Eq '^offline_spy self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/offline-spy-self-test.txt"
-
       # A throwaway git repository built without the shared helper
       # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
       # even a tiny repository, and it outlives the temporary directory. The
@@ -694,20 +430,6 @@ jobs:
           set -o pipefail
           python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
           grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
-
-      # The carry check (tools/audit/carry_audit.py; finding-propagation.md's
-      # `Carry:` marker): a planted unrouted finding refuses and its routed twin
-      # passes, an invented or done group, an unowned or closed issue, a missing
-      # O-brief and a bare `dismissed:` each refuse; and the train's pre-flight
-      # (queue_pre_flight.py), whose `findings` step reads a verdict's notes with
-      # it before a merge. Both tally lines must say 0 failed, as above.
-      - name: Show the carry check and the queue pre-flight refusing their own fixtures
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/carry_audit.py --self-test | tee "$RUNNER_TEMP/ca-self-test.txt"
-          grep -Eq '^carry_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ca-self-test.txt"
-          python3 tools/audit/seat/queue_pre_flight.py --self-test | tee "$RUNNER_TEMP/qpf-self-test.txt"
-          grep -Eq '^queue_pre_flight self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/qpf-self-test.txt"
 
       # The train launcher (tools/audit/seat/train.sh): missing arguments, a
       # live pidfile on the state dir, and an unknown argument each refuse.

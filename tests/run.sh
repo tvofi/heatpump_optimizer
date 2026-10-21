@@ -509,6 +509,13 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
+  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
+  # the red-team games that must stay closed. The required check `arch-score`
+  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
+  # score's own files and structure.py; it measures a pinned tree, so the
+  # integration does not select it. The second script reads today's tree.
+  run "$PYTHON" tests/arch_score.py
+  run "$PYTHON" tests/arch_score_head.py
   # The typing ratchet (#303). The `# type: ignore` count is a source scan and
   # runs here on every pull request. The error count and its per-code split
   # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
@@ -541,6 +548,13 @@ lane_units() {
   # tree and drives a non-finite leaf through each one -- the property check
   # that makes the fifth-seam escape of #1296/#1345 unreachable.
   run "$PYTHON" tests/finite_boundary.py
+  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
+  # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
+  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
+  # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
+  # and an INERT path is in no closure, so a docs-only diff that moves one of
+  # its RESULT lines would select nothing that runs it.
+  run_always "$PYTHON" tests/harness_headers.py
   # R9-RO-1: the repository layout barrier, against the target tree in
   # tests/layout.json (report mode, exit 0, until R9-RO-9 enforces it). A pure
   # `git mv` is scoped only by its destination, so this cannot be scoped out.
@@ -582,16 +596,6 @@ lane_golden() {
       run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
     fi
   fi
-  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
-  # the red-team games that must stay closed. The required check `arch-score`
-  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
-  # score's own files and structure.py; it measures a pinned tree, so the
-  # integration does not select it. The second script reads today's tree.
-  # In this lane, not lane_units (R10-CI-LAYOUT PR 0): lane_units ends last in
-  # CI's `fast` job and this lane ends sooner, so the pair moves `fast`'s end
-  # earlier at the same total work. tests/entities.py pins the placement.
-  run "$PYTHON" tests/arch_score.py
-  run "$PYTHON" tests/arch_score_head.py
 }
 
 # End-to-end optimizer behaviour, then the plan payloads, the card that
@@ -646,24 +650,11 @@ lane_e2e() {
   fi
 }
 
-# Alone, on an idle box, after everything else: the scripts that MEASURE the
-# machine. stress.py's solve-time guard calibrates against this machine while
-# it runs, and the rest of the suite must not be part of what it measures.
+# Alone, on an idle box, after everything else. See the header: its
+# solve-time guard calibrates against this machine while it runs, and the
+# rest of the suite must not be part of what it measures.
 lane_stress() {
   run "$PYTHON" tests/stress.py
-  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
-  # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
-  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
-  # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
-  # and an INERT path is in no closure, so a docs-only diff that moves one of
-  # its RESULT lines would select nothing that runs it.
-  # Here, after stress.py and with no lane beside it (R10-CI-LAYOUT PR 0): its
-  # CPU bounds are sized from the serial cost (harness_headers.py's
-  # CPU_LIMIT_S comment), and a CPU second is billed more under a co-runner.
-  # In lane_units it overlapped arch_score.py in lane_golden, and
-  # sysid_estimator_frontier.py read cpu=306.4s against its 240 s headroom
-  # (job 118380549631; 142.5-164.0 s on the base layout's push runs).
-  run_always "$PYTHON" tests/harness_headers.py
 }
 
 LANES="units golden e2e"
@@ -689,7 +680,7 @@ else
   done
   for pid in $pids; do wait "$pid"; done
   echo
-  echo "########## alone on the box: stress, then harness_headers ##########"
+  echo "########## alone on the box: stress ##########"
   ( trap - EXIT; LANE="stress"; step=0; lane_stress; : > "$WORKDIR/stress.done" ) &
   wait $!
 fi

@@ -14,19 +14,6 @@ TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
 REF=handoff-body/$TOPIC
 [ -f "$BODY" ] || { echo "body_push: no body at $BODY" >&2; exit 2; }
 [ -z "$NOTE" ] || [ -f "$NOTE" ] || { echo "body_push: no note at $NOTE" >&2; exit 2; }
-# The handoff gate (dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md, M2): the static
-# predictor, over the code head this body describes (the checkout it runs in),
-# refuses before the push a head that `open_pr.sh`'s prepr step 6d would refuse
-# for a reason a static read names. Seconds, where a full prepr here (M1) costs
-# minutes on every handoff and failed the RCA's cost test. Its output names
-# each arm's repair (M3). A checkout with no predictor is refused, never passed.
-ROOT=$(git rev-parse --show-toplevel)
-[ -f "$ROOT/tools/pr/ci_predict.py" ] || { echo "body_push: $ROOT carries no tools/pr/ci_predict.py; run it from the code head's worktree" >&2; exit 1; }
-if ! PRED=$(cd "$ROOT" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); then
-  printf '%s\n' "$PRED" >&2
-  echo "body_push: the predictor refuses this head (above); repair it, push the code, then the body" >&2
-  exit 1
-fi
 P=""
 # The parent is what ORIGIN ANSWERED, never FETCH_HEAD. `git fetch` rewrites
 # FETCH_HEAD as per-worktree state of the checkout it runs in, so any other

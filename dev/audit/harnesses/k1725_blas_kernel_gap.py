@@ -6,25 +6,27 @@ Metric, one line: the stop-rule gap of tests/optimality.py's ftol check and
 the shipped-vs-seeded margin of tests/features.py's R9-F2.1 P3 storage check,
 per BLAS kernel, on the exact scenario each check uses.
 
-  stop-rule arms (tests/optimality.py, challenger 7, #921), on the check's
-  cell: two-zone, DHW on, winter_moderate prices, winter_cold weather. Until
-  D2-s2-01 the cell had winter_typical prices, where once the hot-water tank
-  paid one lift law every loosened arm read production's 60.96 SEK on every
-  x86 kernel, so no bound separated; r10_ftol_cell_search.py chose the cell.
-    prod     -- the production solve (ftol 1e-6 at every site), scored by
+  stop-rule arms (tests/optimality.py, challenger 7, #921):
+    prod     -- the production solve (ftol 1e-6 at both sites), scored by
                 optimality.py's own cost rule (sum(pr*pw*DT), comfort floor
-                16.5 C).
-    loose_1e3 / loose_1e2 -- the round-4 single-site arm (multi-start
-                refinement loosened, restart tight) at ftol 1e-3 and 1e-2;
-                #1725's kernel-CHAOTIC quantity on the old cell.
-    both_1e3 / both_1e2 -- the same loosening at BOTH ftol sites (multi-start
-                refinement and restart polish). both_1e3 is the arm the check
-                keys on, its bound half the smallest healthy gap across
-                kernels; both_1e2 is the arm it keyed on until D2-s2-01, which
-                a production loosened 1000x still beats by more than a bound
-                on it could hold.
-    tight_1e8 -- every site tightened to 1e-8. Rejected as a comparator in
-                #1725: it lands in different basins per kernel.
+                16.5 C). Expected ROBUST across kernels: 61.24-61.28 SEK on
+                every x86 kernel and CI; 61.70 on Accelerate.
+    loose_1e3 / loose_1e2 -- the pre-#1725 single-site arm (multi-start
+                refinement loosened, restart tight) at ftol 1e-3 and 1e-2.
+                loose_1e3 is the CHAOTIC quantity #1725 is about: measured
+                63.47 Haswell / 63.48 Sandybridge / 61.09 Nehalem (the kernel
+                Rosetta actually selects) / 60.54 Accelerate / 63.47 CI
+                (mined from green Tests logs) -- sign of its gap vs prod
+                flips, against a 0.1% bound.
+    both_1e3 / both_1e2 -- the same loosening applied to BOTH ftol sites
+                (multi-start refinement and restart polish). both_1e2 is the
+                kernel-STABLE arm the fix adopts: cost 64.97 SEK
+                bit-identically in every environment, gap +5.04 (Accelerate)
+                to +5.74 (Haswell); the check keys on it with a 2.5% bound.
+    tight_1e8 -- both sites tightened to 1e-8. Candidate comparator that
+                measurement REJECTED: it lands in different basins per kernel
+                (59.11-60.44 SEK, objective sign flips), so no check can key
+                on it. Kept as data for that decision.
   null controls:
     repeat    -- the prod arm solved twice in one process; the schedules must
                 be bit-identical (if not, "kernel" is not the only mover).
@@ -84,7 +86,6 @@ import numpy as np  # noqa: E402
 
 from profiles import DT, N, house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer import optimizer as optm  # noqa: E402
-from heatpump_optimizer.thermal_model import WeatherSeries  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer, OptimizationConfig)
 from heatpump_optimizer.thermal_model import (  # noqa: E402
@@ -125,7 +126,7 @@ def env_line():
           f"python={sys.version.split()[0]} head={head}", flush=True)
 
 
-# --- the stop-rule scenario: optimality.py's _dhw_setup at challenger 7's cell
+# --- the stop-rule scenario: optimality.py's _dhw_setup, verbatim -----------
 
 def dhw_setup(start=datetime(2026, 1, 15)):
     cfg = house(two_zone=True)
@@ -135,7 +136,7 @@ def dhw_setup(start=datetime(2026, 1, 15)):
     o = HeatPumpOptimizer(m, OptimizationConfig(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0))
-    pr = prices("winter_moderate", start)
+    pr = prices("winter_typical", start)
     ot, wi, ra, so = weather("winter_cold", start)
     st = ThermalState(
         room_temperature=21.0, slab_temperature=22.0,
@@ -146,7 +147,7 @@ def dhw_setup(start=datetime(2026, 1, 15)):
 
 
 def score(m, pw, st, ot, wi, ra, so, pr, min_t=16.5):
-    room, _, _, _, _, _, _ = m.simulate_trajectory(st, pw, WeatherSeries(outdoor_temps=ot, wind_speeds=wi, precipitation=ra, solar_radiation=so), dt_hours=DT)
+    room, _, _, _, _, _, _ = m.simulate_trajectory(st, pw, ot, wi, ra, so, DT)
     return (float(np.sum(pr * pw * DT)),
             float(np.maximum(0, min_t - room[1:]).sum()))
 
@@ -248,14 +249,14 @@ for arm in ("loose_1e3", "loose_1e2", "both_1e3", "both_1e2", "tight_1e8"):
     cl = results[arm][0]
     print(f"RESULT stop_{arm}_gap_pct={100.0 * (cl - c0) / cl:+.3f} "
           f"(loosened arm costlier than prod by this much)", flush=True)
-# The check as D2-s2-01 ships it: prod must beat the both-sites 1e-3 arm by
-# at least 0.84% (half the smallest measured healthy gap, +1.687). A
-# negative or sub-bound value here means the gate goes red.
+# The check as #1725's fix ships it: prod must beat the both-sites 1e-2
+# arm by at least 2.5% (half the smallest measured healthy gap, 5.04% on
+# Accelerate). A negative or sub-bound value here means the gate goes red.
 c0, _, _ = results["prod"]
-carm = results["both_1e3"][0]
+carm = results["both_1e2"][0]
 gap = 100.0 * (carm - c0) / carm
 print(f"RESULT stop_check_gap_pct={gap:+.3f} "
-      f"(must be >= +0.840 for the gate check to pass)", flush=True)
+      f"(must be >= +2.500 for the gate check to pass)", flush=True)
 
 # --- R9-F2.1 P3: features.py's _f21_storage_solve, verbatim -----------------
 

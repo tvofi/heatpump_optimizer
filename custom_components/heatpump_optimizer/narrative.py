@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .payload import IDLE_REASONS, NarrativeItem, REASON_UNTAGGED
+from .payload import NarrativeItem
 
 #: One sentence per reason code, per language. Placeholders: {kwh} energy
 #: in the group, {cost} its cost, {currency} the instance's currency code,
@@ -88,10 +88,10 @@ TEMPLATES: dict[str, dict[str, str]] = {
 
 #: Reasons whose whole meaning is that no energy was spent. Kept in the
 #: narrative even at zero kWh, where every other reason at zero kWh is noise.
-#: The payload owns the grouping (#2256): the settlement asks the same set
-#: whether a step's reason can explain a metered draw, so one list answers
-#: both questions.
-ZERO_ENERGY_REASONS = IDLE_REASONS
+ZERO_ENERGY_REASONS = frozenset({
+    "idle", "idle_other_channel", "idle_fuse", "idle_solar",
+    "idle_dearer", "idle_coasting", "pump_mode",
+})
 
 
 def group_by_reason(
@@ -109,9 +109,7 @@ def group_by_reason(
     groups: dict[str, dict[str, float]] = {}
     for i, power in enumerate(powers):
         reason = (
-            reasons[i]
-            if reasons and i < len(reasons) and reasons[i]
-            else REASON_UNTAGGED
+            reasons[i] if reasons and i < len(reasons) and reasons[i] else "untagged"
         )
         entry = groups.setdefault(reason, {"kwh": 0.0, "sek": 0.0, "hours": 0.0})
         p = float(power or 0.0)

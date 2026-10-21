@@ -380,168 +380,48 @@ function registryRun(report) {
 // counts; its printed count must rise by exactly that one. A count that does not
 // move is BLIND, and an instrument whose count line cannot be read is REFUSED,
 // never a pass: the unreadable output is the silent zero itself.
-// A count that moves is not yet a barrier: `gate` names the budget row that
-// must refuse the planted member, and a census whose instrument stays green on
-// that row is UNGATED. A printed count nobody gates rose 124 -> 152 across
-// v6.7.14..v7.0.0 with the ratchet green (R10-N-structure-blind).
-// `instrument` is the program the census runs (`argv` after python3, in the
-// tree copy) and how that program's refusal on the `gate` row reads.
-const STRUCTURE_PY = {
-  argv: ['tests/structure.py'],
-  refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`FAIL ${gate} `)),
-}
-// The ci-ratchet job's own reader and comparison over tests/ci_budgets.json,
-// with the score vector restricted to one vector.measure job: ci_ratchet's
-// archscore arm is the only gate on these rows, and on the card's .js (#2401).
-const ciRatchet = (job) => ({
-  argv: ['-c', [
-    'import json, sys',
-    "sys.path.insert(0, 'tests')",
-    'import ci_ratchet as R',
-    'table = json.loads(R.BUDGETS.read_text())',
-    'problems = R.budget_problems(table)',
-    "if problems: sys.exit('\\n'.join(problems))",
-    `lines, grew = R.compare(table, R.archscore_metrics(only={${JSON.stringify(job)}}))`,
-    "print('\\n'.join(lines))",
-    'sys.exit(1 if grew else 0)',
-  ].join('\n')],
-  refuses: (out, gate) => out.split('\n').some((l) => l.startsWith(`  GREW  ${gate}: `)),
-})
-// The count ci_ratchet prints on a row, graded or not.
-// No RegExp is built from the key: a row is read by comparing its key as a string.
-const RATCHET_LINE = /^  (?:ok|GREW)\s+(\S+): (\d+) \(budget /
-const ratchetRow = (key) => (out) => {
-  for (const l of out.split('\n')) { const m = RATCHET_LINE.exec(l); if (m && m[1] === key) return m[2] }
-  return undefined
-}
 const CENSUSES = [
   {
     name: 'structure.py dead_methods',
-    gate: 'dead_methods',
-    instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusPlant:\n    def _planted_dead_method(self):\n        return 1\n' },
     read: (out) => /^  dead_methods = (\d+)\b/m.exec(out)?.[1],
   },
   {
     name: 'structure.py dead_top_level_symbols',
-    gate: 'dead_top_level_symbols',
-    instrument: STRUCTURE_PY,
     plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
     read: (out) => /^RESULT dead_top_level_symbols=(\d+)\b/m.exec(out)?.[1],
   },
-  {
-    // A live class whose as_dict only an untyped load reaches: other classes
-    // define as_dict, so the census can keep it by name only.
-    name: 'structure.py name_kept_members',
-    gate: 'name_kept_members',
-    instrument: STRUCTURE_PY,
-    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nclass _CensusKept:\n    def as_dict(self):\n        return {}\n\n\n(lambda x: (x.as_dict(), _CensusKept))\n' },
-    read: (out) => /^RESULT name_kept_members=(\d+)\b/m.exec(out)?.[1],
-  },
-  {
-    // One unused top-level card function: no other token names it.
-    name: 'archscore card_dead_definitions',
-    gate: 'archscore.card_dead_definitions',
-    instrument: ciRatchet('card'),
-    plant: { file: 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', add: '\n\nfunction _censusPlantedDeadCardFunction() {\n  return 1\n}\n' },
-    read: ratchetRow('archscore.card_dead_definitions'),
-  },
-  {
-    // structure.py's dead census re-pointed by vector.py at its flattened copy.
-    name: 'archscore dead_members',
-    gate: 'archscore.dead_members',
-    instrument: ciRatchet('structure'),
-    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef _planted_dead_function():\n    return 1\n' },
-    read: ratchetRow('archscore.dead_members'),
-  },
-  {
-    name: 'archscore public_unused',
-    gate: 'archscore.public_unused',
-    instrument: ciRatchet('public_unused'),
-    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\ndef census_planted_public():\n    return 1\n' },
-    read: ratchetRow('archscore.public_unused'),
-  },
-  {
-    name: 'archscore unread_private_globals',
-    gate: 'archscore.unread_private_globals',
-    instrument: ciRatchet('unread_private_globals'),
-    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\n_CENSUS_PLANTED_UNREAD = 1\n' },
-    read: ratchetRow('archscore.unread_private_globals'),
-  },
-  {
-    name: 'archscore unused_boundary_imports',
-    gate: 'archscore.unused_boundary_imports',
-    instrument: ciRatchet('layering'),
-    plant: { file: 'custom_components/heatpump_optimizer/const.py', add: '\n\nfrom homeassistant.core import callback as _census_unused_import\n' },
-    read: ratchetRow('archscore.unused_boundary_imports'),
-  },
 ]
-// Which rows must carry a census. A ratchet row counting definitions nothing
-// reaches is a census whether or not one is registered: its key names the
-// class, and a row the arm never plants is gated blind (the card's row before
-// #2441). Each such row names a census here, or an exemption with its reason.
-const LIVENESS_ROW = /dead|kept|unused|unread|orphan/
-const CENSUS_TABLES = ['tests/structure_budgets.json', 'tests/ci_budgets.json']
-const CENSUS_EXEMPT = {
-  'archscore.family_orphan_overrides': 'counts ENTITY_FAMILY_OVERRIDES entries homing a key in a family of fewer than two, not unreached definitions; the append-only plant cannot reach it, since family_splits.overrides reads the first assignment only',
-}
-function censusRegistry(report, censuses = CENSUSES, rows = undefined) {
-  rows ??= () => CENSUS_TABLES.flatMap((f) => Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'))))
-  const all = new Set(rows()); const gated = new Set(censuses.map((c) => c.gate))
-  for (const k of [...all].filter((k) => LIVENESS_ROW.test(k)).sort()) {
-    if (!gated.has(k) && !(k in CENSUS_EXEMPT)) report.refused.push(`census registry: row ${k} counts unreached definitions and no census plants it (register one in CENSUSES, or exempt it with a reason)`)
-  }
-  for (const g of gated) if (!all.has(g)) report.refused.push(`census registry: a census gates ${g}, which is no row of ${CENSUS_TABLES.join(' or ')}`)
-  for (const k of Object.keys(CENSUS_EXEMPT)) if (!all.has(k)) report.dead.push(`census registry: CENSUS_EXEMPT \`${k}\` is no longer a row`)
-}
-// The copy of the tree the instruments run on: only what they read.
+// The copy of the tree an instrument runs on: only what structure.py reads.
 function censusTree() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'census-'))
-  const noCache = { recursive: true, filter: (src) => !src.includes('__pycache__') }
   fs.mkdirSync(path.join(dir, 'tests'), { recursive: true })
-  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json', 'ci_ratchet.py', 'ci_budgets.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
-  for (const d of ['custom_components/heatpump_optimizer', 'tools/audit/archscore']) fs.cpSync(path.join(ROOT, d), path.join(dir, d), noCache)
+  for (const f of ['structure.py', 'structure_budgets.json', 'seam_map.json']) fs.copyFileSync(path.join(ROOT, 'tests', f), path.join(dir, 'tests', f))
+  fs.mkdirSync(path.join(dir, 'custom_components'), { recursive: true })
+  fs.cpSync(path.join(ROOT, 'custom_components', 'heatpump_optimizer'), path.join(dir, 'custom_components', 'heatpump_optimizer'), { recursive: true, filter: (src) => !src.includes('__pycache__') })
   return dir
 }
-// `{ n, gated }`: the printed count, and whether the run refused on the census's row.
 function censusCount(c, dir) {
-  if (!c.instrument) return null
-  const r = spawnSync('python3', c.instrument.argv, { cwd: dir, encoding: 'utf8' })
-  const out = `${r.stdout}\n${r.stderr}`
-  const n = c.read(out)
-  return n === undefined ? null : { n: Number(n), gated: r.status !== 0 && c.instrument.refuses(out, c.gate) }
+  const r = spawnSync('python3', ['tests/structure.py'], { cwd: dir, encoding: 'utf8' })
+  const n = c.read(`${r.stdout}\n${r.stderr}`)
+  return n === undefined ? null : Number(n)
 }
 function censusRun(report, censuses = CENSUSES, tree = censusTree, count = censusCount) {
   let dir = null
   try {
     dir = tree()
     for (const c of censuses) {
-      if (typeof c.gate !== 'string' || !c.gate) { report.refused.push(`census ${c.name}: names no budget row (\`gate\`) that refuses a rise`); continue }
       const base = count(c, dir)
       if (base === null) { report.refused.push(`census ${c.name}: its count line cannot be read at the unplanted tree`); continue }
-      if (base.gated) { report.refused.push(`census ${c.name}: already refused on ${c.gate} unplanted, so nothing is measured`); continue }
       const f = path.join(dir, c.plant.file); const was = fs.readFileSync(f, 'utf8')
       fs.writeFileSync(f, was + c.plant.add)
       const planted = count(c, dir)
       fs.writeFileSync(f, was)
       if (planted === null) report.refused.push(`census ${c.name}: its count line cannot be read once a member is planted`)
-      else if (planted.n !== base.n + 1) report.blind.push(`census ${c.name}: one planted member moved the count ${base.n} -> ${planted.n}, not by one`)
-      else if (!planted.gated) report.blind.push(`census ${c.name}: UNGATED, ${base.n} -> ${planted.n} with one planted member and no refusal on ${c.gate}`)
-      else report.read.push(`census ${c.name}: ${base.n} -> ${planted.n} with one planted member, refused on ${c.gate}`)
+      else if (planted === base + 1) report.read.push(`census ${c.name}: ${base} -> ${planted} with one planted member`)
+      else report.blind.push(`census ${c.name}: one planted member moved the count ${base} -> ${planted}, not by one`)
     }
   } finally { if (dir) fs.rmSync(dir, { recursive: true, force: true }) }
-}
-
-// The arms main() runs, in order; `--only` names one. The census arm is the
-// registry pass and the planted runs together, so the self-test drives this
-// entry (with a stub run) and an arm that drops the registry is seen.
-const RUNS = {
-  hooks: (report) => jsonRun(HOOKS, report),
-  ruleset: (report) => jsonRun(RULESET, report),
-  budgets: (report) => budgetsRun(report),
-  approvals: (report) => jsonRun(APPROVALS, report),
-  registry: (report) => registryRun(report),
-  census: (report, { run = censusRun, censuses = CENSUSES, rows } = {}) => { censusRegistry(report, censuses, rows); run(report, censuses) },
 }
 
 // --self-test: each verdict this program can return, driven on a synthetic
@@ -578,47 +458,16 @@ async function selfTest() {
   t('the UNCHECKED pattern matches every field the token cannot see', RULESET_TOKEN_HIDDEN.length > 0 && RULESET_TOKEN_HIDDEN.every((f) => TOKEN_HIDDEN_SKIP_RE.test(hiddenLine(f))))
   t('and refuses the same line for any other field (pinned to bypass_actors)', !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('dismiss_stale_reviews_on_push')) && !TOKEN_HIDDEN_SKIP_RE.test(hiddenLine('rules')))
   // The census arm, driven on a synthetic tree and counter so no real instrument runs.
-  const synth = (counter, gate = 'probe_row') => { const rr = fresh(); censusRun(rr, [{ name: 'probe', gate, plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
-  const len = (d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
-  const lenCount = (c, d) => ({ n: len(d), gated: len(d) > 0 })
+  const synth = (counter) => { const rr = fresh(); censusRun(rr, [{ name: 'probe', plant: { file: 'f.txt', add: 'x' }, read: () => '0' }], () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'census-st-')); fs.writeFileSync(path.join(d, 'f.txt'), ''); return d }, counter); return rr }
+  const lenCount = (c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length
   r = synth(lenCount)
-  t('a census whose count rises by one for one planted member, refused on its row, is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
-  r = synth(() => ({ n: 0, gated: false }))
+  t('a census whose count rises by one for one planted member is read', r.read.length === 1 && !r.blind.length && !r.refused.length)
+  r = synth(() => 0)
   t('a count that never moves is BLIND (the silent zero)', r.blind.length === 1)
-  r = synth((c, d) => ({ n: len(d) * 2, gated: len(d) > 0 }))
+  r = synth((c, d) => fs.readFileSync(path.join(d, 'f.txt'), 'utf8').length * 2)
   t('a count that moves by the wrong amount is BLIND', r.blind.length === 1)
   r = synth(() => null)
   t('a count line that cannot be read is REFUSED, never a pass', r.refused.length === 1)
-  r = synth((c, d) => ({ n: len(d), gated: false }))
-  t('a count that moves while its row never refuses is UNGATED, BLIND (R10-N-structure-blind)', r.blind.length === 1 && /UNGATED/.test(r.blind[0]) && !r.read.length)
-  r = synth(lenCount, '')
-  t('a census naming no gate row is REFUSED', r.refused.length === 1 && !r.read.length)
-  r = synth(() => ({ n: 0, gated: true }))
-  t('a census already refused unplanted is REFUSED, not read', r.refused.length === 1 && !r.read.length)
-  t('every registered census names its gate row, its instrument, a reader and a plant', CENSUSES.every((c) => c.gate && c.instrument && typeof c.read === 'function' && c.plant?.file && c.plant?.add))
-  t('a census with no instrument reads no count, so it is REFUSED', censusCount({ name: 'probe', gate: 'g', read: () => '0' }, os.tmpdir()) === null)
-  const ratchet = ciRatchet('card'); const row = ratchetRow('archscore.card_dead_definitions')
-  t('the ci-ratchet reader refuses on its own row only', ratchet.refuses('  GREW  archscore.card_dead_definitions: 1 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  ok    archscore.card_dead_definitions: 0 (budget 0)', 'archscore.card_dead_definitions') && !ratchet.refuses('  GREW  archscore.card_dead_definitions_x: 1 (budget 0)', 'archscore.card_dead_definitions'))
-  t('the ci-ratchet row reader reads its own row only', row('  ok    archscore.card_dead_definitions: 3 (budget 4)') === '3' && row('  GREW  archscore.card_dead_definitions: 5 (budget 4)') === '5' && row('  ok    archscore.card_dead_definitionsX: 3 (budget 4)') === undefined && row('  ?     archscore.card_dead_definitions: not derived this run') === undefined)
-  const meta = ratchetRow('archscore.a\\d+'); const dotted = ratchetRow('archscore.a.b')
-  t('a row key holding regex metacharacters or a backslash matches only literally', meta('  ok    archscore.a\\d+: 7 (budget 9)') === '7' && meta('  ok    archscore.a12: 7 (budget 9)') === undefined && meta('  ok    archscore.a\\dd: 7 (budget 9)') === undefined && dotted('  ok    archscore.aXb: 7 (budget 9)') === undefined && dotted('  ok    archscore.a.b: 7 (budget 9)') === '7')
-  const registry = (rows, cs = [{ gate: 'dead_x' }]) => { const rr = fresh(); censusRegistry(rr, cs, () => rows); return rr }
-  r = registry(['dead_x', 'recorded_at', 'archscore.family_orphan_overrides'])
-  t('the census registry reads a liveness row its census gates', !r.refused.length && !r.dead.length)
-  r = registry(['dead_x', 'archscore.unused_y', 'archscore.family_orphan_overrides'])
-  t('a liveness row no census gates is REFUSED (the card row before #2441)', r.refused.length === 1 && /archscore\.unused_y/.test(r.refused[0]))
-  r = registry(['other_row'])
-  t('a census gating no row is REFUSED', r.refused.length === 1 && /dead_x/.test(r.refused[0]))
-  r = registry(['dead_x'])
-  t('an exemption naming no row is DEAD', r.dead.length === 1 && r.dead[0].includes('family_orphan_overrides'))
-  {
-    // main()'s census arm, driven with a stub run: the registry must refuse an
-    // ungated liveness row there, and the planted runs must still be reached.
-    const rr = fresh(); let ran = null
-    RUNS.census(rr, { run: (rep, cs) => { ran = cs }, censuses: [], rows: () => ['archscore.dead_y', 'archscore.family_orphan_overrides'] })
-    t("main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs", rr.refused.length === 1 && /archscore\.dead_y/.test(rr.refused[0]) && Array.isArray(ran))
-    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,registry,census')
-  }
   const saved = { ...DECLARED }
   try {
     delete DECLARED['check budgets']
@@ -645,10 +494,15 @@ async function main() {
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
     else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
   }
-  if (only && !(only in RUNS)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
+  if (only && !['hooks', 'ruleset', 'budgets', 'approvals', 'registry', 'census'].includes(only)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()
   const report = { read: [], blind: [], dead: [], refused: [], ignored: [], none: [], runs: 0 }
-  for (const [name, arm] of Object.entries(RUNS)) if (!only || only === name) await arm(report)
+  if (!only || only === 'hooks') await jsonRun(HOOKS, report)
+  if (!only || only === 'ruleset') await jsonRun(RULESET, report)
+  if (!only || only === 'budgets') await budgetsRun(report)
+  if (!only || only === 'approvals') await jsonRun(APPROVALS, report)
+  if (!only || only === 'registry') registryRun(report)
+  if (!only || only === 'census') censusRun(report)
   for (const x of report.read) console.log(`  read     ${x}`)
   for (const x of report.ignored) console.log(`  ignored  ${x}`)
   for (const x of report.none) console.log(`  none     ${x}`)

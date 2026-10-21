@@ -2747,18 +2747,10 @@ R.check(
     "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
     f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
 )
-# The solve's anchor left the class at S2 and left coordinator.py at
-# R10-PUMP-MODEL (#2365 review): it is the plan step's floor, which the pump
-# arbiter reads too, so one leaf module owns it -- plan_step.plan_step_start.
-import heatpump_optimizer.plan_step as _s2_plan_step  # noqa: E402
 R.check(
-    "the solve anchor is plan_step.plan_step_start, outside the coordinator "
-    "class and its module, and the coordinator reads that one function",
-    "_solve_anchor" not in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns
-    and "plan_step_start" not in _s2_cls_fns
-    and coordinator_module.plan_step_start is _s2_plan_step.plan_step_start,
-    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns} "
-    f"same={getattr(coordinator_module, 'plan_step_start', None) is _s2_plan_step.plan_step_start}",
+    "_solve_anchor is a module-level FunctionDef, not a class method",
+    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
@@ -3807,15 +3799,7 @@ def _p2_registry(sources):
                  "early_cutoff.py::_cycle_guard":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
-                     "last heard from, which a re-reported 'on' resets",
-                 # #2271: the replay half copies the recorder's rows, as the
-                 # export copies them out of SQLite; no age is decided there.
-                 "debugger.py::_since":
-                     "cuts a recorded history at the window's start by each "
-                     "row's own last_updated, the export's SQL window rule",
-                 "debugger.py::_record":
-                     "writes a recorded row's last_updated and last_reported "
-                     "verbatim, the export's row shape; nothing reads them as an age"}),
+                     "last heard from, which a re-reported 'on' resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3894,67 +3878,6 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
-        # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
-        # once per plant, by the valve flag, in compute_cop. The flag is a
-        # SPACE-circuit fact -- it says whether a passed flow temperature is
-        # the supply the machine runs at -- and the hot-water tank forked it a
-        # second time, pricing one lift two ways (up to 1.4346 at outdoor 7 /
-        # tank 65). _batch_cop is an owner rather than a copy: its two branches
-        # ARE compute_cop's two, vectorized, and the pair must agree bit for
-        # bit (fixer.md step 15). The D14 P2 sweep counts this family as
-        # cop_law_fork: 3 seams at the finding's baseline, 2 here.
-        dict(fact="cop_law_fork", finding="D2-s2-01",
-             match=_p2_match_node(
-                 (ast.If, ast.IfExp), r"cop_flow_carnot",
-                 lambda n: "cop_flow_carnot" in ast.unparse(n.test)),
-             owners=["thermal_model.py::ThermalModel.compute_cop",
-                     "thermal_model.py::ThermalModel._batch_cop"],
-             dispositions={}),
-        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
-        # published under one pair of names by zone_setpoint_attributes; the
-        # climate entity, Current Setpoint and Heat Pump Action each spelled
-        # the renaming before it.
-        dict(fact="zone_setpoint_names", finding="D7-s2-54",
-             match=_p2_match_node(
-                 (ast.Constant,), r"_floor_setpoint",
-                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
-             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
-        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
-        # #2365's review): which plan step an instant falls in. One concern --
-        # the optimizer's plan step covering now -- read by the solve's anchor
-        # and by the pump arbiter's ledger row and silent-window lookup, so one
-        # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
-        # It was spelled three times: coordinator._solve_anchor on
-        # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
-        # _observe inline. The other hits are different rules, each driven
-        # against the owner on the same probes by
-        # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
-        # is that the driven set is the enumerated one.
-        dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
-             match=_p2_match_node(
-                 (ast.BinOp,), r"\.minute",
-                 lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
-                 and ".minute" in ast.unparse(n)),
-             owners=["plan_step.py::plan_step_start"],
-             dispositions={
-                 "tariff.py::_window_slot":
-                     "the METERING window, a different rule: anchored at local "
-                     "midnight so a 90/120-minute DSO window advances the hour, "
-                     "with ``fold`` restored so the autumn hour's two passes "
-                     "keep two keys. Same reading only for windows that divide "
-                     "the hour -- the twins harness's --perturb (the fold "
-                     "dropped) reads 2 of 10 probes apart, and both are the "
-                     "autumn folds",
-                 "optimizer.py::HeatPumpOptimizer._window_offset_steps":
-                     "the metering window's PHASE, not its start: steps from "
-                     "now to the DSO's next boundary, the same modulo asked for "
-                     "a distance where tariff._window_slot's anchor is the "
-                     "instant itself",
-                 "price_model.py::PriceShapeModel.quarter_factor":
-                     "an index INTO a learned quarter-hour profile, not a "
-                     "floored instant: it returns a slot number between 0 and "
-                     "QUARTERS_PER_HOUR, and no datetime at all",
-             }),
     ]
 
 
@@ -3974,16 +3897,6 @@ _P2_CENSUSES = {
     # _loaded_entries's, consulted by every action before it can return.
     "service_entries_resolved_first": (
         "tests/features.py", "every action resolves its config entries before it returns"),
-    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
-    # payload_number's -- every number state driven with a bool and a text
-    # payload publishes neither, nor reads either as a number.
-    "payload_number_published": (
-        "tests/finite_boundary.py",
-        "every number state publishes None, never the bool or the text, from a "),
-    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
-    # runtime-object mixin's included.
-    "finite_scrub_resolves_mro": (
-        "tests/finite_boundary.py", "a package mixin with runtime base object"),
 }
 
 
@@ -4102,17 +4015,6 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
-)
-_P2_PLANTS["cop_law_fork"] = (
-    "\n\ndef _p2_plant(p):\n    if p.cop_flow_carnot:\n        return 1\n    return 0\n"
-)
-_P2_PLANTS["zone_setpoint_names"] = (
-    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
-)
-_P2_PLANTS["slot_floor_rule"] = (
-    "\n\ndef _p2_plant(now):\n"
-    "    return now.replace(minute=now.minute - now.minute % 15,"
-    " second=0, microsecond=0)\n"
 )
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
@@ -4672,17 +4574,6 @@ def _p6_arm_k(walks, declared=None):
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
             continue
-        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
-        # reads the path's first key off the payload: a declaration, not a
-        # ``.get`` call, so the walk below would not see it.
-        for n in nodes:
-            if isinstance(n, ast.Assign) and any(
-                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
-                    and isinstance(n.value, ast.Tuple) and n.value.elts \
-                    and (key := _p6_lit(n.value.elts[0])):
-                reads += 1
-                if key not in produced:
-                    seams.add(f"{name}:{n.lineno} {key}")
         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         accessors = {
             fn.name for fn in fns
@@ -5013,15 +4904,6 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
-)
-# Null control for the declared-path read: a sensor naming a key no
-# producer writes in its ``_payload_path`` is a seam.
-_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
-    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
-R.check(
-    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
-    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
-    "the planted declaration was not read",
 )
 R.check(
     "every entity id a blueprint, the card or the package names is one a platform "
@@ -15681,7 +15563,7 @@ def _gl_stub_tree(td: Path) -> Path:
     the real gate_lock.py beside them: what runs under the lease is observable."""
     (td / "tests").mkdir(parents=True)
     (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
-    for name in ("stress", "other", "harness_headers"):
+    for name in ("stress", "other"):
         (td / f"tests/{name}.py").write_text(
             f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
     return td
@@ -19078,67 +18960,6 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
-# --- the inert CI umbrella stub (R10-CI-LAYOUT PR 0; DESIGN-P1 step 5b) -------
-#
-# `.github/workflows/ci.yml` exists on main only so that `workflow_dispatch`
-# can dispatch it from a probe ref (GitHub dispatches a file only once it is on
-# the default branch). Until the umbrella replaces it, it must do nothing and
-# write no check at any pull-request head: dispatch is its one trigger, `stub`
-# its one job, running `true`, with no grant at either level and no `uses:`.
-# It is a gate file from the stub on, so the replacing edit runs FULL. Reads
-# the parsed document, not a source grep (PyYAML reads the `on:` key as True).
-def _ci_stub_defects(text: str) -> "list[str]":
-    doc = _yaml.safe_load(text) or {}
-    on = doc.get("on", doc.get(True))
-    defects = []
-    if not isinstance(on, dict) or set(on) != {"workflow_dispatch"}:
-        defects.append(f"triggers {sorted(map(str, on or {}))} (want only workflow_dispatch)")
-    dispatch = on.get("workflow_dispatch") if isinstance(on, dict) else None
-    inputs = (dispatch or {}).get("inputs") or {}
-    if set(inputs) != {"pr", "base", "recheck", "no-skip"} or any(
-            (v or {}).get("required", False) or (v or {}).get("type") != "string"
-            for v in inputs.values()):
-        defects.append(f"inputs {inputs!r} (want pr/base/recheck/no-skip, "
-                       "each an optional string)")
-    if doc.get("permissions") != {}:
-        defects.append(f"workflow permissions {doc.get('permissions')!r}")
-    jobs = doc.get("jobs") or {}
-    if set(jobs) != {"stub"}:
-        defects.append(f"jobs {sorted(jobs)} (want only stub)")
-    stub = jobs.get("stub") or {}
-    if stub.get("permissions") != {}:
-        defects.append(f"stub permissions {stub.get('permissions')!r}")
-    if [st.get("run") for st in stub.get("steps") or []] != ["true"] or any(
-            set(st) - {"run"} for st in stub.get("steps") or []):
-        defects.append(f"stub steps {stub.get('steps')!r} (want one `run: true`)")
-    if re.search(r"^\s*-?\s*uses:", text, re.M):
-        defects.append("a `uses:` line")
-    return defects
-
-
-_CI_STUB = Path(".github/workflows/ci.yml").read_text()
-_CI_STUB_DEFECTS = _ci_stub_defects(_CI_STUB)
-# Null controls: the same parser over a stub given a second trigger, a grant,
-# and a second job must name each defect, so a parser that reads nothing fails.
-_CI_STUB_PLANTS = {
-    "push trigger": _CI_STUB.replace("on:\n", "on:\n  push:\n", 1),
-    "grant": _CI_STUB.replace("permissions: {}\n\njobs:", "permissions:\n  contents: read\n\njobs:", 1),
-    "second job": _CI_STUB + "  other:\n    runs-on: ubuntu-latest\n    steps:\n      - run: \"true\"\n",
-}
-_CI_STUB_PLANT_MISSED = sorted(k for k, t in _CI_STUB_PLANTS.items()
-                               if t == _CI_STUB or not _ci_stub_defects(t))
-R.check(
-    "the ci.yml umbrella stub is inert: dispatch only, one `true` job, no "
-    "grant, no `uses:`, and a gate file",
-    not _CI_STUB_DEFECTS and not _CI_STUB_PLANT_MISSED
-    and _closure.is_gate_file(".github/workflows/ci.yml")
-    and _closure.affected([".github/workflows/ci.yml"])["case"] == "full",
-    f"defects={_CI_STUB_DEFECTS} plants the parser missed="
-    f"{_CI_STUB_PLANT_MISSED} gate={_closure.is_gate_file('.github/workflows/ci.yml')}; "
-    "a stub that triggers on anything but dispatch writes checks at pull-"
-    "request heads before the umbrella replaces it",
-)
-
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
@@ -20306,26 +20127,6 @@ R.check(
     "codeql.yml accepts the autofix jobs' dispatch",
     re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
     "without the trigger `gh workflow run codeql.yml` is refused with 422",
-)
-# `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
-# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
-# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
-# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
-# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
-# design choice. The cap is pinned against the YAML (not left as prose in the
-# workflow) because a one-line edit shrinking it back is exactly what no other
-# check reads.
-_CODEQL_JOBS = (_yaml.safe_load(
-    (pathlib.Path(__file__).resolve().parents[1] / ".github"
-     / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
-_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
-R.check(
-    "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
-    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
-    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
 )
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
@@ -22652,42 +22453,6 @@ R.check(
     _stc_ok,
     _stc_detail,
 )
-# The same composition for the coverage rule, on THIS tree's own claim file
-# (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry
-# a branch suspended for one must come back in the stamp commit, and the
-# stamp's self-check refuses MAY-DRIFT UNCOVERED otherwise -- after the
-# stamp seat has run, when no branch can fix it (at the old VERSION the
-# claim is live, and a name cannot be both). Pinned here, a branch that
-# suspends an entry in a form `restore_suspended` cannot read goes red on
-# its own pull request instead of on the next stamp.
-try:
-    _stcov_version = Path("VERSION").read_text().strip()
-    _stcov_next = _stamp.bump(_stcov_version, "patch")
-    _stcov_after, _, _ = _stamp.rewrite_claims(
-        Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
-    _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
-    # env_drift's own reader, on the stamped text, not a second parser.
-    with tempfile.TemporaryDirectory() as _stcov_dir:
-        _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
-        _stcov_path.parent.mkdir(parents=True)
-        _stcov_path.write_text(_stcov_after)
-        _stcov_md = _env_drift._may_drift(_stcov_dir)
-    _stcov_problem = (
-        _env_drift.may_drift_coverage_error(
-            _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
-        or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
-    )
-    _stcov_ok = _stcov_problem is None and not _stcov_claims
-    _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
-except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _stcov_ok = False
-    _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
-R.check(
-    "the claim file stamp.py would write from this tree covers every allowed "
-    "may-drift name -- each suspended entry restored with the claims deleted",
-    _stcov_ok,
-    _stcov_detail,
-)
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
     not _closure.is_inert("tools/release/stamp.py"),
@@ -22710,9 +22475,6 @@ _INERT_TOOL_HOMES = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
-    # The schedule model and its measured durations: run by hand at a wave
-    # edge, read by no gate script (closure.py lists it as an inert home).
-    "tools/plan/",
 )
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
@@ -24994,11 +24756,10 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly seven jobs override the workflow's read-only floor, the newest "
-    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
-    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
-                      "closures", "closures-autofix", "mutation-autofix",
-                      "nightly-status"],
+    "exactly six jobs override the workflow's read-only floor, four of them "
+    "read-only",
+    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
+                      "closures-autofix", "mutation-autofix", "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -26788,7 +26549,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -26939,21 +26700,11 @@ def _pt_armed(docs: dict) -> "set[str]":
 
 
 def _pt_trigger(script: str, planted: str) -> str:
-    """Run the arm's `changed` step on a planted one-file diff; its governance output.
-
-    The step lists the diff with `tests/closure.py changed`, so the planted
-    base carries this tree's copy of it and `python` resolves to this
-    interpreter: the step runs the real producer, not a stand-in.
-    """
+    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
         _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
-        Path(_td, "tests").mkdir()
-        Path(_td, "tests", "closure.py").write_text(Path("tests/closure.py").read_text())
-        _bin = Path(_td, ".bin")
-        _bin.mkdir()
-        os.symlink(sys.executable, _bin / "python")
         subprocess.run(_g + ["add", "-A"], check=True, env=_env)
         subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
         _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
@@ -26965,7 +26716,6 @@ def _pt_trigger(script: str, planted: str) -> str:
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
-                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
                             "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
@@ -28505,9 +28255,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
         "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
 R.check(
     "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
-    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
-                      "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
+    "refused on each of the three autofix jobs (null control)",
+    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
+                      "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
 _PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
@@ -28666,13 +28416,6 @@ R.check(
 # fires on a RED run, and it watches every workflow that runs on a pull
 # request but the contract itself -- a watched list that misses one is the
 # gap again, so the list is derived here from the workflow files.
-# R10-FOLLOWER-DEBOUNCE: one effective run per head. The runs at one head
-# share a concurrency group cancelling the older, the first step defers while
-# another watched run at the head is unfinished, and the job runs on every
-# conclusion (the last completion may be green after a red deferred to it),
-# handing the program the newest red at the head. Pinned below: an `if:` on
-# the job, a group not keyed on the head, a watched copy that drifts, or a
-# program step not gated on the deferral re-opens the lost red or the cost.
 _PR_WORKFLOW_NAMES = sorted(
     str((_yaml.safe_load(t) or {}).get("name"))
     for t in _PRW_TEXTS.values()
@@ -28702,25 +28445,10 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
-    if "if" in job:
-        out.append(f"if: {job.get('if')!r} skips a completion a deferred red may need")
-    cc = doc.get("concurrency") or {}
-    if cc.get("group") != "pr-contract-rerun-${{ github.event.workflow_run.head_sha }}" \
-            or cc.get("cancel-in-progress") is not True:
-        out.append(f"concurrency {cc}")
-    first = steps[0] if steps else {}
-    env0 = first.get("env") or {}
-    try:
-        w0 = json.loads(str(env0.get("WATCHED", "")))
-    except ValueError:
-        w0 = None
-    if first.get("id") != "last" or "uses" in first or w0 != wr.get("workflows") \
-            or env0.get("HEAD_SHA") != "${{ github.event.workflow_run.head_sha }}" \
-            or "head_sha=$HEAD_SHA" not in str(first.get("run", "")):
-        out.append(f"first step {first.get('id')!r} does not defer on the head's watched runs")
-    if any(s.get("if") != "steps.last.outputs.red != ''" for s in steps[1:]) or \
-            (steps[-1].get("env") or {}).get("RUN_ID") != "${{ steps.last.outputs.red }}":
-        out.append("a step after the deferral is not gated on it, or the program is not handed the red")
+    cond = str(job.get("if", ""))
+    if cond.strip() != ("contains(fromJSON('[\"failure\",\"timed_out\",\"cancelled\"]'), "
+                        "github.event.workflow_run.conclusion)"):
+        out.append(f"if: {cond!r}")
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
             or (co[0].get("with") or {}).get("persist-credentials") is not False:
@@ -28740,9 +28468,8 @@ _CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
 _CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
 R.check(
     "a red that lands after pr-contract ran re-runs it: the follower watches every "
-    "pull-request workflow but the contract, defers to the last completion at "
-    "the head and hands it the newest red, holds `actions: write` and runs the "
-    "default branch's program (D13-s1-03, R10-FOLLOWER-DEBOUNCE)",
+    "pull-request workflow but the contract, fires on a red run only, holds "
+    "`actions: write` and runs the default branch's program (D13-s1-03)",
     _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
     f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
 )
@@ -28755,20 +28482,6 @@ R.check(
     any(d.startswith("checkout") for d in _CRR_NULL)
     and any(d.startswith("workflow_run") for d in _CRR_NULL),
     f"defects on the altered copy: {_CRR_NULL}",
-)
-_CRR_DNULL = _crr_defects(_CRR_TEXT.replace(
-    "  group: pr-contract-rerun-${{ github.event.workflow_run.head_sha }}",
-    "  group: pr-contract-rerun-${{ github.event.workflow_run.id }}").replace(
-    "  rerun-stale-contract:\n",
-    "  rerun-stale-contract:\n    if: github.event.workflow_run.conclusion == 'failure'\n").replace(
-    '"Kernel points", "Tests", "Validate"]\'', '"Kernel points", "Tests"]\'').replace(
-    "RUN_ID: ${{ steps.last.outputs.red }}", "RUN_ID: ${{ github.event.workflow_run.id }}"),
-    _PR_WORKFLOW_NAMES)
-R.check(
-    "and the follower with a per-run group, a red-only job, a watched copy "
-    "missing a workflow, or the trigger's id handed on, is refused (null control)",
-    {d.split(" ")[0] for d in _CRR_DNULL} >= {"concurrency", "if:", "first", "a"},
-    f"defects on the altered copy: {_CRR_DNULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
@@ -33281,243 +32994,6 @@ R.check(
     and _cim_rows[0].startswith("closures\ttests/x.py\t"),
     f"the recorded script saw HPO_CI_METRICS={_cim_seen!r}; rows={_cim_rows} "
     f"rc={_cim_res.returncode}",
-)
-
-# R10-CI-RATCHET-RED: main's ci-ratchet read script_runs_per_push 73 (budget
-# 68) from one push run, 39213675232 (efdc055a). Its coverage artifact held 40
-# rows for 20 scripts: 19 `reused` copies and a fresh `entities`, then the
-# floor re-validation (#2342) re-ran all 20, `entities` included. Two owners
-# close it: a `reused` row is a copy that executes nothing, so it is no script
-# run; and the re-validation re-measures only what it reused.
-_CIR_REUSE_ROWS = ("coverage\tb\treused\t0\t0\tpush\t8\n"
-                   "coverage\tc\treused\t0\t0\tpush\t8\n"
-                   "coverage\td\tscoped\t0\t5\tpush\t8\n")
-_CIR_REUSE_CLOS = {"w1-ci-metrics-closures.tsv":
-                   "closures\ttests/a.py\tfull\t0\t9\tpush\t8\n"}
-_CIR_REUSE = _cir_window({**_CIR_REUSE_CLOS,
-                          "w2-ci-metrics-coverage.tsv": _CIR_REUSE_ROWS})
-_CIR_REUSE_NULL = _cir_window({**_CIR_REUSE_CLOS, "w2-ci-metrics-coverage.tsv":
-                               _CIR_REUSE_ROWS.replace("reused", "scoped")})
-R.check(
-    "the CI ratchet counts no `reused` coverage row as a script run",
-    _CIR_REUSE == 2 and _CIR_REUSE_NULL == 4,
-    f"two reused copies beside two executions counted {_CIR_REUSE!r} (want "
-    f"2); the same rows executed {_CIR_REUSE_NULL!r} (want 4, the null "
-    "control)",
-)
-
-
-def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
-    """coverage_tree.sh's reuse plan and floor re-validation under a stub
-    interpreter: the first script is reused, the rest measured, and the stub
-    grader reports a floor FAIL when asked to. Returns (non-reused metric
-    rows per script, executions per script, the stage's output, and per
-    ledger -- out/scripts.tsv and out/per/provenance.tsv -- the rows each
-    script holds and how many of them say `reused`)."""
-    with _tempfile.TemporaryDirectory() as td:
-        d = Path(td)
-        stub = d / "py"
-        stub.write_text(
-            "#!/bin/sh\n"
-            'case "$1" in\n'
-            "  -c) exit 0 ;;\n"
-            "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
-            'prev="$a"; done; exit 0 ;;\n'
-            "  tests/closure.py)\n"
-            '    [ "$2" = coverage-split ] || exit 0\n'
-            "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
-            "      if [ $n = 0 ]; then printf 'reuse\\t%s\\n' \"$s\"; "
-            "else printf 'measure\\t%s\\n' \"$s\"; fi; n=1; done; exit 0 ;;\n"
-            "  tests/coverage_ratchet.py)\n"
-            '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
-            "\n    exit 0 ;;\n"
-            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
-            "esac\n")
-        stub.chmod(0o755)
-        (d / "reuse").mkdir()
-        (d / "work").mkdir()
-        env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
-               "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
-               "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
-               "CTR_RAN": str(d / "ran"),
-               "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
-        res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
-                              env=env, capture_output=True, text=True,
-                              timeout=180)
-        runs: dict = {}
-        for row in ((d / "m.tsv").read_text().splitlines()
-                    if (d / "m.tsv").is_file() else []):
-            f = row.split("\t")
-            if f[2] != "reused":
-                runs[f[1]] = runs.get(f[1], 0) + 1
-        ran: dict = {}
-        for line in ((d / "ran").read_text().splitlines()
-                     if (d / "ran").is_file() else []):
-            name = Path(line).stem
-            ran[name] = ran.get(name, 0) + 1
-        ledgers: dict = {}
-        for rel in ("out/scripts.tsv", "out/per/provenance.tsv"):
-            f = d / "work" / rel
-            rows = [r.split("\t") for r in (f.read_text().splitlines()
-                                            if f.is_file() else [])
-                    if r and not r.startswith("script\t")]
-            per: dict = {}
-            for r in rows:
-                per[r[0]] = per.get(r[0], 0) + 1
-            ledgers[Path(rel).name] = {
-                "rows": per, "reused": sum(1 for r in rows if r[1:2] == ["reused"])}
-    return runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers
-
-
-_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS = _coverage_revalidation(floor_fails=True)
-_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS = _coverage_revalidation(floor_fails=False)
-R.check(
-    "the coverage floor re-validation re-measures only the scripts it reused",
-    len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
-    and set(_CRV_RAN.values()) == {1} and set(_CRV_RAN) == set(_CRV_RUNS)
-    and len(_CRV_NULL_RAN) == len(_CRV_RAN) - 1
-    and set(_CRV_NULL_RAN.values()) == {1},
-    f"under a floor FAIL: metric rows {_CRV_RUNS}, executions {_CRV_RAN} "
-    "(want every script once: the reused one re-measured, no fresh one "
-    f"twice); with the floor met: executions {_CRV_NULL_RAN} (want the "
-    f"reused one absent, the null control); output: {_CRV_OUT!r}",
-)
-# The stage's two ledgers after a floor-FAIL re-validation: scripts.tsv (the
-# job summary's reuse count) and per/provenance.tsv (cached by a push as the
-# next pull request's base, where a stale `reused` row misnames a script the
-# re-validation re-measured). One row per script in each, none `reused`.
-# Null: with the floor met nothing is re-measured, so the reused script keeps
-# its one `reused` row in each -- a reader that sees no rows fails here.
-R.check(
-    "after a floor-FAIL re-validation each coverage ledger holds one row per "
-    "script and no `reused` row",
-    all(set(_CRV_LEDGERS[k]["rows"]) == set(_CRV_RAN)
-        and set(_CRV_LEDGERS[k]["rows"].values()) == {1}
-        and _CRV_LEDGERS[k]["reused"] == 0
-        and set(_CRV_NULL_LEDGERS[k]["rows"]) == set(_CRV_RAN)
-        and set(_CRV_NULL_LEDGERS[k]["rows"].values()) == {1}
-        and _CRV_NULL_LEDGERS[k]["reused"] == 1
-        for k in ("scripts.tsv", "provenance.tsv")) and len(_CRV_RAN) >= 2,
-    f"floor FAIL: {_CRV_LEDGERS} (want each of {sorted(_CRV_RAN)} once, 0 "
-    f"reused); floor met: {_CRV_NULL_LEDGERS} (want the same scripts once, 1 "
-    "reused, the null control)",
-)
-
-# The recorded budget is the every-script-measured-once count: the closures
-# lane's full plan less the composed script it consumes from the coverage
-# job, plus the coverage `fast` stage's scripts. One extra execution over that
-# window must turn the ratchet red, and exactly the recorded count must not --
-# so a budget left loose by the `reused` exclusion is caught here, not by the
-# next drift (R10-CI-LAYOUT PR 0, the CI-RATCHET-RED brief's control).
-_CIR_BUDGET = json.loads(_cir.BUDGETS.read_text())["script_runs_per_push"]
-
-
-def _cir_planted(extra: int) -> "tuple[object, int]":
-    rows = "".join(f"closures\ttests/s{i}.py\tfull\t0\t0\tpush\t9\n"
-                   for i in range(_CIR_BUDGET + extra))
-    rows_reused = "".join(f"coverage\tr{i}\treused\t0\t0\tpush\t9\n"
-                          for i in range(20))
-    got = _cir_window({"w1-ci-metrics-closures.tsv": rows,
-                       "w2-ci-metrics-coverage.tsv": rows_reused})
-    if not isinstance(got, int):
-        return got, -1
-    budgets = json.loads(_cir.BUDGETS.read_text())
-    return got, _cir.compare({"script_runs_per_push": budgets["script_runs_per_push"],
-                              "recorded_at": budgets["recorded_at"]},
-                             {"script_runs_per_push": got})[1]
-
-
-def _cir_once_count() -> "tuple[int, list[str]]":
-    """The every-script-measured-once count, from the two instruments' own
-    enumerations: the closures lane's full plan (`lane-plan --all-scripts`),
-    less the composed scripts it consumes from the coverage job, plus the
-    coverage `fast` stage's scripts (coverage_tree.sh's own DERIVED and
-    `fast)` lines, run by bash, not re-implemented here)."""
-    closures_all = [s for s in _closure.test_scripts()
-                    if Path(s).name not in _closure.SLOW_GATED]
-    tree_sh = Path("tools/coverage/coverage_tree.sh").read_text()
-    derived = re.search(r"^DERIVED=\$\(.*?\)$", tree_sh, re.M | re.S)
-    fast = re.search(r"^\s*fast\)\s+(SCRIPTS=.*?) ;;$", tree_sh, re.M)
-    if not derived or not fast:
-        return -1, ["coverage_tree.sh's DERIVED or `fast)` line not found"]
-    out = _subprocess.run(
-        ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
-        capture_output=True, text=True, timeout=60)
-    cov = [f"tests/{n}.py" for n in out.stdout.split()]
-    composed = [s for s in _closure.composed_scripts() if s in closures_all]
-    problems = [f"composed {s} is not in the coverage fast stage"
-                for s in composed if s not in cov]
-    if out.returncode or not cov:
-        problems.append(f"coverage enumeration rc={out.returncode} n={len(cov)}")
-    return len(closures_all) - len(composed) + len(cov), problems
-
-
-_CIR_ONCE, _CIR_ONCE_PROBLEMS = _cir_once_count()
-_CIR_PLANT, _CIR_PLANT_GREW = _cir_planted(1)
-_CIR_EXACT, _CIR_EXACT_GREW = _cir_planted(0)
-R.check(
-    "one script run past the every-script-once budget turns the CI ratchet "
-    "red, and the budget is that count",
-    _CIR_PLANT_GREW == 1 and _CIR_EXACT_GREW == 0
-    and _CIR_PLANT == _CIR_BUDGET + 1 and _CIR_EXACT == _CIR_BUDGET
-    and not _CIR_ONCE_PROBLEMS and _CIR_BUDGET == _CIR_ONCE,
-    f"budget {_CIR_BUDGET}, every-script-once count {_CIR_ONCE} "
-    f"({_CIR_ONCE_PROBLEMS}); {_CIR_PLANT!r} runs graded {_CIR_PLANT_GREW} "
-    f"grew (want 1); {_CIR_EXACT!r} runs beside 20 reused copies graded "
-    f"{_CIR_EXACT_GREW} (want 0, the null control). A budget above the count "
-    "is slack nobody decided; below it, a push measuring each script once reddens",
-)
-
-
-def _lane_body(text: str, lane: str) -> str:
-    """One `lane_<name>() {` function of tests/run.sh, code lines only."""
-    m = re.search(rf"^lane_{lane}\(\) \{{\n(.*?)^\}}", text, re.M | re.S)
-    return "" if not m else "\n".join(
-        ln for ln in m.group(1).splitlines() if not ln.lstrip().startswith("#"))
-
-
-# R10-CI-LAYOUT PR 0 (a): the architecture-score pair runs in lane_golden, not
-# lane_units, which ends last in CI's `fast` job. Moving one back is the
-# regression; the null is the same reader finding structure.py in lane_units.
-_RUN_SH = Path("tests/run.sh").read_text()
-_AS_PAIR = ('run "$PYTHON" tests/arch_score.py',
-            'run "$PYTHON" tests/arch_score_head.py')
-_AS_NULL = 'run "$PYTHON" tests/structure.py'
-_AS_UNITS, _AS_GOLDEN = _lane_body(_RUN_SH, "units"), _lane_body(_RUN_SH, "golden")
-_AS_E2E, _AS_ALONE = _lane_body(_RUN_SH, "e2e"), _lane_body(_RUN_SH, "stress")
-R.check(
-    "the architecture-score pair runs in lane_golden and not in lane_units",
-    all(_l in _AS_GOLDEN and _l not in _AS_UNITS for _l in _AS_PAIR)
-    and _AS_NULL in _AS_UNITS,
-    f"in lane_units: {[_l for _l in _AS_PAIR if _l in _AS_UNITS]}; in "
-    f"lane_golden: {[_l for _l in _AS_PAIR if _l in _AS_GOLDEN]}; "
-    f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
-)
-
-# The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3).
-# harness_headers.py bills each harness's CPU against bounds sized from the
-# serial cost; a co-running lane inflates a CPU second (its CPU_LIMIT_S
-# comment), and R(a)'s move put arch_score.py beside it: fast (3.14) went red
-# on sysid_estimator_frontier.py at 306.4 CPU-s against 240 (job 118380549631).
-# So it runs in lane_stress, after stress.py, and in none of the parallel
-# lanes -- and lane_stress stays out of $LANES, the set run side by side.
-# Null: stress.py is read inside lane_stress by the same reader.
-_HH = 'run_always "$PYTHON" tests/harness_headers.py'
-_HH_LANES_LINE = re.search(r'^LANES="([^"]*)"', _RUN_SH, re.M)
-_HH_PARALLEL = (_HH_LANES_LINE.group(1).split() if _HH_LANES_LINE else [])
-_HH_IN_PARALLEL = [n for n, b in (("units", _AS_UNITS), ("golden", _AS_GOLDEN),
-                                  ("e2e", _AS_E2E)) if _HH in b]
-_HH_STRESS = 'run "$PYTHON" tests/stress.py'
-R.check(
-    "the CPU-bounded harness check runs alone: in lane_stress after stress.py, "
-    "in no parallel lane",
-    _HH in _AS_ALONE and _HH_STRESS in _AS_ALONE
-    and _AS_ALONE.index(_HH_STRESS) < _AS_ALONE.index(_HH)
-    and not _HH_IN_PARALLEL
-    and set(_HH_PARALLEL) == {"units", "golden", "e2e"},
-    f"in lane_stress: {_HH in _AS_ALONE}; in parallel lanes: {_HH_IN_PARALLEL}; "
-    f"parallel set {_HH_PARALLEL} (want units golden e2e, no stress); "
-    f"stress.py read in lane_stress (null): {_HH_STRESS in _AS_ALONE}",
 )
 
 

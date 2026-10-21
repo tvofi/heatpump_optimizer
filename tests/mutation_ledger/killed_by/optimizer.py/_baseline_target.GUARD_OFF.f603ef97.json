@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_baseline_target GUARD_OFF f603ef97",
-  "killed_by": "tests/features.py",
-  "old": "    if comfort_targets is not None and i < len(comfort_targets):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

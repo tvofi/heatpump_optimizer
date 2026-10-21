@@ -27,9 +27,9 @@ mut R1 '        if not is_sha(here) or here != there:' '        if here != there
 mut R2 '        for n in range(self.main_moved_tries + 1):' '        for n in range(self.main_moved_tries + 2):'
 mut R3 'and recover and moves < self.main_moved_tries:' 'and recover and moves <= self.main_moved_tries:'
 mut R4 '                    recover = recover and phase != "post-merge"' '                    recover = True'
-# R5 planted `_owner_at_head`'s held-or-None return; R10-TRAIN-RAISE-HOLD
-# folded that method into raise_hold, whose held flag is the same predicate.
-mut R5 '        return raises, ok, (' '        return raises, True, ('
+mut R5 '        return why if ok else None
+' "        return why or 'mut'
+"
 mut R6 '        if n == "0":
             return
 ' ''

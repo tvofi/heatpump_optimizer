@@ -259,16 +259,6 @@ def main() -> int:
     R.check("the guard refuses a parameter planted on a four-parameter function, and lists only it",
             planted and psites and sorted(set(psites) - set(sites)) == ["optimizer.hold_demand_kw"],
             f"planted={planted}; new {sorted(set(psites) - set(sites))}")
-    # `calibrate.py --record --only` (#2373 friction): a subset record must not erase the other rows
-    from archscore import calibrate
-    old = {"a": {"verdict": "NULL"}, "b": {"verdict": "WORSENS"}, "_sensitivity": {"w x2.0": ["b"]}}
-    got = {"a": {"verdict": "IMPROVES"}, "c": {"verdict": "NULL"}, "_sensitivity": {}}
-    merged = calibrate.merged_record(old, got, {"a", "d"})
-    R.check("a subset record replaces only its own cases' rows, and keeps every other row and _sensitivity",
-            merged == {"a": {"verdict": "IMPROVES"}, "b": {"verdict": "WORSENS"},
-                       "_sensitivity": {"w x2.0": ["b"]}}, f"{merged}")
-    R.check("...and a listed case the run did not measure keeps no invented row",
-            "d" not in merged and "c" not in merged, f"{sorted(merged)}")
     return R.close("ARCHITECTURE SCORE HEAD CHECKS")
 
 

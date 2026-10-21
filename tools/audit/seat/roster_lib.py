@@ -6,7 +6,7 @@
 
 This module is the one place the roster schema is read, and the one owner of
 which roster a tool reads (`roster_path`). The wave computation is
-`gen_table_rev3.py`'s (the round-9 alt archive tag `archive/handoff/audit-r9-alt`), the
+`gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
 critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
@@ -45,13 +45,8 @@ DONE_STAGES = ("done", "rca-done")
 # the round-10 tree carries the round-9 file too.
 ROSTERS_DIR = "dev/programme/rosters"
 _ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
-#: Where a roster lands once its pull request merges, and the fallback reader.
-MAIN_REF = "origin/main"
-# THE DEFAULT READER REF (O17, tvofi 2026-10-18) is `default_roster_ref`, no
-# longer a constant: the round's roster branch, where the orchestrator's edits
-# live between landings on main. A constant `origin/main` left the tick and
-# the state docs reading four stale stages and missing one group while the
-# branch was 21 commits ahead.
+#: The ref a reader defaults to: the roster lives on main once its PR merges.
+DEFAULT_ROSTER_REF = "origin/main"
 
 
 class RosterNotFound(Exception):
@@ -143,58 +138,6 @@ def round_branch(path: str) -> str:
     """The branch a round's roster edits ride to main on:
     `handoff/audit-r<N>-roster`, round-10's roster pull request's own."""
     return f"handoff/audit-r{roster_round(path)}-roster"
-
-
-def git_in(repo: str):
-    """A `git(argv) -> (returncode, output)` runner in `repo`, the shape
-    `default_roster_ref` takes so a caller with its own (stubbed) git can
-    pass that instead."""
-    def run(argv):
-        r = _git(repo, *argv)
-        return r.returncode, r.stdout + r.stderr
-    return run
-
-
-def round_ref(git) -> str | None:
-    """`origin/handoff/audit-r<N>-roster`, N the newest round at `MAIN_REF`;
-    None when no roster is readable there. Names the ref; never checks it."""
-    code, o = git(["ls-tree", "--name-only", MAIN_REF, ROSTERS_DIR + "/"])
-    path = None if code else newest_roster(o.split())
-    return None if path is None else "origin/" + round_branch(path)
-
-
-def default_roster_ref(git) -> tuple[str, str]:
-    """`(ref, note)`: the ref a reader reads the roster at when none is given.
-
-    `origin/handoff/audit-r<N>-roster`, N the newest round at `MAIN_REF`,
-    when this clone has that remote-tracking ref; else `MAIN_REF`. The note
-    is empty when the answer is current and otherwise says why it may not be:
-    the branch is absent here (so main, which lags the round's edits, is
-    read), or main carries roster changes the branch has not merged (a fix
-    pull request that edited the roster directly). The caller prints it; a
-    reader never silently reads a stale roster.
-    """
-    ref = round_ref(git)
-    if ref is None:
-        return MAIN_REF, f"no roster readable at {MAIN_REF}; reading {MAIN_REF}"
-    if git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"])[0]:
-        return MAIN_REF, (f"{ref} is absent in this clone (fetch it); reading "
-                          f"{MAIN_REF}, which lags the round's roster edits")
-    if git(["diff", "--quiet", f"{ref}...{MAIN_REF}", "--", ROSTERS_DIR + "/"])[0]:
-        return ref, (f"WARNING: {MAIN_REF} carries roster changes {ref} has "
-                     "not merged; merge main into it")
-    return ref, ""
-
-
-def reader_ref(repo: str, ref: str | None) -> str:
-    """A reader's `--roster-ref`: the one given, else `default_roster_ref`'s
-    answer in `repo`, its note printed to stderr."""
-    if ref:
-        return ref
-    ref, note = default_roster_ref(git_in(repo))
-    if note:
-        print(f"roster_lib: {note}", file=sys.stderr)
-    return ref
 
 
 def groups_of(roster: dict) -> dict:
@@ -401,38 +344,6 @@ def _self_test() -> int:
               "nope.json" in why, why)
         check("the round's roster branch",
               round_branch(roster_path(str(repo))) == "handoff/audit-r10-roster")
-
-        # WHICH REF (O17): the round's roster branch when this clone has it,
-        # main otherwise, and either answer says why when it is not current.
-        g = git_in(str(repo))
-        main_sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
-                                  capture_output=True, text=True).stdout.strip()
-
-        def ref(name: str, sha: str) -> None:
-            subprocess.run(["git", "-C", str(repo), "update-ref",
-                            f"refs/remotes/origin/{name}", sha], check=True)
-        ref("main", main_sha)
-        got = default_roster_ref(g)
-        check("no round branch here: main, and the note says the branch is absent",
-              got[0] == MAIN_REF and "handoff/audit-r10-roster" in got[1]
-              and "absent" in got[1], got)
-        ref("handoff/audit-r10-roster", main_sha)
-        got = default_roster_ref(g)
-        check("the round branch present and carrying main: it, with no note",
-              got == ("origin/handoff/audit-r10-roster", ""), got)
-        put(10, "R10-B")
-        ref("main", subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
-                                   capture_output=True, text=True).stdout.strip())
-        got = default_roster_ref(g)
-        check("main moved the roster past the branch: the branch, with a warning",
-              got[0] == "origin/handoff/audit-r10-roster"
-              and got[1].startswith("WARNING") and MAIN_REF in got[1], got)
-        ref("handoff/audit-r10-roster", main_sha)
-        subprocess.run(["git", "-C", str(repo), "update-ref", "-d",
-                        "refs/remotes/origin/main"], check=True)
-        got = default_roster_ref(g)
-        check("no roster readable at main: main, with a note (null control)",
-              got[0] == MAIN_REF and got[1], got)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)

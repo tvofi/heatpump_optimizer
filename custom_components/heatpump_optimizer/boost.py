@@ -37,7 +37,7 @@ from .const import (
 from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
 from .drift import stored_instant
 from .entity import has_hot_water
-from .payload import CurrentAction, REASON_BOOST, REASON_LEGIONELLA
+from .payload import CurrentAction
 
 _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
@@ -322,18 +322,7 @@ def overlay(
     max_temp: float,
     ecl_max: float,
 ) -> None:
-    """Mutate ``action`` for every channel that is still live.
-
-    A boosted channel's reason becomes ``REASON_BOOST``: the overlay replaced
-    the plan's power for that channel, so the plan's reason for the step — an
-    idle one, usually, since a boost is pressed when the plan is not heating —
-    describes energy the plan never asked for. The settlement books the
-    boosted draw under this code (#2256).
-
-    The anti-legionella cycle is the one cause that survives: the observer in
-    ``legionella.py`` reads ``dhw_reason`` to know the cycle is running and to
-    credit it, and a user boost does not stop it.
-    """
+    """Mutate ``action`` for every channel that is still live."""
     if CHANNEL_SPACE in held.until:
         action["power"] = max_power
         action["setpoint"] = max_temp
@@ -342,14 +331,11 @@ def overlay(
         action["heat_pump_on"] = True
         action["displace_value"] = ecl_max
         action["boost_space"] = True
-        action["space_reason"] = REASON_BOOST
     if CHANNEL_DHW in held.until:
         action["dhw_power"] = max(0.1, max_power * 0.8)
         action["dhw_heating_active"] = True
         action["heat_pump_on"] = True
         action["boost_dhw"] = True
-        if action.get("dhw_reason") != REASON_LEGIONELLA:
-            action["dhw_reason"] = REASON_BOOST
         # The pump now runs for the tank, so a mode saying it does not would
         # publish a false Heat Pump Action (#1499).
         if action.get("mode") in (None, "off", "idle"):

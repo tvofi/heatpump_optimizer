@@ -32,11 +32,10 @@ later pull request would be graded against a `main` the refused one never joined
                  neutral stops it, except the `--ignore-red` names (default
                  `nightly-status`, which grades `main`, not the head). A head
                  whose TIP is a GITHUB_TOKEN push (author `github-actions[bot]`)
-                 is refused before any check is read: such a push's
-                 `pull_request` runs are held `action_required`, so the
-                 required contexts only one writes stay ABSENT at it until a
-                 held run is approved, and the merge would be refused with
-                 nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
+                 is refused before any check is read: such a push fires no
+                 `pull_request` run at all, so the required contexts only one
+                 writes stay ABSENT at it forever and the merge would be
+                 refused with nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
                  The required follow-up is an App push -- step 1's recarry is
                  one, which is why the refusal fires only where the head
                  already contains main;
@@ -63,14 +62,8 @@ later pull request would be graded against a `main` the refused one never joined
                  the train approves as the account `gh` is logged in as, with a
                  body naming the mandate label, the role, the verdict comment and
                  the carried head. Without `--mandate`, or on any other refusal
-                 (missing evidence included), it stops. A budget RAISE --
-                 `Train.raise_hold`: budget_raise_gate's own `raises_between`
-                 from the merge base, the direction CI's gate reads, never a
-                 `*_budgets.json` path, so a file that only gains rows is none
-                 -- is the owner's (0013): it lands only on the owner's approval
-                 already at the head, judged as the gate's `decide` judges it
-                 (the body's raise justification included) with its mandate
-                 read at the merge, and else stops with the gate's reason;
+                 (missing evidence included), or when a `*_budgets.json` changed
+                 (a raise is the owner's, 0013), it stops;
   7. ready, preflight of the title (`REFUSE` stops), merge with
      `--match-head-commit` (retried; `main` re-checked before each attempt;
      every refusal logged in GitHub's words, a base-moved one -- or, serially,
@@ -91,11 +84,9 @@ Same queue file; no head is re-merged with main. In order:
                  nothing is admitted (a proof on a red main blames its entries);
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
-                 any `*_budgets.json` change goes SERIAL (a routing by path, not
-                 a raise reading: serially, step 6's `raise_hold` decides
-                 whether the change is a raise), and so does a head
-                 whose tip is a GITHUB_TOKEN push (`bot-head`): its
-                 `pull_request` runs are held, so no proof can carry it, and its serial recarry -- once the batch's own merges
+                 any `*_budgets.json` change goes SERIAL, and so does a head
+                 whose tip is a GITHUB_TOKEN push (`bot-head`): no proof can
+                 carry it, and its serial recarry -- once the batch's own merges
                  moved main -- is the App push that cures it (refused there as
                  before when main never moved). The
                  rest must be green at their head (all check runs, less
@@ -327,7 +318,7 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
-BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
+BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
 ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
 BOT_ROUTE = "bot-head"               # batch: a GITHUB_TOKEN tip goes serial, where its recarry cures it
@@ -408,35 +399,6 @@ def policy_fixture_builders():
     return g, owner_review, mandate, revoke
 
 
-# The self-tests' budget worlds: {path: (text at the merge base, text at the
-# head)}, None for an end the file is absent at. RAISE_FIXTURE is a real raise
-# (a cap goes up); NEW_ROWS_FIXTURE is #2401's shape, a budget file that only
-# gains rows, which budget_raise_gate reads as no raise at all.
-RAISE_FIXTURE = {"tests/structure_budgets.json": ('{\n "m": 3\n}\n', '{\n "m": 4\n}\n')}
-NEW_ROWS_FIXTURE = {"tests/ci_budgets.json": (
-    '{\n "archscore.hub_solve_writes": 41,\n "reason": "r"\n}\n',
-    '{\n "archscore.hub_solve_writes": 41,\n "archscore.shape_copies": 66,\n "reason": "new row"\n}\n')}
-JUSTIFIED_BODY = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
-                  "- Architecture score: dS +0.4 IMPROVES\n")
-
-
-def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple[int, str] | None":
-    """A stubbed `run`'s answer to raise_hold's tree and blob reads from a
-    budget world (above): the base tree is <base>, any other sha the head.
-    None: not a read this world answers."""
-    if not budgets:
-        return None
-    if argv[:4] == ["git", "ls-tree", "-r", "--name-only"]:
-        end = 0 if argv[4] == base else 1
-        return 0, "".join(f"{p}\n" for p, ends in budgets.items() if ends[end] is not None)
-    if argv[:2] == ["git", "show"] and ":" in argv[2]:
-        sha, path = argv[2].split(":", 1)
-        if path in budgets:
-            text = budgets[path][0 if sha == base else 1]
-            return (0, text) if text is not None else (128, f"fatal: path '{path}' does not exist in '{sha}'")
-    return None
-
-
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -492,22 +454,19 @@ class Train:
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
 
     # R9-RC-AUTOFIX-GOVERNANCE. A GITHUB_TOKEN push (the autofix jobs' pin and
-    # re-record commits, the merge-main bot's resolution) does create
-    # pull_request runs, but they are held action_required (actor
-    # github-actions[bot]) until approved -- every bot head from
-    # 2026-10-15T10:23Z, e.g. Tests run 38781421410 at 720d3636: attempt 1
-    # action_required, attempt 2 approved by hpo-runs[bot]. Until then the
-    # required contexts only a pull_request run writes are ABSENT. On
-    # 2026-10-09 no such run was created at all (63084989/#2066 and
-    # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
-    # contexts of main-protect-checks absent). The autofix job's approve step
-    # approves the held runs, fail-soft while its secrets are absent; this
-    # train does not read whether it did, so it still refuses such a tip.
-    # Dispatch cannot write those contexts: governance.yml answers
-    # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
-    # pull_request/merge_group only. An App push is a follow-up that does, and
-    # the train's own recarry (step 1) is one -- so the refusal fires only where
-    # the head already contains main and no recarry is possible.
+    # re-record commits, the merge-main bot's resolution) fires NO pull_request
+    # workflow run at all -- GitHub suppresses events from GITHUB_TOKEN -- so at
+    # such a head the only runs are the four the autofix job dispatches, and the
+    # required contexts only a pull_request run writes stay ABSENT forever: the
+    # head settles, every run it has is green, and the merge is refused with
+    # nothing saying why (measured 2026-10-09 at 63084989/#2066 and
+    # a9ba0b88/#2070: 4 dispatched runs each, zero pull_request runs, the same
+    # 5 of the 17 required contexts of main-protect-checks absent). Dispatch
+    # cannot close the gap: governance.yml answers workflow_dispatch, but
+    # pr-contract.yml and budget-raise-gate.yml take pull_request/merge_group
+    # only. The one follow-up that repairs such a head is an App push, and the
+    # train's own recarry (step 1) is one -- so the refusal fires only where the
+    # head already contains main and no recarry is possible.
     def bot_tip(self, h: str) -> "str | None":
         """The subject of <h>'s tip commit when a GITHUB_TOKEN push put it there
         (author github-actions[bot], the login every such push carries), else
@@ -523,9 +482,9 @@ class Train:
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
-                    f"'{subject}'): its pull_request runs are held action_required, so the required "
-                    "contexts only they write are ABSENT until one is approved -- the head can look "
-                    "settled and be unmergeable, with nothing saying why. The required follow-up is an App push at this "
+                    f"'{subject}'): no pull_request run fires at it, so the required contexts "
+                    "only one writes never report -- the head looks settled and is unmergeable, "
+                    "with nothing saying why. The required follow-up is an App push at this "
                     "head: run the train again once main has moved (its recarry is one), or "
                     "have the orchestrator App-push the branch", cls=BOT_HEAD)
 
@@ -857,58 +816,16 @@ class Train:
             raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
         return o
 
-    def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
-        """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
-        budget raise, shared by `approve` and queue_pre_flight.py.
-
-        The raises are budget_raise_gate's own `raises_between` from the merge
-        base with origin/main -- the direction CI's budget-raise-gate reads,
-        never a `*_budgets.json` path: a budget file that only gains rows
-        (#2401) raises nothing, ([], True, why), and takes the ordinary
-        approve path. A raise holds only under the owner's approval at <h> as
-        the gate's `decide` judges it -- `approval` with the gate's own
-        `justification` of the body, read on this branch alone -- its mandate
-        judged AT THE MERGE rather than at the review's submission. GitHub
-        re-anchors an approval's commit_id across a clean merge of the base
-        (#2209: review 5526967770 names 8a8e66e7 in its body, the API reports
-        the recarried 8876da3b), so after a recarry the owner's approval can
-        already name the live head; it is the owner's there, and nothing is
-        re-posted. `why` is the gate's own reason either way. A read that
-        fails, or a budget path the diff names that neither tree holds, is a
-        Stop: an unread budget is never a routine one."""
+    def _owner_at_head(self, pr: int, h: str) -> "str | None":
+        """The owner's approval ALREADY at <h> -- budget_raise_gate's own
+        `approval` with the gate's own `justification` of the body (what
+        `decide` passes), its mandate judged AT THE MERGE rather than at the
+        review's submission -- else None. GitHub re-anchors an approval's
+        commit_id across a clean merge of the base (#2209: review 5526967770
+        names 8a8e66e7 in its body, the API reports the recarried 8876da3b),
+        so after a recarry the owner's approval can already name the live
+        head; it is the owner's there, and nothing is re-posted."""
         g = _mandate_gate()
-        if not any(f.endswith(g.SUFFIX) for f in files):
-            return [], True, "no budget file changed"
-        trees: dict[str, set[str]] = {}
-
-        def read(argv: "list[str]") -> str:
-            code, o = self.run(argv)
-            if code:
-                raise Stop("approve", f"the budget read failed ({' '.join(argv)[:80]}: {o.strip()[-160:]}); "
-                           "an unread budget is never a routine one")
-            return o
-
-        def ls(sha: str) -> "list[str]":
-            trees[sha] = set(read(["git", "ls-tree", "-r", "--name-only", sha]).splitlines())
-            return sorted(trees[sha])
-
-        def show(sha: str, path: str) -> "str | None":
-            return read(["git", "show", f"{sha}:{path}"]) if path in trees[sha] else None
-        base = read(["git", "merge-base", "origin/main", h]).strip()
-        if not is_sha(base):
-            raise Stop("approve", f"the budget read failed: the merge base reads '{base[:60]}'")
-        try:
-            _paths, raises = g.raises_between(base, h, ls, show)
-        except Stop:
-            raise
-        except Exception as e:  # fail closed: a budget the gate cannot read raises everything
-            raise Stop("approve", f"the budget read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
-        unseen = [f for f in files if f.endswith(g.SUFFIX) and not any(f in t for t in trees.values())]
-        if unseen:
-            raise Stop("approve", f"the budget read failed: the diff names {', '.join(unseen)}, which neither "
-                       f"{base[:12]} nor {h[:12]} lists; an unread budget is never a routine one")
-        if not raises:
-            return [], True, "no budget raise (budget_raise_gate.raises_between: 0); the ordinary path"
         now = datetime.datetime.now(datetime.timezone.utc)
         at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         try:
@@ -919,8 +836,7 @@ class Train:
             raise
         except Exception as e:  # fail closed: an unread approval is none
             raise Stop("approve", f"the owner-approval read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
-        head = f"{len(raises)} budget raise(s), first {raises[0]}"
-        return raises, ok, (f"{head}: {why}" if ok else f"{head}: a raise is the owner's (0013): {why}")
+        return why if ok else None
 
     def _owner_approval_at(self, pr: int, shas: "list[str]") -> "tuple[dict | None, int | None]":
         """The owner's latest APPROVED review when it names one of <shas>
@@ -1019,14 +935,15 @@ class Train:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
         if not self.mandate:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
-        raises, held, why = self.raise_hold(pr, h, files)
-        if raises:
+        budgets = [f for f in files if f.endswith("_budgets.json")]
+        if budgets:
+            held = self._owner_at_head(pr, h)
             if held:
-                self.log(f"#{pr} the owner's approval is at the head: {why}")
+                self.log(f"#{pr} the owner's approval is at the head: {held}")
                 return "owner"
             carried = self._carry_owner_approval(pr, h, item, files)
             if carried is None:
-                raise Stop("approve", f"code-owned and {why}")
+                raise Stop("approve", f"code-owned and a budget file changed ({', '.join(budgets)}): a raise is the owner's (0013)")
             return carried
         paths = ", ".join(f"`{p}`" for p in owned.group(1).split())
         body = (f"Agent approval for code-owned {paths}, given by {self.role} under {self.mandate}, at head {h}.\n\n"
@@ -1344,8 +1261,8 @@ class Train:
         target = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "baseRefName", "--jq", ".baseRefName")
         if target != self.base:
             raise Stop("base", f"#{pr} targets {target}, not {self.base}")
-        # A GITHUB_TOKEN tip cannot join a proof (its pull_request runs are held,
-        # so its required contexts may be ABSENT) but the SERIAL path cures it: its recarry at its
+        # A GITHUB_TOKEN tip cannot join a proof (no pull_request run writes its
+        # required contexts) but the SERIAL path cures it: its recarry at its
         # turn, once the batch's own merges moved main, is the App push. A head
         # still containing main then is refused there, as before.
         bot = self.bot_tip(h)
@@ -1721,13 +1638,6 @@ def _self_test() -> int:
         def run(argv, cwd=ROOT, stdin=None):
             calls.append(argv)
             a = " ".join(argv)
-            if argv[:2] == ["git", "ls-tree"] and world.get("ls_fail"):
-                return 128, "fatal: not a tree object"
-            if argv[:2] == ["git", "show"] and world.get("show_fail") and argv[2].endswith("_budgets.json"):
-                return 128, "fatal: unable to read 0123abcd"
-            got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
-            if got is not None:
-                return got
             if "record_row.py" in a:  # --bot-prs: the record PR lookup and its guard
                 if "--find-open" in argv:
                     return world.get("bot_find", (0, "0"))
@@ -1814,8 +1724,6 @@ def _self_test() -> int:
                 return 0, world.get("preflight", "  clean    no refusal")
             if "state,mergeCommit" in a:
                 return 0, world["merge"].pop(0) if world.get("merge") else "MERGED " + "d" * 40
-            if argv[:2] == ["gh", "api"] and re.search(r"/issues/\d+/comments", a):  # pre-flight's findings read
-                return 0, json.dumps([world.get("verdict_comments", [])])
             return 0, ""
         return run, calls
 
@@ -2163,10 +2071,10 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
-    rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
+    rc, lines, calls = go({"approve": owned,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
-    check("code-owned with a budget RAISE is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
+    check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
     # --approval-carry: the recarry moved an owner-approved head, the owner
     # approved a budget raise there, and the orchestrator no longer re-posts it
     # by hand. `carry` is the fully-qualifying world; each arm below breaks
@@ -2179,7 +2087,7 @@ def _self_test() -> int:
         # The fully-qualifying carry world, fresh per arm: the mutable keys
         # (contains, heads) must never be shared between `go` calls -- a
         # recarry consumes them.
-        return dict({"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE, "contains": [False],
+        return dict({"approve": owned, "files": BUDGET, "contains": [False],
                      "heads": [H0, H1],
                      "carry_delta": (H0, H1, "docs/a-main-only-file.md\n")}, **over)
 
@@ -2198,7 +2106,8 @@ def _self_test() -> int:
     # approval named h, not h0, and `prior.commit_id != h0` returned no carry.
     # An owner approval already at the live head is the owner's (the gate's
     # raise reading, its mandate re-read at the merge): nothing to re-post.
-    JUST = JUSTIFIED_BODY
+    JUST = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
+            "- Architecture score: dS +0.4 IMPROVES\n")
     for flag in (True, False):
         w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW), pr_body=JUST)
         rc, lines, calls = go(w, mandate=CB, approval_carry=flag)
@@ -2282,60 +2191,6 @@ def _self_test() -> int:
                           mandate=CB, approval_carry=True)
     check("approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass",
           rc == 1 and "byte-identical" in lines[-1] and approved(calls) and not merged(calls))
-    # R10-TRAIN-RAISE-HOLD (#2401: trains t11-t13 stopped while CI's
-    # budget-raise-gate printed budget_raises=0 PASS). A raise is the gate's
-    # DIRECTION reading (raise_hold), never a `*_budgets.json` path: a budget
-    # file that only gains rows takes the ordinary mandate approval, and a
-    # raise's Stop carries the gate's own reason.
-    NEW_ROWS = ["tests/ci_budgets.json", f"{ROW_DIR}/7.md"]
-    w = {"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE, "reviews": [], "pr_body": "## Summary\n"}
-    rc, lines, calls = go(w, mandate=CB)
-    check("#2401's shape: a budget file that only gains rows is no raise -- the ordinary "
-          "mandate approval is posted and the entry merges, with no owner review and no "
-          "raise justification owed", rc == 0 and approved(calls) and merged(calls)
-          and "Agent approval for code-owned" in w["approve_body"])
-    rc, lines, calls = go({"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE,
-                           "reviews": [dict(owner_review(H0, NOW), id=RID)], "mandate": mandate(NOW),
-                           "pr_body": "## Summary\n"}, mandate=CB)
-    check("... and with #2401's own reviews (a mandated owner approval at the head, a body with no "
-          "raise justification) it still merges: the justification is a raise's alone",
-          rc == 0 and merged(calls))
-    PLANT = {"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE}
-    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
-                               pr_body="## Summary\n\n## Raise justification\n\nWe need it.\n"), mandate=CB)
-    check("a planted raise whose mandated approval sits at the head but whose body is deficient "
-          "stops, naming the raise and BOTH missing lines",
-          rc == 1 and not merged(calls) and not approved(calls)
-          and "tests/structure_budgets.json: m: 3 -> 4" in lines[-1]
-          and "`Payments tried:`" in lines[-1] and "`Architecture score: dS`" in lines[-1])
-    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
-                               pr_body=JUST), mandate=CB)
-    check("a planted raise with a healthy body under the mandate in force lands as the owner's, "
-          "nothing re-posted", rc == 0 and merged(calls) and not approved(calls)
-          and any("approved (owner)" in ln for ln in lines))
-    rc, lines, calls = go(dict(PLANT, reviews=[], mandate=mandate(NOW), pr_body=JUST), mandate=CB)
-    check("a planted raise with no owner review stops, and the Stop carries the gate's why",
-          rc == 1 and not merged(calls) and "a raise is the owner's" in lines[-1]
-          and "no decisive review by" in lines[-1])
-    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW - datetime.timedelta(minutes=30)), id=RID)],
-                               mandate=mandate(NOW, until_min=-10), pr_body=JUST), mandate=CB)
-    check("a planted raise approved while its mandate was in force, the mandate expired before the "
-          "merge, stops: the mandate is judged AT THE MERGE, not at the review",
-          rc == 1 and not merged(calls) and "expired" in lines[-1])
-    rc, lines, calls = go(dict(PLANT, budgets=None, reviews=[dict(owner_review(H0, NOW), id=RID)],
-                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
-    check("fail closed: a budget path the diff names that neither tree holds is a Stop, never "
-          "a no-raise", rc == 1 and not merged(calls) and not approved(calls)
-          and "budget read failed" in lines[-1])
-    rc, lines, calls = go(dict(PLANT, ls_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
-                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
-    check("fail closed: a tree that cannot be listed is a Stop", rc == 1 and not merged(calls)
-          and not approved(calls) and "budget read failed" in lines[-1])
-    rc, lines, calls = go(dict(PLANT, show_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
-                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
-    check("fail closed: a budget blob the tree lists but git cannot read is a Stop even under the "
-          "owner's approval -- never its error text read as an unparsable file the approval then holds",
-          rc == 1 and not merged(calls) and not approved(calls) and "budget read failed" in lines[-1])
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
@@ -2366,10 +2221,11 @@ def _self_test() -> int:
         check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
               rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
     # R9-RC-AUTOFIX-GOVERNANCE: a GITHUB_TOKEN push (author github-actions[bot])
-    # gets pull_request runs held action_required, so the required contexts
-    # only they write are ABSENT at such a head until one is approved, and the
-    # merge is refused with nothing saying why (the measurement is bot_tip's
-    # comment).
+    # fires NO pull_request workflow run at all, so the required contexts only
+    # one writes never report at such a head: it settles with them ABSENT and
+    # the merge is refused with nothing saying why (measured 2026-10-09 at
+    # 63084989/#2066 and a9ba0b88/#2070: 4 dispatched runs each, zero
+    # pull_request runs, the same 5 of the 17 required contexts absent).
     BOT = "ci: pin killed mutants"
     rc, lines, calls = go({"bot_tips": {H0: BOT}})
     check("a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- "

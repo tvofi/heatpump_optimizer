@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._rows RETURN_DEL 27aa11e5",
-  "killed_by": "tests/entities.py",
-  "old": "        return rows if isinstance(rows, list) else []",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

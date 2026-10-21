@@ -37,6 +37,7 @@ message string too, because an input problem echoes the id it is about.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -45,7 +46,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter
-from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
+from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -73,6 +74,12 @@ COORDINATE_KEYS = frozenset({"latitude", "longitude"})
 #: produces: latitude and longitude swapped, and a location in the wrong
 #: country.
 COORDINATE_PLACES = 1
+
+
+#: Entity ids that name a person or a household calendar, anywhere in a
+#: string: the away presence and holiday calendar options hold them, and an
+#: input problem's message repeats the id it is about.
+PRIVATE_ENTITY_ID = re.compile(r"\b(?:person|calendar)\.[a-z0-9_]+")
 
 #: The input watchdog's published keys (the coordinator's input health view).
 INPUT_KEYS = (
@@ -266,7 +273,7 @@ async def async_get_config_entry_diagnostics(
                     "domain": DOMAIN,
                     # #1940: capped, so a week too large to inline is its summary.
                     "debug": debugger.capped(
-                        await collector.async_bundle(coord, snapshot, entry),
+                        await collector.async_bundle(coord, snapshot),
                         f"{DOMAIN}_{entry.entry_id}_debug",
                     ) if collector else None,
                 }
