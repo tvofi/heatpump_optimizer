@@ -2140,8 +2140,10 @@ PY
   # such orphans ran 20 and 38 minutes, and they fed the box's load. The
   # driver is the prepr as step 6b runs it: a bash of its own, so its `$$` is
   # the pid the watchdog polls, with the prepr's signal traps installed and
-  # step 6b's own statement, read out of this file at its `6b.` marker, so a
-  # change to that call site is what the arms run. It leads its own process
+  # step 6b's own statement, copied out of this file at its `6b.` marker into
+  # the driver's text, so a change to that call site is what the arms run. It
+  # is copied, never `eval`ed: bash runs a trap at once inside an `eval`ed
+  # command substitution, which would hide the deferral. It leads its own process
   # group, so the group arm signals the prepr's group and nothing of this
   # self-test. The sleeper stands for the recorder, and forks one lane as
   # derive_closures.sh forks its recording lanes, so an arm sees a reap of
@@ -2165,8 +2167,8 @@ exit_on_signals
 say() { :; }; step() { :; }
 unset PREPR_SKIP_CLOSURES; BASE=fork
 export PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1
-eval "\$(awk '/^# --- 6b\./{f=1} f&&/^if /{p=1} p{print} p&&/^fi\$/{exit}' '$PREPR_ABS')"
 EOF
+  awk '/^# --- 6b\./{f=1} f&&/^if /{p=1} p{print} p&&/^fi$/{exit}' "$PREPR_ABS" >> "$CLM/drv.sh"
   chmod +x "$CLM/drv.sh"
   ( cd "$CLM/r" && git checkout -q cl ) >/dev/null 2>&1
   alive() { local s; s=$(ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s#Z}" = "$s" ]; }
