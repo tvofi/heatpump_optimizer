@@ -7246,6 +7246,59 @@
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    },
    "priority": "high"
+  },
+  {
+   "group": "R10-ROUND-PLAYBOOK",
+   "lane": "C",
+   "kind": "doc",
+   "class": "docs",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    "dev/audit/README.md",
+    "CLAUDE.md"
+   ],
+   "hot_files": [
+    "dev/audit/README.md"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694",
+   "rca": [],
+   "after": [
+    "R10-FLOW-ARCH-PLANNER",
+    "R10-FLOW-AUDIT-PLAN",
+    "R10-ORCH-MACHINERY",
+    "R10-HANDOVER-REFRESH",
+    "R10-FLOW-AUTOTRAIN",
+    "R10-FLOW-MAIN-GATE",
+    "R10-FLOW-DISPATCH",
+    "R10-CI-LAYOUT-P2"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Owner request (tvofi, 2026-10-21): an audit programme playbook that lets a fresh orchestrator run round 11 onwards from the tree alone, written from round 10's final shape at its completion. Deliver it as dev/audit/README.md (the file CLAUDE.md already indexes as how a round is run), not as a second document. The phase sequence from opening a round to its closure stamp: mandate and owner rulings; audit dimensions and finders; verify and judge; the architect/planner P3 and owner approval; the roster and waves; dispatch under the lane caps; fixer and review with cloud seats and relay; carries; the hourly merge pitch; post-merge beat and state docs; stamps; projections and extension; the closure criteria (0 open PRs, 0 open roster groups, only the coordination issue open) and the final state comment. For each phase give entry criteria, exit criteria, the instrument to run (its tools/ path), the role contract that binds it, and the artefact it leaves. Name every policy file and instrument by path and never paraphrase a rule (name-the-policy-file); state no figure the tree can answer. Keep the existing harness-contract and instruments sections. Control: a self-checking arm in a tree instrument (brief_lint.mjs or a small checker) resolves every path and instrument the playbook names at the merge base, with a fixture that goes red on a renamed or removed instrument and a null control that stays green. policy_lint --budgets must not grow beyond the README's cap; if the content needs a raise, apply the budget-raise gate (mandate 6319294694, Raise justification with Architecture score: dS). Re-derive against the tree at the merge base, after every listed after-group has merged.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-round-playbook",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": "Owner request 2026-10-21; the last group before the closure stamp."
+   }
   }
  ]
 }
