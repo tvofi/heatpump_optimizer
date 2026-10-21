@@ -1,424 +1,195 @@
 # Handover — the open-issues programme
 
-updated-for: a77faf30d9e4dd0f7c5f3074f0b1a16de50f34c4
+updated-for: 0cc148b2f80fe224ffe2c504b29fd4f0908183df
 
-The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
-the harness loads on this very path. Delivery status is the frozen table in
-`dev/programme/plan-2026-09-open-issues.md` plus one `dev/programme/delivery/<N>.md` per pull
-request (#1081), linked from here and never restated.
+The rule that governs this file is `dev/governance/rules/writing-for-agents.md`
+(generated into `.claude/rules/`, which the harness loads on this path).
+Delivery status is the frozen table in `dev/programme/plan-2026-09-open-issues.md`
+plus one `dev/programme/delivery/<N>.md` per pull request (#1081), linked from
+here and never restated. Chronology this file no longer carries is read at its
+last pre-round-10 form, `git show a77faf30d:dev/programme/HANDOVER.md`.
 
-## Round 9 closed at v7.0.0; round 10 open
+## Round 10 — durable state
 
-**Round 9** (tracking issue #201) is closed: v7.0.0, no interim 6.7.x stamp. Its
-handoff branches, including `handoff/audit-r9-fixplan` and `handoff/audit-r9-plan`,
-are archived as tags under `archive/handoff/` (`git tag -l 'archive/handoff/audit-r9-*'`),
-so a round-9 plan, roster or `RESUME-CURRENT.md` is read from its tag, never
-resumed. The closure sequence and the delivery-row beat are in the 2026-10-13/14
-section below.
+**Round 9 closed at v7.0.0** (#201 stays the tracking issue). Its handoff
+branches are archived as tags (`git tag -l 'archive/handoff/audit-r9-*'`), so a
+round-9 plan, roster or resume is read from its tag, never resumed.
 
-**Round 10** opened 2026-10-14 under tvofi's rulings: all 15 dimensions
-(`dev/governance/dimensions/D0.md` to `D14.md`) this round; three disjoint
-finder seats per dimension; one verifier per dimension, where a refute marks a
-finding **disputed**; one common judge.
+**Round 10 opened 2026-10-14** under tvofi's rulings: every dimension under
+`dev/governance/dimensions/`, three disjoint finder seats per dimension, one
+verifier per dimension whose refute marks a finding **disputed**, one common
+judge. Its stamps are read from main's first-parent line
+(`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.'`),
+never listed here.
 
-- **Owner approvals** (CODEOWNER, policy, budget raise) run under mandate
-  6175172275, a #201 comment, scope all, until 2026-10-28T18:14Z. Cite the
-  mandate; a seat's own message is not approval (`CLAUDE.md`).
-- **Merged round-10 pull requests** are the rows in `dev/programme/delivery/`,
-  not restated here.
-- **Volatile state** — open seats, lanes, PR heads, the next action — is on
-  #201 and nowhere here (`writing-for-agents.md`).
-
-Seat scripts the orchestrator uses (`merge_train.py`, `remerge_main.sh`,
-`handoff_push.sh`, `seat_venv.sh`) live in `tools/audit/seat/` (decision 0013,
-#1879). Reviewer seats work detached at the head SHA and post `Fix review: merge
-<sha>` or `blocked` as hpo-approver.
-
-- **Crash recovery.** Every worktree with unpushed or uncommitted work is
-  snapshotted every 15 minutes to `wip-sync/<slug>` on origin, and the
-  orchestrator's scratch to `wip-sync/orchestrator-scratch`, by
-  `tools/audit/seat/wt_sync.sh` in a detached loop (`--scratch <dir>` adds the
-  orchestrator's folder). A seat's lost work is recovered from its `wip-sync/`
-  branch, never re-derived.
-- **The merge fast path can fire.** `tools/audit/merge_fastpath.py` printed
-  `FASTPATH ELIGIBLE` for record PR #1888 (three delivery rows, 2026-10-04); a
-  pull request that edits a gate file is still never eligible, because `full`
-  comes first.
+- **The plan of record is the roster**, `dev/programme/rosters/wave-r10-groups.json`
+  on `origin/handoff/audit-r10-roster`, edited only through
+  `tools/audit/seat/roster_edit.py`. The resume, plan table and next-session
+  prompt under `handoff/round10/state/` on `origin/handoff/audit-r10-plan` are
+  generated from it by `tools/audit/seat/state_docs.py`; they are volatile and
+  not this file.
+- **Volatile state** — running seats, open heads, the train queue, the next
+  action, the critical-path set — is on #201 and nowhere here.
+- **The record beat writes delivery rows; this file's `updated-for:` line stays
+  manual by design.** `tools/audit/seat/record_row.py` generates each row from
+  REST facts into a `record/autofix` pull request that merges with no review
+  seat where `--automerge-check` passes. Expect two things and do not repair
+  them: the one-beat lag (a merge's row lands on the next cycle), and no beat row
+  for a closed-unmerged pull request, whose `closed, superseded` row is a manual
+  record pull request. A seat's edit to a generated row takes that pull request
+  off the automerge path.
 
 ## Decisions taken — do not relitigate
 
-- **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
-  and reviewer, survey, judge, production fixer. Sonnet 5: tests, tooling, docs,
-  records, read-only reporting, stamp drafting. **Fable 5.1 is only for a very
-  large multi-layer refactoring where Opus 5 is judged too risky** (owner,
-  2026-09-09). Roster tokens `opus` and `sonnet` map literally.
-  **A Fable trailer on a merge or a stamp is the session's model, not a routing
-  event.** Scrape trailers and the roster `fixerModel` / `reviewerModel` keys
-  separately; do not restate a count.
-- **The decomposition stage criterion (Wave 4, S3–S8):** proceed only by cutting
-  the stage's own cut by inside-extraction or `coordinator_loc` with nothing
-  rising; halt otherwise, recording the cut's owned-versus-read-by-others split.
-- **A seam move was sequenced to S12, S12 halted (#637); W5-G9 and W5-G10 own it**
-  (owner, 2026-09-10). The learner went first because a `seam_metrics` simulation
-  lowered every budget row; the guard needed #753 first, since a cohesive
-  extraction removes more intra- than cross-seam edges and a ratio cannot see it.
-- **`_helper(self, ...)` is refused** — it erases moved references at zero cost, a
-  measurement artefact, not a decomposition; a supplied-literal check pins nothing.
-- **A ratchet raise may be proposed, never worked around** (owner, 2026-09-06).
-  The order — pay, re-record with the reason, then ask — is `CLAUDE.md` rule 2's.
-- **Never re-gate an unchanged head.** A terminal CI result at that head *is*
-  the gate evidence. Local runs exist for what CI structurally cannot produce:
-  the mutation proof, the failing test at the merge base, and the finder's own
-  harness at both ends.
-- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins`
-  and not by lowering the coverage floor. Tree and merge base are captured in
-  one run and compared computed-to-computed. The WORK channel's stale-cheap
-  rule is a printed report, not a failure; the coverage floor is a literal,
-  not an environment override.
-- **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
-  scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
-  here so that the decision to adopt it is not relitigated.
-- **A body long from disclosed self-corrections is re-cut by relocating them
-  here** (PR #1058 `## Friction`, seen by the owner). `fixer.md`'s fourth-round
-  re-cut and `writing-for-agents.md`'s *cutting evidence is never compliance*
-  pointed opposite ways and neither said which wins. The tie-break: `CLAUDE.md`
-  gives this file *corrections to the record*, and a disclosed self-correction
-  is one — move them into that section and re-cut the body with nothing cut.
-- **A policy merge needs the owner's approval, per pull request** (owner,
-  2026-09-09, ADR 0007), given since 0009 step 6 as the owner's approving
-  GitHub review on a pull request touching a `.github/CODEOWNERS` path; an
-  approval given in session no longer stands in for it. A **session grant** of
-  the 0001/0006 shape is the option, not the default: it names the session, restates the six
-  preconditions, and lapses when that session ends. Do not infer a standing
-  grant from the fact that one existed. The ruleset and `pr-contract` are the
-  floor either way, never the substitute — they check that a change is
-  well-formed, not that it is wanted.
-- **`main` is guarded, and this is the first thing about the merge boundary
-  that is enforced rather than asserted.** Two rulesets are active on the
-  default branch. **`main-protect`, id `22628467`**, carries the push guards:
-  deletion and non-fast-forward. **`main-protect-checks`, id `23698884`**
-  (created 2026-09-19), carries the merge guards: the required checks its
-  endpoint returns, never a count from here, the `pull_request` rule — one
-  approving review and the code owner's review on a path `.github/CODEOWNERS`
-  names (0009 step 6, 2026-09-17 04:58Z) — and two `always` bypasses, the deploy
-  key `hpo-stamp` and, since 2026-10-02 (tvofi, R9-F10.5's ledger push), the
-  `hpo-ledger` App 5094721. The admin role no longer bypasses, so the rule binds
-  the orchestrator's merges as `tvofi` too; GitHub refuses the merge rather
-  than a policy asking you not to. **The merge flow**: seats author as
-  `tvofi-seat-author`; an ordinary pull request merges after an adversarial
-  `merge` verdict and the App `hpo-approver`'s approving review (first:
-  #1100); a policy one needs the owner's approving review on GitHub (first:
-  #1098), which a seat cannot obtain for itself — open it, surface it, and
-  wait. That bypass and the rollback below are the owner's levers, not a
-  seat's. **The rollback is one DELETE per ruleset, not one**: deleting
-  `main-protect-checks` drops the required checks, the review rule and the
-  bypasses; deleting `main-protect` drops the push guards. Deleting either alone
-  leaves the other half of the boundary standing (#1300).
-  **Before adding a required context**, confirm it reports on a *pull-request
-  head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
-  reports on one and not the other, and a context that never reports blocks
-  every merge permanently — **in either direction**, as retiring `fast`'s 3.13
-  leg proved: a matrix change is a required-set change. A `skipped` or `neutral` required check satisfies
-  the rule; that was measured on an isolated probe, both arms. A **scheduled**
-  context is the other half of the same trap: make a nightly required and one
-  failing night blocks every merge, the merge that repairs the nightly included.
-- **A stamp pushes to `main` only over the deploy key**, and only from the
-  local box: `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key
-  --known-hosts ~/.zcode/github_known_hosts`. The admin token that used to push
-  was revoked and returns 401 (#201 comment 5704702814). Step 5's probe, on a
-  throwaway branch under a throwaway ruleset with an `update` rule and the same
-  bypass list (comment 5704665628), refused an API ref update as `tvofi` and as
-  `tvofi-seat-author`, and landed a push over the deploy key.
-- **A pull-request body carries `## Figures`** (#676). Its companion rule left
-  this file for `writing-for-agents.md` at #724; the measurement it was written
-  from stays, since that file lacks it: twenty-one out-of-tree briefs held a
-  `coordinator_loc` stale by two hundred lines. The detector shape that works
-  resolves a *file name* to an artefact; the looser one — any number near a file
-  name — was built and **refused in review** for reading a date and a line count
-  as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
+- **Mandate 6175172275 (#201, tvofi): `MANDATE: agents may approve as tvofi,
+  scope all, from 2026-10-14T18:14Z until 2026-10-28T18:14Z`.** It covers
+  code-owner, policy and budget-raise approvals, so the round-10 orchestrator
+  approves code-owned and policy merges under it, citing the id in the review
+  body. Read it and any revocation from the API at the moment of use, as 0013's
+  2026-10-02 amendment does; a raise under it also owes that decision's
+  2026-10-14 amendment (`CLAUDE.md` rule 2). After `until`, decision 0007's
+  per-pull-request owner review is the rule again.
+- **The open-PR soft cap of 6 gates only starting a new roster group; opening or
+  updating a pull request for an owed handoff is never refused** (tvofi,
+  2026-10-21, refining the 2026-10-18 ruling in `tools/audit/seat/pr_cap.py`).
+  The instrument predates the refinement: `open_pr.sh` calls `pr_cap.py gate` on
+  every open, so until it learns the distinction an owed handoff opens with
+  `--over-cap "owed handoff <topic> (tvofi 2026-10-21)"`. Owed below.
+- **Cloud seats are dispatched through `tools/audit/seat/cloud_dispatch.py` and a
+  remote-trigger dispatcher routine, never as interactive session cards**
+  (tvofi, 2026-10-21). The payload shape, the return refs and the two driving
+  traps are `tools/audit/seat/INSTRUMENTS.md`'s.
+- **Model routing is Claude seats, per roster group** (`fixerModel`,
+  `reviewerModel`, the `model` object). The owner's 2026-09-09 ruling: Opus for
+  orchestration, architectural fixes and review, survey, judge and production
+  fixes; Sonnet for tests, tooling, docs, records and read-only reporting;
+  **Fable only for a very large multi-layer refactor where Opus is judged too
+  risky.** A model trailer on a merge or a stamp is the session's model, not a
+  routing event.
+- **`main` is guarded by three rulesets**, read from
+  `/repos/<owner>/<repo>/rulesets/<id>`, never from here: `main-protect`
+  (22628467) holds deletion and non-fast-forward and, read 2026-10-21, no bypass
+  actor; `main-protect-checks` (23698884) holds the required checks, one
+  approving review and the code owner's review (0009 step 6), with `always`
+  bypasses for the stamp deploy key and the `hpo-ledger` App 5094721;
+  `release-tags-protect` (23937752) guards tags, deploy key bypassing. Rollback
+  is one DELETE per ruleset (#1300). **Before adding a required context** confirm
+  it reports on a pull-request head, not only on a push to `main`: one that
+  never reports blocks every merge, a matrix change is a required-set change,
+  `skipped` and `neutral` satisfy the rule (measured both arms), and a scheduled
+  context made required blocks the merge that would repair it.
+- **A stamp pushes over the deploy key only**: `tools/release/stamp.py --push
+  --push-key <key> --known-hosts <file>`. The old admin token returns 401.
+  A stamp over a red `main` takes `--allow-red` with the cause recorded in the
+  release notes and on #201, and over a merge whose row is not yet written
+  `--allow-rowless` likewise (v7.0.2, tvofi, 2026-10-20).
+- **Merges land as merge commits** (0010); the merge body defaults to the pull
+  request's title, so a closing keyword in a title reaches `main`.
+- **`_helper(self, ...)` is refused** as a decomposition: it erases moved
+  references at zero cost, a measurement artefact; a supplied-literal check pins
+  nothing.
+- **Never re-gate an unchanged head.** A terminal CI result at that head is the
+  gate evidence. Local runs exist for what CI cannot produce: the mutation proof,
+  the failing test at the merge base, the finder's harness at both ends.
+- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins` nor
+  by lowering the coverage floor: tree and merge base in one run, computed to
+  computed. The coverage floor is a literal, not an environment override.
+- **Every sentence earns its place** (owner, 2026-09-07); the rule is
+  `writing-for-agents.md`.
+- **The #1058 tie-break: a body long from disclosed self-corrections is re-cut by
+  relocating them here.** `fixer.md`'s re-cut and *cutting evidence is never
+  compliance* pointed opposite ways; a disclosed self-correction is a correction
+  to the record, so it moves into that section below and nothing is cut.
+- **A pull-request body carries `## Figures`** (#676). The detector that works
+  resolves a file name to an artefact; the looser one — any number near a file
+  name — was refused in review for reading a date and a line count as caps.
 - **The pull-request body is one live object.** Every head's contract job reads
-  the current body, so only that head's result is a result. A red at a
-  superseded head is the instrument, not the commit. The root-cause seat is
-  the issue this property opened; do not skip to writing a check.
-- **A setting the entry never stored is no longer written when the options page
-  posts its default** (#1107, released v6.6.1). `config_flow._ABSENT_FALLBACKS`
-  is the set whose absence already IS the shipped default, and
-  `tests/config_flow_steps.py` derives it — *"`_ABSENT_FALLBACKS` is exactly the
-  proven set"* — rather than letting it be listed by hand. **Constraint on a new
-  option key**: it derives into that set, or every page visit writes it.
-- **A coverage ratio over an open set of mutation carriers is not a figure.**
-  The denominator is unbounded. State the class.
-- **A figure about the document it lives in is derived beside it, at the head.**
-  Carrying one is how it goes stale on every review of the artifact that states it.
-- **A generalised vacuous-acceptance-arm detector is refused on cost, not
-  owed.** Dispatched at the fourth instance (#201 comment 5720829142): the
-  shape is not one class but three — a harness structurally decoupled from the
-  mutated code (#1117, W1067-G7b-1), an under-specified environment
-  precondition (#1115), and a false claim in prose that no mutation proof
-  addresses (#1120) — and the root-cause seat's own asymmetry claim ("only
-  reviewers catch this") was refuted: W1067-G7b-1 was caught by its own
-  mutation proof and `RELEASE_NOTES.md` records a prior self-caught instance,
-  3 of 4 rather than 4 of 4. Neither of `defect-root-cause.md`'s two
-  enforcement triggers fires on any of the four (none reached a release, none
-  turned a required check red); the mandate is `CLAUDE.md`'s separate
-  recurring-error clause. The seat's cited figures — 37 historical instances of
-  this named shape, effectively 100% caught before `main` — are that seat's
-  own measurement, not independently re-derived here. A generalised detector
-  needing different logic per shape was judged a research project against a
-  defect costing roughly one extra review round, and refused. One narrow
-  `fixer.md` sentence is proposed and explicitly NOT pushed: it needs a cap
-  raise or a cut and neither owner grant in hand covers it; it waits on the
-  owner's sign-off. Do not re-propose a generalised detector without new
-  information. **The refusal stands (#1125's reviewer ruling, accepted) but
-  owes this qualifier: the ~100% catch rate it cites rests on an attentive
-  seat noticing, not on a mechanism that guarantees noticing.** A fifth
-  instance of the same shape surfaced after the refusal was written and was
-  not caught by any check, until [#1126](https://github.com/tvofi/heatpump_optimizer/pull/1126)
-  (merged `2296de3`) fixed it: `.claude/workflows/check-wave-script.mjs`'s
-  verdict-grammar block carried its own hand-rebuilt copy of `VERDICT_RE`
-  instead of deriving it from `.claude/workflows/web-fix-wave.js`'s source,
-  the two silently diverged (production tightened its SHA capture to
-  `[0-9a-f]{40}` while the local copy kept `\S+`), and the block's own
-  null control — a bare `merge deadbeef`-shaped verdict, meant to catch an
-  extraction that accepts anything — stayed green throughout on either
-  regex, proving nothing about which one the artifact actually used. It was
-  caught only because a seat stopped to reason about why its own control
-  passed, the same route as the other four, not a mechanism. #1126's fix is
-  to execute the literal `VERDICT_RE` text out of `web-fix-wave.js`'s own
-  source (via `new Function`) rather than retype it, so the two cannot
-  diverge again by omission. Cite this instance by what it was, not by a
-  line number: line numbers in a fixed file are exactly the rot
-  `brief-citations.md` exists to catch, and this paragraph predicting that
-  condition is not a reason to leave it unmoved once the condition occurs.
-- **dp 107 is read two ways and neither reading is resolved** (owner decision 7,
-  W1067-G7b-2). make-all/tuya-local (`2026.9.1`, commit `4551357`,
-  `devices/fisher_water_heatpump.yaml`) reads dp 107 as its `water_heater`'s
-  current temperature; tvofi/tuya_heat_pump (`fda9bed`,
-  `models/000004k4z6.py`) reads the same DP as the wired controller (T6) and
-  keeps the tank on dp 26. Each pre-fill source table follows its own source,
-  the disagreement is pinned at both generated fixtures in `tests/features.py`,
-  and **do not resolve it in either direction without a reading from the
-  owner's install**. The same session refused a DP-keyed table for localtuya
-  on the same ground: its records are a device id, a DP number and the user's
-  own names, and a DP number is not identity — across that corpus's 1746 device
-  configs at `4551357`, dp 101 is configured in 826 of them and dp 107 in 407,
-  in 488 and 314 distinct (domain, entity name, DP name) readings respectively.
-  A DP-keyed localtuya table ships only behind a firmware signature that
-  proves the device — none was found — and the fuzzy fallback carries the
-  platform instead.
-
-### Wave 1067 — closed out (#1067)
-
-**The wave landed in full. #1067 closes with the pull request that writes this
-note (W1067-G8); the Delivery-status row in `docs/plan-2026-09-open-issues.md`
-is the record of which merge carried each group — linked there, never restated
-here.** The plan of record is `dev/archive/plans/plan-1067-rotenso-inputs.md`. Its status
-block overrides the G2 brief: the lift-aware efficiency reference was built,
-measured to double-count the lift, and reverted, so the credited COP is
-unchanged from `main`; only G3's pricing of the lift stops the walk. The same
-block records two deviations from the plan as written — the wave ran as
-sequential commits on one branch with one pull request per repository, so the
-per-group branches never existed, and the **per-group roster file was
-deliberately not committed**, because `brief_lint.mjs` refuses a carry filed at
-an issue a roster already covers; `carry-1067.json` is the mechanism kept. The
-only carry that outlives the wave is **W1067-POST1**, the post-wave follow-on
-(offer the pre-fill when a heat-pump device is added): outside #1067, and it
-gets its own issue or tracking entry when it is started, none before then.
-
-Three deferrals taken during the wave — do not relitigate them:
-
-- **Card assignment of the new option keys is deferred.** They are options-page
-  slots, not card slots: they stay out of `topology._SLOTS` on the
-  `CONF_COMPRESSOR_FREQ_ENTITY` precedent, so `ASSIGNABLE_KEYS` stays at 21 and
-  the documented count and its live harness are untouched (plan § Design
-  decisions).
-- **No zone-2 supply slot (the C4 deferral).** The two-zone model carries one
-  flow temperature (`thermal_model.py:1952`) and no per-zone emitter law, so a
-  zone-2 supply slot would feed nothing (plan § W1067-G8).
-- **The flow-lift bias stays one-sided** (above the plan's curve only), kept so
-  the scalar and batch COP paths agree; the docstring records the trade-off
-  (plan § W1067-G3, `compute_cop`).
-
-### The UX programme
-
-**Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
-of record. This file deliberately does **not** restate them — it once claimed a
-"full accounting" it did not hold, which cost a session the conclusion that the
-list was unrecoverable when it was one artifact call away. Per-unit stage,
-`after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json` (#601).
-
-- **Two instruments, two questions.** `tests/coverage_ratchet.py` floors package
-  coverage under a 96 % ceiling and caps `# pragma: no cover` downward — the
-  pragma is the one cheap way past a floor. `tests/mutation_table.py` asks
-  whether a check would FAIL, scoped to the files a diff tested, full-package
-  nightly; its cap is a FRACTION because the pool is a seeded sample, so an
-  exact count would redden clean branches at random. #195's bar: 96 %.
+  the current body, so a red at a superseded head is the instrument, not the
+  commit.
+- **A new option key derives into `config_flow._ABSENT_FALLBACKS`** or every
+  options-page visit writes it (#1107); `tests/config_flow_steps.py` derives the
+  set rather than listing it.
+- **A coverage ratio over an open set of mutation carriers is not a figure**; the
+  denominator is unbounded, so state the class. **A figure about the document it
+  lives in is derived beside it, at the head.**
+- **A generalised vacuous-acceptance-arm detector is refused on cost** (#201
+  comment 5720829142, #1125's reviewer ruling): the shape is three classes — a
+  harness decoupled from the mutated code (W1067-G7b-1), an under-specified
+  environment precondition (#1115), a false prose claim no mutation proof
+  addresses (#1120) — and a detector needing different logic per class was
+  judged a research project against a defect costing about one review round.
+  The refusal owes its qualifier: the catch rate rests on an attentive seat, not
+  a mechanism. #1126 is the instance found after it: a check carried a retyped
+  copy of `VERDICT_RE` that diverged from `web-fix-wave.js`'s, and its null
+  control passed on either regex; the fix executes the source's own literal. Do
+  not re-propose without new information.
+- **Wave 1067's three deferrals stand** (plan
+  `dev/archive/plans/plan-1067-rotenso-inputs.md`): the new option keys stay
+  options-page slots out of `topology._SLOTS`; no zone-2 supply slot, since the
+  two-zone model carries one flow temperature and no per-zone emitter law; the
+  flow-lift bias stays one-sided so the scalar and batch COP paths agree.
+  **W1067-POST1** (offer the pre-fill when a heat-pump device is added) gets its
+  own issue when started, none before.
+- **dp 107 is read two ways and stays unresolved without a reading from the
+  owner's install** (owner decision 7, W1067-G7b-2): make-all/tuya-local
+  (`4551357`, `devices/fisher_water_heatpump.yaml`) reads it as the tank's
+  current temperature, tvofi/tuya_heat_pump (`fda9bed`, `models/000004k4z6.py`)
+  as the wired controller, tank on dp 26; both readings are pinned in
+  `tests/features.py`. A DP-keyed localtuya table is refused for the same reason
+  — a DP number is not identity — unless a firmware signature proves the device.
 
 ## Corrections to the record
 
-- **The seven open `[policy] recurring friction:` issues were filed by a
-  histogram that keyed on the spelling a seat typed and counted entries rather
-  than pull requests.** Both are fixed (#1119). **The corrected rule RE-KEYS
-  these issues; it does not retract them** — at `e467026`, over
-  `v6.5.1..origin/main`, 52 merged pull requests, six of the seven are over the
-  threshold under their new key: #1070 9/9, #1095 7/9, #1078 5/7, #1079 5/5,
-  #1069 4/5, #1087 4/4, as PRs / entries. Nothing here says the friction was not
-  real, and the issues are not re-titled. **Every count in this entry carries the
-  head it was taken at, because they move with nobody editing them** — #1070 read
-  7/7 at `c71c53c` and 9/9 one day of merges later.
-- **#1094 is the one that changes character, and the reason is worth the
-  paragraph.** Its title key, `orchestrator`, is a ROLE NAME, and a role name
-  designates a seat as readily as that seat's contract. Every entry behind it
-  records friction with a **dispatch brief** — the lease tool named as
-  `tools/audit/gate_lock.py` when the tree has `tests/`, a G3 premise that
-  cannot hold on the stock house, a G4 derate range, a claim-files
-  contradiction — and none with `tools/audit/briefs/orchestrator.md`, which does
-  not govern any of it. `.github/PULL_REQUEST_TEMPLATE.md` offers one field,
-  `<rule_id>`, and no field for a brief, which is why the two subjects arrive
-  under one shape. So `tools/audit/briefs/*.md` resolves only from an id that
-  names it as a FILE, and a bare or suffix-qualified role name stays verbatim.
-  At `e467026` the dispatch key reads 2/4 and the contract key 2/2, and neither
-  clears the threshold in that window. **Its two controls, because a disposition
-  has to state both its key and its window:** the same key over
-  `v6.6.0..origin/main` reads 1 distinct pull request, and `main`'s
-  un-normalised classifier splits the same entries into `orchestrator` 4 and
-  `orchestrator.md` 2. A count that moves under either is a count whose key and
-  window were never stated. An earlier draft of this entry said recurrence did
-  not support #1094; that was written about the raw key and is **withdrawn** —
-  the rule re-keys the issue, it does not retract it.
-- **Do not carry any of those counts.** `<ref>..origin/main` is enumerated
-  against `origin/main`'s tip at the moment of the run, so every one of them is
-  a sliding figure; seven merges landed during #1119's own review and moved all
-  of them. A seat disposing one of the seven re-derives with
-  `node tools/policy/policy_lint.mjs --stats --since <newest tag>`, reads
-  the `PRs / entries` column, and resolves its own key with
-  `--normalize-friction-keys` rather than assuming the title is the key. The
-  filing lane re-measures every open issue on each beat and comments when its
-  key is below threshold in the current window; it never closes, so the
-  disposition is still a seat's. A key below threshold in one window is not a
-  fixed problem — the window moved when the last tag was cut, and the friction
-  may be older than it.
-- **This file is NOT policy for the budget and approval machinery, and seats are
-  still being briefed that it is.** `docs/HANDOVER.md` sits in `CORPUS_EXCLUDED`
-  and matches no `POLICY_GLOBS` pattern (owner, 2026-09-16, #201 comment
-  5702401684); `.github/CODEOWNERS` says in its own header that it is
-  deliberately absent. So a record pull request whose diff is this file owes no
-  `## Approval` section and no code-owner review, and its growth spends no cap —
-  `--budgets` does not list it. The residual the exclusion names is real and is
-  a reviewer's job, not a check's: prose moved into this file leaves the corpus.
-- **`tests/mutation_budgets.json`'s stated reason is stale.** It says the cap
-  waits on a full-package run that "cannot happen until mutation-nightly is on
-  main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
-  `last_measured.full` is still `null`. **`mutation` is a required check** —
-  read the contexts from the `main-protect-checks` ruleset endpoint, never a
-  count from here; `coverage`, `mutation-nightly`, `slow` and `nightly-status`
-  are absent from it, and `/branches/main/protection` answers 404, so the ruleset
-  endpoint is the only reader. With `max_survivor_fraction` at 1.0 in both
-  scopes and the refusal written `if rate > cap`, the lane cannot fail on a
-  survivor: every red it carried in the retained window was its baseline guard
-  re-reporting a red `fast` already reported by `fast`.
-- **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
-  reproduces 34, and it traces to a lost session tool. The freeze is enforced by
-  `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
-  number. Corrected on #193.
-- **#510 — a recorded cut drop that was blindness**, not decoupling.
-  `tests/structure.py` matched `ast.Attribute` on `ast.Name("self")`, so
-  `getattr(self, "_ctx", self).X` was invisible to it; under a counter that
-  resolves the idiom Wave 4's S1 cut series is identical at both ends. Fixed by
-  #512, nothing is reverted, and what still stands is the Wave 4 row's to say.
-- **#511 and #513 are closed and the shape outlived them**: the suite ran a
-  module name and a filesystem layout no installation uses. Graduated:
-  `tests/deployment_shape.py`, in `tests/closures.json`.
-- **A file reported missing was there.** A seat filed it as a programme defect
-  after listing a checkout that sat on a stale branch. **Check existence with
-  `git show origin/main:<path>`, never by listing a working tree.**
-- **Leave both claim files exactly as you found them** (#662). Two earlier forms
-  were each briefed to every seat for a session before a reviewer refused them by
-  measuring. "Always byte-identical": PR #600 carries 33 correct bare claim lines
-  because it moves 33 card states. Then one demanding an *empty* claim list on a
-  branch that claims nothing — the same thing only when the baseline claims
-  nothing too. It is not: a squash then applies that deletion to `main` and
-  carries another lane's claims off with it. Measured four times — #608 took
-  33 of #569's lines, #635 the same to #633's, #658 was stopped on the way to
-  #653's, #746 took #735's six. Since #747 the guard, the bot and the stale-claim
-  judgement ask per file kind: never write a list for a kind you cannot move.
-- **The pull-request checks listing is not a faithful instrument** (#669). It
-  shows the latest run per check, so an earlier red behind a later green is
-  invisible —
-  and the mirror error is just as easy, reading "any failure" as "red" when a
-  later run passed. Read `/repos/<owner>/<repo>/commits/<sha>/check-runs`,
-  which returns every run. `web-fragments.md` carries the invocation; every
-  file that instructs a seat, that table included, is refused for naming the
-  lossy form — which is why this bullet describes it instead.
-- **The subject enumerator misses merges AND invents them, and the two errors
-  hide each other.** It reads a trailing `(#N)`; over `a9d117c..8f754c9` it
-  counted 24 where `/commits/<sha>/pulls` answers 25, and **that gap of one is a
-  net, not a miss**: #640 carries no suffix and #655 ends `(#587)`, so both are
-  invisible, while #587 is a phantom the check then demands a disposition for.
-  `24 = 25 - 2 + 1`, and the first reading blamed #640 alone because the
-  arithmetic looked confirmed. **Compare the sets, never the totals**, and treat
-  a suffix as a claim about a number rather than a fact. The API enumerator is
-  the default now and this regex is its fallback — a marked one since #1050, so
-  what survives here is the method, not a live defect.
-- **The red-check refusal fires; it never had until #1040 (`f605da4`).** The
-  entry that stood here — that the list `checkPrBody` iterates was empty on
-  every pull request this repository had run — was true when written and is
-  not. **Date it by the SHA, not by a day**: run `34903020012` concluded
-  `failure` at 2026-09-14T22:15:44Z, two hours BEFORE that merge, being
-  #1040's own demonstration on a throwaway branch. `CLAUDE.md`'s "only the
-  red-check trigger is enforced" is a measurement from `f605da4` on.
-- **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
-  the rules configured for the branch, not the rules that would apply to you:
-  emptying the bypass-actors list and re-reading returns an identical list. Reading it
-  as "the bypass does not apply to me" nearly produced a false alarm that the
-  release stamp was about to break. The only honest test is a probe branch with
-  its own ruleset and **both** arms — with the admin bypass the push lands,
-  without it GitHub answers *push declined due to repository rule violations*.
-- **An "empty diff over `tests/` and `custom_components/`" does not mean no
-  gate is owed.** #1122's fixer argued the post-absorb diff over those two
-  trees was empty, so no re-run was needed; the reviewer upheld the judgement
-  but refuted the reason — the merge had also moved
-  `.claude/workflows/policy_lint.mjs` and `friction_issues.mjs`, both inside
-  recorded closures. `python3 tests/closure.py select --diff <merge-base>`
-  still selects `tests/entities.py`, which passed in 34 s (`ALL 1508 ENTITY
-  CHECKS PASSED`). No full re-run was owed, but the stated reason was wrong
-  and must not be reused: derive the gate's scope from `closure.py select`,
-  never from which top-level directories a diff appears to touch.
-
+- **This file is not policy and no budget reads its text.** It sits outside
+  `POLICY_GLOBS` (owner, 2026-09-16, #201 comment 5702401684; `.github/CODEOWNERS`
+  says so in its header), so a record pull request touching only it owes no
+  `## Approval` and no code-owner review. `policy_budgets.json` names it in
+  `roles.record.opens`, which charges the rules that path loads, not the file:
+  `policy_lint.mjs --budgets` prints the same aggregates with this file grown.
+  `CORPUS_EXCLUDED` still spells its pre-move path, `docs/HANDOVER.md`. The
+  residual is a reviewer's: prose moved here leaves the corpus.
+- **The `hpo-ledger` bypass on `main-protect` is gone.** The owed item that asked
+  tvofi to ratify or remove App 5094721's `always` bypass on 22628467 (#201
+  comment 5902383542; 0011's 2026-10-02 setup recommends removal) is retired: a
+  read of that ruleset on 2026-10-21 returns no bypass actor. 0011 still records
+  the decision as the owner's to take.
+- **The "34-key `data` payload" is wrong**, as is any count of it; the freeze is
+  enforced by `tests/features.py`'s symmetry check and the `coord_*` goldens
+  (#193).
+- **#510 was blindness, not decoupling**: `tests/structure.py` did not resolve
+  `getattr(self, "_ctx", self).X`; under a counter that does, Wave 4's S1 cut
+  series is identical at both ends (#512).
+- **A file reported missing was there**: the seat listed a checkout on a stale
+  branch. Check existence with `git show origin/main:<path>`.
+- **Leave both claim files exactly as you found them** (#662). "Always
+  byte-identical" was refused (#600 rightly carries 33 claim lines), then "empty
+  on a branch that claims nothing" — a squash applies that deletion to `main` and
+  carries another lane's claims off, measured four times (#608, #635, #658,
+  #746). Since #747 the guard, the bot and the stale-claim judgement ask per file
+  kind.
+- **The pull-request checks listing shows the latest run per check** (#669), so
+  an earlier red behind a later green is invisible, and the mirror error reads a
+  superseded failure as red. Read `/repos/<owner>/<repo>/commits/<sha>/check-runs`
+  (`web-fragments.md`).
+- **The subject enumerator missed merges and invented them, and the errors hid
+  each other** (`24 = 25 - 2 + 1` over `a9d117c..8f754c9`). Compare sets, never
+  totals; the API enumerator is the default since #1050.
+- **The red-check refusal fires from `f605da4` (#1040) on**; `CLAUDE.md`'s "only
+  the red-check trigger is enforced" is a measurement from that SHA.
+- **`GET /repos/.../rules/branches/<branch>` is not bypass-aware**: emptying the
+  bypass list returns an identical answer. The honest test is a probe branch
+  with its own ruleset, both arms.
+- **An empty diff over `tests/` and `custom_components/` does not mean no gate is
+  owed** (#1122): the merge had moved files inside recorded closures. Derive scope
+  from `closure.py select`, never from top-level directories.
 - **Wave 1067's merged bodies carry three figures their reviewers could not
-  re-derive. The bodies are merged and are not edited; this is the correction.**
-  Each was a non-blocking disclosure inside a `merge` verdict, and each pull
-  request's conclusion holds at the corrected figure.
-  - **#1150's "the 22 other configs that hold 'Outlet temperature' alone" is off
-    by one** (comment 5735932097). `comm -12` returns the Fisher config inside
-    the 22, so the count *other than* it is **21** (`comm -23`); the word
-    "other" was the error. No test and no acceptance claim rested on it. **The
-    same review found #1150's new empty-signature predicate inverts the old
-    skip: `all(group & matched.keys() for group in signature)` returns
-    `all(())` = `True`,** so an empty signature would apply a table
-    unconditionally — unreachable today, because both registered sources carry
-    non-empty signatures and nothing in the tree builds an empty one, so no test
-    covers it: a latent trap for a future table, worth a comment rather than a
-    defect in that change.
-  - **#1152's standing-cost figure, "253.3 µs per drive over 2000 runs", is not
-    re-derivable** (comment 5736026666): the reviewer's own 2000-run driver,
-    same loop, warm, measures **72.4 µs/drive** — 3.5× lower — and is stated as
-    unverified rather than confirmed. It does not threaten the conclusion: at
-    either figure the standing cost is a fraction of a millisecond against a
-    fixer seat cycle of hours, so the cost test's verdict (build it) holds a
-    fortiori.
-  - **#1153's "production code delta, 256 lines (218 `name_match`, 32
-    `device_prefill`, 6 `config_flow`)" is not re-derivable** (comment
-    5737708367): under the rule the body itself states — non-blank lines less
-    `#` comments less module/class/function docstrings, counted with `ast` at
-    each end — the reviewer's instrument gives **281** (`237 + 37 + 7`) at every
-    commit carrying the final files, and no rule yields 218/32/6. The body
-    *understates* its own delta; the material claim (most of the 529 added lines
-    are prose) stands at 281. The same review reproduced **#1153's "0 `mypy
-    --strict` errors" as *unavailable*, not as true or false** —
-    `homeassistant-stubs==2026.2.3` is not on the index that seat's pip reaches
-    and `tests/typing_ruler.py --mypy` refuses to measure an unpinned tool
-    (#504); the authoritative answer is CI's green `typing` check at the head.
+  re-derive**; the bodies stay, this is the correction. #1150's "22 other
+  configs" is 21 (`comm -23`), and its empty-signature predicate returns `True`
+  on `all(())` — unreachable today, a trap for a future table. #1152's "253.3 µs
+  per drive" measured 72.4 µs on the reviewer's driver, unverified either way;
+  the verdict holds at both. #1153's "256 production lines (218/32/6)" is 281
+  (`237 + 37 + 7`) under the body's own rule, and its "0 `mypy --strict` errors"
+  is unavailable, not true or false; CI's `typing` check is the answer.
 
 ## Traps that cost a session
 
@@ -693,212 +464,93 @@ in its own pull request.
 
 43. **A daemonized instrument with a silent log is not a dead instrument.** The wrapper's `dup2` makes stdout a file, Python block-buffers a file, and every heartbeat sat in the 8 KB buffer a SIGKILL dropped — an 8-minute healthy train (a FULL run in progress at main's tip) was read as dead and killed. #2180 (`d9e54b642`) kills the class with three one-liners: the entry reconfigures stdout line-buffered itself, batch and train announce tag/pid/base/queue as the log's first line before any blocking call, and the poll sleeps to the next beat (`HEARTBEAT_SECONDS`, not `POLL_SECONDS`) — before that, even unbuffered, the first beat was 305 s. Rehearse under the incident's exact wrapper shape before believing any launch fix.
 
-44. **App-quota 403s arrive disguised as red lanes and as missing runs.** At saturation the shared App quota turns into arch-score/env-matrix/validate-hacs reds that are rate limits, not verdicts (#2168's body names its arch-score red as this class), and dropped workflow events leave required contexts with no run at the head. The fix is a **recarry** — a new merge commit at the live head re-fires the events, the verdict carrying via #2162's `--approval-carry` — not a rerun of the failed lane. Nine casualties were recovered by body-touch re-fire on 2026-10-14 02:01Z (#2179, #2168, #2119, #2066, #2120, #2163, #2107, #2116, #2115). The automated recovery is session-only and did not fire while turns were active; the manual execution was the recovery.
+44. **App-quota 403s arrive disguised as red lanes and as missing runs.** At saturation the shared App quota turns into arch-score/env-matrix/validate-hacs reds that are rate limits, not verdicts (#2168's body names its arch-score red as this class), and dropped workflow events leave required contexts with no run at the head. The fix is a **recarry** — a new merge commit at the live head re-fires the events, the verdict carrying via #2162's `--approval-carry` — not a rerun of the failed lane. The automated recovery is session-only and does not fire while turns are active; a manual recarry is the recovery.
 
 45. **A sibling merge silently reverts its sibling.** #2120's branch was cut before #2119 merged; on fold, main's side of a shared region carried the sibling's newer fix and the branch's side was empty — resolving to the branch would have reverted #2119 with no conflict and no red check — and the branch's structure-budget payment had lost its hunk to the sibling's newer comment on the same spot, so the honest re-record restores main's own value rather than raising anything. The countermeasure, executed at every fold that day (#2120 at `ab2307794`, #2066 at `2f3934468`): a silent-revert sweep over every shared file (0 of main's lines lost, named budget cells excepted) and a union-with-name-set proof for add/add conflicts in `tests/features.py` (0 of main's `R.check` names lost).
 
-46. **The recarry treadmill prices every queue move.** A queued pull request's verdict is carried to the live head by recarry; main moved 17 times on 2026-10-14 alone, and each move re-prices every queued entry. Merge fast after lanes conclude or main moves first. The working shape is the 2026-10-13T14:07Z cascade on #201: up-front recarries, admissions in queue order, machinery-touching heads held to a final pass that runs the fixed code.
+46. **The recarry treadmill prices every queue move.** A queued pull request's verdict is carried to the live head by recarry; each move of `main` re-prices every queued entry. Merge fast after lanes conclude or main moves first. The working shape is the 2026-10-13T14:07Z cascade on #201: up-front recarries, admissions in queue order, machinery-touching heads held to a final pass that runs the fixed code.
 
+47. **`merge_pr.sh` stops on `UNSTABLE` when only an optional context is red**,
+    though every required context is green (#2465). `nightly-status` reports the
+    last scheduled run, not the pull request; read the required set from the
+    ruleset and merge at the exact head.
+48. **A `CANCELLED` required context is not a verdict.** A recarry supersedes the
+    run in flight; rerun it and read the conclusion (#2469, `Analyze (python)`).
+49. **No detached loop survives a host reboot.** At the 2026-10-21 takeover the
+    train, the tick loop, the state-docs beat and `wt_sync.sh` were all dead and
+    the train had stopped mid-queue; a resuming orchestrator restarts each from
+    the tree and re-reads the queue, never assumes a loop it did not start.
+50. **The deploy key's SSH on port 22 can time out from the stamping host.**
+    Route `github.com` to `ssh.github.com:443` in the SSH config and verify the
+    host key against GitHub's published fingerprints (v7.0.2's stamp).
+51. **The next-session prompt renders a group with no branch as
+    `git fetch origin None`** (`tools/audit/seat/handover_prompt.py`'s in-flight
+    line takes the field unguarded). That line is generator output, not a
+    command: such a group starts from `main`.
+52. **A cloud seat's container may not put the toolchain on `PATH`, and the
+    system `python3` cannot parse the suite.** Measure `python3 -V`: on 3.11
+    `tests/entities.py` fails on its own f-string before any check runs. Prepend
+    `/opt/hpo/venv-ci/bin` and run with `env -u BASH_ENV
+    PYTHONPATH=tests/hastub`. Through the agent proxy, `gh api --paginate`
+    follows GitHub's numeric-id `Link` URL and gets 403 after page one: loop
+    `?per_page=100&page=N` on the `repos/<owner>/<repo>` path instead.
 
-## Owed — post-hoc reviews
+## Owed
 
-**Seven pull requests merged on 2026-09-07 without an independent verdict at
-their final head**, because the session's review capacity was exhausted by an
-account rate limit before the round could run: **#591, #592, #596, #602, #603,
-#605, #569**, and separately **#606**, merged with no review at all because
-`main` was red and it was the repair. Each squash body says so and names what a
-reviewer should start from.
+**Post-hoc reviews from 2026-09-07.** #591, #592, #596, #602, #603, #605
+and #569 merged without an independent verdict at their final head (review
+capacity lost to a rate limit), and #606 with no review at all as a red-`main`
+repair; each squash body names where a reviewer starts. **#603** is policy whose
+approved form changed twice after approval; **#596** introduced
+`tests/typing_budgets.json`, the baseline every typing tranche ratchets against,
+which no reviewer has checked.
 
-Two of these matter more than the rest. **#603** is policy whose owner-approved
-form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
-and its bootstrap census; the file does not exist on `main` beforehand, so
-nothing was loosened, but it is the baseline every Wave 5 tranche ratchets
-against and no reviewer has checked it. Read the census from the file.
+**A finding for `dev/governance/roles/fixer.md`**, not landed because it is
+policy: a probe that builds its own input can build the complement of
+production's input (#591's seat).
 
-Also owed, and deliberately not landed because it is policy: a finding for
-`tools/audit/briefs/fixer.md` — **a probe that builds its own input can build
-the complement of production's input**. #591's seat drafted the text and
-flagged it rather than claiming a carry it had not made.
+**From 2026-09-09, none decidable by a seat.**
 
-**Owed from 2026-09-09, and none of it decidable by a seat.**
+- Two one-clause policy edits carried out of #580: `fix-review.md` has no step
+  for an ABSENT check (a pull request whose workflows never queued shows no red),
+  and the mutation proof runs twice, fixer and reviewer, landing only in prose
+  where no later seat can re-run it. Both need a cap raise or a graduation.
+- `finding-propagation.md` holds a producing pull request until its carry is in
+  the tree, so two branches owing a carry to the same contract cannot both
+  comply under concurrency. Raised on #201; the owner breaks the tie.
 
-- **Two one-clause policy edits carried out of #580's closure**, which the
-  judge merged into #588 leaving them named only in a comment on a closed
-  issue. First: `fix-review.md` has **no step for an ABSENT check** — step 11
-  obliges an answer for a check that went *red*, and a pull request whose
-  workflows never queued shows a reviewer no red checks at all. That is #669's
-  defect from the other side. Second: **the mutation proof is executed twice**,
-  by the fixer and by the reviewer, and lands in prose both times, so a proof
-  that a check can fail exists in two pull-request bodies and never where a
-  later seat could re-run it. Both need a cap raise or a graduation to pay for
-  their lines.
-- **Two rules are jointly unsatisfiable under concurrency, and the owner has to
-  break the tie.** `finding-propagation.md` sends a finding that constrains
-  every seat to its role contract under `tools/audit/briefs/` **once**, and
-  holds the producing pull request from merging until the carry is in the tree.
-  Two branches owing a carry to the same contract therefore cannot both comply.
-  Raised on #201; no seat may decide it.
-- **#680 (0008, #756): account, switch, verified login, then the rule, never
-  first (0005). Lane F follows Wave 5. #303 at zero: stubs pinned, `max_cc`
-  48 → 50 bought a narrowing (owner, 2026-09-11).** **0008's approver design was
-  revised on 2026-09-14 and `docs/decisions/0009-*` is the live one; 0008 alone
-  reads as its opposite** — agent identities author and approve, no human in
-  the loop; the order above is unchanged. #954 closes at that verification.
+**The open-PR soft-cap instrument against the 2026-10-21 ruling.** `pr_cap.py
+gate` refuses any open at or over the cap; the ruling exempts an owed handoff.
+Until it distinguishes the two, the `--over-cap` reason above is the route.
 
-**Owed: an instrument over the plan's open-issue dispositions, or a decision
-not to build one.** `recordRegion` reads the plan's `## Delivery status`
-section, `docs/delivery/` and this file; every other `##` in the plan is outside
-it. So `## Open friction issues — dispositions` (#1121) is unread by any check —
-deleting it whole leaves `--record` byte-identical, `RENDER` included — while
-`delivery-status-tracking.md` section 5 obliges a disposition for every open
-issue. The obligation is real and the coverage is a seat's grep. **What the
-detector would have to avoid** is the shape #658 already narrowed the record
-region to escape: a check that accepts an issue number mentioned anywhere
-dispositions it by mention, which is the defect, not the fix.
+**An instrument over the plan's open-issue dispositions, or a decision not to
+build one.** `recordRegion` reads the plan's `## Delivery status`, the delivery
+rows and this file; `## Open friction issues — dispositions` is read by no
+check, while `delivery-status-tracking.md` obliges a disposition for every open
+issue. A detector must not disposition an issue by mere mention — the shape #658
+narrowed the region to escape.
 
-**Owed from #1116, two items its merged body left open.**
+**A stale-pin sweep** (cited from `.github/workflows/codeql.yml`). #960
+SHA-pinned every mutable `uses:`; no lane reads a workflow ref for staleness, so
+an upstream fix arrives only when a seat re-pins deliberately.
 
-- **Its body says `--list` "lists nine of the ten" corpus checks; re-measured at
-  `c71c53c`, that is wrong in both halves.** `cmdList` iterates a separate
-  fifteen-class registry, not `CORPUS_CHECKS`, so the overlap is a property of
-  two lists: seven of the ten wired in `CORPUS_CHECKS` have a `--list` class and
-  three do not — `orphan-caps`, `row-freeze` and `rule-binding`. Derive it by
-  intersecting the two rather than reading a count here.
-- **The `--list` discoverability fix landed (#1137), closing the hole above.**
-  Every entry in `policy_lint.mjs`'s `CHECKS` registry that lists a corpus check
-  now names the wired function it stands for, and `assertAcceptance` holds both
-  directions against `CORPUS_CHECK_NAMES`: a wired check with no `--list` entry,
-  an entry naming an unwired function, and a duplicated entry each turn the
-  acceptance red. `orphan-caps`, `row-freeze` and `rule-binding` are now listed.
+**`tools/policy/policy_lint_envmatrix.mjs`'s `okRef` row still drives
+`--record --since HEAD`** on the assumption that `HEAD..origin/main` is empty in
+its clone — the defect #1115 fixed for `--record`'s acceptance arm. For whoever
+next touches the env matrix.
 
-**Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
-`uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing
-comment). No lane sweeps refs for staleness -- `--sunset` reads policy
-markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
-ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
-(#959) grows one, an upstream fix reaches this repository only when a seat
-re-pins deliberately.
-
-**Owed from #1115, flagged for whoever next touches the env matrix, not this
-pull request's to fix.** `policy_lint_envmatrix.mjs:238`'s `okRef` row still
-drives `--since HEAD` on the assumption that `HEAD..origin/main` is empty in
-that clone — structurally the same defect #1115's `--record` acceptance-arm
-fix addressed, and now load-bearing because a fixture token was added to this
-row since. Pre-existing before #1115 and green everywhere it has been
-driven.
-
-**Owed from #1122, named as incomplete rather than false.** `tests/typing_ruler.py:33`
-and `.github/workflows/tests.yml:427` still carry "which no gate lane has,"
-the exact sentence #1122 established as false — `HPO_TYPING_PYTHON` re-execs
-the pinned mypy half locally via `run.sh` — and repairs at those two sites
-(`run.sh`, `gate-scoping.md`) but not at `tests/typing_ruler.py:33` or
-`.github/workflows/tests.yml:427`. #1122's own body names this as owed and
-does not claim to have repaired it.
-
-**Owed from the round-9 EG-L0 legacy triage (2026-09-30): one live item no
-seat can act on** — a repository setting, which the lane's governance rule
-records here and on #201 rather than fixes. (A second triage item, the
-re-drifted lazy-import reach note in `__init__.py` — legacy #1183 — is a code
-defect with a not-started owner: it was carried into R9-EG-B6's brief on
-`handoff/audit-r9-fixplan` @`c9791e2b`, per `finding-propagation.md`; a
-handover bullet is a record, not a carry.)
-
-- **Ruleset `main-protect` (22628467) carries an undocumented `always` bypass.**
-  Read live 2026-09-30: `bypass_actors = [{actor_id 5094721, actor_type
-  Integration, bypass_mode always}]`; `~/.zcode/hpo-ledger.appid` = 5094721
-  identifies the `hpo-ledger` App. It bypasses the deletion + non-fast-forward
-  push guards. No decision records it (0009/0011 name only the `hpo-stamp`
-  deploy key's bypass, on the *other* ruleset 23698884), the required-contexts
-  fixture does not cover it (by design it records only 23698884, so `counts.mjs`'s
-  field compare never reads 22628467), and it contradicts the 2026-09-19 #201
-  split record that 22628467 has "no bypass actors". Only tvofi can change a
-  ruleset: **ratify and document it** (if the ledger/record lane legitimately
-  pushes past the push guards) **or remove it**. Recorded on #201 2026-09-30 (comment
-  `5902383542`); the #1191 close cites this. Neither half is a seat's to decide.
-  2026-10-02: tvofi added the same App to 23698884 as well (fixture re-recorded);
-  R9-F10.5's 0011 amendment is the record that ratifies it — retire this on its merge.
+**`tests/typing_ruler.py`'s docstring still says the pinned toolchain is one
+"which no gate lane has"** (grep that phrase); #1122 established it false —
+`HPO_TYPING_PYTHON` re-execs the pinned mypy half through `run.sh`.
 
 ## The machine this runs on — measure it, do not read it
 
-A seat's box is not the owner's, and a container seat reading a description of
-someone else's reads a page of false lines. Measure your own (`nproc`,
-`command -v gh`, `python3 -V`). The repository facts: `tests.yml` matrixes both declared interpreters
-(#514, closed), CI is the authority for the browser lane, and `git branch
---show-current` beats trusting a path.
+A seat's box is not the owner's. Measure your own (`nproc`, `command -v gh`,
+`python3 -V`); `tests.yml` matrixes both declared interpreters, CI is the
+authority for the browser lane, and `git branch --show-current` beats trusting
+a path.
 
-**A 403 is not always the repository's answer.** Tag pushes and ref deletion
-work from some environments and are proxy-refused in others, and the message
-separates them: "Resource not accessible by integration" is a token scope,
-"not permitted through this proxy" is the environment. Recording the second as
-the first sends a reader to change what was never the obstacle.
-
-## 2026-09-19 — the authoring identity moved to the hpo-author App; nine merges; v6.6.5
-
-The seat USER account is spam-flagged with the worst measured shape: writes
-return 201 and vanish (phantom PR #1256 within ~60s), branch names wedge
-(fix/d11-gov still refuses any PR), and its artifacts purge RETROACTIVELY
-(~11 merged PRs 404; in-tree delivery rows are the surviving audit trail).
-Decision 0011 (PR #1261, owner-reviewed): **hpo-author App authors**
-(orchestrator-centralized minting, app_push.sh, PRs #1259/#1261/#1264/#1265/
-#1268 are its first flights), **hpo-approver approves**, **verdicts/merges/
-closes post as tvofi only**; app_approve requires every merge verdict to cite
-an existing non-empty evidence dir naming the head SHA (#1233 closed on that
-gate; the unprovable residual is accepted on the record). Retired account
-makes no GitHub write even if support restores it; the ticket asks for the
-purged PRs' conversations back.
-
-Main went red for four push runs (INHERITED CLAIMS: a claim carried forward
-by claim-untouched merges, made invisible by parse_claim_map's same-scenario
-collapse) — repaired by #1253's claim rewrite, the v6.6.5 stamp (claims
-emptied), and #1265's multi-value parse; the JS twin is #1266/#1268.
-
-Process lessons recorded: an owner approval that landed at 20:18Z was merged
-37 minutes later (20:18:54Z → 20:56:10Z; first misreported as hours) — poll review
-state on every PR awaiting the owner; pushes
-over ~1 MiB die chunked without http.postBuffer (#1267); a PR body figure
-stale at a moved head is corrected by a head-unmoving body edit, then
-pr-contract re-runs (#1264 round 2). Merged pull requests' worktrees now go
-at the merge itself: the orchestrator's standing per-merge call is
-`tools/audit/worktree_gc.sh <owner/repo>` (briefs/orchestrator.md section 11)
-— API-verified merged branch or detached-at-merged-head only, `git worktree
-lock` honoured, evidence*/ev-* moved to /tmp/hpo-ev before seat scratch goes —
-and the trap that shaped its self-test: an early fixture bug (redirect
-variables assigned but not exported, age-guard polarity inverted) made the
-test's own sweep walk the REAL /tmp/hpo-orch and remove live seat
-directories — this session's fixer worktree twice and fixer-history,
-recoverable only because the branch was committed — so the sweep now carries
-a null control refusing any mention of /tmp/hpo-orch, and an uncommitted
-worktree is one `git commit` from unrecoverable.
-
-## 2026-09-20/21 — the final wave: every D0 economics finding shipped, the CI pipeline fully self-driving
-
-**Twenty-eight merges across the two sessions**, two releases (v6.6.6, v6.6.7), and the board now holds only
-#201 (programme tracking). The economics programme is complete: #1210 (exact billed top-k), #1208
-(polish-every-candidate under owner-directed budget raises: CPU floor 1482, work factor 1.80), #1207 (the
-keep-gate at 2e-5, optimality re-recorded 0.999) — worst-cell gaps of 0.9-1.4% closed to 0.0000-0.0003%.
-
-**The #996 fleet-variance saga, resolved by owner rulings:** the may-drift machinery now carries three
-allow-sets (SENSITIVE 5, RUNNER_CONDITIONAL_1208 three, RUNNER_CONDITIONAL_1207 twelve), each entry with
-removal conditions, each set pinned by entities set-equality (a further name is an unruled widening), judged
-keys still failing. The stress coverage floor gained a ruling-cited override entry (may-only-lower, fail-safe
-to the stricter literal, dropped by the next re-record) — the #387 literal untouched.
-
-**The CI pipeline is fully self-driving:** the hpo-runs App (Actions-only, blast-radius-narrowed) approves
-held runs in-CI; the approve race (#1283) is fixed by SHA-keyed polling; approve_held_runs.sh backs the
-orchestrator; worktree_gc.sh (with its own honest post-merge blocked verdict and the #1289 repair) cleans
-merged worktrees under the §11 protocol step. Two incidents recorded: the GC seat's early self-test swept
-real seat dirs (guard now pinned), and #1287 merged before its review concluded (the verdict-gate lesson).
-
-**Standing state for successors:** the identity model (hpo-author authors, hpo-approver approves, hpo-runs
-approves runs, tvofi posts verdicts and merges); the §11 GC step is policy, the cron was stopped by the
-owner 2026-09-20 — run `worktree_gc.sh --apply` after each merge; the cross-session coordination ledger
-lives at /tmp/audit-5/COORDINATION.md (the audit-5 round's part-3 full gate has quiet windows by
-agreement); the resume file carries the session-by-session state.
-
-## 2026-10-13/14 — round 9 closes: the drain, the one-beat row cycle
-
-**Terminal state.** The round-9 drain is through its spine: 41 pull-request merges since 2026-10-13 00:00 local (+02:00), 17 of them on 2026-10-14 (`git log --merges --since='2026-10-13 00:00' --format='%s' | grep -c 'Merge pull request'`; the bare `git log --oneline --merges --since=2026-10-13 | wc -l` answers 85 because it counts the lanes' own fold/absorb merges — read the PR-merge subject count, never the raw one). The last code pull request (#2116, `fix/r9-bus-fetchhead`, closes #2092) merged at `5c934537b`, and the record beat was on cycle 5 (#2189). The recorded closure sequence (tvofi on #201, 2026-10-14 ~05:1xZ): seven drafted friction closures; #2134 closes citing #2178; **v7.0.0 directly, no interim 6.7.x stamp**; #2086 archive-as-tags with a self-tested instrument; the closure record on #201 with the three-bar scorecard. Tracking issues closed by the final wave: #2104 (by #2119), #2105 (by #2120), #2095 (by #2112), #2094 (by #2113), #2092 (by #2116).
-
-**The one-beat row cycle is live, and it is the delivery-row mechanism's designed form.** `tools/audit/seat/record_row.py` generates every row from REST API facts; the beat opens a `record/autofix` pull request per cycle (#2151, then #2181, #2182, #2184, #2187, #2188, #2189), and it merges with no review seat where `--automerge-check` passes. What made the cycle usable is #2176 (`fix/record-rewrite-guard`, `1cb2bedfa`): the automerge guard now accepts the planner's own `**open**` → `**merged**` rewrite — `modified_lines` reads the one-`-`/one-`+` patch pair, `_rewrite_refusal` requires the deleted line to be that number's own open row and the added line byte-equal to what the API's live facts generate — so a beat carries its rewrites instead of deadlocking against its own guard. Before it, the hold engaged only on a guard pass, so every push to main rebuilt and force-pushed `record/autofix` (25 rebuilds, one dismissed approver review) and the beat could never land: 12 merged rows read `**open**` and `tests/delivery_status.py` counted them as rowed. Two consequences to expect, not to repair: the **one-beat lag** is designed — rows for merges from the last minutes clear on the beat's next cycle, verified working — and a closed-unmerged pull request gets **no beat row at all** (the REST facts enumerate merges), so its `closed, superseded` row is a deliberate manual docs pull request, per #2177's row-2140 precedent (#2175 and #2168 got theirs here). A seat's edit to a neutral row takes the pull request off the automerge path and back to a manual review.
-
-The round's RCA records: `dev/audit/rca/R9-RCA-ROW-STALE.md` (the delivery-row decay class), `R9-RCA-TRAIN-SILENT-LAUNCH.md` (buffered stdout read as death), `R9-CI-BUDGET-RERECORD.md` (three deliberate re-records and the recorded refusal), `R9-CODEQL-SARIF-FIRST.md` (read the SARIF before theorizing), beside the already-landed `R9-RCA-TRAIN-WEDGE.md`.
+**A 403 is not always the repository's answer.** "Resource not accessible by
+integration" is a token scope; "not permitted through this proxy" is the
+environment. Recording the second as the first sends a reader to change what was
+never the obstacle.
