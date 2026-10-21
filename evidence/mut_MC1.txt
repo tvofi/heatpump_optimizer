@@ -1,0 +1,21 @@
+mutant MC1 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..46c7c6e16 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8701,7 +8701,7 @@ function degreeRow(tiles, currency) {
+   const days = Math.min(Number(tiles.down.horizon_days) || 1, Number(tiles.up.horizon_days) || 1);
+   const row = { kind: "degree", status: "ready", act: "try_degree",
+     target: Number(tiles.down.overrides && tiles.down.overrides.target_temp) };
+-  if (save > 0 && cost > 0 && cost >= save - 1) {
++  if (true) {
+     return { ...row, value: save, title: L("advisor.degree_title"),
+       detail: L("advisor.degree_detail", { up: cost, currency, days }) };
+   }
+card rc=1
+  FAIL  the screenshot's pair (-140 cooler, -266 warmer) renders no money and no "more"
+  FAIL  a warmer degree cheaper than the cooler one saves is not convex, so not shown
+  FAIL  two units below the saving is concave, not rounding
+  FAIL  a degree that saves nothing either way (no heating) is no row
+  FAIL  a degree cooler that costs more is not shown as a saving
+5 CARD CHECK(S) FAILED

@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.v9lfqutSZP/tools/rotation_probe.py", line 39, in <module>
+    for j in range(0, DAYS * 96, step):
+             ~~~~~^^^^^^^^^^^^^^^^^^^^
+ValueError: range() arg 3 must not be zero

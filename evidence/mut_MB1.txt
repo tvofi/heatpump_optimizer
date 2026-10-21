@@ -1,0 +1,22 @@
+mutant MB1 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index dbd80104c..199bd379f 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -90,7 +90,7 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
+     }
+ 
+     def degree(step: float) -> dict[str, float]:
+-        return {key: round(float(v) + step, 1) for key, v in levels.items() if v is not None}
++        return {"target_temp": round(float(config.target_temp) + step, 1)}
+ 
+     return list(zip(TILE_NAMES, (
+         degree(-1.0), degree(1.0), {"power_cap_kw": round(0.75 * max_kw, 2)})))
+features rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #2257: a degree tile moves every comfort level the schedule has set, and no other  [{'target_minus_1': {'target_temp': 20.0}, 'target_plus_1': {'target_temp': 22.0}, 'power_cap_75': {'power_cap_kw': 4.5}}]
+  FAIL #2257: every level a degree moves is one the what-if applies to its scratch config  [a level the what-if drops would leave that part of the schedule unmoved]
+  FAIL #2257: at the real what-if seam a degree cooler saves and a degree warmer costs, convexly  [held: cooler 0.0, warmer 0.0; the plan's single-solve figures -66.97 / 34.48]
+  ok   a pump command that FAILED is not remembered as done
+  FAIL UX-5 the price tile and the card's what-if both price the active setback  [None None; day/target per solve [(16.0, 16.0), (16.0, 15.0), (16.0, 16.0)]]
+4 of 4276 FEATURE CHECKS FAILED

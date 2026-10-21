@@ -1,0 +1,4 @@
+RESULT null offset -1 delivered -0.514 K truth_per_delivered_degree +59.4 held +54.4 (-8.4 %) first_solve_plan +145.6
+RESULT null offset +1 delivered +0.327 K truth_per_delivered_degree +59.4 held +54.4 (-8.4 %) first_solve_plan +85.1
+VERDICT null held figure within 15 % of the plan's realised price per delivered degree
+rc=0

@@ -1,0 +1,18 @@
+mutant MC3 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..fd09dfa7a 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -9443,7 +9443,7 @@ function attachAdvisorInbox(host, root) {
+         host._render();
+         return;
+       } else if (act === "open_options") {
+-        openHaLink(host, "options", null);
++        navigateTo(SETTINGS_PATH);
+         return;
+       } else if (act === "settings" || act === "diagnostics") {
+         navigateTo(SETTINGS_PATH);
+card rc=1
+  FAIL  Open settings on an opt-in row links this entry's options, not the bare integration
+  FAIL  every link the census records from a press is one haLink builds for this entry
+2 CARD CHECK(S) FAILED

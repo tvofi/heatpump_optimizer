@@ -1,0 +1,16 @@
+mutant MC5 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..aa96a3961 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8705,7 +8705,6 @@ function degreeRow(tiles, currency) {
+     return { ...row, value: save, title: L("advisor.degree_title"),
+       detail: L("advisor.degree_detail", { up: cost, currency, days }) };
+   }
+-  if (save === 0 && cost >= 0) return null;
+   return { ...row, value: null, title: L("advisor.optin_degree"),
+     detail: L("advisor.degree_unsettled", { days }) };
+ }
+card rc=1
+  FAIL  a degree that saves nothing either way (no heating) is no row
+1 CARD CHECK(S) FAILED

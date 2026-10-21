@@ -1,0 +1,18 @@
+mutant MX3 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index c03d49b30..fef18a12a 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1347,7 +1347,6 @@ _SIM_OVERRIDE_CONFIG_CASTS: tuple[tuple[str, Any], ...] = (
+     ("max_temp", float),
+     ("comfort_temp_day", float),
+     ("comfort_temp_night", float),
+-    ("comfort_temp_day_weekend", float),
+     ("comfort_temp_night_weekend", float),
+     ("holiday_comfort_day", float),
+     ("holiday_comfort_night", float),
+features rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #2257: every level a degree moves is one the what-if applies to its scratch config  [a level the what-if drops would leave that part of the schedule unmoved]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4276 FEATURE CHECKS FAILED

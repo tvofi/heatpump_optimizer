@@ -1,0 +1,17 @@
+mutant MC4 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..f9e67749c 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -2485,7 +2485,6 @@ const REASON_LABELS = {
+   idle: "reasons.idle",
+   // The settlement's whole-action causes (R10-SAV-REASONS, #2256): energy a
+   // receipt books under them is the overlay's or the experiment's, not a step's.
+-  boost: "reasons.boost",
+   comfort_mode: "reasons.comfort_mode",
+   system_identification: "reasons.system_identification",
+   untagged: "reasons.untagged",
+card rc=1
+  FAIL  UX-6: boost, comfort mode, step-response and unattributed money are named on the receipt
+  FAIL  every reason code payload.py publishes has a card label (idle sub-codes aside)
+2 CARD CHECK(S) FAILED
