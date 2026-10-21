@@ -1,0 +1,175 @@
+{
+ "mode": "scoped",
+ "reason": "",
+ "run": [
+  "tests/entities.py",
+  "tests/harness_headers.py"
+ ],
+ "skip": {
+  "tests/arch_score.py": {
+   "closure_size": 156,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/arch_score_head.py": {
+   "closure_size": 123,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/backtest.py": {
+   "closure_size": 36,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/block_duty.py": {
+   "closure_size": 89,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/boost_drift_replay.py": {
+   "closure_size": 87,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/card.mjs": {
+   "closure_size": 93,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/card_drift.mjs": {
+   "closure_size": 96,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/config_flow_steps.py": {
+   "closure_size": 125,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/debug_collect.py": {
+   "closure_size": 98,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/deployment_shape.py": {
+   "closure_size": 121,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/doc_claims.py": {
+   "closure_size": 157,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/edge.py": {
+   "closure_size": 34,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/env_drift.py": {
+   "closure_size": 191,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/features.py": {
+   "closure_size": 139,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/finite_boundary.py": {
+   "closure_size": 114,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/frontend.py": {
+   "closure_size": 6,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/golden.py": {
+   "closure_size": 193,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/guard_pins.py": {
+   "closure_size": 65,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/ha_contract.py": {
+   "closure_size": 36,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/layout.py": {
+   "closure_size": 3,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/manual_plan.py": {
+   "closure_size": 105,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/md_tables.mjs": {
+   "closure_size": 10,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/open_meteo.py": {
+   "closure_size": 3,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/optimality.py": {
+   "closure_size": 36,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/plan_view.py": {
+   "closure_size": 85,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/solar_alignment.py": {
+   "closure_size": 86,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/stress.py": {
+   "closure_size": 40,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/structure.py": {
+   "closure_size": 83,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/typing_ruler.py": {
+   "closure_size": 83,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/validate.py": {
+   "closure_size": 34,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/wood_advisor.py": {
+   "closure_size": 89,
+   "reason": "no changed file is in its measured closure"
+  }
+ },
+ "changed": [
+  ".github/workflows/codeql.yml",
+  "dev/programme/delivery/2516.md",
+  "tests/entities.py"
+ ],
+ "entry_changed": [],
+ "closure_sizes": {
+  "tests/arch_score.py": 156,
+  "tests/arch_score_head.py": 123,
+  "tests/backtest.py": 36,
+  "tests/block_duty.py": 89,
+  "tests/boost_drift_replay.py": 87,
+  "tests/card.mjs": 93,
+  "tests/card_drift.mjs": 96,
+  "tests/config_flow_steps.py": 125,
+  "tests/debug_collect.py": 98,
+  "tests/deployment_shape.py": 121,
+  "tests/doc_claims.py": 157,
+  "tests/edge.py": 34,
+  "tests/entities.py": 334,
+  "tests/env_drift.py": 191,
+  "tests/features.py": 139,
+  "tests/finite_boundary.py": 114,
+  "tests/frontend.py": 6,
+  "tests/golden.py": 193,
+  "tests/guard_pins.py": 65,
+  "tests/ha_contract.py": 36,
+  "tests/harness_headers.py": 391,
+  "tests/layout.py": 3,
+  "tests/manual_plan.py": 105,
+  "tests/md_tables.mjs": 10,
+  "tests/open_meteo.py": 3,
+  "tests/optimality.py": 36,
+  "tests/plan_view.py": 85,
+  "tests/solar_alignment.py": 86,
+  "tests/stress.py": 40,
+  "tests/structure.py": 83,
+  "tests/typing_ruler.py": 83,
+  "tests/validate.py": 34,
+  "tests/wood_advisor.py": 89
+ }
+}
