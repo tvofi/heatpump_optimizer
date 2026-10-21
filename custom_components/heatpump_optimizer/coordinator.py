@@ -78,6 +78,10 @@ from .payload import (
     PowerHeadroom,
     PriceTile,
     Pv,
+    REASON_BOOST,
+    REASON_COMFORT_MODE,
+    REASON_SYSTEM_IDENTIFICATION,
+    REASON_UNTAGGED,
     Scores,
     SolarForecastStep,
     SpaceForecastStep,
@@ -155,6 +159,7 @@ from .const import (
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
     VENT_CUSUM_STARVE_HOURS,
+    VENT_CUSUM_REFERENCE_HOURS,
     OPEN_WINDOW_RELAX_C,
     IMMERSION_FACTOR,
     COP_BASELINE_MIN_SAMPLES,
@@ -270,6 +275,7 @@ from .currency import declared_currency, resolve_currency
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
     MonthlyLedger,
+    explain_metered,
     freeze_month_report,
     month_key,
     restate_total,
@@ -661,10 +667,11 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
 
     A failure is swallowed into the reason, so a balky valve never breaks
     planning: an entity of a domain smart_write cannot command, or the write
-    raising.
+    raising. The target caps what the valve delivers, so it rounds down onto
+    the entity's step.
     """
     try:
-        if await write_setpoint_c(hass, entity_id, target):
+        if await write_setpoint_c(hass, entity_id, target, rounding="down"):
             return None
     except Exception as err:  # noqa: BLE001 - never break planning
         return f"could not be commanded: {err}"
@@ -1271,17 +1278,22 @@ HOUSE_LOSS_ALPHA = 0.02
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
-# A single interval may never move the estimate more than this fraction; real
-# building fabric does not change, so anything larger is a disturbance.
+# The re-anchor threshold gate: a nameplate edit within this fraction keeps
+# the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
+# per-interval limit: one sample moves the estimate by at most
+# ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
 HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped. Centred on the current value,
-# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
-# against fixed global bounds does not have that property, because the
-# midpoint of a fixed range is not the current estimate.
+# *current* estimate before it is clipped, as a fraction of that estimate.
+# Centred on the current value, zero-mean noise has zero-mean effect after
+# clipping; rejecting or clamping against fixed global bounds does not have
+# that property, because the midpoint of a fixed range is not the current
+# estimate. A fraction rather than a multiplier offset (#2252), so the bound
+# in UA is the same whether the learned value sits in the settings or in
+# the multiplier.
 _LEARNER_TRUST_REGION = 0.5
 
 
@@ -2740,12 +2752,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         it never moves a plan. Everything that could move one (the comfort
         relaxation, the DHW margin nudge) is gated behind its own flag.
         """
-        # #26: an open window shows as sustained colder-than-predicted
-        # residuals in the heat-loss learner's replay.
+        # #26: an open window shows as a sustained cold CHANGE in the heat-loss
+        # replay residual, measured from what it normally reads (#2241).
         self._vent_cusum = Cusum(
             threshold=VENT_CUSUM_THRESHOLD_C,
             drift=VENT_CUSUM_DRIFT_C,
             side=-1,
+            clip=VENT_CUSUM_CLIP_C,
+            reference_hours=VENT_CUSUM_REFERENCE_HOURS,
         )
         # #11: the immersion element announces itself as measured power
         # beyond what the compressor can draw. 2/2 hysteresis, like every
@@ -4547,13 +4561,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``MeasuredCop.record`` writes all three together.
 
-        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
-        ``compute_cop`` — the SPACE curve — including intervals the pump spent
-        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
-        space heating, and the model prices that at roughly 16 % lower COP at a
-        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
-        asked looked ~16 % less efficient than modelled, every hot-water
-        interval, in the same direction.
+        v5.3.0. ``_learn_measured_cop`` compared every interval against
+        ``compute_cop`` — the SPACE curve — including the ones the pump spent
+        making hot water. The model prices a 55 °C tank at 0.62x the space
+        curve, and the tank's own lift law is what it pays (D2-s2-01; the
+        linear 0.008/K penalty this seam was written against priced the same
+        tank 1.35x higher). So a healthy pump doing what the plan asked looked
+        less efficient than modelled, every hot-water interval, same direction.
 
         Three things consume the result and all three were wrong for those
         intervals: the reported ``measured_cop``, the capacity envelope, and —
@@ -4841,8 +4855,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
           change the stored scale is kept verbatim: below convergence
           the law is a measured regression against today's behaviour on
           exactly that path (the 30-hop walk: +2.5% for today against
-          the ungated law's 18.2%), and the learner absorbs a small
-          edit in one step anyway.
+          the ungated law's 18.2%), and the learner's EWMA closes a
+          small edit on its own, ``HOUSE_LOSS_ALPHA`` of the way to its
+          target per accepted sample.
         * **Clamp means reset.** If the re-anchored scale falls outside
           ``[0.3, 3.0]`` the measurement cannot be expressed against
           the new nameplate: reset explicitly and log it. Clipping onto
@@ -5096,14 +5111,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not np.isfinite(residual):
             return
 
-        # #26: an open window shows as SUSTAINED colder-than-predicted
-        # residuals — often exactly the large ones the guard below throws
-        # away, which is why the detector is fed first, clipped so one
-        # sensor glitch cannot trip it alone. On a trip every learner
-        # freezes with reason "ventilation" until the residuals recover.
-        vent_changed = self._vent_cusum.update(
-            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
-        )
+        # #26: a window shows as SUSTAINED cold residuals, often ones the guard
+        # below throws away, so the detector is fed first, with the interval's
+        # heat and sun: a delivery or aperture bias scales with those, a window
+        # does not (#2241). On a trip every learner freezes until it recovers.
+        vent_changed = self._vent_cusum.update(now, float(residual), (
+            previous_power * dt_h, (previous_state.solar_radiation or 0.0) * dt_h / 1000.0))
         if vent_changed:
             _LOGGER.info(
                 "Open-window detector %s (stat %.2f)",
@@ -5142,7 +5155,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5250,7 +5262,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             base_u, capacity, residual, delta_t, dt_h,
             trust_region=_LEARNER_TRUST_REGION,
             alpha=HOUSE_LOSS_ALPHA,
-            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
         if step is None:
             return
@@ -5382,6 +5393,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
+            # Each fixed mode names the cause its draw books under (#2256).
             elif self._mode == MODE_COMFORT:
                 boost.adopt_plan(self, {
                     "power": self._thermal_model.params.max_electrical_power * 0.7,
@@ -5390,6 +5402,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 0.7,
                     "heat_pump_on": True,
                     "displace_value": min(4.0, self._ecl110_displace_max),
+                    "space_reason": REASON_COMFORT_MODE,
+                    "dhw_reason": REASON_COMFORT_MODE,
                 })
             elif self._mode == MODE_BOOST:
                 boost.adopt_plan(self, {
@@ -5399,6 +5413,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 1.0,
                     "heat_pump_on": True,
                     "displace_value": self._ecl110_displace_max,
+                    "space_reason": REASON_BOOST,
+                    "dhw_reason": REASON_BOOST,
                 })
             elif self._mode == MODE_OFF:
                 boost.adopt_plan(self, {
@@ -5408,6 +5424,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "power_normalized": 0.0,
                     "heat_pump_on": False,
                     "displace_value": self._ecl110_displace_min,
+                    "space_reason": REASON_UNTAGGED,
+                    "dhw_reason": REASON_UNTAGGED,
                 })
             if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
                 self._current_action["price"] = self._get_current_price()
@@ -9626,7 +9644,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10032,27 +10050,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # them — the space share under the space slot's reason, the DHW
         # share under the DHW slot's. A partition, not a bonus column: the
         # reason lines must sum to the spot line, or every receipt built
-        # from them overstates. An interval without a tag (manual modes, a
-        # restart before the first solve) books as "untagged" rather than
-        # vanishing from the total.
-        space_reason = pending.get("space_reason") or "untagged"
-        dhw_reason = pending.get("dhw_reason") or "untagged"
+        # from them overstates. A reason names WHY the plan ran a channel, so
+        # a channel the plan was drawing nothing on books outside the plan
+        # (#2256); ``IDLE_REASONS`` is that grouping's one owner.
         metered_dhw = metered * dhw_share
         metered_space = metered - metered_dhw
-        if metered_space > 1e-9:
-            self._ledger.add(
-                when,
-                f"reason:{space_reason}",
-                kwh=metered_space,
-                sek=metered_space * spot,
-            )
-        if metered_dhw > 1e-9:
-            self._ledger.add(
-                when,
-                f"reason:{dhw_reason}",
-                kwh=metered_dhw,
-                sek=metered_dhw * spot,
-            )
+        for reason, kwh in explain_metered(
+            metered_space,
+            metered_dhw,
+            space_reason=pending.get("space_reason"),
+            dhw_reason=pending.get("dhw_reason"),
+        ):
+            self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
         if immersion_excess > 1e-6:
@@ -10079,13 +10088,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         shifting, and this is the proof, either way.
         """
         month = month or month_key(dt_util.now())
-        spot_line = self._ledger.line(month, "spot")
-        # The immersion line is spot-priced energy carved out of "spot"
-        # for visibility (#11); the settlement is over ALL metered kWh,
-        # so it folds back in here.
-        imm_line = self._ledger.line(month, "immersion")
-        kwh = spot_line["kwh"] + imm_line["kwh"]
-        spot_cost = spot_line["sek"] + imm_line["sek"]
+        # The settlement is over ALL metered kWh, the immersion carve-out
+        # (#11) included: the ledger's one energy figure (#2255).
+        energy = self._ledger.metered_energy(month)
+        kwh, spot_cost = energy["kwh"], energy["sek"]
         out: ContractComparison = {
             "month": month,
             "kwh": round(kwh, 3),
@@ -10853,12 +10859,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "heat_pump_on": override > 0.05,
             "mode": "system_identification",
-            # T6: the experiment's draw is not the plan's — settling it
-            # under the overridden plan's reason would book experiment
-            # energy as "cheapest hours" or whatever the plan happened to
-            # claim for this step.
-            "space_reason": None,
-            "dhw_reason": None,
+            # T6: the experiment's draw is not the plan's -- booking it under
+            # the overridden plan's reason would say "cheapest hours" or
+            # whatever the plan claimed for this step; the experiment is the
+            # cause and names itself (#2256).
+            "space_reason": REASON_SYSTEM_IDENTIFICATION,
+            "dhw_reason": REASON_SYSTEM_IDENTIFICATION,
         })
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment.

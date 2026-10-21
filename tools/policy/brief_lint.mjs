@@ -829,7 +829,7 @@ function checkShape(groups, findings) {
 // the citation; absent that grammar, case 3 collapses into case 4's judgement
 // and belongs where case 4 already is.
 export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
-const ROSTER_FILE_RE = /^wave-.*-groups\.json$/
+export const ROSTER_FILE_RE = /^wave-.*-groups\.json$/
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 

@@ -434,7 +434,7 @@ class AccuracyTracker:
             if self.evidence_since is not None
             else {}
         )
-        draw = {"draw": self.draw.as_dict()} if self.draw.samples else {}
+        draw = {"draw": self.draw.as_dict()} if self.draw.samples or self.draw.idle else {}
         return {
             **since,
             **draw,

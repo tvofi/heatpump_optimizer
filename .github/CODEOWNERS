@@ -71,6 +71,10 @@
 /.claude/workflows/contract_rerun.py      @tvofi
 /tools/policy/budget_raise_gate.py        @tvofi
 /tools/pr/contract_rerun.py               @tvofi
+# The superseded-run canceller (R10-CI-CONCURRENCY): holds `actions: write` in
+# tests.yml/codeql.yml and runs as the pull request's own copy in governance's
+# self-test step, so only ownership covers it.
+/tools/pr/cancel_superseded.py            @tvofi
 /tools/pr/codeql_scope.py                 @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
@@ -82,6 +86,9 @@
 # branch that adds one cannot pass, and ownership is what stops a branch that
 # weakens the check and the ledger together (class R-register, #1759).
 /tools/audit/fold_ledger.py               @tvofi
+# The carry check pr-contract runs as the pull request's own copy, last in the
+# job (#1847's reason, as for fold_ledger.py): a pinned grader cannot be added.
+/tools/audit/carry_audit.py               @tvofi
 # The version stamp (tools/release/stamp.py) is release tooling, not an
 # audit instrument: it pushes over the deploy key and assigns versions.
 /tools/release/                           @tvofi

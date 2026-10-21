@@ -45,7 +45,7 @@ from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
 from .draw_range import RUNNING_FLOOR_KW
-from .drift import STAT_CAP_FACTOR
+from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
 from .ledger import BILLED_LINES
@@ -267,6 +267,7 @@ _QUARTER = QUARTER_FACTOR_MAX / QUARTER_FACTOR_MIN
 _ROW = "the update path's cone repair clips and renormalises the whole row (observe_day)"
 _PAIR = "an unreadable bin restarts the pair with a warning (_stored_rows/_stored_counts, #922)"
 _PROFILE = "normalize_profile renormalises to mean 1, and quarantines a non-finite profile whole"
+_REFIT = "Cusum.load drops a fit with any unreadable cell, and the detector re-seeds it"
 _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
 #: R9-UX-6: a receipt's total and basis are re-derived from its lines on load.
 _RESTATED = "ledger.restate_total re-derives them from the receipt's own lines on load"
@@ -302,6 +303,11 @@ _ACCURACY: dict[str, Domain | str] = {
     # a sample at or below standby is not a running one, and is dropped.
     "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
     "draw/samples/#/1": _Z,
+    # R10-SETPOINT-BOOST: the flow set-point held and its ceiling, null where
+    # nothing commanded the draw; and the readings taken at the gate.
+    "draw/samples/#/2": _N,
+    "draw/samples/#/3": _N,
+    "draw/idle/#": _Z,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }
@@ -323,6 +329,12 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
         **{f"{k}_cusum/{f}": d for k in ("vent", "cop_health") for f, d in (
             ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+        # The open-window detector's fit (#2241, Cusum._departure): None
+        # until seeded; a cell no fit can hold drops the whole fit, which
+        # re-seeds at the next sample (Cusum.load).
+        "vent_cusum/reference": _ABSENT, "vent_cusum/reference/#": Domain("real", whole=_REFIT),
+        "vent_cusum/reference_cov": _ABSENT, "vent_cusum/reference_cov/#": Domain(
+            "real", -REFERENCE_PRIOR_COV, REFERENCE_PRIOR_COV, whole=_REFIT),
         "cop_baseline/~": _TEXT, "cop_baseline/*/0": Domain("real", _POS),
         "cop_baseline/*/1": Domain("int", 1),
         "immersion_events/#": _AT,
@@ -473,6 +485,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
         **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
         "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
+        # #2271: the release that wrote the row (#2209's forward-carry).
+        "rows/#/version": _TEXT,
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
         # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
         "self_tests": _TEXT,

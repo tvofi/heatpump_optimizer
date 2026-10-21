@@ -437,7 +437,8 @@ async def _save_debug(coord):
             when=at, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
             actual_temp=21.2, predicted_cost=0.5, actual_cost=0.6, outdoor_temp=-2.0,
             humidity=80.0, cop_residual=0.1))
-        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96)
+        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96,
+                               integration_version="7.0.0")
         payload = {
             "mode": "auto", "current_action": {"mode": "heat", "power": 2.5, "heat_pump_on": True},
             "solve_time_ms": 40.0, "weather_forecast_stale_hours": 0.5,
@@ -592,19 +593,9 @@ def _kinds_arm() -> None:
     )
 
 
-def _publish_arm() -> None:
-    """Every float the coordinator publishes set non-finite; every entity of
-    every registered platform must still publish finite values in process.
-
-    The platform set is ``PLATFORM_LIST``, the list the integration forwards
-    to Home Assistant, so a platform added there is swept without an edit
-    here. ``reading_ok`` flags are all set, so the gated temperatures reach
-    their entities, and the comfort target is poisoned too, because the
-    thermostat's ``target_temperature`` reads it rather than the data dict.
-    """
-    import importlib
-    import heatpump_optimizer as integration
-
+def _publish_setup():
+    """A built coordinator, its healthy payload with every ``reading_ok`` flag
+    set, and its optimizer config: the input both publish sweeps start from."""
     start = _dt.datetime(2026, 1, 15, 0, 0, tzinfo=_dt.timezone.utc)
     coord = _build_coord()
     coord._prices = [
@@ -622,6 +613,23 @@ def _publish_arm() -> None:
     healthy["reading_ok"] = {k: True for k in healthy.get("reading_ok") or {}}
     coord.entry.runtime_data = coord
     opt = getattr(coord, "_ctx", coord)._opt_config
+    return coord, healthy, opt
+
+
+def _publish_arm() -> None:
+    """Every float the coordinator publishes set non-finite; every entity of
+    every registered platform must still publish finite values in process.
+
+    The platform set is ``PLATFORM_LIST``, the list the integration forwards
+    to Home Assistant, so a platform added there is swept without an edit
+    here. ``reading_ok`` flags are all set, so the gated temperatures reach
+    their entities, and the comfort target is poisoned too, because the
+    thermostat's ``target_temperature`` reads it rather than the data dict.
+    """
+    import importlib
+    import heatpump_optimizer as integration
+
+    coord, healthy, opt = _publish_setup()
     target = opt.target_temp
     for platform in integration.PLATFORM_LIST:
         module = importlib.import_module(f"heatpump_optimizer.{platform}")
@@ -670,6 +678,253 @@ def _no_rewrap_check() -> None:
         alias.native_value.fget is parent.native_value.fget,
         "the subclass's native_value was re-wrapped around the parent's wrapper",
     )
+
+
+def _scrub_mro_check() -> None:
+    """The scrub covers the property Home Assistant resolves (D7-s2-51).
+
+    Three placements of the same NaN-returning ``native_value``: on a mixin
+    whose runtime base is ``object`` (the sensor platform's ``_SensorMixinBase``)
+    that a package entity inherits; on an entity subclass defined outside the
+    package (this module -- the case a package-only rule exempted, #2238's
+    catch-up note); and on the entity class itself, the null control the
+    old ``__dict__`` rule already scrubbed. Home Assistant's own default is
+    the fourth arm: inherited, it is left unwrapped."""
+    from homeassistant.components.sensor import SensorEntity
+    from heatpump_optimizer import sensor
+
+    def nan(self):
+        return float("nan")
+
+    mixin = type("_NanMixin", (), {"native_value": property(nan),
+                                   "__module__": sensor.__name__})
+    probes = {
+        "a package mixin with runtime base object": type(
+            "_MixinProbe", (mixin, sensor.HeatPumpOptimizerSensorBase),
+            {"__module__": sensor.__name__}),
+        "an entity subclass defined outside the package": type(
+            "_OutsideProbe", (sensor.HeatPumpOptimizerSensorBase,),
+            {"native_value": property(nan)}),
+        "the entity class itself (null control)": type(
+            "_OwnProbe", (sensor.HeatPumpOptimizerSensorBase,),
+            {"native_value": property(nan), "__module__": sensor.__name__}),
+    }
+    for label, cls in probes.items():
+        value = cls.native_value.fget(object.__new__(cls))
+        R.check(f"a NaN native_value on {label} is published as None",
+                value is None, f"published {value!r}")
+    # The stub's SensorEntity declares no native_value (upstream's is a
+    # cached_property reading _attr_native_value), so the default is modelled
+    # by its owner's module: a property Home Assistant's package owns.
+    ha_default = type("_HaDefault", (), {
+        "native_value": property(nan), "__module__": "homeassistant.components.sensor"})
+    plain = type("_DefaultProbe", (sensor.HeatPumpOptimizerSensorBase, ha_default),
+                 {"__module__": sensor.__name__})
+    R.check(
+        "Home Assistant's own native_value default is not wrapped by the scrub",
+        "native_value" not in vars(plain)
+        and plain.native_value is vars(ha_default)["native_value"],
+        f"vars={sorted(n for n in vars(plain) if not n.startswith('__'))}",
+    )
+
+
+#: A bool is not a number (the round-10 mandate's bool policy) and a numeric
+#: string is text: either at a number state's source must publish None.
+_NOT_NUMBERS = (True, "21.5")
+#: The state properties Home Assistant reads as a number.
+_NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
+#: Payload sections the healthy payload does not build (no solve has run, no
+#: month has settled), seeded so the entities reading them publish a number
+#: and the census reaches them. A sensor declaring ``_payload_path`` is
+#: seeded from that declaration instead, so a new one needs no row here.
+_NUMBER_STATE_SEEDS = {
+    "savings_months": [{"estimated": True, "savings_sek": 12.345}],
+    "current_action": {"setpoint": 21.456, "power": 1.234, "dhw_power": 0.321,
+                       "heat_pump_on": True},
+    "accuracy": {"temperature_mae": 0.432},
+    "pv": {"forecast_surplus_kwh": 3.21},
+    "dhw_draw_stats": {"mon": {"p90_kwh": 4.567}},
+}
+#: Number states with no payload leaf to substitute, each with its reason.
+_NUMBER_STATE_COMPUTED = {
+    "PredictedIndoorTempSensor": "predicted_next_room_temp off the coordinator's "
+    "own model, not a payload leaf; read through _as_float",
+}
+
+
+def _numbers_replaced(value, probe):
+    """``value`` with every int and float leaf replaced by ``probe``."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return probe
+    if isinstance(value, dict):
+        return {k: _numbers_replaced(v, probe) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_numbers_replaced(v, probe) for v in value]
+    return value
+
+
+def _seeded(healthy: dict, entities: list) -> dict:
+    """``healthy`` with _NUMBER_STATE_SEEDS merged in, and every declared
+    ``_payload_path`` holding a number (an integer for an integer count)."""
+    data = {**healthy}
+    for key, seed in _NUMBER_STATE_SEEDS.items():
+        base = data.get(key)
+        data[key] = {**base, **seed} if isinstance(base, dict) and isinstance(seed, dict) else seed
+    for ent in entities:
+        path = getattr(type(ent), "_payload_path", ())
+        if not path:
+            continue
+        node = data
+        for key in path[:-1]:
+            node[key] = dict(node.get(key) or {})
+            node = node[key]
+        if node.get(path[-1]) is None:
+            node[path[-1]] = 7 if getattr(type(ent), "_payload_types", ()) == (int,) else 21.456
+    return data
+
+
+def _number_state_arm() -> None:
+    """Every entity whose state is a number publishes None, or the number it
+    published before, when every number in the payload is a bool or a numeric
+    string (D7-s2-60, #2242): never the bool, never the text, never the text
+    or the bool read as a number (``True`` as 1, ``'21.5'`` as 21.5), never a
+    raise. "The number it published before" is a state that does not read
+    the substituted leaf; a seeded value that happens to equal the probe's
+    reading (1) is the one coincidence this oracle cannot see, so no seed is 1.
+
+    The same input drives every sibling: the payload the publish sweep builds,
+    seeded where no solve has run, each int and float leaf replaced, on every
+    entity of every platform. Its preconditions are asserted, not assumed: a
+    sensor whose state class or unit says it publishes a number and whose
+    seeded state is still not one is refused, unless _NUMBER_STATE_COMPUTED
+    names why it has no leaf; an entry there that the census reaches is stale."""
+    coord, healthy, _opt = _publish_setup()
+    import importlib
+    import heatpump_optimizer as integration
+
+    def number(value) -> bool:
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+    states = reached = 0
+    bad: list[str] = []
+    unreached: set[str] = set()
+    for platform in integration.PLATFORM_LIST:
+        module = importlib.import_module(f"heatpump_optimizer.{platform}")
+        entities: list = []
+        coord.data = healthy
+        asyncio.run(module.async_setup_entry(coord.hass, coord.entry, entities.extend))
+        seeded = _seeded(healthy, entities)
+        coord.data = seeded
+        before = {id(e): _published(e) for e in entities}
+        for ent in entities:
+            numeric = (getattr(ent, "_attr_state_class", None) is not None
+                       or getattr(ent, "_attr_native_unit_of_measurement", None))
+            if numeric and "native_value" in before[id(ent)] \
+                    and not number(before[id(ent)]["native_value"]):
+                unreached.add(type(ent).__name__)
+        for probe in _NOT_NUMBERS:
+            coord.data = _numbers_replaced(seeded, probe)
+            for ent in entities:
+                after = _published(ent)
+                for name in _NUMBER_STATES:
+                    if not number(before[id(ent)].get(name)):
+                        continue
+                    states += probe is True
+                    got = after.get(name)
+                    if got is None:
+                        reached += 1
+                    elif not number(got) or got != before[id(ent)][name]:
+                        bad.append(f"{type(ent).__name__}.{name}: {probe!r} -> {got!r}")
+    coord.data = healthy
+    R.check(
+        "every number state publishes None, never the bool or the text, from a "
+        "bool or text payload (#2242)",
+        not bad and states > 0,
+        f"states={states} bad={sorted(bad)}",
+    )
+    R.check(
+        "the bool and text payloads reach a published number state (the arm is not vacuous)",
+        reached > 0,
+        "no number state went to None when every number became a bool or text",
+    )
+    R.check(
+        "every number-state sensor publishes a number on the seeded payload, or "
+        "is named computed, and no computed entry is reached (the census's reach)",
+        unreached == set(_NUMBER_STATE_COMPUTED),
+        f"unreached-unnamed={sorted(unreached - set(_NUMBER_STATE_COMPUTED))} "
+        f"stale={sorted(set(_NUMBER_STATE_COMPUTED) - unreached)}",
+    )
+    print(f"RESULT number_states={states} count")
+    print(f"RESULT number_state_escapes={len(bad)} count")
+    # The census substitutes every leaf at once, so a part of a composed
+    # number (the step's space and DHW ask) is masked by its sibling's guard:
+    # each part is pinned alone here, beside its healthy control.
+    from heatpump_optimizer.entity import commanded_power_kw
+    parts = {
+        "space True": ({"power": True, "dhw_power": 0.5}, None),
+        "space text": ({"power": "1.5", "dhw_power": 0.5}, None),
+        "dhw True": ({"power": 1.5, "dhw_power": True}, None),
+        "dhw text": ({"power": 1.5, "dhw_power": "0.5"}, None),
+        "healthy (control)": ({"power": 1.5, "dhw_power": 0.5}, 2.0),
+    }
+    wrong = {k: got for k, (action, want) in parts.items()
+             if (got := commanded_power_kw(action)) != want}
+    R.check(
+        "commanded_power_kw refuses a bool or text part on either channel, and "
+        "adds two numbers (#2242)",
+        not wrong, f"{wrong}",
+    )
+    _owner_pins()
+
+
+def _owner_pins() -> None:
+    """Sites of this group's owners that the census cannot single out, each
+    driven alone through the production symbol (#2379 round 1: they
+    survived every driver). Each row is (what, got, want)."""
+    import types as _types
+    from heatpump_optimizer import climate, sensor
+    from heatpump_optimizer.entity import payload_number, zone_setpoint_attributes
+
+    def climate_temp(data):
+        ent = object.__new__(climate.HeatPumpOptimizerClimate)
+        ent.coordinator = _types.SimpleNamespace(data=data, last_update_success=True)
+        return climate.HeatPumpOptimizerClimate.current_temperature.fget(ent)
+
+    def starts(lifetime):
+        ent = object.__new__(sensor.CompressorStartsSensor)
+        ent.coordinator = _types.SimpleNamespace(
+            data={"insight": {"compressor_starts": {"lifetime": lifetime}}},
+            last_update_success=True)
+        return sensor.CompressorStartsSensor.native_value.fget(ent)
+
+    ok = {"upper_floor_temperature": True}
+    rows = [
+        # The upper-floor thermometer wins over the payload's indoor copy.
+        ("climate current_temperature reads the measured upper floor first",
+         climate_temp({"reading_ok": ok, "upper_floor_temperature": 20.5,
+                       "indoor_temperature": 19.0}), 20.5),
+        ("climate current_temperature falls back to the indoor copy",
+         climate_temp({"reading_ok": ok, "upper_floor_temperature": True,
+                       "indoor_temperature": 19.0}), 19.0),
+        # A numpy integer is the int it holds; a numpy bool is still a bool.
+        ("payload_number reads numpy.int64(7) as 7", payload_number(np.int64(7)), 7),
+        ("payload_number refuses numpy.bool_(True)", payload_number(np.bool_(True)), None),
+        # A published zero price is not a price: the contract's is used.
+        ("_gap_energy_rate falls back to the contract price at a zero spot price",
+         sensor._gap_energy_rate({"current_price": 0.0}, {"contract_fixed_price": 0.8}), 0.8),
+        ("_gap_energy_rate keeps a positive spot price (control)",
+         sensor._gap_energy_rate({"current_price": 0.5}, {"contract_fixed_price": 0.8}), 0.5),
+        ("zone_setpoint_attributes keeps upper and lower apart",
+         zone_setpoint_attributes({"upper_setpoint": 21.0, "lower_setpoint": 19.0}),
+         {"upper_floor_setpoint": 21.0, "lower_floor_setpoint": 19.0}),
+        ("Compressor Starts publishes an integer count", starts(5), 5),
+        ("Compressor Starts refuses a float count", starts(5.0), None),
+    ]
+    for what, got, want in rows:
+        R.check(f"{what} (#2379)", got == want and type(got) is type(want),
+                f"got {got!r}, want {want!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -2478,6 +2733,8 @@ def _main() -> int:
     _kinds_arm()
     _publish_arm()
     _no_rewrap_check()
+    _scrub_mro_check()
+    _number_state_arm()
     _i1_pins_arm()
     _version_arm(by_name)
     return R.close("FINITE BOUNDARY CHECKS")

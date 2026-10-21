@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 51a50741",
+  "killed_by": "tests/features.py",
+  "old": "        surplus_above_caps = max(0.0, capped - uncapped)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: CLAMP_DROP (`surplus_above_caps = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
