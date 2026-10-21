@@ -6842,6 +6842,56 @@
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
+  },
+  {
+   "group": "R10-FLY-RELAY-REVIEW-FF",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/tick_loop.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694",
+   "rca": [],
+   "after": [
+    "R10-TICK-OWED-LEVEL",
+    "R10-FLOW-RELAY-HOLD",
+    "R10-FLOW-ANDON",
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "When a review/<N> push is refused as non-fast-forward, cloud_relay.sh fetches the ref, re-applies the same verdict commit on the fresh tip and pushes; it never forces. If the fresh tip already carries the same verdict for the same head it skips; it logs either case. After any push it reports the remote tip (git ls-remote origin refs/heads/review/<N>), not the commit it built locally, because bus.sh confirm wants that tip (rule 23). Also: tools/audit/seat/tick_loop.sh relay_start (about lines 60-66) passes --confirm to cloud_relay.sh pass so a relayed verdict is posted with no hand step (assessor P15). Reviewed after #2547 and #2580, and after #2582 for tick_loop.sh. Also: cloud_relay.sh probe_arm writes .refused on every non-zero rc, so transient push failures are never retried; retry transients and log REFUSED <ref> <reason>.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-relay-review-ff",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
