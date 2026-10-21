@@ -20,10 +20,12 @@ one spelling now answers, and the view no longer re-derives it.
 
 ## Head
 
-`0be6047ca`, branched from `origin/main` `4e5801eb5064`; every figure below is taken at this head unless a line says
-another one. The evidence head is `2f8071ef5`: the two commits above it delete the stale mutation-ledger row and record
-the structure budgets, so every production line those figures measured is identical here. The PR head `de28f656` is
-this head plus the orchestrator's delivery row, and no production line moves under that commit.
+`fe9038fbe2`, on top of the PR head `f8c523f0` — my `0be6047ca`, the orchestrator's delivery row, a merge of `main`, and
+the bot's `ci: pin killed mutants` — branched from `origin/main` `4e5801eb5064`. Every figure below is taken at this head
+unless a line names another one; the production figures were measured at `2f8071ef5`, and the production lines are
+identical here (the later commits delete a stale ledger pin, record the structure budgets, and add the one features check
+the bound sites needed). The PR head `de28f656` named earlier in this body's history is a prior head and no figure is
+taken there.
 
 Prepr's closures recordings were skipped (`PREPR_SKIP_CLOSURES=1`) under the coordinator's owner ruling for the rest of
 this wave: CI's required `closures` context re-records them and `closures-autofix` repairs an UNDER-SCOPED result, while
@@ -32,8 +34,9 @@ the local re-record was the wave's bottleneck. Every other prepr step ran and pa
 ## Mutation proof
 
 The mutant deletes the two production terms the fix adds — `not defrosting` from `watch_active` and `or defrosting` from
-the map's fold guard — in the working tree, then runs the closure's `tests/features.py` and restores. The run ends
-`EXIT=1`:
+the map's fold guard — in the working tree, then runs the closure's `tests/features.py` and restores. Measured at
+`2f8071ef5`, when the suite held 4261 checks (the bound check below was added later and none of these arms reaches it).
+The run ends `EXIT=1`:
 
 ```
   FAIL a defrost interval never teaches the frequency map  [the fold would learn a ratio that is not a kW-per-Hz point, and the decile-keyed map is inherited when the user later switches to control]
@@ -44,6 +47,22 @@ the map's fold guard — in the working tree, then runs the closure's `tests/fea
 
 The third added check is the null control and stays green under the mutant: `null control: a non-defrost interval still
 folds`. `git status --short` after the restore prints nothing, so the measured tree is the committed head.
+
+### The two bound variants
+
+The mutation job's two added sites are the two variants of `_observe_frequency`'s `CMP_BOUND`, and both survived every
+driver (Red checks). One check in `tests/features.py` now feeds each bound its exact input; applied alone in the working
+tree and restored, each variant takes the suite from `ALL 4262 FEATURE CHECKS PASSED` to `1 of 4262 FEATURE CHECKS
+FAILED`:
+
+| Variant | Edit | Goes red |
+|---|---|---|
+| `CMP_BOUND` a | `self._commanded_power() > 0.05` -> `>= 0.05` | `the watchdog's two bounds: the floor is exclusive, the minimum inclusive` (`floor -> [True], minimum -> [True]`) |
+| `CMP_BOUND` b | `reported >= hz_min` -> `>` | the same check (`floor -> [False], minimum -> [False]`) |
+
+Each failure is that check on the arm the variant flipped; the other arm reads its expected value in both runs. The
+ledger row `tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._observe_frequency.CMP_BOUND.e2a6e890.json`
+records both.
 
 ## Null control
 
@@ -78,6 +97,12 @@ deliberately leaves unchanged.
 - `ALL 4261 FEATURE CHECKS PASSED` and `MODE: SCOPED -- 27 script(s) run`: `GATE_SCOPE=auto GOLDEN_MODE=drift
   GATE_JOBS=3 ./tests/run.sh` at `2f8071ef5` (keyed on the mode line, not the count; the gate's own failures are under
   Red checks).
+- `ALL 4262 FEATURE CHECKS PASSED`: `PYTHONPATH=tests/hastub python3 tests/features.py` at this head, with the bound
+  check added.
+- `PIN KILLED: 0 pinned, 2 left unpinned (2 survived)`: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py
+  --pin-killed --base origin/main` at `f8c523f0` (18 drivers in play; the comment-only null control survived each).
+- `MUTATION TABLE PASSED`, `PIN RE-VERIFICATION: 4 reproduced, 0 not reproduced`, `0 survivor(s) of 4 evaluated = 0.0%,
+  cap 20.0%`: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope changed --base origin/main` at this head.
 - `ALL 2360 ENTITY CHECKS PASSED`: `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head, after the stale
   ledger row was deleted.
 - `1 of 84 OPTIMALITY CHECKS FAILED`, the same check, at the baseline export: `PYTHONPATH=tests/hastub python3
@@ -103,37 +128,36 @@ test, which moves no logic statement.
 
 ## Unpinned sites
 
-`tools/pr/ci_predict.py --base origin/main` names four sites the diff adds; the lane pins the three a driver kills.
+`tools/pr/ci_predict.py --base origin/main` at this head names one key,
+`custom_components/heatpump_optimizer/coordinator.py:10563 CMP_BOUND*2`. The diff's three other added sites were pinned by
+the bot's `ci: pin killed mutants` at `f8c523f0`, and `mutation_table` re-verified all four here.
 
-- `custom_components/heatpump_optimizer/coordinator.py:10555 GUARD_OFF` on `if self._freq_mode() == FREQ_MODE_CONTROL:` —
-  pinned by `mutation-autofix`: with the guard off the watchdog never runs, and `persistent divergence stands control
-  down to latch` fails.
-- `custom_components/heatpump_optimizer/coordinator.py:10679 GUARD_OFF` on `if source is not None:` (the view's
-  `source` key) — pinned by `mutation-autofix`: with the guard off a configured view loses `source`, so `a number install
-  publishes source=number beside its unchanged keys` and `a frequency sensor alone observes, on the options' range, and
-  learns a map` both fail. The unconfigured arm is unchanged by this mutant (`source` stays absent), so `an unconfigured
-  view gains no key` is not its killer.
-- `custom_components/heatpump_optimizer/freq_control.py:78 RETURN_DEL` on `return bool(defrosting)` — pinned by
-  `mutation-autofix`: the predicate then returns None, which is not a defrost, and `a defrost interval never teaches the
-  frequency map` fails (Mutation proof).
 - `custom_components/heatpump_optimizer/coordinator.py:10563 CMP_BOUND*2` (`> 0.05` -> `>= 0.05`, `reported >= hz_min` ->
-  `>`): triaged, not pinned. Both flips move the verdict only for an interval exactly on a bound, and the three checks
-  that drive this line feed it 0.0 and 2.0 kW and 10, 45 and 90 Hz against a 20 Hz minimum (`tests/features.py`,
-  `_p8s_watch`'s idle and below-range arms and the defrost arms); none sits on a bound. The added `not defrosting` term
-  is killed by the defrost check (Mutation proof), and the lane would pin the flips if any driver separated them.
+  `>`): killed by a value check. Both variants survived every driver in play before it existed (Red checks), so
+  `tests/features.py` gained `the watchdog's two bounds: the floor is exclusive, the minimum inclusive`, which feeds
+  0.05 kW and a reading exactly at the entity's minimum; each variant alone fails it (Mutation proof), and the pin is
+  `tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._observe_frequency.CMP_BOUND.e2a6e890.json`.
+- The three the bot pinned at `f8c523f0`, each killed by `tests/features.py`: `coordinator.py:10555 GUARD_OFF`, the mode
+  guard — with it off the watchdog never runs and `persistent divergence stands control down to latch` fails;
+  `coordinator.py:10658 GUARD_OFF`, the view's configured guard — with it off a configured view loses `source` and the
+  configured-view checks fail, three in the bot's row; and `freq_control.py:78 RETURN_DEL` — the predicate returns None,
+  which is not a defrost, and `a defrost interval never teaches the frequency map` fails.
 
 ## Red checks
 
-The scoped gate at `2f8071ef5` ends `4 TEST SCRIPT(S) FAILED`; the two commits after it are the repairs, and two of the
-four reds are this branch's. CI's required `mutation` also runs red at the PR head `de28f656`; both branch reds and that
-one are answered below.
+The scoped gate at `2f8071ef5` ends `4 TEST SCRIPT(S) FAILED`; two of the four reds are this branch's and were repaired.
+CI's required `mutation` ran red at the PR heads `de28f656` and `f8c523f0` and is answered first below; it passes at
+this head (Figures).
 
-- `mutation` (required), red at `de28f656`: the job refuses the five mutation sites the diff adds (four keys;
-  `coordinator.py:10563 CMP_BOUND*2` is two). Each is named and dispositioned under `## Unpinned sites`. The standing
-  repair is `mutation-autofix`, which pins the sites a driver kills (`ci-autofix.md`: do not duplicate it), and
-  `mutation-pins (1)` was in flight at this head when the body was written. Cheaper detector: `tools/pr/ci_predict.py
-  --base origin/main` is source-only, names every added site in seconds, and prepr step 6d runs it — so this red was
-  visible before the push and is the instrument's, not a surprise. Standing cost: one local prepr.
+- `mutation` (required), red at the PR head `f8c523f0`: `4123 unpinned site(s) against 4126 at the ratchet base
+  f639f3b0d, 2 of them added by this diff`, with one survivor-rate breach beside it (`25.0% of mutants survived against a
+  cap of 20.0%`). Both additions are the two variants of `coordinator.py:10563 CMP_BOUND*2`.
+  `mutation_table --pin-killed` measured both surviving every driver in play (`PIN KILLED: 0 pinned, 2 left unpinned
+  (2 survived)`, 18 drivers, comment-only null control surviving each), so this branch adds their killer rather than a
+  triage: one check that feeds each bound its exact input, and each variant alone fails it (Mutation proof). Both are
+  recorded under `tests/mutation_ledger/killed_by/`, and the refusal and the rate both clear at this head. Cheaper
+  detector for the red itself: `tools/pr/ci_predict.py --base origin/main` is source-only and prepr step 6d runs it; the
+  pin drive is the instrument for the verdict.
 
 - `tests/optimality.py`, `1 of 84 OPTIMALITY CHECKS FAILED` on `one|summer_negative|shoulder: a recorded claim still
   has a gap`. Not this branch: `_CERT_CLAIMS`' own comment in the script records it as an arm64-only reading (the seat's
