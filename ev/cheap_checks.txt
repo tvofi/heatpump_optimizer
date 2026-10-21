@@ -1,0 +1,5 @@
+STRUCTURE RATCHET PASSED
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since e7c664856776
+Architecture score: dS +0.0000 NULL
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+claims hygiene: e7c664856 ok

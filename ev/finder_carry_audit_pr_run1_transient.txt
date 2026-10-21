@@ -1,0 +1,10 @@
+## wt cb48de247b39b47ffe9e010689f8ff4f971b7e32
+CARRY-AUDIT #2544: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+UNROUTED #2547 body item ba4886d7 (## Friction) [section]: 'none 🤖 Generated with [Claude Code](https://claude.com/claude-code)'
+UNROUTED #2547 review 6315224098 item beed9d5b [non-blocking]: 'Forward-carry: the body\'s "none" holds for this PR\'s own findings. The roster carries one item INTO this group'
+CARRY-AUDIT #2547: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
+## base e7c664856776542bf60bd770c98aba1eaadb4041
+CARRY-AUDIT #2513: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT #2544: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+UNROUTED #2547 review 6315224098 item b579380b [non-blocking]: 'Forward-carry: the body\'s "none" holds for this PR\'s own findings. The roster carries one item INTO this group'
+CARRY-AUDIT #2547: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
