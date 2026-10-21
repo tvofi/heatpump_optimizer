@@ -6935,6 +6935,49 @@
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    }
+  },
+  {
+   "group": "R10-FLY-CARRY-DISPOSITION",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/audit/carry_audit.py"
+   ],
+   "hot_files": [
+    "tools/audit/carry_audit.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Let the orchestrator add 'Carry: dismissed: <reason>' or 'Carry: <group>' under its own identity, keyed to the verdict's head SHA and read back, without a review. Touches carry_audit.py, so it is reviewed after #2571 (merged 94612a9b2). Evidence: the four markers-only re-reads (#2547, #2580, #2578, #2569) dismissed every item and routed none.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-carry-disposition",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
