@@ -1,0 +1,3 @@
+W12 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W12: app_push self-test: 182 checks, 1 failed
+    W12 FAIL ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran (got '002', want '110')

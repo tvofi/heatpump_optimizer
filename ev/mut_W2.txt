@@ -1,0 +1,3 @@
+W2 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W2: app_push self-test: 182 checks, 1 failed
+    W2 FAIL ... prepr ran once, the one line names why (HEAD has 2 parent(s), not one commit on the live head), and no row-only check ran (got '002', want '110')

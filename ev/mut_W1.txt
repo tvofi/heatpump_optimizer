@@ -1,0 +1,6 @@
+W1 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W1: app_push self-test: 182 checks, 4 failed
+    W1 FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '002', want '110')
+    W1 FAIL ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran (got '002', want '110')
+    W1 FAIL real git: the same commit with one more file runs prepr (null control) (got 'HEAD 38bef100 is the live head f5997bb9 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note', want 'the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: A dev/programme/delivery/7.md; A y)')
+    W1 FAIL real git: a rewrite of a row the live head carries runs prepr (got 'HEAD 1c207345 is the live head bf0d372a plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note', want 'the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: M dev/programme/delivery/7.md)')

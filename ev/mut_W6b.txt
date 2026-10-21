@@ -1,0 +1,3 @@
+W6b diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W6b: pr_args self-test: 63 checks, 1 failed
+    W6b   FAIL update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr

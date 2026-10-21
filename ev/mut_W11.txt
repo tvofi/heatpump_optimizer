@@ -1,0 +1,4 @@
+W11 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W11: app_push self-test: 182 checks, 2 failed
+    W11 FAIL ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran (got '002', want '110')
+    W11 FAIL real git: a row file of two lines, the first the open row anchored on #7, runs prepr (got 'HEAD a238b3c0 is the live head d230eed6 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note', want 'dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)')

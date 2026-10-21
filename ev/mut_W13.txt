@@ -1,0 +1,4 @@
+W13 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W13: app_push self-test: 182 checks, 2 failed
+    W13 FAIL --row-only: a body the contract refuses refuses, though prepr was skipped (got '0', want '1')
+    W13 FAIL and nothing was minted or pushed (got '015', want '000')

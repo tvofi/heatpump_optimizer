@@ -1,0 +1,4 @@
+W10 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+W10: app_push self-test: 182 checks, 2 failed
+    W10 FAIL ... prepr ran once, the one line names why (parent 1 22222222 is not the live pull-request head 55555555), and no row-only check ran (got '100', want '110')
+    W10 FAIL real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone (got 'HEAD 841d80d5 is the live head 2d3af98e plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note', want 'parent 1 e3ae8c2d is not the live pull-request head 2d3af98e')

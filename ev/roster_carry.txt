@@ -1,0 +1,4 @@
+origin/handoff/audit-r10-roster 23ef06dc6cc719917e593174b3a12977cd054071
+R10-ROW-ONLY-UPDATE present: False
+R10-POLICY-FIXER-MD carries 6
+Source: #2567 Forward-carry. prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's gate 'the body passes prepr' is not pr-contract's body gate: #2567's three pr-contract reds on 947d3631/93015eca (unrouted Forward-carry and Friction items) passed prepr. Owed in fixer.md: run `carry_audit.py check --body <body>` beside prepr in step 7, or name it beside prepr in step 5, so a body that pr-contract will refuse is caught before the handoff. Carry: R10-POLICY-FIXER-MD.
