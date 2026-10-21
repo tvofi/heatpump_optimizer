@@ -6967,7 +6967,9 @@
    "fixture": false,
    "owner_gate": "mandated approval under 6319294694",
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-FLY-ORPHANS-REWRITTEN"
+   ],
    "carry": [
     "add `carry_audit.py landed` (body item id present in its routed group's carry or brief at --roster-ref; CARRY-MISSING lines; rc 1) and `land-ops` (append-carry ops tagged `(items <ids>)`); bus.sh dispatch refuses on rc 1; fixtures are the #2558 pair (refuse, then pass after landing), the #2545 paraphrase (pass by id, a text-match mutant refuses), a dismissed item and a wrong-group id"
    ],
