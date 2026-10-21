@@ -1,0 +1,4 @@
+== authored code head ab41f4a0f vs head, PR's own files (three-dot vs merge base, compared)
+tools/audit/seat/tick_loop.sh same-delta=yes
+dev/audit/harnesses/r10_seat_selftests_mutants.py same-delta=yes
+tools/audit/seat/INSTRUMENTS.md same-delta=yes
