@@ -67,8 +67,8 @@ and once per fixture:
                      must run the five per-cycle files ``COST_FILES`` names.
                      ``loop_cpu_ratio`` is the event-loop thread's own share
                      (the cycle's thread CPU less its executor jobs), banded
-                     the same way, because doubling a tenth of the cycle stays
-                     inside the whole cycle's band (R9 D9-s2-02). The lane
+                     the same way, because doubling a minority of the cycle
+                     stays inside the whole cycle's band (R9 D9-s2-02). The lane
                      then replays the fixture three more times with the
                      cycle's CPU, its memory peak, and its loop-thread work
                      doubled in memory, and each must turn it red.
@@ -327,28 +327,35 @@ COST_DETECTION = 2.0
 #: ``loop_cpu_ratio`` (R9 D9-s2-02): the cycle's LOOP-THREAD CPU alone --
 #: its thread CPU less its executor jobs, plus the entity reads -- over the
 #: PURE-PYTHON reference (``reference_loop``), recorded and banded exactly as
-#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is
-#: about a tenth of the cycle, so doubling it moves ``cpu_ratio`` far inside
-#: its sqrt(2) band. Entry allowed by tvofi (card B1). The ruler was changed
-#: from the BLAS solve to a pure-Python workload (#2270, owner decision
-#: 2026-10-15): the numerator is interpreter-bound and the solve is
-#: BLAS-bound, so the figure tracked the runner CLASS, not the code --
-#: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The series
-#: splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow) read
-#: 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
+#: ``cpu_ratio``. The whole-cycle ratio cannot see a 2x of it: the loop is a
+#: minority of the cycle, so doubling it at the band's centre moves
+#: ``cpu_ratio`` inside its sqrt(2) band. Entry allowed by tvofi (card B1).
+#: The ruler was changed from the BLAS solve to a pure-Python workload
+#: (#2270, owner decision 2026-10-15): the numerator is interpreter-bound and
+#: the solve is BLAS-bound, so the figure tracked the runner CLASS, not the
+#: code -- corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs. The
+#: series splits by ref_ms: ~22-34 (fast) read 0.316-0.405, ~52-55 (slow)
+#: read 0.244-0.274, 1.66x overall; the class shift is the interpreter speed
 #: (loop_cpu 10.0 -> 13.5 ms, 1.35x) over the BLAS speed (ref_ms 28.6 ->
 #: 53.2 ms, 1.86x). Normalising by a workload of the loop's own kind, on its
-#: own clock, cancels the interpreter factor, so the figure is the loop's
-#: work over the reference's and does not move with the runner. Re-centred on
-#: the five post-#2339 rows of the CI series -- 0.0868, 0.0875, 0.0877,
-#: 0.0982, 0.1114 -- whose median is 0.0877; sqrt(2) x the median is 0.124,
-#: the smallest cap covering every row. Known margin: the 2x detection floor
-#: is 0.062, 0.3 % above the twelve-run local minimum of 0.0618, so a local
-#: run reading at that floor reds on "cannot see a 2x" while the CI rows, the
-#: lowest 0.0868, stay inside (0.062, 0.124]. The largest record, sqrt(2) x
-#: 0.1114 = 0.1575, also covers every row but moves the floor to 0.0788, so
-#: it would red more local runs for no headroom the series needs. Re-centre
-#: at the next timed week, not on one row.
+#: own clock, cancels MOST of the interpreter factor, not all of it: the
+#: numerator's work does not scale with the ruler's, so a runner that speeds
+#: the ruler faster than the cycle's own loop still lifts the figure. The
+#: scheduled slow lanes after #2339 read a tight 0.0868-0.0877 while their
+#: rulers sat 1.26x apart (loop_ref_ms 128-161), and 0.1114 on a runner
+#: 1.5-1.9x faster than those at the ruler (84.05 ms) whose loop CPU in
+#: absolute time fell (9.36 ms) -- the runner, not loop work, over the cap.
+#: ``dev/audit/harnesses/r10_replay_loopnorm.py --series`` derives the series
+#: by ruler era. Not loop work: the same five main commits, from the first
+#: post-#2339 row's to the tip, interleaved three rounds on one box, read
+#: medians 0.0837-0.0918 with no trend and the tip lowest but one. Recorded
+#: from the CI series, which is the runner the cap gates: the six post-#2339
+#: slow lanes read 0.0868-0.1138, the largest on the fast class, and a run's
+#: memory arm reads the same figure within 5.0 % of its clean run. The cap is
+#: that largest row plus that 5.0 %, 0.1138 x 1.05 = 0.120: every row, and
+#: every memory-arm reading (top 0.1162), inside (0.060, 0.120], and the
+#: lowest reading doubled, 2 x 0.0852 = 0.170, over it. A raise from 0.111
+#: (CLAUDE.md rule 2); re-centre down once the residual class factor goes.
 #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
 #: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
 #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
@@ -357,7 +364,7 @@ COST_DETECTION = 2.0
 #: Re-centre at the next timed week, not on one run.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.124},
+                                "loop_cpu_ratio": 0.120},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
@@ -370,9 +377,10 @@ COST_REF_EVERY = 8
 #: corr(loop_cpu_ratio, ref_ms) = -0.94 over 30 nightly runs (R10-RCA-2205):
 #: a runner whose BLAS outruns its interpreter read the loop low, and the
 #: spread was 0.2441-0.405 (1.66x), the runner, not the code. Normalising by
-#: work on the SAME clock and of the SAME kind cancels the interpreter speed,
-#: so the ratio is the loop's work over this reference's, invariant across
-#: runners. Fixed iterations, no numpy, no data dependence, so every call
+#: work on the SAME clock and of the SAME kind cancels MOST of the interpreter
+#: factor, not all of it: the ratio keeps a residual runner-class spread, so it
+#: is bounded, not invariant, across runners. Fixed iterations, no numpy, no
+#: data dependence, so every call
 #: costs the same and no integration change can move it -- the property that
 #: makes ``reference_solve`` the right ruler for the solve, for the loop.
 #: SIZED to a couple of hundred ms, as ``reference_solve`` is: 1e6 steps read
