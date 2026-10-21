@@ -3465,6 +3465,7 @@
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_leaf_solver_closure.py",
+   "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
@@ -4243,7 +4244,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 303.9
+   "seconds": 752.2
   },
   "tests/card.mjs": {
    "rc": 0,
