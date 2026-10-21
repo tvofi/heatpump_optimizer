@@ -6677,6 +6677,51 @@
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
+  },
+  {
+   "group": "R10-FLY-OPENPR-ATOMIC",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/open_pr.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/open_pr.sh"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694",
+   "rca": [],
+   "after": [
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: read main's nightly-status before the first push. P13 fold: the stuck row commit lives in open_pr.sh's own worktree ($HPO_STATE_DIR/pr/<topic>/wt) after a refused second push (29 of 98 open_pr runs refused); fix there, NOT an update_pr.sh auto-reset, which would drop the row's group.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-openpr-atomic",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
