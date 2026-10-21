@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "/home/user/rev/tests/entities.py", line 47, in <module>
-    from harness import (
-    ...<9 lines>...
-    )
-  File "/home/user/rev/tests/harness.py", line 25, in <module>
-    from homeassistant.config_entries import ConfigEntryState
-ModuleNotFoundError: No module named 'homeassistant'
-rc=1

@@ -1,0 +1,48 @@
+== main(03b49e15/22615537) -> r-31e162fd3
+{
+  "new": 17,
+  "new_carries": 21,
+  "stage": 18,
+  "carry_groups": [
+    "R10-FAHRENHEIT 3->4",
+    "R10-ADVISOR 10->11",
+    "R10-REGISTRY-LEAK 1->3",
+    "R10-ARCH-SHAPES 5->6",
+    "R10-HEAT-METER 4->5",
+    "R10-I5-DOCS 1->2",
+    "R10-TICK-ORCH 1->2",
+    "R10-BRIEFS-FOLD 18->20",
+    "R10-REPLAY-LANE 3->5",
+    "R10-RCA-FRICTION 1->2",
+    "R10-POLICY-LINT-FAMILY 3->5",
+    "R10-CI-LAYOUT 14->27",
+    "R10-STAMP 9->10",
+    "R10-ROSTER-OPS 3->6"
+  ],
+  "carry_appended": 32,
+  "text_edits": 16
+}
+== main(03b49e15/22615537) -> r-5756617f1
+{
+  "new": 17,
+  "new_carries": 23,
+  "stage": 18,
+  "carry_groups": [
+    "R10-FAHRENHEIT 3->4",
+    "R10-ADVISOR 10->11",
+    "R10-REGISTRY-LEAK 1->3",
+    "R10-ARCH-SHAPES 5->6",
+    "R10-HEAT-METER 4->5",
+    "R10-I5-DOCS 1->2",
+    "R10-TICK-ORCH 1->2",
+    "R10-BRIEFS-FOLD 18->20",
+    "R10-REPLAY-LANE 3->5",
+    "R10-RCA-FRICTION 1->2",
+    "R10-POLICY-LINT-FAMILY 3->5",
+    "R10-CI-LAYOUT 14->27",
+    "R10-STAMP 9->10",
+    "R10-ROSTER-OPS 3->6"
+  ],
+  "carry_appended": 32,
+  "text_edits": 16
+}
