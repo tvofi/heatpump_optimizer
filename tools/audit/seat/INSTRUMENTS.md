@@ -228,7 +228,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
-  existing PR, so the open-PR soft cap is untouched (an update is not an open).
+  existing PR, which the soft cap never refuses (it gates only group dispatch).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
   `OWED handoff-update`, and retried only when the handoff moves. An update that
@@ -342,12 +342,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   tip of `handoff-body/<topic>` ("that is the BODY sha; pass the CODE sha" —
   twice on 2026-10-18 that sha stopped the script silently); a missing
   `handoff/<topic>` or `handoff-body/<topic>`; no BODY.md at the body ref — the
-  body is the transport, not an afterthought; the open-PR soft cap (tvofi,
-  2026-10-18): `HPO_OPEN_PR_CAP` (default 6) or more open pull requests, drafts
-  included, `record:`-titled and non-`hpo-author` bot ones excluded, unless a
-  leading `--over-cap "<reason>"` overrides it, which prints `OVER-CAP` with
-  the reason; a count it cannot read refuses (`pr_cap.py`). Any later stop
-  prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
+  body is the transport, not an afterthought. The soft cap gates only
+  dispatching a new roster group, and never refuses opening or updating a pull
+  request for an owed handoff (tvofi, 2026-10-20): a leading `--over-cap
+  "<reason>"` is still accepted and prints that it is advisory; `pr_cap.py
+  info` prints the open count as information, and a count gh cannot read says
+  so and still opens. Any later stop prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
   refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
 - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
@@ -377,9 +377,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   PR-comment-is-not-propagation defect. Refusal: a section whose read fails
   prints UNREADABLE, never a silent skip; a rule the tick cannot read from
   the tree or API it does not report. Every pass prints two level lines in
-  PRS (tvofi, 2026-10-18): `OPEN-PR CAP: N/CAP`, counted by `pr_cap.py`'s
-  rule and flagged at or over the cap `open_pr.sh` refuses at, and
-  `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
+  PRS (tvofi, 2026-10-20): `WIP: N/6 (open PRs M)`, N the roster groups whose
+  `resume.stage` is `in-progress` through `pr_cap.py`'s `wip_groups` and M its
+  counted open pull requests, flagged at or over `HPO_WIP_CAP` — at the cap a
+  new group is not dispatched, while opening and merging are always allowed;
+  and `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
   touches the coordinator, flagged over 2 or when a diff is unreadable. Also
   level lines every pass from the approver App's newest `Fix review:` on
   each open PR (the identity off `app_approve.sh`, the grammar `bus.sh`'s;
@@ -425,13 +427,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   in a scratch repository, offline, each refusal arm beside a mutant that
   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
   null controls that pass every check. Refusal: its self-test's tally.
-- `pr_cap.py` — the open-PR soft cap's one counting rule (tvofi, 2026-10-18):
-  `gate` for `open_pr.sh`, imported by `orchestrator_tick.py`. A bot is a
-  GitHub-flagged bot other than `app/hpo-author`, which authors every seat PR.
-  When: `open_pr.sh` before it opens; the tick every pass. Refusal: at or over
-  the cap without `--over-cap <reason>`; an empty reason; an invalid
-  `HPO_OPEN_PR_CAP`; a list gh cannot read, that is not JSON, or that reaches
-  gh's 200 limit.
+- `pr_cap.py` — the soft cap, on dispatch since 2026-10-20: `dispatch-gate`
+  counts the roster groups whose `resume.stage` is `in-progress` through
+  `roster_lib` at the roster ref, prints their ids and refuses at or over
+  `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` is given; `info`
+  prints the open count for `open_pr.sh` and never refuses. A group that also
+  has an open pull request is one group. Imported by `orchestrator_tick.py`
+  for its `WIP` and coordinator level lines. A bot is a GitHub-flagged bot
+  other than `app/hpo-author`, which authors every seat PR. When: before
+  dispatching a new group, and `open_pr.sh` before it opens (information
+  only); the tick every pass. Refusal: at or over the cap without
+  `--over-cap <reason>`; an empty reason; an invalid `HPO_WIP_CAP`; a roster
+  it cannot read (never a clean zero); an open list gh cannot read, that is
+  not JSON, or that reaches gh's 200 limit (reported, not gated).
 - `proof_watch.py` — watches one named check-run at one pinned head of one
   pull request and, once it completes `success` beside green required contexts
   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
@@ -442,7 +450,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `merge_train.required`), an unmergeable pull request and a head
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
-  every guard and touches nothing.
+  every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
+  `--mandate <comment-id>`, and refuses at launch without one.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
