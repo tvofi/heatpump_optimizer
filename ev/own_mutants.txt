@@ -1,0 +1,4 @@
+RESULT own-mutant=R1 rc=1 fails=0
+RESULT own-mutant=R2 rc=0 fails=0
+RESULT own-mutant=R3 rc=1 fails=3
+RESULT own-mutant=R4 rc=1 fails=5

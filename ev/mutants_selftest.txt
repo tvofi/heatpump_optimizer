@@ -1,0 +1,65 @@
+  ok   A1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A1: the plant changes the text
+  ok   A1: the mutant parses
+  ok   A2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A2: the plant changes the text
+  ok   A2: the mutant parses
+  ok   A3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A3: the plant changes the text
+  ok   A3: the mutant parses
+  ok   A4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A4: the plant changes the text
+  ok   A4: the mutant parses
+  ok   A5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A5: the plant changes the text
+  ok   A5: the mutant parses
+  ok   A6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A6: the plant changes the text
+  ok   A6: the mutant parses
+  ok   A7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A7: the plant changes the text
+  ok   A7: the mutant parses
+  ok   C1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C1: the plant changes the text
+  ok   C1: the mutant parses
+  ok   C2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C2: the plant changes the text
+  ok   C2: the mutant parses
+  ok   C3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C3: the plant changes the text
+  ok   C3: the mutant parses
+  ok   C4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C4: the plant changes the text
+  ok   C4: the mutant parses
+  ok   C5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C5: the plant changes the text
+  ok   C5: the mutant parses
+  ok   C6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C6: the plant changes the text
+  ok   C6: the mutant parses
+  ok   C7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C7: the plant changes the text
+  ok   C7: the mutant parses
+  ok   C8: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C8: the plant changes the text
+  ok   C8: the mutant parses
+  ok   P1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P1: the plant changes the text
+  ok   P1: the mutant parses
+  ok   P2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P2: the plant changes the text
+  ok   P2: the mutant parses
+  ok   P3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P3: the plant changes the text
+  ok   P3: the mutant parses
+  ok   D1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   D1: the plant changes the text
+  ok   D1: the mutant parses
+  ok   a killed plant prints its tally and drops the (got:) suffix
+  ok   a crash with no FAIL line prints its tail
+  ok   a survivor prints fails=0 and no tail
+  ok   no names selects every plant
+  ok   a named plant is kept
+  ok   an unknown plant is returned for refusal
+r10_roster_ops_mutants self-test: 63 checks, 0 failed
+rc=0

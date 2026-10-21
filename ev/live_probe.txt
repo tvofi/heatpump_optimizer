@@ -1,0 +1,8 @@
+roster_origin_handoff_audit-r10-roster.json groups 105 nonempty 66 empty 37 absent 2
+ dump round-trips: True
+ set-after self re-set refused: [] 0
+ byte mismatches: [] 0
+roster_origin_main.json groups 91 nonempty 64 empty 27 absent 0
+ dump round-trips: True
+ set-after self re-set refused: [] 0
+ byte mismatches: [] 0
