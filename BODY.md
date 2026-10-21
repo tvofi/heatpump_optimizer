@@ -34,12 +34,24 @@ themselves, and the step-response experiment names
 the vocabulary; `narrative.group_by_reason` and the settlement read their
 fallback from it rather than from a bare string.
 
+A third commit fixes the `typing` red the first pushed head turned: the
+share's key was a conditional expression over `space_reason`/`dhw_reason`
+(`str | None`), so mypy refused both `shares[code]` and `shares.get(code, ...)`.
+The predicate now reads as two branches, the truthiness test narrowing to
+`str`; no ignore is added, so `type_ignores` stays at its recorded 0.
+
 Part of #2256: the roster files no closing keyword for this group; the
 orchestrator verifies the issue after the merge.
 
 ## Head
 
-`84eb9c1abad0a4460f764f4cab916db0f66df48e`
+`4706031025ab4c8652daa252e87ff312114ba19f`
+
+prepr was run with `PREPR_SKIP_CLOSURES=1` — a deliberate skip, not an
+inference: CI's `closures` context is required on every pull request and
+`closures-autofix` repairs an UNDER-SCOPED selection, so the local re-record
+duplicates CI and was the gate queue's bottleneck (owner ruling, 2026-10-20).
+Everything else in prepr ran.
 
 ## Mutation proof
 
@@ -48,9 +60,10 @@ with `PYTHONPATH=tests/hastub:tests python3 tests/features.py`, and the line is
 restored with `git checkout -- <file>`; the trees are otherwise identical. Five
 mutations, five reds, none survived.
 
-1. **The partition's predicate** — `ledger.explain_metered`:
-   `code = reason if planned else REASON_UNTAGGED` → `code = reason`. Red,
-   four checks: `R10-SAV-REASONS: a plan that commanded nothing does not name
+1. **The partition's predicate** — `ledger.explain_metered`: delete the
+   two-branch narrowing (`if reason and reason != REASON_UNTAGGED and reason
+   not in IDLE_REASONS: code = reason` / `else: code = REASON_UNTAGGED`) in
+   favour of `code = reason`. Red, four checks: `R10-SAV-REASONS: a plan that commanded nothing does not name
    the draw it never asked for -- the metered kWh book as untagged, not as
    idle` (`idle={'kwh': 0.4, 'sek': 0.8}, untagged={'kwh': 0.0, 'sek': 0.0}`);
    `R10-SAV-REASONS: a channel the plan ran explains the draw at any meter
@@ -135,6 +148,11 @@ different category would not.
 - `PYTHONPATH=tests/hastub:tests python3 tests/features.py` — 9 new checks in
   the `R10-SAV-REASONS` section; all pass on the head, and the mutation proof
   names the ones each mutant reddens.
+- `tests/typing_ruler.py --mypy`, run by the pinned interpreter — at
+  84eb9c1a: `ledger.py 2`, `FAIL errors did not grow [recorded 0, measured 2
+  (+2)]`, `FAIL by_code[arg-type] ... (+1)`, `FAIL by_code[index] ... (+1)`,
+  3 of 11 failed. At this head: `errors did not grow`, `type_ignores did not
+  grow`, `ALL 9 typing-ruler checks PASSED`.
 - `python3 tests/structure.py` — `class_excess_loc` 18301 → 18299,
   `max_class_loc` 8543 → 8541, `functions_cc_over_15` 31 → 30,
   `seam_cut_total` 719 → 718: the partition moved out of the coordinator class
@@ -143,48 +161,70 @@ different category would not.
 - `python3 tools/audit/archscore/score.py --diff <merge base>` —
   `Architecture score: dS +0.0023 IMPROVES` (`coord_footprint` 2498 → 2494);
   no metric rose.
-- `python3 tools/pr/ci_predict.py --base <merge base>` — `no closures or fast
-  red predicted`; the five mutation sites it lists are disposed above.
-- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=<merge base> ./tests/run.sh` —
-  `MODE: SCOPED -- 27 script(s) run, 6 scoped out`. **Left to CI, named
-  unrun here**: the shared box measured load average 56-225 on 8 cores through
-  the whole handoff (three other seats ran `tests/entities.py`, two ran
-  `tests/features.py`, plus `validate.py`, `env_drift.py`, a closure
-  re-derivation and a policy-mutant run), where `tests/features.py` alone took
-  28 minutes and had not finished; an earlier scoped run is not quoted because
-  it was measured across edits. `PYTHONPATH=tests/hastub python3
-  tests/entities.py` did finish on this tree: `ALL 2359 ENTITY CHECKS PASSED`.
+- `python3 tools/pr/ci_predict.py --base <merge base>` — at this head: `no
+  closures or fast red predicted`, `1 unpinned site(s) the diff adds`. That
+  site is disposed under `## Unpinned sites`; the lane's own autofix pinned the
+  others in `8d22c38c4`, whose rows this branch carries.
+- `GATE_SCOPE=auto GATE_SCOPE_BASE=<merge base> GOLDEN_MODE=drift
+  GOLDEN_REF=<merge base> ./tests/run.sh` at this head — `MODE: SCOPED -- 27
+  script(s) run, 6 scoped out`, 10306 s of wall clock on a box carrying other
+  seats' preprs all night. 24 scripts are green, among them `ALL 4267 FEATURE
+  CHECKS PASSED`, `ALL 2359 ENTITY CHECKS PASSED`, `ALL 9 typing-ruler checks
+  PASSED`, `STRUCTURE RATCHET PASSED` and `ALL CARD CHECKS PASSED`. Three
+  lines are not green; none of them is this diff, and each has its control:
+  - `python3 tests/optimality.py` — 1 of 84: `one|summer_negative|shoulder: a
+    recorded claim still has a gap`. Run at the merge base in a detached
+    worktree, the identical cell, objective and gaps fail identically (`obj
+    0.254795`, re-polish `+0.0000%`, ladder `+0.0000%`, 1 of 84). A
+    claimed-gap row recorded in the canonical CI environment whose local
+    re-solve closes on this machine's BLAS.
+  - `python3 tests/stress.py` — 1 of 113: `shoulder: cheaper than holding the
+    setpoint [4.67 vs 3.96]`. At the merge base the same check fails with the
+    same two numbers (1 of 113), so it is the machine and its load, not the
+    reason-tagging seam; CI's canonical run is the authority.
+  - `tests/stress.py` and `tests/harness_headers.py` *inside the gate*: both
+    refused by the exclusive gate lease — `gate_lock: flock-wrap refused,
+    r10-sav-reasons-mh holds no lease: lease held by harness-headers-r10g3`,
+    which fail-closes by design. Re-run at this head under the lease:
+    `tests/harness_headers.py` → `ALL 109 HARNESS HEADER CHECKS PASSED`, and
+    `tests/stress.py` → the base-reproduced row above.
 
 ## Red checks
 
-- `mutation` — red by the `R10-PREPR-UNPINNED-RED` rule rather than by a run:
-  the diff adds five mutation sites, and `mutation-autofix` may pin a survivor
-  only after the push, so the reviewed head can carry this. Answer: no cheaper
-  detector exists for a mutant-survivor claim than the lane itself; the cheaper
-  read is the site-level disposition under `## Unpinned sites`, where each site
-  names the check that reddens under its mutation. The lane remains CI's
-  authority on whether a site survives.
-- No other red is known at the handoff. The scoped gate is named unrun under
-  `## Figures` with the load that made it impractical, so its result is CI's to
-  report; `tools/pr/ci_predict.py` turns no fast red.
+- `typing` — red at the first pushed head 84eb9c1a, green at this one. The
+  ruler measured `ledger.py` = 2 against a recorded 0 (`by_code[arg-type] +1`,
+  `by_code[index] +1`); the share's key was `str | None`. Answer: the cheaper
+  detector is the ruler itself — one local run of `tests/typing_ruler.py
+  --mypy` by the pinned interpreter, about the cost of the CI job it mirrors —
+  and it was run before the fix and after it; no cheaper detector exists than
+  the one that produced the count.
+- `mutation` — red by the `R10-PREPR-UNPINNED-RED` rule at the head before the
+  lane ran: the diff added mutation sites, and `mutation-autofix` may pin a
+  site only after the push, so the reviewed head could carry this. Answer: the
+  lane ran, and its autofix commit `8d22c38c4` — merged into this head — pins
+  the five sites it killed, each row recording that the mutation took
+  `tests/features.py` red. One site remains unpinned and is disposed under
+  `## Unpinned sites`. No cheaper detector exists for a mutant-survivor claim
+  than the lane itself; the site-level disposition is the cheaper read.
+- No other red is known. The scoped gate at this head is reported in full
+  under `## Figures`: 24 of 27 scripts green, and the three non-green lines are
+  two lease refusals that fail closed (both re-run under the lease, one green
+  and one base-reproduced) and one optimality claim row that fails identically
+  at the merge base. `tools/pr/ci_predict.py` turns no fast red.
 
 ## Unpinned sites
 
-Each key is the one `python3 tools/pr/ci_predict.py --base <merge base>` lists;
-each is disposed by a value check that fails when its predicate is mutated.
+`python3 tools/pr/ci_predict.py --base <merge base>` lists one unpinned site
+at this head, disposed by a value check that fails when its predicate is
+mutated. The five sites an earlier head added are now pinned on this branch by
+the mutation lane's autofix commit `8d22c38c4` (rows under
+`tests/mutation_ledger/killed_by/`), which is why the predictor no longer
+lists them.
 
-- `custom_components/heatpump_optimizer/boost.py:351 GUARD_OFF` — value check:
-  the anti-legionella check in mutation 3 above.
-- `custom_components/heatpump_optimizer/ledger.py:444 CMP_BOUND` — value
-  check: the `explain_metered` arms above (`kwh <= 0.0` widened to `< 0.0`
-  returns a zero share the "nothing metered" arm forbids).
-- `custom_components/heatpump_optimizer/ledger.py:444 GUARD_OFF` — value check:
-  the same arms (a zero share appears in every non-empty arm).
-- `custom_components/heatpump_optimizer/ledger.py:451 RETURN_DEL` — value
-  check: the same arms (no shares at all).
-- `custom_components/heatpump_optimizer/narrative.py:113 CMP_BOUND` — value
-  check: `group_by_reason books steps past a short reasons list as untagged`
-  (`i < len(reasons)` widened indexes past the list and raises).
+- `custom_components/heatpump_optimizer/ledger.py:450 GUARD_OFF` — value
+  check: mutation 1 above deletes the predicate and reddens four
+  `R10-SAV-REASONS` checks; the arms below the guard also refuse an idle,
+  absent or already-untagged reason keyed as the share's code.
 
 ## Forward-carry
 
