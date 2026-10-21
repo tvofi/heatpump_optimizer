@@ -419,10 +419,11 @@ def _group_checks(check) -> None:
         check("the --group CLI passes --head and --roster-ref through",
               rc == 0 and out.getvalue() == line + "\n" and first in msg and main_tip not in msg
               and "Changed." in msg and "On the branch." not in msg)
-        # A clone of main alone holds none of the ref's objects, so it must fetch the tip it extends.
+        # A clone of main alone (--no-local: a local clone copies every object) holds none of the
+        # dispatch ref's objects, so it must fetch the tip it extends.
         tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
         other = Path(td) / "other"
-        throwaway_git_clone(origin, other, "-q", "--single-branch", "--branch", "main")
+        throwaway_git_clone(origin, other, "-q", "--no-local", "--single-branch", "--branch", "main")
         try:
             with contextlib.redirect_stderr(io.StringIO()):
                 again = dispatch_group("fixer", "R10-X", "m-1", repo_dir=str(other), roster_ref="origin/main",
