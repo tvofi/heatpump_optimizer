@@ -5342,7 +5342,9 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From #2557 (verdict at origin/probe/rev-2557-a4ec4610): the standing orphan backlog saturates the handoff-no-pr age thresholds (123 of 153 hourly samples) unless the thresholds are keyed to arrivals after the last opening. Control: a replay over the hourly samples, where a fresh orphan after an opening must trip the threshold and the standing backlog alone must not."
+   ],
    "architect_note": "",
    "brief": "The root-cause analysis for the orphaned-handoff class (handoffs no pull request carried): one new record under dev/audit/rca, already handed off on handoff/r10-rca-handoff-slip and awaiting its pull request. Review checks the four products root-cause.md requires: the named cause, the process state, the cost test with numbers, and the countermeasure or recorded refusal.",
    "resume": {
