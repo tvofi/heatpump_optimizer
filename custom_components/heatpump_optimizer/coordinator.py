@@ -10655,7 +10655,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         mode = self._freq_mode()
         recommended = None
         exhausted = False
-        if source is not None:
+        if False:
             target = self._commanded_power() or 0.0
             recommended = self._freq_map.recommend(target, hz_min, hz_max)
             # "Running flat out on faith" must be visible: the flat-out
