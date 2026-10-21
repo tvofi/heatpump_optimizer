@@ -1,0 +1,50 @@
+===== daemonize pid=26497 2026-10-21T05:37:10Z argv: python3 -u /Users/timmalmstrom/hpo-seats/r10s3/r10-gate-priority-review/evidence/mutants_driver.py
+=== MUTANT (a) _queue sort key drops -effective | rc=1 ===
+    FAIL priority: an urgent waiter takes before an older normal one, after its ticket rewrite  [queued=True/True rewrite=True order=['normal', 'urgent']]
+    FAIL priority: aging promotes a normal waiter past a later urgent one, and only past the window  [aged=['normal', 'urgent'] below=['normal', 'urgent']]
+    FAIL priority: malformed, absent and out-of-range values are 0 or clamped, never a crash  [order=['absent', 'junk', 'over', 'negative', 'float'] parsed=[0, 0, 0, 2, 0, 0, 1]]
+    FAIL priority: the heavy-slot pool orders by the same rule  [queued=True/True order=['normal', 'urgent']]
+    4 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (b) _enqueue rewrites PRIORITY_NORMAL | rc=1 ===
+    FAIL priority: an urgent waiter takes before an older normal one, after its ticket rewrite  [queued=True/True rewrite=False order=['normal', 'urgent']]
+    FAIL priority: a ticket rewrite keeps its priority and its arrival stamp  [same_path=True priority=0/0 queued_at_kept=True]
+    FAIL priority: the heavy-slot pool orders by the same rule  [queued=True/True order=['normal', 'urgent']]
+    3 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (c) aging removed | rc=1 ===
+    FAIL priority: aging promotes a normal waiter past a later urgent one, and only past the window  [aged=['urgent', 'normal'] below=['urgent', 'normal']]
+    1 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (d) _read_priority try/except deleted | rc=1 ===
+    FAIL priority: malformed, absent and out-of-range values are 0 or clamped, never a crash  [raised ValueError("invalid literal for int() with base 10: 'junk'")]
+    1 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (g) _free_slot steals a live holder | rc=1 ===
+    FAIL a live holder keeps its slot past its lease, and a fifth taker is blocked  [blocked=False names_pid=True past_lease=[]]
+    FAIL a taker queues behind a live past-lease holder and takes the slot when it frees  [queued=False order=['fifth:0'] holds=False]
+    2 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (h) no pid when caller names none | rc=1 ===
+    FAIL a live holder keeps its slot past its lease, and a fifth taker is blocked  [blocked=True names_pid=False past_lease=['0:holder']]
+    1 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (i) witnesses not reported (past_lease) | rc=1 ===
+    FAIL a live holder keeps its slot past its lease, and a fifth taker is blocked  [blocked=True names_pid=True past_lease=[]]
+    FAIL slot-status counts past-lease holders and unleased runs, and prunes a dead marker  [counted=False cleared=True dead_pruned=True]
+    2 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (i) witnesses not reported (unleased) | rc=1 ===
+    FAIL slot-status counts past-lease holders and unleased runs, and prunes a dead marker  [counted=False cleared=True dead_pruned=True]
+    1 of 29 gate lock acceptance checks FAILED
+
+=== MUTANT (e) derived default always 1 | rc=1 ===
+    FAIL a group that resolves but is not listed stays normal (null control) (got: 1)
+
+=== MUTANT (f) derived default always 0 | rc=1 ===
+    FAIL a listed group gets priority with no env and no marker (got: 0)
+    FAIL the branch's last segment answers for the group without resume.branch (got: 0)
+    FAIL with neither override the derived default still answers (got: )
+
+RESTORED: git diff should be empty
+(clean)

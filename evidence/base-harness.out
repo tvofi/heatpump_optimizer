@@ -1,0 +1,20 @@
+gate_lock: waiting for the lease held by h until 2026-10-21 05:41:00.990382+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:41:00.990382+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:41:01.593772+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 05:41:01.803846+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 05:41:01.803846+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 05:41:02.146538+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 05:41:02.146538+00:00)
+FAIL | priority: an urgent waiter takes before an older normal one, after its ticket rewrite | queued=True/True rewrite=False order=['normal', 'urgent']
+FAIL | priority: a ticket rewrite keeps its priority and its arrival stamp | raised TypeError("_enqueue() got an unexpected keyword argument 'priority'")
+FAIL | priority: aging promotes a normal waiter past a later urgent one, and only past the window | raised AttributeError("module 'gate_lock_base' has no attribute 'PRIORITY_AGING_SECONDS'")
+FAIL | priority: malformed, absent and out-of-range values are 0 or clamped, never a crash | raised TypeError("_queue() got an unexpected keyword argument 'now'")
+PASS | priority: a waiting tenant still refuses renew, and queues ahead after the release | refused=True order=['urgent']
+FAIL | priority: the heavy-slot pool orders by the same rule | queued=True/True order=['normal', 'urgent']
+PASS | concurrency control: two waiters released in one poll, exactly one holds the slot | queued=True overlaps=0 order=['a', 'b']
+FAIL | a live holder keeps its slot past its lease, and a fifth taker is blocked | raised KeyError('past_lease')
+PASS | a slot whose named process is gone is stolen at once (null control) | stolen=True
+PASS | a legacy slot with no pid is freed on expiry; a fresh one is respected | expired_taken=True fresh_blocked=True
+FAIL | a taker queues behind a live past-lease holder and takes the slot when it frees | queued=False order=['fifth:0'] holds=False
+FAIL | slot-status counts past-lease holders and unleased runs, and prunes a dead marker | raised AttributeError("module 'gate_lock_base' has no attribute 'mark_unleased'")
+origin/main: 8 of 12 lease cases FAILED

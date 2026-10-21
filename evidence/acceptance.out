@@ -1,0 +1,65 @@
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:56.026880+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:56.026880+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:56.026880+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:57.816209+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:58.542071+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:59.066907+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:59.066907+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 05:40:59.710685+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 05:40:59.934735+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 05:40:59.934735+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 05:41:00.373740+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 05:41:00.373740+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 05:39:00.798058+00:00)
+
+=== gate lock acceptance (#404) ===
+
+-- expired lease taken cleanly
+  ok   expired lease replaced
+
+-- live agent between commands keeps lock
+  ok   holder pid irrelevant — lease still live
+  ok   renew extends lease
+  ok   re-take between commands is idempotent
+
+-- crashed run releases flock
+  ok   flock held during gate
+  ok   flock released after crash
+  ok   successor takes after crash
+
+-- two agents contend
+  ok   second agent blocked on live lease
+  ok   waiter acquired after release
+  ok   no pid forensics required
+
+-- expired same-label take
+  ok   expired same-label take succeeds
+
+-- same-label return clears holding
+  ok   holding cleared after same-label return
+  ok   waiter blocked after same-label return
+
+-- the queue
+  ok   FIFO: three waiters take in arrival order, no one jumps
+  ok   renew is refused while a ticket waits; the holder re-queues behind
+  ok   a dead or expired ticket is skipped, a live one behind it is not
+  ok   null control: with no live waiter renew extends and a take succeeds
+
+-- priority
+  ok   priority: an urgent waiter takes before an older normal one, after its ticket rewrite
+  ok   priority: a ticket rewrite keeps its priority and its arrival stamp
+  ok   priority: aging promotes a normal waiter past a later urgent one, and only past the window
+  ok   priority: malformed, absent and out-of-range values are 0 or clamped, never a crash
+  ok   priority: a waiting tenant still refuses renew, and queues ahead after the release
+  ok   priority: the heavy-slot pool orders by the same rule
+  ok   concurrency control: two waiters released in one poll, exactly one holds the slot
+
+-- heavy-slot holds
+  ok   a live holder keeps its slot past its lease, and a fifth taker is blocked
+  ok   a slot whose named process is gone is stolen at once (null control)
+  ok   a legacy slot with no pid is freed on expiry; a fresh one is respected
+  ok   a taker queues behind a live past-lease holder and takes the slot when it frees
+  ok   slot-status counts past-lease holders and unleased runs, and prunes a dead marker
+
+ALL 29 gate lock acceptance checks PASSED
