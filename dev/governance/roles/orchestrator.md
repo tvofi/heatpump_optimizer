@@ -73,13 +73,11 @@ process states and the demonstration a check owes are `root-cause.md`'s and
 
 ## 4. The merge message is a second closing surface
 
-A pull request's closing references describe its **body**, and no tool on the
-GitHub surface here exposes them. The merge message is a separate artifact,
-written by you at merge time; since `main` took to merge commits
-(`dev/governance/decisions/0010-merge-commits-on-main.md`) its default body is
-the pull request's **title**, so a keyword in a title reaches `main` too, and a
-pull request can show `[]` while its merge commit shuts an issue. **GitHub
-discards the negation**; only the keyword and the number matter.
+A pull request's closing references describe its **body**, and no method on
+the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
+time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
+merge commit shuts an issue. **GitHub discards the negation**; only the keyword
+and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. Roster text applies too: a seat will
