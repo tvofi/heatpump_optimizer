@@ -1,0 +1,58 @@
+### M1
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+  FAIL mandate: scope budget-raise does not cover an owner approval of code-owned paths: got True, want False
+budget_raise_gate self-test: 242 checks, 1 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+  FAIL owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it (rc=0: )
+merge_pr self-test: 14 checks, 1 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 36 checks, 0 failed
+### M2
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 242 checks, 0 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+  FAIL owner mode under a code-owned mandate in force now passes (rc=1: MANDATE REFUSE: mandate 4100000001 has scope code-owned, which does not cover an owner approval of code-owned paths)
+  FAIL owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it (rc=0: )
+merge_pr self-test: 14 checks, 2 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 36 checks, 0 failed
+### M3
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 242 checks, 0 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+merge_pr self-test: 14 checks, 0 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+FAIL (a3) owner mode passes --mandate <id> to merge_pr.sh (got [['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '/tmp/proof-watch-selftest.pyj6366x/case2/evidence', 'owner']], want [['owner', '--mandate', '6175172275']])
+proof_watch self-test: 36 checks, 1 failed
+### M4
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 242 checks, 0 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+merge_pr self-test: 14 checks, 0 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+FAIL (a3) --mode owner without --mandate refuses at launch (got 1, want 2)
+proof_watch self-test: 36 checks, 1 failed
+### M5-drop-all
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+  FAIL mandate: scope all covers an owner approval of code-owned paths: got False, want True
+budget_raise_gate self-test: 242 checks, 1 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+  FAIL owner mode under a mandate in force now passes (rc=1: MANDATE REFUSE: mandate 4100000001 has scope all, which does not cover an owner approval of code-owned paths)
+  FAIL owner mode under an expired mandate refuses with the gate's why (rc=1: MANDATE REFUSE: mandate 4100000001 has scope all, which does not cover an owner approval of code-owned paths)
+merge_pr self-test: 14 checks, 2 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 36 checks, 0 failed
+### M6-revert-literal-with-raise
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== python3 tools/policy/budget_raise_gate.py --self-test
+budget_raise_gate self-test: 242 checks, 0 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+  FAIL owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it (rc=0: )
+merge_pr self-test: 14 checks, 1 failed
+== python3 -I tools/audit/seat/proof_watch.py --self-test
+proof_watch self-test: 36 checks, 0 failed

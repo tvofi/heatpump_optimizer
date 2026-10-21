@@ -1,0 +1,14 @@
+## merge-tree vs origin/main 03b49e1521a2490335922093c9177aec8f6119d9
+856be5962661429665012bcc350219f7e09db0a4
+rc=0
+## files main changed since merge-base that the PR also touches
+## dc394e424 auto-merge: remerge-diff (empty = no hand resolution)
+dc394e424ac6ae15629eb9f7bfb47114b850db81
+## 2eb1f378 merge: remerge-diff
+2eb1f37801733d093efe92b0b1569803c44b64a0
+## VERSION/manifest/notes/claims in diff
+none
+## merge-tree vs origin/main f58b14c19321af380613abeb479b9395d35df364
+d810c1e90ffe32949280c5959bce14d228451d34
+rc=0
+## overlap since merge-base
