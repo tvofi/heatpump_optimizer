@@ -308,7 +308,7 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   a reviewer's job, not a check's: prose moved into this file leaves the corpus.
 - **`tests/mutation_budgets.json`'s stated reason is stale.** It says the cap
   waits on a full-package run that "cannot happen until mutation-nightly is on
-  main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
+  main"; the `mutation-nightly` job is in `.github/workflows/nightly.yml` and
   `last_measured.full` is still `null`. **`mutation` is a required check** —
   read the contexts from the `main-protect-checks` ruleset endpoint, never a
   count from here; `coverage`, `mutation-nightly`, `slow` and `nightly-status`

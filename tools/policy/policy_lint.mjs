@@ -6188,6 +6188,8 @@ const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
 const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
   '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  // nightly-status reads nightly.yml's runs since R10-CI-LAYOUT PR 1.
+  '.github/workflows/nightly.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
   'dev/programme/plan-2026-09-open-issues.md', 'dev/programme/HANDOVER.md',
 ])

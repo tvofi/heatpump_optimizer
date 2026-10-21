@@ -1438,7 +1438,6 @@
    "tests/ci_budgets.json",
    "tests/ci_ratchet.py",
    "tests/closures.json",
-   "tests/composed_closures.json",
    "tests/coverage_budgets.json",
    "tests/coverage_ratchet.py",
    "tests/delivery_status.py",
@@ -1547,7 +1546,6 @@
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/state_docs.py",
-   "tools/coverage/composed_proof.sh",
    "tools/coverage/coverage_tree.sh",
    "tools/merge/ledger_merge.py",
    "tools/policy/agreement.mjs",
@@ -3419,7 +3417,6 @@
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
-   "tools/coverage/composed_proof.sh",
    "tools/policy/figure_lint.mjs"
   ],
   "tests/harness_headers.py": [

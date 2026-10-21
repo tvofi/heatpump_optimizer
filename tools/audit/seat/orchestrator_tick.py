@@ -2625,6 +2625,43 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- MAIN: D-1 (R10-CI-LAYOUT PR 1). record-autofix left the Tests
+        # push run for nightly.yml, so its red no longer reddens Tests; the
+        # tick must still flag it. It reads per-commit check runs, whatever
+        # workflow wrote them, so what is pinned is the name: every
+        # nightly.yml job that runs on a push to main -- read off the
+        # workflow, not listed here -- is one NIGHTLY_CLASS flags, and the
+        # tick names it red beside a green required set.
+        wf = (ROOT / ".github/workflows/nightly.yml").read_text().split("\njobs:\n", 1)[1]
+        on_push = []
+        for job in re.findall(r"(?m)^  ([A-Za-z][\w-]*):\n", wf):
+            body = re.search(rf"(?ms)^  {re.escape(job)}:\n(.*?)(?=^  [A-Za-z]|\Z)", wf).group(1)
+            cond = " ".join((re.search(r"(?ms)^    if: >-\n((?:      .*\n)+)|^    if: (.*)$", body)
+                             or re.match("", "")).group(0).split())
+            if "'push'" in cond and "!= 'push'" not in cond:
+                on_push.append(job)
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\nclosures\n")
+        gh.on(f"commits/{H1}/check-runs",
+              out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
+              + "".join("\n" + json.dumps(run_obj(j, conclusion="failure")) for j in on_push))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        t.main()
+        a, f = check("MAIN D-1", [
+            ("nightly.yml's push-run jobs are exactly the record beat", on_push == ["record-autofix"]),
+            ("each is a name the tick flags", all(NIGHTLY_CLASS.search(j) for j in on_push)),
+            ("and its red is named with the required set green",
+             any("non-required red" in x["text"] and "record-autofix" in x["text"]
+                 for x in t.findings)
+             and not any("REQUIRED not green" in x["text"] for x in t.findings)),
+            ("null control: a beat renamed out of the class would not be flagged",
+             not NIGHTLY_CLASS.search("delivery-beat")),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- MAIN: a lane GitHub cancelled for a newer run in its own
         # concurrency group is superseded, not red (rerun-stale-contract on
         # f58b14c1: a workflow_run follower of a PR head attaches to main's

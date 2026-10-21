@@ -25,8 +25,8 @@ IT PUSHES ONLY WHEN ALL OF THESE HOLD, and says which one failed otherwise:
     `refused` marker on stderr;
   - the push is a fast-forward of the head it read (never forced): a head that
     moved since is left for the next push to `main`;
-  - no job of the mutation PIN CHAIN (`mutation`, `mutation-pin-plan`,
-    `mutation-pins (*)`, `mutation-autofix`) is still queued or running at
+  - no job of the mutation PIN CHAIN (`mutation`, `mutation-pins (*)`,
+    `mutation-autofix`) is still queued or running at
     the head: a push there cancels the chain (#2282, 2026-10-15: twice, the
     shards ~2 h long), and while main keeps moving it never finishes. The
     next push to `main` after the chain settles merges it. An unreadable
@@ -143,7 +143,9 @@ def decide(*, mergeable, same_repo: bool, contains_main: bool,
 
 
 #: The jobs of tests.yml's mutation pin chain; a push to the head cancels them.
-PIN_CHAIN = re.compile(r"^(?:mutation|mutation-pin-plan|mutation-pins(?: \(.*\))?|mutation-autofix)$")
+#: `mutation-pin-plan` folded into `mutation` (R10-CI-LAYOUT PR 1): `mutation`
+#: is in the chain and runs until the plan is written, so no gap opens.
+PIN_CHAIN = re.compile(r"^(?:mutation|mutation-pins(?: \(.*\))?|mutation-autofix)$")
 
 
 def pins_running(repo_slug: str, head: str, api=None) -> "list[str] | None":
@@ -342,11 +344,11 @@ def self_test() -> int:
           pins_running("o/r", "a" * 40, api=api(W2)) == ["mutation", "mutation-autofix"])
 
     W3 = {"runs": [{"id": 5, "status": "in_progress"}],
-          "jobs": {5: [{"name": "mutation", "status": "completed"},
+          "jobs": {5: [{"name": "mutation", "status": "in_progress"},
                        {"name": "mutation-pin-plan", "status": "in_progress"}]}}
-    check("while mutation-pin-plan runs it is the ONLY chain job listed (GitHub lists a job once its "
-          "needs are met), and it holds the head",
-          pins_running("o/r", "a" * 40, api=api(W3)) == ["mutation-pin-plan"])
+    check("while mutation runs (its last step sizes the pins) it holds the head, and the retired "
+          "mutation-pin-plan name is no chain job (R10-CI-LAYOUT PR 1 folded it into mutation)",
+          pins_running("o/r", "a" * 40, api=api(W3)) == ["mutation"])
     check("a malformed runs page (no list) is unread, not settled",
           pins_running("o/r", "a" * 40, api=lambda path: {"workflow_runs": None}) is None)
     # THE NAMES THE STUB CANNOT SEE: PIN_CHAIN keys on tests.yml's job ids
@@ -359,8 +361,8 @@ def self_test() -> int:
         m = _re.search(rf"(?m)^  {_re.escape(j)}:\n((?:(?:    [^\n]*)?\n)*)", wf)
         return m.group(1) if m else ""
     renamed = [j for j in chain if _re.search(r"(?m)^    name:", block(j))]
-    check("PIN_CHAIN matches exactly tests.yml's four pin-chain jobs, none renamed by a `name:`",
-          chain == {"mutation", "mutation-pin-plan", "mutation-pins", "mutation-autofix"} and not renamed,
+    check("PIN_CHAIN matches exactly tests.yml's three pin-chain jobs, none renamed by a `name:`",
+          chain == {"mutation", "mutation-pins", "mutation-autofix"} and not renamed,
           f"{sorted(chain)} renamed={renamed}")
 
     def broken(path):
