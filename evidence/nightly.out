@@ -1,0 +1,7 @@
+origin/main f2fb1b0e950ecd047b7f08b3adef93776a622540
+nightly-status	skipped	
+head:
+nightly-status	failure		
+
+required:
+{"message":"Branch not protected","documentation_url":"https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection","status":"404"}gh: Branch not protected (HTTP 404)

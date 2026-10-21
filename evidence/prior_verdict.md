@@ -1,0 +1,25 @@
+Fix review: merge df70cb6bca69c7b1717abcc317233ff1bc994df3
+
+Round 1 (first review of this head). PR #2576, roster PR-A R10-FLOW-RECHAIN, branch fix/audit-r10-roster. Measured from a detached worktree at df70cb6bca69c7b1717abcc317233ff1bc994df3; origin/main = merge base = 49c222280d46. Role contract current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+
+RESULT edges: 8/8 drops gone, 3/3 required + 4/4 recommended + HEAT-METER after THERMAL-POWER-OPTION present (ev/edgecheck.out). Expected after-lists were recomputed independently: origin/main roster, minus rechain-drops.json, plus rechain-adds.json, plus the orchestrator edge. They equal the head's lists for all 108 groups, and they match `resulting_after_lists` in rechain-adds.json. 10 groups changed `after`, exactly the ruling's set. No other group's `after` moved.
+RESULT cycle: none (roster_lib.depth_of over the head roster).
+RESULT depth: critical path 11 -> 8. Before: ADVISOR, SCORES, LIVESTATE, CONFIG-NOTICES, PARAMS-OWNER, ARCH-SHAPES, LEARNER-ETA, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS. After: ADVISOR, SCORES, LIVESTATE, PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS. Both match the body and decision section 2, and so do the per-group depths in the section 2 table. The one exception is a downstream group that table omits: R10-CONFIGFLOW-PAGES moves 9 -> 6.
+RESULT mutation/null: three perturbations each turn the check FAIL (ev/perturb.out). Null control: an unrelated edge added to UX-HEALTH. Mutation 1: ARCH-SHAPES after LIVESTATE removed. Mutation 2: CURRENCY after INPUT-STALENESS restored.
+RESULT text: the coordinator.py clause matches decision section 4 for all 10 changed groups (with the recommended edges), in both architect_note and brief (ev/clauses.out). The start sentence is "Start from main." or "Start from main; your merge follows <after list> if both are in one pitch.", and the old sentence is gone in all 20 copies (ev/startsentence.out). The `next:` list moves only on NIGHT-FOLDS (LOOP-CPU, PARAMS-OWNER) and FREQ-DEFROST (ARCH-SHAPES), as section 4 says. SCORES and ADVISOR are unchanged, also as section 4 says. LOOP-CPU's LIVESTATE carry stays, which is correct because the recommended edge is applied.
+RESULT carries: 0 carries lost. 108 groups at both ends. The only carry list that changed is R10-POLICY-FIXER-MD, 5 -> 6, with the old 5 kept as a prefix (ev/carry_preserve.out). carry_audit sweep (origin/main vs head) shows ROSTER-DRIFT for exactly the 12 edited groups and no other (ev/carry_sweep.out). carry_audit owners finds the LOOP-CPU away-path carry at both ends and the #2567 carry at the head (ev/carry_owners.out).
+RESULT brief_lint: TOTAL: 0 error(s) on the head roster (ev/brief_lint.out). The no-arg path also prints TOTAL: 0, and its fixtures self-test passes (ev/brief_lint_noarg.out).
+RESULT layout: `layout.py --guard --base origin/main` gives 0 refusals at the head and 3 placement refusals without the new glob, one per new round10 file (ev/layout_guard_*.out). So the one-line glob `dev/programme/round10/**`, mirroring `round9/**`, is the minimal change the guard needs. The full layout.py self-test is ok. The new files are under the `dev/programme/` INERT prefix.
+RESULT merge: `git merge-tree --write-tree origin/main df70cb6b` exits 0, tree 17462b41 (ev/merge_tree.out). VERSION, the manifest, RELEASE_NOTES and golden fixtures are untouched.
+RESULT CI: 31 check runs on the head (ev/checkruns.txt). 7 succeeded and 10 were skipped. 14 are still pending, so I judged on the rest: pr-contract, closure-scope, briefs, policy-docs, env-matrix, instrument-self-tests, delivery-status, mutation, nightly-status, arch-score x2, Analyze x3. None is red. The body answers nightly-status ahead of time as main's, which is correct, since the diff reaches nothing it reads.
+
+Disclosed in the body and checked: the extra roster commits c185c7257 (carry onto R10-POLICY-FIXER-MD) and the set-stage `resume` edits on R10-ROSTER-OPS, R10-DEPENDABOT-AIOHTTP and R10-TICK-RELAY-DECOUPLE. Nothing else differs.
+Observations (not blocking, and the ruling's own text):
+- SCORES' note still says `next: R10-LIVESTATE, R10-CONFIG-NOTICES`, and section 4 leaves it unchanged.
+- R10-THERMAL-POWER-OPTION's own note does not name HEAT-METER as after it. That edge is the orchestrator's addition, outside the ruling.
+Instrument: edgecheck.py is my own scratch script (ev/edgecheck.py). It is built on tools/audit/seat/roster_lib.py, not on a finder's harness, because this inert roster change has no committed harness. The mutation proof is roster-edge mutation, per the brief. The head was still df70cb6b when I read check-runs.
+
+bus-nonce: 4d0edcbf69127fde5d9f909abc74dedc
+
+bus: verdict/2576 at 7c82a6f58d0a936b66b3a909554930e941f2c088, confirmed from cloud (review/2576 at 59638e2df8e469ef5e85761aa7d5489742c0df98); evidence: ~/.zcode/bus/verdicts/2576/7c82a6f58d0a936b66b3a909554930e941f2c088/evidence
+
