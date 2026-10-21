@@ -4,8 +4,8 @@
 #
 # owner mode approves code-owned paths as tvofi's account under the mandate
 # comment <comment-id> on #201, read live at this run by budget_raise_gate.py's
-# own reading (`_mandate`, `mandate_state` judged now, scope `code-owned` or
-# `all`). No --mandate, or one not in force now, refuses before anything is
+# own reading (`_mandate`, `mandate_state` judged now, its scope the gate's
+# MANDATE_COVERS_CODE_OWNED). No --mandate, or one not in force now, refuses before anything is
 # posted: the script never defaults to a mandate, because a stale one is a
 # forged grant (until R10-TRAIN-RAISE-HOLD it hard-coded one that had expired). A budget RAISE is still the gate's to refuse: this
 # approval says nothing of the raise justification `budget-raise-gate` reads.
@@ -33,7 +33,7 @@ except Exception as e:  # fail closed: an unread mandate grants nothing
     sys.exit(1)
 now = datetime.datetime.now(datetime.timezone.utc)
 ok, why = g.mandate_state(cid, comment, thread, now, now.strftime("%Y-%m-%dT%H:%M:%SZ"), "merge",
-                          ("code-owned", "all"), "an owner approval of code-owned paths")
+                          g.MANDATE_COVERS_CODE_OWNED, "an owner approval of code-owned paths")
 print(("IN FORCE: " if ok else "REFUSE: ") + why)
 sys.exit(0 if ok else 1)
 P
@@ -77,8 +77,8 @@ case "$*" in
 esac
 G
   chmod +x "$T/gh"
-  mk() { # <from-min> <until-min> -> a mandate comment, minutes from now
-    python3 -I - "$1" "$2" <<'P'
+  mk() { # <from-min> <until-min> [scope] -> a mandate comment, minutes from now
+    python3 -I - "$1" "$2" "${3:-all}" <<'P'
 import datetime, json, sys
 now = datetime.datetime.now(datetime.timezone.utc)
 iso = lambda m: (now + datetime.timedelta(minutes=int(m))).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -86,10 +86,11 @@ c = iso(sys.argv[1])
 print(json.dumps({"id": 4100000001, "user": {"login": "tvofi", "id": 70032254, "type": "User"},
                   "created_at": c, "updated_at": c,
                   "issue_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/issues/201",
-                  "body": f"MANDATE: agents may approve as tvofi, scope all, from {c} until {iso(sys.argv[2])}"}))
+                  "body": f"MANDATE: agents may approve as tvofi, scope {sys.argv[3]}, from {c} until {iso(sys.argv[2])}"}))
 P
   }
   mk -60 60 > "$T/live.json"; mk -120 -10 > "$T/expired.json"
+  mk -60 60 code-owned > "$T/code-owned.json"; mk -60 60 budget-raise > "$T/raise.json"
   ck() { # <name> <want rc> <want substring> <draft> <mandate file> -- gates args...
     local name=$1 want=$2 sub=$3 draft=$4 mf=$5 rc; shift 6
     : > "$T/log"
@@ -101,6 +102,8 @@ P
   ck "owner mode with no --mandate refuses, never a default" 1 "MANDATE REQUIRED" false "$T/live.json" -- 7 owner "" 0
   ck "owner mode with a non-id --mandate refuses" 1 "MANDATE REQUIRED" false "$T/live.json" -- 7 owner "yesterday" 0
   ck "owner mode under a mandate in force now passes" 0 "" false "$T/live.json" -- 7 owner 4100000001 0
+  ck "owner mode under a code-owned mandate in force now passes" 0 "" false "$T/code-owned.json" -- 7 owner 4100000001 0
+  ck "owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it" 1 "does not cover" false "$T/raise.json" -- 7 owner 4100000001 0
   ck "owner mode under an expired mandate refuses with the gate's why" 1 "expired" false "$T/expired.json" -- 7 owner 4100000001 0
   ck "owner mode under a mandate that does not exist refuses" 1 "not a comment that exists" false "" -- 7 owner 4100000001 0
   ck "a draft refuses without --ready, naming the flag" 1 "DRAFT: #7 is a draft; pass --ready" true "" -- 7 app "" 0
