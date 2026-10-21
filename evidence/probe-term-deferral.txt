@@ -1,0 +1,6 @@
+TERM sent to prepr pid 5428 at 1792592372
++3s prepr_alive=1 recorder_alive=1
++8s prepr_alive=1 recorder_alive=1
++12s prepr_alive=1 recorder_alive=1
+prepr exited rc=143 at +15s
+EXIT-trap-ran at 1792592387

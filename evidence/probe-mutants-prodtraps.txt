@@ -1,0 +1,7 @@
+RESULT parent_alive_after_5s=0 prepr=M3wd.sh sig=KILL target=parent recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=0 prepr=M3wd.sh sig=TERM target=pgrp recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=0 prepr=M3wd.sh sig=HUP target=pgrp recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=0 prepr=M3trap.sh sig=KILL target=parent recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=1 prepr=M3trap.sh sig=TERM target=pgrp recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=0 prepr=M3trap.sh sig=HUP target=pgrp recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=0 prepr=M3wd2.sh sig=KILL target=parent recorder_alive_after_5s=1

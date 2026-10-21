@@ -1,0 +1,5 @@
+RESULT parent_alive_after_5s=1 prepr=BASE.sh sig=TERM target=parent recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=0 prepr=BASE.sh sig=KILL target=parent recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=1 prepr=BASE.sh sig=INT target=pgrp recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=0 prepr=BASE.sh sig=HUP target=pgrp recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=0 prepr=BASE.sh sig=TERM target=pgrp recorder_alive_after_5s=0

@@ -1,0 +1,3 @@
+572,573d571
+<         ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
+<           kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
