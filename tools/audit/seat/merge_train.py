@@ -1870,6 +1870,13 @@ def _self_test() -> int:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
+            if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
+                world.get("on_rerun", lambda: None)()
+                return 0, ""
+            wf = re.search(r"/actions/runs/(\d+)\b", a)
+            if argv[:2] == ["gh", "api"] and wf:  # a workflow run's status
+                st = world.get("wf_runs", {}).get(wf.group(1))
+                return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "check-runs" in a:
                 # `pending_reads`: the first N reads report in_progress, so a
                 # wait that outlives one poll can be driven without a clock.
@@ -2776,9 +2783,112 @@ def _self_test() -> int:
           sleep=lambda s: None, polls=2).wait_ci(H0)
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
+    _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _state_self_test(check, go, merged, throwaway_git_init) -> None:
+    """THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15)."""
+    def cr(name, status="completed", conclusion="success", started="1", cid=1, url=""):
+        return {"name": name, "status": status, "started_at": started, "id": cid, "details_url": url,
+                "conclusion": conclusion if status == "completed" else None}
+
+    req = ["fast", "mutation", "typing", "record"]
+    e7 = latest_runs([cr("fast"), cr("mutation", "in_progress"), cr("typing", "queued"),
+                      cr("record", conclusion="failure"), cr("record-autofix", conclusion="failure")])
+    check("K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- "
+          "reads wait, never red, even with record listed as required",
+          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+    check("K15 (a): every required context green reads green; a non-required red is not counted",
+          classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
+                   req) == ("green", [], []))
+    check("K15 (a): a failed required context reads red while another is still in flight",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
+                   req) == ("red", ["mutation"], ["fast"]))
+    check("K15 (a): judged on the latest run of each context -- a re-run that went green clears the red",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
+                                cr("typing")]), req)[0] == "green")
+    check("K15 (a): a required context with no run yet is wait, never green",
+          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+    try:
+        classify(e7, None)
+        refused = False
+    except ValueError:
+        refused = True
+    check("K15 (a): an unreadable ruleset is a refusal, never green", refused)
+    # The --overlap main gate on the e7c66485 shape: logged as a wait, with
+    # no "not green" and no revert; a failed required context is still RED.
+    for runs, want in (([cr("fast", "in_progress"), cr("record", conclusion="failure")], "wait"),
+                       ([cr("fast", conclusion="failure")], "red")):
+        lines: list[str] = []
+        body = "\n".join(json.dumps(c) for c in runs)
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (0, body),
+                  sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+                  base="batch/x").main_green("a" * 40, ["fast", "record"], "after #7's unproved merge: revert it first")
+        said = " ".join(lines)
+        check(f"K15 (a): the --overlap gate logs main {want.upper()} for "
+              f"{'pending plus a record red' if want == 'wait' else 'a failed required context'}",
+              said.startswith("OVERLAP: ") and ("revert" in said) == (want == "red")
+              and ("still running" in said) == (want == "wait") and ("is RED" in said) == (want == "red"))
+    # (b) a stale check-run: in progress over a completed workflow run.
+    url = "https://github.com/o/r/actions/runs/119308796140/job/5"
+    stale_cr = cr("budget-raise-gate", "in_progress", cid=7, url=url)
+    check("K15 (b): stale only while its run has completed (null control: a run still in progress)",
+          stale(stale_cr, "completed") and not stale(stale_cr, "in_progress")
+          and not stale(cr("budget-raise-gate"), "completed"))
+
+    def stale_world(run_status: str, clears: bool) -> dict:
+        w = {"runs": [cr("fast"), stale_cr], "wf_runs": {"119308796140": run_status}}
+        if clears:
+            w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, cr("budget-raise-gate", started="2")])
+        return w
+
+    rc, lines, calls = go(stale_world("completed", True))
+    reruns = [i for i, c in enumerate(calls) if c[-1].endswith("/actions/runs/119308796140/rerun")]
+    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+    check("K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged "
+          "with its run id",
+          rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
+          and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
+    rc, lines, calls = go(stale_world("in_progress", False))
+    check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
+          rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
+    rc, lines, calls = go(stale_world("completed", False))
+    check("K15 (b): a re-run that leaves it unconcluded stops the merge, and never re-runs twice",
+          rc == 1 and not merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    # (c) a DIRTY head, from git merge-tree against a throwaway repository.
+    claim = "tests/golden/claimed_drift.txt"
+    with tempfile.TemporaryDirectory() as d:
+        env = throwaway_git_init(d, "-q", "-b", "main")
+
+        def rg(argv, cwd=d):
+            r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
+            return r.returncode, r.stdout + r.stderr
+
+        def commit(files: dict, msg: str) -> None:
+            for f, text in files.items():
+                (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                (Path(d) / f).write_text(text)
+            rg(["git", "add", "-A"])
+            rg(["git", "commit", "-qm", msg])
+
+        commit({claim: "0\n", "roster_edit.py": "0\n"}, "base")
+        for br, files in (("claims", {claim: "c\n"}), ("content", {claim: "c\n", "roster_edit.py": "c\n"})):
+            rg(["git", "checkout", "-qb", br, "main"])
+            commit(files, br)
+        rg(["git", "checkout", "-q", "main"])
+        commit({claim: "m\n", "roster_edit.py": "m\n"}, "main")
+        got = {br: conflicts(rg, "main", br) for br in ("claims", "content", "main", "nope")}
+    check("K15 (c): merge-tree names the conflicted files; a clean merge is [] and an unknown head None",
+          got == {"claims": [claim], "content": [claim, "roster_edit.py"], "main": [], "nope": None})
+    check("K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content "
+          "conflict goes back to its fixer and its verdict does not carry",
+          "claimnotes" in dirty_repair(got["claims"], (claim,))
+          and "claimnotes" not in dirty_repair(got["content"], (claim,))
+          and "does not carry" in dirty_repair(got["content"], (claim,)))
 
 
 def _batch_self_test(check) -> None:
