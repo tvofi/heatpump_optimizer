@@ -7,7 +7,7 @@ report to the owner.
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
 comments, dispatch briefs, roster edits, and what you tell the owner. On
-2026-09-07 the orchestrator made a run of unmeasured claims in a day, each
+2026-09-07 the orchestrator made a run of unmeasured claims, each
 caught by a review seat and none by itself, while writing the policy against
 them. **Not one was in a pull-request body.**
 
@@ -34,15 +34,14 @@ cannot answer the second, you have not measured — you have expected.
 
 - **A sample is not a quantifier.** Five runs checked and reported as "every run"
   was false.
-- **Describing another artifact without opening it is the same defect.**
+- Describing an artifact without opening it is the same defect. A wrong claim
+  is corrected under `fixer.md` step 9.
 - **Never print a conclusion beside a command** (`fixer.md` step 3): the
   `(empty means identical)` form shipped a commit message asserting untouched
   files that carried fourteen changed lines.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Use `check && publish` — and for the body and the
   push, that `&&` is already wired as `tools/pr/push.sh` (#678).
-
-A claim that turns out wrong is corrected under `fixer.md` step 9.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
@@ -54,7 +53,7 @@ The reason is **independence**, the same
 principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
 a harness they wrote is measuring themselves*. Work you perform is work you must
 then review, and you are the one participant who cannot review it — so every task
-you take yourself removes a check from the programme rather than adding one.
+you take yourself removes a check.
 
 - A fix, an investigation, a measurement, a survey, a refutation, a root-cause
   analysis: **dispatch it.**
@@ -65,8 +64,7 @@ you take yourself removes a check from the programme rather than adding one.
   edit — say so on the pull request, and **route the result through a reviewer**
   exactly as a seat's work is routed.
 
-The honest test: *could a seat have done this with a brief?* If yes, write the
-brief instead: the programme's method is that no claim stands on one agent's word.
+The test: *could a seat have done this with a brief?* If yes, write it.
 
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
@@ -101,27 +99,25 @@ It reads the body on **stdin** and takes the issues you *intend* to close as
 printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
 ```
 
-Two ways it misleads. **Empty
-stdin prints `clean` and exits 0 having read nothing** — which is what happens if
-you pass a filename as an argument. **Held-open stdin blocks silently** and
-reports 143 when killed. And the declared-argument
-escape is **per number, not per occurrence**: declare a number once and every
-armed keyword bound to it passes, including in a body that also quotes the
-incident.
+It misleads three ways. **Empty stdin prints `clean` and exits 0 having read
+nothing** (a filename argument does this); **held-open stdin blocks silently**
+and reports 143 when killed; neither looks like a failure. And the
+declared-argument escape is **per number, not per occurrence**: declare a number
+once and every armed keyword bound to it passes, including in a body that also
+quotes the incident.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 merge commits shut two issues that had to be
-reopened (`8bc4c661` shut #224 while its own text denied doing so; `e072b2d`,
-#195). A pre-merge scan that asks *which form was used* rather
+reopened (#224, whose merge text denied it, and #195). A pre-merge scan that asks *which form was used* rather
 than *whether every keyword binds an intended number* reports clean through
 exactly that.
 
 ## 5. Before dispatching a seat
 
 - **Establish the work is not already done or in flight.** One
-  `list_pull_requests` over the open set, and the issue's comments. A seat
-  was dispatched to fix what an open pull request already fixed.
+  `list_pull_requests` over the open set, and the issue's comments: a seat
+  was dispatched to fix what an open pull request fixed.
 - **Give it the constraints that already exist** rather than letting it
   re-derive them: findings carried into its stage, the numbers it must
   re-measure rather than trust, and the destination its own carry must reach.
@@ -133,8 +129,7 @@ exactly that.
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
   shape); it binds them (`fixer.md` 17).
-- **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
-  the handoff it prepares against the merge base only (`fix-review.md`).
+- **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
   relative one resolves against the seat's cwd, which was yours for three seats.
   Seats share one scratchpad, `/tmp` and process table, and a generic name at a
@@ -170,7 +165,7 @@ the answer.
 ## 6. A conflict resolution is verified by reading the merged artifact
 
 Not by reading the diff. A word-level diff licensed a union that silently dropped
-a clause, in the commit that claimed nothing had been dropped.
+a clause, in a commit claiming nothing was dropped.
 
 When both sides carry real content, **union rather than take a side**, and prove
 it: reconstruct both parents and read the merged result back, confirming each
@@ -182,11 +177,11 @@ pull request never queues Tests at all.
 ## 7. You hold the freeze
 
 `fixer.md`'s handoff freezes a branch and **only the orchestrator moves the
-head** — so you are the one who breaks it. A reviewer works in a fresh *detached*
+head**, so you break it. A reviewer works in a fresh *detached*
 worktree at the head SHA, so the branch has no worktree and no marker: a liveness
 check looking for either will not see it. Check whether a review is in flight on
 the pull request before moving anything. A head that moves under a review costs
-that review, and it has happened twice; a move that re-issues the verdict needs
+that review; a move that re-issues the verdict needs
 a fresh `bus.sh dispatch` at the new head before the reviewer publishes, since
 `push-verdict` refuses a nonce whose dispatch head is not the head the verdict
 names. **A conflict with main after the
@@ -200,24 +195,14 @@ restoring it leaves a production file broken in its worktree. Check
 
 ## 8. Fix it; if you cannot, verify it independently; only then file it
 
-The owner's standing instruction, and a fallback chain rather than a menu.
+The owner's standing instruction, a fallback chain rather than a menu, stated in
+`CLAUDE.md` too; **if the two disagree, `CLAUDE.md` is the rule and this copy is
+the bug.**
 
-An issue is what you write when you cannot act, not a way of recording that you
-noticed. Filing is not neutral: an issue enters the Delivery-status table, needs a
-disposition, and is read by later seats as established fact — it propagates
-further than a wrong pull request, because nothing gates it. Four issues filed in
-one day needed three refutation seats and a judge to establish that one was
-largely false and that a mechanism another asked for was **already in the tree**,
-landed by a pull request listed in its own evidence table.
-
-Out of scope is not a licence to file: a real finding you must not touch goes to
-that stage's brief under section 10.
-
-**This rule is stated here and again in `CLAUDE.md`.** The duplication is
-deliberate — it binds every seat, so it belongs where every seat reads, and it
-binds you hardest, so it belongs here. **If the two ever disagree, `CLAUDE.md`
-is the rule and this copy is the bug.** A precedence rule only one side can see
-is not one.
+An issue is what you write when you cannot act. Filing is not neutral: it enters
+the Delivery-status table, needs a disposition, and is read by later seats as
+established fact, with nothing gating it; one filed issue asked for a mechanism
+already in the tree. A real finding you must not touch goes to that stage's brief (section 10).
 
 ## 9. The record, and the one living handover
 
@@ -244,20 +229,21 @@ additionally, because you write the rosters and you decide the merge order.
 
 - **A comment is not propagation** — including yours on #201, which is where you
   are most tempted to put things.
-- **The destination must exist**, and creating it is part of the carry. A whole
-  programme lane had no roster, so two seats that tried to comply had nowhere
-  in-tree to write.
+- **The destination must exist**, and creating it is part of the carry.
+- **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
+  a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
+  it), each stamp, and before branch cleanup, which keeps the roster
+  branch while it differs (`finding-propagation.mdc`).
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
 `brief_lint.mjs` reads the roster and the carry files and never
-`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a load-bearing
-citation left only in markdown is unchecked, and putting one there is not
-carrying it. The remedies for a symbol that does not exist yet are that rule's;
-a tag citation is no reflex fix: the symbols measured biting here exist at
-no tag. Read the **exit code and the error
-lines**: `FIXTURE ok: N error(s)` prints beside a clean exit by design, the
-shape that lets a real error be waved through.
+`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a
+load-bearing citation left only in markdown is unchecked, and putting one there
+is not carrying it. The remedies for a symbol that does not exist yet are that
+rule's; a tag citation is no reflex fix, as the symbols biting here exist at no
+tag. Read the **exit code and the error lines**: `FIXTURE ok: N error(s)` prints
+beside a clean exit by design, the shape that lets a real error be waved through.
 
 ## 11. Before you merge
 
@@ -298,7 +284,21 @@ never by hand or in a branch; rule 4 binds you.
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
-Your other reusable scripts land too, by `fixer.md` step 18.
+
+**Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
+hand-rolled a tick driver, relay, sweep prompt and merge loops beside
+`tick_loop.sh`, `cloud_relay.sh`, `sweep_render.py` and `merge_train.py`. The
+instruments guide in `tools/audit/seat/` lists them; read it before any loop,
+watcher, relay or helper.
+
+- A new helper needs a stated reason and lives in `tools/` with a `--self-test`,
+  never only in scratch or `/tmp`; a listed instrument that falls short is
+  fixed, not bypassed.
+- Render the sweep with `sweep_render.py` from the template beside it.
+- When an instrument merges, re-check your briefs and running seats for steps it
+  replaces.
+- Seed or reconcile a stateful one's ledger first (`cloud_relay.sh`, the tick
+  ledger): the relay over un-ledgered state replayed 80 stale refs.
 
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved

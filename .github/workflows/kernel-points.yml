@@ -1,0 +1,78 @@
+name: Kernel points
+
+# The OpenBLAS kernel matrix behind tests/optimality.py's ftol bound (#1725,
+# D2-s2-01's ruling, #201 comment 6240984157 step 2). The stop-rule gap moves
+# with the DYNAMIC_ARCH kernel's summation order, so a bound on it is half the
+# smallest gap measured across kernels -- and the CI runner's own kernel plus
+# the three x86 kernels OpenBLAS can be forced to are points no dev box
+# reaches. dev/audit/harnesses/k1725_blas_kernel_gap.py prints them.
+#
+# On demand only, and never required: a manual dispatch, the `kernel-points`
+# label put on a pull request, or a push to a pull request that carries it.
+# It is not in the required set and runs on no unlabelled push, so it costs
+# nothing on an ordinary pull request and cannot hold a merge; it exists to
+# re-derive the bound when the solver's numerics move. The push arm is what
+# makes the label a standing request: a `labeled` event runs the workflow at
+# the head of that moment, so a label put on before this file reached the
+# head -- #2368's, at 74f23814e -- or a head that moves after it, otherwise
+# gets no run, or a matrix of a tree that is no longer the pull request.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+
+permissions:
+  contents: read
+
+# Superseded pull-request runs are cancelled, nothing else is: see the same
+# block in tests.yml (round-9 process review item 3).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+
+jobs:
+  kernel-points:
+    name: kernel-points (${{ matrix.coretype }})
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.action == 'labeled' && github.event.label.name == 'kernel-points')
+      || (github.event.action == 'synchronize'
+          && contains(github.event.pull_request.labels.*.name, 'kernel-points'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # `native` leaves OPENBLAS_CORETYPE unset: the kernel the runner's own
+        # CPU selects, the one the `fast` job's optimality.py run sees.
+        coretype: [native, Haswell, Sandybridge, Nehalem]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+
+      # The same hash-pinned resolution the `fast` job installs, so the
+      # kernel is the only thing that differs from the gate's own run.
+      - name: Install dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Run the kernel harness
+        env:
+          CORE: ${{ matrix.coretype }}
+        run: |
+          if [ "$CORE" != native ]; then export OPENBLAS_CORETYPE="$CORE"; fi
+          PYTHONPATH=tests/hastub python3 dev/audit/harnesses/k1725_blas_kernel_gap.py | tee kernel-points.log
+          {
+            echo "### kernel-points ($CORE)"
+            echo '```'
+            grep -E '^(environment:|RESULT)' kernel-points.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

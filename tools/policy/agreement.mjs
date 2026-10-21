@@ -49,7 +49,28 @@ function constFromSource(rel, name) {
   return new Function(`return ${m[1]}`)()
 }
 const load = (rel) => import(pathToFileURL(at(rel)).href)
+// The same for a generated object literal that is one line of JSON.
+function jsonConstFromSource(rel, name) {
+  const src = rd(rel)
+  const i = src.indexOf(`\nconst ${name} = {`)
+  if (i < 0) throw new Error(`${rel}: no top-level const ${name} object`)
+  const start = src.indexOf('{', i)
+  return JSON.parse(src.slice(start, src.indexOf('\n', start)))
+}
 
+
+// A JSON schema with every {"$ref": "#/definitions/x"} replaced by x, and
+// definitions and $schema dropped: the form fold_ledger.py sync writes.
+function inlineRefs(o, defs = o.definitions ?? {}) {
+  if (Array.isArray(o)) return o.map((x) => inlineRefs(x, defs))
+  if (!o || typeof o !== 'object') return o
+  if (Object.keys(o).length === 1 && typeof o.$ref === 'string') {
+    const d = defs[o.$ref.split('/').pop()]
+    if (!d) throw new Error(`a $ref this reader cannot follow: ${o.$ref}`)
+    return inlineRefs(d, defs)
+  }
+  return Object.fromEntries(Object.entries(o).filter(([k]) => k !== '$schema' && k !== 'definitions').map(([k, v]) => [k, inlineRefs(v, defs)]))
+}
 
 const CC = 'custom_components/heatpump_optimizer'
 function entityLeaves(rel) {
@@ -209,6 +230,27 @@ const PAIRS = [
     },
   },
   {
+    // R10-TICK (g): the finder was handed a hand-kept return schema without the
+    // file's enums and types, so intake rejected 35 of 44 round-10 box
+    // findings on form. fold_ledger.py sync writes the driver's copy; this
+    // compares every leaf of the two, so a hand edit of either side is refused.
+    concept: 'finder-report-form',
+    what: "the form a finder's report must take: finding.schema.json ($refs inlined, intake's validator) against audit-find.js FINDING_REPORT (the finder's return schema)",
+    async corpus() {
+      const leaves = (o, pre, out) => { if (o && typeof o === 'object') { for (const [k, v] of Object.entries(o)) leaves(v, `${pre}/${k}`, out) } else out.add(pre); return out }
+      const paths = leaves(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json'))), '', new Set())
+      leaves(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT'), '', paths)
+      return [...paths].sort().map((p) => [p, p])
+    },
+    async readers() {
+      const at_ = (o) => (p) => { let x = o; for (const k of p.split('/').slice(1)) x = x == null ? undefined : x[k]; return x === undefined ? null : x }
+      return {
+        'finding.schema.json, $refs inlined': at_(inlineRefs(JSON.parse(rd('dev/audit/config/finding.schema.json')))),
+        'audit-find.js FINDING_REPORT': at_(jsonConstFromSource('.claude/workflows/audit-find.js', 'FINDING_REPORT')),
+      }
+    },
+  },
+  {
     concept: 'merge-subject-pr',
     what: 'the pull request a first-parent subject on main names',
     async corpus() {
@@ -262,6 +304,17 @@ const PAIRS = [
       const out = py('governance_jobs')
       const gov = new Set(out.gov); const pin = new Set(out.pin)
       return { 'governance_cost.py GOV': (j) => gov.has(j), "tests/entities.py _GOV_FILES (+ the 'briefs' null control)": (j) => pin.has(j) }
+    },
+  },
+  {
+    concept: 'budget-raise',
+    what: "whether a diff is a budget raise: budget_raise_gate.py raises_between (the budget-raise-gate check) against merge_train.py Train.raise_hold (the train's approve hold; queue_pre_flight.py calls the same method), R10-TRAIN-RAISE-HOLD (#2401: the train keyed on the `*_budgets.json` path). merge_fastpath.py file_class's path routing to SERIAL is not this concept: it routes, and raise_hold decides there",
+    async corpus() {
+      return Object.keys(py('budget_raise')).sort().map((k) => [k, k])
+    },
+    async readers() {
+      const rows = py('budget_raise')
+      return { 'budget_raise_gate.py raises_between': (k) => rows[k].gate, 'merge_train.py Train.raise_hold': (k) => rows[k].train }
     },
   },
   {

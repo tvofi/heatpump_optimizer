@@ -49,10 +49,18 @@ train's order:
              clears the holder (clean, at origin/<branch>), which it detaches;
   policy     `Train.policy_gate`, the train's step-5 / batch-admission early
              refusal, verbatim;
-  budget     a `*_budgets.json` change lands only under the owner's review at
-             the head (the train refuses to mandate-approve a budget change, so
-             the review must already sit there), read by budget_raise_gate's own
-             `approval` -- the gate's raise reading, mandate citation included.
+  budget     `Train.raise_hold`, the train's approve-step reading, verbatim: a
+             budget RAISE (budget_raise_gate's `raises_between` from the merge
+             base, never a `*_budgets.json` path) lands only under the owner's
+             approval at the head as the gate's `decide` judges it -- the
+             body's raise justification included, its mandate judged at this
+             read -- so a head that only gains budget rows (#2401) passes with
+             no owner review, and what PARKs here is what approve stops.
+  findings   every finding item the body and its `Fix review:` verdicts record
+             names a valid destination (`Carry:`, finding-propagation.md), read
+             by tools/audit/carry_audit.py against origin/main's roster; an
+             O-brief is checked in $HPO_BRIEFS_DIR when set. This is where a
+             verdict's non-blocking notes are read before they merge unowned.
 
 `--checkout` names the checkout the train will run from (default: this tree's
 root), because the worktree namespace it competes with is that checkout's.
@@ -66,12 +74,16 @@ import argparse
 import datetime
 import json
 import re
+import sys
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 import merge_train as mt  # noqa: E402  (same directory; the train's own words)
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import carry_audit as ca  # noqa: E402  (tools/audit/: the one parser of `Carry:`)
 
 # The one status line a delivery row carries while its pull request is open
 # (record_row.py writes `— **open**,` / `— **merged `<sha7>`**,`).
@@ -83,8 +95,9 @@ class PreFlight:
 
     def __init__(self, repo: str, train: "mt.Train | None" = None,
                  checkout: Path = ROOT, bot_cured: bool = False,
-                 free_holders: bool = False) -> None:
+                 free_holders: bool = False, dests: "ca.Dests | None" = None) -> None:
         self.repo = repo
+        self.dests = dests  # carry_audit's destinations; read from origin/main on first use
         self.checkout = checkout
         # The train's own pre-flight (`merge_train.py --pre-flight`) passes
         # what it now cures itself: a bot tip (batch routes it serial, whose
@@ -150,10 +163,50 @@ class PreFlight:
             self.t.policy_gate(pr, h, files)  # the batch's early refusal, verbatim
         except mt.Stop as s:
             return "PARK", s.step, s.why
-        budgets = [f for f in files if f.endswith("_budgets.json")]
-        if budgets and (why := self.budget_gate(pr, h, budgets)):
-            return "PARK", "policy", why
+        try:
+            _raises, held, why = self.t.raise_hold(pr, h, files)  # approve's own reading, verbatim
+        except mt.Stop as s:
+            return "PARK", s.step, s.why
+        if not held:
+            return "PARK", "approve", why
+        if why := self.findings_gate(pr):
+            return "PARK", "findings", why
         return "PASS", "", ""
+
+    def findings_gate(self, pr: int) -> str:
+        """'' when every finding item of the body and its `Fix review:`
+        verdicts is routed to a valid destination (carry_audit.audit), else
+        the refusal naming the count and the first item. Fail-closed: a body,
+        comment or roster read that fails refuses."""
+        code, body = self.t.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}", "--jq", '.body // ""'])
+        if code:
+            return f"the body could not be read: {body.strip()[-160:]}"
+        code, o = self.t.run(["gh", "api", "--paginate", "--slurp",
+                              f"repos/{self.repo}/issues/{pr}/comments?per_page=100"])
+        try:
+            if code:
+                raise ValueError(o.strip()[-160:])
+            comments = [c for page in json.loads(o) for c in page]
+        except (ValueError, TypeError) as e:
+            return f"the comments could not be read: {e}"
+        if not ca.finding_rows(body, comments)[0]:
+            return ""  # nothing to route: the roster is not read
+        try:
+            if self.dests is None:
+                self.dests = ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state)
+        except (ca.roster_lib.RosterNotFound, ValueError) as e:
+            return f"the roster could not be read: {str(e)[:160]}"
+        bad = [r for r in ca.audit(body, comments, self.dests)["rows"] if r["status"] != "routed"]
+        if not bad:
+            return ""
+        r = bad[0]
+        what = "; ".join(r["bad"]) if r["status"] == "bad" else re.sub(r"\s+", " ", r["text"])[:100]
+        return (f"{len(bad)} finding item(s) with no valid `Carry:` (carry_audit.py pr {pr}); first: "
+                f"{r['where']} item {r['id']} ({r['status']}): {what}")
+
+    def issue_state(self, n: int) -> "str | None":
+        code, o = self.t.run(["gh", "api", f"repos/{self.repo}/issues/{n}", "--jq", ".state"])
+        return o.strip() or None if not code else None
 
     def row_stale(self, pr: int, h: str, row: str) -> str:
         """R9-ROW-STALE: '' when the row's status line agrees with the open
@@ -189,30 +242,6 @@ class PreFlight:
             return (f"{branch} is already checked out at {held}; the train's "
                     "`git worktree add -B` would refuse it -- re-point the "
                     "queue entry's worktree")
-        return ""
-
-    def budget_gate(self, pr: int, h: str, budgets: "list[str]") -> str:
-        """'' when the owner's review sits at <h> citing an in-force mandate
-        (budget_raise_gate's own raise reading), else the refusal."""
-        note = f"budget files changed ({', '.join(budgets)})"
-        code, o = self.t.run(["gh", "api", "--paginate", "--slurp",
-                              f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
-        if code:
-            return f"{note}: the reviews could not be read: {o.strip()[-160:]}"
-        try:
-            reviews = [r for page in json.loads(o) for r in page]
-            g = mt._mandate_gate()
-
-            def mandate_fn(cid):
-                return self.t._mandate_read(cid)
-            ok, why = g.approval(reviews, h, mandate_fn)  # the gate's raise reading
-        except mt.Stop as s:
-            return f"{note}: {s.step}: {s.why}"
-        except Exception as e:  # fail closed: an unread approval raises nothing
-            return f"{note}: the budget read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
-        if not ok:
-            return (f"{note}: the owner's review does not sit at this head ({why}); "
-                    "a raise is the owner's (0013)")
         return ""
 
 
@@ -265,6 +294,12 @@ def _self_test() -> int:
     def fake(world: dict):
         def run(argv, cwd=None, stdin=None):
             a = " ".join(argv)
+            got = mt.budget_fixture(world.get("budgets"), argv, "e" * 40)
+            if got is not None:
+                return got
+            if argv[:3] == ["gh", "pr", "view"] and "body" in argv:  # the raise justification's read
+                world.setdefault("body_reads", []).append(argv)
+                return (1, "gh: HTTP 502") if world.get("body_fail") else (0, world.get("pr_body", ""))
             if argv[:3] == ["gh", "pr", "view"]:
                 if world.get("pr_read_breaks"):
                     return 1, "gh: HTTP 500"
@@ -316,6 +351,12 @@ def _self_test() -> int:
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
                 return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and "/issues/7/comments" in a:
+                if world.get("comments_fail"):
+                    return 1, "gh: HTTP 502"
+                return 0, json.dumps([world.get("comments", [])])
+            if argv[:2] == ["gh", "api"] and a.endswith("/pulls/7 --jq .body // \"\""):
+                return 0, world.get("body", "")
             return 0, ""
         return run
 
@@ -323,8 +364,11 @@ def _self_test() -> int:
     NOW = datetime.datetime.now(datetime.timezone.utc)
 
     def go(world: "dict | None" = None, verdict: str = H0, **opts) -> "tuple[str, str, str]":
-        w = dict(world or {})
+        w = {} if world is None else world  # the caller's own dict: a read the fake records is visible to it
         with tempfile.TemporaryDirectory() as d:
+            opts.setdefault("dests", ca.Dests({"groups": [
+                {"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}},
+                {"group": "R10-OVER", "issues": [], "fixes": [], "resume": {"stage": "done"}}]}, set()))
             pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), None, "", (), 1,
                                                  run=fake(w)), checkout=Path(d), **opts)
             return pf.entry({"pr": 7, "verdict": verdict, "branch": "fix/x"})
@@ -383,17 +427,52 @@ def _self_test() -> int:
     check("a policy head whose mandate was revoked PARKS, named as revoked",
           go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
               "thread": [revoke()]})[:2] == ("PARK", "policy"))
-    BUD = {"files": ["tests/structure_budgets.json", ROW]}
-    check("a budget head whose owner approval cites an in-force mandate passes",
+    BUD = {"files": ["tests/structure_budgets.json", ROW], "budgets": mt.RAISE_FIXTURE,
+           "pr_body": mt.JUSTIFIED_BODY}
+    check("a budget raise whose owner approval cites an in-force mandate, its body justified, passes",
           go({**BUD, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW)}) == ("PASS", "", ""))
-    check("a budget head without the owner's review at its head PARKS, named as the raise",
-          go({**BUD, "reviews": [], "mandate": mandate(NOW)})[:2] == ("PARK", "policy")
-          and "budget" in go({**BUD, "reviews": [], "mandate": mandate(NOW)})[2])
-    check("a budget head whose mandate was revoked PARKS",
+    check("a budget raise without the owner's review at its head PARKS, named as the raise with the gate's why",
+          go({**BUD, "reviews": [], "mandate": mandate(NOW)})[:2] == ("PARK", "approve")
+          and "a raise is the owner's" in go({**BUD, "reviews": [], "mandate": mandate(NOW)})[2]
+          and "no decisive review by" in go({**BUD, "reviews": [], "mandate": mandate(NOW)})[2])
+    check("a budget raise whose mandate was revoked PARKS",
           go({**BUD, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
-              "thread": [revoke()]})[:2] == ("PARK", "policy"))
-    check("a budget head whose reviews cannot be read PARKS, fail-closed",
-          go({**BUD, "reviews_fail": True, "mandate": mandate(NOW)})[:2] == ("PARK", "policy"))
+              "thread": [revoke()]})[:2] == ("PARK", "approve"))
+    check("a budget raise whose reviews cannot be read PARKS, fail-closed",
+          go({**BUD, "reviews_fail": True, "mandate": mandate(NOW)})[:2] == ("PARK", "approve"))
+    # R10-TRAIN-RAISE-HOLD: pre-flight is the train's own raise_hold, so it
+    # admits exactly what approve lands -- before it, pre-flight read approval()
+    # without the justification and PASSED what approve stopped, and both
+    # keyed on the path, so #2401 (new rows only) PARKED with no raise in it.
+    DEF = {**BUD, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
+           "pr_body": "## Summary\n\n## Raise justification\n\nWe need it.\n"}
+    got = go(DEF)
+    check("a planted raise whose mandated approval sits at the head but whose body is deficient "
+          "PARKS, naming both missing lines (approve's own Stop)",
+          got[:2] == ("PARK", "approve") and "`Payments tried:`" in got[2]
+          and "`Architecture score: dS`" in got[2])
+    NEWW = {"files": ["tests/ci_budgets.json", ROW], "budgets": mt.NEW_ROWS_FIXTURE, "reviews": []}
+    check("#2401's shape: a budget file that only gains rows passes with no owner review",
+          go(NEWW) == ("PASS", "", ""))
+    w = {**NEWW, "body_fail": True}
+    check("... and reads no body: the justification is read on the raise branch only",
+          go(w) == ("PASS", "", "") and not w.get("body_reads"))
+    check("a planted raise whose body cannot be read PARKS, fail-closed",
+          go({**BUD, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
+              "body_fail": True})[:2] == ("PARK", "approve"))
+    FR = "## Head\n\nx\n\n## Friction\n\n- fixer.md: unclear: a disposition pins nothing."
+    check("a body whose Friction finding names no destination PARKs on findings",
+          go({"body": FR})[:2] == ("PARK", "findings") and "unrouted" in go({"body": FR})[2])
+    check("... the same body with `Carry:` to a live group passes (null control)",
+          go({"body": FR + " Carry: R10-LIVE"}) == ("PASS", "", ""))
+    check("... and with `Carry:` to a done group PARKs, naming it",
+          go({"body": FR + " Carry: R10-OVER"})[:2] == ("PARK", "findings")
+          and "R10-OVER is done" in go({"body": FR + " Carry: R10-OVER"})[2])
+    NOTE = [{"id": 9, "body": "Fix review: merge " + H0 + "\n\nNon-blocking observation: x re-books."}]
+    check("a verdict's non-blocking note with no destination PARKs on findings",
+          go({"comments": NOTE})[:2] == ("PARK", "findings") and "review 9" in go({"comments": NOTE})[2])
+    check("comments that cannot be read PARK, fail-closed",
+          go({"comments_fail": True})[:2] == ("PARK", "findings"))
     check("a merge base that cannot be read PARKS, named as the failure",
           go({"no_base": True})[:2] == ("PARK", "files"))
     check("a diff that cannot be read PARKS, named as the failure",

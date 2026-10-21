@@ -54,22 +54,41 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.0.0
+# claims-for: 7.0.2
 #
-# v7.0.0: Round-9 closure. The stamp empties the list; the
+# v7.0.2: Round-10 wave 1: set-point flow planning, monthly-savings scale, literal stress floors. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
 # BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
 # price_known/baseline_cost) still fail. Remove when drift lanes are pinned
 # or the polish improvement scale leaves 5e-5-2e-2.
+# R10-PUMP-MODEL (D2-s2-01, #2238): the hot-water tank pays the flow lift at its
+# own water temperature on both plants, where a direct plant used to apply a
+# linear 0.008/K penalty instead. Direction, measured base 92accb2cf vs this
+# head in one environment: the tank's modelled COP falls (0.62x the space curve
+# at a 55 C tank and 8 C outdoor, against the penalty's 0.84x), so the plan is
+# re-solved and the always-hot baseline's DHW costs more -- baseline_cost is up
+# on every claimed fixture below, and the other plan keys move either way. 41 of
+# the 56 scenarios move; winter_single_no_dhw is byte-identical, which is the
+# null (its scenario has no hot water). Twelve of the claimed fixtures carry a
+# may-drift entry, whose judged keys (baseline_cost here, on all twelve) a
+# may-drift entry cannot excuse and a name cannot be both, so those entries are
+# suspended above for this release: capacity_tariff_15min, cycling_cost,
+# direct_flow_carnot, everything_on, flat_prices, fuse_guard, narrow_band,
+# precip_snow, shoulder, shoulder_two_zone, tariff_plus_two_zone and
+# winter_two_zone_dhw. This is the R8-P3 wood_coil precedent; their removal
+# conditions are unmet, so a later branch restores each entry as the wood_coil
+# one was restored.
+#
+#
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
@@ -671,9 +690,17 @@
 # build: CI (CPython 3.13, numpy 2.4.6) moved [33]; [1],[21]; [21],[41] for
 # the three fixtures, this Darwin seat [33]; [9],[29]; [4],[5],[28],...
 # No price, cost, outdoor, price_known or baseline_cost leaf moves.
-config_flow # R10-UX-SETUP: the hot_water_pumps menu label, 'Circulation pumps' -> 'Hot water circulation', to the name the flow's own translations carry
-valve_storage_flat_prices  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule[33] -18.4 -> -18.3 in CI and here
-valve_storage_low_target  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])
-valve_storage_small_tank  # R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)
 
-
+# R10-SAV-BASELINE (#2255): this branch claims the fixtures below. The
+# thermostat reference now starts from the state it would have held (zones at
+# the step's comfort target, slab at the temperature that delivers that
+# demand) rather than from the plan's measured start, and the start's
+# stored-heat gap is settled as the end's is, debited past the caps by at most
+# the thermostat's horizon cost. baseline_cost (a MAY_DRIFT_JUDGED_KEY) moves
+# in every plan fixture, so each may-drift entry among them is suspended above
+# with its restore obligation; deferred_energy_cost, predicted_savings and
+# savings_percentage follow. The reference is reported, never optimised, but
+# its energy seeds three of the space solve's starts (`baseline_energy`), so a
+# plan can land in another basin: valve_storage_low_target does, at a lower
+# plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
+# plan leaves are their own machine-sensitive ones. No coord_* capture moves.
