@@ -1,0 +1,18 @@
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+fatal: --negotiate-only needs one or more --negotiation-tip=*
+warning: push negotiation failed; proceeding anyway with push
+  OWED: OWED 2026-10-21T11:44:12Z probe-ref refs/heads/probe/scan-z 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z probe-ref refs/heads/probe/scan-z 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z handoff-no-pr refs/heads/handoff/a 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z handoff-no-pr refs/heads/handoff/b 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z handoff-no-pr refs/heads/handoff/a 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z handoff-no-pr refs/heads/handoff/b 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+  OWED: OWED 2026-10-21T11:44:12Z handoff-no-pr refs/heads/handoff/a 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+RESULT tree=df6ca4bc6 owed_after_delete=7 want=1 match=no
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+fatal: --negotiate-only needs one or more --negotiation-tip=*
+warning: push negotiation failed; proceeding anyway with push
+  OWED: OWED 2026-10-21T11:44:13Z handoff-no-pr refs/heads/handoff/a 8e5980061c9c8cb6980a5ccd22ee048943c616e4
+RESULT tree=90bab078d owed_after_delete=1 want=1 match=yes

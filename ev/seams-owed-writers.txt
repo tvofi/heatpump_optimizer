@@ -1,0 +1,56 @@
+tools/audit/carry_audit.py:97:                      r"|not owed here|owed to the record|\bminor\b|advisory|secondary note|\bdeferred\b", re.I)
+tools/audit/carry_audit.py:183:            # The block is owed in this pull request, so a section that holds it
+tools/audit/carry_audit.py:649:         "Non-blocking notes, not owed here:\n- (a) a prose duplicate.\n- (b) a re-booking.\n"}
+tools/audit/carry_audit.py:834:                     for w in ("not blocking", "not a block", "neither blocks", "does not block", "not owed here",
+tools/audit/fold_ledger.py:426:    owed = _settle({"P1": _entry(["R2 D1-01", "R2 a", "R2 b"], rca=["X"]), "_rca": {"X": {"level": "class", "in_tree_home": f"{RCA_DIR}/X.md"}}})
+tools/audit/fold_ledger.py:440:    expect("a barriered class is owed from its first instance (barrier_any)", "OWED: P1" in out)
+tools/audit/seat/INSTRUMENTS.md:203:  that moves is owed again at its new sha. Every pass REWRITES its kind's
+tools/audit/seat/bus.sh:35:# owed a pull request -- `open_pr.sh` fetches both and fails without the body --
+tools/audit/seat/bus.sh:524:    # OWED: the protocol's own statement that this ref owed a pull request,
+tools/audit/seat/bus.sh:995:  expect "orphans reports an owed handoff with no pull request as repair=opener, exit 1" $?
+tools/audit/seat/bus.sh:1000:  # Null control 2: a handoff ref with no body ref never owed a pull request.
+tools/audit/seat/cloud_relay.sh:39:# than lost, and a disposed ref that moves is owed again. The level is `<log>.level`
+tools/audit/seat/cloud_relay.sh:107:owed() { logline OWED "$1 $2 $3"; echo "cloud_relay: OWED #$1: $3" >&2; }
+tools/audit/seat/cloud_relay.sh:145:    if ! printf '%s' "$sha2" | grep -Eq '^[0-9a-f]{40}$'; then owed "$pr" - "push-verdict printed no 40-hex review commit"
+tools/audit/seat/cloud_relay.sh:147:      "$HPO_RELAY_CONFIRM" "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "confirm failed"
+tools/audit/seat/cloud_relay.sh:148:    else bash "$HERE/bus.sh" confirm "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "bus.sh confirm failed; run it by hand"; fi
+tools/audit/seat/cloud_relay.sh:162:  local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
+tools/audit/seat/cloud_relay.sh:176:      *) disposed "$ref" "$sha" || { level_line probe-ref "$ref" "$sha" >> "$state/cloud-level-probe.$$"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
+tools/audit/seat/cloud_relay.sh:231:      echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -rf "$bd"; continue
+tools/audit/seat/cloud_relay.sh:235:      || logline OWED "approve-held-runs $pr $br"
+tools/audit/seat/cloud_relay.sh:238:    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { logline OWED "dispatch $pr no new head read after the update"; continue; }
+tools/audit/seat/cloud_relay.sh:241:      mkdir -p "$(dirname -- "$(relay_log)")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +%FT%TZ)" >> "$(relay_log)"
+tools/audit/seat/cloud_relay.sh:243:    else logline OWED "dispatch $pr $nh bus.sh dispatch failed; run it by hand"; fi
+tools/audit/seat/cloud_relay.sh:252:    disposed "$ref" "$hs" || { level_line handoff-no-pr "$ref" "$hs" >> "$state/cloud-level-handoff.$$"; echo "cloud_relay: OWED handoff-no-pr $ref $hs"; }
+tools/audit/seat/cloud_relay.sh:377:  chk "after three passes it is owed once (a level is rewritten, never appended)" 0 test "$(grep -c "probe-ref refs/heads/probe/scan-x" "$LV")" = 1
+tools/audit/seat/cloud_relay.sh:453:  chk "after three passes the no-PR ref is owed once (rewritten, never appended)" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LV")" = 1
+tools/audit/seat/orchestrator_tick.py:57:          -- each nonzero names the owed action (`state_docs.py --push`), the
+tools/audit/seat/orchestrator_tick.py:59:  REPLAN  detection only, the item names the owed action: queued-stale
+tools/audit/seat/orchestrator_tick.py:686:        """`OWED: <line>` every pass for what cloud_relay.sh says is owed now.
+tools/audit/seat/orchestrator_tick.py:687:        Two sources, one writer. The LEVEL -- a probe or handoff ref owed until
+tools/audit/seat/orchestrator_tick.py:1411:        double the truth -- the tick only names the owed action."""
+tools/audit/seat/orchestrator_tick.py:1574:        """Detection only -- the item names the owed action, the orchestrator
+tools/audit/seat/orchestrator_tick.py:2667:            ("record beat owed named", any("record beat owed" in x["text"]
+tools/audit/seat/orchestrator_tick.py:2737:        owed = [x["text"] for x in t.findings if "record beat owed" in x["text"]]
+tools/audit/seat/orchestrator_tick.py:2744:             owed == ["record beat owed: state_docs.py --push + #201 comment for "
+tools/audit/seat/orchestrator_tick.py:2894:            ("the read carries no age window (a complete handoff is owed now)",
+tools/audit/seat/record_row.py:46:merges that change owed work, not every beat, which a job would over-write.
+tools/audit/seat/record_row.py:1061:                    " — **open**, fix: owed a root cause\n"
+tools/audit/seat/record_row.py:1062:                    "A D1 finding is owed before this merges.\n")
+tools/audit/seat/record_row.py:1068:        _seat_merge = {"number": 2108, "title": "fix: owed a root cause",
+tools/audit/seat/record_row.py:1079:                            "line": row_line(2108, "fix: owed a root cause",
+tools/policy/check-wave-script.mjs:1282:// one sweep per class, and RCA owed at three instances of a class or at any
+tools/policy/fixtures/wave-1b-931dffe.json:157:    "note": "'Fix review: merge' is posted at this head (comment 5541073433); finding A (three run.sh line citations in HARNESSES.md went stale in the rebase) is owed as a fixup, and the head is on merge base 09ca88f, so it is re-merged with origin/main and re-confirmed before merge -- which will move this SHA. Docs-only under the INERT tools/ prefix."
+tools/policy/policy_lint.mjs:534:  // added and cited by nothing keeps TOTAL at 0 -- but the line is owed the
+tools/policy/policy_lint.mjs:541:  // above, and owed rather than optional -- `tools/audit/briefs/orchestrator.md`
+tools/policy/policy_lint.mjs:948:// CORPUS_EXCLUDED under the rule the 0010 comment states, "the line is owed the
+tools/policy/policy_lint.mjs:4157:    console.log(`\nFIXTURE VACUOUS: the red history over a pull request's commits is ${redUnion.ok ? JSON.stringify(redUnion.reds) : `not ok (${redUnion.why})`}, not ["fast (3.14)","typing"]; a red a later commit cleared must still be on it, this job's own runs and every non-\`failure\` conclusion must not, and a name earned twice is owed once`)
+tools/policy/policy_lint.mjs:4174:  // A reporter that grades `main` is owed no answer while the diff touches none
+tools/policy/policy_lint.mjs:4175:  // of its inputs; `typing` beside it is still owed one (the null control), and
+tools/policy/policy_lint.mjs:4200:      console.log(`\nFIXTURE VACUOUS: MAIN_STATE_REPORTERS (${label}): red ${JSON.stringify(redNames)} over paths ${JSON.stringify(paths)} owed answers for ${JSON.stringify(got)}, not ${JSON.stringify(owed)}; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone`)
+tools/pr/prepr.sh:2377:  printf '%s\n' "$PREPR_PATH" > "$SO"; selftest_owed "$SO"; st $? 0 "a change to prepr.sh owes the self-test"
+tools/pr/prepr.sh:2378:  printf '%s\n' tools/policy/policy_lint.mjs > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a program a step runs owes the self-test"
+tools/pr/prepr.sh:2379:  printf '%s\n' tools/policy/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
+tools/pr/prepr.sh:2380:  printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
+tools/release/stamp.py:46:     window whose rows are owed and knowingly deferred, and it prints the
+tools/release/stamp.py:1683:# owed and knowingly deferred, it prints what it is deferring and stamps.

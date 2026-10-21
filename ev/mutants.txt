@@ -1,0 +1,73 @@
+== M1 (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL after three passes it is owed once (a level is rewritten, never appended) (rc=1, want 0)
+  FAIL after three passes the no-PR ref is owed once (rewritten, never appended) (rc=1, want 0)
+cloud_relay self-test: 81 checks, 2 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=19 distinct=7 match=no
+== M4 (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL and drops its level line at once, not at the next pass (rc=0, want 1)
+  FAIL and drops its line from the level beside that log (rc=0, want 1)
+cloud_relay self-test: 81 checks, 2 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+== M2 (tools/audit/seat/orchestrator_tick.py)
+ tools/audit/seat/orchestrator_tick.py | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+  FAIL relay OWED: each level-file line prints once; the log's per-pass copies print none
+  FAIL relay OWED: the skipped copies are counted, unflagged
+orchestrator_tick self-test: 154 checks, 2 failed
+cloud_relay self-test: 81 checks, 0 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+== M3 (tools/audit/seat/orchestrator_tick.py)
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL relay OWED: null control: without that POSTED both kind-first lines print
+orchestrator_tick self-test: 154 checks, 1 failed
+cloud_relay self-test: 81 checks, 0 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=6 distinct=7 match=no
+== M5-no-handoff-level_set (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 1 -
+ 1 file changed, 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL a handoff ref with no open PR is OWED in the level file (rc=2, want 0)
+  FAIL a handoff ref with an open PR is not (null control) (rc=2, want 1)
+  FAIL nor its handoff-body ref (null control) (rc=2, want 1)
+  FAIL after three passes the no-PR ref is owed once (rewritten, never appended) (rc=1, want 0)
+  FAIL a handoff-body ref with no open PR is OWED (rc=2, want 0)
+  FAIL disposed no-PR refs are not owed (rc=2, want 1)
+  FAIL a disposed no-PR ref that moved is OWED again (rc=2, want 0)
+  FAIL a failed PR listing leaves the level as it was (unknown is not 'nothing owed') (rc=2, want 0)
+cloud_relay self-test: 81 checks, 8 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=4 distinct=7 match=no
+== M6-reader-ignores-level (tools/audit/seat/orchestrator_tick.py)
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL relay OWED: each level-file line prints once; the log's per-pass copies print none
+orchestrator_tick self-test: 154 checks, 1 failed
+cloud_relay self-test: 81 checks, 0 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=3 distinct=7 match=no
+== M7-probe-failed-listing-clears (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL a failed listing leaves the level as it was (unknown is not 'nothing owed') (rc=1, want 0)
+cloud_relay self-test: 81 checks, 1 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+== M8-dispose-cli-ignores-log (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL and drops its line from the level beside that log (rc=0, want 1)
+cloud_relay self-test: 81 checks, 1 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+== M9-level-back-into-log (tools/audit/seat/cloud_relay.sh)
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+orchestrator_tick self-test: 154 checks, 0 failed
+  FAIL the event log carries no level line (rc=0, want 1)
+cloud_relay self-test: 81 checks, 1 failed
+RESULT tree=90bab078d passes=3 refs=5 disposed=1 log_lines=9 printed=7 distinct=7 match=yes
