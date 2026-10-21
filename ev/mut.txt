@@ -1,0 +1,4 @@
+RESULT mutant0 rc=0
+RESULT mutant1 rc=1
+RESULT mutant2 rc=1
+RESULT ci-lock install rc=0

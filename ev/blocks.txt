@@ -1,0 +1,2 @@
+RESULT tests/requirements-ci.txt 14 14 added set() removed set() changed ['aiohttp']
+RESULT tests/requirements-typing.txt 112 112 added set() removed set() changed ['aiohttp', 'certifi', 'pillow', 'uv']

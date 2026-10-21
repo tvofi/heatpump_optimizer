@@ -1,0 +1,3 @@
+  ..   census NOT checked here (HPO_TYPING_PYTHON unset)  [the mypy census is checked only by CI's `typing` job; point HPO_TYPING_PYTHON at a pinned interpreter to check it before pushing -- `uv venv --python 3.14 .venv-typing && uv pip install --python .venv-typing/bin/python -r <(python3 tests/typing_ruler.py --print-requirements)`]
+
+ALL 11 typing-ruler source checks PASSED

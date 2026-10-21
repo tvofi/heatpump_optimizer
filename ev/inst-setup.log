@@ -1,0 +1,25 @@
++ uv python install 3.14
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Downloading cpython-3.14.6-linux-x86_64-gnu (download) (34.3MiB)
+ Downloaded cpython-3.14.6-linux-x86_64-gnu (download)
+Installed Python 3.14.6 in 2.76s
+ + cpython-3.14.6-linux-x86_64-gnu (python3.14)
++ uv venv --python 3.14 /tmp/tmp.ChvDmdIlt7/v14
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Using CPython 3.14.6
+Creating virtual environment at: /tmp/tmp.ChvDmdIlt7/v14
+Activate with: source /tmp/tmp.ChvDmdIlt7/v14/bin/activate
++ uv pip install --python /tmp/tmp.ChvDmdIlt7/v14/bin/python pip
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Using Python 3.14.6 environment at: /tmp/tmp.ChvDmdIlt7/v14
+Resolved 1 package in 160ms
+Downloading pip (1.7MiB)
+ Downloaded pip
+Prepared 1 package in 159ms
+Installed 1 package in 10ms
+ + pip==26.2.2
++ cd /tmp/tmp.ChvDmdIlt7/wt
++ /tmp/tmp.ChvDmdIlt7/v14/bin/python --version
+Python 3.14.6
++ /tmp/tmp.ChvDmdIlt7/v14/bin/python -m pip install --require-hashes --no-deps --build-constraint tests/requirements-build.txt -r tests/requirements-typing.txt
++ echo rc=0
