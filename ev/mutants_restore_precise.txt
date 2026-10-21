@@ -1,0 +1,11 @@
+1300:   delivery-status:
+890:  wave-script:
+1300:  delivery-status:
+## M-restore (wave-script line 938 only)
+-            'tests/delivery_status.py' \
+  UNRESTORED tests/delivery_status.py: no wave-script restore pathspec covers it
+agreement_py restore: 13 closure file(s), 12 covered by the wave-script restore list, 1 missing
+rc=1
+## before, rc taken properly
+38ec7c60 rc=1
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired

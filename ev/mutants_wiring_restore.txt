@@ -1,0 +1,56 @@
+## before: the wiring check at 4f93c3a20 (the merge that brought gate_priority.py in) and at 38ec7c60
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=0
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 71 self-testing, 70 wired, 1 unwired
+rc=0
+504:          python3 -I tools/pr/gate_priority.py --self-test
+938:            'tests/delivery_status.py' \
+1192:      # report, the way `delivery_status.py` prints OK and not only OVERDUE.
+1286:  # `tests/delivery_status.py` for the measurement that motivated it: `record`
+1337:            'tests/delivery_status.py' \
+1339:          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
+1341:          python -I -S tests/delivery_status.py --check
+1344:  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
+1346:  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+1390:          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
+1393:          python tests/delivery_status.py \
+1398:          import delivery_status as ds
+## M-del: delete the gate_priority wiring line
+ .github/workflows/governance.yml | 1 -
+ 1 file changed, 1 deletion(-)
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 72 self-testing, 71 wired, 1 unwired
+rc=1
+## M-comment: comment the line out
+ .github/workflows/governance.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  UNWIRED tools/pr/gate_priority.py: no workflow run line names its self-test
+selftest_wiring: 72 self-testing, 71 wired, 1 unwired
+rc=1
+## M-restore: delete the 'tests/delivery_status.py' restore pathspec
+938:            'tests/delivery_status.py' \
+1286:  # `tests/delivery_status.py` for the measurement that motivated it: `record`
+1337:            'tests/delivery_status.py' \
+1339:          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
+1341:          python -I -S tests/delivery_status.py --check
+1344:  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
+1346:  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+1390:          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
+1393:          python tests/delivery_status.py \
+-            'tests/delivery_status.py' \
++ \
+-            'tests/delivery_status.py' \
++ \
+  UNRESTORED tests/delivery_status.py: no wave-script restore pathspec covers it
+agreement_py restore: 13 closure file(s), 12 covered by the wave-script restore list, 1 missing
+rc=1
+  UNRESTORED tests/delivery_status.py: no wave-script restore pathspec covers it
+agreement_py restore: 13 closure file(s), 12 covered by the wave-script restore list, 1 missing
+--out rc=1
+## restored
+selftest_wiring: 72 self-testing, 72 wired, 0 unwired
+rc=0
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+rc=0

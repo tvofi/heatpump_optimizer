@@ -1,0 +1,14 @@
+tools/audit/seat/selftest_wiring.py 38ec7c60=292dc67de2d852499d08c1597440f79eb5566249 044edcc2=292dc67de2d852499d08c1597440f79eb5566249 head=292dc67de2d852499d08c1597440f79eb5566249
+tools/policy/agreement_py.py 38ec7c60=0d4a76b32424bb7e48b35fad222e38455fbf235e 044edcc2=0d4a76b32424bb7e48b35fad222e38455fbf235e head=0d4a76b32424bb7e48b35fad222e38455fbf235e
+tests/closure.py 38ec7c60=e876e458d3ccf6a9c5e2afa07451575ca263e2f4 044edcc2=e876e458d3ccf6a9c5e2afa07451575ca263e2f4 head=acdeab519b5d986d03de1dc2b905e1e60d8b1a63
+tools/audit/seat/handoff_push.sh 38ec7c60=d1b62e2a08caa9dbec0ebe6fcea8fc38a2520865 044edcc2=d1b62e2a08caa9dbec0ebe6fcea8fc38a2520865 head=d1b62e2a08caa9dbec0ebe6fcea8fc38a2520865
+tools/audit/seat/merge_pr.sh 38ec7c60=de8fe517375434bc8fcc19e149f5ef815077b8da 044edcc2=de8fe517375434bc8fcc19e149f5ef815077b8da head=8b5ff6ae7af4ff1d5442a4d87d00a1bf1a8f6371
+8f026328d main mutants 31 missing at 8f026328d []
+8f026328d 39 ids, duplicates: []
+7752acbfc main mutants 31 missing at 7752acbfc ['S31', 'S32', 'S33', 'S34']
+7752acbfc 35 ids, duplicates: []
+S31 -> S35 text identical: True
+S32 -> S36 text identical: True
+S33 -> S37 text identical: True
+S34 -> S38 text identical: True
+wrappers main vs head identical: False pr-side vs head: True
