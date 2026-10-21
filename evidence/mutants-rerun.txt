@@ -1,3 +1,0 @@
-RESULT mutant=MX3 rc=1 fails=1
-RESULT mutant=MX4 rc=0 fails=0
-RESULT mutant=MX5 rc=1 fails=1

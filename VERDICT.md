@@ -1,63 +1,55 @@
-Fix review: blocked 441d19932f40475ddc0420f3b67ba8d90202eb2c vacuous-test: MB5 (monthly_held_cost_delta read from predicted_cost) passes every check; MX1 (tiles dropped from the ledger save) passes too; carries to R10-UX-HEALTH and R10-LIVESTATE are not in the roster
+Fix review: merge 4b215f4be037df2d519b7d189663fd04d3e37c5b
 
-bus-nonce: cecf419ef61f5daf10cddb3679e265ca
+bus-nonce: e692bc9e894afe85b252a0c8a90e73fe
 
-Round 1: the first review of this head. Measured at `441d19932f40475ddc0420f3b67ba8d90202eb2c`, a `mutation-autofix` bot commit (`ci: pin killed mutants`, 16 `killed_by` files only) on top of the body's `21eeb5b23`. Code head `cd1c837ca`. Merge base `e7c664856`. Re-read the head before posting: it was still `441d19932f40475ddc0420f3b67ba8d90202eb2c` (`ev/head-at-post.txt`). Role file: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so my copy is current.
+Round 2: the re-review after `blocked 441d19932` (comment 6322582323, `ev/previous-verdict-6322582323.md`). Measured at `4b215f4be037df2d519b7d189663fd04d3e37c5b` from detached worktrees; its merge base with origin/main is `1ebc737e7` (origin/main's tip when I started). Re-read before posting: the PR head is still `4b215f4be037df2d519b7d189663fd04d3e37c5b` (`ev/head-at-post.txt`). Contract: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, at both `1ebc737e7` and the later main `5a755f53e`.
 
-## Blocking
+What the fixer changed this round (`c34330926..29435d2fa`): the card's `degreeRow` now checks order only (`save >= 0 && cost >= 0`), with no convexity check. The features seam check now runs at two frozen instants (03:07, 15:07 UTC) and two starting rooms (19 and 23 °C). It requires the held figure to be equal across the two rooms and the plan's figure to differ by more than 1.0. There is a new ledger-save check, plus harness arms (`rotation`) and doc and card-test edits. The round adds no Python production line.
 
-1. **Step 1: a mutant on the line item 8 rests on survives (MB5, the body's own mutant).** I replaced `simulated.baseline_cost - result.baseline_cost` with `simulated.predicted_cost - result.predicted_cost` in `async_simulate`'s `monthly_held_cost_delta` (coordinator.py:11095), exactly as the body describes. Result: `python3 tests/features.py` gives `ALL 4276 FEATURE CHECKS PASSED` and rc 0 (`ev/mut-MB5.log`, `ev/mut-MB5.diff`, finished 16:45:46Z). The body says `#2257: at the real what-if seam …` kills it (+25.16 / +148.33). That check is the only one that reaches this line at a real seam. The `held figure, the cap tile the plan's` check reads `monthly_figure`'s key choice, not this line. And the body itself says the check depends on the clock: `_solve_coord` "anchors its horizon on the real clock; each run reads its own". At my run's clock the plan's single-solve pair came out monotone and convex, so the check passed. MB2 shows the same thing: at 16:34Z this check was `ok` under MB2, not red as the body records. MB2 is still killed by three other checks. So whether the PR's central change can be reverted unnoticed depends on the time of day the suite runs. The fix needs a check that pins this line without depending on the clock. One option: a fixed-clock seam, or a what-if pair whose plan delta and held delta differ in sign by construction.
+## Block
 
-2. **Reviewer's class attack: deleting the persistence leaves every check green (MX1).** The body says "the days persist with the ledger, so a restart does not start the mean over". I deleted `"price_tiles": price_tiles.book(self),` from `_async_save_ledger` (coordinator.py:7918). Every script that reads `price_tiles` stays green: `tests/features.py` ALL 4276 PASSED, `tests/finite_boundary.py` ALL 106 PASSED, `tests/entities.py` ALL 2375 PASSED (`ev/mut-MX1*.log`; the `fails=46` in `ev/mutants-other.txt` is my grep counting `FAIL` inside passing check names, and the log ends `ALL 2375 ENTITY CHECKS PASSED`). The load side is pinned: MX2, deleting the `price_tiles.restore(...)` call, passes features.py but fails finite_boundary's `the healthy rich seed round-trips unchanged … [changed=['ledger']]`. Nothing pins the save side. A check is owed that saves, reloads and reads the same published mean.
+None. Each blocking item of the previous verdict (round 1, at `441d19932`) is resolved:
+1. MB5 is now killed, independent of the clock (Evidence).
+2. MX1 is now killed (Evidence).
+3. Both carries are on the roster with their controls, at `origin/handoff/audit-r10-roster` `903d137b6` (an ancestor of the current `8138db551`) (Evidence).
 
-3. **Step 10: carry-missing. The forward-carries are not carried to R10-UX-HEALTH or R10-LIVESTATE.** The body routes both by `Carry:` markers (items 6ce59610, 4c077302) and says "the orchestrator writes the roster brief". At `origin/handoff/audit-r10-roster` `f424d993d15f9ba103680ecf88a710539f789bcf`, neither group's `brief` or `carry` mentions `open_options`, `advisor:settings`, `_price_tiles` or `price_tiles.book`. `git grep` across the roster's `dev/programme` finds neither term (`ev/carry-destinations.txt`). Both groups are `not-started`, so both are live destinations. `finding-propagation.md` says "the producing PR does not merge until the carry is in the tree". Open seams (a) and (b), the Plan page what-if, the fuse advisor and the gap/DHW rows, are marked `dismissed:` to a "Phase 1b roster burst". That burst has no file in the tree either. The same rule sends a sibling seam to a new issue or a carry file. This is the orchestrator's write, not the fixer's code, but it gates `merge`.
+The earlier round-1 block B1 (convexity hiding true rows) is answered by the order-only predicate. I re-measured it with the rotation arm (Evidence).
 
-## Non-blocking
+## Findings
 
-- **MX4 survives.** Replacing the mean of daily means with a pooled mean (`sum(sums)/sum(counts)`) passes features.py, because the horizon check folds exactly two samples into every day, so the two estimators agree. The check named `… publishes the mean of their daily means` cannot tell them apart. Carry: R10-ADVISOR
-- **The null bounds the held figure per delivered degree, but the tile is read per degree of setting.** In the `null` arm the plan delivers −0.514 K and +0.327 K per degree of schedule moved, at +59.4 per delivered degree. Over a three-day loop, moving the setting a degree therefore changes the bill by roughly 30 and 19 SEK a month, against the tile's 54.4. The body states the delivered fraction, so this is disclosed. Whether three days reaches steady state is not shown. Carry: R10-ADVISOR
-- **The harness is the fixer's own (step 9).** The finding has no committed finder harness: the owner's screenshot. `dev/audit/harnesses/r10_advisor_degree.py` was written by the fixer. The body presents it as "the instrument" without saying it is the fixer's own. The carried null harness, `r10_sav_null_terms.py const`, is untouched by this diff. I ran it at both ends and it reads identically, with timing +0.00 % (`ev/finder-null-terms-const-{base,wt}.txt`). That is flat by design, because the plan is unchanged. Carry: R10-ADVISOR
+- Non-blocking: MX4 still survives at this head. I replaced the mean of daily means in `price_tiles.published` with a pooled mean (`sum(sums)/sum(counts)`), and `tests/features.py` reads `ALL 4282 FEATURE CHECKS PASSED`, rc 0 (`ev/mut-MX4.diff`, `ev/MX4-features.log`). The horizon check still cannot tell the two estimators apart, because every day it builds holds the same sample count. The body's "mean of their daily means" is not pinned against a pooled mean. A check needs days with unequal counts. Carry: #2257
+- Non-blocking: the tile prices a degree held (+54.4 in the `null` arm). The plan delivers only −0.514 K and +0.327 K per degree of setting, so the row overstates what pressing the button saves, by roughly 1.8× and 3×. The body discloses this and leaves the copy question to the judge or owner. Nothing in this round changes it. Carry: #2257
 
-## RESULT lines (mine)
+## Evidence
 
-```
-RESULT merge-tree origin/main 49c222280 + head: rc=0 tree 5c574eb26ef5 (no conflict, no MERGE-CLAIM line)
-RESULT version/manifest/notes heading: untouched (empty three-dot diff)
-RESULT head node tests/card.mjs: ALL CARD CHECKS PASSED
-RESULT head python3 tests/features.py: ALL 4276 FEATURE CHECKS PASSED
-RESULT mutant=MC1 rc=1 fails=5   (body: same 5 names)
-RESULT mutant=MC2 rc=1 fails=1   (body: same)
-RESULT mutant=MC3 rc=1 fails=2   (body: same)
-RESULT mutant=MC4 rc=1 fails=2   (body: same)
-RESULT mutant=MB1 rc=1 fails=4   (body: same 4; real-seam held 0.0/0.0)
-RESULT mutant=MB2 rc=1 fails=3   (body names 4; the real-seam check was ok at 16:34Z)
-RESULT mutant=MB3 rc=1 fails=1
-RESULT mutant=MB4 rc=1 fails=1
-RESULT mutant=MB5 rc=0 fails=0   SURVIVES (body: killed by the real-seam check)
-RESULT mutant=MX1 (ledger save drops price_tiles) features rc=0, finite_boundary rc=0, entities rc=0  SURVIVES
-RESULT mutant=MX2 (restore call deleted) features rc=0, finite_boundary rc=1 (round-trip null control)
-RESULT mutant=MX3 (weekend/holiday casts deleted) rc=1 fails=1
-RESULT mutant=MX4 (pooled mean) rc=0 fails=0  SURVIVES
-RESULT mutant=MX5 (fold keeps days past the horizon) rc=1 fails=1
-RESULT mutant=MX6 (no-heating null-row guard deleted) rc=1 fails=1
-RESULT fixer harness r10_advisor_degree.py days null timing at head: every RESULT line the body quotes reproduces exactly
-  (days base 5/40 non-monotone, std 48.5/48.6; head 0/40, std 29.6/29.5; published 0/11, std 1.1;
-   null −0.514 K / +0.327 K delivered, truth +59.4, held +54.4 (−8.4 %), first_solve +145.6 / +85.1; timing +1.3 / +40.8 vs held +54.7)
-RESULT finder null harness r10_sav_null_terms.py const: base == head, timing gain +0.00 %
-RESULT card_drift.mjs vs e7c664856: 1 state moved and claimed (advisor_page), 39 identical
-RESULT class rule 1 (inbox builders): 6 lines / 5 builders, same as the body; rule 2 (monthly scaling): price_tiles + async_simulate + card DAYS_PER_MONTH, same as the body
-RESULT advisor:settings PENDING row: deleted; only health:settings (R10-UX-HEALTH) remains
-RESULT CI at head (81 check runs, all concluded): only nightly-status red
-```
-
-## Steps
-
-- **Step 2/3:** no finder harness exists (see the step 9 note). I ran the carried null harness at both ends (flat), and the fixer's harness at the head (all quoted figures reproduce).
-- **Step 4:** `card_drift` matches the one claim. `env_drift --all` against the merge base: `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`, rc 0 (`ev/env_drift.txt`). The solver claim file is untouched, and that is correct.
-- **Step 5:** untouched.
-- **Step 6:** both rules reproduce, and the seams are dispositioned in the body. The rules' only open seams are those whose destination is missing (blocking item 3). My widened grep also found `coordinator.py:9124`, a kWh month extrapolation that is not a what-if. It is outside the class.
-- **Step 7:** the body's head section names `21eeb5b23`. The head adds only the `mutation-autofix` pin commit, which `ci-autofix.md` treats as a carry.
-- **Step 11:** `nightly-status` is red on main's nightly lanes (`mutation-nightly`, `slow`, run 39563978649), which this diff does not reach, so it is not this PR's. Every other check is success or skipped. CI's `mutation` lane is green, but its operators do not include MB5- or MX1-shaped edits.
-- **Step 13:** clean.
-- **Step 14:** `structure_budgets.json` only lowers four rows. Those rows are earned by moving the tiles' state into `price_tiles.py`: put `_price_tile_specs` back on the class and the LOC returns. Seam map: one entry removed, with the method.
-- **Step 15:** the store and payload hunks serve the tile seam. No breach found.
+- RESULT head `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4282 FEATURE CHECKS PASSED`, rc 0 (`ev/wt-features.log`). This matches the body's 4282.
+- RESULT head `node tests/card.mjs` (after `tests/plan_view.py`): `ALL CARD CHECKS PASSED`, rc 0 (`ev/wt-card.log`).
+- RESULT mutant MB5 (`simulated.baseline_cost - result.baseline_cost` → `simulated.predicted_cost - result.predicted_cost` in `async_simulate`'s `monthly_held_cost_delta`): rc 1, `1 of 4282 FEATURE CHECKS FAILED`, namely `#2257: the held figure prices a degree from a steady start …`. The detail reads `(15,19.0): (-126.08, 84.77), (15,23.0): (-78.35, 56.4)` and `(3,19.0): (-116.07, 140.78)` / `(3,23.0): (-114.95, 138.63)`. These are exactly the body's figures, although my run was at about 21:30–21:49Z, a different wall time from the fixer's. The figures are reproducible under the freeze. I also checked the code path: `_solve_coord` anchors its prices on `dt_util.now()`, which `_fi_dt.freeze` pins, and the coordinator passes `start_time` into the optimizer (coordinator.py:5659, 11024), so the optimizer's `datetime.now()` fallback is not reached. The check is not vacuous in either half: at the head, held is equal across the rooms and the plan's figures differ by more than 1.0, and under MB5 the held figure becomes the plan's, so the equality fails. (`ev/mut-MB5.diff`, `ev/MB5-features.log`)
+- RESULT mutant MX1 (the `"price_tiles": price_tiles.book(self),` line deleted from `_async_save_ledger`): rc 1, `1 of 4282 FEATURE CHECKS FAILED`, namely `#2257: the ledger save carries the price tiles' book, day by day [None]` (`ev/mut-MX1.diff`, `ev/MX1-features.log`).
+- RESULT card mutants (`ev/card-mutants.txt`). MC1, MC2, MC7 and MC8 go red on exactly the checks the body names, with rc 1 each and 3, 2, 2 and 1 failures. Two extra mutants of my own:
+  - MC9 drops `cost >= 0`: 2 red (the screenshot pair; "a warmer degree that saves …").
+  - MC10 drops `save >= 0`: 1 red ("a degree cooler that costs more …").
+  Each half of the order predicate is pinned on its own.
+- RESULT fixer harness `dev/audit/harnesses/r10_advisor_degree.py rotation` at the head, sha1 `41ee4a43725dac312d95037575bc612f866af709` (the same as the body's). Every line reproduces the body exactly (`ev/harness-rotation.log`):
+  - precondition: real `[67.9, 80.02, 74.03]` = stub;
+  - 30 / 60 / 120 min: 40 shown, 0 hidden, gaps -2.29..+0.55 / -1.82..+1.22 / -2.50..+2.06;
+  - null: 40 shown, gap +0.38;
+  - `VERDICT rotation the card shows the row every evening at every cadence`, rc 0.
+  The 30 and 120 min gap ranges are identical to round 1's reviewer probe (`probe/rev-2572-e25f00fd`), so the estimator did not move and only the predicate did.
+- Step 2/9: no finder harness exists for owner items 6 to 8 (the owner's screenshot). The body now states in words that `r10_advisor_degree.py` is "this PR's instrument, not the finder's", which settles round 1's step-9 note. I did not rebuild a harness this round and did not re-run the `days`, `null` or `timing` arms. Those figures were confirmed at round 1's head, and this round moves no estimator line, so I carry them, not re-derive them.
+- Step 4: no golden or claim file moved this round (`git diff 441d19932 4b215f4be` over `tests/golden/*claimed_drift.txt` and `structure_budgets.json` is empty). Round 1's single `advisor_page` card claim stands. I did not re-run `card_drift` myself; the body's `1 state(s) moved and claimed, 39 identical` is the fixer's, and CI's `fast` is green.
+- Step 5: `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched (three-dot diff empty).
+- Step 6, class: the round's class rule (the card's tile reads) returns the four sites the body dispositions. No second consumer of a tile pair exists.
+- Step 7: the body's `## Head` names `4b215f4be037df2d519b7d189663fd04d3e37c5b` and its code head `b11f008c5`. The final merge `07e75418b` → `4b215f4be` brings in origin/main `1ebc737e7` with no conflict.
+- Step 10: both carries are on the roster at `903d137b6`, and each states its control as a precondition:
+  - R10-LIVESTATE item 4c077302: "a word-bounded grep for _price_tiles in coordinator.py returns nothing";
+  - R10-UX-HEALTH item 6ce59610: "node tests/card.mjs green with advisor:settings absent from PENDING".
+  Both groups are live. The friction carry is on R10-ORCH-MACHINERY.
+- Step 11: 48 check runs at the head, all concluded: 31 success, 16 skipped, 1 failure (`ev/check-runs.tsv`). The one red is `nightly-status` (run 119495733978), which grades main; this diff does not reach what it reads, and the body's `## Red checks` says so. `mutation`, `closures`, `coverage` and `fast (3.14)` are green. This round adds no Python production line, so the `mutation` lane's green says nothing about the card lines; my card mutants above cover them.
+- Step 13: `git merge-tree --write-tree origin/main 4b215f4be…`:
+  - at `1ebc737e7`: rc 0, tree `520d73934d8e`;
+  - at the later main `5a755f53e`: rc 0, tree `4b12216d7419`, `LEDGER-MERGE: resolved tests/closures.json` (merged as a set).
+  No `MERGE-CLAIM` line printed (`ev/merge-tree*.txt`).
+- Step 14: this round moves no budget, ledger or score file. Round 1's `structure_budgets.json` lowerings stand as round 1's review judged them.
+- Step 15: the added lines are the card predicate and tests only, inside the Advisor's owning seam. No breach.
+- Round: 2 for this group's fixer, so the round-4 re-cut rule does not apply.

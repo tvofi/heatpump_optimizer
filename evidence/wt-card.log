@@ -382,38 +382,13 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    rows rank by monthly value: degree 90 > hot water 55 > gap 40 > valve (no money)
   ok    the hot water at the off-grid default 55 is priced by interpolation
   ok    price of a degree: the cooler tile is the saving, the warmer one is in the detail
-  FAIL  the screenshot's pair (-140 cooler, -266 warmer) renders no money and no "more"
-        ">
-      <span class="adv-text">A degree cooler is cheaper<span class="adv-sub">A degree warmer costs -266 SEK/month more (a 30-day average).</span></span>
-      <span class="adv-value">≈ 140 SEK/month</span>
-      <button type="button" class="adv-act" data-act="try_degree"
-        data-key="" data-target="20">Try in what-if</button>
-    </div><div 
-  FAIL  a warmer degree cheaper than the cooler one saves is not convex, so not shown
-        ">
-      <span class="adv-text">A degree cooler is cheaper<span class="adv-sub">A degree warmer costs 50 SEK/month more (a 30-day average).</span></span>
-      <span class="adv-value">≈ 90 SEK/month</span>
-      <button type="button" class="adv-act" data-act="try_degree"
-        data-key="" data-target="20">Try in what-if</button>
-    </div><div 
-  ok    a linear pair the two roundings open by one unit is still convex
-  FAIL  two units below the saving is concave, not rounding
-        ">
-      <span class="adv-text">A degree cooler is cheaper<span class="adv-sub">A degree warmer costs 74 SEK/month more (a 30-day average).</span></span>
-      <span class="adv-value">≈ 76 SEK/month</span>
-      <button type="button" class="adv-act" data-act="try_degree"
-        data-key="" data-target="20">Try in what-if</button>
-    </div><div 
-  FAIL  a degree that saves nothing either way (no heating) is no row
-  FAIL  a degree cooler that costs more is not shown as a saving
-        ">
-      <span class="adv-text">A degree cooler is cheaper<span class="adv-sub">A degree warmer costs 30 SEK/month more (a 30-day average).</span></span>
-      <span class="adv-value">≈ -12 SEK/month</span>
-      <button type="button" class="adv-act" data-act="try_degree"
-        data-key="" data-target="20">Try in what-if</button>
-    </div>
-    <div class="adv-head"><span class="adv-title">More advice, once turned on</span></div>
-    <div 
+  ok    the screenshot's pair (-140 cooler, -266 warmer) renders no money and no "more"
+  ok    a pair production's rotation publishes, the warmer degree a unit under the saving, is shown
+  ok    a linear pair the two roundings open by one unit is shown
+  ok    a warmer degree that rounds to no cost is still in heating's order, so shown
+  ok    a warmer degree that saves is out of heating's order, so not shown
+  ok    a degree that saves nothing either way (no heating) is no row
+  ok    a degree cooler that costs more is not shown as a saving
   ok    today's sensor ranking still follows on the page
   ok    Try in what-if seeds the what-if slider with the tile's target and simulates
   ok    without price tiles the degree row is offered as enable-to-see, not drawn
@@ -1299,4 +1274,4 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    openHaLink asks the registry for its own plan sensor and links this entry
   ok    openHaLink falls back to the whole integration when the registry refuses
 
-5 CARD CHECK(S) FAILED
+ALL CARD CHECKS PASSED
