@@ -5583,7 +5583,9 @@
    "after": [
     "R10-CI-LAYOUT-P1"
    ],
-   "carry": [],
+   "carry": [
+    "(from #2396) Forward-carry item 1, verbatim: \"Same-SHA duplicate run at every bot-pushed head. The harness counts heads carrying a same-SHA pair of a dispatched run and a held-then-approved `pull_request` run: `same_sha_dup_heads` tests 31, codeql 33, at `same_sha_dup_min` tests 1249, codeql 701 (wall, not billed; same cache as `## Figures`). Not a supersession, so not this rule; the larger lever. Needs its own pre-study; the #1276 shadowing risk applies. Destination: the orchestrator's findings register / a new R10 row.\" Harness: dev/audit/harnesses/superseded_runs.py (#2396's `## Figures` command: `python3 dev/audit/harnesses/superseded_runs.py --cache $CACHE --since <date> --jobs --fetch-jobs`, read-only gh api). Figures are a snapshot at 2026-10-18; re-derive at your merge base. The umbrella (PR 2) is where dispatched and pull_request runs of one head are unified, so decide there whether the duplicate remains; measure same_sha_dup_heads before and after, null control = a head with a single run."
+   ],
    "architect_note": null,
    "resume": {
     "stage": "not-started",
