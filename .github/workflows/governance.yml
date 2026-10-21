@@ -480,6 +480,17 @@ jobs:
           grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
           python3 -I tools/audit/seat/selftest_wiring.py --check
 
+      # The body-only PATCH (R10-FLOW-BODY-PATCH): a moved head refuses before
+      # any write, a body the contract refuses is never sent, --dry-run prints
+      # the request, and a mutant of each of the head, contract and read-back
+      # arms is caught -- over stubbed gh, curl, openssl and node: no network.
+      - name: Show the body PATCH refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
+          grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+
       - name: Show the CI watcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |

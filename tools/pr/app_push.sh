@@ -105,13 +105,8 @@ API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 die() { printf 'app_push: REFUSE: %s\n' "$*" >&2; exit 1; }
 
-cleanup() {
-  if [ -s "$PRIV/token.h" ]; then
-    curl -fsS -X DELETE -H @"$PRIV/token.h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
-      || printf 'app_push: warning: revoking the installation token failed; it expires within the hour\n' >&2
-  fi
-  rm -rf "$PRIV"
-}
+MINT_NAME=app_push
+. "$(dirname -- "$0")/app_mint.sh" # the token mint, shared with seat/body_patch.sh
 
 # push.sh's classification, over a JSON listing: `[]` POSITIVELY means no
 # pull request is open, an array naming a number names one, and anything
@@ -305,12 +300,7 @@ push_and_open() {
   [ "$bonly" = 1 ] || [ -f "$body" ] || die "no body file at $body"
   wt=$(cd "$wt" 2>/dev/null && pwd) || die "cannot enter worktree '$wt'"
 
-  local idir="${HPO_IDENTITY_DIR:-$HOME/.zcode}"
-  local appid_f="$idir/hpo-author.appid.txt" key="$idir/hpo-author.pem"
-  [ -s "$appid_f" ] || die "App id file missing or empty: $appid_f (fail closed)"
-  [ -s "$key" ] || die "App private key missing or empty: $key (fail closed)"
-  local appid; appid=$(cat "$appid_f")
-  [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
+  mint_identity
 
   # Is a pull request open on this branch? Read through `gh` before minting,
   # so a query that cannot answer refuses while nothing is minted. The head
@@ -385,29 +375,7 @@ push_and_open() {
     exit 0
   fi
 
-  umask 077
-  PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
-  trap cleanup EXIT
-  trap 'exit 130' INT TERM HUP
-  # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
-  chmod 700 "$PRIV"
-  b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
-  local now h p s inst
-  now=$(date +%s)
-  h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
-  p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$appid" | b64)
-  s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] \
-    || die "signing the App JWT with $key failed"
-  printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$PRIV/jwt.h"
-  inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
-    | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') \
-    || die "the App has no installation on $repo, or its JWT was refused"
-  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
-    | python3 -c 'import sys,json
-t = json.load(sys.stdin)["token"]
-open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" && [ -s "$PRIV/token.h" ] \
-    || die "minting the installation token failed"
-  chmod 600 "$PRIV/token.h" "$PRIV/jwt.h"
+  mint_token "$repo"
 
   # The App's push credential: generated, file-fed, and the only helper. See
   # the header for why a helper rather than extraheader or askpass. `get` is
@@ -480,6 +448,7 @@ trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
 cp "$(dirname -- "$SELF")/head_note.py" "$W/tool/"
+cp "$(dirname -- "$SELF")/app_mint.sh" "$W/tool/"
 # The real guard, at the path the copy resolves it by (../audit/seat/).
 mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/"
 FAILS=0; N=0
