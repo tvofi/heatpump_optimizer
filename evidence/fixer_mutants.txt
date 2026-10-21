@@ -1,0 +1,20 @@
+RESULT mutant=pr-by-branch rc=1 fails=1 verdict=killed
+    FAIL done: the PR is found by branch when no merge commit matches 
+RESULT mutant=pr-sha8-fallback rc=1 fails=1 verdict=killed
+    FAIL done: no PR found falls back to the commit's sha8 
+RESULT mutant=branch-tail-fallback rc=1 fails=1 verdict=killed
+    FAIL the open PR maps by the branch-tail fallback 
+RESULT mutant=title-fallback rc=1 fails=1 verdict=killed
+    FAIL an open PR whose branch names no group maps by its title 
+RESULT mutant=closed-strike rc=1 fails=1 verdict=killed
+    FAIL a closed issue's chip is struck 
+RESULT mutant=tracking-excluded rc=1 fails=1 verdict=killed
+    FAIL the open-issue count leaves out the tracking issue 
+RESULT mutant=page-refuses-stale rc=1 fails=1 verdict=killed
+    FAIL a stale plan is refused, nothing written 
+RESULT mutant=freshness-rule rc=1 fails=2 verdict=killed
+    FAIL a stale plan is refused, nothing written 
+    FAIL and replan --check refuses the same plan 
+RESULT mutant=stamp-on-axis rc=1 fails=1 verdict=killed
+    FAIL a planned stamp is drawn 
+RESULT survived=0
