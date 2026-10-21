@@ -6,7 +6,8 @@ ok   the last line is one OK line naming the unmoved head
 ok   the head is re-read before the write and the body read back after it
 ok   live head read, then the contract, then the mint, then the PATCH (#678's ordering)
 ok   policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check
-ok   its paths are what the head changes against the base (three-dot): b.txt, not the later c.txt
+ok   its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt
+ok   its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt
 ok   carry_audit check --body runs on the same body
 ok   the installation token is revoked on exit
 ok   the private directory is gone
@@ -34,6 +35,12 @@ ok   (and nothing minted)
 ok   REFUSE: the body read back is not the body sent
 ok   and no OK line
 ok   a completed mismatch is not retried (pre-write read plus one read-back)
+ok   REFUSE: the body read back differs only in trailing whitespace beyond the one newline
+ok   and no OK line
+ok   REFUSE: no read-back can be performed (retry exhaustion)
+ok   and no OK line: a body never read back is not reported patched
+ok   naming the reason
+ok   after the pre-write read and exactly 3 read-back attempts
 ok   REFUSE: GitHub refuses the PATCH
 ok   (the token is revoked on a refusal too)
 ok   REFUSE: a short sha
@@ -49,5 +56,9 @@ ok   MUTANT policy_lint arm deleted: the refused body is now SENT
 ok   MUTANT carry_audit arm deleted: the refused body is now SENT
 ok   MUTANT body read-back deleted: a mangled body now reads OK
 ok   MUTANT head re-read deleted: a head moved around the write now reads OK
-body_patch self-test: 51 checks, 0 failed
+ok   MUTANT retry-exhaustion guard deleted: a body never read back now reads OK
+ok   MUTANT read-back equality relaxed to strip(): a whitespace-only difference now reads OK
+ok   MUTANT --diff-filter=a dropped: the existing list now holds the added file (the ok-run assertion catches it)
+ok   MUTANT two-dot diff: the paths now hold the base's own d.txt (the ok-run assertion catches it)
+body_patch self-test: 62 checks, 0 failed
 rc=0
