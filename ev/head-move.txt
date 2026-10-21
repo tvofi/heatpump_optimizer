@@ -1,0 +1,24 @@
+13a798252c51e730f409d1648f1a39b3b0c1c997 2ba41fefc94a76d0f978855075746479fe0c4b8f dbea71db76f1eea499c41df9c10678695f56bb0b tvofi Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster
+2ba41fefc94a76d0f978855075746479fe0c4b8f 39f465739706edd44c7446a7cdebc0e0c5b30091 a6e0530d49965ed5be440590425aaaa44b71577a tvofi Merge commit 'a6e0530d49965ed5be440590425aaaa44b71577a' into fix/audit-r10-roster
+dbea71db76f1eea499c41df9c10678695f56bb0b 3688cf25977ca71b4406be942df9592577d9b42e eabf604b2246c68a6e45df890ee9d3ba13a46e9d tvofi Merge pull request #2525 from tvofi/fix/r10-wip-cap
+a6e0530d49965ed5be440590425aaaa44b71577a 5f52cb8ceaa505d7d983a8a304466b48b815f241 tvofi roster_edit append-carry R10-CI-LAYOUT-P2 (tools/audit/seat/roster_edit.py)
+5f52cb8ceaa505d7d983a8a304466b48b815f241 31e162fd3a1207db596539b2330af1d274c36c85 tvofi roster_edit append-carry R10-CI-LAYOUT-P1 (tools/audit/seat/roster_edit.py)
+3688cf25977ca71b4406be942df9592577d9b42e f58b14c19321af380613abeb479b9395d35df364 c0700aa7797cfa34bea8a85df64e959c2dcaf72f tvofi Merge pull request #2564 from tvofi/record/autofix
+eabf604b2246c68a6e45df890ee9d3ba13a46e9d 31ce1c0cbb552095177d3ef733f88d9515b65d7c f58b14c19321af380613abeb479b9395d35df364 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-wip-cap
+c0700aa7797cfa34bea8a85df64e959c2dcaf72f 58d3fcbef80d2a75397af08734c92018af7c39d2 hpo-author[bot] ci: record delivery rows
+58d3fcbef80d2a75397af08734c92018af7c39d2 9e19b2c648199c98022f588ce62a398ccd4269c4 hpo-author[bot] ci: record delivery rows
+31ce1c0cbb552095177d3ef733f88d9515b65d7c eda11668ae28b26d1efcb841e8e60431dec97590 03b49e1521a2490335922093c9177aec8f6119d9 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-wip-cap
+eda11668ae28b26d1efcb841e8e60431dec97590 389cef8f28e5e096953d5cede31fe615c6b7ab7f tvofi record: the delivery row for #2525
+389cef8f28e5e096953d5cede31fe615c6b7ab7f be1c11cf2070f4931032b5748d7511e54cdc6ed2 6961f06637964001a2ed544e495ea0312eeefa37 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-wip-cap
+be1c11cf2070f4931032b5748d7511e54cdc6ed2 00118887ce1f500825c90073f70910e0fe7a815b 5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f tvofi Merge commit '5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f' into fix/r10-wip-cap
+5d477d6e9d3b0f71f64cbdc92d04fb3d7e79cf8f e09f364b2ae62a58ae2b8846785e1005085bc118 tvofi docs(seat): the soft cap gates only group dispatch, never an open or update
+e09f364b2ae62a58ae2b8846785e1005085bc118 df53713dd6e8b7fe2ece62e9be541b0e5ad86143 tvofi docs(role): keep the merge-message paragraph's citation line as main has it
+df53713dd6e8b7fe2ece62e9be541b0e5ad86143 00118887ce1f500825c90073f70910e0fe7a815b df6ca4bc6858f2796f694035e6f53e46e237e33b tvofi Merge remote-tracking branch 'origin/main' into s4/r10-wip-cap
+00118887ce1f500825c90073f70910e0fe7a815b 80fe9ac08ef9e8b9f90baf814d79a38d56d4041a 3b941800cc975d9e4a8e585b851d423e8e2b64ca tvofi Merge remote-tracking branch 'origin/main' into fix/r10-wip-cap
+80fe9ac08ef9e8b9f90baf814d79a38d56d4041a 83d1a25f5ef1ae591f10b7f797898863805491b0 tvofi fix(policy): elide a moved citation under every spelling it is cited by
+83d1a25f5ef1ae591f10b7f797898863805491b0 5a1aca33ceb29ffb978c3bbdcb1fc275ac14ee0a tvofi docs(role): cite the decision where it now lives
+5a1aca33ceb29ffb978c3bbdcb1fc275ac14ee0a 3af8d082be042a3ecaaed29589ce2541318c0a27 tvofi refactor(seat): cap_levels names what it reports
+3af8d082be042a3ecaaed29589ce2541318c0a27 30da384b5d3b26e9b46b1a690ab127953dba532f 10d423c28073fc747be7100976e39b2c517811ee tvofi Merge remote-tracking branch 'origin/main' into handoff/r10-wip-cap
+30da384b5d3b26e9b46b1a690ab127953dba532f a91a9a185a6226c0f83611d2fbf46ea0387c4702 tvofi docs(seat): pay the policy budget for the dispatch rule
+a91a9a185a6226c0f83611d2fbf46ea0387c4702 19030d585f840754c5d9e03cef7680e489099a6c tvofi docs(seat): the cap gates dispatch; name the WIP line everywhere
+19030d585f840754c5d9e03cef7680e489099a6c efc0e67332d0287518b21014f44f3f4c1bf533d4 tvofi fix(seat): gate dispatch on work in progress, not on opening
