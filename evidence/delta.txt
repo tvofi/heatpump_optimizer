@@ -1,0 +1,42 @@
+## authored delta bb9f93e8 -> 8d7f5bb6f
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 13817d9e6..debd4ce93 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -116,7 +116,7 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
+ | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
+ | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
+ | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
+-| `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer, and two `revise` rounds go to the orchestrator |
++| `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
+ | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
+ | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
+ | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
+## head vs (bb9f93e8 merged with main): range-diff of PR-touched files
+ CLAUDE.md                                          |  2 +
+ dev/governance/config/policy_budgets.json          |  6 ++-
+ .../0012-process-diet-and-round-cadence.md         | 14 +++--
+ ...design-seats-and-the-end-of-0012s-moratorium.md | 63 ++++++++++++++++++++++
+ dev/governance/roles/design-review.md              | 53 ++++++++++++++++++
+ dev/governance/roles/designer.md                   | 60 +++++++++++++++++++++
+ dev/governance/roles/fix-review.md                 | 10 ++--
+ dev/governance/roles/fixer.md                      |  8 +--
+ dev/governance/roles/orchestrator.md               | 19 +++----
+ dev/programme/delivery/2586.md                     |  1 +
+ tests/closures.json                                |  2 +
+ tools/policy/policy_lint.mjs                       |  8 +--
+ 12 files changed, 219 insertions(+), 27 deletions(-)
+
+ CLAUDE.md                                          |  2 +
+ dev/governance/config/policy_budgets.json          |  6 ++-
+ .../0012-process-diet-and-round-cadence.md         | 14 +++--
+ ...design-seats-and-the-end-of-0012s-moratorium.md | 63 ++++++++++++++++++++++
+ dev/governance/roles/design-review.md              | 53 ++++++++++++++++++
+ dev/governance/roles/designer.md                   | 60 +++++++++++++++++++++
+ dev/governance/roles/fix-review.md                 | 10 ++--
+ dev/governance/roles/fixer.md                      |  8 +--
+ dev/governance/roles/orchestrator.md               | 19 +++----
+ dev/programme/delivery/2586.md                     |  1 +
+ tests/closures.json                                |  2 +
+ tools/policy/policy_lint.mjs                       |  8 +--
+ 12 files changed, 219 insertions(+), 27 deletions(-)
