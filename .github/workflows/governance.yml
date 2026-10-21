@@ -632,6 +632,17 @@ jobs:
           python3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"
           grep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"
 
+      # The mutation sweep costs one roster_edit self-test (~a minute) per
+      # plant, so CI runs only the preconditions every plant rests on: its
+      # anchor still occurs exactly once in the target's live text, and its
+      # mutant parses -- the rot that silently turns a plant into a no-op.
+      - name: Show the roster-ops mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+          grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
