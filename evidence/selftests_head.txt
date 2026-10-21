@@ -1,0 +1,3 @@
+orchestrator_tick self-test: 172 checks, 0 failed
+  ok   the pass fired the handoff arm
+cloud_relay self-test: 81 checks, 0 failed

@@ -1,0 +1,17 @@
+head 71a577c96be311326cc93e3044d8dd9907a21694
+dev/audit/harnesses/r10_tick_owed_level.py old:7a9b3c7f59dd0549ab73948dc0679f215abf0469 new:7a9b3c7f59dd0549ab73948dc0679f215abf0469
+dev/programme/delivery/2547.md old:da39a3ee5e6b4b0d3255bfef95601890afd80709 new:da39a3ee5e6b4b0d3255bfef95601890afd80709
+tests/closures.json old:7ebd48911ca52a05da42c3f9d28aab3e2cbd9c57 new:7ebd48911ca52a05da42c3f9d28aab3e2cbd9c57
+tools/audit/seat/INSTRUMENTS.md old:7de73ef28c10b26bdeb3d5fb68c5e61bc14797e5 new:7de73ef28c10b26bdeb3d5fb68c5e61bc14797e5
+tools/audit/seat/cloud_relay.sh old:6ad800946c34d4f2b68b205e3f744998acaa399e new:6ad800946c34d4f2b68b205e3f744998acaa399e
+tools/audit/seat/orchestrator_tick.py old:8ae53014994844e0b325a9020941747ed8580a4a new:8ae53014994844e0b325a9020941747ed8580a4a
+closures main-side vs P..H:
+47c6da2857ad3740bbb4b0153b74e506eab6c69e  -
+47c6da2857ad3740bbb4b0153b74e506eab6c69e  -
+remerge tree:
+3c6ba73c616726a10b07add4721a5c2c128d1d7d
+(empty = identical)
+ tools/audit/seat/INSTRUMENTS.md       |  82 ++++++++-----
+ tools/audit/seat/cloud_relay.sh       |   3 +-
+ tools/audit/seat/orchestrator_tick.py | 220 ++++++++++++++++++++++++++++------
+ 3 files changed, 239 insertions(+), 66 deletions(-)
