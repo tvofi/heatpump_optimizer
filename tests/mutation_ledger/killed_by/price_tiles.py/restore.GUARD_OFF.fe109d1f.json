@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:restore GUARD_OFF fe109d1f",
+  "killed_by": "tests/structure.py",
+  "old": "        if not _aware(kept.get(\"computed_at\")):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

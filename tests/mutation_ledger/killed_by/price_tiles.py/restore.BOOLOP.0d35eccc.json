@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:restore BOOLOP 0d35eccc",
+  "killed_by": "tests/features.py",
+  "old": "        kept = {k: v for k, v in tile.items() if k != \"days\" and admit(name, {k: v})}",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: BOOLOP (`kept = {k: v for k, v in tile.items() if k != \"days\" or admit(name, {k: v})}`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
