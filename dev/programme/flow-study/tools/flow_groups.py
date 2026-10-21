@@ -70,7 +70,9 @@ GROUPS = [
         "the head or carries to it, oldest first, and leaves budget and policy paths to the "
         "serial route the batch admit already applies. Then run tools/audit/seat/queue_pre_flight.py, "
         "then train.sh with --bot-prs --approval-carry --pre-flight, once per pitch, from the tick "
-        "loop, and never while a train's pidfile is live. Controls: a fixture with one verdicted "
+        "loop, and never while a train's pidfile is live. Every merge goes through merge_pr.sh or the "
+        "train, which approve (app_approve.sh, or tvofi's review under the mandate on a code-owned path) "
+        "before merging; a posted merge verdict is not a GitHub approval. Controls: a fixture with one verdicted "
         "head, one carried head, one head the carry refuses, one blocked verdict and one budget "
         "file builds exactly the expected queue; an empty queue starts no train; a live pidfile "
         "starts none; mutants of each admission rule fail named arms. The first live pitch runs "
@@ -124,7 +126,7 @@ GROUPS = [
          "Pre-study: the Lean flow pre-study, section K14."],
         fixer="sonnet", reviewer="opus"),
     group(
-        "R10-FLOW-MAIN-GATE", "instrument", "S", [],
+        "R10-FLOW-MAIN-GATE", "instrument", "M", [],
         ["tools/audit/seat/merge_train.py", "tools/audit/seat/INSTRUMENTS.md"],
         ["tools/audit/seat/merge_train.py"],
         "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it "
@@ -137,7 +139,18 @@ GROUPS = [
         "'is main red': share the classifier the open #2570 gives the tick's MAIN section rather "
         "than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait "
         "or green, not red; a failed required context reads red; an unreadable ruleset is a "
-        "refusal, never green; mutants for each arm.",
+        "refusal, never green; mutants for each arm. Revision 7 widens it into the one owner of state "
+        "classification for the train, the merge seat and the tick: (b) a check-run whose status is "
+        "in_progress or queued while its workflow run has completed is stale, not pending: re-run that "
+        "run once and re-read (2026-10-21: #2559's budget-raise-gate check-run 119308796140 stayed "
+        "in_progress over a completed successful run, mergeStateStatus read BLOCKED, and the merge seat "
+        "burned 8 attempts); (c) a pull request reported DIRTY is classified from git merge-tree "
+        "--write-tree origin/main <head>: the conflicted files are named first, and the claimnotes "
+        "repair is offered only when every conflicted file is a claim file; a content conflict returns "
+        "to the owning fixer and its verdict does not carry (2026-10-21: the tick told #2569 to absorb "
+        "main with the claimnotes driver while the conflict was content in roster_edit.py); (d) a head "
+        "is reviewable only when no required context's latest run there has concluded failure. If the "
+        "fixer has already started on (a), (b) to (d) are its second pull request.",
         ["Sequence after #2570 (the tick's MAIN-section fix) and share its classifier.",
          "Pre-study: the Lean flow pre-study, section K15."]),
     group(
@@ -154,7 +167,9 @@ GROUPS = [
         "Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; "
         "the group builds the repo half. Controls: a fixture dispatch renders the same payload as "
         "today's three-step path, byte for byte; a host path still refuses; the printed line "
-        "round-trips to the brief.",
+        "round-trips to the brief. The dispatcher refuses a reviewer dispatch for a head where a "
+        "required context's latest run has concluded failure (revision 7: #2563 was dispatched for "
+        "review at 9851d39d with two required checks red), reading R10-FLOW-MAIN-GATE's classifier.",
         ["Owner ruling (R15): the orchestrator drafts the three standing trigger prompts (Opus fixer, "
          "Opus reviewer, Sonnet fixer) once this lands; the owner creates them in the harness.",
          "Pre-study: the Lean flow pre-study, section K16."],

@@ -443,6 +443,16 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 
 **Controls:** the e7c66485 shape reads wait or green; a failed required context reads red; mutants for each arm.
 
+### K15, widened in revision 7: one owner of state classification
+
+The live run found three more misreadings, all of the same kind. Each now has its classifier inside R10-FLOW-MAIN-GATE, shared by the train, the merge seat, the dispatcher and the tick. If MAIN-GATE's fixer has already started on (a), items (b) to (d) form its second PR.
+
+| | observed | classify as |
+|---|---|---|
+| (b) stale check-run | #2559's budget-raise-gate check-run 119308796140 stayed `in_progress` while its workflow run had `completed`/`success`. `mergeStateStatus` read BLOCKED; the merge seat burned 8 attempts; a re-run fixed it. | A check-run whose status is `queued` or `in_progress` while its run has completed is **stale**, not pending. Re-run that run once, then re-read. |
+| (c) DIRTY repair hint | The tick told #2569 "claim-file merge GitHub cannot run; absorb main with the claimnotes driver". The conflict was content in `tools/audit/seat/roster_edit.py`, against R10-ROSTER-OPS on main. | Run `git merge-tree --write-tree origin/main <head>` and **name the conflicted files first**. The claimnotes repair applies only when every conflicted file is a claim file. A content conflict returns to the owning fixer, and its verdict does not carry, because the resolution changes reviewed code. |
+| (d) reviewable head | A reviewer was dispatched to #2563 at 9851d39d with two required checks already red. | A head is **reviewable** only when no required context's latest run there has concluded failure. Pending is fine, since the verdict posts after the checks conclude (R9). Red goes back to the fixer, not to a reviewer. |
+
 ## K16 · R10-FLOW-DISPATCH (instrument, S, Sonnet fixer, Opus reviewer): **expedite since revision 4**, plus an owner action
 
 **Sequencing (revision 4).** Revision 3 put it after R10-FLOW-BODY-ONLY. There is no technical dependency: the repo half touches only `cloud_dispatch.py`. Every cloud seat meanwhile costs one rendered payload plus two full trigger bodies. It is now an expedite with no `after`.

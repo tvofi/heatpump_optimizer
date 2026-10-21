@@ -118,10 +118,7 @@ To verify, not caused by this plan:
   - **The rule: a PR blocked only on a forward-carry waits.** The wait is bounded. #2559 holds a `merge` verdict, so the freeze ends when #2559 merges, at most one train later.
   - **If any PR has waited on a carry longer than one train's CI time (about 1 h), merge #2559 directly,** even with a train running, and accept the batch's one re-proof. One re-proof costs less than PRs held across trains.
   - **Once RELAY-HOLD lands,** the freeze becomes "#2559 is on the relay's hold list". Roster pushes, forward-carries included, then continue on the handoff branch; #2559's head stays put; and the held edits ride the next roster PR.
-- **Live at revision 5 (≈ 17:25Z):**
-  - the train has ended: #2513 (R10-ROSTER-OPS) merged at 17:20, and the record PR at 17:23;
-  - #2559 and #2549 (R10-TICK-RELAY-DECOUPLE) hold `merge` verdicts at their heads (802b3850 and 61fd4f27).
-  - **With no train running, merge both now, directly** (nudge step 7). That ends the freeze, unblocks #2567's carry and decouples the tick from the relay.
+- **Live at revision 7 (≈ 17:45Z):** #2559 merged at 17:36Z and #2549 at 17:40Z. **The freeze is over.** #2567's forward-carry can land, and Phase 1b's roster PR-A can start, since #2513 merged at 17:20Z.
 
 **Phase 1b: two roster PRs, one review each** (split in revision 4, agreeing with the orchestrator's default). #2559 took five rounds at a fraction of the original single burst's size, and the burst mixed one judgement-heavy change with many mechanical ones.
 
@@ -193,6 +190,28 @@ To verify, not caused by this plan:
 4. **Stalled pending.** If the required contexts stay pending longer than twice the measured train CI time (about 2 h at 57 min), treat it as stalled, not red: check for zero runs and run `approve_held_runs.sh`.
 5. **Record each instance** in one line on #201 (time, main sha, the gate's line, your reading). That is R10-FLOW-MAIN-GATE's evidence.
 
+**Rule C: "merge directly" means `merge_pr.sh`, never a bare merge** (revision 7). A posted `Fix review: merge` verdict is not a GitHub approval: #2549 sat at REVIEW_REQUIRED and BLOCKED with every required check green. `merge_pr.sh <pr> <sha> <evidence-dir> <app|owner>` carries the approval step.
+- **App mode** runs `app_approve.sh` at that sha. Use it for paths that are not code-owned, such as `dev/programme/` and `tools/audit/seat/`.
+- **Owner mode** posts tvofi's approval under `--mandate 6319294694`. Use it for code-owned paths.
+
+Then it merges with `--match-head-commit`. The train approves the same way (`--approval-carry`, `--mandate`).
+
+**Rule D: the relay owns head updates while it runs** (revision 7). `cloud_relay.sh`'s handoff arm already runs `update_pr.sh` for every handoff tip that is ahead of its PR (live: #2571, #2563). A hand-run `update_pr.sh` either collides with it (exit 75, BUSY) or does the same work twice.
+- **Never run `update_pr.sh` by hand while the relay is up.** Wait for the relay's `updating` line, read the new head, check it with rule E, then dispatch the reviewer at that head.
+- **The exceptions are the cases the relay cannot do:** a body-only fix (K14 interim, until BODY-PATCH lands), and a held PR (RELAY-HOLD).
+- **DIRTY with a content conflict** goes to the owning fixer (K15 (c)), not to any updater.
+
+**Rule E: dispatch a reviewer only at a reviewable head** (revision 7, which the orchestrator adopts). Before any reviewer dispatch, read the latest run of each required context at that head. If any has concluded failure, the head goes back to its fixer. Pending is fine: the verdict posts after the checks conclude, and step 11 stands on the post-workflow pr-contract run (R9). R10-FLOW-DISPATCH makes this a refusal in the dispatcher.
+
+**Expedite order and reviewer allocation** (revision 7). The expedites compete for the same reviewers, so they go **one wave at a time, in dependency order**:
+1. **RELAY-HOLD** (fired). It is first in review.
+2. **BODY-PATCH** (fired) and **MAIN-GATE** (when #2570 merges). They are the next review slots: BODY-PATCH unblocks body-only repairs, and MAIN-GATE ends the misread "main not green", the DIRTY hints and the stale check-runs.
+3. **YIELD-PROBE** (fired). It is a study whose output is a report. It gets a reviewer only after wave 2's reviews have posted; until then it keeps working.
+4. **DISPATCH.** It is dispatched only after RELAY-HOLD merges, and reviewed after wave 2.
+5. **Size-S fly-ins** take a reviewer only when no expedite review is waiting, unless they are themselves expedite (line-stop).
+
+**At most two expedite reviews run at once.** Critical-path product reviews (ADVISOR, SCORES, LIVESTATE, and onward) keep their own reviewer and are not displaced by expedites.
+
 **Effect in the model**, with the seat's chain (depth 8), drain-first, in-progress groups treated as not started, and lane K at 2:
 
 | scenario | last merge |
@@ -232,7 +251,6 @@ day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 | 0 | 12 | 0 | R10-PLAN-ARTIFACT | C | M | fix | in-progress | — |
 | 0 | 12 | 0 | R10-RCA-ORCH-CONTINUITY | C | M | rca | in-progress | — |
 | 0 | 12 | 0 | R10-REPLAY-LANE | B | M | owner | in-progress | R10-DIAG-REPLAY |
-| 0 | 21 | 11 | R10-FLOW-MAIN-GATE | K | S | instrument | not-started | — |
 | 0 | 21 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
 | 0 | 21 | 12 | R10-CURRENCY | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-INPUT-STALENESS | A | S | defect | not-started | — |
@@ -241,23 +259,24 @@ day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 | 0 | 21 | 12 | R10-POLICY-LINT-FAMILY | C | S | instrument | not-started | — |
 | 0 | 21 | 12 | R10-RCA-HEADMOVED | B | S | study | not-started | R10-RCA-FRICTION |
 | 0 | 21 | 12 | R10-REPLAY-SCOPED | B | S | owner | not-started | R10-REPLAY-LANE, R10-TICK-ORCH, R10-TRAIN-HOLD, R10-REF-PRIVACY |
+| 0 | 22 | 11 | R10-FLOW-MAIN-GATE | K | M | instrument | not-started | — |
 | 0 | 23 | 12 | R10-SAV-COMFORT | B | M | owner | not-started | R10-SAV-BASELINE |
 | 0 | 23 | 12 | R10-SOLVER | B | M | defect | not-started | R10-SAV-REASONS, R10-TARIFF |
 | 1 | 24 | 0 | R10-CI-LAYOUT | C | XL | instrument | in-progress | — |
 | 1 | 29 | 12 | R10-SCORES | A | L | owner | not-started | R10-ADVISOR, R10-RATIO-SITES |
 | 1 | 29 | 21 | R10-CONFIG-NOTICES | A | S | arch | not-started | — |
 | 1 | 29 | 21 | R10-FLOW-DISPATCH | K | S | instrument | not-started | — |
-| 1 | 29 | 21 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 1 | 29 | 21 | R10-LEARNER-DEFAULT | A | S | defect | not-started | — |
 | 1 | 29 | 21 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
 | 1 | 30 | 21 | R10-BRIEFS-FOLD | C | M | policy | not-started | R10-ARCHSCORE-COVERAGE, R10-D15-GRADER |
 | 1 | 30 | 21 | R10-BUFFER-STORE | B | M | production | queued | R10-SETPOINT-BOOST |
 | 1 | 30 | 21 | R10-COP-PARTLOAD | B | M | production | queued | R10-SETPOINT-BOOST |
 | 1 | 30 | 21 | R10-RATIO-ANCHOR | A | M | defect | not-started | — |
+| 1 | 30 | 22 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 1 | 32 | 23 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
 | 1 | 33 | 24 | R10-CEILING-PROBE | B | M | production | not-started | R10-SETPOINT-BOOST, R10-CI-LAYOUT, R10-NIGHT-FOLDS |
-| 1 | 36 | 29 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
 | 1 | 36 | 29 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
+| 1 | 36 | 30 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
 | 1 | 36 | 30 | R10-POLICY-FIXER-MD | C | S | policy | not-started | R10-RCA-FRICTION, R10-BRIEFS-FOLD |
 | 1 | 37 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
 | 1 | 38 | 24 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |

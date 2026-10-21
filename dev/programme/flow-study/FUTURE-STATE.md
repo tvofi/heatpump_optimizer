@@ -308,3 +308,12 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 20. **A long relay update starves the tick (right).** That is R10-TICK-RELAY-DECOUPLE (#2549), which holds a `merge` verdict at its head: merge it now. The beat's jobs must run concurrently (STUDY K17, requirement 0b).
 21. **Live:** no train is running, and #2559 and #2549 both hold `merge` verdicts at their heads. Merge both directly now, which ends the freeze.
 
+**Revision 7** (after about 20 minutes on revision 6; every point measured live by the orchestrator, and every one right)
+
+22. **The tick's DIRTY hint over-fired** (#2569: a content conflict in `roster_edit.py`, not a claim file). The classifier reads `git merge-tree` and names the conflicted files before naming a repair; a content conflict returns to the fixer (STUDY K15 (c)).
+23. **A stale `in_progress` check-run over a completed run blocked a merge** (#2559: 8 merge attempts). The classifier re-runs on a status mismatch (K15 (b)).
+24. **A posted merge verdict is not a GitHub approval** (#2549: REVIEW_REQUIRED). "Merge directly" means `merge_pr.sh` in app or owner mode, which approves before merging (SHADOW-PLAN rule C).
+25. **The relay already runs `update_pr.sh`;** hand-run updaters collide or duplicate. Never run it by hand while the relay is up (rule D).
+26. **A reviewer was dispatched at a red head** (#2563 at 9851d39d). There is now a pre-dispatch check, the dispatcher refuses such a dispatch, and K15 (d) defines a reviewable head (rule E).
+27. **The expedites competed for reviewers.** They now go one wave at a time, at most two expedite reviews at once, and critical-path reviews are not displaced.
+
