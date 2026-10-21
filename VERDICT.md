@@ -1,36 +1,23 @@
-Fix review: blocked 39f465739706edd44c7446a7cdebc0e0c5b30091 head-moved: measured 39f465739706edd44c7446a7cdebc0e0c5b30091, head is 13a798252c51e730f409d1648f1a39b3b0c1c997
+Fix review: blocked 5756617f185bbed71852ed1273c19b1e45787c9d head-moved: measured 5756617f185bbed71852ed1273c19b1e45787c9d, head is 2e77ed3e6aa2f03565bd02274ac847227bc619b5
 
-Round 1. Group none: PR #2559 is the roster PR (topic audit-r10-roster); no group entry matched, so this review is against the PR body.
+bus-nonce: a8bfe1057ec1aa34a14f6aae1d415383
 
-## Why blocked
-The PR head moved while CI on the dispatched head was still running. 13a798252 is not a main-only carry (orchestrator.md section 11's predicate): it merges a new authored code head a6e0530d4, which adds two commits to the branch (5f52cb8ce `append-carry R10-CI-LAYOUT-P1` and a6e0530d4 `append-carry R10-CI-LAYOUT-P2`), and then merges origin/main dbea71db7 (#2525). A move that adds authored commits gets a fresh review, so this verdict does not carry (ev/head-move.txt). The gate jobs on 39f46573 (closures, closures-autofix, ci-ratchet, composed-proof) were cancelled at 13:12:37Z when the new head superseded them.
+Round 3 (cloud reviewer seat). Roster PR, group none: reviewed against the PR body, as the brief says.
 
-What still holds at 13a79825, and what does not:
-- Still true at a6e0530d (ev/derive-a6e0530d.out): groups 91 to 108, 17 new and none removed, stage `done` 43 to 51, 18 stage changes, and 32 carries appended to 14 existing groups.
-- Out of date: the body's "carries 201 to 254" and "the other 21 of the 53". The diff they describe is 31e162fd. At a6e0530d the counts are 201 to 256, with 23 carries on the new groups (55 in all). The body's Head section names a6e0530d, but its enumeration paragraph still says `at 31e162fd`.
-- Not measured: the content of the two new carries, and CI on 13a79825.
+## Head
+- Measured 5756617f185bbed71852ed1273c19b1e45787c9d from a detached worktree. Roles contract current (`git diff merge-base...origin/main -- dev/governance/roles/` empty; merge base = origin/main 22615537a).
+- While the review ran, the PR head moved to 2e77ed3e6 = 5756617f1 + 617ce1316 (`roster_edit append-carry R10-BRIEFS-FOLD`, 15:40:52 +0200), a merge of authored roster content, not a main merge. Under step 12 that is a re-review rather than a carry, and the Tests run on 5756617f1 (39608256723) was cancelled as superseded, so coverage, ci-ratchet, closures, lane-proofs, composed-proof, coverage-ratchet and graders-head-copy never concluded on the measured head. ev/head-moved.txt, ev/head-move-617ce1316.diff.
 
-## Checked at 39f465739706edd44c7446a7cdebc0e0c5b30091 (ev/HEAD.txt)
-Each line gives the step from fix-review.md.
-- 1 mutation proof: n/a. The diff adds no production or test code; it touches 4 files (ev/diffstat.txt).
-- 2/3 harness, null control: n/a. The body makes no measured claim. The "finder harness" here is the JSON diff itself, and I re-derived it with my own script, ev/derive.py, which is mine and not the fixer's. The "stage" counts use `resume.stage`.
-- 4 claim files: `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are untouched.
-- 5 versions: `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched.
-- 7 body head: 39f46573 equals merge-tree(f58b14c19, 31e162fd) plus only `dev/programme/delivery/2559.md`, which matches the body.
-- 8 figures, all re-derived at f58b14c19 vs 31e162fd (ev/derive-31e162fd.out). The roster files are identical at 03b49e152 and f58b14c19.
-  - RESULT groups 91->108; new 17 with the stages the body lists; removed none.
-  - RESULT resume.stage done 43->51; 18 stage changes, exactly the body's list (8 to done, 8 to in-progress, 2 done->in-progress).
-  - RESULT carries 201->254; 14 existing groups take 32 carries and the new groups hold 21.
-  - RESULT text-edits 16 groups (brief/issues/fixes/findings). R10-CI-LAYOUT `findings` names the four-PR split.
-  - The per-group pairs "R10-BRIEFS-FOLD 19 to 20", "R10-ORCH-MACHINERY 8 to 10" and "REPLAY-LANE replaced" describe steps in the branch history, not counts against main. Against main, BRIEFS-FOLD goes 18 to 20 with nothing dropped, and REPLAY-LANE goes 3 to 5 with nothing dropped. R10-REGISTRY-LEAK is listed twice. These are wording issues and none of them is a wrong total.
-- `critical-path.json` (new file): all 12 groups exist in the roster. Its shape matches `tools/pr/gate_priority.py`'s documented format. The file sits under the INERT prefix `dev/programme/` (tests/closure.py:273).
-- 10 forward-carry: the body says none; that holds for a roster-only PR.
-- 11 CI (ev/check-runs-39f46573.tsv): every job that concluded passed, except `nightly-status`, which was red. That check restores tests/nightly_status.py from the base and grades main's last scheduled run, and this diff does not reach it, so the red is not this PR's. pr-contract passed twice. The gate jobs were cancelled by the head move.
-- 13 merge: `git merge-tree --write-tree origin/main(3688cf259) 39f46573` exits 0 with no conflict (ev/merge-tree.txt).
-- 14 metrics: no budget, closure or golden file moves.
-- Not run locally: tests/entities.py. This box has no venv with homeassistant, so I am relying on CI's `fast`, which passed.
-
-## For a re-review at 13a79825
-Re-take the carry counts. Review the two CI-LAYOUT-P1/P2 carries. Update the body's enumeration paragraph to a6e0530d (201 to 256, 23 of 55). Read the gate jobs on the new head.
-
-bus-nonce: d63af2393eeaa21f6c75c7b3e356a3b6
+## What survives for the re-review (all measured at 5756617f1)
+RESULT groups main=91 head=108 (+17 new, 0 removed)
+RESULT stage=done main=43 code-head=51; stage changes 18
+RESULT carries main=201 31e162fd=254 head=256; appended to existing groups 32 over 14 groups; new groups' carries 21 at 31e162fd, 23 at head
+RESULT text edits (brief/issues/fixes/findings) on 16 existing groups (my definition: any of those four keys differs)
+RESULT delta a6e0530d4->8afd645da: R10-OPENPR-SILENT resume.commit 7ab3030bbfff -> dbea71db7 (on main), stage done -> done; delta 31e162fd->a6e0530d4: R10-CI-LAYOUT-P1 2->3, -P2 1->2
+- Finder harness: jq over `dev/programme/rosters/wave-r10-groups.json` at origin/main vs the head (ev/d.jq, ev/d2.jq, ev/counts.txt, ev/body-figures.txt). Main's roster is byte-identical at 03b49e15 and 22615537a, so the body's figures apply to current main as well.
+- Body minor: "R10-BRIEFS-FOLD 19 to 20" reads as 18->20 measured from main (two appends, 02e96a915 and 4908d97ea); the sentence may mean only the #2521 one. Not blocking, but it should say 18 to 20. The new head adds a third BRIEFS-FOLD carry, so this line has to be re-stated anyway.
+- R10-OPENPR-SILENT "set to its stage": the stage stays `done` and only the commit pin moves; its `next_step` ("PR #2422 is open ... review and merge it") is stale against `done`. This predates the PR and does not block it.
+- P1/P2 carry texts (ev/new-carries.txt): both state a precondition and a control. Wired: `selftest_wiring.py --check` at the head reads 37/37/0 rc 0; deleting the `tmp_paths.py --self-test` line in governance.yml gives 37/36/1 rc 1 (control reproduced). The quoted "71 self-testing / 70 wired" is #2529's widened check, which I could not re-derive here.
+- merge-tree with origin/main: clean, exit 0 (ev/merge-tree.txt). VERSION, manifest, RELEASE_NOTES and goldens are untouched; no claim files are touched.
+- Mutation proof, null control, figures: n/a, as the body says (roster state only).
+- Red checks: `nightly-status` is red, and the body answers it. The job restores the base's `tests/nightly_status.py` and reads Actions metadata, and the diff touches neither. pr-contract on the head: success (both runs). ev/check-runs.tsv.
