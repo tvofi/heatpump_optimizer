@@ -88,6 +88,11 @@ BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
 BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
 
 
+#: One push plus two re-applications on a rival's new tip; past that the
+#: branch is contended enough that a person should look.
+PUSH_ATTEMPTS = 3
+
+
 class Refuse(Exception):
     pass
 
@@ -574,7 +579,7 @@ def _self_test() -> int:
     throwaway_git_clone(origin, drv, "-q")
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None, field=None, value_opt=None):
+             at_sha=None, field=None, value_opt=None, wt="wt"):
         args = [op, group]
         if value is not None:
             args += [value]
@@ -588,7 +593,7 @@ def _self_test() -> int:
             return main(args
                         + ["--checkout", str(drv), "--roster-ref", "main",
                            "--branch", branch, "--worktree",
-                           str(Path(tmp, "wt")),
+                           str(Path(tmp, wt)),
                            "--lint-cwd", lint_cwd or str(seed)]
                         + (["--push"] if push else []))
         except SystemExit as e:
@@ -814,6 +819,116 @@ def _self_test() -> int:
           edit("set-stage", "R9-A", "done", push=True, branch="edit-3") == 0)
     check("pushed roster carries the edit",
           branch_roster("edit-3")["groups"][0]["resume"]["stage"] == "done")
+
+    # THE PUSH RACE (R10-ROSTER-PUSH-RACE). Two seats edit one branch through
+    # one --checkout repository, whose local branches every worktree of it
+    # shares. On 2026-10-21 one run printed "pushed ... at b622ec9f1" with rc
+    # 0 while no ref on origin ever held that commit: the rival's checkout -B
+    # had reset the shared local branch, and the push by branch NAME sent the
+    # rival's commit. The rival lands here inside this run's lint window --
+    # the real one takes ~40 s -- through the same checkout (drv).
+    import contextlib
+    import io
+    real_lint = lint_gate
+    rivals = []
+
+    def racing(times):
+        busy = []
+
+        def hooked(checkout, lint_cwd, roster_path):
+            if not busy and len(rivals) < times:
+                rivals.append(f"rival carry {len(rivals) + 1}")
+                busy.append(1)
+                try:
+                    with contextlib.redirect_stdout(io.StringIO()), \
+                            contextlib.redirect_stderr(io.StringIO()):
+                        rc_r = edit("append-carry", "R9-B", rivals[-1],
+                                    branch="edit-race", wt="wt-rival")
+                finally:
+                    busy.clear()
+                if rc_r != 0:
+                    raise Refuse(f"self-test rival edit failed rc={rc_r}")
+            return real_lint(checkout, lint_cwd, roster_path)
+        return hooked
+
+    def captured(call):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            rc = call()
+        return rc, out.getvalue()
+
+    def race_tip():
+        return run(["git", "-C", str(origin), "rev-parse",
+                    "refs/heads/edit-race"]).strip()
+
+    pushed_at = re.compile(r"^pushed \S+ at ([0-9a-f]{40})$", re.M)
+    try:
+        # the null control first: a solo edit pushes once, says no race, and
+        # adds exactly one commit -- the one it reports.
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-1",
+                                        branch="edit-race", wt="wt-race"))
+        tip0 = race_tip()
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-2",
+                                        branch="edit-race", wt="wt-race"))
+        tip1 = race_tip()
+        rep = pushed_at.findall(out)
+        check("solo edit: rc 0, one push, no race said",
+              rc == 0 and len(rep) == 1 and "lost a race" not in out, out[-300:])
+        check("solo edit: exactly one commit added, the one reported",
+              run(["git", "-C", str(origin), "rev-list", "--count",
+                   f"{tip0}..{tip1}"]).strip() == "1" and rep == [tip1],
+              (tip0, tip1, rep))
+
+        # one rival inside the lint window: both edits reach origin, and the
+        # sha this run reports is origin's tip.
+        globals()["lint_gate"] = racing(1)
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "raced",
+                                        branch="edit-race", wt="wt-race"))
+        r = branch_roster("edit-race")
+        rep = pushed_at.findall(out)
+        check("race: rc 0 after re-applying on the rival's tip", rc == 0, out[-400:])
+        check("race: the rival's edit survives",
+              r["groups"][1].get("carry") == ["rival carry 1"], r["groups"][1].get("carry"))
+        check("race: the loser's edit reaches origin",
+              r["groups"][0]["resume"]["stage"] == "raced",
+              r["groups"][0]["resume"]["stage"])
+        check("race: the sha reported pushed is origin's tip",
+              rep == [race_tip()], (rep, race_tip()))
+        check("race: the lost race is said", "lost a race" in out, out[-300:])
+
+        # a rival on every attempt: bounded, refused loudly, nothing of this
+        # edit on origin, every rival's edit kept.
+        rivals.clear()
+        globals()["lint_gate"] = racing(PUSH_ATTEMPTS)
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "exhausted",
+                                        branch="edit-race", wt="wt-race-x"))
+        r = branch_roster("edit-race")
+        check("race on every attempt: refused (rc 2), said loudly",
+              rc == 2 and "nothing of this edit reached origin" in out
+              and not pushed_at.findall(out), out[-400:])
+        check("race on every attempt: bounded at PUSH_ATTEMPTS rivals",
+              len(rivals) == PUSH_ATTEMPTS, rivals)
+        check("race on every attempt: origin holds every rival, not this edit",
+              r["groups"][0]["resume"]["stage"] == "raced"
+              and r["groups"][1]["carry"] == ["rival carry 1"] + rivals,
+              (r["groups"][0]["resume"]["stage"], r["groups"][1]["carry"]))
+    finally:
+        globals()["lint_gate"] = real_lint
+
+    # a push refused for another reason (here a pre-receive hook) with origin
+    # unmoved is no race: refused at once, no retry, nothing reported pushed.
+    hook = origin / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'hook says no' >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    try:
+        before = race_tip()
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "hooked",
+                                        branch="edit-race", wt="wt-race"))
+        check("a non-race push failure refuses at once (rc 2), no retry",
+              rc == 2 and "hook says no" in out and "lost a race" not in out
+              and not pushed_at.findall(out) and race_tip() == before, out[-400:])
+    finally:
+        hook.unlink()
 
     # WHICH ROSTER (R10-TICK b): a tree carrying round 9's roster AND round
     # 10's. The edit lands in the newest unless --roster-path names another;
