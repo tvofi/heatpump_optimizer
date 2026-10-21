@@ -3429,6 +3429,7 @@
   "tests/entities.py": [
    "LICENSE",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
