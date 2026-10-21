@@ -1,0 +1,14 @@
+== base (5d433771aa88bbfd49b8868a9b53ea1241ab85a3)
+RESULT      required contexts (main-protect-checks): 14 read live
+RESULT      main f58b14c19321 green (41 context(s) concluded green)
+RESULT FLAG main-red ci-ratchet: job 119241639157, error line: "no error line read" | suspected class: unknown | dispatch a fixer seat with this brief; orchestrator diagnosis is capped at one short turn (root-cause per defect-root-c
+RESULT FLAG main-red rerun-stale-contract: job 119218797523, error line: "no error line read" | suspected class: unknown | dispatch a fixer seat with this brief; orchestrator diagnosis is capped at one short turn (root-cause per def
+RESULT briefs: ['main-red ci-ratchet: job 119241639157, error line: "no error line read" | suspec', 'main-red rerun-stale-contract: job 119218797523, error line: "no error line read']
+RESULT annotation reads: 0
+== head (4a97526f61d754a4e833882d1fe2f8344ccae973)
+RESULT      required contexts (main-protect-checks): 14 read live
+RESULT      main f58b14c19321: superseded, not red (GitHub cancelled each for a newer run in its own concurrency group): rerun-stale-contract
+RESULT      main f58b14c19321 green (41 context(s) concluded green)
+RESULT FLAG main-red ci-ratchet: job 119241639157, error line: "no error line read" | suspected class: unknown | dispatch a fixer seat with this brief; orchestrator diagnosis is capped at one short turn (root-cause per defect-root-c
+RESULT briefs: ['main-red ci-ratchet: job 119241639157, error line: "no error line read" | suspec']
+RESULT annotation reads: 1
