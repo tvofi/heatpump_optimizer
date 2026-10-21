@@ -1,3 +1,4 @@
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
   ok   a body with missing-section is refused
   ok   a body with no-figures is refused
   ok   a body with empty-section is refused
@@ -200,9 +201,9 @@
   ok   and the full case's line is byte-identical to the one it printed before the platform decision
   ok   and a skip-case diff still skips
   ok   and the skip case's line is byte-identical too
-  ok   a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes)
-  ok   a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes
-  ok   a TERM to the prepr's process group ends it and its recorder
+  ok   a KILL to the prepr leaves no recorder or recorder lane running behind it (the orphan the watchdog closes)
+  ok   a TERM to the prepr alone ends it, its recorder and the recorder's lane at once, not when the recording finishes
+  ok   a TERM to the prepr's process group ends it, its recorder and the recorder's lane
   ok   6b drives the scoped set through the --scripts-from lane runner
   ok   and makes no serial --single call beside it (the merge-base arm's failure)
   ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
@@ -335,3 +336,4 @@ AssertionError: queue-base
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
 323 passed, 0 failed
+rc=0

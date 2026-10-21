@@ -1,45 +1,50 @@
-Fix review: blocked 5332c59f9b5e883d1b1638a6f310fbc7237bdaa9 vacuous-test: the reap arms check only the recorder's leader pid, so a watchdog that TERMs the pid instead of the group orphans derive_closures.sh's lanes and the self-test stays 323/0; step 6b's own closures_step call is also unpinned
+Fix review: merge 10f85c3ee7065d31230e292d7438e105efb9ff57
 
-This is round 2, the second review of this group. I measured head `5332c59f9b5e883d1b1638a6f310fbc7237bdaa9`, and it was still the PR head when I wrote this. Its tree `02b062d86` is the automatic merge of `2545f3659` with main `49c222280`. Code head `47e0cdd97` is byte-identical to the head on all four authored files, so the body's figures, taken at `47e0cdd97`, apply here (ev/head-lineage.txt). I worked from a detached worktree of the head, under /etc/profile.d/hpo-toolchain.sh with bash 5.2.21. `dev/governance/roles/` on main is unchanged since the merge base. `git merge-tree --write-tree origin/main <head>` exited 0 with tree `a5ac35924`, against main `57f0c9c77` (81 commits past the base), so the merge is clean.
+bus-nonce: 65d1909f7889510c0745997d27a38aeb
 
-## Blocking
+This is round 3, the third review of PR #2528 (R10-PREPR-CLOSURES). I measured head `10f85c3ee7065d31230e292d7438e105efb9ff57` from a detached worktree under /etc/profile.d/hpo-toolchain.sh. It was still the PR head at 22:48:28Z. `dev/governance/roles/` on main is unchanged since the merge base `5a755f53e`. Following the brief, I judged only the items round 2 left open.
 
-- **The arms pin the recorder's leader pid, not its process group, and the group is the load.** The watchdog's `kill -TERM -- -"$rpid"` and the `set -m` that gives the recorder its own group exist because `tests/derive_closures.sh` forks its recording lanes as `( ... ) &` (derive_closures.sh:235). Those lanes are the python recordings that fed the box's load. The self-test's sleeper has no child, and `reap_arm` checks only `$spid`. M7 changes one token, `kill -TERM -- -"$rpid"` to `kill -TERM "$rpid"`, and the self-test gives 323 passed, 0 failed (ev/mut-M7.txt).
-  - I wrote my own probe (ev/lane-*.diff). It gives the sleeper one `( sleep 300 ) &` lane, as derive_closures.sh does, and adds the lane's state to `REAP`. A process counts as alive only when `ps -o stat=` shows something other than `Z`, because PID 1 in this container leaves zombies unreaped and `kill -0` counts them as alive. My first pass used `kill -0` and misread a zombie this way.
-  - At the head, the probe passes all three reap arms with `gone:gone:lane-gone`. Under M7, all three fail with `gone:gone:lane-alive` (ev/lane-M7.txt). In both runs, the one other failure is my probe's own `| grep -qv`, caught by the pipefail lint.
-  - So the head's code is right, but the test does not hold it. Its arms pass while the production orphan of the recorder's work comes back.
-  - To unblock: make the sleeper fork a child, as the recorder does. Then require that child gone in every reap arm, and read it as gone by its state, not by `kill -0`. That last point is the zombie trap R10-UPDATE-PR-SIGNALS's brief records for this container. Carry: R10-PREPR-CAP (item 61eab2a5)
-- **Step 6b's call site, the route this round changes, is not driven.** `drv.sh` evals prepr up to `rc=0` and then calls `closures_step` itself, so prepr.sh:2945 never runs under the arms. M9 puts that line back to the round-1 route, `CLOSURES_LINE=$(closures_line "$BASE")`, and the self-test still gives 323 passed, 0 failed (ev/mut-M9.txt).
-  - That is the shape round 1 measured as deferring a TERM to the prepr until the recorder finishes. M4sub puts the same shape inside `closures_step`, and it fails the TERM-alone and group arms (321/2). So a one-line revert at the production site restores the round-1 defect with the suite green.
-  - To unblock, either one fixes it: have the driver reach the recorder through step 6b's own statement, or add a static pin that 6b calls `closures_step` and runs no `$(closures_line`. M9 must then fail. Carry: R10-PREPR-CAP (item 3fc47a16)
+## Findings
 
-## Round-1 items, re-checked
+- **Sibling seams of the orphaned-recorder class are carried, not settled.** These are prepr's foreground heavy steps 3 to 3h. The body now routes them to the programme's live tracking issue #201, which is open. `carry_audit.py check --body` exits 0 with `2 routed, 0 unrouted, 0 bad destination(s)` (ev/carry-body.txt). `dev/programme/carries/carry-201.json` does not hold the entry yet. The body says the orchestrator owes that entry after the merge. I did not re-derive the "18 lines" count at this head. The rule's text is in round 2's evidence, and this round changes none of steps 3 to 3h: the only change to `prepr.sh` outside the self-test is main's 3f4 comment. Carry: #201
+- **The body's `## Red checks` cites nightly-status job 119339580088, which ran at the previous head `5332c59f9`.** At this head the run is job 119521063745. It grades the same main scheduled run, 39563978649 at `c77f89d`, with the same reds, `slow` and `mutation-nightly`. So the body's answer holds unchanged, and only the job id is stale. Carry: dismissed: same main run, answer unchanged
+- **The policy half still owes the owner's approving review.** That is `gate-scoping.md` and its two generated copies. Giving it is not a reviewer's job. Carry: dismissed: owner approval gate, not a later stage
 
-- **Round 1's block (vacuous-test) is repaired for the mechanisms it named.** The arms now run the job-and-`wait` route, with prepr's traps installed through `exit_on_signals` and the driver's own `$$`, and the head gives `323 passed, 0 failed` (ev/selftest-head.txt).
-  - RESULT M0 (null, unmodified): 323/0.
-  - RESULT M3wd (watchdog body replaced by `( : ) & wpid=$!`): 320/3, all three reap arms.
-  - RESULT M3setm (delete `set -m`): 321/2, the KILL and TERM-alone arms.
-  - RESULT M4sub (`closures_step` back to `$(closures_line ...)`): 321/2, the TERM-alone and group arms.
-  - All of these match the body. Carry: dismissed: repaired at this head (item f77a7120)
-- **The off-Linux default and the opt-in hold.** RESULT M1 gives 319/4, M2 gives 321/2 and M6 gives 322/1, each failing exactly the arms the body names. The minor finding from round 1 is fixed: `PREPR_RECORD_CLOSURES=0` no longer opts in, and M6 pins that. Carry: dismissed: confirmed as claimed (item 9c353878)
-- **The roster's recommendation is dispositioned.** Round 1 noted it as undispositioned: force the opt-in on diffs touching `tests/closures.json` or `tests/closure.py`. The body now dispositions it: those diffs are case `full`, which 6b skips before the platform predicate is read. A `full`-case arm pins that skip. Carry: dismissed: a full-case diff never reaches the opt-in (item 542f776b)
+## Evidence
 
-## Not blocking
-
-- **M5 survives as the body says.** RESULT M5 (`exit_on_signals` emptied) gives 323/0, and I accept the body's equivalent-mutant disposition. bash's default TERM disposition also runs the EXIT trap and exits 143, so on this interpreter nothing observable separates the two. Carry: dismissed: equivalent mutant on bash 5.2 (item 7362c299)
-- **M4 survives, and I read it as equivalent.** RESULT M4 (`closures_line` run in the foreground with no `&`) gives 323/0. A foreground function call has no `$(...)`, so the `wait "$rpid"` inside it runs in the top shell and the trap still ends it at once. The job layer is load-bearing only against a command substitution, which M4sub covers. Carry: dismissed: equivalent to the job route (item 25985327)
-- **M8 is caught, by a hang rather than a failure.** RESULT M8 (delete the `kill "$wpid"` cleanup) hung the self-test after its line 184, and I killed it at 733 s. A lingering watchdog holds the `$(...)` pipe of the self-test's own `closures_line` captures open while `$$` lives. A hang in step 3h would show it. Carry: dismissed: caught by a hang (item a1166f6d)
-- **One body claim is stale.** The body says `carry_audit.py check` refuses its sibling-seam carry as BAD-DEST because `R10-PREPR-CAP is done`. At roster `23ef06dc6` the group's stage is `in-progress`, and the same check over the body prints `2 routed, 0 unrouted, 0 bad destination(s)` (ev/carry-body.txt). The sibling seams are prepr's foreground heavy steps, the 18 lines the body's rule returns, which I re-counted at 18. Their carry now names the group that this PR closes on merge, so it reaches no later stage. When the body is re-cut, route that carry to a group that outlives this PR, or to the orchestrator's issue the body names. Carry: dismissed: stale wording, re-route on re-cut (item 11113f3e)
-
-## Figures re-derived at the head (ev/cheap-checks.txt)
-
-- **Figures match the body.** `RULES-SYNC ok`. `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, and scope.run is `tests/entities.py`. `ALL 2375 ENTITY CHECKS PASSED`. `claims hygiene: 49c222280... ok`, which is the head's own base: the body quotes `e7c664856` at the code head. `ALL 124 closure shrink pins PASSED`, `layout self-test: ok`, `ALL 109 HARNESS HEADER CHECKS PASSED`, `STRUCTURE RATCHET PASSED` and `Architecture score: dS +0.0000 NULL`. The `PREPR_RECORD:-` grep gives one production line, prepr.sh:564. Carry: dismissed: re-measured and confirmed (item 7a034a7c)
-- **No release files or claim files move.** VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched, and no claim file moved. The nightly-status path filter over the diff prints nothing (rc 1). Carry: dismissed: re-measured and confirmed (item 2d56cd8b)
-- **Finder's harness (step 9).** The reopened group still has no committed harness. Its evidence is the owner ruling and the roster note's out-of-tree 6b count. The lane probe is my own instrument, not the finder's, and it is disclosed above. The pack at `30c57744a` (dev/programme/flow-study/) states nothing about this group that the diff contradicts. Carry: dismissed: no committed harness exists (item f1328887)
-
-## CI at this head (check-runs API, ev/check-runs.tsv)
-
-- **CI has concluded, and the one red is answered.** All 49 runs have concluded. The one red is `nightly-status` (job 119339580088). It grades main's scheduled run 39563978649 at `c77f89d`, where `mutation-nightly` and `slow` failed, and the diff reaches nothing those lanes read. The body's `## Red checks` names and answers it. `closures` and `mutation` are green. `pr-contract` was green at 17:05:18Z, after the last run concluded (closures-autofix and ci-ratchet at 17:03:26Z). Carry: dismissed: main's red, answered in body (item 2c5f406c)
-- **Policy approval is still owed.** gate-scoping.md and its two generated copies still owe tvofi's approving review. That review is not mine to give. Carry: dismissed: owner approval still owed (item 110972e5)
-
-bus-nonce: b5c87533bd83cca7b8de279dd5a2019d
+- **Item 61eab2a5 (M7) is settled.**
+  - The sleeper now forks `( sleep 300 ) &` and records its pid. `reap_arm` requires prepr, recorder and lane all gone, and reads each by `ps -o stat=` state, where absent or `Z` counts as gone. It never uses `kill -0`.
+  - RESULT M0 (unmutated): `323 passed, 0 failed`, rc 0 (ev/mut-M0.txt).
+  - RESULT M7 (`kill -TERM -- -"$rpid"` -> `kill -TERM "$rpid"`, ev/mut-M7.diff): `320 passed, 3 failed`. All three reap arms fail with `got gone:gone:alive` (ev/mut-M7.txt). This matches the body.
+- **My own probe agrees with the arms.** ev/probe.sh is my instrument, not the finder's or the fixer's.
+  - Its recorder forks a lane, which forks a grandchild `sleep 301`. Liveness is read from `/proc/<pid>/stat`, and the 6b block is copied from the worktree's `prepr.sh`.
+  - Head: KILL to prepr, TERM to prepr and TERM to the group all give `prepr=gone recorder=gone lane=gone grandchild=gone`.
+  - M7: all three give `lane=alive grandchild=alive` (ev/probe.txt).
+- **Item 3fc47a16 (M9) is settled.**
+  - The driver now appends step 6b's own `if ... fi` block, cut from `prepr.sh` at its `# --- 6b.` marker by awk. I checked that the awk returns exactly the 6b block, `closures_step "$BASE"` included. It is copied, never `eval`ed.
+  - If the marker disappears, the driver runs no recorder and the arm reads `unstarted`, so the test fails rather than passing empty.
+  - RESULT M9 (6b's `closures_step "$BASE"` -> `CLOSURES_LINE=$(closures_line "$BASE")`, ev/mut-M9.diff): `321 passed, 2 failed`. The TERM-alone and group arms fail with `got alive:alive:alive` (ev/mut-M9.txt). This matches the body.
+  - My probe under M9 gives KILL all gone, and both TERMs all alive.
+- **Item 11113f3e.** The carry is re-routed from R10-PREPR-CAP, which this PR closes, to #201, which is open. `carry_audit.py check --body` rc 0 (ev/carry-body.txt).
+- **Head lineage (ev/head-lineage.txt).**
+  - The head is main `5a755f53e` merged into `b569bfd02`, which merges code head `df97bd446` into `5332c59f9`.
+  - The only change to `prepr.sh` between the code head and the head is main's own 5-line 3f4 comment, the same lines as main's diff from `1ebc737e7`, so nothing was resolved by hand.
+  - Outside the PR's five files, the head matches main.
+- **Figures re-measured at this head (ev/cheap-checks.txt), every rc 0:**
+  - `RULES-SYNC ok`
+  - `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, with scope.run `tests/entities.py`
+  - `ALL 2382 ENTITY CHECKS PASSED`
+  - `claims hygiene: 5a755f53e... ok`. The body quotes `1ebc737e7`, the code head's base.
+  - `ALL 124 closure shrink pins PASSED`, `layout self-test: ok`, `ALL 109 HARNESS HEADER CHECKS PASSED`
+  - `STRUCTURE RATCHET PASSED`, `Architecture score: dS +0.0000 NULL`
+  - The `PREPR_RECORD:-` grep returns one production line, prepr.sh:564.
+  - The nightly-status path filter prints nothing (rc 1).
+  - VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched, and no claim file moved.
+- **Body figures I did not re-take.** I did not re-take M1, M2, M3wd, M3setm, M4, M4sub, M5, M6, or the eval probe. Round 2 verified M0 to M6, and the brief excludes them. The "18 lines" sibling count is above.
+- **Merge.** `git merge-tree --write-tree origin/main 10f85c3ee7065d31230e292d7438e105efb9ff57` exits 0 with tree `310f1acdb` against main `5a755f53e` (ev/merge-tree.txt).
+- **CI at this head (check-runs API, ev/check-runs.tsv).**
+  - All 49 runs have concluded.
+  - The one red is `nightly-status` (job 119521063745), which grades main's scheduled run 39563978649 (ev/nightly-status-log.txt). It is not a required check and does not block. The diff reaches nothing those lanes read, and the body's `## Red checks` names and answers it.
+  - `closures`, `mutation` and `composed-proof` are green.
+  - `pr-contract` ran green at 22:47:21Z, after the last other run concluded (composed-proof, 22:47:01Z).
+- **Harness (step 9).** The group still has no committed finder's harness. The lane probe is my own instrument, disclosed above and kept in ev/probe.sh.
