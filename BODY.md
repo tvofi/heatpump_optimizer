@@ -1,14 +1,16 @@
-Roster for round 10, fourth landing: brings main's `dev/programme/rosters/wave-r10-groups.json` up to the roster branch tip, so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). #2469 (R10-UPDATE-PR-LOCK) routes three `Carry:` lines to R10-UPDATE-PR-SIGNALS, which `carry_audit` reads as bad destinations until that group is on main. Part of #201.
+Roster for round 10, fifth landing: brings main's `dev/programme/rosters/wave-r10-groups.json` (plus `critical-path.json` and `carry-201.json`) up to the roster branch tip, so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). Part of #201.
 
 ## Head
 
-The authored code head is `7e8e5e5ab97479a1d63fde668c6011334be492db` (`handoff/audit-r10-roster`). `git diff --name-only origin/main...7e8e5e5a` lists exactly one file, `dev/programme/rosters/wave-r10-groups.json`; the PR head adds only this PR's own delivery row.
+The authored code head is `65b6b9cf181b5d460c629921519c609819904a0e` (`handoff/audit-r10-roster`). `git diff --name-only origin/main...65b6b9cf` lists exactly three files: `dev/programme/rosters/wave-r10-groups.json`, `dev/programme/rosters/critical-path.json` (new) and `dev/programme/carries/carry-201.json`; the PR head adds only this PR's own delivery row.
 
-The diff, enumerated from the JSON at `origin/main` and at `7e8e5e5a` (groups 90 to 91, stage `done` 43 to 43, carries 198 to 201):
+The diff, enumerated from the JSON at `origin/main` (03b49e15) and at `65b6b9cf` (groups 91 to 108, stage `done` 43 to 51, carries 201 to 250):
 
-- New group (1): R10-UPDATE-PR-SIGNALS, wave 2, stage `queued`, 1 carry. It holds the signal-safety work split from #2469 at round 4 under the three-round rule: the SIGKILL drain, whole-group signals, and the 75-under-`set -e` reading. No group is removed.
-- Carries appended to existing groups (2): R10-CI-LAYOUT 13 to 14 (from #2464 round 3: later lane edits keep `tests/harness_headers.py` in the alone phase), and R10-ROSTER-OPS 2 to 3 (from #2469 round 3: the `ps` dependency of the leader check and the holder).
-- No stage changes, and no brief or owner-gate text edits on existing groups.
+- New groups (17): R10-HANDOFF-ARCHIVE and R10-DEPENDABOT-AIOHTTP (done); R10-ORCH-MACHINERY, R10-CARD-VOICE, R10-THERMAL-POWER-OPTION, R10-LEARNER-DEFAULT, R10-MUTANT-SKIP, R10-CI-LAYOUT-P1, R10-CI-LAYOUT-P2 (not-started); R10-TICK-OWED-LEVEL, R10-REPLAY-CAP, R10-RCA-HANDOFF-SLIP, R10-HANDOVER-REFRESH, R10-RCA-ORCH-CONTINUITY, R10-TICK-RELAY-DECOUPLE, R10-PLAN-ARTIFACT, R10-ROSTER-PUSH-RACE (in-progress). No group is removed.
+- Stage changes (18): to done: R10-SAV-REASONS, R10-TRAIN-HOLD, R10-DEEPLINK-HANDLERS, R10-STAMP, R10-RCA-NIGHTLY-PYSPY, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-UPDATE-PR-LOCK; to in-progress: R10-NIGHT-FOLDS, R10-FREQ-DEFROST, R10-ADVISOR, R10-I5-DOCS, R10-REPLAY-LANE, R10-RCA-FRICTION, R10-CI-LAYOUT, R10-UPDATE-PR-SIGNALS, and back from done to in-progress R10-PREPR-CAP, R10-CI-RATCHET-RED.
+- Carries appended (14 groups, 49 in all), among them R10-CI-LAYOUT 14 to 27 and R10-ROSTER-OPS 3 to 6 (the last three: this PR's own, from the fix review of #2513, comment 6314156311, item 3b97e1aa: three fail-closed surviving mutants of `roster_edit.py` and the key-less-group note).
+- Text edits (brief, issues, fixes, findings) on 16 existing groups; R10-CI-LAYOUT's `findings` now says four pull requests with PR 1 and PR 2 split into the -P1 and -P2 groups, where it said two.
+- `carry-201.json`: one carry added (the nightly-ha py-spy positive control, from #2479) and the `stage` text extended to name it.
 
 This PR leaves #201 open and closes nothing by keyword.
 
