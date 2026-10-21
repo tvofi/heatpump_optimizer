@@ -1,0 +1,3 @@
+566,567d565
+<         trap 'reap_recorder; exit 143' TERM
+<         trap 'reap_recorder; exit 130' INT
