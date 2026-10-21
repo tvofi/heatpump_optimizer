@@ -23,3 +23,8 @@ python3 tools/simulate.py shadow-r10-groups.json 300
 The scenario switches are in the header of `simulate.py`. `gen_plan.py` renders the schedule. Run the commands from `tools/`, or copy the scripts next to each other.
 
 The figures are the study's measurements at the refs named in each file. Re-take them with STUDY §0's enumerators before quoting any of them in the record.
+
+**Revision 10 (2026-10-21):**
+- The roster base is f424d993d: 19 flow groups (with the two toolkit groups) and 8 carries.
+- The model gained EFF, EFFX, PAR, PRIO, RESERVE and CUT. The revision-10 projection is `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap python3 simulate.py ../roster/shadow-r10-groups.json 300`.
+- FUTURE-STATE §12 holds the cost-of-delay ranking.

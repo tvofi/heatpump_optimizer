@@ -153,15 +153,15 @@ To verify, not caused by this plan:
 
 - **Critical-path links** (ADVISOR, SCORES, LIVESTATE, PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS) get review before anything else in the queue.
 
-**Phase 3: decide (when P1's PR 1 merges; revision 9).**
-- FLOW-MQ-PROBE starts when R10-CI-LAYOUT-P1's PR 1 merges, never on day 1: the probe should measure the layout that would be adopted.
-- You decide adoption at the round-10/11 boundary, together with R10-CI-LAYOUT-P2.
-- FLOW-RECORD-PITCH is then built or closed.
+**Phase 3: decide (after P2; revision 10).**
+- FLOW-MQ-PROBE and FLOW-RECORD-PITCH wait for R10-CI-LAYOUT-P2, so the probe measures the layout that would be adopted, whose single `gate` reports on `merge_group`.
+- You decide adoption when the probe reports. FLOW-RECORD-PITCH is then built or closed.
 
-**CI layout against the lane pulls (revision 9).**
-- R10-CI-RATCHET-RED and then R10-CI-LAYOUT-P1 (PR G #2529, then PR 1) take reviewer slots ahead of any lane A–F pull that is not on the critical chain.
-- R10-CI-LAYOUT-P2 waits for the round boundary, after the stamp.
-- The minutes and the reasons are in the prompt's "CI layout" section and FUTURE-STATE §11 items 32–35.
+**CI layout and the other non-production groups (revision 10).**
+- P1 builds now, beside PR G #2529. P2's units build beside P1, and P2 merges about 6 h after PR 1, in a gap between critical-chain groups, followed by the owner's ruleset PUT.
+- The open non-production groups take reviewers in CD3 order. Groups that save nothing by landing early go later.
+- The next critical-chain link never waits for a lane slot (standing rule 15).
+- The prompt's "CI layout" and "Finish first" sections and FUTURE-STATE §12 carry the detail.
 
 ### 3.3 Rules for cases revision 3 left undefined (revision 4)
 
@@ -229,85 +229,87 @@ Then it merges with `--match-head-commit`. The train approves the same way (`--a
 | no re-chain | ≈ 109 h |
 | today's process (live roster only) | ≈ 207 h |
 
-## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`)
+## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`; revision 10)
 
-Lane K is the flow allowance; BODY-PATCH and MAIN-GATE dispatch inside the drain as expedites. "after" lists the edges as re-chained by the seat.
+Run: `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap python3 simulate.py ../roster/shadow-r10-groups.json 300`, then `python3 gen_plan.py`. The roster base is f424d993d. Lane K is the flow allowance; the expedite waves dispatch inside the drain. "after" lists the edges as re-chained by the seat. FUTURE-STATE §12 explains the CD3 order, the parallel CI-layout edges and the chain reservation.
 
-day 0: 29 · day 1: 29 · day 2: 9 · day 3: 4
+day 0: 29 · day 1: 32 · day 2: 8 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
+| 0 | 3 | 0 | R10-CI-RATCHET-RED | B | M | defect | in-progress | — |
+| 0 | 3 | 0 | R10-I5-DOCS | C | S | docs | in-progress | R10-I1, R10-STRUCTURE-BLIND, R10-REGISTRY-LEAK |
+| 0 | 3 | 0 | R10-REPLAY-CAP | B | S | defect | in-progress | — |
+| 0 | 3 | 0 | R10-TICK-OWED-LEVEL | C | S | instrument | in-progress | — |
+| 0 | 6 | 0 | R10-CI-LAYOUT | C | XL | instrument | in-progress | — |
+| 0 | 6 | 0 | R10-HANDOVER-REFRESH | C | S | record | in-progress | — |
+| 0 | 6 | 0 | R10-PREPR-CAP | C | S | instrument | in-progress | — |
+| 0 | 6 | 0 | R10-RCA-FRICTION | C | S | policy | in-progress | — |
+| 0 | 6 | 0 | R10-ROSTER-PUSH-RACE | B | - | defect | in-progress | — |
+| 0 | 6 | 0 | R10-UPDATE-PR-SIGNALS | C | S | instrument | in-progress | — |
+| 0 | 8 | 0 | R10-PLAN-ARTIFACT | C | M | fix | in-progress | — |
 | 0 | 11 | 0 | R10-FLOW-BODY-PATCH | K | S | instrument | not-started | — |
 | 0 | 11 | 0 | R10-FLOW-RELAY-HOLD | K | S | instrument | not-started | — |
 | 0 | 11 | 0 | R10-FREQ-DEFROST | A | S | defect | in-progress | R10-TRUST-RELATIVE |
-| 0 | 11 | 0 | R10-HANDOVER-REFRESH | C | S | record | in-progress | — |
-| 0 | 11 | 0 | R10-I5-DOCS | C | S | docs | in-progress | R10-I1, R10-STRUCTURE-BLIND, R10-REGISTRY-LEAK |
-| 0 | 11 | 0 | R10-PREPR-CAP | C | S | instrument | in-progress | — |
-| 0 | 11 | 0 | R10-RCA-FRICTION | C | S | policy | in-progress | — |
 | 0 | 11 | 0 | R10-RCA-HANDOFF-SLIP | C | S | rca | in-progress | — |
-| 0 | 11 | 0 | R10-REPLAY-CAP | B | S | defect | in-progress | — |
-| 0 | 11 | 0 | R10-ROSTER-PUSH-RACE | B | - | defect | in-progress | — |
-| 0 | 11 | 0 | R10-TICK-OWED-LEVEL | C | S | instrument | in-progress | — |
-| 0 | 11 | 0 | R10-UPDATE-PR-SIGNALS | C | S | instrument | in-progress | — |
 | 0 | 12 | 0 | R10-ADVISOR | A | M | owner | in-progress | R10-UX-SETUP, R10-SAV-REASONS |
-| 0 | 12 | 0 | R10-CI-RATCHET-RED | B | M | defect | in-progress | — |
 | 0 | 12 | 0 | R10-NIGHT-FOLDS | A | M | defect | in-progress | R10-VENT-DETECTOR |
-| 0 | 12 | 0 | R10-PLAN-ARTIFACT | C | M | fix | in-progress | — |
 | 0 | 12 | 0 | R10-RCA-ORCH-CONTINUITY | C | M | rca | in-progress | — |
 | 0 | 12 | 0 | R10-REPLAY-LANE | B | M | owner | in-progress | R10-DIAG-REPLAY |
-| 0 | 21 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
+| 0 | 20 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
 | 0 | 21 | 12 | R10-CURRENCY | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-INPUT-STALENESS | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-LOOP-CPU | A | S | defect | not-started | R10-NIGHT-FOLDS, R10-NIGHT-FOLDS |
-| 0 | 21 | 12 | R10-POLICY-GATE-SCOPING | C | S | policy | not-started | R10-TICK-DRIVERS |
-| 0 | 21 | 12 | R10-POLICY-LINT-FAMILY | C | S | instrument | not-started | — |
 | 0 | 21 | 12 | R10-RCA-HEADMOVED | B | S | study | not-started | R10-RCA-FRICTION |
 | 0 | 21 | 12 | R10-REPLAY-SCOPED | B | S | owner | not-started | R10-REPLAY-LANE, R10-TICK-ORCH, R10-TRAIN-HOLD, R10-REF-PRIVACY |
 | 0 | 22 | 11 | R10-FLOW-MAIN-GATE | K | M | instrument | not-started | — |
-| 0 | 23 | 12 | R10-SAV-COMFORT | B | M | owner | not-started | R10-SAV-BASELINE |
-| 0 | 23 | 12 | R10-SOLVER | B | M | defect | not-started | R10-SAV-REASONS, R10-TARIFF |
-| 1 | 24 | 0 | R10-CI-LAYOUT | C | XL | instrument | in-progress | — |
+| 0 | 22 | 12 | R10-BRIEFS-FOLD | C | M | policy | not-started | R10-ARCHSCORE-COVERAGE, R10-D15-GRADER |
+| 0 | 22 | 12 | R10-CEILING-PROBE | B | M | production | not-started | R10-SETPOINT-BOOST, R10-CI-LAYOUT, R10-NIGHT-FOLDS |
+| 0 | 22 | 12 | R10-SOLVER | B | M | defect | not-started | R10-SAV-REASONS, R10-TARIFF |
+| 1 | 28 | 20 | R10-FLOW-DISPATCH | K | S | instrument | not-started | — |
 | 1 | 29 | 12 | R10-SCORES | A | L | owner | not-started | R10-ADVISOR, R10-RATIO-SITES |
 | 1 | 29 | 21 | R10-CONFIG-NOTICES | A | S | arch | not-started | — |
-| 1 | 29 | 21 | R10-FLOW-DISPATCH | K | S | instrument | not-started | — |
 | 1 | 29 | 21 | R10-LEARNER-DEFAULT | A | S | defect | not-started | — |
-| 1 | 29 | 21 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
-| 1 | 30 | 21 | R10-BRIEFS-FOLD | C | M | policy | not-started | R10-ARCHSCORE-COVERAGE, R10-D15-GRADER |
+| 1 | 29 | 22 | R10-FLOW-ANDON | K | S | instrument | not-started | R10-TICK-RELAY-DECOUPLE |
+| 1 | 29 | 22 | R10-POLICY-FIXER-MD | C | S | policy | not-started | R10-RCA-FRICTION, R10-BRIEFS-FOLD |
+| 1 | 30 | 8 | R10-CI-LAYOUT-P1 | C | XL | instrument | not-started | R10-CI-LAYOUT |
 | 1 | 30 | 21 | R10-BUFFER-STORE | B | M | production | queued | R10-SETPOINT-BOOST |
-| 1 | 30 | 21 | R10-COP-PARTLOAD | B | M | production | queued | R10-SETPOINT-BOOST |
 | 1 | 30 | 21 | R10-RATIO-ANCHOR | A | M | defect | not-started | — |
-| 1 | 30 | 22 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 1 | 32 | 23 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
-| 1 | 33 | 24 | R10-CEILING-PROBE | B | M | production | not-started | R10-SETPOINT-BOOST, R10-CI-LAYOUT, R10-NIGHT-FOLDS |
-| 1 | 36 | 29 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
-| 1 | 36 | 30 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
-| 1 | 36 | 30 | R10-POLICY-FIXER-MD | C | S | policy | not-started | R10-RCA-FRICTION, R10-BRIEFS-FOLD |
-| 1 | 37 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
-| 1 | 38 | 24 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |
+| 1 | 30 | 21 | R10-SAV-COMFORT | B | M | owner | not-started | R10-SAV-BASELINE |
+| 1 | 31 | 22 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
+| 1 | 31 | 22 | R10-COP-PARTLOAD | B | M | production | queued | R10-SETPOINT-BOOST |
+| 1 | 34 | 28 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
+| 1 | 34 | 29 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
+| 1 | 35 | 30 | R10-POLICY-GATE-SCOPING | C | S | policy | not-started | R10-TICK-DRIVERS |
+| 1 | 36 | 11 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
+| 1 | 36 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
 | 1 | 38 | 30 | R10-DEMAND-OVERBOOK | A | M | production | queued | R10-SETPOINT-BOOST |
-| 1 | 41 | 36 | R10-FLOW-ANDON | K | S | instrument | not-started | R10-TICK-RELAY-DECOUPLE |
-| 1 | 41 | 36 | R10-FLOW-PULL | K | S | policy | not-started | — |
-| 1 | 42 | 29 | R10-SENSOR-PAYLOAD | A | L | arch | not-started | R10-SCORES |
-| 1 | 43 | 36 | R10-MUTATION-ANCHOR | C | M | instrument | not-started | — |
-| 1 | 44 | 37 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
-| 1 | 45 | 38 | R10-MUTANT-SKIP | C | M | instrument | not-started | — |
-| 1 | 46 | 29 | R10-CI-LAYOUT-P1 | C | XL | instrument | not-started | R10-CI-LAYOUT |
-| 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU, R10-LOOP-CPU |
-| 1 | 46 | 41 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
-| 1 | 46 | 41 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
-| 2 | 50 | 46 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
-| 2 | 50 | 46 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS, R10-LIVESTATE, R10-INPUT-STALENESS |
-| 2 | 55 | 50 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
-| 2 | 55 | 50 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
-| 2 | 58 | 55 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
-| 2 | 59 | 46 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
-| 2 | 59 | 46 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
-| 2 | 71 | 59 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
-| 3 | 76 | 71 | R10-COP-GATE | A | M | study | not-started | R10-HEAT-METER, R10-SENSOR-PAYLOAD |
-| 3 | 79 | 71 | R10-CONFIGFLOW-PAGES | A | L | arch | not-started | R10-HEAT-METER |
-| 3 | 84 | 76 | R10-UX-HEALTH | A | L | owner | not-started | R10-SCORES, R10-COP-GATE, R10-HEAT-METER |
-| 3 | 92 | 84 | R10-ARCH-DOCS | A | L | feature | not-started | R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-INPUT-STALENESS, R10-CURRENCY, R10-TRUST-RELATIVE, R10-FREQ-DEFROST, R10-LOOP-CPU, R10-SAV-BASELINE, R10-SAV-REASONS, R10-ADVISOR, R10-SCORES, R10-PUMP-MODEL, R10-LIVESTATE, R10-CONFIG-NOTICES, R10-ARCHSCORE-COVERAGE, R10-PARAMS-OWNER, R10-SENSOR-PAYLOAD, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-CONFIGFLOW-PAGES, R10-SOLVER, R10-I5-DOCS, R10-TICK-DRIVERS, R10-BRIEFS-FOLD, R10-DIAG-REPLAY, R10-REPLAY-LANE, R10-REPLAY-SCOPED, R10-TRAIN-HOLD, R10-DEEPLINK-HANDLERS |
+| 1 | 38 | 34 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
+| 1 | 38 | 34 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
+| 1 | 39 | 35 | R10-POLICY-LINT-FAMILY | C | S | instrument | not-started | — |
+| 1 | 40 | 36 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
+| 1 | 41 | 29 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |
+| 1 | 41 | 29 | R10-SENSOR-PAYLOAD | A | L | arch | not-started | R10-SCORES |
+| 1 | 42 | 36 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
+| 1 | 42 | 38 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
+| 1 | 42 | 38 | R10-FLOW-PULL | K | S | policy | not-started | — |
+| 1 | 44 | 39 | R10-MUTATION-ANCHOR | C | M | instrument | not-started | — |
+| 1 | 45 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU, R10-LOOP-CPU |
+| 1 | 45 | 40 | R10-MUTANT-SKIP | C | M | instrument | not-started | — |
+| 1 | 45 | 42 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
+| 1 | 45 | 42 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
+| 2 | 49 | 45 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
+| 2 | 49 | 45 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P2 |
+| 2 | 51 | 49 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P2, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
+| 2 | 53 | 45 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS, R10-LIVESTATE, R10-INPUT-STALENESS |
+| 2 | 53 | 49 | R10-FLOW-TOOLKIT-MEASURE | K | M | instrument | not-started | — |
+| 2 | 57 | 45 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
+| 2 | 57 | 53 | R10-FLOW-TOOLKIT-MODEL | K | M | instrument | not-started | R10-ORCH-MACHINERY, R10-FLOW-TOOLKIT-MEASURE |
+| 2 | 68 | 57 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
+| 3 | 72 | 68 | R10-COP-GATE | A | M | study | not-started | R10-HEAT-METER, R10-SENSOR-PAYLOAD |
+| 3 | 75 | 68 | R10-CONFIGFLOW-PAGES | A | L | arch | not-started | R10-HEAT-METER |
+| 3 | 79 | 72 | R10-UX-HEALTH | A | L | owner | not-started | R10-SCORES, R10-COP-GATE, R10-HEAT-METER |
+| 3 | 86 | 79 | R10-ARCH-DOCS | A | L | feature | not-started | R10-VENT-DETECTOR, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-INPUT-STALENESS, R10-CURRENCY, R10-TRUST-RELATIVE, R10-FREQ-DEFROST, R10-LOOP-CPU, R10-SAV-BASELINE, R10-SAV-REASONS, R10-ADVISOR, R10-SCORES, R10-PUMP-MODEL, R10-LIVESTATE, R10-CONFIG-NOTICES, R10-ARCHSCORE-COVERAGE, R10-PARAMS-OWNER, R10-SENSOR-PAYLOAD, R10-ARCH-SHAPES, R10-LEARNER-ETA, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-CONFIGFLOW-PAGES, R10-SOLVER, R10-I5-DOCS, R10-TICK-DRIVERS, R10-BRIEFS-FOLD, R10-DIAG-REPLAY, R10-REPLAY-LANE, R10-REPLAY-SCOPED, R10-TRAIN-HOLD, R10-DEEPLINK-HANDLERS, R10-ORCH-MACHINERY, R10-CI-LAYOUT-P2, R10-FLOW-TOOLKIT-MODEL |
 
 ## 5. Model assumptions (change any of them and re-run)
 
@@ -338,3 +340,9 @@ day 0: 29 · day 1: 29 · day 2: 9 · day 3: 4
 - Capacity at the future state is about 1.2 planned groups/h, after fly-ins and process work.
 - P4 can therefore carry about 70 groups. Round 10's opening scope of 52 fits.
 - Its mid-round growth to 108 does not fit, which is why the scope freezes at the register.
+
+**Tooling for round 11 (revision 10).** R10-FLOW-TOOLKIT-MEASURE and R10-FLOW-TOOLKIT-MODEL land this study's tools on main, generalised:
+- the critical-path, review-strength and flow-metrics instruments;
+- the projection model, CD3 ranking and shadow overlay, inside the one plan model.
+
+Round 11 runs P3 with those tools in the tree; it does not copy this branch's scripts. Its per-round scenario file goes under `dev/programme/<round>/`.

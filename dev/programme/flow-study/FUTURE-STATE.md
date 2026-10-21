@@ -331,3 +331,50 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - P1 goes ahead of the non-critical lane pulls. PR G (#2529) comes first.
 34. **R10-CI-LAYOUT-P2 adds about 1 min per run** and costs one forced re-run of every open PR at cut-over (R-1). Edits and reviews during a code run would wait a median of 1406 s (R-2). It runs at the round-10/11 boundary, as its own brief says ("at a wave boundary").
 35. **FLOW-MQ-PROBE stays off day 1.** The workflows are already queue-ready, but P1 changes the job set the probe would measure, and adoption pairs with P2's single `gate`. The probe starts when P1's PR 1 merges, and adoption is decided at the boundary.
+36. **Revision 9's "P2 at the round boundary" is withdrawn.** The owner meant a gap between critical-chain groups, and asks for P2 as soon after PR 1 as possible.
+    - P1 builds now beside PR G (the roster edge orders merges only), and P2's units build beside P1 (DESIGN-P2 L1374–1377). That leaves about 6 h from PR 1's merge to P2's verdict.
+    - P2's cut-over waits for a pitch with no critical-chain PR about to board.
+    - The model puts P1 at h30 and P2 at h36–47, against h45–83 and h57–94 in revision 9's order.
+37. **FLOW-MQ-PROBE and FLOW-RECORD-PITCH now wait for P2,** not P1. This supersedes item 35's timing; its reasons stand.
+38. **The open non-production groups were re-ordered by CD3** (§12). The model now credits an enabler's effect to groups dispatched after it merges, and pro rata to groups in flight.
+    - Effects are worth about 6 h (92 → 86 h), in either order.
+    - The order itself saves 0, 1 and 4 h when in-progress groups take 1×, 2× and 3× their size's lead. Today's drafts (#2524, #2528, #2529) have been open about 17 h, so 2–3× is the realistic band.
+39. **CCPM capacity buffer.** In one run the model showed a critical-chain link losing an hour because lane A was full. Standing rule 15 lets the next chain link dispatch over its lane cap.
+40. **The study's tools go to main, generalised (owner):** R10-FLOW-TOOLKIT-MEASURE (now) and R10-FLOW-TOOLKIT-MODEL (inside the one plan model, before round 11's P3). STUDY K18 is their pre-study.
+41. **The orchestration machinery is documented and drawn beside the CI shape (owner):** a carry on R10-ARCH-DOCS, the last stage, and one on R10-ORCH-MACHINERY to hold its job and event-kind tables as data the diagram is checked against.
+    - ARCH-DOCS now also waits on ORCH-MACHINERY, CI-LAYOUT-P2 and FLOW-TOOLKIT-MODEL. That costs 0 depth: all three land by about h57, against its dispatch at about h79.
+
+## 12. Cost of delay for the open non-production groups (revision 10)
+
+**Method.** CD3 = (round hours a group removes per hour it lands earlier) ÷ (its size in hours).
+- An enabler's effect is the lead it removes from later groups (`EFFECTS` in `tools/simulate_rules.py`), each taken from its own brief's figure. The model credits it to every group dispatched after the enabler merges, and pro rata to groups in flight.
+- The P1 effect is from today's job timestamps (prompt, "CI layout").
+- The DISPATCH and ANDON effects are from R10-RCA-ORCH-CONTINUITY's instances. They are estimates: halve or double them with `EFFX` (results below).
+
+**Effects used** (lead hours removed per later group): CI-LAYOUT-P1 0.4 · DISPATCH 0.3 · ANDON 0.3 · PREPR-CAP 0.25 · ORCH-MACHINERY 0.15 · BRIEFS-FOLD 0.1 · POLICY-FIXER-MD 0.05 · TICK-OWED-LEVEL 0.05.
+
+**Result** (roster base f424d993d; last roster merge, in hours from adoption):
+
+| in-progress lead factor | revision-9 order | revision-10 order | P1 merge | P2 merge | MQ-PROBE |
+|---|---|---|---|---|---|
+| 1× (each in-progress group lands on its size's lead) | 86 | 86 | 45 → 30 | 57 → 36 | 61 → 49 |
+| 2× | 92 | 91 | 59 → 30 | 70 → 40 | 74 → 50 |
+| 3× (today's drafts are at about 2–3×) | 101 | 97 | 83 → 30 | 94 → 47 | 98 → 51 |
+
+- With effects off, both orders give 92 h.
+- With effects halved (`EFFX=0.5`), both give 91 h.
+- With effects doubled, the orders give 77 and 75 h.
+
+**Reading.** The round's end is set by the product critical chain. Non-production groups shorten it through their effects, and only if those effects land before the chain's middle links dispatch (LIVESTATE about h29, PARAMS-OWNER about h45). The CD3 order is insurance that they do: worth 0 h if everything lands on time, and 1–4 h at today's slip rate. It also brings P2 forward by 21–47 h, as the owner asked.
+
+**The order** (detail and PR numbers in the prompt's "Finish first" section):
+
+| place | groups | why |
+|---|---|---|
+| finish now | CI-RATCHET-RED, PREPR-CAP, TICK-OWED-LEVEL, REPLAY-CAP, ROSTER-PUSH-RACE (before PR-B), UPDATE-PR-SIGNALS, HANDOVER-REFRESH; I5-DOCS merged at once, with its closing keyword moved | small, PR up, broad effect or a deadline |
+| expedite wave 4 | FLOW-DISPATCH, FLOW-ANDON | the largest measured loss: silent stops and orphaned handoffs |
+| now, beside PR G | PR G → CI-LAYOUT-P1 → CI-LAYOUT-P2 | the owner's ask; P1 0.4 h per later group |
+| serial, early | RCA-FRICTION → BRIEFS-FOLD → POLICY-FIXER-MD | shared policy files at zero headroom; BRIEFS-FOLD blocks ARCH-DOCS |
+| after PR G | ORCH-MACHINERY (ledger, beat, page now; wiring after P2), PLAN-ARTIFACT | toil and stall reduction; unblock FLOW-BOARD |
+| normal pull | POLICY-GATE-SCOPING, POLICY-LINT-FAMILY, FLOW-TOOLKIT-MEASURE, then the other flow groups | modest effect |
+| later | REPLAY-LANE and REPLAY-SCOPED (deadline: ARCH-DOCS dispatch), MUTATION-ANCHOR, MERGE-SUBJECT-HARDEN, RCA-HEADMOVED, the two RCA records, MUTANT-SKIP (its step 1 runs now as a probe), FLOW-TOOLKIT-MODEL (deadline: round 11's P3) | earlier saves nothing, or costs CI or a FULL run |

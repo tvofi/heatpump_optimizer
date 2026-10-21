@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K13a RELAY-HOLD · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · guardrail baselines (method and script) · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K13a RELAY-HOLD · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · K18 TOOLKIT (the study's tools on main) · guardrail baselines (method and script) · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -246,6 +246,8 @@ The drops also lost two real orderings, PARAMS-OWNER and ARCH-SHAPES after LIVES
 ---
 
 ## K9 · R10-FLOW-MQ-PROBE (study, M, Opus; owner decides)
+
+**Revision 10:** the probe waits for R10-CI-LAYOUT-P2, not P1, so it measures the layout that would be adopted (one `gate`).
 
 **The workflows are already queue-ready**
 - `tests.yml` has `merge_group` throughout. `closure-scope` takes `BASE=${{ … pull_request.base.sha || … merge_group.base_sha }}` (around L2324).
@@ -505,6 +507,38 @@ The live run found three more misreadings, all of the same kind. Each now has it
 **Owner decisions this needs:** the two job rows and the ledger kind amend an approved design; so does part (3)'s scope cut.
 
 **Sequencing:** R10-ORCH-MACHINERY stays after R10-ROSTER-OPS and R10-CI-LAYOUT (design B5: each instrument lands with its wiring). The flow groups that land earlier are written as job scripts and functions so that the beat hosts them unchanged.
+
+**Revision 10:** build the ledger, beat and page once PR G merges. The workflow-wiring PR merges after R10-CI-LAYOUT-P2, whose umbrella owns those files. Hold the beat's job table and the ledger's event-kind table as data the self-tests check, because R10-ARCH-DOCS draws the machinery from them.
+
+## K18 · R10-FLOW-TOOLKIT-MEASURE and R10-FLOW-TOOLKIT-MODEL (instrument, M each; revision 10)
+
+**What exists out of tree** (this branch, `dev/programme/flow-study/tools/`):
+- `review_baseline.py`: review strength over the `review/<N>` refs.
+- `simulate.py` and `simulate_rules.py`: the projection, with switches LEAD, RAMP, CAPS, RECHAIN, STACK, ADD, FLY, INPROG, KAIZEN, HOLD, PITCH, EFF, EFFX, PAR, PRIO, RESERVE and CUT.
+- `build_shadow.py` and `flow_groups.py`: the shadow overlay.
+- `gen_plan.py`: the schedule table.
+- STUDY §0's enumerators.
+- The critical-path arithmetic done by hand from job timestamps in revision 9.
+
+**What exists in the tree to build on:**
+- `roster_lib.depth_of` and `critical_path`;
+- `roster_edit.py`, whose `append-group` and `set-after` the overlay should dry-run instead of re-implementing;
+- `tools/plan/replan.py` and `plan_table.py` (R10-PLAN-ARTIFACT);
+- `plan_model()` (R10-ORCH-MACHINERY part 3);
+- `VERDICT_CLASSES`;
+- the CI design archive's critical-path method (tag `archive/probe/design-ci-rev4`, 1371a0a6, phase-2 measure directory).
+
+**Generalise:**
+- No round prefix, group name, chain or edge in code. The chain comes from `critical_path`. Caps, leads, effects, parallel edges, tails and cut-overs come from a per-round JSON file.
+- The model is one more view of the one plan model, not a second model; its schedule is a section of the plan page.
+
+**Controls:**
+- Each instrument reproduces this study's figures from the same inputs: run times 48.6 and 47.8 min; review strength 0.52 and 0.15; 86/91/97 h at in-progress factors 1/2/3; 92 h with effects off.
+- One perturbation per rule moves the figure where the study says it does, for example dropping the chain reservation at `EFFX=2` moves 75 to 77 h.
+
+**Budget:** the structural ratchet applies. Pay by moving the study's code in, not by adding beside it.
+
+---
 
 ## Guardrail baselines: exactly how the figures were measured (revision 4)
 

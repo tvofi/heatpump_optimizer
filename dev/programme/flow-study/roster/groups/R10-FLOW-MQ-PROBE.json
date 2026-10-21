@@ -1,47 +1,47 @@
 {
- "group": "R10-FLOW-MQ-PROBE",
- "lane": "IN",
- "kind": "study",
- "class": "study",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "medium",
- "size": "M",
- "wave": 4,
- "files": [
-  ".github/workflows/tests.yml",
-  ".github/workflows/pr-contract.yml"
- ],
- "hot_files": [],
- "fixerModel": "opus",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "opus",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "owner decision after the probe; the probe ruleset itself under 6175172275",
- "rca": [],
- "after": [
-  "R10-CI-LAYOUT-P1"
- ],
- "carry": [
-  "HANDOVER trap: a required context that never reports blocks every merge, in either direction.",
-  "Pre-study: the Lean flow pre-study, section K9."
- ],
- "architect_note": "",
- "brief": "Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: tests.yml refuses a queue commit with no second parent and pins its base to the queue base, and pr-contract.yml derives the pull request from the queue ref. A queue would test the merged result once per pitch while the reviewed head stays unchanged, which removes the head-moved re-reviews and most main absorbs. Probe on a throwaway branch under a throwaway ruleset (the pattern HANDOVER records for the stamp's step 5): merge method merge, per decision 0010. Record, for every context main-protect-checks requires, whether it reports on merge_group, in both arms. Never touch main-protect-checks: the probe's report goes to the owner, who decides.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-mq-probe",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-MQ-PROBE",
+  "lane": "IN",
+  "kind": "study",
+  "class": "study",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "medium",
+  "size": "M",
+  "wave": 4,
+  "files": [
+    ".github/workflows/tests.yml",
+    ".github/workflows/pr-contract.yml"
+  ],
+  "hot_files": [],
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "owner decision after the probe; the probe ruleset itself under 6175172275",
+  "rca": [],
+  "after": [
+    "R10-CI-LAYOUT-P2"
+  ],
+  "carry": [
+    "HANDOVER trap: a required context that never reports blocks every merge, in either direction.",
+    "Pre-study: the Lean flow pre-study, section K9."
+  ],
+  "architect_note": "",
+  "brief": "Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: tests.yml refuses a queue commit with no second parent and pins its base to the queue base, and pr-contract.yml derives the pull request from the queue ref. A queue would test the merged result once per pitch while the reviewed head stays unchanged, which removes the head-moved re-reviews and most main absorbs. Probe on a throwaway branch under a throwaway ruleset (the pattern HANDOVER records for the stamp's step 5): merge method merge, per decision 0010. Record, for every context main-protect-checks requires, whether it reports on merge_group, in both arms. Never touch main-protect-checks: the probe's report goes to the owner, who decides.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-mq-probe",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

@@ -1,0 +1,46 @@
+{
+  "group": "R10-FLOW-TOOLKIT-MEASURE",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "medium",
+  "size": "M",
+  "wave": 4,
+  "files": [
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [],
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [],
+  "carry": [
+    "Null control: each instrument reproduces the study's figure from the same input: the critical-path one on runs 39625218966 and 39619839750 (48.6 and 47.8 min; the W1 counterfactual about 27-30 and about 41 min); review strength 0.52 and 0.15 on the study's two windows; the flow metrics the FUTURE-STATE section 2 figures.",
+    "Round-10 use: R10-CI-LAYOUT-P1's fixer runs the critical-path instrument for its body's figure, and each #201 state comment runs the review-strength one (R13).",
+    "Classify every new file (a measured closure or tests/closure.py's INERT list) or tests/entities.py refuses the pull request.",
+    "Pre-study: the Lean flow pre-study, section K18."
+  ],
+  "architect_note": "",
+  "brief": "Land the Lean flow study's measuring tools on main, generalised for any round (owner, 2026-10-21: the study's tools belong on main for future programmes; decision 0013: reusable instruments land in the tree, never only in /tmp). Three new instruments under tools/audit/seat/, each with --self-test on a recorded fixture and an INSTRUMENTS.md row. (1) A critical-path instrument (working name ci_critpath): from one workflow run's job and step timestamps, the critical path, and a counterfactual that drops a job edge or deletes a job and charges a stated bare cost; over the last N runs of a workflow, median and p90. Reuse the method behind the critical-path measurement in the CI design archive (tag archive/probe/design-ci-rev4 at 1371a0a6, its measure directory, phase 2) rather than writing a second one. (2) A review-strength instrument (working name review_strength): the study's baseline enumerator, real-catch and bookkeeping blocks per reviewed pull request over the review/<N> bus refs in a window [start, end), with the verdict-class sets read from VERDICT_CLASSES rather than copied. (3) A flow-metrics instrument (working name flow_metrics): the study's section 0 enumerators (groups closed and added per hour, records' share of merges, first-pass yield, main absorbs per fix branch, merge-to-merge re-reviews of unchanged code, share of hours with a merge). No round constant in code: repository, round prefix and window are arguments. API reads are paged, cached per run id and bounded by a stated maximum.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-toolkit-measure",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
+}

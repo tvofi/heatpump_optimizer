@@ -348,7 +348,7 @@ GROUPS = [
          "lands rather than re-deriving orphans."],
         fixer="opus", reviewer="opus"),
     group(
-        "R10-FLOW-RECORD-PITCH", "instrument", "S", ["R10-CI-LAYOUT-P1", "R10-FLOW-PULL", "R10-FLOW-MQ-PROBE"],
+        "R10-FLOW-RECORD-PITCH", "instrument", "S", ["R10-CI-LAYOUT-P2", "R10-FLOW-PULL", "R10-FLOW-MQ-PROBE"],
         [".github/workflows/tests.yml", "tools/audit/seat/record_row.py"],
         [".github/workflows/tests.yml"],
         "Records in the pitch (Lean study K6). In round 10, record pull requests were about half of "
@@ -411,7 +411,7 @@ GROUPS = [
          "Pre-study: the Lean flow pre-study, section K8."],
         fixer="sonnet", reviewer="opus"),
     group(
-        "R10-FLOW-MQ-PROBE", "study", "M", ["R10-CI-LAYOUT-P1"],
+        "R10-FLOW-MQ-PROBE", "study", "M", ["R10-CI-LAYOUT-P2"],
         [".github/workflows/tests.yml", ".github/workflows/pr-contract.yml"],
         [],
         "Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: "
@@ -428,6 +428,67 @@ GROUPS = [
          "Pre-study: the Lean flow pre-study, section K9."],
         owner_gate="owner decision after the probe; the probe ruleset itself under 6175172275",
         severity="medium"),
+    group(
+        "R10-FLOW-TOOLKIT-MEASURE", "instrument", "M", [],
+        ["tools/audit/seat/INSTRUMENTS.md"],
+        [],
+        "Land the Lean flow study's measuring tools on main, generalised for any round (owner, "
+        "2026-10-21: the study's tools belong on main for future programmes; decision 0013: "
+        "reusable instruments land in the tree, never only in /tmp). Three new instruments under "
+        "tools/audit/seat/, each with --self-test on a recorded fixture and an INSTRUMENTS.md row. "
+        "(1) A critical-path instrument (working name ci_critpath): from one workflow run's job and "
+        "step timestamps, the critical path, and a counterfactual that drops a job edge or deletes a "
+        "job and charges a stated bare cost; over the last N runs of a workflow, median and p90. "
+        "Reuse the method behind the critical-path measurement in the CI design archive (tag "
+        "archive/probe/design-ci-rev4 at 1371a0a6, its measure directory, phase 2) rather than "
+        "writing a second one. (2) A review-strength instrument (working name review_strength): the "
+        "study's baseline enumerator, real-catch and bookkeeping blocks per reviewed pull request "
+        "over the review/<N> bus refs in a window [start, end), with the verdict-class sets read "
+        "from VERDICT_CLASSES rather than copied. (3) A flow-metrics instrument (working name "
+        "flow_metrics): the study's section 0 enumerators (groups closed and added per hour, "
+        "records' share of merges, first-pass yield, main absorbs per fix branch, merge-to-merge "
+        "re-reviews of unchanged code, share of hours with a merge). No round constant in code: "
+        "repository, round prefix and window are arguments. API reads are paged, cached per run id "
+        "and bounded by a stated maximum.",
+        ["Null control: each instrument reproduces the study's figure from the same input: the "
+         "critical-path one on runs 39625218966 and 39619839750 (48.6 and 47.8 min; the W1 "
+         "counterfactual about 27-30 and about 41 min); review strength 0.52 and 0.15 on the "
+         "study's two windows; the flow metrics the FUTURE-STATE section 2 figures.",
+         "Round-10 use: R10-CI-LAYOUT-P1's fixer runs the critical-path instrument for its body's "
+         "figure, and each #201 state comment runs the review-strength one (R13).",
+         "Classify every new file (a measured closure or tests/closure.py's INERT list) or "
+         "tests/entities.py refuses the pull request.",
+         "Pre-study: the Lean flow pre-study, section K18."],
+        fixer="sonnet", reviewer="opus", severity="medium"),
+    group(
+        "R10-FLOW-TOOLKIT-MODEL", "instrument", "M",
+        ["R10-ORCH-MACHINERY", "R10-FLOW-TOOLKIT-MEASURE"],
+        ["tools/plan/replan.py", "tools/audit/seat/roster_lib.py", "tools/audit/seat/roster_edit.py",
+         "tools/audit/seat/INSTRUMENTS.md"],
+        [],
+        "Land the Lean flow study's projection model on main as part of the one plan model, not "
+        "beside it (owner, 2026-10-21). Extend the plan model R10-ORCH-MACHINERY part (3) extracts "
+        "(plan_model(), from R10-PLAN-ARTIFACT's code) with: (1) --project: an hourly simulation "
+        "of the roster with lanes and caps, a lead per size ramping to a target, the merge pitch, "
+        "the drain hold, merge-order-only edges, a tail after a predecessor, a cut-over that waits "
+        "for a gap in the critical chain, a reserved slot for the next chain link, enabler "
+        "effects credited pro rata to groups in flight, and fly-in and scope-creep arrivals; "
+        "(2) --rank: the CD3 order of a stated set of enablers (round hours saved per hour "
+        "earlier, divided by size); (3) a shadow overlay: roster_edit.py --dry-run --out applies "
+        "a pack of group files and carries to a roster ref in memory, for brief_lint; (4) the "
+        "schedule table rendered as a section of the plan page. The critical chain comes from "
+        "roster_lib.critical_path; every scenario figure (caps, leads, effects, edges) is read "
+        "from a per-round JSON file under dev/programme/<round>/, never from code.",
+        ["Null control: on the study's pinned input (shadow roster at base f424d993d and its "
+         "simulate_rules.py) the in-tree model reproduces the study's out-of-tree simulate.py "
+         "outputs: 86, 91 and 97 h at in-progress lead factors 1, 2 and 3 with effects on, and "
+         "92 h with effects off. A rule perturbation (drop the chain reservation) must move the "
+         "figure where the study says it does (75 to 77 h at effects x2).",
+         "Seam with R10-ORCH-MACHINERY and R10-FLOW-BOARD: one plan model and one page.",
+         "Due before round 11's planning phase (SHADOW-PLAN section 6, P3); it saves no round-10 "
+         "time, so it takes a normal lane-K pull.",
+         "Pre-study: the Lean flow pre-study, section K18."],
+        fixer="sonnet", reviewer="opus", severity="medium"),
 ]
 
 # Carries folded into existing groups: (group, text).
@@ -494,6 +555,25 @@ CARRIES = [
      "them against STUDY K17 at build (R12); the stranded-handoff aging defaults are 4 h to a DISPATCH "
      "line and 12 h to an owner flag (R14), built behind the switch the brief already asks for."),
 
+    ("R10-ARCH-DOCS",
+     "Owner (2026-10-21): next to the CI shape, document and draw the orchestration machinery's "
+     "shape, as built at this stage's merge base. In the developer onboarding, beside the CI "
+     "shape: (a) the components: the beat and its jobs, the obligations ledger and its event "
+     "kinds, the review and verdict bus refs, the relay's handoff arm, the merge train and its "
+     "pitch, dispatch records, the heartbeat and its watcher, the hold list, the roster branch, "
+     "the plan page and the flow toolkit; which run detached (daemonize.py) and which are seats; "
+     "(b) one handoff's path: handoff, pull request, reviewable head, review, verdict read back, "
+     "train, merge, record, stamp, with the ledger obligation each step opens or closes; (c) "
+     "where a person or an agent decides and where a script does. Draw (a) and (b) as mermaid "
+     "diagrams in the same visual language as the CI diagrams, and check every box and arrow "
+     "against the tree: the job and event-kind tables R10-ORCH-MACHINERY lands, read at the "
+     "merge base, never the design ref alone. The approved design is handoff/orch-machinery "
+     "09174d94e; the Lean flow study's ORCHESTRATOR-PROMPT names the rules the shape must show."),
+    ("R10-ORCH-MACHINERY",
+     "Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this "
+     "machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table "
+     "as data the tree holds (each self-test asserts the code matches it), so the diagram is "
+     "checked against the tree, not against the design."),
     ("R10-CI-LAYOUT-P2",
      "Lean flow study K9: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, the "
      "umbrella's one required check must report on merge_group as well as on the pull-request "

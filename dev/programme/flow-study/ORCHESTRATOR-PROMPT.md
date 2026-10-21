@@ -1,6 +1,10 @@
-# Handover prompt for the round-10 orchestrator: **revision 9** (2026-10-21)
+# Handover prompt for the round-10 orchestrator: **revision 10** (2026-10-21)
 
-**Revision 9** answers where R10-CI-LAYOUT-P1, -P2 and R10-CI-RATCHET-RED sit against the lane A–F pulls, with CI minutes measured today, and keeps FLOW-MQ-PROBE off day 1 (section "CI layout", FUTURE-STATE §11 items 32–35). **Revision 8** added standing rules 11–14. This prompt supersedes revisions 1–8 and is self-contained. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
+**Revision 10** has two parts:
+- the owner's ask that R10-CI-LAYOUT-P2 land as soon after PR 1 as possible, in a gap between critical-chain groups;
+- a cost-of-delay (CD3) re-ordering of every open non-production group (sections "CI layout" and "Finish first", standing rule 15, FUTURE-STATE §12).
+
+**Revision 9** set the CI-layout minutes. This prompt supersedes revisions 1–9 and is self-contained. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
 
 ---
 
@@ -64,6 +68,7 @@ Where this message and nudge.md disagree, follow this message only on what R1–
     `--roster-ref` is a global option, so it goes before `check`.
 13. **Stale check-runs recur** (#2559, #2567). One re-run of the stale run clears each: do that before any merge attempt, never a merge retry loop. Log each instance with its run id on #201; **a third instance goes to a root-cause seat** (`defect-root-cause.md`). MAIN-GATE (b) automates the re-run in `merge_pr.sh` and the train.
 14. **A relayed "verdict posted" is not evidence. Read it back from the PR's comments:** the first line must match `Fix review: merge|blocked <the head sha>` and carry the dispatch nonce. Only then confirm, approve, board or return it (`comment-readback.md`). R10-ORCH-MACHINERY's ledger closes `verdict-unposted` only on that read-back (its carry, item 4b).
+15. **The next critical-chain link never waits for a lane slot.** When a chain link's predecessor merges, dispatch it even if its lane is at cap: it counts one over the cap until the lane drains below it. This is CCPM's capacity buffer. The model found a chain link losing an hour to a full lane A (FUTURE-STATE §12).
 
 ## Expedites: one wave at a time, by dependency, so reviewers are not spread
 
@@ -76,42 +81,75 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 
    If its fixer has already started, (b) to (d) are its second PR.
 3. **YIELD-PROBE** (fired): it keeps working, but gets a reviewer only after wave 2's verdicts have posted.
-4. **DISPATCH:** dispatch after RELAY-HOLD merges, and review after wave 2. Its dispatcher will refuse a reviewer at a red head (rule E, made mechanical).
+4. **DISPATCH and ANDON:** dispatch DISPATCH after RELAY-HOLD merges and ANDON now; review both after wave 2. DISPATCH's dispatcher will refuse a reviewer at a red head (rule E, made mechanical).
 5. **Size-S fly-ins** take a reviewer only when no expedite review is waiting, unless they are line-stop.
 
 **At most two expedite reviews run at once.** Critical-path product reviews (ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS) keep their own reviewer.
 
-## CI layout: what goes ahead of the lane A–F pulls (revision 9)
+## CI layout: P1 now, P2 straight after it (revision 10, the owner's ask)
 
-The three groups are lane IN, so they take no A–F WIP slot. "Ahead" means they get the next reviewer slot (CODEOWNER mode under the mandate) before any lane pull that is **not** on the critical chain. Critical-chain product reviews keep their own reviewer.
+The three groups are lane IN, so they take no A–F WIP slot. They get the next reviewer before any lane pull that is **not** on the critical chain. One Opus reviewer takes P1 and then P2, in CODEOWNER mode under the mandate. The critical chain keeps its own reviewer.
 
-**Measured today** (job timestamps; a "train" is one batch CI run):
-- PR run 39625218966 (#2571 head, scoped): 48.6 min. coverage 25.8 min, then closures 20.3 min. closures starts the second coverage ends; that is the coverage→closures edge. fast took 11.0 min in parallel; composed-proof ran 17 s after a 1-min queue.
-- Main push run 39619839750 (#2544 merge, FULL scope): 47.8 min. fast 40.6 min, coverage 27.2, then closures 20.2.
-- The last 4 Tests push runs on main concluded `failure`. On the latest, `ci-ratchet` failed at "Gather this run's and the recent window's metrics" (R10-CI-RATCHET-RED's path) and `record-autofix` failed at "Enumerate the window's merges".
+**Measured today** (job timestamps):
+- PR run 39625218966 (scoped): 48.6 min. coverage 25.8 min, then closures 20.3 min. closures waits for coverage; fast took 11.0 min in parallel.
+- Main push run 39619839750 (FULL): 47.8 min. fast took 40.6 min.
+- The last 4 Tests push runs on main are red: `ci-ratchet` (metrics gather) and `record-autofix` ("Enumerate the window's merges").
 
-| group | CI minutes removed per train | goes ahead of the A–F pulls? |
+| group | CI minutes per train | when |
 |---|---|---|
-| **R10-CI-RATCHET-RED** | **0.** `ci-ratchet` is skipped on PR and batch runs; it runs only on main pushes. | **Yes, now.** R10-STAMP needs a green Tests push run (roster brief), so this group is on the round's end path, not on the train path. Its due date is the stamp. |
-| **R10-CI-LAYOUT-P1** (PR G #2529 first, then PR 1) | W1 deletes the coverage→closures edge and composed-proof. On today's timings that is **about 7 min** on a FULL-scope train (fast's 40 min becomes the long pole) and **about 19–21 min** on a scoped run (48.6 → about 27–30 min). The design's 4–6 min was measured on 10-18, when fast was co-critical (median 21 min); PR 0's arch_score move has since cut scoped fast to 11 min. PR 1's other parts remove 0 PR minutes. | **Yes, right after RATCHET-RED.** It also moves `record-autofix` off the Tests push run (D-1), which is the second red job on main pushes. |
-| **R10-CI-LAYOUT-P2** (the umbrella) | **Minus about 1 min.** It adds about 60 s per run (prelude, gate, hops) and removes nothing beyond W1, which is P1's. | **No. Run it at the round-10/11 boundary, after the stamp.** The roster brief already says "at a wave boundary". |
+| **R10-CI-RATCHET-RED** (#2531 is ready; #2575 is a second, draft PR for the same group, so keep one) | 0: it runs only on main pushes | **Review now.** The stamp needs a green push run. |
+| **R10-CI-LAYOUT-P1** | about 7 min (FULL train) to about 19–21 min (scoped run) | **Dispatch now, beside PR G #2529.** The roster edge P1 → CI-LAYOUT orders merges only. PR G gets the next reviewer, because it gates P1's merge. |
+| **R10-CI-LAYOUT-P2** | about +1 min per run. Its value is one required `gate` in place of 17 contexts, and no rerun followers. | **As soon after PR 1 as possible** (below). |
 
-**Why P2 waits.** Mid-round, P2 costs:
-- **R-1:** every open PR has no `gate` until it absorbs main, so every open PR (about 13) re-runs full CI. That is about one train cycle lost, under a freeze.
-- **R-2:** an edit or review made during a code run waits for that run (median 1406 s). That undoes the body-only path, where pr-contract alone answers in about 30 s.
-- **Push runs move:** `ci-ratchet` moves to `ci.yml` push runs, which changes what the stamp reads just before the stamp.
+**P2 schedule.** Units follow DESIGN-P2 L1374–1377:
+1. U0 now (the platform facts M-1 and M-4).
+2. U1–U4 and U6–U8 beside PR 1: cloud fan-out, at most 4 at once.
+3. U5 once PR 1 merges, then U10, then U9 on `probe/ci-layout-all`.
+4. The combined null control.
 
-If the owner's "CI layout first" means P2 as well, those are the costs. That decision is the owner's.
+That leaves about 6 h between PR 1's merge and P2's verdict. The model puts P1 at about h30 and P2 at about h36–47 from adoption (revision 9's order had them at h45–83 and h57–94).
 
-**Firm gain from P1.**
-- Every critical-chain link boards one train: 8 × 7–20 min ≈ 1–2.7 h.
-- Fixer and absorb runs add up to about 4–8 h. Most of that overlaps review under rule E, because a pending head is reviewable. Count only the train part as firm.
-- The gain shrinks each hour P1 is late. If P1 has not merged by about hour 36 from adoption, finish it but do not pull reviewers off critical-chain work for it.
+**P2's cut-over goes in a gap between critical-chain groups.** It is the merge plus the owner's ruleset PUT (17 contexts → `gate`).
+- **Merge only at a pitch where no critical-chain PR** (ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS) is verdicted and green waiting to board, or is in its final CI run (within about 1.5 h of boarding). The best moment is right after a train that carried a chain link.
+- **Tell the owner when P2 gets its merge verdict,** so the ruleset PUT follows the merge within minutes. Rollback is two actions, ruleset first.
+- **Then one cut-over sweep.** It is the one exception to rule D. Absorb main into the in-flight critical-chain PR first, then the rest in pull order. Keep at most 4 full CI runs queued at once. The relay's handoff arm does not do this for you.
 
-**Steps.**
-1. Dispatch R10-CI-RATCHET-RED now. Its review takes the next expedite slot after wave 2.
-2. Then PR G #2529 → PR 1. PR 1's fixer first re-runs the design's critical-path counterfactual (the method behind `measure/p2/critpath.txt`) on the last 20 scoped PR runs and puts the figure in the body.
-3. If no group owns `record-autofix`'s "Enumerate the window's merges" failure, register it as fly-in `R10-FLY-RECORD-ENUM`: it also blocks a green push run, and P1 only moves the job.
+**P2's brief carries three things.**
+- (a) RATCHET-RED's never-read-empty fix moves into the re-keyed `ci-ratchet`, which reads `ci.yml` push runs.
+- (b) After cut-over, an edit or review made during an in-flight code run waits for that run (R-2; median 1406 s before W1, less after). So BODY-PATCH's 30-s target holds only when no code run is in flight. MAIN-GATE (d) reads `gate`.
+- (c) The stamp needs one green `ci.yml` push run on main after cut-over.
+
+**If no group owns `record-autofix`'s "Enumerate the window's merges" failure,** register fly-in `R10-FLY-RECORD-ENUM`: it blocks a green push run, and P1 only moves the job.
+
+## Finish first: the open non-production groups in CD3 order (revision 10)
+
+CD3 is the round time a group removes, per hour it lands earlier, divided by its size. In the model, the order changes the round by 0 h when every in-progress group lands on its size's lead. It changes it by 1 h at twice that lead, and 3 h at three times (today: #2524, #2528 and #2529 have been drafts for about 17 h). The enablers' effects themselves are worth about 6 h (92 → 86 h), but only if they land before the chain's middle links dispatch (LIVESTATE about h29, PARAMS-OWNER about h45). Stop starting, start finishing.
+
+**Review first, in this order** (none takes a reviewer from a critical-chain link):
+1. **R10-CI-RATCHET-RED** (#2531): the stamp's push run.
+2. **R10-PREPR-CAP** (#2528): 10–25 min of local closures per handoff; load about 168 on 8 cores. It unblocks FLOW-JIDOKA, and must merge before POLICY-GATE-SCOPING (same file).
+3. **R10-TICK-OWED-LEVEL** (#2547, ready): the tick re-reads 35,214 OWED lines (4.5 MB) every pass.
+4. **R10-REPLAY-CAP** (#2548, ready): a red nightly turns `nightly-status` red on every PR run. It is a re-record (0.111 → 0.143), so it owes its `## Raise justification`.
+5. **R10-ROSTER-PUSH-RACE** (#2569): a lost roster edit is silent, and PR-B makes about 25 roster edits. **Merge it before PR-B.** It is also the live DIRTY content conflict (rule 5).
+6. **R10-UPDATE-PR-SIGNALS** (#2524): pusher survivors 26–62 min old. It gates FLOW-BODY-ONLY.
+7. **R10-HANDOVER-REFRESH**: every new seat orients from a page 2072 commits stale.
+8. **R10-FLOW-ANDON** joins expedite wave 4 with DISPATCH. The silent stops it guards against cost 6.2 h, 8 h and 16 h across 4 days (R10-RCA-ORCH-CONTINUITY).
+9. **PR G #2529 → P1 → P2**, as above.
+10. **R10-RCA-FRICTION → R10-BRIEFS-FOLD → R10-POLICY-FIXER-MD**, serially, because they share fixer.md and fix-review.md at zero headroom. They mean fewer bookkeeping blocks, and BRIEFS-FOLD also blocks ARCH-DOCS (the chain's last link). These are policy edits: the owner's call at merge, under decision 0012's moratorium.
+11. **R10-ORCH-MACHINERY**: build the ledger, beat and page now, after PR G. Its workflow-wiring PR merges after P2, because it collides with the umbrella's files.
+12. **R10-PLAN-ARTIFACT** (#2558): it unblocks FLOW-BOARD.
+
+**Merge now and move the closing keyword.** R10-I5-DOCS (#2521) is ready, but its brief holds it to merge last of four, to close #2222. A finished PR held open is WIP: put `closes #2222` on whichever of the four merges last.
+
+**Normal pull:** R10-POLICY-GATE-SCOPING (after PREPR-CAP), R10-POLICY-LINT-FAMILY (false friction lines make the cron file spurious issues).
+
+**Later: finishing these earlier saves nothing, or costs CI or reviewers.**
+- R10-REPLAY-LANE and R10-REPLAY-SCOPED: they add replay runs to relevant PRs. Deadline: before ARCH-DOCS dispatches (about h79).
+- R10-MUTATION-ANCHOR: it touches `tests/entities.py`, which forces FULL CI, for quality only.
+- R10-MERGE-SUBJECT-HARDEN.
+- R10-RCA-HEADMOVED: record only.
+- The RCA records for R10-RCA-HANDOFF-SLIP and R10-RCA-ORCH-CONTINUITY: merge when ready; their countermeasures are ANDON, DISPATCH and the ledger.
+- R10-MUTANT-SKIP, except that its step 1 (the replay matrix) runs now as a probe. If `mutation-pins` (median 2940 s on pin-chain PRs in the design's sample) sits on critical-chain PR runs, promote it.
 
 ## Phase 1b: two roster PRs, one review each, starting now
 
@@ -123,10 +161,12 @@ One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HP
 
 **Roster PR-B, the bookkeeping** (after PR-A merges):
 - **`append-group`** for each `roster/groups/<NAME>.json`, in this order:
-  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH.
+  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL.
   - Give each its actual stage and merge sha.
+  - **MQ-PROBE and RECORD-PITCH now wait on R10-CI-LAYOUT-P2** (revision 10). Use their files at this revision's commit.
   - **MAIN-GATE's file is size M with the widened brief at this revision.** Use the file at this revision's commit.
-- **The 6 carries** (`tools/flow_groups.py` `CARRIES`).
+- **The 8 carries** (`tools/flow_groups.py` `CARRIES`). Revision 10 adds the owner's shape-docs carry on R10-ARCH-DOCS and its table carry on R10-ORCH-MACHINERY.
+- **Revision 10's edges:** R10-ARCH-DOCS ← R10-ORCH-MACHINERY, R10-CI-LAYOUT-P2 and R10-FLOW-TOOLKIT-MODEL (`set-after`; 0 depth).
 - **Held stage changes and fly-in registrations.**
 - **Two notes:** whether #2528's remaining work overlaps #2526, and whether R10-ORCH-MACHINERY part (3) duplicates #2558.
 
@@ -145,22 +185,21 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 | POSTMERGE | #2554 |
 | BOARD | #2558 |
 | AUTOTRAIN | PULL |
+| TOOLKIT-MEASURE | — (the study's tools on main; its critical-path instrument serves P1's body) |
+| TOOLKIT-MODEL | ORCH-MACHINERY and TOOLKIT-MEASURE; due before round 11's P3 |
 
 - Each follows `fixer.md` in full.
 - Seam notes make them job scripts or functions R10-ORCH-MACHINERY's beat hosts unchanged, detached.
 - **R10-ORCH-MACHINERY** is briefed with its approved design plus its alignment carry: requirements 0 and 0b (detached, concurrent), the heartbeat and pitch jobs, the `postmerge-owed` ledger kind, the hold-aware every-head freeze, dispatch records, one classifier and one plan model. R12 approves the amendments; R14 sets aging at 4 h to a DISPATCH line and 12 h to an owner flag.
 - **R15:** draft the three standing trigger prompts once DISPATCH lands.
 - **R11:** when ANDON merges, say so on #201.
+- **The last stage, R10-ARCH-DOCS,** now documents and draws the orchestration machinery beside the CI shape (owner, revision 10).
 - Lanes A–F dispatch by pull, longest remaining chain first.
 
-## Phase 3 (when PR 1 merges; not day 1)
+## Phase 3 (after P2; about h45–50)
 
-- FLOW-MQ-PROBE starts when R10-CI-LAYOUT-P1's PR 1 merges, on a throwaway ruleset only.
-- The workflows are already queue-ready on main: 8 workflows carry `merge_group`. The probe could run on day 1, but it does not, because:
-  - P1 deletes composed-proof and moves record-autofix and the nightly lanes, so a day-1 probe measures a layout that is about to change;
-  - each `merge_group` run is a FULL-scope run (about 41–48 min), competing for runners with the day-1 drain;
-  - adoption is a ruleset change on main, and its payoff (retiring the train's batch proof and RECORD-PITCH) lands mostly in round 11.
-- Report to the owner. **Decide adoption at the round boundary, together with P2,** whose single `gate` is what reports on `merge_group`.
+- FLOW-MQ-PROBE (and FLOW-RECORD-PITCH) now wait for **P2**, not P1: probe once, on the layout that would be adopted, whose single `gate` is what reports on `merge_group`.
+- Use a throwaway ruleset only, and report to the owner, who decides adoption.
 - If the queue is adopted, close FLOW-RECORD-PITCH.
 
 ## Guardrails
@@ -182,6 +221,6 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 - "Leaves #201 open".
 - Decision 0012's moratorium, to 2026-10-31.
 
-The model's figure is about 92 h from adoption. Report what you measure.
+The model's figure is about 86 h from adoption if the enablers land on their leads, and 91–97 h if in-progress groups keep taking two to three times their lead (FUTURE-STATE §12). Report what you measure.
 
 ---
