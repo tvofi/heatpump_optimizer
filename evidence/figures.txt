@@ -1,0 +1,30 @@
+== base harness
+RESULT base_apply_rc=2 head_apply_rc=0
+RESULT base_stage=in-progress head_stage=done
+RESULT head_noapply_stage=in-progress
+RESULT base_deferred=deferred head_deferred=deferred
+RESULT control=PASS
+rc=0
+== selftest_wiring
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired
+== tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 265d3bf1acc1
+== layout guard
+layout: GUARD: 0 refusal(s) against 265d3bf1acc1
+== agreement
+  discovery: 368 governance code files, 1600 distinct grammars, 27 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.3
+AGREEMENT ok
+== closure select
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (9), measured against the recorded closures in tests/closures.json:
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
+== structure
+STRUCTURE RATCHET PASSED
+== claims
+claims hygiene: origin/main ok
+== version files
+(empty = untouched)
