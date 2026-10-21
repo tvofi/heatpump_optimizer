@@ -1,0 +1,4 @@
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+base rc=1
+ci-ratchet: the artifacts fetch returned 0 bytes for run 39548715713; refusing to read that as an empty window
+head rc=1
