@@ -1,0 +1,20 @@
+carry_audit [] rc=0
+carry_audit [--roster-ref origin/handoff/audit-r10-roster] rc=0
+tools/audit/briefs/orchestrator.md               317  319     4506  4513 
+tools/audit/briefs/fix-review.md                 140  140     2443  2451 
+corpus:        ~61138 tokens, cap 61026 +band 500 = 61526
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+rules_sync rc=0
+fold_ledger: 0 violation(s)
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 1ebc737e7e18
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+policy_lint rc=0
+TOTAL: 0 error(s) across 41 policy file(s)
+1
+Architecture score: dS +0.0000 NULL
+PASS: dS +0.0000 NULL, no gate metric rose
