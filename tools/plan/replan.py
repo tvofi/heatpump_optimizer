@@ -1008,6 +1008,14 @@ def selftest() -> int:
         expect("--check exits 1 on a stale plan",
                out.returncode == 1 and "freshness" in out.stderr,
                f"rc={out.returncode} {out.stderr[-200:]}")
+        # An explicit ref outranks the plan's own: main~1 still holds the
+        # blob the plan pins, while generated.roster_ref (main) has moved.
+        expect("an explicit ref is read instead of generated.roster_ref",
+               fresh["generated"]["roster_ref"] == "main"
+               and stale_reason(fresh, str(repo), "main~1") is None,
+               str(stale_reason(fresh, str(repo), "main~1")))
+        rc = subprocess.run(cmd + ["--roster-ref", "main~1"], capture_output=True).returncode
+        expect("--check --roster-ref passes the plan at the ref it names", rc == 0, f"rc={rc}")
         why = stale_reason(plan, str(repo)) or ""
         expect("a plan pinning no roster blob is refused as unknowable",
                "unknowable" in why, why)
