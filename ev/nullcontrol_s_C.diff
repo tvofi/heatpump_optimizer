@@ -1,0 +1,22 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb1f8964d..76d70dd0d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10675,9 +10675,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "evidence_exhausted": exhausted,
+             "commanded_hz": self._freq_watchdog.commanded,
+             "range_hz": (
+-                [round(hz_min, 1), round(hz_max, 1)] if source is not None else None
++                [round(hz_min, 1), round(hz_max, 1)]
++                if source is not None
++                else None
++            ),
++            "map": (
++                self._freq_map.summary(hz_min, hz_max)
++                if source is not None
++                else {}
+             ),
+-            "map": self._freq_map.summary(hz_min, hz_max) if source is not None else {},
+         }
+         if source is not None:
+             # Only a configured view gains the key, so the unconfigured

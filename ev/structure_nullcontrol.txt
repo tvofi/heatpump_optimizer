@@ -1,0 +1,29 @@
+== base
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  class_excess_loc = 18299 (every class's span past 300, summed; the coordinator's 410 helper lines count in its span)
+  seam_cut_total = 718
+RESULT class_excess_loc=18299 count
+RESULT max_class_loc=8541 count
+RESULT seam_cut_total=718 count
+  ok   class_excess_loc 18299 <= 18299
+  ok   max_class_loc 8541 <= 8541
+== s_B
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  class_excess_loc = 18303 (every class's span past 300, summed; the coordinator's 410 helper lines count in its span)
+  seam_cut_total = 717
+RESULT class_excess_loc=18303 count
+RESULT max_class_loc=8545 count
+RESULT seam_cut_total=717 count
+FAIL class_excess_loc 18303 > 18297 (+6)
+FAIL max_class_loc 8545 > 8539 (+6)
+== s_C
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+  class_excess_loc = 18303 (every class's span past 300, summed; the coordinator's 410 helper lines count in its span)
+  seam_cut_total = 717
+RESULT class_excess_loc=18303 count
+RESULT max_class_loc=8545 count
+RESULT seam_cut_total=717 count
+FAIL class_excess_loc 18303 > 18297 (+6)
+FAIL max_class_loc 8545 > 8539 (+6)
