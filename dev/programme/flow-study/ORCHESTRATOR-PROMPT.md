@@ -1,4 +1,6 @@
-# Adoption plan for the round-10 orchestrator: **revision 12** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 13** (2026-10-21)
+
+**Revision 13** adds the owner's architect/planner seat for round 11 (adoption plan step 8; FUTURE-STATE items 54–58). Nothing else in revision 12 changes.
 
 **Revision 12** folds in two things:
 - **The owner's ruling** that decision 0012's moratorium is void. L/XL groups gain a pipelined design step and design-review step, run by two new seats, unless they already have an approved design, pre-study or prototype.
@@ -49,11 +51,21 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 4. **Register fly-in R10-FLY-CAP-LINE (S).** The tick's "at the cap: do not dispatch" line should name its exceptions: expedites (rule 16) and the next chain link (rule 15). Until it lands, treat that line as holding lane dispatches only.
 5. **Tell reviewers about carry markers.** Every reviewer dispatch from now on carries rule 19's instruction. When a merge verdict is parked on an unmarked note, the orchestrator may post `Carry: dismissed <reason>` itself, but **only once JIDOKA's carry lands**. Until then, it parks as today. Ask for the re-verdict as a markers-only re-read, not a full review.
 6. **Roster PR-B** now carries:
-   - 21 flow groups, adding R10-FLOW-DESIGN-POLICY and R10-FLOW-DESIGN-STAGES;
+   - 23 flow groups, adding R10-FLOW-DESIGN-POLICY and R10-FLOW-DESIGN-STAGES (revision 12) and R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN (revision 13);
    - 23 carries, adding the design carry on the 7 eligible groups, the exemption note on the 5 exempt ones, and UPDATE-PR-SIGNALS's lock and reaper carry.
 
    The flow groups' own revision-12 carries are in their group files at PACK_SHA. Use those files.
 7. **Everything in revisions 9–11 stands,** except where this revision changes it.
+8. **Prepare round 11's architect/planner** (revision 13, owner).
+   - **R10-FLOW-ARCH-PLANNER (policy):** dispatch it once R10-FLOW-DESIGN-POLICY has merged, since both edit `orchestrator.md` and `CLAUDE.md`. It lands:
+     - the architect/planner and plan-review contracts;
+     - P3 as the architect's plan with owner approval;
+     - seam grouping in place of 0012 move 5;
+     - the programme-level archscore target with its conditions;
+     - ABOUT.md's reconciling sentence.
+   - **R10-FLOW-AUDIT-PLAN (instrument):** after it. It lands the P3 workflow, the move ledger and the holdout check.
+   - Both are due before round 11's P3, take normal lane-K pulls and are off round 10's critical path.
+   - From round 11, P4 executes the approved plan. Record any deviation from it on #201 with a reason.
 
 ## Design seats (owner ruling 2026-10-21)
 
@@ -263,7 +275,7 @@ One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HP
 
 **Roster PR-B, the bookkeeping** (after PR-A merges):
 - **`append-group`** for each `roster/groups/<NAME>.json`, in this order:
-  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL, R10-FLOW-DESIGN-POLICY, R10-FLOW-DESIGN-STAGES.
+  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL, R10-FLOW-DESIGN-POLICY, R10-FLOW-DESIGN-STAGES, R10-FLOW-ARCH-PLANNER, R10-FLOW-AUDIT-PLAN.
   - Give each its actual stage and merge sha.
   - **MQ-PROBE and RECORD-PITCH now wait on R10-CI-LAYOUT-P2** (revision 10). Use their files at this revision's commit.
   - **MAIN-GATE's file is size M with the widened brief at this revision.** Use the file at this revision's commit.
@@ -290,6 +302,8 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 | TOOLKIT-MEASURE | — (the study's tools on main; its critical-path instrument serves P1's body) |
 | TOOLKIT-MODEL | ORCH-MACHINERY and TOOLKIT-MEASURE; due before round 11's P3 |
 | DESIGN-STAGES | — (merges after DESIGN-POLICY; until then, the hand mechanics in "Design seats") |
+| ARCH-PLANNER | DESIGN-POLICY; due before round 11's P3 |
+| AUDIT-PLAN | ARCH-PLANNER and TOOLKIT-MEASURE |
 
 - Each follows `fixer.md` in full.
 - Seam notes make them job scripts or functions R10-ORCH-MACHINERY's beat hosts unchanged, detached.

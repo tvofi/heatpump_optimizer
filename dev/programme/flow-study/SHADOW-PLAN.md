@@ -234,11 +234,11 @@ Then it merges with `--match-head-commit`. The train approves the same way (`--a
 | no re-chain | ≈ 109 h |
 | today's process (live roster only) | ≈ 207 h |
 
-## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`; revision 12)
+## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`; revision 13)
 
-Run: `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap DESIGN=pipe DTH=L python3 simulate.py ../roster/shadow-r10-groups.json 300`, then `python3 gen_plan.py`. The roster base is f424d993d. Lane K is the flow allowance; the expedite waves dispatch inside the drain. "after" lists the edges as re-chained by the seat. FUTURE-STATE §12 explains the CD3 order, the parallel CI-layout edges and the chain reservation. The seven design-eligible L/XL groups carry a pipelined design step at mid settings (FUTURE-STATE item 47).
+Run: `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap DESIGN=pipe DTH=L python3 simulate.py ../roster/shadow-r10-groups.json 300`, then `python3 gen_plan.py`. The roster base is 23ef06dc6. Lane K is the flow allowance; the expedite waves dispatch inside the drain. "after" lists the edges as re-chained by the seat. FUTURE-STATE §12 explains the CD3 order, the parallel CI-layout edges and the chain reservation. The seven design-eligible L/XL groups carry a pipelined design step at mid settings.
 
-day 0: 29 · day 1: 33 · day 2: 9 · day 3: 4
+day 0: 29 · day 1: 33 · day 2: 11 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
@@ -307,11 +307,13 @@ day 0: 29 · day 1: 33 · day 2: 9 · day 3: 4
 | 2 | 49 | 45 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
 | 2 | 51 | 47 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P2 |
 | 2 | 53 | 45 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS, R10-LIVESTATE, R10-INPUT-STALENESS |
-| 2 | 53 | 49 | R10-FLOW-TOOLKIT-MEASURE | K | M | instrument | not-started | — |
+| 2 | 53 | 49 | R10-FLOW-ARCH-PLANNER | K | M | policy | not-started | R10-FLOW-DESIGN-POLICY |
 | 2 | 53 | 51 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P2, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 57 | 45 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
 | 2 | 57 | 53 | R10-FLOW-DESIGN-STAGES | K | M | instrument | not-started | — |
-| 2 | 57 | 53 | R10-FLOW-TOOLKIT-MODEL | K | M | instrument | not-started | R10-ORCH-MACHINERY, R10-FLOW-TOOLKIT-MEASURE |
+| 2 | 57 | 53 | R10-FLOW-TOOLKIT-MEASURE | K | M | instrument | not-started | — |
+| 2 | 61 | 57 | R10-FLOW-AUDIT-PLAN | K | M | instrument | not-started | R10-FLOW-ARCH-PLANNER, R10-FLOW-TOOLKIT-MEASURE |
+| 2 | 61 | 57 | R10-FLOW-TOOLKIT-MODEL | K | M | instrument | not-started | R10-ORCH-MACHINERY, R10-FLOW-TOOLKIT-MEASURE |
 | 2 | 68 | 57 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
 | 3 | 72 | 68 | R10-COP-GATE | A | M | study | not-started | R10-HEAT-METER, R10-SENSOR-PAYLOAD |
 | 3 | 75 | 68 | R10-CONFIGFLOW-PAGES | A | L | arch | not-started | R10-HEAT-METER |
@@ -353,3 +355,9 @@ day 0: 29 · day 1: 33 · day 2: 9 · day 3: 4
 - the projection model, CD3 ranking and shadow overlay, inside the one plan model.
 
 Round 11 runs P3 with those tools in the tree; it does not copy this branch's scripts. Its per-round scenario file goes under `dev/programme/<round>/`.
+
+**Round 11's P3 is the architect/planner's (revision 13, owner).**
+- The template becomes P1 ≤10 h, P2 ≤10 h, **P3 ≤8 h** (architect plan, plan review, owner approval), **P4 ≤56 h**, P5 ≤6 h, buffer 10 h.
+- P4 gets its 4 h back through seam-first edges: on round 10's roster, file-order edges cost 12–13 h.
+- The plan carries the architecture target: a round's end-to-end archscore dS of at least +22.7, admissible, with the conditions in `architect-planner/STUDY.md` section 4.
+- R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN land the seat and its workflow before round 11's P3.

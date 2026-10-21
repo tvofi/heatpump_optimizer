@@ -544,6 +544,58 @@ GROUPS += [
         fixer="sonnet", reviewer="opus", severity="medium"),
 ]
 
+# Revision 13 (owner, 2026-10-21): an architect/planner seat runs P3 of every round from round 11.
+GROUPS += [
+    group(
+        "R10-FLOW-ARCH-PLANNER", "policy", "M", ["R10-FLOW-DESIGN-POLICY"],
+        ["dev/governance/roles/orchestrator.md", "CLAUDE.md", "dev/governance/decisions/",
+         "tools/audit/archscore/ABOUT.md"],
+        [],
+        "Land the architect/planner seat in the policy corpus for round 11 (owner, 2026-10-21). "
+        "(1) Two role contracts under dev/governance/roles/, the architect/planner's and the "
+        "architecture-plan reviewer's, from the Lean flow study's drafts (architect-planner "
+        "directory on the study branch, at the pack commit the dispatch names). (2) "
+        "orchestrator.md: from round 11, P3 is the architect's plan, reviewed and approved by the "
+        "owner; the orchestrator's P4 executes the approved plan and records deviations against "
+        "it. (3) A decision record amending decision 0012's move 5: findings are grouped by owning "
+        "seam, with the bug-class id kept as a tag, and a class that spans seams is split per "
+        "seam with its sweep as a fitness function. (4) The programme-level architecture target: "
+        "a round's end-to-end score.py --diff at dS of at least +22.7 (a 30% weighted fall over "
+        "the 17 scored metrics at frozen weights), admissible, read with the counters on, "
+        "attributed per planned move, spread over at least three classes with no metric above "
+        "40%, and checked against holdouts the score does not contain; it binds the architect's "
+        "plan, never a single seat. (5) One sentence in tools/audit/archscore/ABOUT.md that "
+        "reconciles the target with 'a review trigger, never a target a seat is rewarded for "
+        "moving'. (6) CLAUDE.md names both contracts in its role table. (7) The round-11 template "
+        "in the plan of record: P3 at most 8 h, P4 at most 56 h.",
+        ["Merge after R10-FLOW-DESIGN-POLICY: both edit orchestrator.md and CLAUDE.md.",
+         "Due before round 11's P3; not on round 10's critical path.",
+         "Pre-study: the Lean flow study's architect-planner directory, STUDY.md."],
+        fixer="opus", reviewer="opus", owner_gate="policy: owner's approving review",
+        severity="high"),
+    group(
+        "R10-FLOW-AUDIT-PLAN", "instrument", "M",
+        ["R10-FLOW-ARCH-PLANNER", "R10-FLOW-TOOLKIT-MEASURE"],
+        [".claude/workflows/audit-verify.js", "tools/audit/seat/INSTRUMENTS.md"],
+        [],
+        "Mechanise P3 for round 11 (owner, 2026-10-21). (1) A workflow that runs the "
+        "architect/planner seat and then the architecture-plan reviewer between audit-verify and "
+        "the fix wave, taking audit-verify's class-grouped draft roster as input and producing "
+        "the round's roster draft, the ADRs and the move plan on a plan ref. (2) A move ledger: "
+        "per group, the predicted and the merged dS per metric from each PR's Architecture score "
+        "lines, and the round's end-to-end admissible diff from the fork SHA "
+        "(tools/audit/archscore/score.py --diff), flagging a dS no planned move explains. (3) A "
+        "holdout check run at the fork and at the stamp: tests/structure.py budgets, the "
+        "archscore gate-only tripwires, a behaviour inventory (entities, services, options, card "
+        "features), mutation kill rate, and change coupling from git history; any regression "
+        "fails the round's target. Reuse score.py, vector.py and R10-FLOW-TOOLKIT-MEASURE's "
+        "flow metrics; re-implement none of them.",
+        ["Null control: on the study's measured range (399098f63 to the study's main) the ledger "
+         "reports dS +74.6109 inadmissible with the four regressions the study names.",
+         "Pre-study: the Lean flow study's architect-planner directory, STUDY.md."],
+        fixer="sonnet", reviewer="opus", severity="medium"),
+]
+
 # Carries folded into existing groups: (group, text).
 CARRIES = [
     ("R10-RCA-HEADMOVED",

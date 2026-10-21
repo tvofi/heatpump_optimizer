@@ -405,3 +405,20 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 51. **Locks and orphans** (rule 20): UPDATE-PR-SIGNALS prevents (dead-pid lock break, self-test timeout and reap), and ANDON detects.
 52. **The tick's cap line** gets fly-in R10-FLY-CAP-LINE, and FLOW-WIP keeps the change.
 53. **Tokens.** Modelled at about +4% programme-wide at the L threshold. Measure it from seat reports if the seats give token counts; the tree records none.
+54. **Architect/planner seat from round 11 (owner).** It runs P3: triage, seam grouping, ADRs, a move plan, fitness functions and the roster, then plan review, then owner approval. Its plan is the input for the designers and the orchestrator. The pre-study is `architect-planner/STUDY.md`, and the draft contracts are `architect-planner/architect-planner.md`.
+55. **The target is defined against the score's own arithmetic:**
+    - dS ≥ +22.7, which is log2(1/0.7) × Σw, with Σw = 44.18;
+    - measured from the round's fork SHA to its last merge;
+    - admissible;
+    - read with the counters;
+    - attributed per move;
+    - at least three classes improve, and no metric supplies more than 40%;
+    - holdouts the score does not contain must not regress.
+
+    The target binds the plan, never a seat; ABOUT.md gets one reconciling sentence.
+56. **Measured:**
+    - Since the score's introduction (399098f63, 2026-10-02), main moved dS +74.61, but **inadmissible**: `private_cross_module`, `literal_clone_copies`, `card_clone_copies` and `computed_attr_access` regressed while the gains came as by-products.
+    - Between the round-10 stamps: +0.0000.
+    - The typed-payload gain (+51) is spent. What remains rests on duplication, hub writes, shared writes and the floor metrics.
+57. **Seam-first planning is worth about 12 h per round.** Restoring round 10's file-order edges on today's roster gives 98 h against 86 h, and 104 h against 91 h at 2× slip, at depth 11 against 8. The seat gets that right at P3, where round 10 paid for it with a mid-round re-chain.
+58. **Decision 0012 move 5 changes:** findings are grouped by owning seam, and the class id becomes a tag. This lands with R10-FLOW-ARCH-PLANNER, after R10-FLOW-DESIGN-POLICY (same files). R10-FLOW-AUDIT-PLAN adds the P3 workflow, the move ledger and the holdout check. Neither group is on round 10's critical path.

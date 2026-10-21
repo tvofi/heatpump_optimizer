@@ -42,3 +42,8 @@ The model's design switches are in `tools/simulate.py`'s header.
 - The prompt opens with an adoption plan.
 - The roster has 21 flow groups and 23 carries.
 - The projection adds `DESIGN=pipe DTH=L`.
+
+**Revision 13 (2026-10-21):**
+- The architect/planner pre-study: `architect-planner/STUDY.md` and the draft contracts `architect-planner/architect-planner.md`.
+- Two round-10 groups prepare the seat for round 11.
+- The roster has 23 flow groups; its base is 23ef06dc6.

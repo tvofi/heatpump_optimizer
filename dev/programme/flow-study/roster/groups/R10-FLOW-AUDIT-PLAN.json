@@ -1,0 +1,49 @@
+{
+  "group": "R10-FLOW-AUDIT-PLAN",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "medium",
+  "size": "M",
+  "wave": 4,
+  "files": [
+    ".claude/workflows/audit-verify.js",
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [],
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [
+    "R10-FLOW-ARCH-PLANNER",
+    "R10-FLOW-TOOLKIT-MEASURE"
+  ],
+  "carry": [
+    "Null control: on the study's measured range (399098f63 to the study's main) the ledger reports dS +74.6109 inadmissible with the four regressions the study names.",
+    "Pre-study: the Lean flow study's architect-planner directory, STUDY.md.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "Mechanise P3 for round 11 (owner, 2026-10-21). (1) A workflow that runs the architect/planner seat and then the architecture-plan reviewer between audit-verify and the fix wave, taking audit-verify's class-grouped draft roster as input and producing the round's roster draft, the ADRs and the move plan on a plan ref. (2) A move ledger: per group, the predicted and the merged dS per metric from each PR's Architecture score lines, and the round's end-to-end admissible diff from the fork SHA (tools/audit/archscore/score.py --diff), flagging a dS no planned move explains. (3) A holdout check run at the fork and at the stamp: tests/structure.py budgets, the archscore gate-only tripwires, a behaviour inventory (entities, services, options, card features), mutation kill rate, and change coupling from git history; any regression fails the round's target. Reuse score.py, vector.py and R10-FLOW-TOOLKIT-MEASURE's flow metrics; re-implement none of them.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-audit-plan",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
+}

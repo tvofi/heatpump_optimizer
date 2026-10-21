@@ -1,6 +1,6 @@
 {
  "_comment": [
-  "SHADOW: built from origin/handoff/audit-r10-roster at f424d993d15f plus 21 FLOW groups and 23 folded carries (Lean flow study 2026-10-21). Not the live roster.",
+  "SHADOW: built from origin/handoff/audit-r10-roster at 23ef06dc6cc7 plus 23 FLOW groups and 23 folded carries (Lean flow study 2026-10-21). Not the live roster.",
   "Round-10 fix wave (Phase 3). Inputs: ISSUES.json and JUDGE.json on handoff/audit-r10-register (PR #2244, head d23205d13); CATCHUP-JUDGE.json at 33ffa7aa9; issues #2219-#2243; the orchestrator's plan (owner-reported, study, instrument and arch groups).",
   "One entry per pull request. Grouped by class first, then classes touching the same owning seam merged; a group that would span more than one owning module is split, so a class issue can sit in several groups. `fixes` names the issues a group closes because it is the deepest group holding them (wave depth); the body says Part of for the rest. Where two holders are unordered and the deeper one merges first, the orchestrator moves the closing keyword to the last merge and verifies the close.",
   "Every group holds at least one filed issue. The 22 group issues from dev/audit/rounds/round10/ROSTER-ISSUES.json (#2252-#2273) and the four class issues N-leaf-imports-solver, N-restore-race, N-order-coupling and N-solve-recompute (#2247-#2250) are wired into `issues`; no pending token remains. The roster check: no group without an issue, and no open round-10 issue without a group.",
@@ -1386,6 +1386,7 @@
     "From R10-ARCHSCORE-COVERAGE part 2 (counter C16, finding-propagation.md): hub_solve_writes now roots at the coordinator's event callbacks, and tests/ci_budgets.json's archscore.hub_solve_writes was re-recorded 38 -> 41 for the three in-place hub writes it already counted. Those writes are _async_handle_ecl110_state_message's _current_state.ecl110_effective_displace and _current_state.ecl110_displace_command, and _on_power_event's _current_state.peak_guard_active. This group retires them in production (ARCH2-s2 P4, 'event readings published whole', event_hub_inplace_writes 3 -> 0). In the same pull request it lowers archscore.hub_solve_writes in tests/ci_budgets.json by 3, re-recording that row and recorded_at with the reason in the commit message, and removes the three event rows from tests/arch_score_head.py's CYCLE_HUB_WRITERS. Otherwise the head check's 'no stale row' guard reddens.",
     "Precondition (from #2311's review): the hub_solve_writes 41 -> 38 lowering must be shown by dev/audit/rounds/round10/D7/arch2-s2/event_hub_writes.py reading 0 at this group's head (it roots by name and sees through a wrapper). The archscore counter can be lowered by wrapping a callback in a package helper that returns it, without changing the write; a drop the harness does not confirm is not earned.",
     "From R10-LEAF-IMPORTS (#2371): accuracy.utc_shift is a second UTC owner beside the clock module; fold it into the one owner or state why it stays (#2371 r1/r2 review).",
+    "From PR #2572 (item 4c077302): _price_tiles and _price_tile_specs are no longer on the coordinator; the tile book lives in price_tiles.book(coordinator), persisted under the ledger store key price_tiles. A move enumerating coordinator state must not expect them. Control: a word-bounded grep for _price_tiles in coordinator.py returns nothing.",
     "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-SCORES, R10-LOOP-CPU; after you: R10-PARAMS-OWNER, R10-ARCH-SHAPES). Owning seam in this group: `_current_state`, the away state, the event callbacks, the price-tile cursor. Shape: copy, then publish whole; no in-place writes to published state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-SCORES, R10-LOOP-CPU if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
@@ -1985,6 +1986,7 @@
     "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724): Home Assistant has no URL into an options-flow step (haLink(\"options\") lands on the entry, and its Configure opens the flow). This group deletes its own PENDING rows health:settings and health:diagnostics in tests/card.mjs; the census refuses a stale row. Any new link button must be built with haLink and openHaLink and be reachable by a press in the tests/card.mjs census fixture.",
     "From R10-DEEPLINK (#2253, handoff/r10-deeplink at aea95a724) and the coordinator, 2026-10-15: frontend 20260826.7 has no URL filter for disabled-only entities. `_setFiltersFromUrl` in ha-config-entities.ts always sets `ha-filter-states: []`, so `?config_entry=` shows enabled and disabled entities together. Item 4 ('land on exactly the disabled entities') cannot be met by a URL. Either narrow the copy to 'this entry's entities, disabled included', or link a single disabled entity with haLink('entity'). Control: open the link in tests/card_browser.mjs and count the rows shown against the disabled set.",
     "From the finding sweep (P08, P41; card test gaps with no owner): (1) #2283 review r2: dropping the render from openSetupSlot (R3) is unpinned, and was unpinned at base. Pin it with a card.mjs case that fails when the render is removed, or disposition it with the measured reason. (2) #2346 review r1: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js ~3741 `page ? L(page) : placeLabel(b.place)` (a place the backend adds ahead of the card) has no test: every place in qaTopologies/layoutCatalogTopo is in SETUP_CONFIGURE_PAGE. Add a topology with a place outside it, assert the label is the place's name and not undefined, and run the mutant that drops the fallback. Re-take line numbers at your merge base.",
+    "From PR #2572 (item 6ce59610): the Advisor's rows moved to a new act open_options (openHaLink(host,'options',null)); settings is now dispatched by the Health page alone. Converting health:settings should reuse open_options and delete the settings branch with its ACTS entry and PENDING row in tests/card.mjs. Control: node tests/card.mjs green with advisor:settings absent from PENDING.",
     "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: heatpump-optimizer-card.js (position 5 of 5; before you: R10-ADVISOR, R10-SCORES; next: none). Owning seam in this group: the Health tab renderer. Shape: role labels from one source; the shared link helper. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
@@ -6693,6 +6695,105 @@
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-flow-design-stages",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+   }
+  },
+  {
+   "group": "R10-FLOW-ARCH-PLANNER",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "policy",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    "dev/governance/roles/orchestrator.md",
+    "CLAUDE.md",
+    "dev/governance/decisions/",
+    "tools/audit/archscore/ABOUT.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy: owner's approving review",
+   "rca": [],
+   "after": [
+    "R10-FLOW-DESIGN-POLICY"
+   ],
+   "carry": [
+    "Merge after R10-FLOW-DESIGN-POLICY: both edit orchestrator.md and CLAUDE.md.",
+    "Due before round 11's P3; not on round 10's critical path.",
+    "Pre-study: the Lean flow study's architect-planner directory, STUDY.md."
+   ],
+   "architect_note": "",
+   "brief": "Land the architect/planner seat in the policy corpus for round 11 (owner, 2026-10-21). (1) Two role contracts under dev/governance/roles/, the architect/planner's and the architecture-plan reviewer's, from the Lean flow study's drafts (architect-planner directory on the study branch, at the pack commit the dispatch names). (2) orchestrator.md: from round 11, P3 is the architect's plan, reviewed and approved by the owner; the orchestrator's P4 executes the approved plan and records deviations against it. (3) A decision record amending decision 0012's move 5: findings are grouped by owning seam, with the bug-class id kept as a tag, and a class that spans seams is split per seam with its sweep as a fitness function. (4) The programme-level architecture target: a round's end-to-end score.py --diff at dS of at least +22.7 (a 30% weighted fall over the 17 scored metrics at frozen weights), admissible, read with the counters on, attributed per planned move, spread over at least three classes with no metric above 40%, and checked against holdouts the score does not contain; it binds the architect's plan, never a single seat. (5) One sentence in tools/audit/archscore/ABOUT.md that reconciles the target with 'a review trigger, never a target a seat is rewarded for moving'. (6) CLAUDE.md names both contracts in its role table. (7) The round-11 template in the plan of record: P3 at most 8 h, P4 at most 56 h.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-arch-planner",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+   }
+  },
+  {
+   "group": "R10-FLOW-AUDIT-PLAN",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    ".claude/workflows/audit-verify.js",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [
+    "R10-FLOW-ARCH-PLANNER",
+    "R10-FLOW-TOOLKIT-MEASURE"
+   ],
+   "carry": [
+    "Null control: on the study's measured range (399098f63 to the study's main) the ledger reports dS +74.6109 inadmissible with the four regressions the study names.",
+    "Pre-study: the Lean flow study's architect-planner directory, STUDY.md.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+   ],
+   "architect_note": "",
+   "brief": "Mechanise P3 for round 11 (owner, 2026-10-21). (1) A workflow that runs the architect/planner seat and then the architecture-plan reviewer between audit-verify and the fix wave, taking audit-verify's class-grouped draft roster as input and producing the round's roster draft, the ADRs and the move plan on a plan ref. (2) A move ledger: per group, the predicted and the merged dS per metric from each PR's Architecture score lines, and the round's end-to-end admissible diff from the fork SHA (tools/audit/archscore/score.py --diff), flagging a dS no planned move explains. (3) A holdout check run at the fork and at the stamp: tests/structure.py budgets, the archscore gate-only tripwires, a behaviour inventory (entities, services, options, card features), mutation kill rate, and change coupling from git history; any regression fails the round's target. Reuse score.py, vector.py and R10-FLOW-TOOLKIT-MEASURE's flow metrics; re-implement none of them.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-audit-plan",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
