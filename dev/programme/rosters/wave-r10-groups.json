@@ -4991,7 +4991,8 @@
     "stage": "done",
     "branch": "fix/r10-handoff-archive",
     "commit": "4617d9079c94577f2116a4ab2e027507be637dcc",
-    "next_step": "review at the PR head; the move is renames only"
+    "next_step": "review at the PR head; the move is renames only",
+    "note": "merged #2488 4617d907"
    }
   },
   {
