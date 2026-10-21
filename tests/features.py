@@ -19809,16 +19809,24 @@ def _sysid_cycle(host, prices):
         _sid_cmod._await_process = real
 
 
-# The sys-ID override wipes the plan's reasons off the running action.
+# The sys-ID override replaces the plan's reasons on the running action with
+# the experiment's own (#2256): the draw has a cause, so it names it, and it
+# is never booked under the dead plan's reason.
+from heatpump_optimizer.payload import (  # noqa: E402
+    REASON_SYSTEM_IDENTIFICATION as _cs6_sysid_reason,
+)
 _cs6 = _t2_coord()
 _cs6._current_action = {"power": 1.0, "space_reason": "cheap_price", "dhw_reason": None}
 _cs6._sysid.phase = PHASE_ARMED
 _cs6._sysid.step = lambda **kw: 2.0
 _sysid_cycle(_cs6, np.array([1.0]))
 R.check(
-    "an experiment's draw settles untagged, never under the dead plan's reason",
-    _cs6._current_action["space_reason"] is None
+    "an experiment's draw settles under the experiment's reason, never under "
+    "the dead plan's",
+    _cs6._current_action["space_reason"] == _cs6_sysid_reason
+    and _cs6._current_action["dhw_reason"] == _cs6_sysid_reason
     and _cs6._current_action["mode"] == "system_identification",
+    repr(_cs6._current_action),
 )
 
 # --- #40 the month freeze --------------------------------------------------------
@@ -66373,6 +66381,371 @@ R.check(
     "step) -- live a microsecond before the edge, expired at it",
     _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
     f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
+)
+
+# --- R10-SAV-REASONS (#2256): a cost is booked under the cause that drew it ----
+# Owner-reported: "Not heating" was the most expensive attribution category
+# (137.58 SEK) and boost costs landed in "untagged" (10.90 SEK). Two mechanisms
+# book money under a cause that did not draw it. At settlement, every metered
+# kWh took the *plan step's* reason, including energy the step never commanded:
+# a plan idling at zero while the meter saw a draw tagged the whole draw
+# "idle". At adoption, the boost overlay rewrote the running action's power for
+# its channel and left the plan's reason in place, so a boost laid over an idle
+# step booked its kilowatts as idle; and the three fixed-mode actions carried
+# no reason at all, so their draw booked "untagged".
+#
+# The seam is reason tagging at booking and at classification: every booked
+# interval names the cause that asked for its energy, from payload's shared
+# vocabulary, and energy no plan commanded books as "untagged" (outside the
+# plan) rather than under the nearest reason. The plan-side classifier is
+# unchanged; tests for its guards are R10-I1's.
+import ast as _sr_ast  # noqa: E402
+from pathlib import Path as _sr_Path  # noqa: E402
+
+from heatpump_optimizer import boost as _sr_boost  # noqa: E402
+from heatpump_optimizer import coordinator as _sr_cmod  # noqa: E402
+from heatpump_optimizer.payload import (  # noqa: E402
+    REASON_BOOST as _SR_BOOST,
+    REASON_COMFORT_MODE as _SR_COMFORT,
+    REASON_IDLE as _SR_IDLE,
+    REASON_LEGIONELLA as _SR_LEGIONELLA,
+    REASON_SYSTEM_IDENTIFICATION as _SR_SYSID,
+    REASON_UNTAGGED as _SR_UNTAGGED,
+)
+
+_SR_T = datetime(2026, 3, 28, 12, 0, tzinfo=UTC)
+
+
+def _sr_coord(dhw=False):
+    coord = Coord(
+        FakeHass({
+            "sensor.indoor": FakeState("21.0", unit="°C"),
+            "sensor.outdoor": FakeState("-5.0", unit="°C"),
+        }),
+        FakeEntry(data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor",
+        }),
+    )
+    # The overlay drops a hot-water boost on an install without a tank
+    # (#1527), so the DHW leg needs one.
+    coord._thermal_params.dhw_enabled = dhw
+    return coord
+
+
+def _sr_book(coord, *, space_power, dhw_power, actual, price=2.0,
+             space_reason="cheap_price", dhw_reason="dhw_preheat", hours=1.0):
+    coord._accumulate_energy(
+        AccuracySample(when=_SR_T, actual_power_kw=actual),
+        hours,
+        {
+            "price": price, "spot_price": price, "grid_fee": 0.0,
+            "space_power": space_power, "dhw_power": dhw_power,
+            "space_reason": space_reason, "dhw_reason": dhw_reason,
+            "when": _SR_T,
+        },
+    )
+    return coord._ledger.line("2026-03", "spot")
+
+
+# The owner's repro, at the booking seam: the plan commanded nothing at this
+# step and the meter saw a draw. Before the fix the whole draw booked under the
+# plan step's "idle"; it is energy no plan asked for.
+_sr_c = _sr_coord()
+_sr_spot = _sr_book(
+    _sr_c, space_power=0.0, dhw_power=0.0, actual=0.4,
+    space_reason=_SR_IDLE, dhw_reason=_SR_IDLE,
+)
+_sr_idle = _sr_c._ledger.line("2026-03", f"reason:{_SR_IDLE}")
+_sr_outside = _sr_c._ledger.line("2026-03", f"reason:{_SR_UNTAGGED}")
+R.check(
+    "R10-SAV-REASONS: a plan that commanded nothing does not name the draw "
+    "it never asked for -- the metered kWh book as untagged, not as idle",
+    abs(_sr_idle["kwh"]) < 1e-9
+    and abs(_sr_outside["kwh"] - _sr_spot["kwh"]) < 1e-9
+    and abs(_sr_outside["kwh"] - 0.4) < 1e-9,
+    f"idle={_sr_idle}, untagged={_sr_outside}, spot={_sr_spot}",
+)
+
+# The rule is the REASON's, not the meter's magnitude: a channel the plan ran
+# explains its whole metered share (a step below the modulation floor is duty
+# cycling within it, so a reading above the step's average is the pump's own
+# cycling), while a channel whose reason says the plan drew nothing books
+# outside the plan even when the plan booked a trickle.
+_sr_c = _sr_coord()
+_sr_ran = _sr_book(_sr_c, space_power=0.3, dhw_power=0.0, actual=1.5)
+_sr_ran_kwh = {
+    name: _sr_c._ledger.line("2026-03", f"reason:{name}")["kwh"]
+    for name in ("cheap_price", _SR_UNTAGGED)
+}
+_sr_c = _sr_coord()
+_sr_trickle = _sr_book(
+    _sr_c, space_power=0.03, dhw_power=0.0, actual=0.4,
+    space_reason=_SR_IDLE, dhw_reason=_SR_IDLE,
+)
+_sr_trickle_kwh = {
+    name: _sr_c._ledger.line("2026-03", f"reason:{name}")["kwh"]
+    for name in (_SR_IDLE, _SR_UNTAGGED)
+}
+R.check(
+    "R10-SAV-REASONS: a channel the plan ran explains the draw at any meter "
+    "magnitude, and an idle step books outside the plan even at a trickle",
+    abs(_sr_ran_kwh["cheap_price"] - 1.5) < 1e-9
+    and abs(_sr_ran_kwh[_SR_UNTAGGED]) < 1e-9
+    and abs(_sr_ran["kwh"] - 1.5) < 1e-9
+    and abs(_sr_trickle_kwh[_SR_IDLE]) < 1e-9
+    and abs(_sr_trickle_kwh[_SR_UNTAGGED] - 0.4) < 1e-9,
+    f"ran={_sr_ran_kwh}, trickle={_sr_trickle_kwh}",
+)
+
+# The reason lines still partition the metered energy when one channel is
+# planned and the other idle: the split is a partition, not a second
+# accounting.
+_sr_c = _sr_coord()
+_sr_spot = _sr_book(
+    _sr_c, space_power=1.5, dhw_power=0.5, actual=3.0,
+    space_reason="cheap_price", dhw_reason=_SR_IDLE,
+)
+_sr_split = {
+    name: _sr_c._ledger.line("2026-03", f"reason:{name}")["kwh"]
+    for name in ("cheap_price", _SR_IDLE, _SR_UNTAGGED)
+}
+R.check(
+    "R10-SAV-REASONS: the idle channel's share books as untagged and the "
+    "reason lines still sum to the spot line",
+    abs(_sr_split["cheap_price"] - 2.25) < 1e-9
+    and abs(_sr_split[_SR_IDLE]) < 1e-9
+    and abs(_sr_split[_SR_UNTAGGED] - 0.75) < 1e-9
+    and abs(sum(_sr_split.values()) - _sr_spot["kwh"]) < 1e-9,
+    f"{_sr_split} vs spot {_sr_spot['kwh']}",
+)
+
+# The pure partition, pinned arm by arm: a channel whose reason says the plan
+# drew nothing (or which has no reason at all) books untagged, a planned one
+# keeps its reason, equal reasons coalesce, and a zero share is not returned
+# at all (a receipt must not list "0.0 kWh" categories).
+from heatpump_optimizer import ledger as _sr_ledger  # noqa: E402
+
+_sr_arms = {
+    "planned": _sr_ledger.explain_metered(
+        1.0, 0.0, space_reason="cheap_price", dhw_reason=None,
+    ),
+    "idle": _sr_ledger.explain_metered(
+        1.0, 0.0, space_reason=_SR_IDLE, dhw_reason=None,
+    ),
+    "no reason": _sr_ledger.explain_metered(
+        1.0, 0.0, space_reason=None, dhw_reason=None,
+    ),
+    "already untagged": _sr_ledger.explain_metered(
+        1.0, 0.0, space_reason=_SR_UNTAGGED, dhw_reason=None,
+    ),
+    "both planned, one code": _sr_ledger.explain_metered(
+        0.5, 0.5, space_reason="cheap_price", dhw_reason="cheap_price",
+    ),
+    "nothing metered": _sr_ledger.explain_metered(
+        0.0, 0.0, space_reason="cheap_price", dhw_reason=_SR_IDLE,
+    ),
+    "one channel": _sr_ledger.explain_metered(
+        0.0, 0.75, space_reason="cheap_price", dhw_reason="dhw_preheat",
+    ),
+}
+R.check(
+    "R10-SAV-REASONS: explain_metered returns exactly the shares it names -- "
+    "planned, idle, no reason, already untagged, coalesced, empty and one "
+    "channel",
+    dict(_sr_arms["planned"]) == {"cheap_price": 1.0}
+    and dict(_sr_arms["idle"]) == {_SR_UNTAGGED: 1.0}
+    and dict(_sr_arms["no reason"]) == {_SR_UNTAGGED: 1.0}
+    and dict(_sr_arms["already untagged"]) == {_SR_UNTAGGED: 1.0}
+    and dict(_sr_arms["both planned, one code"]) == {"cheap_price": 1.0}
+    and _sr_arms["nothing metered"] == []
+    and dict(_sr_arms["one channel"]) == {"dhw_preheat": 0.75},
+    repr(_sr_arms),
+)
+
+
+def _sr_overlay(base, channels):
+    """One boost.apply over ``base`` with ``channels`` boosted."""
+    coord = _sr_coord(dhw=True)
+    _sr_boost.adopt_plan(coord, dict(base))
+    now = datetime.now(timezone.utc)
+    for channel in channels:
+        _sr_boost.held_for(coord).set(channel, True, now)
+    _sr_boost.apply(
+        coord,
+        _sr_boost.BoostOverlay(max_power=9.0, max_temp=24.0, ecl_max=4.0),
+    )
+    return coord._current_action
+
+
+_sr_idle_base = {
+    "power": 0.0, "dhw_power": 0.0, "heat_pump_on": False, "mode": "off",
+    "space_reason": _SR_IDLE, "dhw_reason": _SR_IDLE,
+}
+_sr_space_boost = _sr_overlay(_sr_idle_base, ["space"])
+_sr_dhw_boost = _sr_overlay(_sr_idle_base, ["dhw"])
+_sr_no_boost = _sr_overlay(_sr_idle_base, [])
+_sr_legionella = _sr_overlay(
+    {**_sr_idle_base, "dhw_reason": _SR_LEGIONELLA}, ["dhw"]
+)
+R.check(
+    "R10-SAV-REASONS: a boosted channel is booked under the boost, not under "
+    "the plan step's idle reason the overlay overwrote",
+    _sr_space_boost.get("space_reason") == _SR_BOOST
+    and _sr_space_boost.get("dhw_reason") == _SR_IDLE
+    and _sr_dhw_boost.get("dhw_reason") == _SR_BOOST
+    and _sr_dhw_boost.get("space_reason") == _SR_IDLE
+    and _sr_space_boost.get("power") == 9.0
+    and _sr_dhw_boost.get("dhw_power", 0.0) > 0.0,
+    f"space={_sr_space_boost}, dhw={_sr_dhw_boost}",
+)
+R.check(
+    "R10-SAV-REASONS: a boost never relabels the anti-legionella cycle the "
+    "observer reads this field for -- the one cause that survives the overlay",
+    _sr_legionella.get("dhw_reason") == _SR_LEGIONELLA
+    and _sr_legionella.get("dhw_power", 0.0) > 0.0,
+    repr(_sr_legionella),
+)
+R.check(
+    "R10-SAV-REASONS: without a live boost the plan's own reasons survive "
+    "(null control for the overlay tag)",
+    _sr_no_boost.get("space_reason") == _SR_IDLE
+    and _sr_no_boost.get("dhw_reason") == _SR_IDLE
+    and _sr_no_boost.get("power") == 0.0,
+    repr(_sr_no_boost),
+)
+
+# Every whole-action adoption names its cause. The census is the rule, not the
+# sites it happens to find: each dict-literal action handed to ``adopt_plan``
+# must carry both reason keys, and each value must resolve, through the module
+# it is written in, to a code in payload's shared vocabulary -- a bare string
+# could drift from the vocabulary, and a new code could be invisible to the
+# card. The solve's own action is a ``get_current_action`` call, which already
+# carries this step's codes.
+from heatpump_optimizer import payload as _sr_payload  # noqa: E402
+
+_sr_vocab = {
+    _v for _n, _v in vars(_sr_payload).items()
+    if _n.startswith("REASON_") and isinstance(_v, str)
+}
+_sr_adopt_sites = []
+_sr_unvocab = []
+_sr_causes = set()
+for _sr_name in ("coordinator.py", "boost.py"):
+    _sr_mod = {"coordinator.py": _sr_cmod, "boost.py": _sr_boost}[_sr_name]
+    _sr_tree = _sr_ast.parse(
+        (_sr_Path(_sr_cmod.__file__).parent / _sr_name).read_text()
+    )
+    for _sr_node in _sr_ast.walk(_sr_tree):
+        if not (
+            isinstance(_sr_node, _sr_ast.Call)
+            and isinstance(_sr_node.func, _sr_ast.Attribute)
+            and _sr_node.func.attr == "adopt_plan"
+            and len(_sr_node.args) >= 2
+        ):
+            continue
+        _sr_arg = _sr_node.args[1]
+        if isinstance(_sr_arg, _sr_ast.Call) and \
+                getattr(_sr_arg.func, "attr", None) == "get_current_action":
+            _sr_adopt_sites.append((_sr_name, _sr_node.lineno, "plan"))
+            continue
+        _sr_keys = {
+            _k.value: _v for _k, _v in zip(
+                (_sr_arg.keys if isinstance(_sr_arg, _sr_ast.Dict) else []),
+                (_sr_arg.values if isinstance(_sr_arg, _sr_ast.Dict) else []),
+            ) if isinstance(_k, _sr_ast.Constant)
+        }
+        _sr_mode = (
+            _sr_keys["mode"].value
+            if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
+            else None
+        )
+        _sr_adopt_sites.append(
+            (_sr_name, _sr_node.lineno, _sr_mode,
+             all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
+        )
+        for _sr_key in ("space_reason", "dhw_reason"):
+            _sr_value = _sr_keys.get(_sr_key)
+            _sr_code = (
+                getattr(_sr_mod, _sr_value.id, None)
+                if isinstance(_sr_value, _sr_ast.Name)
+                else _sr_value.value
+                if isinstance(_sr_value, _sr_ast.Constant)
+                else None
+            )
+            if _sr_code not in _sr_vocab:
+                _sr_unvocab.append((_sr_name, _sr_node.lineno, _sr_key, _sr_code))
+            elif _sr_key == "space_reason":
+                _sr_causes.add(_sr_code)
+_sr_fixed = {s[2] for s in _sr_adopt_sites if isinstance(s[2], str)}
+_sr_dict_sites = [
+    s for s in _sr_adopt_sites if isinstance(s[2], str) and s[2] != "plan"
+]
+R.check(
+    "R10-SAV-REASONS: every whole-action adoption names its cause from the "
+    "shared vocabulary -- the fixed modes, the experiment and the solve",
+    any(s[2] == "plan" for s in _sr_adopt_sites)
+    and {"comfort", "boost", "off", "system_identification"} <= _sr_fixed
+    and all(s[3] for s in _sr_dict_sites)
+    and not _sr_unvocab
+    and {_SR_BOOST, _SR_COMFORT, _SR_UNTAGGED, _SR_SYSID} <= _sr_causes,
+    f"sites={_sr_adopt_sites} unvocab={_sr_unvocab} causes={sorted(_sr_causes)}",
+)
+
+# The flat-price control the roster carries: with one price for every hour, a
+# reason's cost is decided by its energy alone, so no category may carry a cost
+# a different category would not -- every reason line's unit cost is the one
+# price, and the reason lines still partition the spot line. This is a NULL
+# control: it holds on the pre-fix tree too, because the defect was which
+# cause a kWh was named for, not how it was priced. The repro above reads the
+# defect; this one guards the split against double-booking.
+_sr_flat = _mk_golden(dhw=False, price_profile="flat")
+_sr_flat_res = _sr_flat["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_sr_flat["state"],
+    prices=_sr_flat["prices"],
+    outdoor_temps=_sr_flat["outdoor"],
+    wind_speeds=_sr_flat["wind"],
+    precipitation=_sr_flat["rain"],
+    solar_radiation=_sr_flat["solar"],
+    start_time=_G_START,
+))
+_sr_flat_price = float(_sr_flat["prices"][0])
+_sr_flat_coord = _sr_coord()
+for _sr_i, _sr_p in enumerate(_sr_flat_res.power_schedule):
+    _sr_when = _G_START + timedelta(minutes=15 * _sr_i)
+    _sr_flat_coord._accumulate_energy(
+        AccuracySample(when=_sr_when, actual_power_kw=_sr_p),
+        0.25,
+        {
+            "price": _sr_flat_price, "spot_price": _sr_flat_price,
+            "grid_fee": 0.0, "space_power": _sr_p, "dhw_power": 0.0,
+            "space_reason": _sr_flat_res.space_reasons[_sr_i],
+            "dhw_reason": _SR_UNTAGGED, "when": _sr_when,
+        },
+    )
+_sr_month = _sr_flat_coord._ledger.months[sorted(_sr_flat_coord._ledger.months)[0]]
+_sr_lines = {
+    name.split(":", 1)[1]: entry
+    for name, entry in _sr_month["lines"].items()
+    if name.startswith("reason:")
+}
+_sr_units = sorted({
+    round(entry["sek"] / entry["kwh"], 9)
+    for entry in _sr_lines.values() if abs(entry["kwh"]) > 1e-9
+})
+_sr_flat_spot = _sr_flat_coord._ledger.line(
+    sorted(_sr_flat_coord._ledger.months)[0], "spot"
+)
+R.check(
+    "R10-SAV-REASONS: on a flat-price profile every reason carries the one "
+    "price per kWh, and no category carries a cost another would not",
+    _sr_lines
+    and _sr_units == [round(_sr_flat_price, 9)]
+    and abs(sum(e["kwh"] for e in _sr_lines.values()) - _sr_flat_spot["kwh"]) < 1e-9
+    and abs(sum(e["sek"] for e in _sr_lines.values()) - _sr_flat_spot["sek"]) < 1e-9,
+    f"unit costs={_sr_units} price={_sr_flat_price} lines={_sr_lines}",
 )
 
 

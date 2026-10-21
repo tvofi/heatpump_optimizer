@@ -20348,6 +20348,26 @@ R.check(
     re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
     "without the trigger `gh workflow run codeql.yml` is refused with 422",
 )
+# `Analyze (python)` is a required context, so a cancelled analysis fails the
+# pull request. Its runtime swings with runner load, and the 30-minute cap sat
+# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
+# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
+# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
+# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
+# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
+# design choice. The cap is pinned against the YAML (not left as prose in the
+# workflow) because a one-line edit shrinking it back is exactly what no other
+# check reads.
+_CODEQL_JOBS = (_yaml.safe_load(
+    (pathlib.Path(__file__).resolve().parents[1] / ".github"
+     / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
+_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+R.check(
+    "codeql.yml's analyze cap clears the python leg's measured worst case",
+    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
+    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
+    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+)
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
 # stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
