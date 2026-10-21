@@ -228,7 +228,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
-  existing PR, so the open-PR soft cap is untouched (an update is not an open).
+  existing PR, which the soft cap never refuses (it gates only group dispatch).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
   `OWED handoff-update`, and retried only when the handoff moves. An update that
@@ -342,12 +342,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   tip of `handoff-body/<topic>` ("that is the BODY sha; pass the CODE sha" —
   twice on 2026-10-18 that sha stopped the script silently); a missing
   `handoff/<topic>` or `handoff-body/<topic>`; no BODY.md at the body ref — the
-  body is the transport, not an afterthought. The soft cap gates **dispatch**,
-  not opening (tvofi, 2026-10-20): a leading `--over-cap "<reason>"` is still
-  accepted and prints that it is advisory; the open count is printed as
-  information by `pr_cap.py info`, and a count gh cannot read says so and still
-  opens. Any later stop
-  prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
+  body is the transport, not an afterthought. The soft cap gates only
+  dispatching a new roster group, and never refuses opening or updating a pull
+  request for an owed handoff (tvofi, 2026-10-20): a leading `--over-cap
+  "<reason>"` is still accepted and prints that it is advisory; `pr_cap.py
+  info` prints the open count as information, and a count gh cannot read says
+  so and still opens. Any later stop prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
   refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
 - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
