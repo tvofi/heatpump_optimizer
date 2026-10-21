@@ -1,0 +1,14 @@
+== M0-null
+pulse self-test: 22 checks, 0 failed
+rc=0
+== M8-rc-clause
+  FAIL bus.sh rc 2 or more is UNREADABLE even beside a summary line
+pulse self-test: 21 checks, 1 failed
+rc=0
+== M1-backlog
+  FAIL the 10-21 shape: a backlog older than the last opening is counted, not a stop
+  FAIL a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
+  FAIL the same handoff with an opening after it arrived is ok
+  FAIL the summary line counts the arms
+pulse self-test: 18 checks, 4 failed
+rc=0

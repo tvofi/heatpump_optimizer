@@ -1,0 +1,8 @@
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+usage: carry_audit.py [-h] [--repo REPO] [--briefs-dir BRIEFS_DIR]
+                      [--roster-ref ROSTER_REF]
+                      {check,pr,sweep,owners} ...
+carry_audit.py: error: unrecognized arguments: --roster-ref origin/handoff/audit-r10-roster
+rc=2
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
