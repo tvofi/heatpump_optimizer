@@ -1,3 +1,0 @@
-delivery_row self-test: 5 checks, 0 failed
-  ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 57 checks, 0 failed

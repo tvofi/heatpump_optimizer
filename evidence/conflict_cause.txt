@@ -1,0 +1,7 @@
+merge-base e7c664856776542bf60bd770c98aba1eaadb4041
+e958d53bc Merge origin/main into handoff/r10-openpr-row-push (INSTRUMENTS.md: keep main's advisory cap and the row-lock sentence)
+e8bf2f03d fix(seat): open_pr.sh holds the branch lock; update_pr.sh never detaches unpushed work
+
+49c222280 (round-5 main) is ancestor of origin/main
+342e8c6e8d2208028d7d5fa9767f9ee328e997d1
+rc_vs_49c222280=0
