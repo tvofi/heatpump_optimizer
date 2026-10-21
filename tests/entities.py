@@ -3663,11 +3663,18 @@ def _p2_match_literal_domain(domains):
 def _p2_match_defrost_decides(n, parents):
     """A decision-context read of the pump's defrost flag (D7-s2-01).
 
-    The flag itself is ``*.defrosting``. ``_observe_frequency`` holds the
-    owner's ANSWER in a local of the same name and decides on that; an answer
-    being used is not a second reading of the flag, and ``defrost_interval``
-    takes the flag as a plain boolean, so neither is a hit here.
+    The flag itself is ``*.defrosting``. A read passed straight to the owner,
+    ``defrost_interval(x.defrosting)``, is the owner deciding, not a second
+    reading of the flag, even inside an ``if`` or a bool op: the fold gate
+    and the watchdog both ask it that way. Any other decision-context read is
+    a hit.
     """
+    par = parents.get(n)
+    if isinstance(par, ast.Call) and n in par.args and (
+        getattr(par.func, "id", None) == "defrost_interval"
+        or getattr(par.func, "attr", None) == "defrost_interval"
+    ):
+        return False
     return (
         isinstance(n, ast.Attribute)
         and n.attr == "defrosting"
