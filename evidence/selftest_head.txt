@@ -1,0 +1,10 @@
+  ok   --once: one pass, cloud_relay.sh pass first, then the tick with its args; one banner
+  ok   null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks
+  ok   a failing relay pass is reported and the tick still runs; the tick's status is reported
+  ok   a relay slower than the interval does not delay the board; the banner says relay=running
+  ok   a pass that finds the relay in flight starts none (no overlap) and still ticks
+  ok   the in-flight relay was left to finish after its loop exited, never killed
+  ok   null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+  ok   a non-numeric --interval refuses
+tick_loop self-test: 8 checks, 0 failed
+rc=0

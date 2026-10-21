@@ -1,0 +1,7 @@
+== S26 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 8 checks, 3 failed
+== S31 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 8 checks, 4 failed
+== S32 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 8 checks, 3 failed
+== S33 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 8 checks, 1 failed
+== S34 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 8 checks, 4 failed
+RESULT survivors=0
+rc=0
