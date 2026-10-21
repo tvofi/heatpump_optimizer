@@ -579,7 +579,7 @@ jobs:
           bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
 
-      - name: Show the open-PR cap refusing its own fixtures
+      - name: Show the dispatch cap refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
