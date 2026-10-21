@@ -3539,9 +3539,9 @@ const inboxStates = () => {
       ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
   s[`${ADVISOR_PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
     price_tiles: {
-      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
-      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
-      power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
+      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90, horizon_days: 30 },
+      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95, horizon_days: 30 },
+      power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10, horizon_days: 30 } } } };
   s[`${ADVISOR_PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
     reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
   return s;
@@ -3607,7 +3607,43 @@ const restartStates = (patch = {}) => {
     "cost(55) = 10.85, cost(48) = 9.00, 1.85 * 30 = 55.5");
   check("price of a degree: the cooler tile is the saving, the warmer one is in the detail",
     /≈ 90 SEK\/month/.test(page) && /degree cooler is cheaper/.test(page)
-    && /A degree warmer costs 95 SEK\/month more/.test(page));
+    && /A degree warmer costs 95 SEK\/month more \(a 30-day average\)/.test(page));
+
+  // #2257 item 8: the price of a degree is checked before it renders. The
+  // owner's screenshot pair (2026-10-14) -- a degree cooler 140 cheaper and a
+  // degree warmer 266 cheaper -- is not monotone, so neither figure renders and
+  // no "costs ... more" sentence can carry a negative number.
+  const tileStates = (down, up) => {
+    const s = inboxStates();
+    s[`${PFX}_optimization_score`].attributes.price_tiles = {
+      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: down, horizon_days: 30 },
+      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: up, horizon_days: 30 } };
+    return s;
+  };
+  const degreeOf = (down, up) => {
+    const h = mkInbox(tileStates(down, up)).html();
+    const row = h.split('class="adv-inbox-row').find((r) => /data-act="try_degree"/.test(r)) || "";
+    return { h, row };
+  };
+  const shot = degreeOf(-140, -266);
+  check("the screenshot's pair (-140 cooler, -266 warmer) renders no money and no \"more\"",
+    /Not shown yet: over the last 30 days/.test(shot.row) && /no estimate/.test(shot.row)
+    && !/costs/.test(shot.row) && !/266|140/.test(shot.row), shot.row);
+  const concave = degreeOf(-90, 50);
+  check("a warmer degree cheaper than the cooler one saves is not convex, so not shown",
+    /Not shown yet/.test(concave.row) && !/≈ 90/.test(concave.row), concave.row);
+  const rounded = degreeOf(-74.7, 74.4);
+  check("a linear pair the two roundings open by one unit is still convex",
+    /≈ 75 SEK\/month/.test(rounded.row) && /costs 74 SEK\/month more/.test(rounded.row), rounded.row);
+  const sharp = degreeOf(-75.6, 74.4);
+  check("two units below the saving is concave, not rounding",
+    /Not shown yet/.test(sharp.row), sharp.row);
+  const free = degreeOf(0, 0);
+  check("a degree that saves nothing either way (no heating) is no row",
+    !/data-act="try_degree"/.test(free.h));
+  const cooler = degreeOf(12, 30);
+  check("a degree cooler that costs more is not shown as a saving",
+    /Not shown yet/.test(cooler.row) && !/≈ 12/.test(cooler.row), cooler.row);
   check("today's sensor ranking still follows on the page",
     /Sensors that would tighten the model/.test(page) || /already configured/.test(page));
 
@@ -3683,8 +3719,26 @@ const restartStates = (patch = {}) => {
     && d.calls[0][2].dhw_setpoint !== 55, JSON.stringify(d.calls));
 
   check("off-by-default advisors are offered as enable-to-see rows",
-    /data-act="settings"/.test(page) && /wood/i.test(page) && /fuse/i.test(page)
+    /data-act="open_options"/.test(page) && /wood/i.test(page) && /fuse/i.test(page)
     && /frequency/i.test(page));
+  // #2257 item 7: no URL reaches an options-flow step, so each row names the
+  // step its button's entry link leads to, and the button links this entry.
+  check("each enable-to-see row names the options step that turns it on",
+    /Wood-stove timing<span class="adv-sub">Configure → Advanced settings → Heating system and heat storage/.test(page)
+    && /Fuse size<span class="adv-sub">Configure → Grid peak tariff/.test(page)
+    && /Compressor frequency<span class="adv-sub">Configure → Advanced settings → Power and solar sensors/.test(page));
+  const ntStep = mkInbox(noTiles).html();
+  check("the price-of-a-degree opt-in names Savings vs comfort",
+    /Price of a degree<span class="adv-sub">Configure → Savings vs comfort/.test(ntStep));
+  {
+    const o = mkInbox(inboxStates());
+    o.c.hass.callWS = async (msg) => ({ entity_id: msg.entity_id, config_entry_id: "01JADVISORENTRY" });
+    const pushed = [];
+    ctx.history = { ...NAV.history, pushState: (_a, _b, path) => pushed.push(path) };
+    try { await press(o.c, '[data-act="open_options"]'); } finally { ctx.history = NAV.history; }
+    check("Open settings on an opt-in row links this entry's options, not the bare integration",
+      pushed.length === 1 && pushed[0] === fn("haLink")("options", "01JADVISORENTRY"), JSON.stringify(pushed));
+  }
   const readIds = Object.keys(inboxStates());
   check("the card never reads a disabled-by-default advisor",
     !readIds.some((id) => /wood_burn|compressor_frequency/.test(id))
@@ -11685,7 +11739,6 @@ check("without an indoor reading the corner now label is absent",
   const ENTRY = "01JDEEPLINKENTRY";
   const BARE = "/config/integrations/integration/heatpump_optimizer";
   const PENDING = {
-    "advisor:settings": { group: "R10-ADVISOR", path: BARE },
     "health:settings": { group: "R10-UX-HEALTH", path: BARE },
     "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
   };
@@ -11693,7 +11746,7 @@ check("without an indoor reading the corner now label is absent",
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
   // Every `act` branch the card's source can dispatch, by name.
   const ACTS = ["assign", "apply_dhw", "apply_valve", "try_degree", "adopt_refit",
-    "restore_snapshot", "settings", "dismiss_feedback", "diagnostics", "add", "remove"];
+    "restore_snapshot", "settings", "open_options", "dismiss_feedback", "diagnostics", "add", "remove"];
   const srcActs = [...new Set([...cardSrc.matchAll(/\bact\s*===\s*"([a-z_]+)"/g)].map((m) => m[1])
     .concat([...cardSrc.matchAll(/data-act="([a-z_]+)"/g)].map((m) => m[1])))].sort();
   const sourceOnly = srcActs.filter((a) => !ACTS.includes(a));
@@ -11701,7 +11754,7 @@ check("without an indoor reading the corner now label is absent",
   // The fixture renders every row the card can put an `act` branch behind: the
   // inbox's four priced rows, the two restart rows, the feedback row -- whose
   // two branches no other scenario renders -- and the health page's checklist.
-  // Two of the eleven live in the slot menu, which no row renders until the
+  // Two of the twelve live in the slot menu, which no row renders until the
   // chart's own gesture opens it; that gesture is driven below.
   const states = () => {
     const s = restartStates();

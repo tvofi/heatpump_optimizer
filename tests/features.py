@@ -22,7 +22,7 @@ import numpy as np
 from heatpump_optimizer import away as away_mode
 from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
-from heatpump_optimizer import presets, pv
+from heatpump_optimizer import presets, price_tiles, pv
 from heatpump_optimizer.accuracy import (
     AccuracySample,
     AccuracyTracker,
@@ -20429,6 +20429,7 @@ _ctile = _t2_coord()
 async def _fake_sim(overrides, limited=True, base=None):
     return {
         "monthly_cost_delta": -42.0,
+        "monthly_held_cost_delta": -40.0,
         "min_room_temperature": 19.1,
         "rate_limited": False,
     }
@@ -20438,15 +20439,15 @@ _ctile.async_simulate = _fake_sim
 _asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
 R.check(
     "with the flag off no tile ever computes, whatever solves happen",
-    not _ctile._price_tiles,
+    not price_tiles.book(_ctile),
 )
 _ctile2 = _t2_coord(price_tiles_enabled=True)
 _ctile2.async_simulate = _fake_sim
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "one solve refreshes exactly one tile, in rotation",
-    list(_ctile2._price_tiles) == ["target_minus_1"]
-    and _ctile2._price_tiles["target_minus_1"]["monthly_cost_delta"] == -42.0
+    list(price_tiles.book(_ctile2)) == ["target_minus_1"]
+    and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
     and _ctile2._price_tile_cursor == 1,
 )
 
@@ -20475,7 +20476,7 @@ R.check(
 )
 R.check(
     "the tile set is fixed at three perturbations",
-    len(_ctile2._price_tile_specs(_solve_record_now(_ctile2))) == 3,
+    len(price_tiles.specs(_solve_record_now(_ctile2).config, 6.0)) == 3,
 )
 
 # --- the insight view and its persistence ----------------------------------------
@@ -20654,6 +20655,7 @@ async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None):
     _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
+        "monthly_held_cost_delta": -1.0,
         "min_room_temperature": 19.0,
         "rate_limited": False,
     }
@@ -20666,7 +20668,7 @@ R.check(
     _ctile3_route.get("limited") is False
     and _ctile3._simulation_cache is _marker3
     and _ctile3._last_simulation == _stamp3
-    and _ctile3._price_tiles,
+    and price_tiles.book(_ctile3),
     f"route={_ctile3_route}",
 )
 
@@ -20674,10 +20676,11 @@ R.check(
 # configured target would flip the sign of the published trade.
 _ctile6 = _t2_coord(price_tiles_enabled=True)
 _ctile6._opt_config.target_temp = 17.0
+_ctile6_specs = price_tiles.specs(_solve_record_now(_ctile6).config, 6.0)
 R.check(
     "the target tiles follow the live target through an away setback",
-    _ctile6._price_tile_specs(_solve_record_now(_ctile6))[0][1]["target_temp"] == 16.0
-    and _ctile6._price_tile_specs(_solve_record_now(_ctile6))[1][1]["target_temp"] == 18.0,
+    _ctile6_specs[0][1]["target_temp"] == 16.0
+    and _ctile6_specs[1][1]["target_temp"] == 18.0,
     "'one degree lower' must be lower than the plan being compared against",
 )
 
@@ -20693,16 +20696,16 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    _ctile4._price_tile_cursor == 1 and not _ctile4._price_tiles,
+    _ctile4._price_tile_cursor == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
 _ctile5 = _t2_coord()
-_ctile5._price_tiles["stale"] = {"monthly_cost_delta": 1.0}
+price_tiles.book(_ctile5)["stale"] = {"monthly_cost_delta": 1.0}
 _asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
 R.check(
     "gate off means gone: no stale what-if money outlives the flag",
-    not _ctile5._price_tiles,
+    not price_tiles.book(_ctile5),
 )
 
 # A pre-T6 month has no partition to break: its receipt says None, never
@@ -32552,6 +32555,114 @@ R.check(
     not _db_halfrestored.has_lead_history()
     and _db_halfrestored.sigma(1.0) == 0.0,
 )
+
+from datetime import date as _pt_date  # noqa: E402
+from heatpump_optimizer import store as _pt_store  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationConfig as _PtCfg  # noqa: E402
+
+
+# --- #2257: what a degree tile perturbs, which figure it reads, and its horizon --
+# A degree is the whole comfort schedule moved, because the schedule is what
+# the plan heats to: the tile used to move ``target_temp`` alone, which moved
+# only the settlement caps and the terminal value.
+_pt_cfg = _PtCfg(
+    target_temp=21.0, comfort_temp_day=21.0, comfort_temp_night=19.5,
+    comfort_temp_day_weekend=22.0, holiday_comfort_night=17.0,
+)
+_pt_specs = dict(price_tiles.specs(_pt_cfg, 6.0))
+R.check(
+    "#2257: a degree tile moves every comfort level the schedule has set, and no other",
+    _pt_specs["target_minus_1"] == {
+        "target_temp": 20.0, "comfort_temp_day": 20.0, "comfort_temp_night": 18.5,
+        "comfort_temp_day_weekend": 21.0, "holiday_comfort_night": 16.0}
+    and _pt_specs["target_plus_1"]["comfort_temp_night"] == 20.5
+    and _pt_specs["power_cap_75"] == {"power_cap_kw": 4.5},
+    repr(_pt_specs),
+)
+_pt_all = _PtCfg(comfort_temp_night_weekend=18.0, holiday_comfort_day=20.0,
+                 comfort_temp_day_weekend=21.5, holiday_comfort_night=17.0)
+R.check(
+    "#2257: every level a degree moves is one the what-if applies to its scratch config",
+    set(dict(price_tiles.specs(_pt_all, 6.0))["target_plus_1"])
+    == {k for k, _ in _coord_mod._SIM_OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
+                                                                "day_start_hour", "day_end_hour"},
+    "a level the what-if drops would leave that part of the schedule unmoved",
+)
+R.check(
+    "#2257: a degree tile reads the held figure, the cap tile the plan's",
+    price_tiles.sample(_pt_specs["target_plus_1"],
+                       {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
+    and price_tiles.sample(_pt_specs["power_cap_75"],
+                           {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
+    and price_tiles.sample(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
+)
+_pt_day0 = _pt_date(2026, 1, 1)
+_pt_days = []
+for _pt_i in range(40):
+    _pt_d = _pt_day0 + timedelta(days=_pt_i)
+    # Two samples a day, i and i + 1: the day's mean is i + 0.5.
+    _pt_days = price_tiles.fold(_pt_days, _pt_d, float(_pt_i))
+    _pt_days = price_tiles.fold(_pt_days, _pt_d, float(_pt_i) + 1.0)
+_pt_today = _pt_day0 + timedelta(days=39)
+_pt_view = price_tiles.published({"target_plus_1": {"overrides": {}, "days": _pt_days}}, _pt_today)
+R.check(
+    "#2257: a tile keeps the last 30 local days and publishes the mean of their daily means",
+    len(_pt_days) == price_tiles.HORIZON_DAYS == 30
+    and _pt_days[0]["day"] == "2026-01-11" and _pt_days[-1]["count"] == 2
+    and _pt_view["target_plus_1"]["monthly_cost_delta"] == 25.0
+    and _pt_view["target_plus_1"]["horizon_days"] == 30
+    and "days" not in _pt_view["target_plus_1"],
+    f"{len(_pt_days)} days from {_pt_days[0]} -> {_pt_view}",
+)
+R.check(
+    "#2257: a day past the horizon, or ahead of today, is not in the published mean",
+    price_tiles.published({"t": {"days": [
+        {"day": "2025-11-01", "sum": 900.0, "count": 1},
+        {"day": "2026-02-10", "sum": 900.0, "count": 1},
+        {"day": "2026-02-09", "sum": 10.0, "count": 2}]}}, _pt_today)["t"]["monthly_cost_delta"] == 5.0
+    and price_tiles.published({"t": {"days": [{"day": "2025-11-01", "sum": 1.0, "count": 1}]}}, _pt_today) == {},
+)
+_pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
+_pt_restored = {"stale": {"days": _pt_days[:1]}}
+price_tiles.restore(
+    _pt_restored,
+    {"target_plus_1": {"overrides": {"target_temp": 22.0}, "days": [*_pt_days[:2], _pt_bad_day]},
+     "not_a_tile": {"days": _pt_days[:1]}},
+    lambda name, part: _pt_store.admitted("ledger", {"price_tiles": {name: part}}),
+)
+R.check(
+    "#2257: a stored tile loads day by day: a day outside its domain costs that day alone, "
+    "and the load replaces the book",
+    sorted(_pt_restored) == ["target_plus_1"]
+    and _pt_restored["target_plus_1"]["days"] == _pt_days[:2]
+    and _pt_restored["target_plus_1"]["overrides"] == {"target_temp": 22.0},
+    repr(_pt_restored),
+)
+
+
+async def _pt_degree_at_seam():
+    """Both degree tiles' figures from a real solve and its real what-ifs."""
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    record = _solve_record_now(coord)
+    out = {}
+    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
+        answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
+        out[name] = (price_tiles.sample(overrides, answer), answer.get("monthly_cost_delta"))
+    return out
+
+
+_pt_seam = _asyncio.run(_pt_degree_at_seam())
+_pt_down, _pt_up = _pt_seam["target_minus_1"][0], _pt_seam["target_plus_1"][0]
+R.check(
+    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, convexly",
+    _pt_down is not None and _pt_up is not None
+    and _pt_down < 0.0 < _pt_up and _pt_up + _pt_down >= -1.0,
+    f"held: cooler {_pt_down}, warmer {_pt_up}; the plan's single-solve figures "
+    f"{_pt_seam['target_minus_1'][1]} / {_pt_seam['target_plus_1'][1]}",
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day")
 
@@ -42535,10 +42646,10 @@ _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
     _t3_tile_boom._price_tile_cursor == 1
-    and dict(_t3_tile_boom._price_tiles) == {}
+    and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
     f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
-    f"{dict(_t3_tile_boom._price_tiles)!r} -- leaving the cursor put would "
+    f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
 )
@@ -42547,26 +42658,26 @@ R.check(
 # turn is always spent -- no "leaves the cursor put" arm remains.
 _t3_tile_error = _t3_tile({"error": "no solution"})
 _t3_tile_good = _t3_tile(
-    {"monthly_cost_delta": -12.5, "min_room_temperature": 20.1}
+    {"monthly_held_cost_delta": -12.5, "min_room_temperature": 20.1}
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
     _t3_tile_error._price_tile_cursor == 1
-    and dict(_t3_tile_error._price_tiles) == {}
+    and dict(price_tiles.book(_t3_tile_error)) == {}
     and _t3_tile_good._price_tile_cursor == 1
-    and sorted(_t3_tile_good._price_tiles) == ["target_minus_1"],
+    and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
     f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
-    f"{sorted(_t3_tile_error._price_tiles)!r}; good -> cursor "
+    f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
     f"{_t3_tile_good._price_tile_cursor}, tiles "
-    f"{sorted(_t3_tile_good._price_tiles)!r}",
+    f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
-_t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
+price_tiles.book(_t3_tile_off)["target_minus_1"] = {"days": [{"day": "2026-01-01", "sum": 1.0, "count": 1}]}
 _t3_drive(_t3_tile_off, "_maybe_refresh_price_tile", _solve_record_now(_t3_tile_off))
 R.check(
     "turning the tiles off clears what was published, rather than freezing it",
-    dict(_t3_tile_off._price_tiles) == {},
-    f"{dict(_t3_tile_off._price_tiles)!r} -- stale what-if money left on the "
+    dict(price_tiles.book(_t3_tile_off)) == {},
+    f"{dict(price_tiles.book(_t3_tile_off))!r} -- stale what-if money left on the "
     "card would outlive the user's decision to stop paying for it",
 )
 
@@ -60622,8 +60733,10 @@ R.check(
     _r9egb1_w_reason is None
     and "error" not in _r9egb1_w_card
     and len(_r9egb1_w_seen) == 3
+    # #2257: a degree tile moves the setback's whole schedule, not the
+    # target alone -- the schedule is what the setback plan heats to.
     and [c.comfort_temp_day for c in _r9egb1_w_seen]
-    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_away]
+    == [_r9egb1_w_away, round(_r9egb1_w_away - 1.0, 1), _r9egb1_w_away]
     and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
     and _r9egb1_w_seen[2].target_temp == min(
         _r9egb1_w_coord._opt_config.target_temp, _r9egb1_w_away)

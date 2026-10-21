@@ -586,11 +586,19 @@ own advisor sensors, not from the card.*
   the recommended setpoint, not that interpolated price, through
   `apply_schedule`, which stores it in the configuration so a reload keeps it.
 - **The price of a degree.** What a degree cooler would save a month, and what
-  a degree warmer would cost, from the score sensor's price tiles. **Try in
-  what-if** opens the Plan tab's what-if panel with the comfort slider on the
-  cooler target and runs the simulation. The tiles exist only while the
-  integration's price-tiles option is on; with it off the row is offered under
-  **More advice, once turned on** instead.
+  a degree warmer would cost, from the score sensor's price tiles: the whole
+  comfort schedule moved one degree and held there, averaged over the last 30
+  days, so one unusual day moves it by a thirtieth. The figures are checked
+  before they are shown: a degree cooler must save, a degree warmer must cost,
+  and the warmer degree must cost at least what the cooler one saves, give or
+  take the one unit rounding opens. A pair that fails is shown without money,
+  as not settled yet; a degree that saves nothing either way (no heating) is
+  no row. **Try in what-if** opens the Plan tab's what-if panel with the
+  comfort slider on the cooler target and runs the simulation; that panel
+  prices the plan from the house as it is now, so its figure includes the
+  one-off coast or heat-up a change starts with. The tiles exist only while
+  the integration's price-tiles option is on; with it off the row is offered
+  under **More advice, once turned on** instead.
 - **The valve target.** The mixing valve's recommended target, which carries no
   money figure and so follows the priced rows. **Apply** appears only when the
   valve holds a manual setpoint, and calls `assign_entity` with it.
@@ -600,8 +608,10 @@ own advisor sensors, not from the card.*
   (`compressor_freq_entity`, `compressor_freq_sensor`) and no water flow sensor
   (`flow_meter_entity`): without one of them the planner cannot see what the
   pump really draws. The row names the four classes and the config key each
-  would use; any one is enough. **Open settings** goes to the integration's
-  page and **Dismiss** hides the row in this browser.
+  would use; any one is enough. The row names the options step that holds
+  them (Configure → Advanced settings → Power and solar sensors); **Open
+  settings** opens this integration's entry, whose **Configure** starts that
+  flow, and **Dismiss** hides the row in this browser.
 
 A row reads its own state: an advisor still learning says what it is waiting
 for, and one that is unavailable says "This advice is unavailable right now".
@@ -611,8 +621,10 @@ to do: the plan is already as cheap as your settings allow."
 
 **More advice, once turned on** offers the price of a degree (while its tiles are off), wood-stove timing,
 fuse size and compressor frequency. These advisors are off by default, so the card never
-reads them: each row only offers **Open settings** to the integration's page,
-where you can turn them on.
+reads them. Home Assistant has no link into one step of an options flow, so each
+row names the step that turns it on (for example Configure → Savings vs comfort
+for the price of a degree), and **Open settings** opens this integration's entry,
+whose **Configure** starts the flow.
 
 Below the inbox, the page still ranks the temperature sensors you have *not*
 configured, the way it did before:

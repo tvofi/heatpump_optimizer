@@ -894,7 +894,7 @@
             "data_description": {
               "confidence_margins_enabled": "A plan that promises 19.0 °C twelve hours ahead rests on a twelve-hour prediction, and the optimizer knows from its own history how wrong those get. With this on, the comfort floor rises by exactly that expected error — capped at 0.8 °C and shrinking to nothing as accuracy improves — so deep price-riding coasts are taken only where the model has earned the trust.",
               "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value, as before.",
-              "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — target one degree lower, one degree higher, and power capped at 75 %, in rotation. Off by default because each tile is a full extra solve of real CPU."
+              "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — the comfort schedule one degree lower, one degree higher, and power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile is a full extra solve of real CPU."
             }
           }
         }

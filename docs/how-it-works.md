@@ -1249,9 +1249,13 @@ forecast. Everything below is built on those codes:
 | **Prediction Accuracy** sensor | How far off the model is right now, including the signed bias |
 | **Thermal Battery** sensors | The house as a store: state of charge, capacity and rates, for other automations to use |
 
-Optional price tiles also re-price the plan under a target one degree lower, one
-higher, and power capped at 75%. One tile is refreshed per scheduled solve, in
-rotation, so the whole set costs at most one extra solve per interval.
+Optional price tiles also re-price the plan under the comfort schedule one degree
+lower, one higher, and power capped at 75%. One tile is refreshed per scheduled
+solve, in rotation, so the whole set costs at most one extra solve per interval.
+A degree tile prices the degree held from a steady start (the thermostat
+baseline's difference), not the plan's spend from the house as it stands, which
+includes a one-off coast or heat-up; each tile is published as the mean of its
+daily means over the last 30 days.
 
 ---
 
