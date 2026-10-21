@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 25735d670..60785bff2 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9793,7 +9793,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             "boost_space": boost.space_boost_active(self),
+             "outdoor": ctx._current_state.outdoor_temperature,
+             "humidity": self._current_humidity(),
+-            "solar": ctx._current_state.solar_radiation,  # #2223, the sample's
++            "solar": 0.0,  # #2223, the sample's
+             # T6 #52: the assumptions this interval starts under, for the
+             # diagnosis re-run when it settles.
+             "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),

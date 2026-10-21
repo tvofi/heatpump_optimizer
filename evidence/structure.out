@@ -1,6 +1,0 @@
-  ok   seam_cut_total 716 <= 716
-
-STRUCTURE RATCHET PASSED
-  seam_cut_total = 718
-RESULT seam_cut_total=718 count
-  ok   seam_cut_total 718 <= 718

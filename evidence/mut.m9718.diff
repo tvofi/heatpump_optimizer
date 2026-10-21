@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 25735d670..283fe388b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9715,7 +9715,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                     ),
+                     outdoor_temp=pending.get("outdoor"),
+                     humidity=pending.get("humidity"),
+-                    solar_radiation=pending.get("solar"),  # #2223, refit's gate
++                    solar_radiation=None,  # #2223, refit's gate
+                 )
+                 # T4a: observed-minus-modelled COP rides on the sample, so
+                 # the snapshots' accuracy tags and #12's history both see

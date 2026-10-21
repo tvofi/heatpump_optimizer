@@ -1,8 +1,0 @@
-rc=1
-  FAIL #2223: a sunlit interval takes no house heat-loss sample  [8 samples, scale 1.0828567056280798]
-  FAIL #2223: the sunlit interval is still the aperture learner's  [aperture samples 8.0, heat-loss 8]
-  FAIL #2223: the detector is fed the interval even when the heat-loss fold refuses it  [last_fed datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc), heat-loss 6]
-  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-  ok   a pump command that FAILED is not remembered as done
-3 of 4289 FEATURE CHECKS FAILED

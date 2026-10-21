@@ -1,0 +1,18 @@
+RESULT P1.autumn.g0.40.solar_scale.learn+gains=1.969 (truth 1.50) n=1142
+RESULT P1.autumn.g0.40.solar_scale.learn=1.966 (truth 1.50) n=1142
+RESULT P1.autumn.g0.40.ua_bias.dark1.00=+0.5946
+RESULT P1.autumn.g0.40.ua_bias.fix1.00=+0.5833
+RESULT P1.autumn.g1.00.solar_scale.learn+gains=1.370 (truth 1.50) n=1142
+RESULT P1.autumn.g1.00.solar_scale.learn=1.359 (truth 1.50) n=1142
+RESULT P1.autumn.g1.00.ua_bias.dark0.50=+0.0026
+RESULT P1.autumn.g1.00.ua_bias.dark1.00=+0.0026
+RESULT P1.autumn.g1.00.ua_bias.dark2.00=+0.0026
+RESULT P1.autumn.g1.00.ua_bias.fix0.50=-0.0062
+RESULT P1.autumn.g1.00.ua_bias.fix0.75=-0.0026
+RESULT P1.autumn.g1.00.ua_bias.fix1.00=+0.0011
+RESULT P1.autumn.g1.00.ua_bias.fix1.25=+0.0048
+RESULT P1.autumn.g1.00.ua_bias.fix1.50=+0.0085
+RESULT P1.autumn.g1.00.ua_bias.fix2.00=+0.0157
+RESULT P1.autumn.g1.00.ua_bias.learn+gains=-0.0111
+RESULT P1.autumn.g1.00.ua_bias.learn=-0.0001
+RESULT P1.autumn.g1.00.ua_bias.none=-0.0038
