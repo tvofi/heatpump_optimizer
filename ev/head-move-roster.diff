@@ -1,0 +1,16 @@
+diff --git a/dev/programme/rosters/wave-r10-groups.json b/dev/programme/rosters/wave-r10-groups.json
+index 671bafb6c..45dec269d 100644
+--- a/dev/programme/rosters/wave-r10-groups.json
++++ b/dev/programme/rosters/wave-r10-groups.json
+@@ -4508,9 +4508,9 @@
+    ],
+    "brief": "merge_pr.sh reads the mandate live through tools/policy/budget_raise_gate.py and refuses before any GitHub write without one; proof_watch owner mode hands it the mandate id. Handoff 6219325c (cloud fixer, 2026-10-18) has no PR and conflicts with main: recarry onto main, re-take the body, then open. Touches governance.yml, so sequence against R10-SEAT-SELFTESTS-CI and the CI-LAYOUT plan.",
+    "resume": {
+-    "stage": "in-progress",
++    "stage": "done",
+     "branch": "handoff/r10-merge-pr-mandate",
+-    "commit": "6219325ca20928f82c80880b1ed7fadf3e1c93b2",
++    "commit": "22615537a497c87cf0560ecc7dd09faac52b1de5",
+     "last_step": "fixer",
+     "next_step": "recarry",
+     "note": "Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its one path, the mandate id reaches proof_watch, refusal before any GitHub write) has no pull request. Owed: recarry and open; it touches tools/policy/budget_raise_gate.py, so the owner reviews."
