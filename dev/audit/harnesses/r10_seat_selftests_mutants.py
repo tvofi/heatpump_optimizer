@@ -9,9 +9,9 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
-mutant in one file -- outside that file's self-test function -- and run only
-the step that names the file: a killed mutant reddens the step, and the same
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34, and
+each per-file id (<file>-<n>), plant one production-line mutant in one
+file -- outside that file's self-test function -- and run only the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 W1..W3 drive
@@ -102,6 +102,29 @@ MUTANTS = [
     ("S34", "tick_loop.sh",
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # R10-FLOW-MAIN-GATE (K15): the train's state classifier and its readers.
+    ("merge_train-1", "merge_train.py", "names = [n for n in required if n not in NOT_GATING]",
+     "names = list(required)"),
+    ("merge_train-2", "merge_train.py", '        return "pending"\n', '        return "red"\n'),
+    ("merge_train-3", "merge_train.py", 'return ("red" if red else "wait" if pending else "green")',
+     'return ("wait" if pending else "red" if red else "green")'),
+    ("merge_train-4", "merge_train.py", "    if required is None:\n        raise ValueError(",
+     '    if required is None:\n        return "green", [], []\n        raise ValueError('),
+    ("merge_train-5", "merge_train.py", '            elif state == "red":\n', '            elif state != "green":\n'),
+    ("merge_train-6", "merge_train.py", 'in ("queued", "in_progress") and run_status == "completed"',
+     'in ("queued", "in_progress")'),
+    ("merge_train-7", "merge_train.py", "        self.unstale(h)\n", ""),
+    ("merge_train-8", "merge_train.py", "        if reran:\n            red = self.wait_ci(",
+     "        if False:\n            red = self.wait_ci("),
+    ("merge_train-9", "merge_train.py", "if files and all(f in claim_files for f in files):",
+     "if files and any(f in claim_files for f in files):"),
+    ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
+    ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
+    ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
+    ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
+    ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
+     '"absorb main locally with the claimnotes driver" if files else'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

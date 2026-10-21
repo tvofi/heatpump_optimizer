@@ -125,7 +125,6 @@ ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
 #: Per merge_train.py: written only by a PR event; no dispatch writes them.
 PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
-GREEN = ("success", "skipped", "neutral")
 ROW_DIR = "dev/programme/delivery/"
 CLAIM_FILES = ("tests/golden/claimed_drift.txt",
                "tests/golden/card_claimed_drift.txt")
@@ -234,6 +233,11 @@ def _module(name: str, *candidates: str):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+#: The train's state classifier (R10-FLOW-MAIN-GATE, K15): the one owner of
+#: "is this head red", read by MAIN and PRS rather than restated here.
+mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
 
 
 class Tick:
@@ -348,8 +352,7 @@ class Tick:
     # ------------------------------------------------------------- helpers
     def check_runs(self, sha: str) -> "list[dict] | None":
         """Every check run at <sha>, one object per line across pages; the
-        caller takes latest-per-name by started_at (merge_train.wait_ci's
-        own reading, same GREEN set)."""
+        caller judges them through the train's classifier (`mt`)."""
         code, raw = self.gh(["api", "--paginate", "--jq", ".check_runs[]",
                              f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
         if code:
@@ -361,7 +364,7 @@ class Tick:
 
     @staticmethod
     def latest(runs: list[dict]) -> dict:
-        return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+        return mt.latest_runs(runs)
 
     def critical_median(self) -> "float | None":
         """The recorded critical-path median in minutes (tests/ci_budgets.json,
@@ -399,17 +402,12 @@ class Tick:
 
     @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
-        """(green, running, red): lowercase conclusions, latest-run-wins,
-        pending is not a pass (nudge.md step 15)."""
-        green, run, red = [], [], []
+        """(green, running, red) over every lane, each by the train's
+        run_state: latest-run-wins, pending is not a pass (nudge.md step 15)."""
+        by = {"green": [], "pending": [], "red": []}
         for n, c in runs_by_name.items():
-            if c.get("status") != "completed":
-                run.append(n)
-            elif (c.get("conclusion") or "") in GREEN:
-                green.append(n)
-            else:
-                red.append(n)
-        return sorted(green), sorted(run), sorted(red)
+            by[mt.run_state(c)].append(n)
+        return sorted(by["green"]), sorted(by["pending"]), sorted(by["red"])
 
     def fetch_head(self, head: str) -> bool:
         return self.git(["fetch", "-q", "origin", "main", head])[0] == 0
@@ -752,6 +750,12 @@ class Tick:
             lat = self.latest(runs)
             for nm in run:
                 pend[(n, nm)] = (lat[nm].get("started_at"), head)
+        if red and required is not None:
+            req_red = mt.classify(self.latest(runs or []), getattr(self, "_req_pr", None) or required)[2]
+            if req_red:
+                self.line(S, f"#{n}: NOT REVIEWABLE at {head[:8]}: required "
+                             f"{', '.join(req_red)} concluded red -- back to its "
+                             "fixer, never a reviewer (K15 (d))", flag=True)
         if red:
             latest = self.latest(runs or [])
             for name in red:
@@ -775,14 +779,20 @@ class Tick:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
                                  f"{', '.join(missing)}", flag=True)
         ms = (pr.get("mergeStateStatus") or "").upper()
-        if ms in ("DIRTY", "BLOCKED"):
-            self.line(S, f"#{n}: mergeable state {ms}"
-                      + (" (the claim-file merge GitHub cannot run: absorb "
-                         "main locally with the claimnotes driver)"
-                         if ms == "DIRTY" else ""), flag=True)
+        if ms == "BLOCKED":
+            self.line(S, f"#{n}: mergeable state {ms}", flag=True)
         if not self.fetch_head(head):
             self.unreadable(S, f"fetch of #{n}'s head", "git fetch failed")
             return
+        if ms == "DIRTY":
+            # K15 (c): the conflicted files first, then the repair they owe.
+            files = mt.conflicts(lambda argv: self.git(argv[1:]), "origin/main", head)
+            self.line(S, f"#{n}: mergeable state DIRTY -- " + (
+                mt.dirty_repair(files, CLAIM_FILES) if files else
+                "git merge-tree reads it clean against origin/main: re-read "
+                "GitHub's state" if files == [] else
+                "git merge-tree could not answer: name the conflicted files "
+                "before any repair"), flag=True)
         files = self.three_dot_files(head)
         self._last_files = files
         if files is None:
@@ -1129,7 +1139,7 @@ class Tick:
                 if absent:
                     self.line(S, f"main {tip[:12]}: required contexts ABSENT: "
                                  f"{', '.join(absent)}", flag=True)
-                req_bad = [n for n in red if n in req]
+                req_bad = mt.classify(latest, req)[2]
             else:
                 req_bad = red
             if req_bad:
@@ -1249,6 +1259,8 @@ class Tick:
                     self.line(S, f"required contexts ({RULESET}): "
                                  f"{len(names)} read live")
                     self._req = names
+                    # A pull request's head also carries PR_ONLY (K15 (d)).
+                    self._req_pr = sorted({x.strip() for x in o.splitlines() if x.strip()})
                     return names
         self.unreadable(S, "required contexts",
                         f"ruleset {RULESET} could not be read; "
@@ -3103,6 +3115,53 @@ def self_test() -> int:
                      for l in tm.sections.get("CARRY", []))),
         ])
         total, failed = total + a, failed + f
+
+        # ---- K15 (R10-FLOW-MAIN-GATE): the train's classifier, shared ----
+        # MAIN on main e7c66485's shape: a required context in flight and the
+        # owed record reds read as no REQUIRED red; a failed one still does.
+        for label, runs, want in (
+                ("in flight plus record reds", [run_obj("tests", status="in_progress"),
+                                                run_obj("closures"),
+                                                run_obj("record", conclusion="failure"),
+                                                run_obj("record-autofix", conclusion="failure")], False),
+                ("a failed required context", [run_obj("tests", conclusion="failure"),
+                                               run_obj("closures")], True)):
+            t = tick(runs_at={H1: runs})
+            t.main()
+            txt = [l["text"] for l in t.sections["MAIN"]]
+            a, f = check(f"K15 MAIN {label}", [
+                (f"REQUIRED not green {'present' if want else 'absent'}",
+                 any("REQUIRED not green" in x for x in txt) == want)])
+            total, failed = total + a, failed + f
+        # PRS (d): a required context concluded red makes the head not
+        # reviewable; a non-required red does not (null control).
+        for label, runs, want in (("required red", [run_obj("tests", conclusion="failure")], True),
+                                  ("non-required red", [run_obj("tests"),
+                                                        run_obj("codeql", conclusion="failure")], False)):
+            t = tick(prs=[pr_obj(71, H1)], runs_at={H1: runs},
+                     bodies={71: "## Red checks\n\ntests: x\ncodeql: x\n"})
+            t.one_pr("PRS", pr_obj(71, H1), None, ["tests"])
+            a, f = check(f"K15 (d) PRS {label}", [
+                (f"NOT REVIEWABLE {'present' if want else 'absent'}",
+                 any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
+            total, failed = total + a, failed + f
+        # PRS (c): DIRTY names the conflicted files from git merge-tree first;
+        # the claimnotes repair only for claim files alone (#2569's shape).
+        claim = CLAIM_FILES[0]
+        for label, rc_mt, out, want in (
+                ("content conflict", 1, f"{V}\ntools/audit/seat/roster_edit.py\n{claim}\n",
+                 "content conflict in tools/audit/seat/roster_edit.py"),
+                ("claim files only", 1, f"{V}\n{claim}\n", "claimnotes driver"),
+                ("merge-tree unreadable", 128, "fatal: bad object", "could not answer")):
+            t = tick(prs=[pr_obj(72, H1, ms="DIRTY")], runs_at={H1: [run_obj("tests")]})
+            t._git.h.insert(0, (("merge-tree", "--write-tree", "origin/main", H1), rc_mt, out))
+            t.one_pr("PRS", pr_obj(72, H1, ms="DIRTY"), None, ["tests"])
+            dirty = [x["text"] for x in t.findings if x["text"].startswith("#72: mergeable state DIRTY")]
+            a, f = check(f"K15 (c) DIRTY {label}", [
+                ("one DIRTY line naming the classification", len(dirty) == 1 and want in dirty[0]),
+                ("claimnotes only for claim files alone",
+                 ("claimnotes" in dirty[0]) == (label == "claim files only") if dirty else False)])
+            total, failed = total + a, failed + f
 
         # ---- D. non-standard conclusions ----
         for concl, want in (("cancelled", True), ("failure", False)):

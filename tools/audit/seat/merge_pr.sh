@@ -61,6 +61,13 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
 
+# K15 (b): a check-run left queued or in progress over a completed workflow
+# run blocks the merge as BLOCKED forever (#2559: 8 attempts); the train's
+# classifier re-runs each such run once, logged with its run id, and re-reads.
+unstale_head() { # <sha>
+  python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale --repo "$R" "$1"
+}
+
 self_test() {
   local T pass=0 fail=0 out
   T=$(mktemp -d) || return 1
@@ -73,6 +80,9 @@ case "$*" in
   *isDraft*) echo "${FAKE_DRAFT:-false}" ;;
   *issues/comments/*) [ -n "${FAKE_MANDATE:-}" ] && cat "$FAKE_MANDATE" || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; } ;;
   *issues/201/comments*) echo "[[]]" ;;
+  *check-runs*) cat "$FAKE_RUNS" ;;
+  */rerun*) cp "$FAKE_RUNS_AFTER" "$FAKE_RUNS" ;;
+  *actions/runs/*) echo "$FAKE_RUN_STATUS" ;;
   *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
 esac
 G
@@ -114,6 +124,18 @@ P
   PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=false gates 7 app "" 1 >/dev/null
   if [ "$READY_OWED" = 0 ]; then pass=$((pass + 1)); echo "  ok   a ready pull request with --ready owes no ready mark"
   else fail=$((fail + 1)); echo "  FAIL a ready pull request with --ready owes no ready mark"; fi
+  stale='{"name":"budget-raise-gate","status":"in_progress","conclusion":null,"started_at":"1","id":7,"details_url":"https://github.com/o/r/actions/runs/119308796140/job/5"}'
+  printf '%s\n' "$stale" | sed 's/"in_progress","conclusion":null,"started_at":"1"/"completed","conclusion":"success","started_at":"2"/' > "$T/after.json"
+  for st in completed in_progress; do
+    printf '%s\n' "$stale" > "$T/runs.json"; : > "$T/log"
+    out=$(PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_RUNS="$T/runs.json" FAKE_RUNS_AFTER="$T/after.json" FAKE_RUN_STATUS=$st unstale_head "$(printf 'a%.0s' {1..40})" 2>&1); rc=$?
+    n=$(grep -c '/actions/runs/119308796140/rerun' "$T/log")
+    if [ "$st" = completed ] && [ "$rc" = 0 ] && [ "$n" = 1 ] && [[ "$out" == *"STALE budget-raise-gate"*119308796140* ]]; then
+      pass=$((pass + 1)); echo "  ok   a stale check-run over a completed run is re-run once and logged with its run id"
+    elif [ "$st" = in_progress ] && [ "$rc" = 0 ] && [ "$n" = 0 ]; then
+      pass=$((pass + 1)); echo "  ok   a check-run whose run is still in progress is not re-run (null control)"
+    else fail=$((fail + 1)); echo "  FAIL unstale_head with its run $st (rc=$rc, re-runs=$n: $out)"; fi
+  done
   b=$(owner_body "$(printf 'a%.0s' {1..40})" 4100000001 "in force (scope all)")
   if python3 -I - "$PWD/tools/policy" "$b" <<'P'
 import sys; sys.path.insert(0, sys.argv[1]); import budget_raise_gate as g
@@ -153,6 +175,7 @@ else
   if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh $R $PR $S 2>&1; else bash tools/pr/app_approve.sh $R $PR $S 2>&1; fi| tail -1
 fi
 sleep 45
+unstale_head "$S" || { echo "STALE: a re-run did not clear #$PR's head"; exit 1; }
 for i in $(seq 1 60); do n=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs[] | select(.status!="completed")] | length'); [ "$n" = 0 ] && break; sleep 60; done
 red=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs | group_by(.name)[] | sort_by(.started_at) | last | select(.conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out") | .name] | join(",")')
 if [ -n "$red" ]; then
