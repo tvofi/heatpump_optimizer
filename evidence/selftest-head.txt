@@ -1,0 +1,31 @@
+  ok   a reviewer renders (null control for every refusal)
+  ok   the ccr carries environment_id, session_context and one user event
+  ok   the prompt names the head, the nonce and the probe return ref
+  ok   the reviewer is told a file under ev/ must contain the full head (bus.sh push-verdict requires it)
+  ok   the reviewer is given the unbracketed first-line grammar
+  ok   the prompt builds no repository (throwaway_git.py --check refuses a raw init)
+  ok   the reviewer is told not to run bus.sh and the prompt runs no bus.sh push-verdict
+  ok   the source is the repo
+  ok   a fixer renders and names both return refs
+  ok   a probe renders without a nonce
+  ok   a 39-hex head is refused
+  ok   a 41-hex head is refused
+  ok   an upper-case head is refused
+  ok   a non-hex head is refused
+  ok   an empty reviewer nonce is refused
+  ok   a blank reviewer nonce is refused
+  ok   a reviewer without --pr is refused
+  ok   a fixer without --topic is refused
+  ok   a topic with a slash is refused
+  ok   a missing environment id is refused
+  ok   a missing model is refused
+  ok   a repo that is not OWNER/NAME is refused
+  ok   an unknown role is refused
+  ok   a macOS home in the brief is refused
+  ok   a linux home in the brief is refused
+  ok   a public account's home in the brief is refused
+  ok   a home path in the nonce is refused
+  ok   a repo-relative brief passes (null control)
+  ok   the brief is inlined
+  ok   the rendered text carries no home directory
+cloud_dispatch self-test: 30 checks, 0 failed
