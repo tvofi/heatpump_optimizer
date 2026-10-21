@@ -1098,7 +1098,8 @@ class Tick:
         else:
             latest = self.latest(runs)
             green, _, red = self.judge(latest)
-            sup = [n for n in red if self.superseded(latest[n])]
+            sup = [n for n in red
+                   if n not in (req or ()) and self.superseded(latest[n])]
             if sup:
                 red = [n for n in red if n not in sup]
                 self.line(S, f"main {tip[:12]}: superseded, not red (GitHub "
@@ -1164,7 +1165,9 @@ class Tick:
         with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
         design: its successor's conclusion is the status, and counting it red
         sent a fixer after main for a run that never had a runner. Any other
-        cancellation, or an annotation list the API did not return, is red."""
+        cancellation, or an annotation list the API did not return, is red;
+        main() never asks for a required context, whose tip then has no
+        verdict at all."""
         if cr.get("conclusion") != "cancelled" or not cr.get("id"):
             return False
         code, o = self.gh(["api", f"repos/{self.repo}/check-runs/{cr['id']}/annotations"])
@@ -1172,8 +1175,9 @@ class Tick:
             notes = json.loads(o) if code == 0 else []
         except ValueError:
             return False
-        return any(isinstance(a, dict) and SUPERSEDED.match(a.get("message") or "")
-                   for a in notes if isinstance(notes, list))
+        return isinstance(notes, list) and any(
+            isinstance(a, dict) and SUPERSEDED.match(a.get("message") or "")
+            for a in notes)
 
     def policy_drift(self, S: str) -> None:
         """The newest commit on main touching any policy path, remembered in
@@ -2646,6 +2650,26 @@ def self_test() -> int:
                  any(x.startswith(f"main {H1[:12]} green") for x in txt)),
             ])
             total, failed = total + a, failed + f
+        # A required context superseded at the tip leaves the tip without its
+        # verdict: still REQUIRED not green, and its annotations never read.
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\n")
+        gh.on(f"commits/{H1}/check-runs", out=json.dumps(
+            run_obj("tests", conclusion="cancelled", cid=119215715286)))
+        gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        t.main()
+        txt = [l["text"] for l in t.sections["MAIN"]]
+        a, f = check("MAIN superseded required context stays red", [
+            ("REQUIRED not green", any("REQUIRED not green: tests" in x for x in txt)),
+            ("no superseded line", not any("superseded" in x for x in txt)),
+            ("annotations not read",
+             not any("annotations" in " ".join(c) for c in gh.calls)),
+        ])
+        total, failed = total + a, failed + f
         # Only a cancelled lane is read: a failure carrying the same note is
         # red, and its annotations are never fetched (one read per cancel).
         gh = Stub()
@@ -2657,6 +2681,19 @@ def self_test() -> int:
             ("and no annotation read", not gh.calls),
         ])
         total, failed = total + a, failed + f
+        # A body that is not a list (null, or an error object carrying the
+        # same text) is not GitHub's annotation list: red, never a crash.
+        for label, body in (("null", "null"), ("object", json.dumps({"message": sup}))):
+            gh = Stub()
+            gh.on("check-runs/119215715286/annotations", out=body)
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            try:
+                got = t.superseded(run_obj("x", conclusion="cancelled", cid=119215715286))
+            except Exception as e:  # noqa: BLE001 -- a crash is the failure shown
+                got = repr(e)
+            a, f = check(f"MAIN annotations body {label}", [
+                ("not superseded", got is False)])
+            total, failed = total + a, failed + f
 
         # mandate in force / expired, through the gate's own reader
         if gate_ok:
