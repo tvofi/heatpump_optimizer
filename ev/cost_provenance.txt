@@ -1,0 +1,14 @@
+
+**cost(defect), per occurrence.** The brief supplies one measured value: a fresh opus seat spent
+`duration_ms` **18482463** re-implementing R9-UX-10 before finding the orphan itself. That is **5.13
+seat-hours** (18482463/3600000 = 5.134; the arithmetic is mine, the measurement is the launching
+seat's session record, **not independently verified by me** — I have no access to it). I found no
+State plainly, because a limit reported is a limit priced:
+
+- **The 5.13 h re-implementation** is the brief's figure, taken from a session record I cannot read.
+  I verified the arithmetic (`18482463 ms → 5.134 h`) and nothing else.
+--- new record:
+175:- `cost(defect)`: **5.13 seat-hours** is measured, not estimated — the R9 RCA
+176-  (`dev/audit/rca/R9-ORPHAN-HANDOFF.md`) records that a fresh opus seat spent 5.13 hours
+177-  re-implementing `r9-ux-10` before finding the orphan. This round adds a 45.9 h median
+178-  age across the four genuine aged deliverables at 18:00Z (41.9, 44.3, 47.5, 48.9; the
