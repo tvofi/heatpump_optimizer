@@ -49,6 +49,167 @@ const {
   fireWindow, fireDocument, tickIntervals, coarseTouch, reducedMotion,
   VOID_TAGS, parseHtml, Node, matches, HTMLElement,
 } = makeCardContext();
+// --- A browser's navigation surface, live before the card loads (R10-DEEPLINK) --
+// The rig gives the card none of that surface; a browser always has it. It is
+// installed HERE, before the card's source runs, and it is ONE graph for the
+// whole file: every scenario runs against it and the link census at the end of
+// this file records through it. A card that takes a reference when it loads --
+// `const H = window.history`, `const o = open`, `const L = location`, a
+// factory, a timer, an event class, a registration method -- holds the very
+// object the census later records through, so a use through that reference is
+// recorded like any other (#2452 round 2, REV_CAP1-4: the census once installed
+// its recorders long after the card ran, so a reference taken at load was the
+// rig's `undefined` or its original, and a use through it was invisible).
+// Every member reports to `navHook`, which is empty until the census fills it
+// and empty again after: outside the census a member is inert, so a handler
+// that calls one cannot crash an unrelated scenario before the census can see
+// it. This graph and NAV_SURFACE (below) are the two halves of one declaration:
+// this says which members exist, NAV_SURFACE what naming one looks like.
+const navHook = { record: null, event: null, timer: null, made: null, reg: null };
+const navRecord = (via, v) => { if (navHook.record) navHook.record(via, v); };
+// The location object carries every member a browser's does, the URL parts
+// included: each of `pathname`, `search`, `hash`, `host`, `hostname`, `port`
+// and `protocol` navigates when written, as `href` does (#2452 round 1).
+const LOCATION_PARTS = { href: "/", origin: "http://localhost", protocol: "http:", host: "localhost",
+  hostname: "localhost", port: "", pathname: "/", search: "", hash: "" };
+// An interface object whose prototype holds the members a browser puts there,
+// so `History.prototype.pushState.call(history, ...)` reaches the same member
+// the object's own does.
+const navInterface = (name, obj) => {
+  const proto = {};
+  for (const [k, v] of Object.entries(obj)) if (typeof v === "function") proto[k] = v;
+  const C = { [name]: function () {} }[name];
+  C.prototype = proto;
+  proto.constructor = C;
+  Object.setPrototypeOf(obj, proto);
+  return C;
+};
+// The other names a browser reaches the same window by -- `top`, `parent`,
+// `frames`, and `window` / `self` on the window itself -- and the document's
+// own way to it (`defaultView`): each leads to the members below, so each is
+// bound to the window that holds them.
+const WINDOW_ALIASES = ["top", "parent", "frames"];
+const NAV = (() => {
+  // The history object's five routes: the two state writers carry a path, and
+  // back / forward / go carry none -- and every one of them is a way out.
+  const history = {
+    pushState(_s, _t, p) { navRecord("push", String(p)); },
+    replaceState(_s, _t, p) { navRecord("replace", String(p)); },
+    back() { navRecord("history", "back"); },
+    forward() { navRecord("history", "forward"); },
+    go(d) { navRecord("history", `go(${d})`); },
+  };
+  const open = function open(u) { navRecord("open", String(u)); return null; };
+  // A write to ANY member is recorded: an `href` write carries its path, so a
+  // link haLink built is excused as it is from assign; any other member
+  // carries `member=value`, which no path equals.
+  const location = new Proxy({ ...LOCATION_PARTS,
+    assign(v) { navRecord("location", String(v)); },
+    replace(v) { navRecord("location", String(v)); },
+    reload() { navRecord("location", "reload"); },
+    toString() { return LOCATION_PARTS.href; },
+  }, {
+    set: (_t, k, v) => { navRecord("location", k === "href" ? String(v) : `${String(k)}=${String(v)}`); return true; },
+    defineProperty: (_t, k, d) => { navRecord("location", `${String(k)}=${String(d && d.value)}`); return true; },
+  });
+  // The Navigation API, recorded by NAME like every other member.
+  const navigation = {
+    navigate(u) { navRecord("navigation", String(u)); return null; },
+    reload() { navRecord("navigation", "reload"); return null; },
+    traverseTo(u) { navRecord("navigation", String(u)); return null; },
+    back() { navRecord("navigation", "back"); return null; },
+    forward() { navRecord("navigation", "forward"); return null; },
+  };
+  // The document's page-replacing members: `open` with a URL is the window's
+  // open, and `open` without one and `write` / `writeln` replace the page.
+  const doc = {
+    open(...a) {
+      if (a.length >= 3) { navRecord("open", String(a[0])); return null; }
+      navRecord("document", "open");
+      return document;
+    },
+    write(...a) { navRecord("document", `write ${a.join("")}`); },
+    writeln(...a) { navRecord("document", `writeln ${a.join("")}`); },
+  };
+  return { history, open, location, navigation, doc,
+    History: navInterface("History", history),
+    Navigation: navInterface("Navigation", navigation),
+    Document: navInterface("Document", doc) };
+})();
+{
+  const locDesc = { get: () => NAV.location, set: (v) => navRecord("location", String(v)), configurable: true };
+  // dispatchEvent too: Home Assistant's own navigate pairs a history write
+  // with a `location-changed` dispatch on the window. And `Event`, the class
+  // of them all: Home Assistant's own `fireEvent` builds a plain `Event` (not
+  // a `CustomEvent`) and hangs the payload off `.detail`. Both event classes
+  // report their construction, so one built with a name the card does not
+  // write is the census's to see, whichever reference built it.
+  const dispatchEvent = () => true;
+  const Event = class Event {
+    constructor(type, o = {}) {
+      this.type = type;
+      this.detail = (o || {}).detail;
+      this.bubbles = !!(o || {}).bubbles;
+      this.composed = !!(o || {}).composed;
+      if (navHook.event) navHook.event(type, o);
+    }
+  };
+  const RigCustomEvent = ctx.CustomEvent;
+  const CustomEvent = class CustomEvent extends RigCustomEvent {
+    constructor(type, o) { super(type, o); if (navHook.event) navHook.event(type, o); }
+  };
+  // Timers: outside the census the rig's own; inside it, queued so the census
+  // runs what a drive deferred before that drive's read.
+  const rigTimer = { setTimeout: ctx.setTimeout, clearTimeout: ctx.clearTimeout,
+    setInterval: ctx.setInterval, clearInterval: ctx.clearInterval };
+  const timers = {
+    setTimeout: (f, ms, ...a) => (navHook.timer ? navHook.timer.add(() => f(...a)) : rigTimer.setTimeout(f, ms, ...a)),
+    clearTimeout: (id) => { if (!(navHook.timer && navHook.timer.drop(id))) rigTimer.clearTimeout(id); },
+    setInterval: (f, ...rest) => {
+      const id = rigTimer.setInterval(f, ...rest);
+      if (navHook.timer) navHook.timer.add(f, `i${id}`);
+      return id;
+    },
+    clearInterval: (id) => { if (navHook.timer) navHook.timer.drop(`i${id}`); rigTimer.clearInterval(id); },
+  };
+  for (const g of [ctx, ctx.window]) {
+    Object.assign(g, { history: NAV.history, open: NAV.open, navigation: NAV.navigation,
+      History: NAV.History, Navigation: NAV.Navigation, Document: NAV.Document,
+      dispatchEvent, Event, CustomEvent, ...timers });
+    Object.defineProperty(g, "location", locDesc);
+    for (const a of WINDOW_ALIASES) g[a] = ctx.window;
+  }
+  ctx.window.window = ctx.window;
+  ctx.window.self = ctx.window;
+  Object.setPrototypeOf(document, NAV.Document.prototype);
+  Object.assign(document, NAV.doc, { defaultView: ctx.window });
+  Object.defineProperty(document, "location", locDesc);
+  // The document's factories report every element they make: the census reads
+  // each one, attached or not (RD7), whichever reference made it.
+  const madeBy = (n) => { if (navHook.made) navHook.made(n); return n; };
+  const rigCreate = document.createElement;
+  const rigCreateNS = document.createElementNS;
+  document.createElement = (t) => madeBy(rigCreate(t));
+  document.createElementNS = (ns, t) => madeBy(rigCreateNS(ns, t));
+  // Every registration reports itself, on any element, the window or the
+  // document, so the census drives each listener whichever reference to the
+  // method registered it.
+  const regBy = (orig) => function addEventListener(type, f, o) {
+    if (navHook.reg) navHook.reg(this, type, f);
+    return orig.call(this, type, f, o);
+  };
+  Node.prototype.addEventListener = regBy(Node.prototype.addEventListener);
+  ctx.window.addEventListener = regBy(ctx.window.addEventListener);
+  document.addEventListener = regBy(document.addEventListener);
+  // The stub has no setAttributeNS, so an attribute written through it was a
+  // TypeError a handler's own try swallowed. A browser's sets the attribute
+  // its local name names -- an `xlink:href` is an `href` an svg anchor
+  // navigates by.
+  if (!Node.prototype.setAttributeNS) {
+  Node.prototype.setAttributeNS = function (_ns, q, v) { this.setAttribute(String(q).split(":").pop(), v); };
+  }
+}
+
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
 vm.runInContext(cardSrc, ctx);
 
@@ -188,38 +349,89 @@ function check(name, cond, detail) {
   }
 }
 
-// --- Part of a browser's navigation surface, inert (R10-DEEPLINK) ----------
-// The rig gives the card no history, open, location or window dispatchEvent
-// (this adds those four, not the Navigation API's `navigation`). A browser always has
-// them, so a handler that calls one must not crash an unrelated scenario that
-// presses it before the link census (at the end of this file) can see it.
-{
-  const history = { pushState() {}, replaceState() {} };
-  const open = () => null;
-  const location = { href: "/", assign() {}, replace() {} };
-  // dispatchEvent too: Home Assistant's own navigate pairs a history write
-  // with a `location-changed` dispatch on the window.
-  const dispatchEvent = () => true;
-  for (const g of [ctx, ctx.window]) Object.assign(g, { history, open, location, dispatchEvent });
-}
+// --- The navigation surface, declared once (R10-DEEPLINK) ------------------
+// The one list of what a navigation out of this card can be made of, and the
+// object graph those members live on. The static arm below refuses a mention
+// of any member in the card's code outside `navigateTo`; the link census at
+// the end of the file wraps each member of the graph with a recorder for its
+// presses. Both read THIS pair, so a member closed in one arm and left open in
+// the other cannot happen quietly -- which is the defect the earlier form of
+// this pair had (#2317): a denylist of spellings, patched once per round, with
+// a bare `open(`, the Navigation API, a form's `action` and an `Event`-built
+// more-info each passing both arms.
+//
+// A row is a NAME, never a spelling. The dynamic arm drives every handler the
+// card registers and reads the whole document after each drive, so what code
+// a render or a drive reaches DOES is that arm's to see, whatever spelling
+// wrote it; the static arm is for code neither reaches, and it refuses a name
+// wherever the card writes it -- in code or in a string, qualified, bare,
+// bracketed or handed on -- because every written spelling of a member
+// mentions its name. The earlier form of this list anchored rows to the calls
+// and member accesses around a name (`history.<member>`, `createElement(
+// "form")`, `setAttribute("action", ...)`, `.submit(`), and three review
+// rounds each found a written spelling it missed (#2345): the shape #1874
+// refused. A name the card's own vocabulary also uses -- `history` is its
+// prose and its recorder API path, `form` a suffix loop variable, `action` an
+// entity's name, `back`/`go`/`forward` locals -- has no row: it cannot be
+// refused without refusing the card, and the dynamic arm records every one
+// of those members by name when a drive reaches it. A name BUILT at run time
+// names nothing here either, and is the dynamic arm's on every drive.
+const NAV_SURFACE = [
+  { what: "an anchor's href", name: "href" },
+  { what: "the location object", name: "location" },
+  { what: "the history object's state writers", name: "pushState", exact: true },
+  { what: "the history object's state writers", name: "replaceState", exact: true },
+  // The card's own dialog uses of `open` are removed before this list is
+  // applied (see the scan below).
+  { what: "the open member", name: "open", exact: true },
+  { what: "the Navigation API", name: "navigation" },
+  { what: "a submit button's formaction", name: "formaction" },
+  { what: "a form's submit", name: "submit", exact: true },
+  { what: "a form's submit", name: "requestSubmit", exact: true },
+  { what: "HA's more-info event", name: "hass-more-info" },
+  { what: "HA's action event", name: "hass-action" },
+];
+// The markup-facing names are matched case-insensitively (`HREF`); a JS
+// member is an IdentifierName and JS is case-sensitive, so prose that opens
+// with "Open" ("Open settings") cannot resolve the global and is not a mention
+// of it. `exact` keeps those case-sensitive. A name is bounded by what cannot
+// continue it, so `hreflang` or `opened` is not a mention.
+const navUnion = (entries, flags) => entries.length
+  ? new RegExp(entries.map((m) => `(?<![\\w$-])${m.name}(?![\\w$-])`).join("|"), flags) : null;
+const NAV_TOKEN = navUnion(NAV_SURFACE.filter((m) => !m.exact), "i");
+const NAV_EXACT = navUnion(NAV_SURFACE.filter((m) => m.exact), "");
+const namesSurface = (l) => NAV_TOKEN.test(l) || (NAV_EXACT !== null && NAV_EXACT.test(l));
 
 // --- The link census's static arm, first (R10-DEEPLINK) --------------------
 // The card's code, with comments blanked line for line (card_shapes.mjs's
-// stripping), may not name a navigation token outside navigateTo's body: href
-// in any quoting or key form, location, pushState, replaceState, .open( (the
-// dialog's own `this.dialog.open()` excepted), hass-more-info or hass-action.
-// It runs here, before any card renders, so a plant that crashes a later
-// scenario is still refused by name. It matches spellings, not behaviour:
-// a token split across a string concatenation ("hr" + "ef"), a bare open(
-// with no dot, and the other known gaps listed at the census pass it.
+// stripping), may not name a member of NAV_SURFACE outside navigateTo's body
+// (the dialog's own `this.dialog.open()` excepted, which names no link). It
+// runs here, before any card renders, so a plant that crashes a later scenario
+// is still refused by name. It is the arm that covers code no press reaches;
+// where a name is BUILT rather than written -- a token split across a
+// concatenation ("hr" + "ef"), or an event type assembled at run time -- the
+// census's dynamic arm is the one that sees it, on every row it drives.
 {
   const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const navAt = code.findIndex((l) => /^function navigateTo\(/.test(l));
   const navEnd = code.findIndex((l, i) => i > navAt && l === "}");
-  const TOKEN = /href|\blocation\b|pushState|replaceState|\.open\s*\(|hass-more-info|hass-action/i;
-  const tokenLines = code.map((l, i) => [l.replace(/this\.dialog\.open\(\)/g, ""), i])
-    .filter(([l, i]) => !(i > navAt && i < navEnd) && TOKEN.test(l))
+  // The Dialog class's OWN `open` is the only allowed name, and each allowance
+  // is a use that cannot resolve the global: its `open()` method definition,
+  // this card's `this.dialog.open()` call, the `<dialog>` element's boolean
+  // `open` state and the `open` attribute its fallback sets, and the shadow
+  // root's `mode: "open"` (a different word that names no member). Removed
+  // before the surface list is applied. The element-property allowance is
+  // narrow -- `dlg.open.call(` is NOT removed, so an indirect call through the
+  // element property is still refused by name.
+  const ownDialog = (l) => l
+    .replace(/this\.dialog\.open\(\)/g, "")
+    .replace(/\bdlg\.open(?!\s*[.(\[])/g, "")
+    .replace(/\bdlg\.setAttribute\(\s*"open"/g, "")
+    .replace(/^\s*open\(\)\s*\{/g, "")
+    .replace(/\bmode:\s*"open"/g, "");
+  const tokenLines = code.map((l, i) => [ownDialog(l), i])
+    .filter(([l, i]) => !(i > navAt && i < navEnd) && namesSurface(l))
     .map(([l, i]) => `${i + 1}: ${l.trim().slice(0, 60)}`);
   check("no navigation token in the card's code outside navigateTo",
     navAt >= 0 && navEnd > navAt && tokenLines.length === 0, tokenLines.join(" | "));
@@ -2577,12 +2789,63 @@ check("the hand-scheduled reason has a label",
     JSON.stringify(tankCalls));
   check("live values are read straight from hass states",
     /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
+  // R10-UX-SETUP: one precision per unit. Home Assistant formats every entity
+  // at the precision that entity sets for itself, so the owner's screenshot
+  // read "19.30 °C" beside "20.8 °C" on one diagram. The control is the unit
+  // the rule does not name: it must come through exactly as Home Assistant
+  // spelled it.
+  {
+    const prec = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    prec[DEFAULT_SPACE].attributes.setup_topology = topo;
+    prec["sensor.livingroom"] = { state: "19.30",
+      attributes: { unit_of_measurement: "°C" } };
+    prec["sensor.tank"] = { state: "20.8",
+      attributes: { unit_of_measurement: "°C" } };
+    prec["sensor.outside"] = { state: "3.14159",
+      attributes: { unit_of_measurement: "ppm" } };
+    const p = build(prec);
+    p._onCardClick({});
+    p.dialog.page = "setup";
+    p._render();
+    const dump = collect(p.shadowRoot).join("\n");
+    check("two temperatures on one drawing are spelled to one precision",
+      /19\.3 °C/.test(dump) && /20\.8 °C/.test(dump) &&
+      !/19\.30/.test(dump),
+      "19.30 °C beside 20.8 °C is two spellings of one unit");
+    check("a unit the rule does not name is left as Home Assistant spelled it",
+      /3\.14159 ppm/.test(dump),
+      "a precision invented for a unit nobody named is a wrong number");
+  }
   check("an unavailable sensor says so instead of a stale number",
     /unavailable/.test(setupPage));
-  // Labels longer than the row are trimmed with an ellipsis, so match the
-  // prefix rather than the full name.
-  check("empty slots are drawn empty, not omitted",
-    /not configured/.test(setupPage) && /Lower floor te/.test(setupPage));
+  // R10-UX-SETUP: a label that does not fit its line WRAPS, and an unset
+  // input is not a row at all -- the two things the owner's screenshot asked
+  // for by name ("Stove or flu…", "not configured" rows in the weight of a
+  // reading). Measured on the rendered rows: each carries its published label
+  // whole, none carries an ellipsis, at least one is on two lines, and no row
+  // is a value-less "not configured" line.
+  {
+    const rows = [...setupPage.matchAll(
+      /<text class="setup-slot" x="[^"]*" y="[^"]*">([\s\S]*?)<\/text><rect class="setup-hit" data-key="([^"]+)"/g)];
+    const labelOf = (body) => [...body.matchAll(
+      /<tspan(?! class="setup-value")[^>]*>([^<]*)<\/tspan>/g)]
+      .map((t) => t[1]).join(" ");
+    const published = new Map(topo.slots.map((s) => [s.key, s.label]));
+    check("a slot label is drawn whole, wrapped rather than cut",
+      rows.length === 3 && rows.every(([, body, key]) =>
+        labelOf(body) === published.get(key)) &&
+      rows.some(([, body]) =>
+        (body.match(/<tspan(?! class="setup-value")/g) || []).length === 2) &&
+      !/…/.test(setupPage),
+      rows.map(([, body, key]) => `${key}=${JSON.stringify(labelOf(body))}`).join(" | "));
+    check("an unset input folds into its box's one muted line, not a row",
+      !/setup-slot empty/.test(setupPage) &&
+      (setupPage.match(/setup-slot folded/g) || []).length === 3 &&
+      (setupPage.match(/class="setup-chip"/g) || []).length === 3 &&
+      (setupPage.match(/class="setup-chip-hit"/g) || []).length === 3,
+      `${(setupPage.match(/setup-slot folded/g) || []).length} folded blocks `
+      + `and ${(setupPage.match(/class="setup-chip"/g) || []).length} Configure chips`);
+  }
   // Issue #40: the drawn hydronics must match the model. The model computes
   // one t_mix and feeds both circuits from it in parallel, so with a valve
   // BOTH floor boxes hang off the mixing valve; the old drawing ran the
@@ -2606,38 +2869,30 @@ check("the hand-scheduled reason has a label",
   check("the heat pump visibly feeds the hot water tank",
     drawn.includes("heat_pump>dhw_tank"),
     `edges drawn: ${drawn.join(", ")}`);
-  // v4.3.0: each place is drawn as the equipment it is. The silhouette rides
-  // its own contour path so the rect can stay the invisible geometry carrier
-  // every older assertion (and the drag editor) reads.
-  check("every place wears its own silhouette",
-    ["heat_pump", "wood_tank", "buffer_tank", "dhw_tank", "mixing_valve",
-      "upper_zone", "lower_zone", "outdoor"].every((p) =>
-      new RegExp(`class="setup-contour kind-${p}"`).test(setupPage)),
-    "a place without a contour is a box that lost its shape");
-  check("no box goes without a contour",
-    (setupPage.match(/class="setup-contour/g) || []).length >=
-      (su.layoutEditor.boxes || []).length,
-    `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
-    + `${(su.layoutEditor.boxes || []).length} boxes`);
-  check("the carrier rect is invisible, not gone",
-    /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
-    "the rect is geometry for the tests and the editor; the contours are "
-    + "the paint");
-  // Outside air is unbounded: its contour is an open tray baseline, no Z,
-  // while a tank's silhouette closes.
+  // R10-UX-SETUP: every place wears the product's own card. v4.3.0's
+  // per-place silhouettes are gone -- they drew a second outline over the
+  // geometry carrier's edge (the owner's "wobbly double borders") and their
+  // ink crossed the rows painted around it. "Outside air is drawn open,
+  // tanks are drawn closed" went with them: a card is a surface for readings
+  // and makes no claim about what the place contains, so there is nothing
+  // left for the open-tray silhouette to be honest about.
   {
-    const outdoorG = setupPage.split("<g>")
-      .find((g) => g.includes("kind-outdoor")) || "";
-    const contourD = (seg, place) => {
-      const m = new RegExp(
-        `class="setup-contour kind-${place}"\\s+d="([^"]*)"`).exec(seg);
-      return m ? m[1] : "";
-    };
-    check("outside air is drawn open, tanks are drawn closed",
-      contourD(outdoorG, "outdoor") !== "" &&
-      !/Z/.test(contourD(outdoorG, "outdoor")) &&
-      /Z/.test(contourD(setupPage, "wood_tank")),
-      "walls around the outdoors would claim a container that place is not");
+    const cardR = vm.runInContext("SETUP_CARD_R", ctx);
+    check("each box is one card, with no second silhouette over it",
+      (setupPage.match(/class="setup-box"/g) || []).length ===
+        (su.layoutEditor.boxes || []).length &&
+      !/setup-contour/.test(setupPage) && !/setup-coil/.test(setupPage) &&
+      !/setup-accent hub/.test(setupPage),
+      `${(setupPage.match(/class="setup-box"/g) || []).length} cards for `
+      + `${(su.layoutEditor.boxes || []).length} boxes, `
+      + `${(setupPage.match(/setup-contour/g) || []).length} contours`);
+    check("the card is painted from the product's surface, border and radius",
+      /\.setup-box \{[^}]*fill: var\(--hpo-surface-2/.test(cardSrc) &&
+      /\.setup-box \{[^}]*stroke: var\(--hpo-divider/.test(cardSrc) &&
+      !/\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc) &&
+      new RegExp(`<rect class="setup-box"[^>]*rx="${cardR}"`).test(setupPage),
+      "one rect is both the geometry carrier the editor reads and the paint, "
+      + "which is what makes one border per box possible");
   }
   // Endpoint dots and flow chevrons are ornament: none of them may carry
   // `data-edge`, or every scrape of the drawn topology inflates. Scoped to
@@ -2654,33 +2909,38 @@ check("the hand-scheduled reason has a label",
       + `${(svgOnly.match(/<path class="setup-pipe/g) || []).length} pipes `
       + `for ${topo.edges.length} edges`);
   }
-  // Designer QA pass (v4.3.x): the silhouettes keep their ink apart.
+  // Designer QA: the drawing's ink keeps out of its own text.
   {
     const svgOnly =
       (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
-    // The house ridge is a shallow r=30 knuckle. An `A 4 4` arc over the
-    // 8-unit chord was a full semicircle whose apex sat above the bounding
-    // box -- a pimple on every roof.
-    const houseG = svgOnly.split("<g>")
-      .find((g) => g.includes("kind-upper_zone")) || "";
-    check("the house ridge arc is shallow and stays inside the box",
-      /A 30 30 0 0 1/.test(houseG) && !/A 4 4 /.test(houseG),
-      "chord 8 at r=4 renders a semicircle bulging above the roofline");
-    // The same-column pipe into the mixing valve drops its flow chevron:
-    // the apex would land on the valve's bowtie accent and merge ink. Every
-    // other pipe keeps its chevron, so the count is exactly edges - 1.
-    const pipeSegs = svgOnly.split('<path class="setup-pipe');
-    const valveSeg = pipeSegs.find((s) =>
-      s.includes('data-edge="buffer_tank>mixing_valve"')) || "";
-    check("the pipe into the mixing valve carries no flow chevron",
-      valveSeg !== "" && !/class="setup-flow"/.test(valveSeg) &&
-      (svgOnly.match(/class="setup-flow"/g) || []).length ===
-        topo.edges.length - 1,
+    // R10-UX-SETUP: a pipe endpoint sits ON a card's border. Every endpoint
+    // used to be pulled inside by a per-place `inset`, so a pipe met the
+    // shape's ink rather than the rectangle; with one flat card the border
+    // IS the ink, and no endpoint may reach past it into a row of text.
+    const boxes = su.layoutEditor.boxes || [];
+    const inside = [];
+    for (const seg of svgOnly.split('<path class="setup-pipe').slice(1)) {
+      const d = (/d="([^"]*)"/.exec(seg) || [, ""])[1];
+      const n = (d.match(/-?[\d.]+/g) || []).map(Number);
+      if (n.length < 4) continue;
+      for (const [x, y] of [[n[0], n[1]], [n[n.length - 2], n[n.length - 1]]]) {
+        const b = boxes.find((c) =>
+          x > c.x + 0.01 && x < c.x + c.w - 0.01 &&
+          y > c.y + 0.01 && y < c.y + c.h - 0.01);
+        if (b) inside.push(`${x},${y} is inside ${b.place}`);
+      }
+    }
+    check("no pipe endpoint lands inside a card",
+      inside.length === 0, inside.join("; "));
+    // Every pipe carries its flow chevron: the valve's bowtie accent, whose
+    // apex used to merge with the chevron on the pipe into it, went with the
+    // silhouette vocabulary.
+    check("every pipe carries its flow chevron",
+      (svgOnly.match(/class="setup-flow"/g) || []).length === topo.edges.length,
       `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
       + `${topo.edges.length} edges`);
     // A row-less box (h = 32) draws no header divider -- it would separate
-    // the title from nothing and graze the valve's bowtie -- while a box
-    // with rows keeps it.
+    // the title from nothing -- while a box with rows keeps it.
     const valveBoxG = svgOnly.split("<g>")
       .find((g) => g.includes("Mixing valve")) || "";
     const bufBoxG = svgOnly.split("<g>")
@@ -2718,7 +2978,7 @@ check("the hand-scheduled reason has a label",
       .find((g) => g.includes("Wood furnace tank")) || "";
     check("a stale wood-valve payload re-homes its slot onto the wood tank",
       !/Wood mixing valve/.test(stPage) &&
-      /data-key="valve_outlet_temp_entity"/.test(woodGroup) &&
+      /data-fold="[^"]*valve_outlet_temp_entity/.test(woodGroup) &&
       edges(stPage).includes("wood_valve>buffer_tank"),
       "the removed box must not take the outlet sensor down with it");
   }
@@ -2802,9 +3062,10 @@ check("the hand-scheduled reason has a label",
     // than whether the page mentions it anywhere.
     const valveGroup = ttPage.split("<g>")
       .find((g) => g.includes("4-way mixing valve (manual)")) || "";
-    check("the valve outlet probe is drawn on the one valve that has it",
-      /data-key="valve_outlet_temp_entity"/.test(valveGroup) &&
-      /data-key="mixing_valve_target_entity"/.test(valveGroup),
+    check("the valve's two probes are drawn on the one valve that has them",
+      /data-fold="[^"]*valve_outlet_temp_entity/.test(valveGroup) &&
+      /data-fold="[^"]*mixing_valve_target_entity/.test(valveGroup) &&
+      /data-place="mixing_valve"/.test(valveGroup),
       "the slot moved to the mixing valve place; drawing it anywhere else "
       + "would put a sensor on a device this system does not have");
     // The coil is off in this topo, so neither the pipe nor the caption may
@@ -2851,20 +3112,19 @@ check("the hand-scheduled reason has a label",
     check("and the hot water box says where its refill water comes from",
       /refilled through a wood tank coil/.test(dhwGroup),
       "the caption belongs on the tank being preheated, not loose on the page");
-    // v4.3.0: the coil is also drawn -- a helix on the wood tank's wall --
-    // and only when the connection exists. The plain two-tank drawing above
-    // has no coil, so it must have no helix either.
-    check("the coil is drawn as a helix on the wood tank",
-      /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
-      "the helix exists exactly when the wood>DHW connection does");
+    // R10-UX-SETUP: the coil is carried by its own pipe and by the caption
+    // on the tank it preheats. The helix that used to mark the wood tank's
+    // wall went with the silhouette vocabulary, and with it the reason its
+    // pipe left the wall anywhere but the wall's midpoint.
     {
       const wb = (co.layoutEditor.boxes || []).find((b) => b.place === "wood_tank");
       const coilPipe = new RegExp(
-        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
-        `${wb.y + 23}`);
-      check("and the coil pipe departs from the helix, not the box wall",
-        coilPipe.test(coPage),
-        "a pipe from the box midpoint would leave the helix as ornament");
+        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w} ` +
+        `${wb.y + wb.h / 2}`);
+      check("the coil is drawn as its own pipe from the wood tank's wall",
+        coilPipe.test(coPage) && !coilPipe.test(ttPage),
+        "a coil drawn on a layout the model does not run is the failure this "
+        + "whole diagram exists to prevent");
     }
   }
   {
@@ -2893,6 +3153,76 @@ check("the hand-scheduled reason has a label",
   // The hidden page must be genuinely unrendered, not display:none --
   // getBoundingClientRect on a hidden chart returns zeroes and
   // _timeAtClientX would compute garbage drag times rather than fail.
+  // ARCH2-s5 C1 (the text-width owner): the chart's label-width rule lives in
+  // `textWidth`, and nowhere spells it inline. The census is the finder's own
+  // rule (card_shapes.mjs's `char_width_inline`), run here so the tree holds
+  // it: a label's LENGTH times the average character width, outside the one
+  // function that owns that estimate.
+  {
+    const at = cardSrc.indexOf("function textWidth");
+    // The owner's own body is the one legitimate spelling; a comment that
+    // names the rule is not ink. Everything else is a second copy of an
+    // estimate that has to stay in step with the first.
+    const owner = cardSrc.slice(at, cardSrc.indexOf("\n}", at) + 2);
+    const inline = cardSrc.replace(owner, "").split("\n")
+      .map((line, i) => [i + 1, line])
+      .filter(([, line]) =>
+        /(?:\.length|widest)\s*\*\s*CHAR_WIDTH_EM/.test(line) &&
+        !/^\s*(\*|\/\/)/.test(line));
+    // R10-DEEPLINK's carry: Home Assistant has no route into an options-flow
+    // step, so the Configure chip names the page it opens instead of linking
+    // into it. The names have to be the flow's own, or the chip points at a
+    // step it misnames -- the I5 drift this group also fixes. The step id is
+    // derived from the string key (`setup.page_<step>`), so this reads the
+    // card's own map rather than a second copy of it: every place the chip can
+    // be drawn for resolves through STRINGS to the label
+    // `translations/en.json` publishes for that step in the advanced menu.
+    {
+      const en = JSON.parse(fs.readFileSync(
+        path.join(testsDir, "..", "custom_components", "heatpump_optimizer",
+          "translations", "en.json"), "utf8"));
+      const menu = en.options.step.advanced.menu_options;
+      const strings = vm.runInContext("STRINGS.en", ctx);
+      const map = vm.runInContext("SETUP_CONFIGURE_PAGE", ctx);
+      const places = Object.entries(map);
+      const bad = places
+        .filter(([, key]) => !String(key).startsWith("setup.page_") ||
+          strings[key] !== menu[String(key).slice("setup.page_".length)])
+        .map(([place, key]) => `${place}: ${JSON.stringify(strings[key])} vs ` +
+          `${JSON.stringify(menu[String(key).slice("setup.page_".length)])}`);
+      check("the Configure chip names the options page the flow itself names",
+        places.length > 0 && bad.length === 0,
+        `${places.length} place(s); ` +
+        (bad.join("; ") || "each equal to translations/en.json's menu label"));
+    }
+    check("the chart's label-width rule is spelled in exactly one place",
+      at > 0 && inline.length === 0,
+      at < 0 ? "textWidth is gone" :
+        `inline at ${inline.map(([n]) => n).join(", ")}`);
+    // ARCH2-s5 C4's two shapes, by the same rule: the no-plan empty state and
+    // the finite-number test each have one owner, and neither is re-spelled
+    // inline anywhere else in the card.
+    const plans = cardSrc.split("\n")
+      .filter((l) => /L\("errors\.no_plan_data"\)/.test(l));
+    check("the no-plan empty state is built in exactly one place",
+      plans.length === 1, `${plans.length} place(s) build it`);
+    // The finder's own pattern (card_shapes.mjs's `finite_inline`): the SAME
+    // identifier on both sides of the `&&`, whatever that identifier is. A
+    // census written as the owner's own parameter (`typeof n === ...`) would
+    // miss the two sites that spelled the rule for `nowTemp` and a refit's
+    // `scale` -- which is exactly what this check exists to catch. The
+    // exclusion is anchored to the owner's assignment, not its name prefix: a
+    // prefix match would also skip a second owner `finiteNum2`, leaving this
+    // check green while the finder's census counts 2.
+    const finite = cardSrc.split("\n")
+      .filter((l) =>
+        /typeof (\w+(?:\.\w+)?) === "number" && Number\.isFinite\(\1\)/.test(l)
+        && !/^\s*(const finiteNum = |\*|\/\/)/.test(l));
+    check("the finite-number test is spelled in exactly one place",
+      /const finiteNum = /.test(cardSrc) && finite.length === 0,
+      `${finite.length} inline spelling(s)${finite.length ? ": " + finite.map((l) => l.trim()).join(" | ") : ""}`);
+  }
+
   check("the plan chart is genuinely unrendered on the setup page",
     !/chartwrap big/.test(setupPage) && !/class="whatif"/.test(setupPage));
 
@@ -2913,11 +3243,14 @@ check("the hand-scheduled reason has a label",
   su.dialog.page = "setup";
   su._render();
   const clickable = collect(su.shadowRoot).join("\n");
-  check("every slot is a click target, not just the configured ones",
-    (clickable.match(/class="setup-hit"/g) || []).length === topo.slots.length,
-    `${(clickable.match(/class="setup-hit"/g) || []).length} hit targets for `
-    + `${topo.slots.length} slots -- an empty slot is the one you most need `
-    + `to click`);
+  {
+    const foldKeys = [...clickable.matchAll(/data-fold="([^"]*)"/g)]
+      .reduce((n, m) => n + m[1].split(",").filter(Boolean).length, 0);
+    const rows = (clickable.match(/class="setup-hit" data-key=/g) || []).length;
+    check("every slot is reachable from the diagram: a row, or inside a folded block",
+      rows + foldKeys === topo.slots.length && foldKeys > 0,
+      `${rows} row targets + ${foldKeys} folded keys for ${topo.slots.length} slots`);
+  }
 
   su.setup.pickerKey = "lower_floor_temp_entity";
   su._render();
@@ -2930,11 +3263,17 @@ check("the hand-scheduled reason has a label",
   // picker overlay covers the diagram, so a row left in the Tab order would
   // send focus down through what it now hides), not a missed keyboard
   // route -- guarded, not a defect.
-  check("every setup-hit row loses its tab stop while a picker covers the diagram (#1522, P9-f61b)",
-    (picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length ===
-      topo.slots.length,
-    `${(picking.match(/class="setup-hit"[^>]*tabindex="-1"/g) || []).length} ` +
-    `of ${topo.slots.length} rows carry tabindex="-1"`);
+  {
+    const hits = (picking.match(/class="setup-hit[^"]*"/g) || []).length;
+    const chips = (picking.match(/class="setup-chip-hit"/g) || []).length;
+    check("every target on the diagram loses its tab stop while a picker covers it (#1522, P9-f61b)",
+      hits > 0 && chips > 0 &&
+      (picking.match(/class="setup-hit[^"]*"[^>]*tabindex="-1"/g) || []).length === hits &&
+      (picking.match(/class="setup-chip-hit"[^>]*tabindex="-1"/g) || []).length === chips,
+      `${(picking.match(/class="setup-hit[^"]*"[^>]*tabindex="-1"/g) || []).length} `
+      + `of ${hits} targets and ${(picking.match(/class="setup-chip-hit"[^>]*tabindex="-1"/g) || []).length} `
+      + `of ${chips} chips carry tabindex="-1"`);
+  }
   check("and the picker that took their place is itself keyboard-reachable (P9-f61b)",
     /class="setup-picker"[^>]*tabindex="0"/.test(picking) ||
       /<select[^>]*class="[^"]*sp-select/.test(picking),
@@ -3173,6 +3512,58 @@ check("the hand-scheduled reason has a label",
     "a new HTML control joins the floor or ships below it");
 }
 
+// The advisor inbox's states, at module scope rather than inside the scenario
+// below that first grew them, because two blocks render them now: the inbox's
+// own checks, and the link census at the end of the file, which has to render
+// every row the card can put a navigation behind (#2317). One fixture, so a
+// row that stops being produced stops being produced for both.
+const ADVISOR_PFX = "sensor.heat_pump_optimizer";
+const inboxStates = () => {
+  const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  s[DEFAULT_SPACE].attributes.setup_topology = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: false, volume_l: 500 }, edges: [],
+    slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: ["sensor"] }],
+  };
+  s[`${ADVISOR_PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
+    top_slot: "lower_floor_temp_entity",
+    gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      empty: true, sek_per_month: 40 }] } };
+  // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
+  s[`${ADVISOR_PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
+    current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
+    candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
+      [60, 12.9]].map(([setpoint, cost_per_day]) =>
+      ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
+  s[`${ADVISOR_PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
+    price_tiles: {
+      target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
+      target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
+      power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
+  s[`${ADVISOR_PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
+    reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
+  return s;
+};
+// R9-UX-9 (#1956): the classes an install with no power, energy or frequency
+// signal could add, on the gap advisor it already publishes.
+const fbStates = (gaps) => {
+  const s = inboxStates();
+  s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps = gaps;
+  return s;
+};
+// R9-DIAG-2S (#1936): the drift alarm's two restart points.
+const restartStates = (patch = {}) => {
+  const s = inboxStates();
+  s[`${ADVISOR_PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
+    drift_alarm: true, current_scale: 0.673,
+    refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
+      required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
+    restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
+  return s;
+};
+
 // --- Scenario: the advisor inbox (R9-UX-2, #1795) ---------------------------
 //
 // The Advisor tab leads with an inbox ranked by monthly value, read from the
@@ -3180,35 +3571,7 @@ check("the hand-scheduled reason has a label",
 // the card already calls. An advisor that is off by default is offered, never
 // read: tests/entities.py refuses a card read of one.
 {
-  const PFX = "sensor.heat_pump_optimizer";
-  const inboxStates = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
-    s[DEFAULT_SPACE].attributes.setup_topology = {
-      two_zone: true, dhw: true, valve_mode: "manual",
-      buffer: { volume_l: 750, is_store: true, max_temp: 70 },
-      wood: { present: false, volume_l: 500 }, edges: [],
-      slots: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        place: "lower_zone", entity: null, domains: ["sensor"] }],
-    };
-    s[`${PFX}_sensor_gap_advisor`] = { state: "40", last_updated: "t1", attributes: {
-      top_slot: "lower_floor_temp_entity",
-      gaps: [{ key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        empty: true, sek_per_month: 40 }] } };
-    // The real sweep is 48..60 step 2 and the default setpoint, 55, is off it.
-    s[`${PFX}_dhw_setpoint_advisor`] = { state: "48", last_updated: "t1", attributes: {
-      current_setpoint: 55, recommended_setpoint: 48, covers_heaviest_window: true,
-      candidates: [[48, 9.0], [50, 9.4], [52, 9.9], [54, 10.5], [56, 11.2], [58, 12.0],
-        [60, 12.9]].map(([setpoint, cost_per_day]) =>
-        ({ setpoint, cost_per_day, meets_heaviest_window: true })) } };
-    s[`${PFX}_optimization_score`] = { state: "80", last_updated: "t1", attributes: {
-      price_tiles: {
-        target_minus_1: { overrides: { target_temp: 20 }, monthly_cost_delta: -90 },
-        target_plus_1: { overrides: { target_temp: 22 }, monthly_cost_delta: 95 },
-        power_cap_75: { overrides: { power_cap_kw: 3 }, monthly_cost_delta: 10 } } } };
-    s[`${PFX}_valve_target_recommendation`] = { state: "21.5", last_updated: "t1", attributes: {
-      reason: "cheap hours", configured_target: 21, mixing_valve_mode: "manual", price_ratio: 0.7 } };
-    return s;
-  };
+  const PFX = ADVISOR_PFX;
   const mkInbox = (states, lang) => {
     const calls = [];
     const c = new Card();
@@ -3377,11 +3740,6 @@ check("the hand-scheduled reason has a label",
     { class: "energy", key: "heat_pump_energy_entity" },
     { class: "frequency", key: "compressor_freq_sensor" },
   ];
-  const fbStates = (gaps) => {
-    const s = inboxStates();
-    s[`${PFX}_sensor_gap_advisor`].attributes.feedback_gaps = gaps;
-    return s;
-  };
   const clearDismissals = () => {
     for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
   };
@@ -3417,15 +3775,6 @@ check("the hand-scheduled reason has a label",
 
   // R9-DIAG-2S (#1936): the drift alarm's two restart points, each advice
   // until its button is pressed.
-  const restartStates = (patch = {}) => {
-    const s = inboxStates();
-    s[`${PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
-      drift_alarm: true, current_scale: 0.673,
-      refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
-        required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
-      restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
-    return s;
-  };
   const rs = mkInbox(restartStates());
   const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
   check("a drift alarm offers the refit with its band, and the restore point",
@@ -4013,28 +4362,27 @@ check("the hand-scheduled reason has a label",
   }
 
   {
-    // v4.3.0: the coil helix follows the drawing while the editor is open.
-    // The wood>DHW pipe is what claims a coil, so removing it must take the
-    // helix off the tank live, and re-drawing it must bring it back --
-    // otherwise the editor shows a heat exchanger the drawing just deleted.
+    // v4.3.0: what the drawing claims about the coil follows the editor
+    // live. The wood>DHW pipe IS the claim, so removing it must take the pipe
+    // off the tank at once, and re-drawing it must bring it back -- otherwise
+    // the editor shows a heat exchanger the drawing just deleted.
     const c = mkEditor({
       dhw: true, dhw_wood_coil: true,
       wood: { present: true, volume_l: 300 },
       edges: EDGES.valve_upper_direct_slab
         .concat([["wood_tank", "dhw_tank"]]).map((e) => [e[0], e[1]]),
     });
-    check("the coil helix hangs on the wood tank",
-      /class="setup-coil"/.test(pageHtml(c)),
-      "the drawn wood>DHW edge is the coil's existence condition");
+    const coilPipe = () => /data-edge="wood_tank>dhw_tank"/.test(pageHtml(c));
+    check("the coil is drawn as the wood tank's own pipe",
+      coilPipe(), "the drawn wood>DHW edge is the coil's existence condition");
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
     c.layoutEditor.removeEdge("wood_tank>dhw_tank");
-    check("removing the wood>DHW pipe removes the helix with it",
-      !/class="setup-coil"/.test(pageHtml(c)),
+    check("removing the wood>DHW pipe removes it from the drawing at once",
+      !coilPipe() && !edgesOf(c).includes("wood_tank>dhw_tank"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     connect(c, "wood_tank", "dhw_tank");
-    check("and drawing the pipe again brings the helix back",
-      /class="setup-coil"/.test(pageHtml(c)) &&
-      edgesOf(c).includes("wood_tank>dhw_tank"),
+    check("and drawing the pipe again brings it back",
+      coilPipe() && edgesOf(c).includes("wood_tank>dhw_tank"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
 
@@ -4492,9 +4840,11 @@ check("the hand-scheduled reason has a label",
   const page = collect(su.shadowRoot).join("\n");
   check("an unconfigured solar slot shows the irradiance the plan uses",
     /120 W\/m² · Open-Meteo/.test(page));
-  check("only the genuinely absent slot reads as not configured",
-    (page.match(/not configured/g) || []).length === 1,
-    "the solar row has a fallback; the outdoor temperature row does not");
+  check("the truly absent slot folds, and the fallback row is still a reading",
+    (page.match(/not configured/g) || []).length === 0 &&
+    /data-key="solar_radiation_entity"/.test(page) &&
+    /data-fold="outdoor_temp_entity"/.test(page),
+    "the solar row has a fallback and is drawn; the outdoor row has none");
 
   // Without any irradiance source the old answer is the right one.
   const bare = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -4504,8 +4854,11 @@ check("the hand-scheduled reason has a label",
   suBare._onCardClick({});
   suBare.dialog.page = "setup";
   suBare._render();
-  check("no source at all still says not configured",
-    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")));
+  check("with no source at all the solar slot folds too",
+    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")) &&
+    /data-fold="solar_radiation_entity,outdoor_temp_entity"/
+      .test(collect(suBare.shadowRoot).join("\n")),
+    "an absent row folds; it is never drawn as a bold not-configured value");
 }
 
 // --- Scenario: slot values follow the user's unit system (T3b) -------------
@@ -5330,50 +5683,47 @@ const setupPage = (over, extraStates) =>
   collect(mkSetup(over, extraStates).shadowRoot).join("\n");
 const setupBox = (card, place) =>
   (card.layoutEditor.boxes || []).find((b) => b.place === place);
+/** The row target for one slot: its own, or -- for a slot with no reading,
+ * which is inside its box's folded block (R10-UX-SETUP) -- the block's own
+ * line is pressed first, so that the row exists to be found. Pressing through
+ * the listener the element records is the same route a reader's click takes. */
+const slotHit = (card, key) => {
+  const find = () => card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === key);
+  const direct = find();
+  if (direct) return direct;
+  const fold = card.shadowRoot.querySelectorAll(".setup-fold-hit")
+    .find((f) => (f.dataset.fold || "").split(",").includes(key));
+  if (!fold) return null;
+  (fold._listeners.click || []).forEach((f) =>
+    f({ currentTarget: fold, preventDefault() {}, stopPropagation() {} }));
+  return find();
+};
 
-// --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
-// Two horizontal strokes used to sit in the cabinet's bottom-left band as
-// vents. From a step back they read as two stray lines in the corner of a
-// box rather than as louvres, so they were removed. Everything else the
-// silhouette is built from -- contour, fan shroud, blades, hub, header
-// divider -- stays, and this pins that the removal took the ink and nothing
-// around it.
+// --- Scenario: a card carries no ink but its own outline -------------------
+// v4.3.0's per-place silhouettes -- the heat pump's fan shroud, blades and
+// hub, the louvres that scenario pinned, the house ridge, the wood tank's
+// coil helix, the valve's bowtie -- are gone (R10-UX-SETUP). What the louvre
+// scenario established was that no stroke landed in the cabinet's floor band;
+// the statement the drawing now makes is the stronger one that no stroke
+// lands anywhere on a card but its outline and its header rule.
 {
-  const X = 16, Y = 79, W = 200, H = 49;
-  const acc = vm
-    .runInContext(`NODE_SHAPES.hp.accents(${X}, ${Y}, ${W}, ${H})`, ctx)
-    .filter(Boolean);
-  check("the heat pump draws four accents, not six",
-    acc.length === 4, `${acc.length} accents: ${JSON.stringify(acc)}`);
-  const ds = acc.map((a) => a.d || "").join(" ");
-  check("the fan shroud, its blades, the hub and the divider all survive",
-    /A 8 8 0 1 1/.test(ds) &&
-    (ds.match(/A 5 5 0 0 1/g) || []).length === 3 &&
-    acc.some((a) => (a.cls || "").includes("hub") && a.r === 1.6) &&
-    acc.some((a) => (a.cls || "").includes("divider")),
-    ds);
-  // The louvres lived at y+h-7 and y+h-4.5, i.e. the band within 10 units of
-  // the cabinet floor. Numeric, not textual: any ink that lands there again
-  // fails this whether or not it is spelled the way the old pair was. `d`
-  // is read as "M/L x y" pairs, which is every point the accents place.
-  const floorBand = [];
-  for (const a of acc) {
-    for (const m of String(a.d || "").matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)) {
-      if (Number(m[2]) > Y + H - 10) floorBand.push(m[0]);
-    }
-    if (a.cy !== undefined && a.cy > Y + H - 10) floorBand.push(`circle@${a.cy}`);
-  }
-  check("nothing is drawn in the cabinet's floor band any more",
-    floorBand.length === 0,
-    `ink below y=${Y + H - 10}: ${floorBand.join(", ")}`);
-  // ...and the same holds once the box is actually drawn: the louvres would
-  // have rendered as `M 30 121 H 56 M 30 123.5 H 56` on this box.
   const page = setupPage();
-  check("the drawn heat pump has no louvre strokes",
-    !/M 30 121 H 56/.test(page) && !/M 30 123\.5 H 56/.test(page) &&
-    !/H 56 M 30/.test(page));
-  check("but it does still have its fan",
-    /M 190 92 A 8 8 0 1 1 206 92/.test(page));
+  const stray = [];
+  for (const g of page.split("<g>").slice(1)) {
+    if (!/class="setup-box"/.test(g)) continue;
+    const paths = [...g.matchAll(/<path class="([^"]*)"/g)]
+      .map((m) => m[1]).filter((c) => c !== "setup-accent divider");
+    if (paths.length) stray.push(paths.join(","));
+  }
+  check("a card carries its outline and its header rule, and no other ink",
+    stray.length === 0, stray.join("; "));
+  const cardR = vm.runInContext("SETUP_CARD_R", ctx);
+  check("and its outline is one rounded card, at the product's radius",
+    (page.match(/class="setup-box"/g) || []).length > 0 &&
+    (page.match(/class="setup-box"/g) || []).length ===
+      (page.match(new RegExp(`<rect class="setup-box"[^>]*rx="${cardR}"`, "g")) || []).length,
+    `${(page.match(/class="setup-box"/g) || []).length} cards`);
 }
 
 // --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.4) -----
@@ -5479,11 +5829,14 @@ const setupBox = (card, place) =>
   const near = (a, b, eps) => Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps);
   const byEdge = (list, e) => list.find((p) => p.edge === e);
 
-  // The five orientations, each on a real pipe of a real drawing. Downhill,
-  // uphill and flat come from the default rig; a near-horizontal pipe is
-  // made by parking two boxes almost level; the two vertical directions
-  // need a same-column edge that is not the one into the mixing valve
-  // (which drops its chevron on purpose -- see (3)).
+  // The five orientations, each on a real pipe of a real drawing. Downhill
+  // and uphill come from the default rig; the flat, near-horizontal and
+  // vertical cases are built, not found. The flat case has to be built
+  // (R10-UX-SETUP): a cross-column pipe is level only when its two boxes have
+  // equal heights AND equal tops, and one box's height now depends on how
+  // many lines its labels wrap to, so no two boxes in any fixture are level
+  // by accident any more. Its positions are solved from the measured heights
+  // -- a levelling picked by hand would go stale the next time a label wraps.
   const rig = mkSetup();
   const cross = pipesOf(rig);
   const upCard = mkSetup({
@@ -5493,11 +5846,19 @@ const setupBox = (card, place) =>
   const tiltCard = mkSetup({
     edges: [["heat_pump", "buffer_tank"]],
     positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+  const flatCard = (() => {
+    const probe = mkSetup({ edges: [["heat_pump", "buffer_tank"]] });
+    const a = setupBox(probe, "heat_pump");
+    const b = setupBox(probe, "buffer_tank");
+    const yB = 100 + a.h / 2 - b.h / 2;
+    return mkSetup({ edges: [["heat_pump", "buffer_tank"]],
+      positions: { heat_pump: [16, 100], buffer_tank: [260, yB] } });
+  })();
 
   const cases = [
     ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
     ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
-    ["flat cross-column", byEdge(cross, "mixing_valve>upper_zone")],
+    ["flat cross-column", byEdge(pipesOf(flatCard), "heat_pump>buffer_tank")],
     ["near-horizontal cross-column",
       byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
     ["vertical, water flowing down",
@@ -5583,10 +5944,13 @@ const setupBox = (card, place) =>
   check("no sloped pipe carries an axis-aligned chevron any more",
     axisAligned.length === 0, axisAligned.map((p) => p.edge).join(", "));
 
-  // (3) The two suppressions the fix had to preserve.
+  // (3) What is left of the two suppressions. The valve's bowtie accent --
+  // whose apex the chevron on the pipe into the valve used to merge with --
+  // went with the silhouette vocabulary (R10-UX-SETUP), so a same-column
+  // pipe carries its chevron like every other one.
   const intoValve = byEdge(cross, "buffer_tank>mixing_valve");
-  check("a same-column pipe into the mixing valve still keeps its chevron off",
-    !!intoValve && intoValve.chevron === null &&
+  check("a same-column pipe into the mixing valve carries its chevron too",
+    !!intoValve && !!intoValve.chevron &&
     intoValve.p0[0] === intoValve.p3[0],
     intoValve ? JSON.stringify(intoValve.chevron) : "pipe not found");
   // An invalid pipe is drawn to be rejected, and an arrow on it would
@@ -5647,11 +6011,13 @@ const setupBox = (card, place) =>
     `widths ${[...new Set(boxes.map((b) => b.w))]}, ` +
     `columns ${[...new Set(boxes.map((b) => b.x))].sort((a, c) => a - c)}, ` +
     `viewBox ${(/viewBox="([^"]*)"/.exec(page) || [])[1]}`);
-  // b.h = 24 + (rows + caption lines) * 17 + 8, exactly as before: the line
-  // count drives the height, and neither the padding nor the caption
-  // wrapping that follows from it may change how many lines there are.
-  // Counted off the drawing, so a caption that started wrapping differently
-  // would show up here as a height that no longer matches its own content.
+  // b.h = 24 + 8 + 17 * drawn rows, still: how many ROWS the box holds
+  // drives its height, and the padding and the caption wrapping that follows
+  // from it may not change how many rows there are. A row is one line of a
+  // label (a wrapped label is two), a caption line, or the folded block's
+  // chip line. Counted off the drawing, so a label that started wrapping
+  // differently would show up here as a height that no longer matches its
+  // own content.
   const topo = setupTopo();
   const groups = page.split('<rect class="setup-box"').slice(1);
   const perBox = groups.map((g) => {
@@ -5660,14 +6026,34 @@ const setupBox = (card, place) =>
     return {
       x: m && Number(m[1]), y: m && Number(m[2]),
       w: m && Number(m[3]), h: m && Number(m[4]),
-      lines: (g.match(/<text class="setup-slot/g) || []).length,
+      rows: (g.match(/<tspan(?! class="setup-value")/g) || []).length +
+        (g.match(/<text class="setup-slot extra"/g) || []).length +
+        (g.match(/class="setup-chip-hit"/g) || []).length,
     };
   });
-  const heightWrong = perBox.filter((b) => b.h !== 24 + b.lines * 17 + 8);
+  const heightWrong = perBox.filter((b) => b.h !== 24 + b.rows * 17 + 8);
   check("the row arithmetic that sets each box height is unchanged",
     perBox.length === boxes.length && heightWrong.length === 0,
     `${perBox.length} boxes; ` + perBox.map((b) =>
-      `${b.x},${b.y} h=${b.h} lines=${b.lines}`).join("; "));
+      `${b.x},${b.y} h=${b.h} rows=${b.rows}`).join("; "));
+  // ...and nothing is drawn past the bottom of its own card. A box's height
+  // follows what it draws, so a row the height pass forgets -- the folded
+  // block's own count line, when it wraps to two -- leaves the last caption
+  // hanging outside the card (R10-UX-SETUP, found by the P9 grid's clipping
+  // check at a narrow width).
+  const overBottom = [];
+  for (const g of page.split('<rect class="setup-box"').slice(1)) {
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/.exec(g);
+    if (!m) continue;
+    const bottom = Number(m[2]) + Number(m[4]);
+    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
+    const low = Math.max(...ys);
+    if (low + 3 > bottom) {
+      overBottom.push(`${m[1]},${m[2]}: last baseline ${low} vs card bottom ${bottom}`);
+    }
+  }
+  check("every row is drawn inside the card that sizes itself around it",
+    overBottom.length === 0, overBottom.join("; "));
   check("the carrier rects are still written at the column abscissae",
     /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
     (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);
@@ -5716,8 +6102,9 @@ const setupBox = (card, place) =>
   //     stops responding to the pointer is a worse regression than cramped
   //     text, so this is checked per row rather than in aggregate.
   const pairs = [...page.matchAll(new RegExp(
-    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="([\\d.]+)">\\s*' +
-    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    '<text class="setup-slot" x="([\\d.]+)" y="([\\d.]+)">' +
+    '((?:<tspan(?! class="setup-value")[^>]*>[^<]*</tspan>)+)' +
+    '<tspan class="setup-value" x="([\\d.]+)"[^>]*' +
     'text-anchor="end">([^<]*)</tspan></text>\\s*' +
     '<rect class="setup-hit" data-key="([^"]+)"[^>]*?' +
     'x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)"\\s*height="([\\d.]+)"',
@@ -5726,9 +6113,10 @@ const setupBox = (card, place) =>
       valueX: Number(m[4]), value: m[5], key: m[6],
       x: Number(m[7]), y: Number(m[8]), w: Number(m[9]), h: Number(m[10]),
     }));
-  check("every slot row is matched with its own hit rect",
-    pairs.length === topo.slots.length,
-    `${pairs.length} of ${topo.slots.length}`);
+  const configured = topo.slots.filter((x) => x.entity).length;
+  check("every configured slot is matched with its own hit rect",
+    pairs.length === configured,
+    `${pairs.length} of ${configured} configured slots`);
   // 12px text: the cap line sits about 8.7 units above the baseline and the
   // descenders about 2.6 below, so a rect that spans that band covers every
   // glyph in the row as well as the gap between label and value.
@@ -5762,19 +6150,41 @@ const setupBox = (card, place) =>
   check("and neighbouring rows do not touch, so neither do their rings",
     touching.length === 0, touching.join(", "));
 
-  // (4) The outdoor node is explicitly out of scope: the owner has seen the
-  //     open composition -- no walls, a tray baseline the rows hang over, a
-  //     cloud in the header's right corner -- and wants it as shipped. These
-  //     are the two paths origin/main draws for it at column 0, verbatim.
-  //     Only the text inside moved, and only by the padding above.
-  const cloudInk = [...page.matchAll(
-    /<path class="setup-contour[^"]*"\s+d="([^"]*)"/g)]
-    .map((m) => m[1].replace(/\s+/g, " ").trim());
-  check("the outdoor node's tray and cloud are exactly as shipped",
-    cloudInk.includes("M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57") &&
-    cloudInk.includes("M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 " +
-      "22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z"),
-    cloudInk.slice(0, 3).join(" | "));
+  // A block that is OPEN draws its own count line and its chip AND the rows
+  // it stands for, so its box is three rows taller than the folded one. When
+  // the fold was first written the height was computed for the FOLDED state
+  // whatever the block's state was, and the last caption fell outside the
+  // card -- the P9 grid's clipping check found it on the cell that opens a
+  // block. Opening one is what reaches the branch.
+  {
+    const c = mkSetup();
+    c.setup.unsetOpen.add("wood_tank_top_entity");
+    c._render();
+    const opened = collect(c.shadowRoot).join("\n");
+    const g = opened.split("<g>")
+      .find((x) => x.includes("Wood furnace tank")) || "";
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+      .exec(g);
+    const bottom = m ? Number(m[2]) + Number(m[4]) : 0;
+    const ys = [...g.matchAll(/ y="([\d.]+)"/g)].map((t) => Number(t[1]));
+    check("a block that is open sizes its box for the rows it now draws",
+      !!m && /setup-slot empty/.test(g) && ys.length > 0 &&
+      Math.max(...ys) + 3 <= bottom,
+      m ? `${ys.length} baselines, last ${Math.max(...ys)} vs card bottom ${bottom}`
+        : "no card drawn");
+  }
+
+  // (4) The outdoor node keeps no special treatment. An earlier ruling left
+  //     its open composition -- no walls, a tray baseline, a cloud -- as
+  //     shipped; the owner's 2026-10-14 acceptance supersedes it by name
+  //     ("the sketchy hand-drawn boxes"), so the box is now the same card as
+  //     every other one. What is pinned here is that it is drawn by the same
+  //     code with the same numbers, not that it is drawn differently.
+  const outdoorCard = /<rect class="setup-box" x="16" y="16" width="200"\s*height="([\d.]+)" rx="([\d.]+)"/.exec(page);
+  check("the outdoor node is the same card as every other box",
+    !!outdoorCard &&
+    Number(outdoorCard[2]) === vm.runInContext("SETUP_CARD_R", ctx),
+    outdoorCard ? `rx=${outdoorCard[2]}` : "no card at column 0 row 0");
   // ...and it is still an OPEN composition: no header rule, no side walls,
   // no closing Z on the tray.
   const outdoorBox = boxes.find((b) => b.place === "outdoor");
@@ -5831,16 +6241,23 @@ const setupBox = (card, place) =>
   ];
   const collisions = [];
   const cutReadings = [];
+  const dropped = [];
   const rows = [];
   for (const [label, alts] of cases) {
     const f = fit(label, alts);
-    const lw = w(f.label, false);
+    const lw = w(f.lines[0], false);
     const vw = w(f.value, true);
     rows.push(`${JSON.stringify(label)} + ${JSON.stringify(alts[0])} -> ` +
       `${lw.toFixed(1)}+${vw.toFixed(1)}=${(lw + vw).toFixed(1)}/${INNER}`);
-    if (lw + vw + GAP > INNER + 1e-9) {
-      collisions.push(`${label} | ${f.label} + ${f.value} = ` +
+    if (lw + vw + GAP > INNER + 1e-9 ||
+        f.lines.some((l) => w(l, false) > INNER + 1e-9)) {
+      collisions.push(`${label} | ${f.lines[0]} + ${f.value} = ` +
         `${(lw + vw).toFixed(2)} > ${INNER - GAP}`);
+    }
+    // R10-UX-SETUP: the label WRAPS instead of being cut, so the whole of it
+    // is on the row's own lines.
+    if (f.lines.join(" ") !== label) {
+      dropped.push(`${label} -> ${JSON.stringify(f.lines)}`);
     }
     // The reading itself is never cut. Whatever spelling the row settles
     // on must still open with the same number the longest one did.
@@ -5853,21 +6270,25 @@ const setupBox = (card, place) =>
     collisions.length === 0, collisions.join("; ") || rows.join("\n    "));
   check("and the reading itself is never what gets cut",
     cutReadings.length === 0, cutReadings.join("; "));
+  check("and the label is never cut either, at any real length",
+    dropped.length === 0, dropped.join("; "));
 
   // The specific report: the longest fallback the card can write, beside
   // the label it shares its row with.
   const worst = fit("Solar radiation",
     ["1000 W/m² · weather forecast", "1000 W/m²"]);
-  const worstL = w(worst.label, false);
+  const worstL = w(worst.lines[0], false);
   const worstV = w(worst.value, true);
   check("the longest real solar value leaves the label whole and legible",
-    worst.label === "Solar radiation" && worstL >= MINLABEL &&
+    worst.lines.join(" ") === "Solar radiation" &&
+    worstL >= MINLABEL &&
     worst.value === "1000 W/m²" && worst.shortened === true &&
-    worstL + worstV + GAP <= INNER,
-    `label ${JSON.stringify(worst.label)} (${worstL.toFixed(2)}u, minimum ` +
-    `${MINLABEL}) + value ${JSON.stringify(worst.value)} ` +
-    `(${worstV.toFixed(2)}u) = ${(worstL + worstV).toFixed(2)}u of ` +
-    `${INNER}, ${(INNER - worstL - worstV).toFixed(2)}u to spare`);
+    worstL + worstV + GAP <= INNER &&
+    worst.lines.every((l) => w(l, false) <= INNER),
+    `label ${JSON.stringify(worst.lines)} (${worstL.toFixed(2)}u on line one) ` +
+    `+ value ${JSON.stringify(worst.value)} (${worstV.toFixed(2)}u) = ` +
+    `${(worstL + worstV).toFixed(2)}u of ${INNER}, ` +
+    `${(INNER - worstL - worstV).toFixed(2)}u to spare`);
   // ...and the tag it dropped is still reachable, so nothing is lost.
   check("the dropped provenance tag is kept for the tooltip",
     worst.full === "1000 W/m² · weather forecast", worst.full);
@@ -5901,11 +6322,11 @@ const setupBox = (card, place) =>
   // counted.)
   const roomy = fit("Sun", ["0 W/m² · Open-Meteo", "0 W/m²"]);
   check("a short label lets the value keep its source tag",
-    roomy.label === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
+    roomy.lines.join(" ") === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
     roomy.shortened === false &&
-    w(roomy.label, false) + w(roomy.value, true) + GAP <= INNER,
-    `${JSON.stringify(roomy.label)} + ${JSON.stringify(roomy.value)} = ` +
-    `${(w(roomy.label, false) + w(roomy.value, true)).toFixed(2)}u`);
+    w(roomy.lines[0], false) + w(roomy.value, true) + GAP <= INNER,
+    `${JSON.stringify(roomy.lines)} + ${JSON.stringify(roomy.value)} = ` +
+    `${(w(roomy.lines[0], false) + w(roomy.value, true)).toFixed(2)}u`);
   // The invariant behind that: a shorter label never costs the value room.
   const alts = ["123 W/m² · Open-Meteo", "123 W/m²"];
   const short = fit("Sun", alts);
@@ -5917,9 +6338,9 @@ const setupBox = (card, place) =>
   // An ellipsis is only ever spent when it buys something, and it never
   // leaves a dangling separator behind it.
   check("a label that fits is left exactly alone",
-    fit("Valve target", ["21.3 °C"]).label === "Valve target" &&
-    !/[\s·-]…$/.test(fit("Lower floor temperature", ["21.3 °C"]).label),
-    fit("Lower floor temperature", ["21.3 °C"]).label);
+    fit("Valve target", ["21.3 °C"]).lines.join(" ") === "Valve target" &&
+    !/…/.test(fit("Lower floor temperature", ["21.3 °C"]).lines.join(" ")),
+    JSON.stringify(fit("Lower floor temperature", ["21.3 °C"]).lines));
 
   // ...and the whole thing again on the real drawing, which is where the
   // report came from: a solar slot with no probe, falling back to
@@ -5939,8 +6360,9 @@ const setupBox = (card, place) =>
   };
   const page = setupPage(solarTopo, solarStates);
   const row = new RegExp(
-    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="[\\d.]+">\\s*' +
-    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    '<text class="setup-slot" x="([\\d.]+)" y="[\\d.]+">' +
+    '((?:<tspan(?! class="setup-value")[^>]*>[^<]*</tspan>)+)' +
+    '<tspan class="setup-value" x="([\\d.]+)"[^>]*' +
     'text-anchor="end">([^<]*)</tspan></text>\\s*' +
     '<rect class="setup-hit" data-key="solar_radiation_entity"[^>]*' +
     'aria-label="([^"]*)"').exec(page);
@@ -5948,17 +6370,21 @@ const setupBox = (card, place) =>
     !!row && /W\/m²/.test(row[4]), row ? row[4] : "no solar row drawn");
   if (row) {
     const labelX = Number(row[1]);
+    const lines = [...row[2].matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)]
+      .map((m) => m[1]);
     const valueEnd = Number(row[3]);
-    const lw = w(row[2], false);
+    const lw = w(lines[0], false);
     const vw = w(row[4], true);
     check("on the page, the solar label ends before its value begins",
       labelX + lw <= valueEnd - vw,
-      `label ${JSON.stringify(row[2])} runs x${labelX}..` +
+      `label ${JSON.stringify(lines[0])} runs x${labelX}..` +
       `${(labelX + lw).toFixed(2)}; value ${JSON.stringify(row[4])} runs ` +
       `x${(valueEnd - vw).toFixed(2)}..${valueEnd}; ` +
       `${(valueEnd - vw - labelX - lw).toFixed(2)}u between them`);
-    check("the label is the whole label, not a truncation",
-      row[2] === "Solar radiation", row[2]);
+    // R10-UX-SETUP: whole, wrapped if it has to be -- never cut.
+    check("the label is the whole label, wrapped onto its own lines",
+      lines.join(" ") === "Solar radiation" && lines.every((l) => w(l, false) <= 168),
+      JSON.stringify(lines));
     // Nothing is lost by shortening: the row's accessible name and tooltip
     // still carry the reading with its provenance.
     check("and the row still says where the number came from, out loud",
@@ -5996,8 +6422,7 @@ const setupBox = (card, place) =>
       selected: options.filter((o) => o.selected) };
   };
   const openPicker = (card, key, viaKeyboard) => {
-    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
-      .find((h) => h.dataset.key === key);
+    const hit = slotHit(card, key);
     if (!hit) return null;
     if (viaKeyboard) {
       (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
@@ -7739,10 +8164,9 @@ const setupBox = (card, place) =>
     /class="setup-hit"/.test(openDump) && /Indoor temperature/.test(openDump),
     "no clickable slots rendered");
   check("so an unassigned sensor can be assigned without a plan first",
+    !!slotHit(pre, "lower_floor_temp_entity"),
     pre.shadowRoot.querySelectorAll(".setup-hit")
-      .some((h) => h.dataset.key === "lower_floor_temp_entity"),
-    pre.shadowRoot.querySelectorAll(".setup-hit")
-      .map((h) => h.dataset.key).join(", "));
+      .map((h) => h.dataset.key || `fold:${h.dataset.fold}`).join(", "));
   // The Plan tab is still there and still honest about having nothing.
   const planTab = pre.shadowRoot.querySelectorAll(".dlg-tab")
     .find((t) => t.dataset.page === "plan");
@@ -7794,8 +8218,7 @@ const setupBox = (card, place) =>
       ? { ...s, device_class: "temperature" }
       : s);
   const card = mkSetup(topo, bigStates);
-  const hit = card.shadowRoot.querySelectorAll(".setup-hit")
-    .find((h) => h.dataset.key === "wood_tank_top_entity");
+  const hit = slotHit(card, "wood_tank_top_entity");
   (hit._listeners.click || []).forEach((f) =>
     f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
   const pickerHtml = collect(card.shadowRoot).join("\n");
@@ -10453,18 +10876,26 @@ const STOCK_THEMES = {
     const asked = [];
     const stub = (...a) => {
       asked.push(a.join(" "));
-      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
-      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "REF...HEAD") return "dev/changed.md\n";
+      if (a[0] === "diff" && a[a.length - 1] === "HEAD") return " \ndev/changed.md\n";
       return "notes.txt\n";
     };
     const files = threeDotFiles(stub, "REF");
+    // The sibling's commands are READ from tests/env_drift.py, so the two
+    // copies cannot drift apart again (#2406: the Python twin gained
+    // --no-renames and this pin went on asserting the old command).
+    const pySrc = fs.readFileSync("tests/env_drift.py", "utf8");
+    const pyFn = pySrc.slice(pySrc.indexOf("def three_dot_files("));
+    const pyBody = pyFn.slice(0, pyFn.indexOf("\n    ):"));
+    const sibling = [...pyBody.matchAll(/^\s*\[("git",[^\]]*)\],\s*$/gm)]
+      .map((m) => JSON.parse(`[${m[1].replace(/f"\{ref\}/g, '"REF')}]`).slice(1).join(" "));
     check("threeDotFiles runs the sibling's three commands in order",
-      asked.length === 3
-      && asked[0] === "diff --name-only REF...HEAD"
-      && asked[1] === "diff --name-only HEAD"
-      && asked[2] === "ls-files --others --exclude-standard", asked.join(" | "));
+      sibling.length === 3
+      && asked.length === 3 && asked.every((c, i) => c === sibling[i])
+      && sibling.slice(0, 2).every((c) => c.includes("--no-renames")),
+      `${asked.join(" | ")} vs env_drift: ${sibling.join(" | ")}`);
     check("threeDotFiles de-duplicates, drops blanks and sorts",
-      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+      files.join(",") === "dev/changed.md,notes.txt", files.join(","));
     check("an untracked card makes the three-dot claimable",
       claimsAreThisBranchs((...a) =>
         a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
@@ -11010,9 +11441,11 @@ check("without an indoor reading the corner now label is absent",
     /data-act="diagnostics"/.test(page) && /Something looks wrong\?/.test(page));
   const dg = mkHealth(healthStates());
   const hist = [];
-  ctx.history = { ...ctx.history, pushState: (_a, _b, path) => hist.push(path) };
+  ctx.history = { ...NAV.history, pushState: (_a, _b, path) => hist.push(path) };
   const btn = dg.c.shadowRoot.querySelector('[data-act="diagnostics"]');
-  if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  try {
+    if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+  } finally { ctx.history = NAV.history; }
   check("pressing it opens /config/integrations/integration/heatpump_optimizer",
     hist.includes("/config/integrations/integration/heatpump_optimizer"), JSON.stringify(hist));
   const pw = mkHealth(healthStates());
@@ -11176,37 +11609,78 @@ check("without an indoor reading the corner now label is absent",
 //
 // The owner's deep-link class (2026-10-14): Advisor "Open settings", Setup
 // "Configure" and Health "Show" each built their own Home Assistant link and
-// each landed on the integration's front page. `haLink` is now the one
-// builder. This census checks the links it can observe against it, in two
-// arms; it is NOT a proof that every link the card can emit goes through
-// haLink -- that complete census is #2317 (roster group R10-DEEPLINK-CENSUS).
+// each landed on the integration's front page. `haLink` is now the one builder
+// and `navigateTo` the one route; this census holds the card to it in three
+// parts.
 //
-// Dynamic: render every dialog page and press every element there with a
-// click listener of its own, one fresh card per press, with these primitives
-// instrumented so that using one is recorded, never thrown: history.pushState
-// / replaceState, open, the location setter and its href / assign / replace,
-// a CustomEvent named hass-more-info or hass-action, and any anchor href on
-// the page after the press. Each recorded link must be a path haLink builds
-// for this entry. No press may throw.
+// Static: the NAV_SURFACE check at the top of this file -- outside
+// `navigateTo`'s body the card's code may not name a member of the surface.
+// It reads the source, so it also covers code no press reaches.
 //
-// Static: the token check at the top of this file, for rows the fixture does
-// not render or selectors the stub DOM cannot resolve.
+// Dynamic: one fresh card per drive. Every element the document wires a click
+// to is pressed on every page -- the dialog's own head, close button and tabs
+// included -- plus the chart gesture that opens the slot menu; and every OTHER
+// handler the card registers, of every type (keydown, pointer, wheel, touch,
+// mouse, change, input, the dialog's close), is driven the same way, with
+// fixture variants for what the five pages do not render (the what-if panel,
+// the picker, the layout editor, the card's config editor). Each surface
+// member is instrumented to RECORD a use, never to throw: the history object
+// (pushState, replaceState, back, forward, go), open, the location object --
+// assigned whole, a write to ANY of its members (href and every URL part),
+// assign / replace / reload -- on the global, the window, the document and
+// every alias of the window (top, parent, frames, window.self, defaultView),
+// the Navigation API, both interfaces' prototype members, the document's open
+// / write / writeln, a CustomEvent or plain Event built with a name the card
+// does not write as a literal, and `href`, `action`, `formaction`, a refresh
+// pragma and any form read off the WHOLE document after every drive -- its
+// head and body, the card host and every shadow root, every element the
+// document's factories made, attached or not, and the markup string each was
+// given, under any quoting (the stub's parser keeps double-quoted attributes
+// only), an svg anchor's `xlink:href` included. A timer a drive starts runs
+// before that drive's read, to a fixpoint, and a chain that does not settle is
+// refused. Every one of those members, factories, timers, event classes and
+// registration methods is the live graph installed before the card's source
+// runs (the top of this file), which the census switches on rather than
+// replaces, so a reference the card took when it loaded records too. Each member is installed by
+// NAME, so a spelling that builds the name reaches the same instrument. Any
+// global name the card's code mentions that neither the global nor `window`
+// binds is refused BY NAME rather than returned as `undefined`, which is what
+// makes this arm allow-based: the realm's own names and the instrumented
+// surface are the whole allow list. Each recorded link must be a path haLink
+// builds for this entry, and no drive may throw.
 //
-// Known gaps, each passing both arms (the #2283 round-4 review's plants):
-//   K5   a bare open(...) with no dot (or globalThis["open"], .open.call) on
-//        a row this fixture does not render;
-//   K1   the Navigation API, navigation.navigate(...);
-//   K2   a <form action=...> submitted from a rendered page (only href is read);
-//   K3t  a plain Event (not CustomEvent) whose hass-more-info name is built at
-//        run time;
-// and the static arm's own residual, a token split across a concatenation
-// ("hr" + "ef"), which the dynamic arm sees only on a rendered row and, for
-// an event name, only through CustomEvent.
+// Reach: the census asserts its own coverage rather than resting on the two
+// arms. ACTS is every `act` branch the card's source can dispatch; it is
+// compared with the source in both directions and every declared branch must
+// have been pressed, so a row that stops being rendered is a red reach check
+// and not a token arm's job. Every navigateTo / openHaLink mention must have
+// been reached, and every addEventListener call site must have registered a
+// listener a drive reached, so a handler no fixture renders is refused by
+// line; a handler wired as an `on<event>` property or attribute, which no
+// registration records, is refused outright. The #2283 round-4 review's four
+// plants (#2317) each walked through the act gap; the #2345 round-8 to
+// round-10 plants (RV1-RV7, RD4, RD6) through the undriven handlers and the
+// shadow-root-only read this replaces.
+//
+// Residual, stated because neither arm reaches it:
+//   - code no render or drive executes -- a branch behind state no fixture
+//     sets, or behind an event field the drive does not set (it drives each
+//     handler at both ends of the fields it reads, once per key literal the
+//     card compares with, on one target per distinct `data-*` key set, and
+//     on the first fixture that renders its registration site);
+//     there the static arm refuses only the names it lists, so a `history`
+//     member other than the two writers, a form's `action`, or a name BUILT
+//     at run time passes;
+//   - markup written through a DOM member the stub (tests/dom_stub.mjs) does
+//     not implement -- `insertAdjacentHTML`, `outerHTML`, `cloneNode` --
+//     runs on no element, so the read sees nothing (RD8, green), and so does
+//     a write through a selector the stub cannot resolve, a tag.class pair
+//     such as `a.zz` (Y1, green; R7c is the same write on a selector the stub
+//     resolves, red). A written name in either is the static arm's.
 //
 // A link not yet converted is a PENDING row under the roster group that
 // converts it, excusing exactly its own navigateTo push to one path; a row
-// no press still produces is refused as stale. The census asserts its own
-// reach: every source line calling navigateTo or openHaLink is hit by a press.
+// no press still produces is refused as stale.
 {
   const ENTRY = "01JDEEPLINKENTRY";
   const BARE = "/config/integrations/integration/heatpump_optimizer";
@@ -11217,9 +11691,29 @@ check("without an indoor reading the corner now label is absent",
   };
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
+  // Every `act` branch the card's source can dispatch, by name.
+  const ACTS = ["assign", "apply_dhw", "apply_valve", "try_degree", "adopt_refit",
+    "restore_snapshot", "settings", "dismiss_feedback", "diagnostics", "add", "remove"];
+  const srcActs = [...new Set([...cardSrc.matchAll(/\bact\s*===\s*"([a-z_]+)"/g)].map((m) => m[1])
+    .concat([...cardSrc.matchAll(/data-act="([a-z_]+)"/g)].map((m) => m[1])))].sort();
+  const sourceOnly = srcActs.filter((a) => !ACTS.includes(a));
+  const declaredOnly = ACTS.filter((a) => !srcActs.includes(a));
+  // The fixture renders every row the card can put an `act` branch behind: the
+  // inbox's four priced rows, the two restart rows, the feedback row -- whose
+  // two branches no other scenario renders -- and the health page's checklist.
+  // Two of the eleven live in the slot menu, which no row renders until the
+  // chart's own gesture opens it; that gesture is driven below.
   const states = () => {
-    const s = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const s = restartStates();
+    s[`${ADVISOR_PFX}_sensor_gap_advisor`].attributes.feedback_gaps =
+      [{ class: "power", key: "heat_pump_power_entity" }];
     s[BIN] = { state: "off", last_updated: "t1", attributes: { problems: [], input_ages_minutes: {} } };
+    // The Setup page renders its diagram, and with it the Configure controls
+    // that leave the card (R10-UX-SETUP). Without a topology the page is its
+    // "not published" empty state and the census's own reach check fails on
+    // the setup lines -- which is the check doing its job: the fixture has to
+    // render the page a source line calls from.
+    s[DEFAULT_SPACE].attributes.setup_topology = setupTopo();
     return s;
   };
   // The registry lookup the card makes for its own config entry; real HA
@@ -11230,33 +11724,106 @@ check("without an indoor reading the corner now label is absent",
     }
     throw new Error(`not found: ${JSON.stringify(msg)}`);
   };
-  const open = (page) => {
+  // The elements the document's factories made and the listeners registered,
+  // each counted from the latest open.
+  let made = [];
+  const regs = [];
+  let regAt = 0;
+  // The loop below presses `dismiss_feedback`, and the card remembers that
+  // dismissal per browser; without clearing it every later render would be
+  // missing the row, so each fresh card starts from an undismissed one.
+  // A fixture variant (`v`, below) renders what the default config and
+  // states do not -- the what-if panel, the picker, the layout editor, the
+  // card's own config editor -- so the handlers they register can be driven.
+  const open = (page, v = {}) => {
+    for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
+    made = [];
+    regAt = regs.length;
+    if (v.make) return v.make();
     const c = new Card();
-    c.setConfig({ type: "custom:heatpump-optimizer-card" });
-    c.hass = { states: states(), callService: async () => {}, callWS };
+    c.setConfig({ type: "custom:heatpump-optimizer-card", ...(v.config || {}) });
+    const st = states();
+    if (v.patch) v.patch(st);
+    c.hass = { states: st, callService: async () => {}, callWS };
     c._onCardClick({});
     c.dialog.page = page;
     c._render();
+    if (v.prep) v.prep(c);
     return c;
   };
-  const pressables = (c) => {
-    const body = c.shadowRoot.querySelector(".dlg-body");
+  // The document the card lives in, read WHOLE: its head and body, the card
+  // host with its light children, every shadow root under any of them, and
+  // every element the document's factories made since the card was opened,
+  // attached or not -- a detached anchor's `click()` navigates in a browser
+  // (RD7). The earlier form of this census read the card's shadow root alone,
+  // so markup appended to `document.body` escaped it even in a press it drove
+  // (RD4, RD6): what is read is the document, not the card's own subtree.
+  const docNodes = (c) => {
     const out = [];
+    const seen = new Set();
     const walk = (n) => {
-      if (n !== body && n._listeners && (n._listeners.click || []).length) out.push(n);
+      if (!n || typeof n !== "object" || seen.has(n)) return;
+      seen.add(n);
+      out.push(n);
       (n.children || []).forEach(walk);
+      if (n.shadowRoot) walk(n.shadowRoot);
     };
-    if (body) walk(body);
+    [document.head, document.body, c, ...made].forEach(walk);
     return out;
+  };
+  // Every element the document wires a click to, the card itself and the
+  // dialog's head included: a row this misses is a row nothing presses.
+  const pressables = (c) => docNodes(c).filter((n) => n._listeners && (n._listeners.click || []).length);
+  // A handler wired as an `on<event>` property or attribute is one no
+  // registration records and so one nothing drives; the card wires none, and
+  // one that appears is refused here rather than passing both arms.
+  const inline = new Set();
+  // The ways out as markup: an attribute inside a tag, under any of the three
+  // quotings HTML admits, and a refresh pragma. Read tag by tag: a lookbehind
+  // over a page-sized string re-scans it at every character.
+  const MARKUP_TAG = /<[A-Za-z][^<>]*>?/g;
+  const MARKUP_WAY_OUT = /\s(?:xlink:)?(href|action|formaction)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"'`]+))/gi;
+  const REFRESH_MARKUP = /^<meta\b[^<>]*\shttp-equiv\s*=\s*["']?\s*refresh\b/i;
+  const markupWaysOut = (html, out) => {
+    if (!/=/.test(html)) return;
+    for (const [tag] of html.matchAll(MARKUP_TAG)) {
+      for (const m of tag.matchAll(MARKUP_WAY_OUT)) out.push([m[1].toLowerCase(), m[2] || m[3] || m[4] || ""]);
+      if (REFRESH_MARKUP.test(tag)) out.push(["refresh", "(markup)"]);
+    }
   };
   const anchors = (c) => {
     const out = [];
-    const walk = (n) => {
-      const href = (typeof n.getAttribute === "function" && n.getAttribute("href")) || n.href;
-      if (typeof href === "string" && href) out.push(href);
-      (n.children || []).forEach(walk);
-    };
-    walk(c.shadowRoot);
+    for (const n of [ctx.window, document, ...docNodes(c)]) {
+      for (const k of Object.keys(n)) {
+        if (/^on[a-z]+$/.test(k) && (typeof n[k] === "function" || (typeof n[k] === "string" && n[k]))) {
+          inline.add(`${n.tagName || (n === document ? "document" : "window")}.${k}`);
+        }
+      }
+    }
+    // The three attributes a browser navigates an element with -- an anchor's
+    // `href`, a form's `action`, a submit button's `formaction` -- and the
+    // form itself.
+    for (const n of docNodes(c)) {
+      // A form is a way out whether or not it names an action: submitted, one
+      // with none navigates to the document's own URL.
+      if (n.tagName === "FORM") out.push(["form", String(n.action || n.getAttribute("action") || "(this page)")]);
+      for (const at of ["href", "xlink:href", "action", "formaction"]) {
+        const v = (typeof n.getAttribute === "function" && n.getAttribute(at)) || n[at];
+        if (typeof v === "string" && v) out.push([at, v]);
+      }
+      // A refresh pragma navigates on insertion, wherever it sits, with or
+      // without a URL in its content (#2452 round 1, OWN1); set as an
+      // attribute or as the `httpEquiv` member.
+      const eq = (typeof n.getAttribute === "function" && n.getAttribute("http-equiv")) || n.httpEquiv;
+      if (typeof eq === "string" && eq.trim().toLowerCase() === "refresh") {
+        out.push(["refresh", String((n.getAttribute && n.getAttribute("content")) || n.content || "(this page)")]);
+      }
+      // The markup string an element was given, read as well as the nodes the
+      // stub parsed from it: the stub's parser keeps double-quoted attributes
+      // only, so a single-quoted or unquoted one (`<a href=/x>`) left no
+      // attribute on any node, while a browser navigates by it.
+      if (typeof n._html === "string") markupWaysOut(n._html, out);
+    }
     return out;
   };
   const built = new Set([haLink("options", ENTRY), haLink("entities", ENTRY),
@@ -11264,80 +11831,377 @@ check("without an indoor reading the corner now label is absent",
   const excused = (key, via, path) => built.has(path)
     || (via === "push" && key in PENDING && PENDING[key].path === path);
 
-  // The sink: every primitive the static arm names, instrumented for the
-  // census's duration on both the global and `window`, recording into `left`.
+  // The sink: the live graph installed before the card loaded, switched on.
+  // The census does not REPLACE a member -- a reference the card took at load
+  // would still hold the old one -- it fills `navHook`, which every member of
+  // that graph reports to.
   let left = [];
-  const sink = {
-    history: {
-      pushState: (_s, _t, p) => { left.push(["push", String(p)]); },
-      replaceState: (_s, _t, p) => { left.push(["replace", String(p)]); },
-    },
-    open: (u) => { left.push(["open", String(u)]); return null; },
-    location: {
-      get href() { return "/"; },
-      set href(v) { left.push(["location", String(v)]); },
-      assign: (v) => { left.push(["location", String(v)]); },
-      replace: (v) => { left.push(["location", String(v)]); },
-    },
+  // Its precondition, asserted rather than assumed: every global still holds
+  // the graph the card loaded against. A scenario that swaps one and does not
+  // put it back would leave the census recording through an object the card
+  // no longer reaches.
+  const SURFACE = [["history", NAV.history], ["open", NAV.open], ["navigation", NAV.navigation],
+    ["location", NAV.location], ["History", NAV.History], ["Navigation", NAV.Navigation]];
+  const swapped = [];
+  for (const [g, gname] of [[ctx, "globalThis"], [ctx.window, "window"]]) {
+    for (const [k, v] of SURFACE) if (g[k] !== v) swapped.push(`${gname}.${k}`);
+  }
+  for (const k of ["open", "write", "writeln", "location"]) {
+    if (document[k] !== (k === "location" ? NAV.location : NAV.doc[k])) swapped.push(`document.${k}`);
+  }
+  check("the census records through the navigation surface the card loaded against",
+    swapped.length === 0, swapped.join(", "));
+  navHook.record = (via, v) => { left.push([via, v]); };
+  // Work a handler defers runs after the drive that scheduled it: a timer the
+  // drive starts is queued here and run before that drive's read, to a
+  // fixpoint -- what a deferred callback defers runs too -- so what it does is
+  // recorded against the drive that scheduled it rather than landing after
+  // the census switches the surface off. A chain that has not settled after
+  // SETTLE_CAP rounds is refused as a throw, never dropped unread (#2452 round
+  // 2, REV_TM5: a fixed four rounds cleared a fifth nested timer unread).
+  const timers = new Map();
+  let timerId = 1e6;
+  navHook.timer = {
+    add: (f, id = ++timerId) => { timers.set(id, f); return id; },
+    drop: (id) => timers.delete(id),
   };
-  const saved = { history: ctx.history, open: ctx.open, wHistory: ctx.window.history, wOpen: ctx.window.open,
-    location: ctx.location, wLocation: ctx.window.location,
-    CustomEvent: ctx.CustomEvent, navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
-  const locDesc = { get: () => sink.location, set: (v) => { left.push(["location", String(v)]); }, configurable: true };
-  ctx.history = sink.history; ctx.window.history = sink.history;
-  ctx.open = sink.open; ctx.window.open = sink.open;
-  Object.defineProperty(ctx, "location", locDesc);
-  Object.defineProperty(ctx.window, "location", locDesc);
-  ctx.CustomEvent = class extends saved.CustomEvent {
-    constructor(type, o) {
-      super(type, o);
-      if (type === "hass-more-info" || type === "hass-action") {
-        left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
+  const SETTLE_CAP = 64;
+  const settle = async (key) => {
+    let round = 0;
+    for (; timers.size && round < SETTLE_CAP; round++) {
+      const due = [...timers.values()];
+      timers.clear();
+      for (const f of due) {
+        try { await f(); } catch (err) { threw.push(`${key} (deferred): ${(err && err.message) || err}`); }
       }
     }
+    if (timers.size) {
+      threw.push(`${key}: deferred work had not settled after ${SETTLE_CAP} rounds`);
+      timers.clear();
+    }
   };
-  // Which source line each navigateTo / openHaLink call came from.
-  const callerLine = () => {
-    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[3] || "");
+  // An event whose type the card WRITES is the static arm's to refuse; one
+  // whose type is BUILT is this arm's, so any construction outside the types
+  // the source writes as literals is recorded, whatever class built it -- the
+  // plain `Event` included, which is the shape HA's own `fireEvent` uses.
+  const EVENT_TYPES = new Set(
+    [...cardSrc.matchAll(/new\s+(?:Custom)?Event\(\s*"([^"]*)"/g)].map((m) => m[1]));
+  navHook.event = (type, o) => {
+    if (typeof type === "string" && !EVENT_TYPES.has(type)) {
+      left.push(["event", `${type}:${JSON.stringify((o && o.detail) || {})}`]);
+    }
+  };
+  const saved = { navigateTo: ctx.navigateTo, openHaLink: ctx.openHaLink };
+  // Which source line each navigateTo / openHaLink call -- and each
+  // addEventListener registration -- came from.
+  const callerLine = (depth = 3) => {
+    const m = /evalmachine[^:]*:(\d+):\d+/.exec((new Error().stack || "").split("\n")[depth] || "");
     return m ? Number(m[1]) : -1;
+  };
+  // Every listener the card registers, on any element, the window or the
+  // document, recorded with its type and the source line that registered it,
+  // so the drive below can reach each one and the reach check can name a site
+  // that registered nothing. Every element the document's factories make is
+  // recorded too: the document-level read covers it, attached or not. Both
+  // report through the live graph's registration method and factories.
+  navHook.reg = (on, type, f) => { regs.push({ on, type, f, line: callerLine(4) }); };
+  navHook.made = (n) => { made.push(n); };
+  // The stub's selector engine (tests/dom_stub.mjs) answers one compound
+  // selector with a quoted attribute value. The card also writes a selector
+  // LIST (`.wi-quiet-days, .wi-quiet-action`) and an unquoted value
+  // (`input[type=time]`), both plain CSS, and a handler wired through either
+  // was wired to nothing in the stub, so no drive could reach it. For the
+  // census's span the engine answers both; restored with the rest below.
+  saved.findAll = Node.prototype._findAll;
+  Node.prototype._findAll = function (sel, out) {
+    for (const one of String(sel).split(",")) {
+      saved.findAll.call(this, one.trim().replace(/\[([\w-]+)=([^"\]\s]+)\]/g, '[$1="$2"]'), out);
+    }
   };
   const hits = new Set();
   ctx.navigateTo = (path) => { hits.add(callerLine()); return saved.navigateTo(path); };
   ctx.openHaLink = (...a) => { hits.add(callerLine()); return saved.openHaLink(...a); };
 
+  // The allow list, from the other side: a global name the CARD's code
+  // mentions that neither the global nor `window` binds is a primitive this
+  // census cannot record the use of, so it is refused by name instead of being
+  // handed back as `undefined`. Names the card binds itself, the realm's
+  // intrinsics and the rig's stub are all already bound and are not watched.
+  // Words that occur only inside strings or markup are watched too: a watcher
+  // for a name the card never reads as a global costs nothing and never fires.
+  // The grammar is ECMAScript's IdentifierName production: this scan asks
+  // about identifiers the JS source names, and the language admits non-ASCII
+  // ones (W3). tests/doc_claims.py's `_tokens` is a different reader with a
+  // different question -- ASCII words a document names -- not a copy of this
+  // one, and the two are deliberately not kept identical. The `u` flag is what
+  // makes the property escapes Unicode-aware; without it they are ASCII-only
+  // and an identifier like `frames` spelled with a non-ASCII letter is missed.
+  const KEYWORDS = new Set(["arguments", "async", "await", "break", "case", "catch", "class",
+    "const", "continue", "debugger", "default", "delete", "do", "else", "export", "extends",
+    "false", "finally", "for", "function", "get", "if", "import", "in", "instanceof", "let",
+    "new", "null", "of", "return", "set", "static", "super", "switch", "this", "throw", "true",
+    "try", "typeof", "undefined", "var", "void", "while", "with", "yield"]);
+  const unknown = new Set();
+  const shadowed = new Map();
+  // A callable stand-in: it records what was reached for and answers the same
+  // shape again, so the press runs to completion and the FAIL names the
+  // primitive instead of the scenario crashing around it.
+  const uninstrumented = (name) => new Proxy(function () {}, {
+    get: (_t, k) => {
+      if (k === Symbol.toPrimitive || k === "toString") return () => `[uninstrumented ${name}]`;
+      unknown.add(`${name}.${String(k)}`);
+      return uninstrumented(`${name}.${String(k)}`);
+    },
+    apply: () => { unknown.add(`${name}()`); return uninstrumented(`${name}()`); },
+  });
+  const watch = (target, name) => Object.defineProperty(target, name, {
+    configurable: true,
+    get() {
+      if (shadowed.has(name)) return shadowed.get(name);
+      unknown.add(name);
+      return uninstrumented(name);
+    },
+    set(v) { unknown.add(`${name} =`); shadowed.set(name, v); },
+  });
+  const code = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+  // The realm's own names, read from INSIDE: the contextified sandbox does not
+  // answer `in` for a global the context provides (`Error` among them), so
+  // asking the global object itself is the only faithful list.
+  const REALM = new Set(vm.runInContext("Object.getOwnPropertyNames(globalThis)", ctx)
+    .concat(Object.getOwnPropertyNames(ctx.window)));
+  const IDENT = /[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*/gu;
+  const watched = [...new Set(code.match(IDENT) || [])]
+    .filter((n) => !REALM.has(n) && !KEYWORDS.has(n));
+  for (const n of watched) { watch(ctx, n); watch(ctx.window, n); }
+
+  // Which addEventListener sites registered a listener the census drove.
+  const driven = new Set();
   const seen = {};
   const wrong = [];
   const threw = [];
   const census = [];
+  const pressed = new Set();
   for (const page of ["plan", "setup", "savings", "advisor", "health"]) {
     left = [];
     const shown = open(page);
+    await settle(`${page}:render`);
     const n = pressables(shown).length;
     census.push(`${page}=${n}`);
-    for (const [via, path] of [...left, ...anchors(shown).map((h) => ["href", h])]) {
+    for (const [via, path] of [...left, ...anchors(shown)]) {
       if (!excused(`${page}:render`, via, path)) wrong.push(`${page}:render -> ${via} ${path}`);
     }
     for (let i = 0; i < n; i++) {
       const c = open(page);
       const el = pressables(c)[i];
       const key = `${page}:${(el.dataset && el.dataset.act) || el.className || el.tagName}`;
+      if (el.dataset && el.dataset.act) pressed.add(el.dataset.act);
+      for (const r of regs.slice(regAt)) if (r.on === el && r.type === "click") driven.add(r.line);
       left = [];
       try {
         await Promise.all((el._listeners.click || []).map((f) => f({
           stopPropagation() {}, preventDefault() {}, detail: 1, target: el, currentTarget: el })));
       } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
-      for (const [via, path] of [...left, ...anchors(c).map((h) => ["href", h])]) {
+      await settle(key);
+      for (const [via, path] of [...left, ...anchors(c)]) {
         (seen[key] ||= new Set()).add(`${via} ${path}`);
         if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
       }
     }
   }
-  ctx.history = saved.history; ctx.window.history = saved.wHistory;
-  ctx.open = saved.open; ctx.window.open = saved.wOpen;
-  delete ctx.location; delete ctx.window.location;
-  ctx.location = saved.location; ctx.window.location = saved.wLocation;
-  ctx.CustomEvent = saved.CustomEvent;
+  // The slot menu's `add` / `remove` are `act` branches too, and no click
+  // reaches them: the menu opens on the chart's own contextmenu gesture.
+  // Drive that gesture and press the row it renders. Which row renders --
+  // `remove` on a planned hot-water run, `add` off one -- depends on where the
+  // solver put the runs, so the gesture walks the chart until it has pressed
+  // both, rather than at fixed pixels a re-planned fixture can miss (four
+  // pixels found no run once D2-s2-01 re-priced the tank).
+  const probes = [];
+  for (const chart of [0, 1]) for (let x = 20; x <= 1200; x += 20) probes.push([chart, x]);
+  for (const [chart, x] of probes) {
+    if (pressed.has("add") && pressed.has("remove")) break;
+    const c = open("plan");
+    const svg = chartSvgs(c.shadowRoot)[chart];
+    if (!svg) continue;
+    left = [];
+    for (const f of (svg._listeners.contextmenu || [])) {
+      f({ clientX: x, clientY: 120, preventDefault() {}, stopPropagation() {},
+          target: { dataset: { channel: "dhw" } } });
+    }
+    const menu = c.shadowRoot.querySelector(".slot-menu");
+    const row = menu && menu.children[0];
+    if (!row || !row.dataset.act || !(menu._listeners.click || []).length) continue;
+    const key = `plan:slot_menu:${row.dataset.act}`;
+    pressed.add(row.dataset.act);
+    for (const r of regs.slice(regAt)) if (r.on === menu && r.type === "click") driven.add(r.line);
+    try {
+      await Promise.all((menu._listeners.click || []).map((f) => f({
+        stopPropagation() {}, preventDefault() {}, detail: 1, target: row, currentTarget: menu })));
+    } catch (err) { threw.push(`${key}: ${(err && err.message) || err}`); }
+    await settle(key);
+    for (const [via, path] of [...left, ...anchors(c)]) {
+      (seen[key] ||= new Set()).add(`${via} ${path}`);
+      if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
+    }
+  }
+  // Every OTHER handler the card registers -- keydown, pointer, wheel, touch,
+  // mouse, change, input, the dialog's close, the chart's contextmenu, and a
+  // click on a fixture the press loop above does not render -- driven the way clicks
+  // are: one fresh card per handler, per target and per key, through the same
+  // instrumented surface and the same document-level read. Navigation written in a handler no press reached rested on the
+  // static arm alone, which refuses only the spellings its rows name (RV1-RV7,
+  // #2345 round 8); driven, what the handler does is this arm's. A handler is
+  // driven with its own element as the target and with one descendant per
+  // distinct `data-*` key set, which is what the card's delegated handlers
+  // dispatch on (the chart's keydown reads `data-channel` off the target);
+  // a keydown once per key literal the card's source compares a key with.
+  // What a handler registers on the window, the document or an element the
+  // document made -- a gesture's move and up, the slot menu's Escape -- is
+  // driven once in the same card, so a gesture is followed through.
+  const KEYS = [...new Set([...code.matchAll(/(?:\bev\.key|(?<![.\w$])key)\s*[!=]==?\s*"([^"]*)"/g)]
+    .map((m) => m[1]))];
+  // The event, at one end of its fields or (`alt`) at the other: no modifier
+  // or every one, the primary button or the secondary, a wheel down or up, a
+  // mouse or a touch, a click's detail 1 or the keyboard's 0.
+  const mkEv = (type, on, target, key, alt = false) => ({ type, key, code: key, target, currentTarget: on,
+    detail: alt ? 0 : 1, clientX: 300, clientY: 120, pointerId: 1, pointerType: alt ? "touch" : "mouse",
+    isPrimary: !alt, button: alt ? 2 : 0, buttons: alt ? 2 : 1, deltaX: alt ? 100 : 0, deltaY: alt ? -100 : 100,
+    deltaMode: 0, ctrlKey: alt, shiftKey: alt, altKey: alt, metaKey: alt,
+    touches: [{ clientX: 300, clientY: 120 }], changedTouches: [{ clientX: 300, clientY: 120 }],
+    preventDefault() {}, stopPropagation() {}, stopImmediatePropagation() {} });
+  const VARY = ["detail", "pointerType", "isPrimary", "button", "buttons", "deltaX", "deltaY",
+    "ctrlKey", "shiftKey", "altKey", "metaKey"];
+  const isDoc = (on) => on === ctx.window || on === document;
+  // The handlers a fresh card holds: registered since it was opened, on the
+  // window, the document or an element the document still holds -- a
+  // listener on an element a re-render threw away is one no event reaches.
+  const handlers = (c, types) => {
+    const live = new Set(docNodes(c));
+    return regs.slice(regAt).filter((r) => types(r) && (isDoc(r.on) || live.has(r.on)));
+  };
+  const targetsOf = (on) => {
+    if (isDoc(on)) return [on];
+    const out = [on];
+    const sigs = new Set();
+    const walk = (n) => {
+      for (const k of n.children || []) {
+        const sig = Object.keys(k.dataset || {}).sort().join(",");
+        if (sig && !sigs.has(sig)) { sigs.add(sig); out.push(k); }
+        walk(k);
+      }
+    };
+    walk(on);
+    return out;
+  };
+  let drives = 0;
+  // The event a handler is driven with records which of its fields the
+  // handler read: one that never reads `target` is driven on its own element
+  // alone, one that never reads `key` once rather than once per key, and one
+  // that reads none of VARY at one end of the event's fields only.
+  const probe = (ev, reads) => new Proxy(ev, { get: (t, k) => { reads.add(k); return t[k]; } });
+  const label = (on) => (isDoc(on) ? (on === document ? "document" : "window")
+    : (on.dataset && on.dataset.act) || on.className || on.tagName);
+  const driveOne = async (page, v, types, i, j, k, alt = false) => {
+    const c = open(page, v);
+    const r = handlers(c, types)[i];
+    const key = `${v.name || page}:${r.type}:${label(r.on)}#${i}/${j}${k === undefined ? "" : `:${k}`}${alt ? "~alt" : ""}`;
+    const reads = new Set();
+    left = [];
+    drives++;
+    const mark = regs.length;
+    const run = async (name, h, ev) => {
+      driven.add(h.line);
+      try { await h.f.call(h.on, probe(ev, reads)); } catch (err) { threw.push(`${name}: ${(err && err.message) || err}`); }
+    };
+    await run(key, r, mkEv(r.type, r.on, targetsOf(r.on)[j], k, alt));
+    const madeNow = new Set(made);
+    for (const f of regs.slice(mark)) {
+      if (f.type === "click" || !(isDoc(f.on) || madeNow.has(f.on))) continue;
+      for (const fk of f.type === "keydown" ? KEYS : [undefined]) {
+        await run(`${key} then ${f.type}${fk === undefined ? "" : `:${fk}`}`, f, mkEv(f.type, f.on, f.on, fk, alt));
+      }
+    }
+    await settle(key);
+    for (const [via, path] of [...left, ...anchors(c)]) {
+      (seen[key] ||= new Set()).add(`${via} ${path}`);
+      if (!excused(key, via, path)) wrong.push(`${key} -> ${via} ${path}`);
+    }
+    return reads;
+  };
+  // Drive every handler `types` admits on one fixture, each from a fresh card.
+  const driveAll = async (page, v, types) => {
+    const hs = handlers(open(page, v), types);
+    for (let i = 0; i < hs.length; i++) {
+      const nt = targetsOf(hs[i].on).length;
+      const first = await driveOne(page, v, types, i, 0, undefined);
+      for (let j = 0; j < (first.has("target") ? nt : 1); j++) {
+        const base = j === 0 ? first : await driveOne(page, v, types, i, j, undefined);
+        const keys = base.has("key") || base.has("code") ? [undefined, ...KEYS] : [undefined];
+        for (const k of keys) {
+          const reads = k === undefined ? base : await driveOne(page, v, types, i, j, k);
+          if (VARY.some((f) => reads.has(f))) await driveOne(page, v, types, i, j, k, true);
+        }
+      }
+    }
+  };
+  // The five pages, then the fixtures they do not render. Each is driven for
+  // the handlers registered from a SITE no earlier drive reached -- every
+  // element that site wired on that fixture, clicks included where the press
+  // loop above did not reach the site -- so a site is driven on the first
+  // fixture that renders it, not once per page that repeats it. The variants
+  // render every site the pages do; the pages lead because they are the
+  // cheaper render, not because a verdict needs them.
+  const press = (c, sel) => {
+    const el = c.shadowRoot.querySelector(sel);
+    for (const f of (el && el._listeners.click) || []) f(mkEv("click", el, el));
+  };
+  const FIXTURES = [
+    ...["plan", "setup", "savings", "advisor", "health"].map((page) => ({ page })),
+    { name: "plan+what_if", page: "plan", config: { what_if: true },
+      patch: (s) => {
+        const sp = s[DEFAULT_SPACE].attributes;
+        Object.assign(sp, { day_start_hour: 7, day_end_hour: 22,
+          quiet_silent_windows_spec: "22:00-06:00", quiet_off_windows_spec: "14:00-15:00",
+          silent_mode_power_fraction: 0.8,
+          wood_fuel: { cheaper: false, show_whatif: true, ready: true, slots: [] } });
+        s[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30, 17:00-22:00";
+        s[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00";
+        sp.manual_override = { active: true, expires_at: plan.space_plan.forecast.at(-1).t,
+          space_slots: [], dhw_slots: [], released_space: [], released_dhw: [] };
+        s["switch.heat_pump_optimizer_away"] = { state: "on", attributes: {} };
+        s["datetime.heat_pump_optimizer_away_return"] = { state: "unknown", attributes: {} };
+        s["binary_sensor.heat_pump_optimizer_away_mode"] = { state: "off", attributes: { source: "none" } };
+      },
+      // Zoomed, so the view-reset hint renders; a wood window added, so its
+      // row's controls do.
+      prep: (c) => { c.view.zoom(0.25); c._render(); press(c, ".wi-add-wood"); } },
+    { name: "advisor+rows", page: "advisor",
+      patch: (s) => {
+        s[DEFAULT_SPACE].attributes.sensor_advisor = { basis: "history", candidates: [
+          { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+            spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+          { key: "outdoor_temp_entity", label: "Outdoor temperature",
+            priced: false, reason: "weather_backed" }] };
+      } },
+    { name: "setup+picker", page: "setup", prep: (c) => press(c, ".setup-hit") },
+    { name: "setup+layout", page: "setup", prep: (c) => press(c, ".layout-edit-toggle") },
+    { name: "editor", make: () => {
+      // The rig's createElement makes a plain stub node, not the registered
+      // class, so the editor is built from its constructor.
+      const e = new (ctx.customElements.get("heatpump-optimizer-card-editor"))();
+      e.hass = { states: states(), language: "en" };
+      e.setConfig(Card.getStubConfig());
+      return e;
+    } },
+  ];
+  for (const v of FIXTURES) {
+    const fresh = new Set(driven);
+    await driveAll(v.page, v, (r) => !fresh.has(r.line));
+  }
+  for (const k of Object.keys(navHook)) navHook[k] = null;
+  Node.prototype._findAll = saved.findAll;
   ctx.navigateTo = saved.navigateTo; ctx.openHaLink = saved.openHaLink;
+  for (const n of watched) { delete ctx[n]; delete ctx.window[n]; }
 
   check("haLink builds the three deep links Home Assistant routes",
     haLink("options", ENTRY) === `${BARE}#config_entry=${ENTRY}`
@@ -11353,20 +12217,57 @@ check("without an indoor reading the corner now label is absent",
     && haLink("entity", null, "sensor.x") ===
       "/config/entities?domain=heatpump_optimizer&more-info-entity-id=sensor.x&more-info-view=settings");
 
-  const srcLines = cardSrc.split("\n");
+  // The reach rule enumerates every MENTION of the two link functions, not the
+  // `name(` call-site spelling. A call split from its `(` by whitespace or a
+  // comment, `.call`/`.apply`, a value handed on, or a computed key all name
+  // the route the same way, and the round-5 review planted
+  // `navigateTo ("/config/entities")` -- one space -- into code no press
+  // reaches and it passed. As with the surface's `open`, the token is the NAME,
+  // and every mention must be one the census reached. The two definitions are
+  // not routes, and `openHaLink`'s own follow-through (`if (path)
+  // navigateTo(path)`) is reached whenever an `openHaLink` call is, so it is
+  // excused rather than owing a press of its own. Comments are blanked first,
+  // so prose that names a route is not a mention.
+  const srcLines = cardSrc.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1").split("\n");
   const bodyOf = (re) => {
     const at = srcLines.findIndex((l) => re.test(l));
     return [at, srcLines.findIndex((l, i) => i > at && l === "}")];
   };
-  const [openAt, openEnd] = bodyOf(/^async function openHaLink\(/);
+  const [openAt, openEnd] = bodyOf(/^\s*async function openHaLink\s*\(/);
+  const LINK_NAME = /\b(navigateTo|openHaLink)\b/;
   const sites = srcLines.map((l, i) => [l, i])
-    .filter(([l, i]) => /\b(navigateTo|openHaLink)\(/.test(l.replace(/^(async )?function (navigateTo|openHaLink)\(/, ""))
-      && !(i > openAt && i < openEnd && /navigateTo\(/.test(l)))
+    .filter(([l]) => LINK_NAME.test(l))
+    .filter(([l]) => !/^\s*(?:async\s+)?function\s+(?:navigateTo|openHaLink)\s*\(/.test(l))
+    .filter(([, i]) => !(i > openAt && i < openEnd))
     .map(([, i]) => i + 1);
   const unreached = sites.filter((i) => !hits.has(i));
-  check("the census reached every navigateTo and openHaLink call site",
+  check("the act set the census declares is the one the card's source dispatches",
+    srcActs.length > 0 && sourceOnly.length === 0 && declaredOnly.length === 0,
+    `source-only ${sourceOnly.join(",")}; declared-only ${declaredOnly.join(",")}`);
+  const unpressed = ACTS.filter((a) => !pressed.has(a));
+  check("the census pressed every act branch the card can dispatch",
+    unpressed.length === 0,
+    `unpressed ${unpressed.join(",")}; pressed ${[...pressed].sort().join(",")}`);
+  check("the event arm has a literal type to allow, so it measures something",
+    EVENT_TYPES.size > 0, [...EVENT_TYPES].join(","));
+  check("no primitive this census does not instrument is reached for on a page or a press",
+    unknown.size === 0, [...unknown].join(", "));
+  check("the census reached every navigateTo and openHaLink mention",
     sites.length > 0 && unreached.length === 0,
     `pressed ${census.join(" ")}; sites ${sites.join(",")}; unreached ${unreached.join(",")}`);
+  // Every addEventListener site in the card's code registered a listener the
+  // census drove, a click it pressed or a handler of any other type: a site
+  // no fixture renders is a handler nothing drives, and is refused by line
+  // rather than passing both arms unseen.
+  const listenSites = srcLines.map((l, i) => [l, i])
+    .filter(([l]) => /\baddEventListener\s*\(/.test(l)).map(([, i]) => i + 1);
+  const undriven = listenSites.filter((i) => !driven.has(i));
+  check("the census drove a listener from every addEventListener site in the card",
+    listenSites.length > 0 && undriven.length === 0,
+    `${drives} drives over ${listenSites.length} sites; undriven ${undriven.join(",")}`);
+  check("the card wires no handler outside addEventListener",
+    inline.size === 0, [...inline].join(", "));
   check("no press throws",
     threw.length === 0, threw.join("; "));
   check("every link the census records from a press is one haLink builds for this entry",
@@ -11392,13 +12293,15 @@ check("without an indoor reading the corner now label is absent",
 
   // openHaLink resolves this card's entry through the registry and follows
   // haLink with it; a failed lookup links the whole integration. Driven
-  // directly, because no button calls it until a later group converts one.
+  // directly here so both registry answers (found, refused) are exercised
+  // without a page: its real caller is the Setup page's Configure chip
+  // (R10-UX-SETUP), which the press census above clicks.
   const follow = async (ws, kind, entityId) => {
     const c = open("advisor");
     c.hass = { ...c.hass, callWS: ws };
     const pushed = [];
-    ctx.history = { ...saved.history, pushState: (_a, _b, path) => pushed.push(path) };
-    try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = saved.history; }
+    ctx.history = { ...NAV.history, pushState: (_a, _b, path) => pushed.push(path) };
+    try { await saved.openHaLink(c, kind, entityId); } finally { ctx.history = NAV.history; }
     return pushed;
   };
   const asked = [];

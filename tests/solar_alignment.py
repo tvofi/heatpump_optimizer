@@ -29,7 +29,7 @@ from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.entry_config import EntryConfig
 from heatpump_optimizer.open_meteo import IrradianceSeries, OpenMeteoSolar
 from heatpump_optimizer.optimizer import OptimizationConfig
-from heatpump_optimizer.price_model import PriceShapeModel
+from heatpump_optimizer.price_model import PriceShapeLearner
 from heatpump_optimizer.thermal_model import ThermalState
 
 try:
@@ -56,14 +56,13 @@ def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
         horizon_hours=n_steps // 4, time_step_minutes=15
     )
     c._config = EntryConfig()
-    c._prices = [{"total": 1.0} for _ in range(48)]
     c._current_state = ThermalState(outdoor_temperature=0.0)
     c._solar_radiation = 0.0
     c._solar_radiation_forecast = []
     c._open_meteo = open_meteo
     # Added in v2.8.0: the learned price prior (item 7) and the PV surplus
     # model (item 9) are both consulted while the forecast arrays are built.
-    c._price_model = PriceShapeModel()
+    c._price_learner = PriceShapeLearner()
     c._price_known_steps = 0
     # Added in v4.0.0 T1: the grid-fee layer's parse cache (#1) is consulted
     # by the fee chokepoint inside ``_price_series``.
@@ -75,6 +74,9 @@ def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
 
     now = dt_util.now()
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Prices carry their hours: an untimestamped row is placed nowhere (R10 #2236).
+    c._prices = [{"total": 1.0, "starts_at": (midnight + timedelta(hours=h)).isoformat()}
+                 for h in range(48)]
     # An hourly weather forecast starting at the current hour, carrying its own
     # irradiance so the override can be distinguished from the fallback.
     c._weather_forecast = [
@@ -258,7 +260,9 @@ coord_fb = Coord(
     ),
 )
 coord_fb._open_meteo = _CurrentIrradiance()
-coord_fb._prices = [{"total": 1.0} for _ in range(48)]
+_fb_midnight = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
+coord_fb._prices = [{"total": 1.0, "starts_at": (_fb_midnight + timedelta(hours=h)).isoformat()}
+                    for h in range(48)]
 coord_fb._weather_forecast = []
 asyncio.run(coord_fb._update_current_state())
 ctx_fb = getattr(coord_fb, "_ctx", coord_fb)

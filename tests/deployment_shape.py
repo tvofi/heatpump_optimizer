@@ -37,7 +37,7 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 95
+records every read, so this lane's recorded closure is the package: all 98
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
@@ -45,7 +45,8 @@ images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 ``quiet_windows.py``, 89 until R9-DBG-1's ``debugger.py``, 90 until
 R9-EG-B11's ``entry_config.py``, 91 until R9-UX-9's ``flow_meter.py``, 92
 until the live power clamp's ``draw_range.py``, 93 until the live-fix wave's
-``early_cutoff.py``, 94 until R10-FAHRENHEIT's ``issues.py``) -- one of the three closures in ``tests/closures.json`` that reach
+``early_cutoff.py``, 94 until R10-FAHRENHEIT's ``issues.py``, 95 until
+R10-N-log-flood's ``log_latch.py``, 96 until R10-PUMP-MODEL's ``plan_step.py``, 97 until R10-DIAG-REPLAY's ``replay_doc.py``) -- one of the three closures in ``tests/closures.json`` that reach
 every production file; the second is ``tests/arch_score_head.py``'s
 (R9-EG-A1), which measures today's tree with the architecture score and so
 must read all of it, and the third is ``tests/entities.py``'s (round 9),
@@ -71,12 +72,12 @@ doc_claims.py's and harness_headers.py's, moving the count from 123 to 122
 and putting entities.py itself in the full-coverage set).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
-(95 shared production files each), doc_claims.py/harness_headers.py
-(84), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (76 each), plan_view.py/solar_alignment.py,
+(96 shared production files each), doc_claims.py/harness_headers.py
+(86), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
+finite_boundary.py/typing_ruler.py (78 each), plan_view.py/solar_alignment.py,
 boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
-(58 each), the optimality.py/validate.py/edge.py/backtest.py four (21, six
-pairs), golden.py/env_drift.py (92), card.mjs/card_drift.mjs (59) -- and which
+(60 each), the optimality.py/validate.py/edge.py/backtest.py four (22, six
+pairs), golden.py/env_drift.py (94), card.mjs/card_drift.mjs (61) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here

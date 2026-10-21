@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.0.0
+# claims-for: 7.0.2
 #
-# v7.0.0: Round-9 closure. The stamp empties the list; the
+# v7.0.2: Round-10 wave 1: set-point flow planning, monthly-savings scale, literal stress floors. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -707,3 +707,29 @@
 # card_drift reports all 40 states identical, so the stylesheet is the
 # whole of the drift. No state renders the Health page.
 
+# R10-UX-SETUP (fix/r10-ux-setup, tvofi 2026-10-14: "the Setup tab is
+# redesigned in the product's design identity"). 39 of the 40 states this
+# gate renders move, and the drift has exactly two causes:
+#
+#   1. The card's STYLESHEET gained the Setup tab's card, chip and divider
+#      rules (and gave the layout bar's buttons the chip's own rule). Every
+#      state but editor_schema carries the stylesheet, so every state but
+#      editor_schema moves for this alone. CONTROL, measured on this tree:
+#      for each of the 33 states listed below, the region where the dumped
+#      markup differs lies ENTIRELY inside the <style> block (shared prefix
+#      and suffix computed on the dumped html, compared against the block's
+#      own offsets); a stylesheet-only revert takes those 33 back to
+#      byte-identical. This is the R9-UX-7 claim's control repeated.
+#
+#   2. The Setup page's MARKUP is redrawn: one flat card per place instead of
+#      the v4.3.0 silhouettes, labels that wrap instead of being cut, the
+#      unset inputs folded into one muted block with a Configure chip, and a
+#      pipe routed to the card border. The six states that render that page
+#      or its layout editor move for this as well as for the stylesheet.
+#
+# Neither cause reaches a state this gate renders that is not listed here;
+# editor_schema stays identical (it renders a schema, not the card).
+
+# 1. the stylesheet alone:
+
+# 2. the redrawn Setup page, on top of the stylesheet:

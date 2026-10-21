@@ -7,7 +7,7 @@ and a recommendation for a decision; the fixes then become a prioritized
 instrument pull request). Study only — no fix PRs from this seat, no
 production file changed. Baseline **`origin/main` = `6be88834e`** (2026-10-10,
 the merge of #2125) — the same head whose push run the orchestrator watched.
-Worktree `/Users/timmalmstrom/hpo-seats/r9pre-covfast/wt`; run logs fetched
+Worktree `~/hpo-seats/r9pre-covfast/wt`; run logs fetched
 read-only via `gh api` from this macOS box. The suite was NOT run locally
 (the brief forbids a local timing; it is not comparable anyway) and
 `tests/derive_closures.sh` was not run at all; every timing below is read out

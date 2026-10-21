@@ -47,6 +47,99 @@ if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
 
 
+# ---------------------------------------------------------------------------
+# The reason fields' vocabulary (``CurrentAction.space_reason`` /
+# ``dhw_reason`` and every plan row's ``reason``): the optimizer writes the
+# plan-step codes, the coordinator and ``boost.py`` write the whole-action
+# causes below them, and the legionella guard and the card read them (item
+# 16). One vocabulary for both, because the settlement books either kind.
+# ---------------------------------------------------------------------------
+
+REASON_COMFORT_FLOOR = "comfort_floor"
+REASON_CHEAP_PRICE = "cheap_price"
+REASON_PREHEAT_WEATHER = "preheat_weather"
+#: The neutral fall-through: a step that is none of the specific cases below,
+#: which is to say an ordinary slot holding the house at target. Until v5.1.7
+#: these steps were tagged ``preheat_weather`` — the same code as the genuine
+#: high-heat-loss branch — so the card told a user that a mid-price hour on a
+#: mild afternoon was "Pre-heating before colder weather". A reason code that
+#: doubles as a default is a reason code that cannot be trusted, and this one
+#: was read as evidence that the optimizer was chasing weather it had not been
+#: shown.
+REASON_SCHEDULED = "scheduled"
+REASON_TERMINAL_VALUE = "terminal_value"
+REASON_SOLAR_SURPLUS = "solar_surplus"
+REASON_DHW_WINDOW = "dhw_window"
+REASON_DHW_READY = "dhw_ready"
+REASON_DHW_PREHEAT = "dhw_preheat"
+REASON_LEGIONELLA = "legionella"
+REASON_IDLE = "idle"
+#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
+#: code, the most specific that applies: a hard limit, then a named wait,
+#: then the price, then coasting. ``idle`` remains the fall-through.
+REASON_IDLE_OTHER = "idle_other_channel"
+REASON_IDLE_FUSE = "idle_fuse"
+REASON_IDLE_SOLAR = "idle_solar"
+REASON_IDLE_DEARER = "idle_dearer"
+REASON_IDLE_COASTING = "idle_coasting"
+
+#: A step ran because the manual plan said so, not because the optimizer chose
+#: it. Kept distinct from the automatic reasons so a pinned slot is never
+#: mistaken for the solver's own decision.
+REASON_MANUAL = "manual_plan"
+
+#: A step is empty because the heat pump's *operating mode* cannot serve that
+#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
+#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
+#: optimizer chose not to run, and a user reading "not heating" against a
+#: comfort floor the plan is missing would look for a bug in the optimizer
+#: instead of at the mode selector on the pump. See ``pump_mode.py``.
+REASON_PUMP_MODE = "pump_mode"
+
+#: A channel ran because the user laid a timed boost on it, or selected the
+#: global boost mode: the overlay asked for maximum heat, not the plan. The
+#: settlement books the boosted channel's energy under this code, because the
+#: plan's reason for that step describes what the *plan* wanted — often
+#: nothing — and an idle step carrying a boost's kilowatts is why "Not
+#: heating" was the costliest attribution category (#2256).
+REASON_BOOST = "boost"
+
+#: The user selected the global comfort mode, which commands a fixed share of
+#: nameplate power. Like ``REASON_BOOST`` it is a whole-action cause and not a
+#: plan step's reason; without it that mode's draw booked "untagged".
+REASON_COMFORT_MODE = "comfort_mode"
+
+#: The step-response experiment commanded this interval's draw. The action used
+#: to blank its reason, so the settlement could only say "untagged" about a
+#: draw whose cause it knew exactly (#2256).
+REASON_SYSTEM_IDENTIFICATION = "system_identification"
+
+#: No plan governed this interval's energy: a restart before the first solve, or
+#: a step whose reason says the plan was drawing nothing there while the meter
+#: saw a draw. The token is shipped — it is a ledger line and a receipt
+#: category — so the code keeps its name and gains a constant; a cause that is
+#: known books under its own code, never here.
+REASON_UNTAGGED = "untagged"
+
+#: The codes that say the plan drew NOTHING on the channel at this step:
+#: ``idle`` and its sub-codes, and a channel the pump's mode blocked. The
+#: settlement books a metered draw that lands on one of these as
+#: ``REASON_UNTAGGED`` (#2256): the step's own reason says there was no
+#: planned energy for it to name, so the draw needs a different cause. Every
+#: other code says the plan ran the channel, and explains the channel's draw
+#: whatever the meter's magnitude — a step below the modulation floor is duty
+#: cycling WITHIN it (``thermal_model.planned_draw_runs``), so a reading above
+#: the step's average is the pump's own cycling, not an unplanned draw.
+#:
+#: One owner: the optimizer's classifier, its blocked relabel and the
+#: settlement all read this set, so a new idle sub-code cannot be idle to one
+#: and planned to another.
+IDLE_REASONS = frozenset({
+    REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER, REASON_IDLE_COASTING, REASON_PUMP_MODE,
+})
+
+
 class CurrentAction(TypedDict, total=False):
     mode: str
     power: float
@@ -56,7 +149,7 @@ class CurrentAction(TypedDict, total=False):
     lower_setpoint: float
     displace_value: float
     heat_pump_on: bool
-    price: float
+    price: float | None
     valve_target: float
     solar_gain_kw: float
     baseline_kw: float
@@ -408,6 +501,9 @@ class ExternalHeat(TypedDict, total=False):
 class SysIdResultView(TypedDict, total=False):
     completed: bool
     time_constant_hours: float | None
+    # On the configured zone total the learned scale multiplies, not the
+    # model's effective UA -- `SysIdResult.heat_loss_kw_per_c` names the basis,
+    # and `house_heat_loss_effective` publishes the effective one.
     heat_loss_kw_per_c: float | None
     thermal_mass_kwh_per_c: float | None
     internal_gains_kw: float | None
@@ -698,7 +794,7 @@ class MeasurementView(TypedDict, total=False):
 
 
 class GridView(TypedDict, total=False):
-    current_price: float
+    current_price: float | None
     prices_available: int
     weather_forecast_available: int
     outdoor_forecast_temperature: float | None

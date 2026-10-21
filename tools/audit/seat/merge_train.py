@@ -32,10 +32,11 @@ later pull request would be graded against a `main` the refused one never joined
                  neutral stops it, except the `--ignore-red` names (default
                  `nightly-status`, which grades `main`, not the head). A head
                  whose TIP is a GITHUB_TOKEN push (author `github-actions[bot]`)
-                 is refused before any check is read: such a push fires no
-                 `pull_request` run at all, so the required contexts only one
-                 writes stay ABSENT at it forever and the merge would be
-                 refused with nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
+                 is refused before any check is read: such a push's
+                 `pull_request` runs are held `action_required`, so the
+                 required contexts only one writes stay ABSENT at it until a
+                 held run is approved, and the merge would be refused with
+                 nothing saying why (R9-RC-AUTOFIX-GOVERNANCE).
                  The required follow-up is an App push -- step 1's recarry is
                  one, which is why the refusal fires only where the head
                  already contains main;
@@ -62,8 +63,14 @@ later pull request would be graded against a `main` the refused one never joined
                  the train approves as the account `gh` is logged in as, with a
                  body naming the mandate label, the role, the verdict comment and
                  the carried head. Without `--mandate`, or on any other refusal
-                 (missing evidence included), or when a `*_budgets.json` changed
-                 (a raise is the owner's, 0013), it stops;
+                 (missing evidence included), it stops. A budget RAISE --
+                 `Train.raise_hold`: budget_raise_gate's own `raises_between`
+                 from the merge base, the direction CI's gate reads, never a
+                 `*_budgets.json` path, so a file that only gains rows is none
+                 -- is the owner's (0013): it lands only on the owner's approval
+                 already at the head, judged as the gate's `decide` judges it
+                 (the body's raise justification included) with its mandate
+                 read at the merge, and else stops with the gate's reason;
   7. ready, preflight of the title (`REFUSE` stops), merge with
      `--match-head-commit` (retried; `main` re-checked before each attempt;
      every refusal logged in GitHub's words, a base-moved one -- or, serially,
@@ -72,8 +79,12 @@ later pull request would be graded against a `main` the refused one never joined
      recarry worktrees a run made are removed before its closing line.
 
 It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
-<reason>` (exit 1). Every GitHub write is the orchestrator's: run this only
-from the orchestrator's machine and identity (decisions 0011, 0013).
+<reason>` (exit 1). A real run publishes `TRAIN HOLD refs/heads/train-hold`
+before anything merges and releases it just before the closing line: CI
+cannot see this process's pidfile, and tests.yml's record beat auto-merges
+record pull requests otherwise, moving main mid-train (#2291/#2295/#2299,
+2026-10-15; issue #2302). Every GitHub write is the orchestrator's: run this
+only from the orchestrator's machine and identity (decisions 0011, 0013).
 Replaces the session-local train3.py / mergewhen.sh / waitci.sh of round 9;
 the stale-base guard mergewhen.sh carried is subsumed by step 4, which refuses
 any head that does not contain the `main` it merges into.
@@ -84,9 +95,11 @@ Same queue file; no head is re-merged with main. In order:
                  nothing is admitted (a proof on a red main blames its entries);
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
-                 any `*_budgets.json` change goes SERIAL, and so does a head
-                 whose tip is a GITHUB_TOKEN push (`bot-head`): no proof can
-                 carry it, and its serial recarry -- once the batch's own merges
+                 any `*_budgets.json` change goes SERIAL (a routing by path, not
+                 a raise reading: serially, step 6's `raise_hold` decides
+                 whether the change is a raise), and so does a head
+                 whose tip is a GITHUB_TOKEN push (`bot-head`): its
+                 `pull_request` runs are held, so no proof can carry it, and its serial recarry -- once the batch's own merges
                  moved main -- is the App push that cures it (refused there as
                  before when main never moved). The
                  rest must be green at their head (all check runs, less
@@ -267,6 +280,20 @@ HEARTBEAT_SECONDS = 240
 # costs one full CI wait at the new head (~40 min), so three bound a busy
 # main's entry to about two hours before it stops as before.
 MAIN_MOVED_TRIES = 3
+# THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
+# process's pidfile, and the record beat in tests.yml auto-merges record pull
+# requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
+# on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
+# publishes this ref while it is live and deletes it at its closing line; the
+# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
+# an older one as stale, so a crashed train cannot block records forever. The
+# ref points at a commit created at publication, whose committer date is the
+# age the beat reads; it is refreshed at the start of every queue item, before
+# every recarry, and before every sleep inside wait_ci, so the age is the last
+# REFRESH's, not the run's, and the beat's bound prices that gap -- one phase
+# (a recarry or a poll), never a whole CI wait and never a whole batch. A
+# `batch/` rehearsal publishes nothing: it merges nothing into main.
+HOLD_REF = "refs/heads/train-hold"
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -318,7 +345,7 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
-BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: no pull_request run can fire
+BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
 ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
 BOT_ROUTE = "bot-head"               # batch: a GITHUB_TOKEN tip goes serial, where its recarry cures it
@@ -399,6 +426,35 @@ def policy_fixture_builders():
     return g, owner_review, mandate, revoke
 
 
+# The self-tests' budget worlds: {path: (text at the merge base, text at the
+# head)}, None for an end the file is absent at. RAISE_FIXTURE is a real raise
+# (a cap goes up); NEW_ROWS_FIXTURE is #2401's shape, a budget file that only
+# gains rows, which budget_raise_gate reads as no raise at all.
+RAISE_FIXTURE = {"tests/structure_budgets.json": ('{\n "m": 3\n}\n', '{\n "m": 4\n}\n')}
+NEW_ROWS_FIXTURE = {"tests/ci_budgets.json": (
+    '{\n "archscore.hub_solve_writes": 41,\n "reason": "r"\n}\n',
+    '{\n "archscore.hub_solve_writes": 41,\n "archscore.shape_copies": 66,\n "reason": "new row"\n}\n')}
+JUSTIFIED_BODY = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
+                  "- Architecture score: dS +0.4 IMPROVES\n")
+
+
+def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple[int, str] | None":
+    """A stubbed `run`'s answer to raise_hold's tree and blob reads from a
+    budget world (above): the base tree is <base>, any other sha the head.
+    None: not a read this world answers."""
+    if not budgets:
+        return None
+    if argv[:4] == ["git", "ls-tree", "-r", "--name-only"]:
+        end = 0 if argv[4] == base else 1
+        return 0, "".join(f"{p}\n" for p, ends in budgets.items() if ends[end] is not None)
+    if argv[:2] == ["git", "show"] and ":" in argv[2]:
+        sha, path = argv[2].split(":", 1)
+        if path in budgets:
+            text = budgets[path][0 if sha == base else 1]
+            return (0, text) if text is not None else (128, f"fatal: path '{path}' does not exist in '{sha}'")
+    return None
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -434,6 +490,8 @@ class Train:
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
+        self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
+        self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -454,19 +512,22 @@ class Train:
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
 
     # R9-RC-AUTOFIX-GOVERNANCE. A GITHUB_TOKEN push (the autofix jobs' pin and
-    # re-record commits, the merge-main bot's resolution) fires NO pull_request
-    # workflow run at all -- GitHub suppresses events from GITHUB_TOKEN -- so at
-    # such a head the only runs are the four the autofix job dispatches, and the
-    # required contexts only a pull_request run writes stay ABSENT forever: the
-    # head settles, every run it has is green, and the merge is refused with
-    # nothing saying why (measured 2026-10-09 at 63084989/#2066 and
-    # a9ba0b88/#2070: 4 dispatched runs each, zero pull_request runs, the same
-    # 5 of the 17 required contexts of main-protect-checks absent). Dispatch
-    # cannot close the gap: governance.yml answers workflow_dispatch, but
-    # pr-contract.yml and budget-raise-gate.yml take pull_request/merge_group
-    # only. The one follow-up that repairs such a head is an App push, and the
-    # train's own recarry (step 1) is one -- so the refusal fires only where the
-    # head already contains main and no recarry is possible.
+    # re-record commits, the merge-main bot's resolution) does create
+    # pull_request runs, but they are held action_required (actor
+    # github-actions[bot]) until approved -- every bot head from
+    # 2026-10-15T10:23Z, e.g. Tests run 38781421410 at 720d3636: attempt 1
+    # action_required, attempt 2 approved by hpo-runs[bot]. Until then the
+    # required contexts only a pull_request run writes are ABSENT. On
+    # 2026-10-09 no such run was created at all (63084989/#2066 and
+    # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
+    # contexts of main-protect-checks absent). The autofix job's approve step
+    # approves the held runs, fail-soft while its secrets are absent; this
+    # train does not read whether it did, so it still refuses such a tip.
+    # Dispatch cannot write those contexts: governance.yml answers
+    # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
+    # pull_request/merge_group only. An App push is a follow-up that does, and
+    # the train's own recarry (step 1) is one -- so the refusal fires only where
+    # the head already contains main and no recarry is possible.
     def bot_tip(self, h: str) -> "str | None":
         """The subject of <h>'s tip commit when a GITHUB_TOKEN push put it there
         (author github-actions[bot], the login every such push carries), else
@@ -482,9 +543,9 @@ class Train:
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
-                    f"'{subject}'): no pull_request run fires at it, so the required contexts "
-                    "only one writes never report -- the head looks settled and is unmergeable, "
-                    "with nothing saying why. The required follow-up is an App push at this "
+                    f"'{subject}'): its pull_request runs are held action_required, so the required "
+                    "contexts only they write are ABSENT until one is approved -- the head can look "
+                    "settled and be unmergeable, with nothing saying why. The required follow-up is an App push at this "
                     "head: run the train again once main has moved (its recarry is one), or "
                     "have the orchestrator App-push the branch", cls=BOT_HEAD)
 
@@ -645,7 +706,10 @@ class Train:
         silence). The beat is time-based -- computed from the wait's start
         against the poll clock -- never poll-based, so a poll cadence slower
         or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
-        value, gate or wait duration changes."""
+        value, gate or wait duration changes. One write rides the loop: while
+        the wait goes on, the train-hold ref is refreshed before each sleep
+        (`hold_refresh`), so a wait that runs to its `polls` ceiling still
+        keeps the record beat held; a wait that settles writes nothing."""
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
@@ -674,6 +738,11 @@ class Train:
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
             # t+305s (tvofi, 2026-10-14) -- a beat never waits on a poll.
+            # Before the wait the hold is refreshed (R10-TRAIN-HOLD): a wait is
+            # the longest silence a train has, so the beat's bound prices the
+            # refresh gap, not a whole wait. Returning above (CI settled) costs
+            # no write.
+            self.hold_refresh()
             self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
 
@@ -816,16 +885,58 @@ class Train:
             raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
         return o
 
-    def _owner_at_head(self, pr: int, h: str) -> "str | None":
-        """The owner's approval ALREADY at <h> -- budget_raise_gate's own
-        `approval` with the gate's own `justification` of the body (what
-        `decide` passes), its mandate judged AT THE MERGE rather than at the
-        review's submission -- else None. GitHub re-anchors an approval's
-        commit_id across a clean merge of the base (#2209: review 5526967770
-        names 8a8e66e7 in its body, the API reports the recarried 8876da3b),
-        so after a recarry the owner's approval can already name the live
-        head; it is the owner's there, and nothing is re-posted."""
+    def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
+        """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
+        budget raise, shared by `approve` and queue_pre_flight.py.
+
+        The raises are budget_raise_gate's own `raises_between` from the merge
+        base with origin/main -- the direction CI's budget-raise-gate reads,
+        never a `*_budgets.json` path: a budget file that only gains rows
+        (#2401) raises nothing, ([], True, why), and takes the ordinary
+        approve path. A raise holds only under the owner's approval at <h> as
+        the gate's `decide` judges it -- `approval` with the gate's own
+        `justification` of the body, read on this branch alone -- its mandate
+        judged AT THE MERGE rather than at the review's submission. GitHub
+        re-anchors an approval's commit_id across a clean merge of the base
+        (#2209: review 5526967770 names 8a8e66e7 in its body, the API reports
+        the recarried 8876da3b), so after a recarry the owner's approval can
+        already name the live head; it is the owner's there, and nothing is
+        re-posted. `why` is the gate's own reason either way. A read that
+        fails, or a budget path the diff names that neither tree holds, is a
+        Stop: an unread budget is never a routine one."""
         g = _mandate_gate()
+        if not any(f.endswith(g.SUFFIX) for f in files):
+            return [], True, "no budget file changed"
+        trees: dict[str, set[str]] = {}
+
+        def read(argv: "list[str]") -> str:
+            code, o = self.run(argv)
+            if code:
+                raise Stop("approve", f"the budget read failed ({' '.join(argv)[:80]}: {o.strip()[-160:]}); "
+                           "an unread budget is never a routine one")
+            return o
+
+        def ls(sha: str) -> "list[str]":
+            trees[sha] = set(read(["git", "ls-tree", "-r", "--name-only", sha]).splitlines())
+            return sorted(trees[sha])
+
+        def show(sha: str, path: str) -> "str | None":
+            return read(["git", "show", f"{sha}:{path}"]) if path in trees[sha] else None
+        base = read(["git", "merge-base", "origin/main", h]).strip()
+        if not is_sha(base):
+            raise Stop("approve", f"the budget read failed: the merge base reads '{base[:60]}'")
+        try:
+            _paths, raises = g.raises_between(base, h, ls, show)
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: a budget the gate cannot read raises everything
+            raise Stop("approve", f"the budget read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
+        unseen = [f for f in files if f.endswith(g.SUFFIX) and not any(f in t for t in trees.values())]
+        if unseen:
+            raise Stop("approve", f"the budget read failed: the diff names {', '.join(unseen)}, which neither "
+                       f"{base[:12]} nor {h[:12]} lists; an unread budget is never a routine one")
+        if not raises:
+            return [], True, "no budget raise (budget_raise_gate.raises_between: 0); the ordinary path"
         now = datetime.datetime.now(datetime.timezone.utc)
         at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
         try:
@@ -836,7 +947,8 @@ class Train:
             raise
         except Exception as e:  # fail closed: an unread approval is none
             raise Stop("approve", f"the owner-approval read failed ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
-        return why if ok else None
+        head = f"{len(raises)} budget raise(s), first {raises[0]}"
+        return raises, ok, (f"{head}: {why}" if ok else f"{head}: a raise is the owner's (0013): {why}")
 
     def _owner_approval_at(self, pr: int, shas: "list[str]") -> "tuple[dict | None, int | None]":
         """The owner's latest APPROVED review when it names one of <shas>
@@ -935,15 +1047,14 @@ class Train:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
         if not self.mandate:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
-        budgets = [f for f in files if f.endswith("_budgets.json")]
-        if budgets:
-            held = self._owner_at_head(pr, h)
+        raises, held, why = self.raise_hold(pr, h, files)
+        if raises:
             if held:
-                self.log(f"#{pr} the owner's approval is at the head: {held}")
+                self.log(f"#{pr} the owner's approval is at the head: {why}")
                 return "owner"
             carried = self._carry_owner_approval(pr, h, item, files)
             if carried is None:
-                raise Stop("approve", f"code-owned and a budget file changed ({', '.join(budgets)}): a raise is the owner's (0013)")
+                raise Stop("approve", f"code-owned and {why}")
             return carried
         paths = ", ".join(f"`{p}`" for p in owned.group(1).split())
         body = (f"Agent approval for code-owned {paths}, given by {self.role} under {self.mandate}, at head {h}.\n\n"
@@ -976,6 +1087,7 @@ class Train:
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
         if not self.contains_main(h):
+            self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
             if not wt.exists():
@@ -1031,6 +1143,7 @@ class Train:
         return h
 
     def one(self, item: dict, req: "list[str] | None" = None) -> None:
+        self.hold_refresh()  # per item: a long item must not age the hold stale
         req = req if req is not None else self.required()
         self.serial(item, self.recarry(item), None, req)
 
@@ -1179,24 +1292,90 @@ class Train:
                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
         self.made_wts = []
 
+    def hold_refresh(self) -> None:
+        """Publish, or refresh, the record-beat hold ref (R10-TRAIN-HOLD).
+
+        The ref points at a commit made NOW, through the API and never a
+        `git push`: its committer date is the publication time the record
+        beat reads as the hold's age, and creating the ref through the API
+        starts no push-triggered run. A failure is logged and the train runs
+        on -- the pre-fix behaviour -- because the hold guards a bookkeeping
+        beat, and stopping a merge train for it is the worse failure."""
+        if not (self.real and self.hold_armed):
+            return
+        tip = self.out("git", "rev-parse", "origin/main")
+        tree = self.out("git", "rev-parse", tip + "^{tree}") if is_sha(tip) else ""
+        if not (is_sha(tip) and is_sha(tree)):
+            self.held = False
+            self.log(f"NOT held: origin/main is unreadable ({tip[:40]!r}); the record beat is not held")
+            return
+        code, said = self.run(
+            ["gh", "api", "--method", "POST", f"repos/{self.repo}/git/commits",
+             "--input", "-", "--jq", ".sha"],
+            stdin=json.dumps({"message": f"train hold pid={os.getpid()}",
+                              "tree": tree, "parents": [tip]}))
+        sha = next((w for w in said.split() if is_sha(w)), "")  # not said.strip(): a gh warning may trail it
+        if code or not is_sha(sha):
+            self.held = False
+            self.log(f"NOT held: the hold commit was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        # A hold this run owns is a PATCH; the first one is a create, and a
+        # stale ref a crashed train left is taken over by the PATCH fallback.
+        method = "PATCH" if self.held else "POST"
+        ref_url = (f"repos/{self.repo}/git/refs/heads/train-hold" if method == "PATCH"
+                   else f"repos/{self.repo}/git/refs")
+        payload = {"sha": sha, "force": True} if method == "PATCH" else {"ref": HOLD_REF, "sha": sha}
+        code, said = self.run(["gh", "api", "--method", method, ref_url, "--input", "-"],
+                              stdin=json.dumps(payload))
+        if code and method == "POST":
+            code, said = self.run(
+                ["gh", "api", "--method", "PATCH", f"repos/{self.repo}/git/refs/heads/train-hold",
+                 "--input", "-"], stdin=json.dumps({"sha": sha, "force": True}))
+        if code:
+            self.held = False
+            self.log(f"NOT held: the hold ref was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        self.held = True
+        self.log(f"TRAIN HOLD {HOLD_REF} {sha[:8]}: the record beat waits")
+
+    def hold_release(self) -> None:
+        """Delete the hold ref at the closing line, so the record beat resumes.
+
+        Idempotent: every closing path calls it, the last one finding the ref
+        already gone. A refused delete is logged with the expiry that bounds
+        the damage, never raised -- the train's merges have already landed."""
+        if not self.held:
+            return
+        self.held = False
+        code, said = self.run(["gh", "api", "--method", "DELETE",
+                               f"repos/{self.repo}/git/refs/heads/train-hold"])
+        self.log("TRAIN HOLD released" if not code else
+                 f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
+                 "it expires at the beat's own bound, or delete it by hand")
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
             try:
                 self.one(item)
             except Stop as s:
                 self.release_worktrees()  # before the closing line, which stays last
+                self.hold_release()
                 self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.release_worktrees()
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1261,8 +1440,8 @@ class Train:
         target = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "baseRefName", "--jq", ".baseRefName")
         if target != self.base:
             raise Stop("base", f"#{pr} targets {target}, not {self.base}")
-        # A GITHUB_TOKEN tip cannot join a proof (no pull_request run writes its
-        # required contexts) but the SERIAL path cures it: its recarry at its
+        # A GITHUB_TOKEN tip cannot join a proof (its pull_request runs are held,
+        # so its required contexts may be ABSENT) but the SERIAL path cures it: its recarry at its
         # turn, once the batch's own merges moved main, is the App push. A head
         # still containing main then is refused there, as before.
         bot = self.bot_tip(h)
@@ -1462,6 +1641,7 @@ class Train:
             return self._batch(queue, tag)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _batch(self, queue: list[dict], tag: str) -> int:
         # The banner is the FIRST output, before any blocking call: a
@@ -1471,6 +1651,8 @@ class Train:
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})"
                  f"{' --overlap' if self.overlap else ''}{' --skip-bad' if self.skip_bad else ''}")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         self.skipped: list[dict] = []
         try:
@@ -1602,6 +1784,7 @@ class Train:
                                   f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
+            self.hold_release()
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
@@ -1614,6 +1797,7 @@ class Train:
                      f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
         if self.skip_bad:
             self.skip_report(len(queue))
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1638,11 +1822,29 @@ def _self_test() -> int:
         def run(argv, cwd=ROOT, stdin=None):
             calls.append(argv)
             a = " ".join(argv)
+            if argv[:2] == ["git", "ls-tree"] and world.get("ls_fail"):
+                return 128, "fatal: not a tree object"
+            if argv[:2] == ["git", "show"] and world.get("show_fail") and argv[2].endswith("_budgets.json"):
+                return 128, "fatal: unable to read 0123abcd"
+            got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
+            if got is not None:
+                return got
             if "record_row.py" in a:  # --bot-prs: the record PR lookup and its guard
                 if "--find-open" in argv:
                     return world.get("bot_find", (0, "0"))
                 world.setdefault("bot_guarded", []).append(argv[argv.index("--head") + 1])
                 return world.get("bot_guard", (0, "AUTOMERGE OK #9"))
+            # THE RECORD-BEAT HOLD (issue #2302): the commit the hold ref points
+            # at, and the ref create/update. `hold_sha` empty (the default) is
+            # the API refusing, which the train must survive.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a:
+                world.setdefault("hold_commits", []).append(json.loads(stdin or "{}"))
+                return world.get("hold_commit", (0, world.get("hold_sha", "")))
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                world.setdefault("hold_refs", []).append(argv)
+                if "/git/refs/heads/train-hold" in a:  # PATCH or DELETE an existing ref
+                    return world.get("hold_update", (0, "{}"))
+                return world.get("hold_create", (0, "{}"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
@@ -1669,11 +1871,21 @@ def _self_test() -> int:
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+                # `pending_reads`: the first N reads report in_progress, so a
+                # wait that outlives one poll can be driven without a clock.
+                reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                runs = world.get("runs", [])
+                if reads <= world.get("pending_reads", 0):
+                    runs = [dict(c, status="in_progress") for c in runs]
+                return 0, "\n".join(json.dumps(c) for c in runs)
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
                 return 0, f"{'github-actions[bot]' if subj else 'tvofi'}\t{subj or 'fix: x'}"
+            if argv[:3] == ["git", "rev-parse", "origin/main"]:  # the hold's parent
+                return 0, world.get("main_tip", "d" * 40)
+            if argv[:2] == ["git", "rev-parse"] and argv[2].endswith("^{tree}"):
+                return 0, world.get("main_tree", "e" * 40)
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
             if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
@@ -1724,6 +1936,8 @@ def _self_test() -> int:
                 return 0, world.get("preflight", "  clean    no refusal")
             if "state,mergeCommit" in a:
                 return 0, world["merge"].pop(0) if world.get("merge") else "MERGED " + "d" * 40
+            if argv[:2] == ["gh", "api"] and re.search(r"/issues/\d+/comments", a):  # pre-flight's findings read
+                return 0, json.dumps([world.get("verdict_comments", [])])
             return 0, ""
         return run, calls
 
@@ -1732,21 +1946,34 @@ def _self_test() -> int:
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
     def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1,
-           wrap=None, approval_carry: bool = False, **opts) -> tuple[int, list[str], list[list[str]]]:
+           wrap=None, approval_carry: bool = False, base: str = "main",
+           **opts) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         lines: list[str] = []
+        timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
         if wrap:
             run = wrap(run)
+        base_run = run
+
+        def run_traced(argv, cwd=ROOT, stdin=None):
+            timeline.append(("call", " ".join(argv)))
+            return base_run(argv, cwd=cwd, stdin=stdin)
+
+        def logline(s: str) -> None:
+            lines.append(s)
+            timeline.append(("log", s))
+
         with tempfile.TemporaryDirectory() as d:
-            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
-                       sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3,
-                       approval_carry=approval_carry, **opts).train(q or [dict(item)])
+            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
+                       run=run_traced, sleep=lambda s: None, log=logline, polls=2, merge_tries=3,
+                       approval_carry=approval_carry, base=base, **opts).train(q or [dict(item)])
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
                 world[key] = f.read_text() if f.exists() else ""
+        world["timeline"] = timeline
         return rc, lines, calls
 
     def merged(calls) -> bool:
@@ -1782,7 +2009,11 @@ def _self_test() -> int:
     # still beats exactly on time.
     hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
     def hung_run(argv, cwd=ROOT, stdin=None):
-        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+        # The pair wraps the whole conditional: `return 0, X if c else (0, "")`
+        # made a non-check-runs call answer `(0, (0, ""))`, a tuple where the
+        # trainer reads a string (found by the R10-TRAIN-HOLD session/arming
+        # mutant, which is the only reader to reach it).
+        return (0, "\n".join(json.dumps(c) for c in hang)) if "check-runs" in " ".join(argv) else (0, "")
     ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
     lines: list[str] = []
     with tempfile.TemporaryDirectory() as d:
@@ -2071,10 +2302,10 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
-    rc, lines, calls = go({"approve": owned,
+    rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
-    check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
+    check("code-owned with a budget RAISE is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
     # --approval-carry: the recarry moved an owner-approved head, the owner
     # approved a budget raise there, and the orchestrator no longer re-posts it
     # by hand. `carry` is the fully-qualifying world; each arm below breaks
@@ -2087,7 +2318,7 @@ def _self_test() -> int:
         # The fully-qualifying carry world, fresh per arm: the mutable keys
         # (contains, heads) must never be shared between `go` calls -- a
         # recarry consumes them.
-        return dict({"approve": owned, "files": BUDGET, "contains": [False],
+        return dict({"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE, "contains": [False],
                      "heads": [H0, H1],
                      "carry_delta": (H0, H1, "docs/a-main-only-file.md\n")}, **over)
 
@@ -2106,8 +2337,7 @@ def _self_test() -> int:
     # approval named h, not h0, and `prior.commit_id != h0` returned no carry.
     # An owner approval already at the live head is the owner's (the gate's
     # raise reading, its mandate re-read at the merge): nothing to re-post.
-    JUST = ("## Summary\n\nRaise.\n\n## Raise justification\n\n- Payments tried: none left.\n"
-            "- Architecture score: dS +0.4 IMPROVES\n")
+    JUST = JUSTIFIED_BODY
     for flag in (True, False):
         w = carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW), pr_body=JUST)
         rc, lines, calls = go(w, mandate=CB, approval_carry=flag)
@@ -2191,6 +2421,60 @@ def _self_test() -> int:
                           mandate=CB, approval_carry=True)
     check("approval-carry whose re-post fails the byte-identical read-back is a Stop, not a pass",
           rc == 1 and "byte-identical" in lines[-1] and approved(calls) and not merged(calls))
+    # R10-TRAIN-RAISE-HOLD (#2401: trains t11-t13 stopped while CI's
+    # budget-raise-gate printed budget_raises=0 PASS). A raise is the gate's
+    # DIRECTION reading (raise_hold), never a `*_budgets.json` path: a budget
+    # file that only gains rows takes the ordinary mandate approval, and a
+    # raise's Stop carries the gate's own reason.
+    NEW_ROWS = ["tests/ci_budgets.json", f"{ROW_DIR}/7.md"]
+    w = {"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE, "reviews": [], "pr_body": "## Summary\n"}
+    rc, lines, calls = go(w, mandate=CB)
+    check("#2401's shape: a budget file that only gains rows is no raise -- the ordinary "
+          "mandate approval is posted and the entry merges, with no owner review and no "
+          "raise justification owed", rc == 0 and approved(calls) and merged(calls)
+          and "Agent approval for code-owned" in w["approve_body"])
+    rc, lines, calls = go({"approve": owned, "files": NEW_ROWS, "budgets": NEW_ROWS_FIXTURE,
+                           "reviews": [dict(owner_review(H0, NOW), id=RID)], "mandate": mandate(NOW),
+                           "pr_body": "## Summary\n"}, mandate=CB)
+    check("... and with #2401's own reviews (a mandated owner approval at the head, a body with no "
+          "raise justification) it still merges: the justification is a raise's alone",
+          rc == 0 and merged(calls))
+    PLANT = {"approve": owned, "files": BUDGET, "budgets": RAISE_FIXTURE}
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
+                               pr_body="## Summary\n\n## Raise justification\n\nWe need it.\n"), mandate=CB)
+    check("a planted raise whose mandated approval sits at the head but whose body is deficient "
+          "stops, naming the raise and BOTH missing lines",
+          rc == 1 and not merged(calls) and not approved(calls)
+          and "tests/structure_budgets.json: m: 3 -> 4" in lines[-1]
+          and "`Payments tried:`" in lines[-1] and "`Architecture score: dS`" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW), id=RID)], mandate=mandate(NOW),
+                               pr_body=JUST), mandate=CB)
+    check("a planted raise with a healthy body under the mandate in force lands as the owner's, "
+          "nothing re-posted", rc == 0 and merged(calls) and not approved(calls)
+          and any("approved (owner)" in ln for ln in lines))
+    rc, lines, calls = go(dict(PLANT, reviews=[], mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("a planted raise with no owner review stops, and the Stop carries the gate's why",
+          rc == 1 and not merged(calls) and "a raise is the owner's" in lines[-1]
+          and "no decisive review by" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, reviews=[dict(owner_review(H0, NOW - datetime.timedelta(minutes=30)), id=RID)],
+                               mandate=mandate(NOW, until_min=-10), pr_body=JUST), mandate=CB)
+    check("a planted raise approved while its mandate was in force, the mandate expired before the "
+          "merge, stops: the mandate is judged AT THE MERGE, not at the review",
+          rc == 1 and not merged(calls) and "expired" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, budgets=None, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a budget path the diff names that neither tree holds is a Stop, never "
+          "a no-raise", rc == 1 and not merged(calls) and not approved(calls)
+          and "budget read failed" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, ls_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a tree that cannot be listed is a Stop", rc == 1 and not merged(calls)
+          and not approved(calls) and "budget read failed" in lines[-1])
+    rc, lines, calls = go(dict(PLANT, show_fail=True, reviews=[dict(owner_review(H0, NOW), id=RID)],
+                               mandate=mandate(NOW), pr_body=JUST), mandate=CB)
+    check("fail closed: a budget blob the tree lists but git cannot read is a Stop even under the "
+          "owner's approval -- never its error text read as an unparsable file the approval then holds",
+          rc == 1 and not merged(calls) and not approved(calls) and "budget read failed" in lines[-1])
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
@@ -2221,11 +2505,10 @@ def _self_test() -> int:
         check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
               rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
     # R9-RC-AUTOFIX-GOVERNANCE: a GITHUB_TOKEN push (author github-actions[bot])
-    # fires NO pull_request workflow run at all, so the required contexts only
-    # one writes never report at such a head: it settles with them ABSENT and
-    # the merge is refused with nothing saying why (measured 2026-10-09 at
-    # 63084989/#2066 and a9ba0b88/#2070: 4 dispatched runs each, zero
-    # pull_request runs, the same 5 of the 17 required contexts absent).
+    # gets pull_request runs held action_required, so the required contexts
+    # only they write are ABSENT at such a head until one is approved, and the
+    # merge is refused with nothing saying why (the measurement is bot_tip's
+    # comment).
     BOT = "ci: pin killed mutants"
     rc, lines, calls = go({"bot_tips": {H0: BOT}})
     check("a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- "
@@ -2413,6 +2696,86 @@ def _self_test() -> int:
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
     check("every script the train runs resolves through TOOLS, none by a bare path"
           + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
+    # THE RECORD-BEAT HOLD (issue #2302). A record pull request that auto-merges
+    # mid-train moves main under it (#2291/#2295/#2299, 2026-10-15, stopped or
+    # re-carried #2284/#2290); CI cannot see the train's local pidfile, so the
+    # train publishes refs/heads/train-hold while it is live. These read the
+    # call/log timeline: the commit and ref create must precede the first merge,
+    # and the delete must close the train before its closing line.
+    def hold_idx(world: dict, kind: str) -> list[int]:
+        stop = {"create": "/git/refs --input -", "update": "/git/refs/heads/train-hold",
+                "delete": "/git/refs/heads/train-hold", "commit": "/git/commits"}
+        return [i for i, (k, v) in enumerate(world["timeline"])
+                if k == "call" and "gh api" in v and stop[kind] in v
+                and (kind == "delete") == ("--method DELETE" in v)]
+
+    def tl_idx(world: dict, kind: str, text: str) -> list[int]:
+        return [i for i, (k, v) in enumerate(world["timeline"]) if k == kind and v == text]
+
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w)
+    creates, commits = hold_idx(w, "create"), hold_idx(w, "commit")
+    deletes = hold_idx(w, "delete")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    done = tl_idx(w, "log", "TRAIN DONE")
+    check("a real train holds the record beat before its first merge and releases it "
+          "before the closing line (issue #2302)",
+          bool(rc == 0 and commits and creates and deletes and merges and done)
+          and commits[0] < creates[0] < merges[0] < deletes[0] < done[0]
+          and "TRAIN HOLD refs/heads/train-hold" in " ".join(lines)
+          and "TRAIN HOLD released" in lines)
+    w = {"hold_sha": "f" * 40,
+         "runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]}
+    rc, lines, calls = go(w)
+    deletes = hold_idx(w, "delete")
+    stopped = [i for i, (k, v) in enumerate(w["timeline"])
+               if k == "log" and v.startswith("TRAIN STOPPED")]
+    check("a train stopped mid-queue still releases the hold before its closing line "
+          "(a stopped train must not block the record beat)",
+          bool(rc == 1 and deletes and stopped) and deletes[-1] < stopped[-1])
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)], base="batch/rehearsal")
+    check("a batch/ rehearsal publishes no hold (null control: it merges nothing into main)",
+          rc == 0 and not any(k == "call" and "/git/refs" in v for k, v in w["timeline"]))
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)])
+    creates, updates = hold_idx(w, "create"), hold_idx(w, "update")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    check("the hold is refreshed once per queue item, so one long item cannot age it stale",
+          rc == 0 and len(creates) == 1 and len(updates) == 2 and len(merges) >= 2
+          and merges[0] < updates[1] < merges[1] and max(creates + updates) < hold_idx(w, "delete")[0])
+    w = {}  # the API refuses the hold commit: the train must still merge
+    rc, lines, calls = go(w)
+    check("an unreadable hold commit does not stop the train: logged, no ref, no delete",
+          rc == 0 and merged(calls) and not any(k == "call" and "/git/refs" in v
+                                                for k, v in w["timeline"])
+          and any(ln.startswith("NOT held:") for ln in lines))
+    # A WAIT IS THE LONGEST SILENCE (review F1). One CI wait runs to 24 polls
+    # of HEARTBEAT_SECONDS, and a --batch proof and a main_green wait are the
+    # same loop, so the ref is refreshed from the loop itself: the bound then
+    # prices the refresh gap, not a whole wait.
+    w = {"hold_sha": "f" * 40, "pending_reads": 1}
+    rc, lines, calls = go(w)  # polls=2: read 1 in progress, read 2 green
+    reads = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and "check-runs" in v]
+    check("a CI wait that outlives one poll refreshes the hold mid-wait, so the bound "
+          "can be shorter than a wait",
+          rc == 0 and merged(calls) and len(reads) >= 2
+          and any(reads[0] < u < reads[1] for u in hold_idx(w, "update")))
+    # A recarry takes 5-15 min inside app_push's prepr, and --overlap runs one
+    # per serial entry BEFORE any wait: a refresh only per item or per wait
+    # would let the up-front loop age the ref stale.
+    w = {"hold_sha": "f" * 40, "contains": [False]}
+    rc, lines, calls = go(w)
+    check("a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it",
+          rc == 0 and merged(calls) and len(hold_idx(w, "update")) == 2)
+    # `wait-ci` is a bare CI watch, not a train: it has no closing line to
+    # release a ref, so it must never publish one.
+    w = {"hold_sha": "f" * 40, "runs": green, "pending_reads": 1}
+    run0, calls0 = fake(w)
+    Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run0,
+          sleep=lambda s: None, polls=2).wait_ci(H0)
+    check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
+          not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
@@ -2494,7 +2857,16 @@ def _batch_self_test(check) -> None:
 
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
+            w.setdefault("calls", []).append(argv)  # the hold's order on the primary path
             a = " ".join(argv)
+            # THE RECORD-BEAT HOLD on the batch arm: `batch` defaults to
+            # `--base main`, so this world can prove the ref is published
+            # before anything merges. `hold_sha` empty (the default) is the API
+            # refusing, which the batch must survive like the serial train.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a and "/commits/" not in a:
+                return 0, w.get("hold_sha", "")
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                return 0, "{}"
             if "record_row.py" in a:  # --bot-prs: an open record PR #9 whose guard passes
                 w.setdefault("bot_calls", []).append(argv)
                 return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
@@ -2673,6 +3045,24 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    # THE HOLD ON THE PRIMARY PATH (re-review M8/M10). `batch` defaults to
+    # `--base main`, its start publish is the only hold write before a D merge
+    # (no wait sleeps, no proof), and nothing else in this suite asked whether
+    # the batch armed the ref: deleting the arming and/or the start publish
+    # left the suite green. These read the stub's own call order.
+    w = go({1: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.__setitem__("hold_sha", "f" * 40))
+    _calls = w["calls"]
+    _commits = [i for i, c in enumerate(_calls)
+                if c[:2] == ["gh", "api"] and "/git/commits" in " ".join(c)]
+    _refs = [i for i, c in enumerate(_calls)
+             if c[:2] == ["gh", "api"] and "git/refs" in " ".join(c)]
+    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+    check("a real-base batch publishes the record-beat hold before it merges anything "
+          "(the primary path is armed, not only the serial one)",
+          w["rc"] == 0 and list(w["merged"]) == [1]
+          and bool(_commits) and bool(_refs) and bool(_merges)
+          and _commits[0] < _refs[0] < _merges[0])
     _bg, brev, bman, _brev_revoke = policy_fixture_builders()
     bnow = datetime.datetime.now(datetime.timezone.utc)
     w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")

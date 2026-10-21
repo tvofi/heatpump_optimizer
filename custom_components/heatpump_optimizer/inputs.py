@@ -56,6 +56,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
+from .log_latch import log_held
 from .payload import InputProblem
 
 _LOGGER = logging.getLogger(__name__)
@@ -425,34 +426,110 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
     return temperature_c(attrs.get(low_key), unit), temperature_c(attrs.get(high_key), unit)
 
 
+#: The step a set-point entity that states none accepts, in its own unit:
+#: whole degrees, which many pumps' set-points take and nothing else
+#: (tvofi, 2026-10-19).
+DEFAULT_SETPOINT_STEP = 1.0
+#: The attribute a set-point entity states its step in, per domain.
+_STEP_KEYS = {"climate": "target_temp_step"}
+_NUMBER_STEP_KEY = "step"
+_ROUNDINGS: dict[str, Callable[[float], int]] = {
+    "nearest": round, "up": math.ceil, "down": math.floor,
+}
+
+
+def setpoint_step(hass: Any, entity_id: str) -> float:
+    """The step the entity accepts a set-point on, in its own unit."""
+    state = hass.states.get(entity_id)
+    attrs = getattr(state, "attributes", None) or {}
+    step = _finite(attrs.get(_STEP_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_STEP_KEY)))
+    return step if step is not None and step > 0.0 else DEFAULT_SETPOINT_STEP
+
+
+def _on_step(value: float, step: float, rounding: str) -> float:
+    """``value`` on a multiple of ``step``, rounded as ``rounding`` says.
+
+    A value within a millionth of a step of a multiple is that multiple,
+    so a whole degree that went through a unit conversion stays whole.
+    """
+    ratio = value / step
+    near = round(ratio)
+    turns = near if abs(ratio - near) < 1e-6 else _ROUNDINGS[rounding](ratio)
+    return round(turns * step, 6)
+
+
+def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
+    reading = setpoint_and_unit(hass, entity_id)
+    return (
+        reading[1] if reading is not None
+        else setpoint_unit(hass, entity_id, hass.states.get(entity_id))
+    )
+
+
+def quantise_setpoint_c(
+    hass: Any,
+    entity_id: str,
+    value_c: float,
+    *,
+    rounding: str = "nearest",
+    lo_c: float | None = None,
+    hi_c: float | None = None,
+) -> float:
+    """``value_c`` on the entity's step, in its own unit, returned in degC.
+
+    ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
+    ``hi_c`` down, and the result stays between them, so a caller keeps a
+    floor above its gate and a ceiling inside its configured maximum while
+    the levels between round to nearest, monotone in the value. The step is
+    the entity's own (``setpoint_step``) in the unit the write uses
+    (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
+    """
+    unit = _setpoint_unit_of(hass, entity_id)
+    step = setpoint_step(hass, entity_id)
+    out = _on_step(temperature_from_c(value_c, unit), step, rounding)
+    if lo_c is not None:
+        out = max(out, _on_step(temperature_from_c(lo_c, unit), step, "up"))
+    if hi_c is not None:
+        out = min(out, _on_step(temperature_from_c(hi_c, unit), step, "down"))
+    converted = temperature_c(out, unit)
+    return out if converted is None else converted
+
+
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     """Write ``value``, already in the entity's own unit, to a set-point entity.
 
-    ``False``, and nothing called, for a domain with no set-point service.
+    The one service call every set-point write goes through, so the value
+    sent is on the entity's step (``setpoint_step``, whole degrees where it
+    states none) -- a whole one as an integer, which a pump that takes no
+    decimals accepts. ``False``, and nothing called, for a domain with no
+    set-point service.
     """
     domain = entity_id.split(".", 1)[0]
     service = SETPOINT_SERVICES.get(domain)
     if service is None:
         return False
+    sent = _on_step(float(value), setpoint_step(hass, entity_id), "nearest")
     await hass.services.async_call(
-        domain, service[0], {"entity_id": entity_id, service[1]: round(float(value), 1)},
+        domain, service[0],
+        {"entity_id": entity_id, service[1]: int(sent) if sent.is_integer() else sent},
         blocking=True,
     )
     return True
 
 
-async def write_setpoint_c(hass: Any, entity_id: str, value_c: float) -> bool:
+async def write_setpoint_c(
+    hass: Any, entity_id: str, value_c: float, rounding: str = "nearest"
+) -> bool:
     """Write ``value_c`` degC in the unit :func:`setpoint_and_unit` reads the entity in.
 
     One rule for the read and the write, so a written set-point reads back as
     itself. An entity with no reading yet is written in its domain's unit.
+    ``rounding`` puts it on the entity's step (``quantise_setpoint_c``): a
+    caller writing a ceiling passes ``down``.
     """
-    reading = setpoint_and_unit(hass, entity_id)
-    unit = (
-        reading[1] if reading is not None
-        else setpoint_unit(hass, entity_id, hass.states.get(entity_id))
-    )
-    return await write_setpoint(hass, entity_id, temperature_from_c(value_c, unit))
+    unit = _setpoint_unit_of(hass, entity_id)
+    on_step = quantise_setpoint_c(hass, entity_id, value_c, rounding=rounding)
+    return await write_setpoint(hass, entity_id, temperature_from_c(on_step, unit))
 
 
 def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
@@ -752,14 +829,18 @@ class InputReader:
         # (untimestamped stubs). A future stamp is the #775 fail-open.
         future = age is None and state_age(state, self._utcnow()) is not None
         limit = reading.max_age_minutes
-        if self.enabled and limit is not None and future:
+        # Latched per install, input and entity (the reader is rebuilt every
+        # read; one key for all inputs would re-warn as they alternate), and
+        # cleared by every fresh read, so a stamp ahead again warns again.
+        if log_held(
+            self.hass, f"future_stamp:{reading.key}:{reading.entity_id}",
+            self.enabled and limit is not None and future,
+            "Input %s (%s) has a last-reported stamp ahead of the host "
+            "clock; treating as stale rather than age 0",
+            reading.key,
+            reading.entity_id,
+        ):
             reading.problem = "stale"
-            _LOGGER.warning(
-                "Input %s (%s) has a last-reported stamp ahead of the host "
-                "clock; treating as stale rather than age 0",
-                reading.key,
-                reading.entity_id,
-            )
             return
         if self.enabled and limit is not None and age is not None and age > limit:
             # Keep the content populated so a caller that explicitly wants the
@@ -938,27 +1019,6 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
-
-    def value(self, key: str, default: float | None = None) -> float | None:
-        """Convenience: the usable value for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok:
-            return default
-        return reading.value
-
-    def text(self, key: str, default: str | None = None) -> str | None:
-        """Convenience: the usable state string for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok:
-            return default
-        return reading.text
-
-    def flag(self, key: str, default: bool | None = None) -> bool | None:
-        """Convenience: the usable flag for a key, or ``default``."""
-        reading = self.health.readings.get(key)
-        if reading is None or not reading.ok or reading.flag is None:
-            return default
-        return reading.flag
 
 
 def stale_summary(health: InputHealth) -> str:

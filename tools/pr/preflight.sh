@@ -15,16 +15,12 @@ body=$(cat)
 rc=0
 say() { printf '  %-8s %s\n' "$1" "$2"; }
 
-# 1. Closing keywords. GitHub's own rule: KEYWORD [:] WS #N, no intervening
-#    words -- and it discards negation, so "does not close #224" closes #224.
-while read -r kw num; do
-  [ -z "${num:-}" ] && continue
-  case "$intended" in
-    *" $num "*) say ok "closes #$num -- intended" ;;
-    *) say REFUSE "'$kw #$num' closes #$num; not in the intended list"; rc=1 ;;
-  esac
+# The closing-REFERENCE spelling, in one place. Check 1 below and the ownership
+# arm in 1b read it; the CI workflow's jq is the third copy, and it cannot share
+# this one -- the derived list the workflow hands check 1 is what check 1 grades
+# against, so a spelling that drifts is a check disagreeing with its own input.
 #    FOUR reference forms, not one -- and FOUR IS NOT ALL OF THEM. A review
-#    found seven further shapes that still pass, and this grep is line-oriented,
+#    found seven further shapes that still pass, and a grep is line-oriented,
 #    so a keyword and a number split across a newline are not seen. Treat the
 #    output as a pre-flight that catches the common cases, never as a gate that
 #    proves the body is clean. A review found the first version caught only
@@ -33,9 +29,78 @@ while read -r kw num; do
 #      GH-224                                 GH- prefix
 #      tvofi/heatpump_optimizer#224           owner/repo
 #      https://github.com/tvofi/.../issues/224  full URL
+CLOSING_REF='(https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|[Gg][Hh]-|#)[0-9]+'
+
+# 1. Closing keywords. GitHub's own rule: KEYWORD [:] WS #N, no intervening
+#    words -- and it discards negation, so "does not close #224" closes #224.
+while read -r kw num; do
+  [ -z "${num:-}" ] && continue
+  case "$intended" in
+    *" $num "*) say ok "closes #$num -- intended" ;;
+    *) say REFUSE "'$kw #$num' closes #$num; not in the intended list"; rc=1 ;;
+  esac
 done < <(printf '%s' "$body" \
-  | grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]+((https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)[0-9]+)' \
+  | grep -oiE "\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]+$CLOSING_REF" \
   | sed -E 's|^([A-Za-z]+).*[/#-]([0-9]+)$|\1 \2|')
+
+# 1b. ONE CLOSING KEYWORD, SEVERAL REFERENCES. GitHub's rule is KEYWORD #N --
+#     the number follows the keyword with nothing between them -- so
+#     `Closes #A #B` closes #A and silently not #B. Check 1's grep keeps only the
+#     first number after a keyword, so the dropped second is caught here, by the
+#     property rather than by a list of separators.
+#
+#     THE PROPERTY IS OWNERSHIP. A reference belongs to the keyword introducing
+#     it, and a reference with no keyword of its own is never closed -- so a
+#     closing keyword OWNS AT MOST ONE REFERENCE. This arm's first version
+#     spelled three separators (whitespace, a comma, an "and"); the round-1 review
+#     ran the class's own rule over 200 merged bodies and returned six seams it
+#     let through -- `/`, `&`, `+`, `(`, `;`, any plain word (`then`, `twice`),
+#     and a keyword and a reference split across a newline. A spelled-out
+#     separator set always does that: the next separator is the next seam.
+#     Nothing below enumerates separators.
+#
+#     ONE CLAUSE, NOT THE WHOLE BODY. Ownership is decided inside a clause -- a
+#     paragraph, and a sentence within it -- because a second reference in a
+#     LATER clause is not presented as part of the close: `Closes #A.` followed
+#     by `Part of #B.` is this repository's own convention for "closes one,
+#     touches another", and `Leaves #B open.` says the opposite of a close.
+#     Measured over the 200 most recently merged PRs: ownership at clause scope
+#     refuses none of them, while the same test over the whole body refuses 25,
+#     each of which carries its second reference in a LATER clause -- a `Part of`
+#     or `Leaves` site, or a prose mention after a blank line or a sentence end
+#     (dev/audit/harnesses/closing_keyword_ownership.py --corpus prints both).
+#
+#     WITHIN A CLAUSE the test is a count: a reference is unowned exactly when
+#     the clause holds more references than closing-keyword sites. Both counts
+#     read CLOSING_REF, the same spelling check 1 above reads, and the keyword
+#     is spelled case-permissively because check 1's grep is `-i`: GitHub reads
+#     `CLOSES #A #B` as a close of #A, and a case-sensitive keyword class here
+#     would let the second number out of a body check 1 had already acted on.
+multi=$(printf '%s' "$body" | awk -v ref="$CLOSING_REF" -v site="[^A-Za-z0-9_]([Cc][Ll][Oo][Ss][Ee][SsDd]?|[Ff][Ii][Xx]([Ee][SsDd])?|[Rr][Ee][Ss][Oo][Ll][Vv][Ee][SsDd]?)[[:space:]]*:?[[:space:]]+$CLOSING_REF" '
+  function hits(s, rx,   n) {
+    n = 0
+    while (match(s, rx)) { n++; s = substr(s, RSTART + RLENGTH) }
+    return n
+  }
+  # A clause is a sentence inside a paragraph. Printed when it holds a closing
+  # site AND more references than sites -- the unowned remainder.
+  function clauses(t,   n, i, c, s) {
+    gsub(/[.!?][[:space:]]+/, "&\n", t)
+    n = split(t, clause, "\n")
+    for (i = 1; i <= n; i++) {
+      c = " " clause[i]                 # so every site has a preceding
+      s = hits(c, site)                 # character for its boundary class
+      if (s > 0 && hits(clause[i], ref) > s) print clause[i]
+    }
+  }
+  /^[[:space:]]*$/ { if (t != "") { clauses(t); t = "" } next }
+  { t = (t == "" ? $0 : t " " $0) }     # a clause can wrap across lines
+  END { if (t != "") clauses(t) }' | head -4)
+if [ -n "$multi" ]; then
+  say REFUSE "one closing keyword, several references in one clause -- GitHub closes only the first (KEYWORD #N, nothing between); give each reference its own keyword, or move it out of the closing sentence"
+  printf '%s\n' "$multi" | sed 's/^/             /'
+  rc=1
+fi
 
 # 2. Unqualified quantifiers. Each needs the whole set enumerated, not sampled.
 q=$(printf '%s' "$body" | grep -onE '\b(every|all|each|both|none|never|always|no [a-z]+ (is|are|was|were))\b' | head -8)
@@ -162,8 +227,8 @@ fi
 if [ -n "$why" ]; then
   say check "policy corpus -- NOT compared: $why"
 else
-  moved=$(git diff --name-only "$base...refs/remotes/origin/main" 2>/dev/null)
-  mine=$(git diff --name-only "$base...HEAD" 2>/dev/null)
+  moved=$(git diff --no-renames --name-only "$base...refs/remotes/origin/main" 2>/dev/null)
+  mine=$(git diff --no-renames --name-only "$base...HEAD" 2>/dev/null)
   pol=$(printf '%s\n%s\n' "$moved" "$mine" | sed '/^$/d' | sort -u | corpus_filter "$root")
   moved=$(inter "$moved" "$pol")
   mine=$(inter "$mine" "$pol")

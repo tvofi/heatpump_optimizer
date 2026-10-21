@@ -57,17 +57,6 @@ HA_CONVENTION_NAMES = frozenset({
     "async_redact_data", "async_get_engine", "async_get_config_flow_dialect",
     "async_create_fix_flow", "CONFIG_SCHEMA", "PARALLEL_UPDATES", "PLATFORMS",
 })
-HA_CONVENTION_METHODS = frozenset({
-    "_async_update_data", "async_press", "async_set_hvac_mode",
-    "async_set_preset_mode", "async_set_temperature", "async_set_value",
-    "async_turn_on", "async_turn_off", "is_on", "current_temperature",
-    "hvac_action", "native_value", "extra_state_attributes",
-    "async_get_options_flow",
-})
-
-
-def is_ha_method(name: str) -> bool:
-    return name in HA_CONVENTION_METHODS or name.startswith("async_step_")
 
 
 # ---------------------------------------------------------------------------
@@ -157,12 +146,41 @@ def is_property(node: ast.AST) -> bool:
     return bool(names & {"property", "cached_property", "setter", "getter", "deleter"})
 
 
+def _type_checking_guard(node: ast.AST, real: bool) -> list:
+    """The statements a POSITIVE ``if TYPE_CHECKING:`` runs never, or none. The branch is
+    deferred only in the ``body``: an ``else`` runs at runtime. Only the bare sentinel defers:
+    ``not TYPE_CHECKING`` and ``TYPE_CHECKING or x`` are true at runtime, so their bodies run --
+    ``ast.unparse(test).endswith("TYPE_CHECKING")`` read both as guards (#2320 round 1). ``real``
+    is False where the module rebinds the name, which makes the branch code that runs."""
+    if not real or not isinstance(node, ast.If):
+        return []
+    t = node.test
+    if isinstance(t, ast.Name):
+        return node.body if t.id == "TYPE_CHECKING" else []
+    if isinstance(t, ast.Attribute) and t.attr == "TYPE_CHECKING" \
+            and isinstance(t.value, ast.Name) and t.value.id in ("typing", "typing_extensions"):
+        return node.body
+    return []
+
+
+def _real_type_checking(tree: ast.Module) -> bool:
+    """``TYPE_CHECKING`` here is typing's and never rebound: a module that assigns it
+    (``TYPE_CHECKING = True``) makes ``if TYPE_CHECKING:`` code that runs."""
+    imported = any(isinstance(n, ast.ImportFrom) and n.module in ("typing", "typing_extensions")
+                   and any(a.name == "TYPE_CHECKING" and not a.asname for a in n.names)
+                   for n in walk(tree))
+    rebound = any(isinstance(n, ast.Name) and n.id == "TYPE_CHECKING"
+                  and isinstance(n.ctx, ast.Store) for n in walk(tree))
+    return imported and not rebound
+
+
 def _in_type_checking(tree: ast.Module) -> set[int]:
-    """ids of Import nodes under ``if TYPE_CHECKING:``."""
+    """ids of the Import nodes a positive ``if TYPE_CHECKING:`` defers (``_type_checking_guard``)."""
     out: set[int] = set()
+    real = _real_type_checking(tree)
     for n in walk(tree):
-        if isinstance(n, ast.If) and ast.unparse(n.test).endswith("TYPE_CHECKING"):
-            for m in walk(n):
+        for stmt in _type_checking_guard(n, real):
+            for m in walk(stmt):
                 if isinstance(m, (ast.Import, ast.ImportFrom)):
                     out.add(id(m))
     return out

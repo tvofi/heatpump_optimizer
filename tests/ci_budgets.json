@@ -1,5 +1,7 @@
 {
  "archscore._inlined_bases": 0,
+ "archscore.card_clone_copies": 108,
+ "archscore.card_dead_definitions": 0,
  "archscore.computed_attr_access": 32,
  "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,
@@ -10,15 +12,20 @@
  "archscore.family_splits": 0,
  "archscore.hub_solve_writes": 41,
  "archscore.import_cycle_modules": 0,
+ "archscore.layer_violations": 22,
+ "archscore.literal_clone_copies": 186,
  "archscore.params_over_10": 12,
+ "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
  "archscore.reflective_writes": 17,
+ "archscore.shape_copies": 66,
  "archscore.shared_inplace_writes": 22,
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
+ "archscore.unused_boundary_imports": 1,
  "critical_path_minutes": 54.825,
- "reason": "Deliberate re-record of archscore.hub_solve_writes 38 -> 41 only (R10-ARCHSCORE-COVERAGE part 2, counter C16): the census now roots at the coordinator's event callbacks, so it counts three in-place hub writes the package already makes -- _async_handle_ecl110_state_message's ecl110_effective_displace and ecl110_displace_command, and _on_power_event's peak_guard_active (ARCH2-s2's event_hub_writes.py names the same three). No package code changed. Derived with ci_ratchet.archscore_metrics() at 880373298; every other archscore row at or under its budget there. The payment, retiring the three writes (ARCH2-s2 P4, 3 -> 0), is R10-ARCH-LIVESTATE's, carried into its roster brief to lower this row by 3 in the same PR. Approved under mandate 6175172275; precedent 4d6d329e5.",
- "recorded_at": "880373298f0ac449df088c61772d2db9704da31c",
+ "reason": "Tightening, not a raise (R10-CI-LAYOUT PR 0): script_runs_per_push 68 -> 53. script_runs() no longer counts a `reused` coverage row (a copy that executes nothing), and the floor re-validation re-measures only the scripts it reused, so a push executes each script once per instrument. 53 = the closures lane's full plan (`tests/closure.py lane-plan --all-scripts`: 34) less the composed script it consumes from the coverage job (tests/composed_closures.json: 1), plus the coverage fast stage's scripts (coverage_tree.sh's DERIVED for `fast`: 20), derived at 4a3cbcf62; the window's no-reuse push runs 39213947578, 39217093836 and 39217450549 each read 53. No other row moves. Previous: R10-ARCHSCORE-COVERAGE part 5's new row archscore.shape_copies 66.",
+ "recorded_at": "4a3cbcf62e6f5e7b6594d376d714388caf2915cf",
  "script_runs_full_case_pr": 68,
- "script_runs_per_push": 68
+ "script_runs_per_push": 53
 }

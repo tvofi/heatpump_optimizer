@@ -267,7 +267,8 @@ INERT = (
     # docs/, .claude/rules/ and tools/audit/briefs/. They are prose. The
     # living handover is the hole is_handover cuts, under dev/programme/ as
     # well as under docs/ so a second copy put back in the old place is
-    # unclassified rather than inert.
+    # unclassified rather than inert. `_is_citation_source` below reads the
+    # roles and dimensions contracts and a carry's JSON back out of the prefix.
     "dev/governance/",
     "dev/programme/",
     # tests/README.md was here until #938: entities.py now reads the
@@ -325,20 +326,30 @@ INERT = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
+    # The plan model (`tools/plan/replan.py` and the measured durations it
+    # reads) is run by hand at a wave edge and read by the out-of-tree
+    # renderer that draws the page; no gate script opens it. An inert home of
+    # the same kind as the four above, and `tests/entities.py`'s
+    # must-classify check names it too -- a new file there still has to be
+    # classified, it is just classified as unread.
+    "tools/plan/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
-    # under tests/ reads them. Same reason `.claude/` is here.
+    # under tests/ reads them. Same reason `.claude/` is here -- save the
+    # policy files `_is_citation_source` below reads back out of it.
     ".cursor/",
     # Orientation for a session that starts cold. Claude Code loads a root
     # CLAUDE.md automatically, which is the whole reason it cannot live under
-    # docs/ with the rest of the prose. Nothing under tests/ reads it -- unlike
-    # README.md and RELEASE_NOTES.md above, which entities.py checks against the
-    # code and which are therefore dependencies rather than inert.
+    # docs/ with the rest of the prose. Nothing under tests/ reads it for its
+    # own checks -- unlike README.md and RELEASE_NOTES.md above, which
+    # entities.py checks against the code. It is a citation SOURCE, though, so
+    # `_is_citation_source` below takes it back off this list for the #2227 arm.
     "CLAUDE.md",
     # The harness-neutral twin of the entry above: ZCode and Codex auto-load a
     # root AGENTS.md instead of CLAUDE.md. It defers to CLAUDE.md and states no
-    # policy of its own, and nothing under tests/ reads it either. It is still
+    # policy of its own, and no check reads it either -- except as a citation
+    # source, on the entry above's terms. It is still
     # measured policy -- POLICY_GLOBS matches it and policy_budgets.json caps
-    # it -- only this gate has no dependency on it.
+    # it -- only this gate has no dependency on it beyond that.
     "AGENTS.md",
     "DISCLAIMER.md",
     # The quality-scale register (#229) sat here from #229 to #951: no gate
@@ -351,7 +362,9 @@ INERT = (
     # still skips it for custom repos; that is about the external checker,
     # not this gate.
     # The pull-request template. GitHub renders it into a new body; no gate
-    # script reads it. It is NOT under `.github/workflows/`, so the GATE_FILES
+    # script reads it as a body, though `_is_citation_source` below reads it as
+    # a citation source for the #2227 arm. It is NOT under
+    # `.github/workflows/`, so the GATE_FILES
     # prefix above does not cover it, and an unclassified file forces the whole
     # suite -- which is how a template edit would otherwise cost a full run.
     # Its headings ARE checked, by policy_lint's pr-body class against the
@@ -468,6 +481,11 @@ GATE_FILES = (
     # measure a solver that no policy file can reach, on the pull request AND
     # again on the push to main.
     ".github/workflows/tests.yml",
+    # The CI umbrella (R10-CI-LAYOUT). PR 0 lands it as an inert
+    # `workflow_dispatch` stub; the umbrella that replaces it calls the Tests
+    # lanes and defines the gate's verdict, which is what a gate file means.
+    # Listed from the stub on, so the replacing edit is FULL by construction.
+    ".github/workflows/ci.yml",
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
@@ -557,6 +575,11 @@ INERT_EXCEPT = (
     # being read, and check refuses the committed table before it compares
     # a recording (#357).
     "tools/pr/README.md",
+    # R10-CI-CONCURRENCY: tests/entities.py opens the cancel-superseded job's
+    # program (CI's recording at 72a3f1bbd, which closures-autofix could not
+    # merge: skip-merge-failed on this pair). Same route as the README above:
+    # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
+    "tools/pr/cancel_superseded.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -771,6 +794,14 @@ INERT_EXCEPT = (
     "tools/policy/friction_issues.mjs",
     "tools/policy/policy_lint_mutants.mjs",
     "tools/policy/rules_sync.mjs",
+    # R10-TRAIN-HOLD (issue #2302): tests/entities.py reads this file's
+    # HOLD_REF constant, so the record beat's ref name and the train's cannot
+    # drift apart (the TRAIN-HOLD block's cross-half pin). The `tools/audit/`
+    # prefix would keep it INERT while entities.py opens it -- the #357
+    # contradiction the 0c216ecc closures job reported as INERT READS
+    # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
+    # and an edit to the train selects tests/entities.py.
+    "tools/audit/seat/merge_train.py",
 )
 
 
@@ -821,8 +852,45 @@ def _is_archscore(rel: str) -> bool:
     return rel.startswith("tools/audit/archscore/") and not rel.endswith(".md")
 
 
+# The text tests/entities.py's N-move-stale-path arm reads for a citation of a
+# program a seat is told to run: a CARRY's JSON (a `remeasure` command), and live
+# POLICY text -- the corpus policy_lint.mjs's own POLICY_GLOBS names, which is
+# what the arm asks that module's `policyFiles()` for rather than a copy of its
+# globs. The shapes below are that corpus's spelling as the arm reads it, after
+# the move map: the brief and rule files policyFiles() spells at their pre-move
+# names resolve to `.claude/rules/` and `dev/governance/{roles,dimensions}/`,
+# which is where the arm opens them. The two cannot drift unnoticed:
+# policyFiles() returning a file this misses fails the arm's own source-select
+# check in tests/entities.py, and naming a file the arm does not read fails
+# `orphan_files` on the other side.
+#
+# Reading them from the worktree is what makes an edit to one select
+# tests/entities.py instead of skipping it. Left INERT -- the shape they were in
+# -- the citation half runs only on the push to main, the late-gate shape #518
+# (the handover) and #533 (the nightly lane) each closed by reading the file in
+# a gate script (#2312, F2).
+_CITATION_POLICY = (
+    r"CLAUDE\.md",
+    r"AGENTS\.md",
+    r"tests/README\.md",
+    r"dev/audit/README\.md",
+    r"\.github/PULL_REQUEST_TEMPLATE\.md",
+    r"\.claude/workflows/web-fragments\.md",
+    r"\.claude/skills/[a-z0-9-]+/SKILL\.md",
+    r"\.claude/rules/[a-z0-9-]+\.md",
+    r"dev/governance/roles/[A-Za-z0-9_.-]+\.md",
+    r"dev/governance/dimensions/[A-Za-z0-9_.-]+\.md",
+)
+
+
+def _is_citation_source(rel: str) -> bool:
+    return (rel.startswith("dev/programme/carries/") and rel.endswith(".json")) or \
+        any(re.fullmatch(p, rel) for p in _CITATION_POLICY)
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel) or _is_archscore(rel):
+    if (is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel)
+            or _is_archscore(rel) or _is_citation_source(rel)):
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
@@ -2701,22 +2769,176 @@ def composed_compare(composed_dir: Path, bare_dir: Path) -> int:
 # selection
 
 
+# THE CHANGED-FILE LIST (O17, #2405/#2406 round 1). Every lane and the gate
+# read the files a diff changed from here, and this list keeps BOTH sides of a
+# rename. Porcelain `git diff --name-only` detects renames by default and
+# prints only the destination: `git mv custom_components/.../__init__.py
+# dev/programme/delivery/99999.md` listed the row alone, so the gate scoped
+# to 0 scripts and lane_skip's Level 0 skipped three lanes on a diff that
+# deleted the integration's entry point. `_selftest_renames` pins it, and
+# `RENAME_SITES` is the census that refuses a rename-detecting list elsewhere.
+def changed_between(base: str, head: str, *, dots: str = "...",
+                    cwd: Path | str = ROOT, env: dict | None = None) -> list[str]:
+    """The files `<base><dots><head>` changed, both sides of every rename."""
+    out = subprocess.run(["git", "diff", "--no-renames", "--name-only",
+                          f"{base}{dots}{head}"], cwd=cwd, env=env,
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        raise SystemExit(f"closure: cannot diff {base}{dots}{head}: {out.stderr.strip()}")
+    return sorted({l.strip() for l in out.stdout.splitlines() if l.strip()})
+
+
 def changed_files(diff_ref: str) -> list[str]:
     base = subprocess.run(["git", "merge-base", diff_ref, "HEAD"], cwd=ROOT,
                           capture_output=True, text=True)
     ref = base.stdout.strip() if base.returncode == 0 else diff_ref
-    out = subprocess.run(["git", "diff", "--name-only", f"{ref}...HEAD"], cwd=ROOT,
-                         capture_output=True, text=True)
-    if out.returncode != 0:
-        raise SystemExit(f"closure: cannot diff against {diff_ref}: {out.stderr.strip()}")
-    files = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+    try:
+        files = changed_between(ref, "HEAD")
+    except SystemExit as e:
+        raise SystemExit(f"closure: cannot diff against {diff_ref}: {e}") from None
     # Uncommitted work counts too, so a local `run.sh` scopes to what is
     # actually on disk.
-    for extra in (["git", "diff", "--name-only", "HEAD"],
+    for extra in (["git", "diff", "--no-renames", "--name-only", "HEAD"],
                   ["git", "ls-files", "--others", "--exclude-standard"]):
         o = subprocess.run(extra, cwd=ROOT, capture_output=True, text=True)
         files += [l.strip() for l in o.stdout.splitlines() if l.strip()]
     return sorted(set(files))
+
+
+#: Where a changed-file list is built: the census `_selftest_renames` runs.
+RENAME_SITES = (".github/workflows/*.yml", "tests/*.py", "tests/*.sh",
+                "tests/*.mjs", "tests/*.js",
+                "tools/pr/*.py", "tools/pr/*.sh", "tools/pr/*.mjs",
+                "tools/policy/*.mjs", "tools/policy/*.js",
+                "tools/audit/seat/*.py", "tools/audit/seat/*.sh",
+                "tools/release/*.py",
+                ".claude/hooks/*.sh", ".claude/hooks/*.mjs")
+_DIFF_CALL = re.compile(r"""git diff|["']diff["']\s*,""")
+#: A `--name-only` diff that cannot meet a rename, or is one on purpose.
+_RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null", "--cached",
+                  "rename-null-control")
+#: (file, text the line must contain, reason). Exact and per file.
+RENAME_ALLOW = (
+    ("tools/audit/seat/merge_train.py", "the `git diff --name-only h0..h` delta names no branch-own file",  # rename-null-control
+     "a docstring describing the delta check; prose, never run"),
+    ("tools/audit/seat/ref_privacy.py", "of `git diff --name-only --diff-filter=A`:",  # rename-null-control
+     "a refusal message naming the diff; the diff ref_privacy runs already "
+     "passes --no-renames"),
+    ("tools/policy/policy_lint.mjs", "/git diff/.test(b) && /--name-only/.test(b)",  # rename-null-control
+     "a regex over workflow run blocks that then REQUIRES --no-renames in them; "
+     "it runs no diff"),
+)
+
+
+def _logical_lines(text: str):
+    """(first line number, line) with a shell backslash continuation joined
+    to the lines it continues, so a diff whose name-only flag sits on the
+    next line is one line to the census."""
+    out, buf, start = [], [], 0
+    for n, raw in enumerate(text.splitlines(), 1):
+        if not buf:
+            start = n
+        if raw.rstrip().endswith("\\"):
+            buf.append(raw.rstrip()[:-1])
+            continue
+        buf.append(raw)
+        out.append((start, " ".join(x.strip() for x in buf)))
+        buf = []
+    if buf:
+        out.append((start, " ".join(x.strip() for x in buf)))
+    return out
+
+
+def rename_sites(root: Path = ROOT) -> tuple[list[str], list[str]]:
+    """(refusals, stale allow entries): every rename-detecting `--name-only`
+    diff under RENAME_SITES, by the same exact-and-per-file allow shape as
+    tests/throwaway_git.py."""
+    used, bad = set(), []
+    for pattern in RENAME_SITES:
+        for f in sorted(root.glob(pattern)):
+            rel = f.relative_to(root).as_posix()
+            for n, line in _logical_lines(f.read_text(errors="replace")):
+                if line.strip().startswith(("#", "//", "*", "/*")) or "--name-only" not in line \
+                        or not _DIFF_CALL.search(line) \
+                        or any(x in line for x in _RENAME_EXEMPT):
+                    continue
+                hit = [i for i, (p, t, _) in enumerate(RENAME_ALLOW) if p == rel and t in line]
+                if hit:
+                    used.update(hit)
+                    continue
+                bad.append(f"{rel}:{n}: {line.strip()[:140]}")
+    stale = [f"{p}: {t!r}" for i, (p, t, _) in enumerate(RENAME_ALLOW) if i not in used]
+    return bad, stale
+
+
+def _rename_probe_lists(dest: str) -> tuple[list[str], list[str]]:
+    """(changed_between, porcelain) over a throwaway repository whose one
+    commit renames `custom_components/heatpump_optimizer/__init__.py` to
+    `dest`."""
+    import tempfile
+    from throwaway_git import throwaway_git_init
+    src = "custom_components/heatpump_optimizer/__init__.py"
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q")
+        run = lambda *a: subprocess.run(["git", *a], cwd=td, env=env, check=True,  # noqa: E731
+                                        capture_output=True, text=True).stdout
+        (Path(td) / src).parent.mkdir(parents=True)
+        (Path(td) / src).write_text('"""entry point."""\nDOMAIN = "x"\n' * 20)
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        base = run("rev-parse", "HEAD").strip()
+        (Path(td) / dest).parent.mkdir(parents=True, exist_ok=True)
+        run("mv", src, dest)
+        run("commit", "-qm", "rename")
+        porcelain = run("diff", "--name-only", f"{base}...HEAD").split()  # rename-null-control
+        return changed_between(base, "HEAD", cwd=td, env=env), porcelain
+
+
+def _selftest_renames(pin) -> None:
+    row = "dev/programme/delivery/99999.md"
+    listed, porcelain = _rename_probe_lists(row)
+    pin("the changed list keeps both sides of a rename onto a delivery row",
+        listed == sorted(["custom_components/heatpump_optimizer/__init__.py", row]),
+        str(listed))
+    pin("null control: porcelain git diff lists the row alone (the seam is real)",
+        porcelain == [row], str(porcelain))
+    plan = select(listed)
+    pin("so the gate does not scope a deleted entry point to zero scripts",
+        bool(plan["run"]), f"{plan['mode']}: {len(plan['run'])} run")
+    bad, stale = rename_sites()
+    pin("no rename-detecting --name-only diff under RENAME_SITES",
+        not bad, "; ".join(bad[:4]))
+    pin("no stale RENAME_ALLOW entry", not stale, "; ".join(stale))
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / "tests").mkdir()
+        (Path(td) / "tests" / "x.py").write_text(
+            'a = run(["git", "diff", "--name-only", "b...h"])\n'  # rename-null-control
+            'b = run(["git", "diff", "--no-renames", "--name-only", "b...h"])\n')
+        (Path(td) / "tools" / "policy").mkdir(parents=True)
+        (Path(td) / "tools" / "policy" / "policy_lint.mjs").write_text("")
+        (Path(td) / "tests" / "y.mjs").write_text(
+            '// git diff --name-only in a comment\n'  # rename-null-control
+            'const a = git("diff", "--name-only", `${b}...HEAD`);\n'  # rename-null-control
+            'const b = git("diff", "--no-renames", "--name-only", "HEAD");\n')
+        (Path(td) / "tests" / "z.sh").write_text(
+            'git diff \\\n  --name-only "$B"...HEAD\n'  # rename-null-control
+            'git diff \\\n  --no-renames --name-only HEAD\n')
+        bad_m, _ = rename_sites(Path(td))
+        (Path(td) / "tests" / "y.mjs").unlink()
+        (Path(td) / "tests" / "z.sh").unlink()
+        bad_t, stale_t = rename_sites(Path(td))
+    pin("the census reads .mjs: it refuses the porcelain JS diff, not its twin or the comment",
+        [b for b in bad_m if b.startswith("tests/y.mjs:")] == ['tests/y.mjs:2: const a = git("diff", "--name-only", `${b}...HEAD`);'],  # rename-null-control
+        str(bad_m))
+    pin("the census joins a backslash continuation: it refuses the split porcelain diff at its first line",
+        [b for b in bad_m if b.startswith("tests/z.sh:")] == ['tests/z.sh:1: git diff --name-only "$B"...HEAD'],  # rename-null-control
+        str(bad_m))
+    pin("the census refuses a planted rename-detecting diff, and only it",
+        bad_t == ['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])'], str(bad_t))  # rename-null-control
+    pin("and reports every allow entry nothing matches as stale",
+        len(stale_t) == len(RENAME_ALLOW)
+        and any(x.startswith("tools/policy/policy_lint.mjs: ") for x in stale_t), str(stale_t))
 
 
 CLOSURES_REL = "tests/closures.json"
@@ -4127,6 +4349,8 @@ def selftest() -> int:
     _selftest_proof(pin)
     print("\n=== the scoped re-derive's lane plan (round-9 R1) ===")
     _selftest_lane_plan(pin)
+    print("\n=== the changed-file list keeps both sides of a rename (O17) ===")
+    _selftest_renames(pin)
 
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
@@ -4936,6 +5160,9 @@ def main() -> int:
     f.add_argument("--files-from")
     f.add_argument("--json", action="store_true")
     f.add_argument("--workdir")
+    ch = sub.add_parser("changed")  # THE changed-file list every lane reads
+    ch.add_argument("--base", required=True); ch.add_argument("--head", required=True)
+    ch.add_argument("--two-dot", action="store_true")
     lp = sub.add_parser("lane-plan")
     # Exactly one of the two inputs: the scoped arm's selected list from a
     # file, or the full arm's derived recording set (round-9 C1).
@@ -5024,6 +5251,9 @@ def main() -> int:
         return selftest()
     if a.cmd == "show":
         print(CLOSURES.read_text())
+        return 0
+    if a.cmd == "changed":
+        print("\n".join(changed_between(a.base, a.head, dots=".." if a.two_dot else "...")))
         return 0
     if a.cmd == "affected":
         files = list(a.files or [])

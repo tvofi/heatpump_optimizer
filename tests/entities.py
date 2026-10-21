@@ -2747,10 +2747,18 @@ R.check(
     "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
     f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
 )
+# The solve's anchor left the class at S2 and left coordinator.py at
+# R10-PUMP-MODEL (#2365 review): it is the plan step's floor, which the pump
+# arbiter reads too, so one leaf module owns it -- plan_step.plan_step_start.
+import heatpump_optimizer.plan_step as _s2_plan_step  # noqa: E402
 R.check(
-    "_solve_anchor is a module-level FunctionDef, not a class method",
-    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
-    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+    "the solve anchor is plan_step.plan_step_start, outside the coordinator "
+    "class and its module, and the coordinator reads that one function",
+    "_solve_anchor" not in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns
+    and "plan_step_start" not in _s2_cls_fns
+    and coordinator_module.plan_step_start is _s2_plan_step.plan_step_start,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns} "
+    f"same={getattr(coordinator_module, 'plan_step_start', None) is _s2_plan_step.plan_step_start}",
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
@@ -3799,7 +3807,15 @@ def _p2_registry(sources):
                  "early_cutoff.py::_cycle_guard":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
-                     "last heard from, which a re-reported 'on' resets"}),
+                     "last heard from, which a re-reported 'on' resets",
+                 # #2271: the replay half copies the recorder's rows, as the
+                 # export copies them out of SQLite; no age is decided there.
+                 "debugger.py::_since":
+                     "cuts a recorded history at the window's start by each "
+                     "row's own last_updated, the export's SQL window rule",
+                 "debugger.py::_record":
+                     "writes a recorded row's last_updated and last_reported "
+                     "verbatim, the export's row shape; nothing reads them as an age"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(
@@ -3878,6 +3894,67 @@ def _p2_registry(sources):
                      "the same distinct finding (#2238 / R10-ARCH-SHAPES): the "
                      "selector's renderer walks the wrap back to a range",
              }),
+        # D2-s2-01 (R10-PUMP-MODEL): which law a price is taken from is decided
+        # once per plant, by the valve flag, in compute_cop. The flag is a
+        # SPACE-circuit fact -- it says whether a passed flow temperature is
+        # the supply the machine runs at -- and the hot-water tank forked it a
+        # second time, pricing one lift two ways (up to 1.4346 at outdoor 7 /
+        # tank 65). _batch_cop is an owner rather than a copy: its two branches
+        # ARE compute_cop's two, vectorized, and the pair must agree bit for
+        # bit (fixer.md step 15). The D14 P2 sweep counts this family as
+        # cop_law_fork: 3 seams at the finding's baseline, 2 here.
+        dict(fact="cop_law_fork", finding="D2-s2-01",
+             match=_p2_match_node(
+                 (ast.If, ast.IfExp), r"cop_flow_carnot",
+                 lambda n: "cop_flow_carnot" in ast.unparse(n.test)),
+             owners=["thermal_model.py::ThermalModel.compute_cop",
+                     "thermal_model.py::ThermalModel._batch_cop"],
+             dispositions={}),
+        # D7-s2-54 (R10-SENSOR-PAYLOAD): the plan step's zone setpoints are
+        # published under one pair of names by zone_setpoint_attributes; the
+        # climate entity, Current Setpoint and Heat Pump Action each spelled
+        # the renaming before it.
+        dict(fact="zone_setpoint_names", finding="D7-s2-54",
+             match=_p2_match_node(
+                 (ast.Constant,), r"_floor_setpoint",
+                 lambda n: n.value in ("upper_floor_setpoint", "lower_floor_setpoint")),
+             owners=["entity.py::zone_setpoint_attributes"], dispositions={}),
+        # D7-s3-8x-slotfloor (R10-PUMP-MODEL, the ARCH2-s3 patch 02 fold, and
+        # #2365's review): which plan step an instant falls in. One concern --
+        # the optimizer's plan step covering now -- read by the solve's anchor
+        # and by the pump arbiter's ledger row and silent-window lookup, so one
+        # owner on one width: plan_step.plan_step_start on PLAN_STEP_MINUTES.
+        # It was spelled three times: coordinator._solve_anchor on
+        # FORECAST_STEP_MINUTES, pump_arbiter._step_start on a literal 15, and
+        # _observe inline. The other hits are different rules, each driven
+        # against the owner on the same probes by
+        # dev/audit/harnesses/r10_slot_floor_twins.py, whose own precondition
+        # is that the driven set is the enumerated one.
+        dict(fact="slot_floor_rule", finding="D7-s3-8x-slotfloor",
+             match=_p2_match_node(
+                 (ast.BinOp,), r"\.minute",
+                 lambda n: isinstance(n.op, (ast.FloorDiv, ast.Mod))
+                 and ".minute" in ast.unparse(n)),
+             owners=["plan_step.py::plan_step_start"],
+             dispositions={
+                 "tariff.py::_window_slot":
+                     "the METERING window, a different rule: anchored at local "
+                     "midnight so a 90/120-minute DSO window advances the hour, "
+                     "with ``fold`` restored so the autumn hour's two passes "
+                     "keep two keys. Same reading only for windows that divide "
+                     "the hour -- the twins harness's --perturb (the fold "
+                     "dropped) reads 2 of 10 probes apart, and both are the "
+                     "autumn folds",
+                 "optimizer.py::HeatPumpOptimizer._window_offset_steps":
+                     "the metering window's PHASE, not its start: steps from "
+                     "now to the DSO's next boundary, the same modulo asked for "
+                     "a distance where tariff._window_slot's anchor is the "
+                     "instant itself",
+                 "price_model.py::PriceShapeModel.quarter_factor":
+                     "an index INTO a learned quarter-hour profile, not a "
+                     "floored instant: it returns a slot number between 0 and "
+                     "QUARTERS_PER_HOUR, and no datetime at all",
+             }),
     ]
 
 
@@ -3897,6 +3974,16 @@ _P2_CENSUSES = {
     # _loaded_entries's, consulted by every action before it can return.
     "service_entries_resolved_first": (
         "tests/features.py", "every action resolves its config entries before it returns"),
+    # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
+    # payload_number's -- every number state driven with a bool and a text
+    # payload publishes neither, nor reads either as a number.
+    "payload_number_published": (
+        "tests/finite_boundary.py",
+        "every number state publishes None, never the bool or the text, from a "),
+    # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
+    # runtime-object mixin's included.
+    "finite_scrub_resolves_mro": (
+        "tests/finite_boundary.py", "a package mixin with runtime base object"),
 }
 
 
@@ -4015,6 +4102,17 @@ _P2_PLANTS["peak_tie_rule"] = (
 )
 _P2_PLANTS["cyclic_range_wrap"] = (
     "\n\ndef _p2_plant(lo, hi):\n    return [(lo + k) % 12 for k in range(hi)]\n"
+)
+_P2_PLANTS["cop_law_fork"] = (
+    "\n\ndef _p2_plant(p):\n    if p.cop_flow_carnot:\n        return 1\n    return 0\n"
+)
+_P2_PLANTS["zone_setpoint_names"] = (
+    "\n\ndef _p2_plant(action):\n    return {\"upper_floor_setpoint\": action[\"upper_setpoint\"]}\n"
+)
+_P2_PLANTS["slot_floor_rule"] = (
+    "\n\ndef _p2_plant(now):\n"
+    "    return now.replace(minute=now.minute - now.minute % 15,"
+    " second=0, microsecond=0)\n"
 )
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
@@ -4574,6 +4672,17 @@ def _p6_arm_k(walks, declared=None):
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
             continue
+        # A sensor declaring its state's payload path (sensor._PayloadNumberMixin)
+        # reads the path's first key off the payload: a declaration, not a
+        # ``.get`` call, so the walk below would not see it.
+        for n in nodes:
+            if isinstance(n, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == "_payload_path" for t in n.targets) \
+                    and isinstance(n.value, ast.Tuple) and n.value.elts \
+                    and (key := _p6_lit(n.value.elts[0])):
+                reads += 1
+                if key not in produced:
+                    seams.add(f"{name}:{n.lineno} {key}")
         fns = [n for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         accessors = {
             fn.name for fn in fns
@@ -4904,6 +5013,15 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+# Null control for the declared-path read: a sensor naming a key no
+# producer writes in its ``_payload_path`` is a seam.
+_p6_k_plant = {**_P6_WALKS, "sensor.py": _P6_WALKS["sensor.py"] + list(ast.walk(ast.parse(
+    "class _P6Plant:\n    _payload_path = (\"p6_no_such_key\", \"leaf\")\n")))}
+R.check(
+    "a declared _payload_path naming an unwritten key is a P6 K seam (null control)",
+    any(seam.endswith(" p6_no_such_key") for seam in _p6_arm_k(_p6_k_plant)[1]),
+    "the planted declaration was not read",
 )
 R.check(
     "every entity id a blueprint, the card or the package names is one a platform "
@@ -15207,14 +15325,26 @@ R.check(
 
 
 def _gl_auto_lease() -> tuple[bool, str]:
-    """run.sh leases a FULL or stress run itself; a second one waits."""
+    """run.sh leases a FULL or stress run itself; a second one waits.
+
+    The classifier is driven at all three answers, and at the fail-closed arm
+    the block on #2341 found open: the exclusive lease for the machine-measuring
+    scripts, a slot for the multi-minute CPU ones, a slot for a name the
+    recordings do NOT carry (`tests/rolling.py`, gated behind `SLOW=1` and so
+    never timed), and none only for a recorded seconds-side script
+    (R10-PREPR-CAP, #2267).
+    """
     import threading
     with _tempfile.TemporaryDirectory() as td:
         d, seen = Path(td) / "lock", Path(td) / "seen"
         scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        seconds, rolling = Path(td) / "c.run", Path(td) / "d.run"
         scoped.write_text("tests/entities.py\n")
         stress.write_text("tests/entities.py\ntests/stress.py\n")
-        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        seconds.write_text("tests/structure.py\n")
+        rolling.write_text("tests/rolling.py\n")
+        need = [_gate_lock.needs_lease(s)
+                for s in ("", str(stress), str(scoped), str(seconds), str(rolling))]
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         child = ("import os, sys; from pathlib import Path; "
                  "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
@@ -15232,10 +15362,42 @@ def _gl_auto_lease() -> tuple[bool, str]:
         finally:
             _gate_lock.WAIT_POLL_SECS = poll
         text = seen.read_text() if seen.exists() else ""
-        ok = (need == [True, True, False] and waited and out == [3]
+        ok = (need == ["lease", "lease", "slot", "none", "slot"] and waited
+              and out == [3]
               and "label=auto" in text and text.endswith("auto")
               and _gate_lock.read_owner(d) is None)
         return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_slot_count() -> tuple[bool, str]:
+    """The pool's capacity is the cap unless the OWNER raises it (#2267).
+
+    The predicate is the CLAMP, not the number: an override below the cap is
+    honoured and one above it is refused without the owner's mark, so a seat
+    cannot widen the box's concurrency by exporting one variable. The owner arm
+    is the null control -- the same `8` is honoured once the mark is present.
+    """
+    import os as _os
+    saved = {k: _os.environ.get(k)
+             for k in (_gate_lock.SLOTS_ENV, _gate_lock.SLOTS_OWNER_ENV)}
+    try:
+        got = []
+        for value, owner in ((None, None), ("3", None), ("8", None),
+                             ("8", "1"), ("junk", None), ("0", None)):
+            for key, val in ((_gate_lock.SLOTS_ENV, value),
+                             (_gate_lock.SLOTS_OWNER_ENV, owner)):
+                _os.environ.pop(key, None)
+                if val is not None:
+                    _os.environ[key] = val
+            got.append(_gate_lock.heavy_slots())
+        want = [_gate_lock.HEAVY_SLOTS, 3, _gate_lock.HEAVY_SLOTS, 8,
+                _gate_lock.HEAVY_SLOTS, _gate_lock.HEAVY_SLOTS]
+        return got == want, f"heavy_slots over (unset,3,8,8+owner,junk,0)={got}"
+    finally:
+        for key, val in saved.items():
+            _os.environ.pop(key, None)
+            if val is not None:
+                _os.environ[key] = val
 
 
 def _gl_lease_hardening() -> tuple[bool, str]:
@@ -15354,14 +15516,87 @@ def _gl_lease_hardening() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
+_gl_line = 'answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)'
 R.check(
-    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
-    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
-    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2
+    and _run_sh.count('slot-auto-lease --label "run.sh-$$"') == 1,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none', "
+    "and give a 'slot' answer the pool rather than the exclusive lease",
+)
+_gl_count_ok, _gl_count_detail = _gl_slot_count()
+R.check(
+    "the heavy-slot capacity is the cap unless the owner raises it (#2267)",
+    _gl_count_ok,
+    _gl_count_detail,
+)
+
+
+def _gl_lease_class_sweep() -> tuple[bool, str]:
+    """Every script run.sh dispatches through `leased` is classified.
+
+    THE CLASS, and its seams. Both `run` and `run_always` dispatch through
+    `leased`, so the class is the scripts `tests/run.sh` names in those calls,
+    and the property is that none of them is left UNLEASED unless the
+    recordings say it takes seconds. #2341's review found `tests/rolling.py`
+    open: gated behind `SLOW=1`, never timed, so `needs_lease` answered `none`
+    for a script whose own comment calls it "about a quarter of an hour".
+    An untimed name's weight is unknown, and the conservative answer for the
+    unknown is the pool -- bounded -- never `none`, which leaves it unbounded
+    beside three others.
+
+    The rule is read from the two files that own it: the dispatch sites in
+    run.sh and `needs_lease` itself. A script added to either reaches this
+    census with no edit here. The census asserts its OWN preconditions, because
+    a sweep over an empty set passes silently: it refuses when the parse finds
+    fewer than a floor of dispatched scripts (a regex that stopped matching
+    reads as a closed class), and it names every seam it leaves unleased.
+    """
+    run_lines = Path("tests/run.sh").read_text().splitlines()
+    dispatched: list[str] = []
+    for line in run_lines:
+        match = _re.match(r"\s*(?:run|run_always)\s+(?:\"\$PYTHON\"|node)?\s*"
+                          r"(tests/[A-Za-z0-9_]+\.(?:py|mjs))", line)
+        if match and match.group(1) not in dispatched:
+            dispatched.append(match.group(1))
+    floor = 30
+    by_answer: dict[str, list[str]] = {"lease": [], "slot": [], "none": []}
+    unleased: list[str] = []
+    with _tempfile.NamedTemporaryFile("w+", suffix=".run") as handle:
+        for script in dispatched:
+            handle.seek(0)
+            handle.truncate()
+            handle.write(script + "\n")
+            handle.flush()
+            answer = _gate_lock.needs_lease(handle.name)
+            seconds = _gate_lock._recorded_seconds(script)
+            by_answer.setdefault(answer, []).append(script)
+            if answer == "none" and (seconds is None
+                                     or seconds >= _gate_lock.SLOT_MIN_SECONDS):
+                unleased.append(script)
+    ok = len(dispatched) >= floor and not unleased
+    detail = (f"dispatched={len(dispatched)} (floor {floor}) "
+              f"lease={by_answer['lease']} slot={len(by_answer['slot'])} "
+              f"none={len(by_answer['none'])} unleased_but_heavy={unleased}")
+    # Printed on a PASS as well as carried into the failure: the census's own
+    # shape is the evidence a body cites, and a row that prints only when it
+    # fails shows the reader nothing about the class it just cleared.
+    print(f"lease class: {detail}")
+    return ok, detail
+
+
+_gl_sweep_ok, _gl_sweep_detail = _gl_lease_class_sweep()
+R.check(
+    "every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)",
+    _gl_sweep_ok,
+    _gl_sweep_detail,
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._priority_cases(_gate_lock):
+    R.check(f"gate lease priority: {_gl_name}", _gl_ok, _gl_detail)
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._slot_hold_cases(_gate_lock):
+    R.check(f"heavy-slot hold: {_gl_name}", _gl_ok, _gl_detail)
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
@@ -15370,12 +15605,87 @@ R.check(
 )
 
 
+def _gl_heavy_slots() -> tuple[bool, str]:
+    """R10-PREPR-CAP (#2267): the heavy-slot pool admits exactly `slots`.
+
+    The predicate is the CAP, not the number four: a pool that admitted any
+    number would pass a check that only took four, so the capacity arm takes
+    the fifth and requires it to block, and the null control runs the same code
+    at `slots=1`, where the second take must block. The reuse arm frees one
+    holder and requires the next take to land on a slot inside the pool, so a
+    pool that grew a new slot on every take is caught beside one that never
+    released.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        held = [_gate_lock.take_slot(f"h{i}", lock_dir=d, slots=4, wait=False)[0]
+                for i in range(4)]
+        try:
+            _gate_lock.take_slot("fifth", lock_dir=d, slots=4, wait=False)
+            admitted = True
+        except BlockingIOError:
+            admitted = False
+        _gate_lock.release_slot("h0", lock_dir=d, slots=4)
+        idx, _owner = _gate_lock.take_slot("next", lock_dir=d, slots=4, wait=False)
+        reused = idx in range(4) and _gate_lock.release_slot("next", lock_dir=d, slots=4)
+        # Null control: the same calls with a one-slot pool refuse the second.
+        d1 = Path(td) / "one"
+        _gate_lock.take_slot("a", lock_dir=d1, slots=1, wait=False)
+        try:
+            _gate_lock.take_slot("b", lock_dir=d1, slots=1, wait=False)
+            single_admitted = True
+        except BlockingIOError:
+            single_admitted = False
+        ok = not admitted and reused and not single_admitted and held == [0, 1, 2, 3]
+        return ok, (f"fifth_admitted={admitted} reused_slot={idx} reused={reused} "
+                    f"single_pool_admitted_second={single_admitted} held={held}")
+
+
+def _gl_heavy_slot_reclaim() -> tuple[bool, str]:
+    """A slot whose lease expired, or whose named owner process is gone, is
+    reclaimed instead of wedging the pool; a live one is not (the control)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "slots"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take_slot("orphan", lock_dir=d, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=dead.pid)
+        try:
+            stolen = _gate_lock.take_slot("heir", lock_dir=d, slots=1, wait=False)[0] == 0
+        except BlockingIOError:
+            stolen = False
+        # Null control: the same shape with a LIVE owner pid is not stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take_slot("seat", lock_dir=d2, slots=1, lease_seconds=1800,
+                             wait=False, owner_pid=_os.getpid())
+        try:
+            _gate_lock.take_slot("other", lock_dir=d2, slots=1, wait=False)
+            live_admitted = True
+        except BlockingIOError:
+            live_admitted = False
+        return stolen and not live_admitted, f"stolen={stolen} live_admitted={live_admitted}"
+
+
+_gl_slots_ok, _gl_slots_detail = _gl_heavy_slots()
+R.check(
+    "the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second",
+    _gl_slots_ok,
+    _gl_slots_detail,
+)
+_gl_rec_ok, _gl_rec_detail = _gl_heavy_slot_reclaim()
+R.check(
+    "a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)",
+    _gl_rec_ok,
+    _gl_rec_detail,
+)
+
+
 def _gl_stub_tree(td: Path) -> Path:
     """A tree whose tests/stress.py and tests/other.py only drop a marker, with
     the real gate_lock.py beside them: what runs under the lease is observable."""
     (td / "tests").mkdir(parents=True)
     (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
-    for name in ("stress", "other"):
+    for name in ("stress", "other", "harness_headers"):
         (td / f"tests/{name}.py").write_text(
             f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
     return td
@@ -18137,6 +18447,98 @@ R.check(
     "preflight.sh must exit 0 when every closing keyword is declared; without "
     "this arm the check above passes for a script that refuses everything",
 )
+# The multi-issue arm's class is OWNERSHIP, not a separator list: a closing
+# keyword owns at most one reference, so a second reference between it and the
+# next keyword or clause end is silently dropped by GitHub. Its first version
+# spelled three separators (whitespace, a comma, an "and"); the round-1 review
+# ran the class's own rule over 200 merged bodies and returned six more it let
+# through -- `/`, `&`, `+`, `(`, `;`, any plain word (`then`), and a keyword and
+# a reference split across a newline. One plant per seam, so a seam that
+# reopens names itself in the detail rather than hiding behind an `all()`.
+#
+# These plants run preflight.sh from a directory that is not a checkout. Arm 1b
+# is a property of the body text alone, and the corpus arm it skips there is a
+# `check`, never a refusal: isolating it takes the pins from 1.1 s to 0.16 s
+# each and leaves what is measured exactly what the check is named for.
+_PREFLIGHT_ABS = _preflight.resolve()
+_PREFLIGHT_MULTI_SEAMS = {
+    "space": "Closes #2231 #2230.\n",
+    "comma": "Closes #2231, #2230.\n",
+    "and": "Closes #2231 and #2230.\n",
+    "slash": "Closes #2231/#2230.\n",
+    "spaced-slash": "Closes #2231 / #2230.\n",
+    "ampersand": "Closes #2231 & #2230.\n",
+    "plus": "Closes #2231 +#2230.\n",
+    "paren": "Closes #2231 (#2230).\n",
+    "semicolon": "Closes #2231; #2230.\n",
+    "word": "Closes #2231 then #2230.\n",
+    "colon": "Closes: #2231 #2230.\n",
+    "newline": "Closes #2231\n#2230\n",
+}
+# ... and the scope, in the other direction. A second reference in a LATER
+# clause is not owned by the keyword: `Part of #B` is this repository's own
+# convention for "closes one, touches another" and `Leaves #B open` says the
+# opposite of a close. Measured over the same 200 merged bodies: ownership at
+# clause scope refuses none of them, and the same test over the whole body
+# refuses 25, each carrying its second reference in a LATER clause -- a
+# `Part of`/`Leaves` site, or a prose mention after a blank line. A pin that
+# only widened the rule would red here.
+_PREFLIGHT_NOT_OWNED = {
+    "part-of": "Closes #2231.\n\nPart of #2230.\n",
+    "leaves-open": "Closes #2231. Leaves #2230 open.\n",
+    "bare-reference": "Closes #2231.\n\n#2230\n",
+    "heading": "Closes #2231\n\n## Notes\n\n#2230 is unrelated.\n",
+}
+
+
+def _preflight_rc(body: str, intended: str = "2231 2230") -> int:
+    """preflight.sh's exit code for ``body``, arm 1b's own input surface."""
+    with tempfile.TemporaryDirectory() as tmp:
+        return subprocess.run(
+            ["bash", str(_PREFLIGHT_ABS), *intended.split()],
+            input=body, capture_output=True, text=True, cwd=tmp,
+        ).returncode
+
+
+_PREFLIGHT_MULTI_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_MULTI_SEAMS.items()}
+    if _preflight.is_file() else {}
+)
+_PREFLIGHT_NOT_OWNED_RC = (
+    {name: _preflight_rc(body) for name, body in _PREFLIGHT_NOT_OWNED.items()}
+    if _preflight.is_file() else {}
+)
+R.check(
+    "one closing keyword naming several issues refuses, since GitHub closes "
+    "only the first",
+    bool(_PREFLIGHT_MULTI_RC) and all(rc == 1 for rc in _PREFLIGHT_MULTI_RC.values()),
+    f"rc per separator: {_PREFLIGHT_MULTI_RC} -- `Closes #A <sep> #B` closes #A "
+    "and silently not #B, because GitHub's rule is KEYWORD #N with nothing "
+    "between the keyword and the number, so a second number has no keyword of "
+    "its own and the grep in check 1 keeps only the first. The arm is the "
+    "ownership property, not a separator list: a spelled-out set always has a "
+    "next separator, and six of these twelve are the seams a round-1 review "
+    "returned against the three-separator version",
+)
+R.check(
+    "and a second reference in a LATER clause is not refused (the scope's own "
+    "null control)",
+    bool(_PREFLIGHT_NOT_OWNED_RC)
+    and all(rc == 0 for rc in _PREFLIGHT_NOT_OWNED_RC.values()),
+    f"rc per shape: {_PREFLIGHT_NOT_OWNED_RC} -- ownership is decided inside a "
+    "clause (a paragraph, and a sentence within it), because a reference in a "
+    "later clause is not presented as part of the close. `Closes #M.` then "
+    "`Part of #N.` is the tree's own convention; keeping the count across the "
+    "blank line would refuse 24 of the 200 most recently merged bodies, every "
+    "one of them that shape",
+)
+R.check(
+    "and two keywords pass, so it is not simply always-red",
+    _preflight.is_file()
+    and _preflight_rc("Closes #2231. Closes #2230.\n") == 0,
+    "two closing keywords, each its own number, must pass; the multi-issue arm "
+    "refuses only one keyword followed by several references in one clause",
+)
 # The '; echo' refusal is split: inline backticks in prose are advisory, a
 # fenced block is not. Both directions are pinned because the arms above feed
 # only single-line inputs, so widening the exemption to strip fenced blocks
@@ -18680,6 +19082,67 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# --- the inert CI umbrella stub (R10-CI-LAYOUT PR 0; DESIGN-P1 step 5b) -------
+#
+# `.github/workflows/ci.yml` exists on main only so that `workflow_dispatch`
+# can dispatch it from a probe ref (GitHub dispatches a file only once it is on
+# the default branch). Until the umbrella replaces it, it must do nothing and
+# write no check at any pull-request head: dispatch is its one trigger, `stub`
+# its one job, running `true`, with no grant at either level and no `uses:`.
+# It is a gate file from the stub on, so the replacing edit runs FULL. Reads
+# the parsed document, not a source grep (PyYAML reads the `on:` key as True).
+def _ci_stub_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get("on", doc.get(True))
+    defects = []
+    if not isinstance(on, dict) or set(on) != {"workflow_dispatch"}:
+        defects.append(f"triggers {sorted(map(str, on or {}))} (want only workflow_dispatch)")
+    dispatch = on.get("workflow_dispatch") if isinstance(on, dict) else None
+    inputs = (dispatch or {}).get("inputs") or {}
+    if set(inputs) != {"pr", "base", "recheck", "no-skip"} or any(
+            (v or {}).get("required", False) or (v or {}).get("type") != "string"
+            for v in inputs.values()):
+        defects.append(f"inputs {inputs!r} (want pr/base/recheck/no-skip, "
+                       "each an optional string)")
+    if doc.get("permissions") != {}:
+        defects.append(f"workflow permissions {doc.get('permissions')!r}")
+    jobs = doc.get("jobs") or {}
+    if set(jobs) != {"stub"}:
+        defects.append(f"jobs {sorted(jobs)} (want only stub)")
+    stub = jobs.get("stub") or {}
+    if stub.get("permissions") != {}:
+        defects.append(f"stub permissions {stub.get('permissions')!r}")
+    if [st.get("run") for st in stub.get("steps") or []] != ["true"] or any(
+            set(st) - {"run"} for st in stub.get("steps") or []):
+        defects.append(f"stub steps {stub.get('steps')!r} (want one `run: true`)")
+    if re.search(r"^\s*-?\s*uses:", text, re.M):
+        defects.append("a `uses:` line")
+    return defects
+
+
+_CI_STUB = Path(".github/workflows/ci.yml").read_text()
+_CI_STUB_DEFECTS = _ci_stub_defects(_CI_STUB)
+# Null controls: the same parser over a stub given a second trigger, a grant,
+# and a second job must name each defect, so a parser that reads nothing fails.
+_CI_STUB_PLANTS = {
+    "push trigger": _CI_STUB.replace("on:\n", "on:\n  push:\n", 1),
+    "grant": _CI_STUB.replace("permissions: {}\n\njobs:", "permissions:\n  contents: read\n\njobs:", 1),
+    "second job": _CI_STUB + "  other:\n    runs-on: ubuntu-latest\n    steps:\n      - run: \"true\"\n",
+}
+_CI_STUB_PLANT_MISSED = sorted(k for k, t in _CI_STUB_PLANTS.items()
+                               if t == _CI_STUB or not _ci_stub_defects(t))
+R.check(
+    "the ci.yml umbrella stub is inert: dispatch only, one `true` job, no "
+    "grant, no `uses:`, and a gate file",
+    not _CI_STUB_DEFECTS and not _CI_STUB_PLANT_MISSED
+    and _closure.is_gate_file(".github/workflows/ci.yml")
+    and _closure.affected([".github/workflows/ci.yml"])["case"] == "full",
+    f"defects={_CI_STUB_DEFECTS} plants the parser missed="
+    f"{_CI_STUB_PLANT_MISSED} gate={_closure.is_gate_file('.github/workflows/ci.yml')}; "
+    "a stub that triggers on anything but dispatch writes checks at pull-"
+    "request heads before the umbrella replaces it",
+)
+
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
@@ -18979,7 +19442,7 @@ R.check(
     "dev/audit one level above a recorded directory",
 )
 _A_IR_BOUND = _closure.affected(
-    ["dev/governance/roles/fixer.md", "handoff/r9-x/note.md"])
+    ["dev/governance/decisions/0011-app-authored-identity.md", "handoff/r9-x/note.md"])
 R.check(
     "prose outside every recorded reach still skips (the bound's other edge)",
     _A_IR_BOUND["case"] == "skip",
@@ -19847,6 +20310,26 @@ R.check(
     "codeql.yml accepts the autofix jobs' dispatch",
     re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
     "without the trigger `gh workflow run codeql.yml` is refused with 422",
+)
+# `Analyze (python)` is a required context, so a cancelled analysis fails the
+# pull request. Its runtime swings with runner load, and the 30-minute cap sat
+# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
+# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
+# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
+# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
+# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
+# design choice. The cap is pinned against the YAML (not left as prose in the
+# workflow) because a one-line edit shrinking it back is exactly what no other
+# check reads.
+_CODEQL_JOBS = (_yaml.safe_load(
+    (pathlib.Path(__file__).resolve().parents[1] / ".github"
+     / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
+_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+R.check(
+    "codeql.yml's analyze cap clears the python leg's measured worst case",
+    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
+    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
+    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
 )
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
@@ -22173,6 +22656,42 @@ R.check(
     _stc_ok,
     _stc_detail,
 )
+# The same composition for the coverage rule, on THIS tree's own claim file
+# (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry
+# a branch suspended for one must come back in the stamp commit, and the
+# stamp's self-check refuses MAY-DRIFT UNCOVERED otherwise -- after the
+# stamp seat has run, when no branch can fix it (at the old VERSION the
+# claim is live, and a name cannot be both). Pinned here, a branch that
+# suspends an entry in a form `restore_suspended` cannot read goes red on
+# its own pull request instead of on the next stamp.
+try:
+    _stcov_version = Path("VERSION").read_text().strip()
+    _stcov_next = _stamp.bump(_stcov_version, "patch")
+    _stcov_after, _, _ = _stamp.rewrite_claims(
+        Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
+    _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
+    # env_drift's own reader, on the stamped text, not a second parser.
+    with tempfile.TemporaryDirectory() as _stcov_dir:
+        _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
+        _stcov_path.parent.mkdir(parents=True)
+        _stcov_path.write_text(_stcov_after)
+        _stcov_md = _env_drift._may_drift(_stcov_dir)
+    _stcov_problem = (
+        _env_drift.may_drift_coverage_error(
+            _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
+        or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
+    )
+    _stcov_ok = _stcov_problem is None and not _stcov_claims
+    _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
+except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stcov_ok = False
+    _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
+R.check(
+    "the claim file stamp.py would write from this tree covers every allowed "
+    "may-drift name -- each suspended entry restored with the claims deleted",
+    _stcov_ok,
+    _stcov_detail,
+)
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
     not _closure.is_inert("tools/release/stamp.py"),
@@ -22195,6 +22714,9 @@ _INERT_TOOL_HOMES = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
+    # The schedule model and its measured durations: run by hand at a wave
+    # edge, read by no gate script (closure.py lists it as an inert home).
+    "tools/plan/",
 )
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
@@ -24476,10 +24998,11 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly six jobs override the workflow's read-only floor, four of them "
-    "read-only",
-    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix", "closures",
-                      "closures-autofix", "mutation-autofix", "nightly-status"],
+    "exactly seven jobs override the workflow's read-only floor, the newest "
+    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
+    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
+                      "closures", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -25606,6 +26129,41 @@ R.check(
         re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
     "the predicate must read the env line, not the step's name",
 )
+# The preflight step's closing-keyword arm was dead two ways: the step passed
+# preflight.sh no intended-issue list (check #1 refuses a close not in the list
+# it is given, so every close was refused) and appended `|| true` (so the
+# refusal never gated). Both are pinned over the comment-stripped step: the
+# list must be derived (`INTENDED=`) and passed (`$INTENDED`), and the swallow
+# must be gone. Re-adding `|| true` is the one-character edit that silences the
+# arm again.
+def _preflight_derives_intended(step: str) -> bool:
+    return (
+        step.startswith("Pre-flight the body for unmeasured claims")
+        and "INTENDED=" in step
+        and "$INTENDED" in step
+        and "|| true" not in step
+    )
+
+
+_PC_PREFLIGHT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Pre-flight the body for unmeasured claims")), "")
+R.check(
+    "the preflight step derives and passes the intended list and its refusal gates",
+    _preflight_derives_intended(_PC_PREFLIGHT_STEP),
+    f"step found={bool(_PC_PREFLIGHT_STEP)}, "
+    f"derives={'INTENDED=' in _PC_PREFLIGHT_STEP}, "
+    f"passed={'$INTENDED' in _PC_PREFLIGHT_STEP}, "
+    f"swallow_gone={'|| true' not in _PC_PREFLIGHT_STEP}; with no list and "
+    "`|| true`, every closing keyword is refused and the refusal is discarded "
+    "-- the arm bound nowhere",
+)
+R.check(
+    "and the same step re-adding the swallow is not (null control)",
+    bool(_PC_PREFLIGHT_STEP)
+    and not _preflight_derives_intended(_PC_PREFLIGHT_STEP + " || true"),
+    "the predicate must read the swallow's absence, not the step's name",
+)
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
 # driven by prepr.sh --self-test; what that cannot see is whether THIS job
@@ -26148,6 +26706,120 @@ R.check(
     "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
     "the repository's full name, must each turn the lookup pin red",
 )
+# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
+# while it is live and deletes it at its closing line, and this beat's
+# automerge step must not merge a record pull request while that ref is
+# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
+# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
+# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
+# stubbed API: the status it prints is what proves the skip happens before the
+# guard and the merge, so a check placed after them (or an inverted age
+# comparison) cannot pass. The bound is read from the step, never carried.
+_HOLD_STEP = next((s for s in ((_yaml.safe_load(_TESTS_YML) or {}).get("jobs") or {})
+                   .get("record-autofix", {}).get("steps") or []
+                   if str(s.get("id") or "") == "automerge"), {})
+_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
+_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
+_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
+_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
+_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
+                         Path("tools/audit/seat/merge_train.py").read_text())
+
+
+def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
+    """The automerge step's `status=` and whether it warned "unreadable" over a
+    stubbed API whose train-hold read answers (code, body); every other read is
+    the minimum the step needs.
+
+    The record-row guard is a stub that refuses, so an arm that did NOT skip
+    reaches it and reports `refused`: a missing or unreached skip is visible
+    in the status, not inferred from an absence. `GET /commits/<ref>` answers
+    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
+    live 2026-10-20), never 404 -- an absent hold must be silent, or every
+    beat with no train running logs a warning."""
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
+            "import sys\nsys.exit(1)\n")
+        answers = t / "answers.json"
+        answers.write_text(json.dumps({
+            "hold": {"code": code, "body": body},
+            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
+            "reviews": {"code": 200, "body": "[]"},
+            "other": {"code": 404, "body": "{}"}}))
+        bin_ = t / "bin"
+        bin_.mkdir()
+        (bin_ / "curl").write_text(
+            "#!" + sys.executable + "\n"
+            "import json, sys\n"
+            f"ans = json.load(open({str(answers)!r}))\n"
+            "a = sys.argv[1:]\n"
+            "url = a[-1]\n"
+            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
+            "       else 'reviews' if '/reviews' in url\n"
+            "       else 'pulls' if '/pulls/' in url else 'other')\n"
+            "code, body = ans[key]['code'], ans[key]['body']\n"
+            "if '-o' in a:\n"
+            "    p = a[a.index('-o') + 1]\n"
+            "    if p != '/dev/null':\n"
+            "        open(p, 'w').write(body)\n"
+            "    if '-w' in a:\n"
+            "        sys.stdout.write(str(code))\n"
+            "else:\n"
+            "    sys.stdout.write(body)\n")
+        (bin_ / "curl").chmod(0o755)
+        out = t / "out"
+        out.write_text("")
+        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
+                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
+        warned = "unreadable" in (p.stdout + p.stderr)
+        return (found[-1] if found else ""), warned
+
+
+def _hold_when(offset_s: int) -> str:
+    """A commit read whose committer date is now + offset_s seconds."""
+    at = datetime.now(UTC) + timedelta(seconds=offset_s)
+    return json.dumps({"commit": {"committer": {
+        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
+
+
+R.check(
+    "tests.yml's automerge skips while a live merge train holds the record "
+    "beat (executed, issue #2302)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
+    f"bound={_HOLD_BOUND}, "
+    f"status={_train_hold_status(200, _hold_when(-60))!r}",
+)
+R.check(
+    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
+    "one (the API's own 422) and an unreadable one do not skip -- and only the "
+    "unreadable ones warn (null controls)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
+    and _train_hold_status(422, "{}") == ("refused", False)
+    and _train_hold_status(404, "{}") == ("refused", False)
+    and _train_hold_status(500, "{}") == ("refused", True)
+    and _train_hold_status(200, "{}") == ("refused", True),
+    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
+    "date ahead of the reading clock is unknowable, never young (#775); the "
+    "commits endpoint answers 422 for an absent ref, so that arm must be "
+    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
+    "behaviour, which is the safe failure",
+)
+R.check(
+    "the beat's hold ref and the train's hold ref name the same branch",
+    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
+    and "/commits/$HOLD_REF" in _HOLD_RUN
+    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
+    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
+    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
+)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
@@ -26234,7 +26906,7 @@ steps:
       HEAD: ${{ github.event.pull_request.head.sha }}
     run: |
       set -euo pipefail
-      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
       for g in coverage_ratchet delivery_status; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
@@ -26385,11 +27057,21 @@ def _pt_armed(docs: dict) -> "set[str]":
 
 
 def _pt_trigger(script: str, planted: str) -> str:
-    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    """Run the arm's `changed` step on a planted one-file diff; its governance output.
+
+    The step lists the diff with `tests/closure.py changed`, so the planted
+    base carries this tree's copy of it and `python` resolves to this
+    interpreter: the step runs the real producer, not a stand-in.
+    """
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
         _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
+        Path(_td, "tests").mkdir()
+        Path(_td, "tests", "closure.py").write_text(Path("tests/closure.py").read_text())
+        _bin = Path(_td, ".bin")
+        _bin.mkdir()
+        os.symlink(sys.executable, _bin / "python")
         subprocess.run(_g + ["add", "-A"], check=True, env=_env)
         subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
         _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
@@ -26401,6 +27083,7 @@ def _pt_trigger(script: str, planted: str) -> str:
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
                             "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
@@ -27940,9 +28623,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
         "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
 R.check(
     "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs (null control)",
-    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
-                      "tests.yml:mutation-autofix"],
+    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
+    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
+                      "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
 _PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
@@ -28101,6 +28784,13 @@ R.check(
 # fires on a RED run, and it watches every workflow that runs on a pull
 # request but the contract itself -- a watched list that misses one is the
 # gap again, so the list is derived here from the workflow files.
+# R10-FOLLOWER-DEBOUNCE: one effective run per head. The runs at one head
+# share a concurrency group cancelling the older, the first step defers while
+# another watched run at the head is unfinished, and the job runs on every
+# conclusion (the last completion may be green after a red deferred to it),
+# handing the program the newest red at the head. Pinned below: an `if:` on
+# the job, a group not keyed on the head, a watched copy that drifts, or a
+# program step not gated on the deferral re-opens the lost red or the cost.
 _PR_WORKFLOW_NAMES = sorted(
     str((_yaml.safe_load(t) or {}).get("name"))
     for t in _PRW_TEXTS.values()
@@ -28130,10 +28820,25 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
-    cond = str(job.get("if", ""))
-    if cond.strip() != ("contains(fromJSON('[\"failure\",\"timed_out\",\"cancelled\"]'), "
-                        "github.event.workflow_run.conclusion)"):
-        out.append(f"if: {cond!r}")
+    if "if" in job:
+        out.append(f"if: {job.get('if')!r} skips a completion a deferred red may need")
+    cc = doc.get("concurrency") or {}
+    if cc.get("group") != "pr-contract-rerun-${{ github.event.workflow_run.head_sha }}" \
+            or cc.get("cancel-in-progress") is not True:
+        out.append(f"concurrency {cc}")
+    first = steps[0] if steps else {}
+    env0 = first.get("env") or {}
+    try:
+        w0 = json.loads(str(env0.get("WATCHED", "")))
+    except ValueError:
+        w0 = None
+    if first.get("id") != "last" or "uses" in first or w0 != wr.get("workflows") \
+            or env0.get("HEAD_SHA") != "${{ github.event.workflow_run.head_sha }}" \
+            or "head_sha=$HEAD_SHA" not in str(first.get("run", "")):
+        out.append(f"first step {first.get('id')!r} does not defer on the head's watched runs")
+    if any(s.get("if") != "steps.last.outputs.red != ''" for s in steps[1:]) or \
+            (steps[-1].get("env") or {}).get("RUN_ID") != "${{ steps.last.outputs.red }}":
+        out.append("a step after the deferral is not gated on it, or the program is not handed the red")
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
             or (co[0].get("with") or {}).get("persist-credentials") is not False:
@@ -28153,8 +28858,9 @@ _CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
 _CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
 R.check(
     "a red that lands after pr-contract ran re-runs it: the follower watches every "
-    "pull-request workflow but the contract, fires on a red run only, holds "
-    "`actions: write` and runs the default branch's program (D13-s1-03)",
+    "pull-request workflow but the contract, defers to the last completion at "
+    "the head and hands it the newest red, holds `actions: write` and runs the "
+    "default branch's program (D13-s1-03, R10-FOLLOWER-DEBOUNCE)",
     _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
     f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
 )
@@ -28167,6 +28873,20 @@ R.check(
     any(d.startswith("checkout") for d in _CRR_NULL)
     and any(d.startswith("workflow_run") for d in _CRR_NULL),
     f"defects on the altered copy: {_CRR_NULL}",
+)
+_CRR_DNULL = _crr_defects(_CRR_TEXT.replace(
+    "  group: pr-contract-rerun-${{ github.event.workflow_run.head_sha }}",
+    "  group: pr-contract-rerun-${{ github.event.workflow_run.id }}").replace(
+    "  rerun-stale-contract:\n",
+    "  rerun-stale-contract:\n    if: github.event.workflow_run.conclusion == 'failure'\n").replace(
+    '"Kernel points", "Tests", "Validate"]\'', '"Kernel points", "Tests"]\'').replace(
+    "RUN_ID: ${{ steps.last.outputs.red }}", "RUN_ID: ${{ github.event.workflow_run.id }}"),
+    _PR_WORKFLOW_NAMES)
+R.check(
+    "and the follower with a per-run group, a red-only job, a watched copy "
+    "missing a workflow, or the trigger's id handed on, is refused (null control)",
+    {d.split(" ")[0] for d in _CRR_DNULL} >= {"concurrency", "if:", "first", "a"},
+    f"defects on the altered copy: {_CRR_DNULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
@@ -29422,10 +30142,12 @@ R.check(
 # the brief of a stage with no roster group, and carry-201 told seats to run
 # `corpus_churn.py` at a path two moves old. A citation is followed through the
 # move map (`locate`), and kept when it lands under a layout.json `historical`
-# prefix, the half no other check runs. Both sources are read from the INDEX, as
-# tests/layout.py reads prose: they are on tests/closure.py's INERT list, and a
-# worktree read would record them into this script's closure, the
-# INERT-and-recorded pair `merge` refuses (#357).
+# prefix, the half no other check runs. Both sources are read from the WORKTREE,
+# which is what keeps an edit to one from skipping this arm: each is off
+# closure.py's INERT list (its `_is_citation_source`), so a worktree read enters
+# this script's measured closure and a pull request that only adds a broken
+# citation selects this script and is refused here rather than one merge later
+# on main (#2312, F2 -- the late-gate shape #518 and #533 closed the same way).
 #
 # THE PROBE. A cited `.py` is loaded in a fresh interpreter the way a seat runs
 # it (cwd the root, its directory first on sys.path, PYTHONPATH=tests/hastub,
@@ -29447,8 +30169,28 @@ _SP_EXE = r"((?:[\w.-]+/)+[\w.-]+\.(?:py|mjs|js|sh))(?![\w.])"
 _SP_CITE = re.compile(r"(?<![\w./-])" + _SP_EXE)
 _SP_TOPS = {Path(p).parts[0] for p in subprocess.run(
     ["git", "ls-files"], capture_output=True, text=True).stdout.split()}
-_SP_OPENS = {"open", "Path", "join", "run", "check_output", "check_call", "call",
+_SP_OPENS = {"open", "Path", "joinpath", "run", "check_output", "check_call", "call",
              "Popen", "exists", "is_file", "isfile", "isdir", "locate", "canon"}
+# The read half of an open: `Path(lit).read_text()` is caught through `Path`,
+# but `(Path('.') / lit).read_text()` and `_P = Path('.') / lit; _P.read_text()`
+# name the path only on the RECEIVER, so each is an open site of its own --
+# as is `.open()` on such a receiver, the same shape one method over.
+_SP_READS = {"read_text", "read_bytes"}
+# `join` is the one name that is BOTH `os.path.join` (a path site) and
+# `str.join` (not one): `"".join(rows)` over a list that HELD a path literal
+# opens nothing, and following it reads codeowners_gap.py's four classifier
+# inputs as faults -- the shape the review's "every constant is an open"
+# ablation fires. A bare `join(...)` is a path site (the module qualified it by
+# import); `x.join(...)` is too only for a path module.
+_SP_JOIN_MODULES = {"posixpath", "ntpath", "pathlib"}
+
+
+def _sp_path_join(func):
+    if isinstance(func, ast.Name):
+        return True
+    return (isinstance(func, ast.Attribute)
+            and ((isinstance(func.value, ast.Attribute) and func.value.attr == "path")
+                 or (isinstance(func.value, ast.Name) and func.value.id in _SP_JOIN_MODULES)))
 _SP_LOAD = (
     "import importlib.util as u, os, sys\n"
     "f = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(f)))\n"
@@ -29456,8 +30198,8 @@ _SP_LOAD = (
     "s.loader.exec_module(u.module_from_spec(s))\n")
 
 
-def _sp_index(path):
-    return subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True).stdout
+def _sp_source(path):
+    return Path(path).read_text()
 
 
 def _sp_cited(texts):
@@ -29498,41 +30240,224 @@ def _sp_remeasures(node):
             yield from _sp_remeasures(v)
 
 
+def _sp_bind_names(node):
+    """Every name a bind target introduces: a plain name, a tuple/list unpack's
+    element names, or the attribute of a `self.x = ...` target."""
+    if isinstance(node, ast.Name):
+        yield node.id
+    elif isinstance(node, ast.Attribute):
+        yield node.attr
+    elif isinstance(node, (ast.Tuple, ast.List)):
+        for e in node.elts:
+            yield from _sp_bind_names(e)
+
+
+_SP_SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+
+
+_SP_FN_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _sp_scope_map(tree):
+    """((node, enclosing scope) ..., {scope: parent scope}, {scope: global names},
+    {scope: nonlocal names}); the module object is the root scope. A binding
+    resolves in the scope that READS it, so a name bound in one function is not
+    read as a same-named binding in another -- the leak that turns a classifier
+    input into an open, which is codeowners_gap.py's `line`, `want` and `ok`
+    (#2344 review, round 1). The `global`/`nonlocal` sets are the one name the
+    reader may re-route: a name declared there is bound in the scope the
+    declaration points to, not the scope that textually holds the assignment."""
+    nodes, parent, glbs, nlcls, stack = [], {}, {}, {}, [(tree, tree)]
+    while stack:
+        node, scope = stack.pop()
+        nodes.append((node, scope))
+        inner = node if isinstance(node, _SP_SCOPE_NODES) else scope
+        if inner is not scope:
+            parent[inner] = scope
+        if isinstance(node, ast.Global):
+            glbs.setdefault(scope, set()).update(node.names)
+        elif isinstance(node, ast.Nonlocal):
+            nlcls.setdefault(scope, set()).update(node.names)
+        stack.extend((c, inner) for c in ast.iter_child_nodes(node))
+    return nodes, parent, glbs, nlcls
+
+
+def _sp_args(node):
+    """(arg, default) for every parameter carrying a default."""
+    a = node.args
+    positional = [*a.posonlyargs, *a.args]
+    yield from zip(positional[len(positional) - len(a.defaults):], a.defaults)
+    for arg, default in zip(a.kwonlyargs, a.kw_defaults):
+        if default is not None:
+            yield arg, default
+
+
+def _sp_bindings(nodes, parent, root, glbs, nlcls):
+    """{scope: {name: [value node]}}: every binding the module makes -- a plain
+    or annotated assignment, a tuple/list unpack, a `for` target over a LITERAL
+    collection, `+=` and the other augmented targets, a walrus, a parameter
+    default, and a `with ... as` target. A `for x in <expression>` target is
+    NOT bound: it takes whatever the expression yields, and binding it reads
+    an unrelated loop's classifier inputs as this one's opens. A name the scope
+    declares `global` is bound in the module (the root) and one it declares
+    `nonlocal` in the nearest enclosing function scope, matching Python's own
+    re-routing of those assignments."""
+    scopes = {}
+
+    def eff(scope, nm):
+        if nm in glbs.get(scope, ()):
+            return root
+        if nm in nlcls.get(scope, ()):
+            s = parent.get(scope)
+            while s is not None and not isinstance(s, _SP_FN_SCOPES):
+                s = parent.get(s)
+            return s if s is not None else parent.get(scope)
+        return scope
+
+    def bind(scope, targets, value):
+        for t in targets:
+            if (isinstance(t, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List))
+                    and len(t.elts) == len(value.elts)):
+                pairs = [(nm, val) for el, val in zip(t.elts, value.elts)
+                         for nm in _sp_bind_names(el)]
+            else:
+                pairs = [(nm, value) for nm in _sp_bind_names(t)]
+            for nm, val in pairs:
+                scopes.setdefault(eff(scope, nm), {}).setdefault(nm, []).append(val)
+
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            bind(scope, node.targets, node.value)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, ast.AugAssign):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            if isinstance(node.iter, (ast.Tuple, ast.List, ast.Set)):
+                bind(scope, [node.target], node.iter)
+        elif isinstance(node, ast.NamedExpr):
+            bind(scope, [node.target], node.value)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for arg, default in _sp_args(node):
+                bind(scope, [ast.Name(id=arg.arg)], default)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    bind(scope, [item.optional_vars], item.context_expr)
+    return scopes
+
+
+def _sp_reach(node, scopes, parent, scope):
+    """Every expression node `node` can reach: the name or attribute it is bound
+    to here or in an enclosing scope, a pathlib `/` or a `+` join, an f-string,
+    a dict subscript, a held tuple -- so a literal written several hops from the
+    open, or inside an f-string's literal part, is still the path that open
+    names. `seen` breaks a cycle."""
+    seen, stack, out = set(), [node], []
+    while stack:
+        n = stack.pop()
+        if id(n) in seen:
+            continue
+        seen.add(id(n))
+        out.append(n)
+        key = n.id if isinstance(n, ast.Name) else (n.attr if isinstance(n, ast.Attribute) else None)
+        if key is not None:
+            s = scope
+            while s is not None:
+                if key in scopes.get(s, {}):
+                    stack.extend(scopes[s][key])
+                    break
+                s = parent.get(s)
+        stack.extend(ast.iter_child_nodes(n))
+    return out
+
+
+def _sp_path_literal(v):
+    """True when a string is a repository-path-shaped literal -- the same shape
+    `_sp_literals` collects, so the census below and the reader agree on what
+    counts as a path."""
+    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
+            and v.split("/")[0] in _SP_TOPS)
+
+
+def _sp_attr_bound(src):
+    """(line, name) for every path literal a module binds to an ATTRIBUTE: a
+    `obj.attr = <path>` target, or a class-body `Name = <path>` read as
+    `ClassName.Name`. `_sp_reach` resolves a read by the attribute NAME and walks
+    up only enclosing scopes, so a path bound to an attribute in one scope and
+    opened in another is the one shape the resolver cannot follow."""
+    tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
+    out = []
+    for node, scope in nodes:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
+            targets = [node.target]
+        else:
+            continue
+        if not any(isinstance(c, ast.Constant) and _sp_path_literal(c.value)
+                   for c in _sp_reach(node.value, scopes, parent, scope)):
+            continue
+        for t in targets:
+            if isinstance(t, ast.Attribute):
+                out.append((node.lineno, t.attr))
+            elif isinstance(t, ast.Name) and isinstance(scope, ast.ClassDef):
+                out.append((node.lineno, t.id))
+    return out
+
+
 def _sp_literals(src, opened=True):
     """(line, literal, resolved) per repository path the module opens (every
     path literal it holds, with opened=False)."""
     tree = ast.parse(src)
+    nodes, parent, glbs, nlcls = _sp_scope_map(tree)
+    scopes = _sp_bindings(nodes, parent, tree, glbs, nlcls)
     docs = {id(n.body[0].value) for n in ast.walk(tree)
             if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
             and n.body and isinstance(n.body[0], ast.Expr)
             and isinstance(n.body[0].value, ast.Constant)}
-    named = {}
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Assign) and isinstance(n.value, (ast.Constant, ast.Call)):
-            for t in n.targets:
-                if isinstance(t, ast.Name):
-                    named.setdefault(t.id, []).append(n.value)
+    # The literal parts of an f-string, so a leading slash is stripped only for
+    # `f"{root}/<path>"` and never for a plain absolute string (which the token
+    # regex below would refuse anyway, but `/dev/null` inside a quoted literal
+    # must not become the repository's `dev/null`).
+    fstr = {id(c) for j in ast.walk(tree) if isinstance(j, ast.JoinedStr)
+            for c in j.values if isinstance(c, ast.Constant)}
     via, opens = {}, set()
-    for n in ast.walk(tree):
+    for n, scope in nodes:
         if not isinstance(n, ast.Call):
             continue
         name = getattr(n.func, "id", None) or getattr(n.func, "attr", None)
         if name in ("locate", "canon") and n.args and isinstance(n.args[0], ast.Constant):
             via[id(n.args[0])] = _layout_locate if name == "locate" else _layout_canon
-        if name in _SP_OPENS:
+        if (name in _SP_OPENS or name in _SP_READS
+                or (name == "join" and _sp_path_join(n.func))):
             for arg in [*n.args, *(k.value for k in n.keywords)]:
-                for m in ast.walk(arg):
-                    for c in [m, *(named.get(m.id, ()) if isinstance(m, ast.Name) else ())]:
-                        for cc in ast.walk(c):
-                            if isinstance(cc, ast.Constant):
-                                opens.add(id(cc))
+                for cc in _sp_reach(arg, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
+            # A METHOD call names its path on the RECEIVER, not in its
+            # arguments: `(Path('.') / lit).open()`, `_P = Path('.') / lit;
+            # _P.open()`, `Path(lit).read_text()`. The round-1 review planted
+            # the `read_text()` pair; `.open()` is the same structure, and
+            # `Path(lit).open()` is caught by the inner `Path` call only by
+            # accident.
+            if isinstance(n.func, ast.Attribute):
+                for cc in _sp_reach(n.func.value, scopes, parent, scope):
+                    if isinstance(cc, ast.Constant):
+                        opens.add(id(cc))
     out = []
     for n in ast.walk(tree):
-        if (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
-                and (not opened or id(n) in opens)
-                and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", n.value)
-                and n.value.split("/")[0] in _SP_TOPS):
-            out.append((n.lineno, n.value, via.get(id(n), lambda v: v)(n.value)))
+        if not (isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docs
+                and (not opened or id(n) in opens)):
+            continue
+        # `f"{os.getcwd()}/<path>"` leaves the literal part with a leading slash,
+        # which is the repository's own root once the interpolated prefix is the
+        # cwd -- the one f-string shape the round-1 review planted.
+        v = n.value[1:] if id(n) in fstr and n.value.startswith("/") else n.value
+        if _sp_path_literal(v):
+            out.append((n.lineno, v, via.get(id(n), lambda x: x)(v)))
     return out
 
 
@@ -29559,12 +30484,12 @@ _SP_POLICY = sorted({_layout_locate(f) for f in _SP_POLICY})
 _SP_CARRIES = sorted(f for f in subprocess.run(
     ["git", "ls-files", "dev/programme/carries/"], capture_output=True, text=True).stdout.split()
     if re.fullmatch(r"dev/programme/carries/carry-\d+\.json", f))
-_SP_CITED = _sp_cited((f, _sp_index(f)) for f in _SP_POLICY)
+_SP_CITED = _sp_cited((f, _sp_source(f)) for f in _SP_POLICY)
 # A carry COMMAND is pasted as written, so its spelling must name the file too:
 # carry-201 told a seat to run corpus_churn.py at its pre-move path, which
 # the move map follows and a shell does not (ENOENT). Policy prose citing a
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
-_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_index(f) or "{}"))))
+_SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_source(f) or "{}"))))
                   for f in _SP_CARRIES]
 _SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
 for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
@@ -29624,6 +30549,143 @@ R.check(
     and _sp_check_stale(_sp_unit),
     f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
     f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
+)
+# F1 (#2312): the open shapes the fix reviews planted, and the binding family
+# beside them -- #2289's round-1 `plants.py` is the control for the first eight,
+# and #2344's round-1 review named the two plainly inside the rule (a `for`
+# target holding the literal, and `.open()` on a `/`-join receiver) plus the
+# forms that ride with them. A literal reached through any of them was held by
+# the module but never counted as an open, so the program it names was never
+# probed. Each planted shape must be read as an open, the five the arm already
+# caught stay caught, and -- the null control the whole arm rests on -- a
+# literal the program only HOLDS is still not an open. Asserted on
+# `_sp_literals`, the shape reader, not on `_sp_faults`: a planted
+# `open(<retired>)` ALSO fails to load, and that failure would hide a shape the
+# reader still misses. Round 3 added the two declarations the reader re-routes
+# (`global` and `nonlocal`) to the plant list; an attribute bound to a path in
+# one scope and opened in another is the one shape it cannot follow and is
+# dispositioned by the census right after this check.
+_sp_probe = "\nimport os\nfrom pathlib import Path\n"
+
+
+def _sp_opens(src, lit):
+    return any(l == lit for _, l, _ in _sp_literals(src))
+
+
+_sp_escapes = {
+    "two-hop alias": f"_A = {_sp_old!r}\n_B = _A\n_X = open(_B)\n",
+    "two-hop alias via join": f"_A = {_sp_old!r}\n_B = _A\n_X = os.path.join('.', _B)\n",
+    "pathlib / then read_text": f"_X = (Path('.') / {_sp_old!r}).read_text()\n",
+    "pathlib / via a name then read_text": f"_P = Path('.') / {_sp_old!r}\n_X = _P.read_text()\n",
+    "pathlib / then open": f"_X = (Path('.') / {_sp_old!r}).open()\n",
+    "pathlib / via a name then open": f"_P = Path('.') / {_sp_old!r}\n_X = _P.open()\n",
+    "f-string root prefix": f"_X = open(f\"{{os.getcwd()}}/{_sp_old}\")\n",
+    "dict value then subscript": f"_C = {{'k': {_sp_old!r}}}\n_X = open(_C['k'])\n",
+    "tuple-unpack assign": f"_A, _B = {_sp_old!r}, 'x'\n_X = open(_A)\n",
+    "annotated assign": f"_A: str = {_sp_old!r}\n_X = open(_A)\n",
+    "for target": f"for _P in ({_sp_old!r},):\n    _X = open(_P)\n",
+    "walrus": f"if (_P := {_sp_old!r}):\n    _X = open(_P)\n",
+    "augmented assign": f"_P = ''\n_P += {_sp_old!r}\n_X = open(_P)\n",
+    "parameter default": f"def _f(_p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "with ... as": f"with Path('.') / {_sp_old!r} as _P:\n    _X = _P.read_text()\n",
+    "self attribute": f"class _C:\n    def m(self):\n        self._P = {_sp_old!r}\n"
+                      f"        _X = open(self._P)\n",
+    "list element then subscript": f"_L = [{_sp_old!r}]\n_X = open(_L[0])\n",
+    "nested dict subscript": f"_C = {{'a': {{'b': {_sp_old!r}}}}}\n_X = open(_C['a']['b'])\n",
+    "for tuple target": f"for _A, _B in (({_sp_old!r}, 'x'),):\n    _X = open(_A)\n",
+    "for over a list": f"for _P in [{_sp_old!r}]:\n    _X = open(_P)\n",
+    "kwonly default": f"def _f(*, _p={_sp_old!r}):\n    return open(_p)\n_X = _f()\n",
+    "lambda default": f"_f = lambda _p={_sp_old!r}: open(_p)\n",
+    "joinpath then read_text": f"_X = Path('.').joinpath({_sp_old!r}).read_text()\n",
+    "global binding": f"_G = None\ndef _load():\n    global _G\n"
+                      f"    _G = {_sp_old!r}\n_X = open(_G)\n",
+    "nonlocal binding": f"def _outer():\n    _P = ''\n    def _inner():\n"
+                        f"        nonlocal _P\n        _P = {_sp_old!r}\n    _X = open(_P)\n",
+}
+# The null controls beside the plants: a literal the program only HOLDS -- in a
+# tuple, a set, or a comparison -- is read as no open, whatever else it is in.
+_sp_held_shapes = {
+    "held tuple": f"_X = ({_sp_old!r},)\n",
+    "held set": f"_S = {{{_sp_old!r}}}\n",
+    "held comparison": f"_X = ('x' == {_sp_old!r})\n",
+}
+_sp_caught = {
+    "one-hop name": f"_P = {_sp_old!r}\n_X = open(_P)\n",
+    "pathlib / in open": f"_X = open(Path('.') / {_sp_old!r})\n",
+    "f-string bare": f"_X = open(f\"{_sp_old}\")\n",
+    "str concat": f"_X = open('./' + {_sp_old!r})\n",
+    "read via Path.read_text": f"_X = Path({_sp_old!r}).read_text()\n",
+}
+_sp_missed = sorted(k for k, p in _sp_escapes.items()
+                    if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_regressed = sorted(k for k, p in _sp_caught.items()
+                       if not _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+_sp_held_open = sorted(k for k, p in _sp_held_shapes.items()
+                       if _sp_opens(_sp_unit_src + _sp_probe + p, _sp_old))
+R.check(
+    "the cited-program arm follows a path literal through every open shape the "
+    "two fix reviews planted and the binding family beside them -- an alias, a "
+    "join, a pathlib / read through .read_text() or .open(), an f-string prefix, "
+    "a dict or list subscript, a tuple unpack, an annotated assignment, a for "
+    "target, a walrus, +=, a parameter or lambda default, a with ... as target, "
+    "a self.x attribute, and a name bound through a global or nonlocal "
+    "declaration -- the shapes it already caught stay caught, and a literal the "
+    "program only HOLDS is still not an open",
+    not _sp_missed and not _sp_regressed and not _sp_held_open,
+    f"shapes that still escape {_sp_missed}; no longer read as opens {_sp_regressed}",
+)
+# The one shape the name-only resolver cannot follow is an attribute bound to a
+# path literal in one scope and opened in another: `self._p` set in `__init__`
+# and opened in a sibling method, or a class-body `P = <path>` opened as `C.P`.
+# `_sp_reach` keys a read by the attribute NAME and walks up only enclosing
+# scopes, so a binding in a sibling scope is invisible; following it precisely
+# needs object identity, which the flat name map M6 removed over-fires on
+# (two `self._p` sites on different objects would read as one). The census below
+# asserts no cited program does either today -- a writer is a new finding, not a
+# silently held path.
+_sp_attr_planted = (
+    _sp_attr_bound("class _C:\n    def __init__(self):\n"
+                   f"        self._p = {_sp_old!r}\n"
+                   "    def m(self):\n        return open(self._p)\n")
+    + _sp_attr_bound(f"class C:\n    P = {_sp_old!r}\n_X = open(C.P)\n"))
+_sp_attr_sites = sorted((_sp_p, _sp_attr_bound(_sp_source(_sp_p)))
+                        for _sp_p in sorted(_SP_CITED) if _sp_p.endswith(".py"))
+R.check(
+    "no cited program binds a path literal to an attribute or a class-body "
+    "name at all -- so the attribute-bound-in-one-scope-opened-in-another shape "
+    "(`self.x` set in one method and opened in another, a class-body name "
+    "opened through its owner) that the name-only resolver cannot follow has 0 "
+    "live sites today, and the census catches each planted variant",
+    not any(s for _, s in _sp_attr_sites) and len(_sp_attr_planted) >= 2,
+    f"attribute-bound path sites {[(p, s) for p, s in _sp_attr_sites if s]}",
+)
+# THE SOURCES MUST SELECT THIS SCRIPT, or the citation half above is a main-only
+# check: policy files and carries are read as TEXT, and if they stay INERT a
+# pull request that only adds a broken citation is SCOPED to zero scripts, so
+# the arm is skipped and `main`'s forced full run catches it one merge later.
+# That is the late-gate shape #518 (the handover) and #533 (the nightly lane)
+# each closed by reading the file here, and this is the same move for the
+# sources this arm reads (#2312, F2). The gate's own `select` decides, so this
+# pins the mechanism rather than a copy of the closure table: a source that is
+# still INERT is the #357 contradiction the worktree read would create, and one
+# that selects no script (or the whole suite) is the skip that hid the finding.
+_sp_sources = [*_SP_CARRIES, *_SP_POLICY]
+import closure as _sp_closure  # the arm block runs standalone under its driver (fix-review)
+_sp_inert = sorted(f for f in _sp_sources if _sp_closure.is_inert(f))
+_sp_select = {f: _sp_closure.select([f]) for f in _sp_sources}
+_sp_unselected = sorted(
+    f for f, r in _sp_select.items()
+    if "tests/entities.py" not in r["run"] or r["mode"] != "scoped")
+R.check(
+    "every carry and every policy file this arm reads for citations selects "
+    "this script, so a broken citation added to one is refused on the pull "
+    "request and not on the next merge to main (#2312, F2)",
+    len(_SP_CARRIES) >= 1 and len(_SP_POLICY) >= 20
+    and not _sp_inert and not _sp_unselected,
+    f"citation sources left INERT (an edit to one selects no script, so the arm "
+    f"never runs on the PR that adds the broken citation): {_sp_inert[:6]}"
+    f"{' ...' if len(_sp_inert) > 6 else ''}; selecting no script or the whole "
+    f"suite: {_sp_unselected[:6]} of {len(_sp_sources)}",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
@@ -29783,7 +30845,7 @@ R.check(
 # pathspec can restore it and this check passes while the corpus is graded by
 # the pull request's copy again. That residual, and the criteria files the pin
 # deliberately leaves to the pull request, are carried to the next D11 round in
-# `.claude/workflows/carry-201.json`.
+# `dev/programme/carries/carry-201.json`.
 _GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
 R.check(
     "`policy-docs` restores its graders from the base commit before it grades",
@@ -32337,6 +33399,283 @@ R.check(
     and _cim_rows[0].startswith("closures\ttests/x.py\t"),
     f"the recorded script saw HPO_CI_METRICS={_cim_seen!r}; rows={_cim_rows} "
     f"rc={_cim_res.returncode}",
+)
+
+# R10-CI-RATCHET-RED: main's ci-ratchet read script_runs_per_push 73 (budget
+# 68) from one push run, 39213675232 (efdc055a). Its coverage artifact held 40
+# rows for 20 scripts: 19 `reused` copies and a fresh `entities`, then the
+# floor re-validation (#2342) re-ran all 20, `entities` included. Two owners
+# close it: a `reused` row is a copy that executes nothing, so it is no script
+# run; and the re-validation re-measures only what it reused.
+_CIR_REUSE_ROWS = ("coverage\tb\treused\t0\t0\tpush\t8\n"
+                   "coverage\tc\treused\t0\t0\tpush\t8\n"
+                   "coverage\td\tscoped\t0\t5\tpush\t8\n")
+_CIR_REUSE_CLOS = {"w1-ci-metrics-closures.tsv":
+                   "closures\ttests/a.py\tfull\t0\t9\tpush\t8\n"}
+_CIR_REUSE = _cir_window({**_CIR_REUSE_CLOS,
+                          "w2-ci-metrics-coverage.tsv": _CIR_REUSE_ROWS})
+_CIR_REUSE_NULL = _cir_window({**_CIR_REUSE_CLOS, "w2-ci-metrics-coverage.tsv":
+                               _CIR_REUSE_ROWS.replace("reused", "scoped")})
+R.check(
+    "the CI ratchet counts no `reused` coverage row as a script run",
+    _CIR_REUSE == 2 and _CIR_REUSE_NULL == 4,
+    f"two reused copies beside two executions counted {_CIR_REUSE!r} (want "
+    f"2); the same rows executed {_CIR_REUSE_NULL!r} (want 4, the null "
+    "control)",
+)
+
+
+def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
+    """coverage_tree.sh's reuse plan and floor re-validation under a stub
+    interpreter: the first script is reused, the rest measured, and the stub
+    grader reports a floor FAIL when asked to. Returns (non-reused metric
+    rows per script, executions per script, the stage's output, and per
+    ledger -- out/scripts.tsv and out/per/provenance.tsv -- the rows each
+    script holds and how many of them say `reused`)."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        stub = d / "py"
+        stub.write_text(
+            "#!/bin/sh\n"
+            'case "$1" in\n'
+            "  -c) exit 0 ;;\n"
+            "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
+            'prev="$a"; done; exit 0 ;;\n'
+            "  tests/closure.py)\n"
+            '    [ "$2" = coverage-split ] || exit 0\n'
+            "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
+            "      if [ $n = 0 ]; then printf 'reuse\\t%s\\n' \"$s\"; "
+            "else printf 'measure\\t%s\\n' \"$s\"; fi; n=1; done; exit 0 ;;\n"
+            "  tests/coverage_ratchet.py)\n"
+            '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
+            "\n    exit 0 ;;\n"
+            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
+            "esac\n")
+        stub.chmod(0o755)
+        (d / "reuse").mkdir()
+        (d / "work").mkdir()
+        env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
+               "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
+               "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
+               "CTR_RAN": str(d / "ran"),
+               "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
+        res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
+                              env=env, capture_output=True, text=True,
+                              timeout=180)
+        runs: dict = {}
+        for row in ((d / "m.tsv").read_text().splitlines()
+                    if (d / "m.tsv").is_file() else []):
+            f = row.split("\t")
+            if f[2] != "reused":
+                runs[f[1]] = runs.get(f[1], 0) + 1
+        ran: dict = {}
+        for line in ((d / "ran").read_text().splitlines()
+                     if (d / "ran").is_file() else []):
+            name = Path(line).stem
+            ran[name] = ran.get(name, 0) + 1
+        ledgers: dict = {}
+        for rel in ("out/scripts.tsv", "out/per/provenance.tsv"):
+            f = d / "work" / rel
+            rows = [r.split("\t") for r in (f.read_text().splitlines()
+                                            if f.is_file() else [])
+                    if r and not r.startswith("script\t")]
+            per: dict = {}
+            for r in rows:
+                per[r[0]] = per.get(r[0], 0) + 1
+            ledgers[Path(rel).name] = {
+                "rows": per, "reused": sum(1 for r in rows if r[1:2] == ["reused"])}
+    return runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers
+
+
+_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS = _coverage_revalidation(floor_fails=True)
+_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS = _coverage_revalidation(floor_fails=False)
+R.check(
+    "the coverage floor re-validation re-measures only the scripts it reused",
+    len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
+    and set(_CRV_RAN.values()) == {1} and set(_CRV_RAN) == set(_CRV_RUNS)
+    and len(_CRV_NULL_RAN) == len(_CRV_RAN) - 1
+    and set(_CRV_NULL_RAN.values()) == {1},
+    f"under a floor FAIL: metric rows {_CRV_RUNS}, executions {_CRV_RAN} "
+    "(want every script once: the reused one re-measured, no fresh one "
+    f"twice); with the floor met: executions {_CRV_NULL_RAN} (want the "
+    f"reused one absent, the null control); output: {_CRV_OUT!r}",
+)
+# The stage's two ledgers after a floor-FAIL re-validation: scripts.tsv (the
+# job summary's reuse count) and per/provenance.tsv (cached by a push as the
+# next pull request's base, where a stale `reused` row misnames a script the
+# re-validation re-measured). One row per script in each, none `reused`.
+# Null: with the floor met nothing is re-measured, so the reused script keeps
+# its one `reused` row in each -- a reader that sees no rows fails here.
+R.check(
+    "after a floor-FAIL re-validation each coverage ledger holds one row per "
+    "script and no `reused` row",
+    all(set(_CRV_LEDGERS[k]["rows"]) == set(_CRV_RAN)
+        and set(_CRV_LEDGERS[k]["rows"].values()) == {1}
+        and _CRV_LEDGERS[k]["reused"] == 0
+        and set(_CRV_NULL_LEDGERS[k]["rows"]) == set(_CRV_RAN)
+        and set(_CRV_NULL_LEDGERS[k]["rows"].values()) == {1}
+        and _CRV_NULL_LEDGERS[k]["reused"] == 1
+        for k in ("scripts.tsv", "provenance.tsv")) and len(_CRV_RAN) >= 2,
+    f"floor FAIL: {_CRV_LEDGERS} (want each of {sorted(_CRV_RAN)} once, 0 "
+    f"reused); floor met: {_CRV_NULL_LEDGERS} (want the same scripts once, 1 "
+    "reused, the null control)",
+)
+
+# The recorded budget is the every-script-measured-once count: the closures
+# lane's full plan less the composed script it consumes from the coverage
+# job, plus the coverage `fast` stage's scripts. One extra execution over that
+# window must turn the ratchet red, and exactly the recorded count must not --
+# so a budget left loose by the `reused` exclusion is caught here, not by the
+# next drift (R10-CI-LAYOUT PR 0, the CI-RATCHET-RED brief's control).
+_CIR_BUDGET = json.loads(_cir.BUDGETS.read_text())["script_runs_per_push"]
+
+
+def _cir_planted(extra: int) -> "tuple[object, int]":
+    rows = "".join(f"closures\ttests/s{i}.py\tfull\t0\t0\tpush\t9\n"
+                   for i in range(_CIR_BUDGET + extra))
+    rows_reused = "".join(f"coverage\tr{i}\treused\t0\t0\tpush\t9\n"
+                          for i in range(20))
+    got = _cir_window({"w1-ci-metrics-closures.tsv": rows,
+                       "w2-ci-metrics-coverage.tsv": rows_reused})
+    if not isinstance(got, int):
+        return got, -1
+    budgets = json.loads(_cir.BUDGETS.read_text())
+    return got, _cir.compare({"script_runs_per_push": budgets["script_runs_per_push"],
+                              "recorded_at": budgets["recorded_at"]},
+                             {"script_runs_per_push": got})[1]
+
+
+def _cir_once_count() -> "tuple[int, list[str]]":
+    """The every-script-measured-once count, from the two instruments' own
+    enumerations: the closures lane's full plan (`lane-plan --all-scripts`),
+    less the composed scripts it consumes from the coverage job, plus the
+    coverage `fast` stage's scripts (coverage_tree.sh's own DERIVED and
+    `fast)` lines, run by bash, not re-implemented here)."""
+    closures_all = [s for s in _closure.test_scripts()
+                    if Path(s).name not in _closure.SLOW_GATED]
+    tree_sh = Path("tools/coverage/coverage_tree.sh").read_text()
+    derived = re.search(r"^DERIVED=\$\(.*?\)$", tree_sh, re.M | re.S)
+    fast = re.search(r"^\s*fast\)\s+(SCRIPTS=.*?) ;;$", tree_sh, re.M)
+    if not derived or not fast:
+        return -1, ["coverage_tree.sh's DERIVED or `fast)` line not found"]
+    out = _subprocess.run(
+        ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
+        capture_output=True, text=True, timeout=60)
+    cov = [f"tests/{n}.py" for n in out.stdout.split()]
+    composed = [s for s in _closure.composed_scripts() if s in closures_all]
+    problems = [f"composed {s} is not in the coverage fast stage"
+                for s in composed if s not in cov]
+    if out.returncode or not cov:
+        problems.append(f"coverage enumeration rc={out.returncode} n={len(cov)}")
+    return len(closures_all) - len(composed) + len(cov), problems
+
+
+_CIR_ONCE, _CIR_ONCE_PROBLEMS = _cir_once_count()
+_CIR_PLANT, _CIR_PLANT_GREW = _cir_planted(1)
+_CIR_EXACT, _CIR_EXACT_GREW = _cir_planted(0)
+R.check(
+    "one script run past the every-script-once budget turns the CI ratchet "
+    "red, and the budget is that count",
+    _CIR_PLANT_GREW == 1 and _CIR_EXACT_GREW == 0
+    and _CIR_PLANT == _CIR_BUDGET + 1 and _CIR_EXACT == _CIR_BUDGET
+    and not _CIR_ONCE_PROBLEMS and _CIR_BUDGET == _CIR_ONCE,
+    f"budget {_CIR_BUDGET}, every-script-once count {_CIR_ONCE} "
+    f"({_CIR_ONCE_PROBLEMS}); {_CIR_PLANT!r} runs graded {_CIR_PLANT_GREW} "
+    f"grew (want 1); {_CIR_EXACT!r} runs beside 20 reused copies graded "
+    f"{_CIR_EXACT_GREW} (want 0, the null control). A budget above the count "
+    "is slack nobody decided; below it, a push measuring each script once reddens",
+)
+
+
+def _lane_body(text: str, lane: str) -> str:
+    """One `lane_<name>() {` function of tests/run.sh, code lines only."""
+    m = re.search(rf"^lane_{lane}\(\) \{{\n(.*?)^\}}", text, re.M | re.S)
+    return "" if not m else "\n".join(
+        ln for ln in m.group(1).splitlines() if not ln.lstrip().startswith("#"))
+
+
+# R10-CI-LAYOUT PR 0 (a): the architecture-score pair runs in lane_golden, not
+# lane_units, which ends last in CI's `fast` job. Moving one back is the
+# regression; the null is the same reader finding structure.py in lane_units.
+_RUN_SH = Path("tests/run.sh").read_text()
+_AS_PAIR = ('run "$PYTHON" tests/arch_score.py',
+            'run "$PYTHON" tests/arch_score_head.py')
+_AS_NULL = 'run "$PYTHON" tests/structure.py'
+_AS_UNITS, _AS_GOLDEN = _lane_body(_RUN_SH, "units"), _lane_body(_RUN_SH, "golden")
+_AS_E2E, _AS_ALONE = _lane_body(_RUN_SH, "e2e"), _lane_body(_RUN_SH, "stress")
+R.check(
+    "the architecture-score pair runs in lane_golden and not in lane_units",
+    all(_l in _AS_GOLDEN and _l not in _AS_UNITS for _l in _AS_PAIR)
+    and _AS_NULL in _AS_UNITS,
+    f"in lane_units: {[_l for _l in _AS_PAIR if _l in _AS_UNITS]}; in "
+    f"lane_golden: {[_l for _l in _AS_PAIR if _l in _AS_GOLDEN]}; "
+    f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
+)
+
+# The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3).
+# harness_headers.py bills each harness's CPU against bounds sized from the
+# serial cost; a co-running lane inflates a CPU second (its CPU_LIMIT_S
+# comment), and R(a)'s move put arch_score.py beside it: fast (3.14) went red
+# on sysid_estimator_frontier.py at 306.4 CPU-s against 240 (job 118380549631).
+# So it runs in lane_stress, after stress.py, and in none of the parallel
+# lanes -- and lane_stress stays out of $LANES, the set run side by side.
+# Null: stress.py is read inside lane_stress by the same reader.
+_HH = 'run_always "$PYTHON" tests/harness_headers.py'
+_HH_LANES_LINE = re.search(r'^LANES="([^"]*)"', _RUN_SH, re.M)
+_HH_PARALLEL = (_HH_LANES_LINE.group(1).split() if _HH_LANES_LINE else [])
+_HH_IN_PARALLEL = [n for n, b in (("units", _AS_UNITS), ("golden", _AS_GOLDEN),
+                                  ("e2e", _AS_E2E)) if _HH in b]
+_HH_STRESS = 'run "$PYTHON" tests/stress.py'
+R.check(
+    "the CPU-bounded harness check runs alone: in lane_stress after stress.py, "
+    "in no parallel lane",
+    _HH in _AS_ALONE and _HH_STRESS in _AS_ALONE
+    and _AS_ALONE.index(_HH_STRESS) < _AS_ALONE.index(_HH)
+    and not _HH_IN_PARALLEL
+    and set(_HH_PARALLEL) == {"units", "golden", "e2e"},
+    f"in lane_stress: {_HH in _AS_ALONE}; in parallel lanes: {_HH_IN_PARALLEL}; "
+    f"parallel set {_HH_PARALLEL} (want units golden e2e, no stress); "
+    f"stress.py read in lane_stress (null): {_HH_STRESS in _AS_ALONE}",
+)
+
+
+def _derive_join_arm() -> tuple[bool, str]:
+    """derive_closures.sh takes a slot STANDALONE and joins one it is in
+    (#2267). The predicate is the env var, so it is driven both ways: with
+    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+    it hands every child sees no `slot-take`, and without it, it does (the null
+    control). A join arm that always took a slot, or one that never did, fails
+    one of the two arms.
+    """
+    taken: dict[str, bool] = {}
+    with _tempfile.TemporaryDirectory() as td:
+        for label, slot in (("inside", "parent-1"), ("outside", "")):
+            d = Path(td) / label
+            d.mkdir()
+            stub = d / "py"
+            stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$ARGVLOG"\n')
+            stub.chmod(0o755)
+            log = d / "argv.log"
+            log.write_text("")
+            env = {**_os.environ, "PYTHON": str(stub), "ARGVLOG": str(log),
+                   "HPO_CI_METRICS": ""}
+            env.pop("HPO_SLOT_LABEL", None)
+            if slot:
+                env["HPO_SLOT_LABEL"] = slot
+            _subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(d / "rec")],
+                env=env, capture_output=True, text=True, timeout=180)
+            taken[label] = "slot-take" in log.read_text()
+    return (not taken["inside"] and taken["outside"],
+            f"inside_takes={taken['inside']} outside_takes={taken['outside']}")
+
+
+_derive_join_ok, _derive_join_detail = _derive_join_arm()
+R.check(
+    "derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)",
+    _derive_join_ok,
+    _derive_join_detail,
 )
 
 # The composed-closure allow-list (round-9 C1): every entry a real selectable
@@ -35789,5 +37128,200 @@ R.check(
     _egb3_standalone is True,
     str(_egb3_standalone),
 )
+
+# ---------------------------------------------------------------------------
+# R10 class barriers, the two RCAs' countermeasures (dev/audit/rca/
+# R10-N-no-expiry.md, R10-N-log-flood.md). Both read every module of the
+# package by AST and refuse a site that is neither routed through the class's
+# helper nor on a reasoned allow-list. Each allow-list is keyed (module,
+# function) -> EXACT count, so a second site added inside a listed function
+# still fails; a site that went away fails too, until its entry is deleted.
+# ---------------------------------------------------------------------------
+from collections import Counter  # noqa: E402
+
+_r10_pkg = Path("custom_components/heatpump_optimizer")
+_r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+
+
+def _r10_functions(source):
+    """(function, its nodes minus nested functions') for every def in source."""
+    tree = ast.parse(source)
+    for fn in ast.walk(tree):
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            nested = {id(n) for f in ast.walk(fn)
+                      if f is not fn and isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
+                      for n in ast.walk(f)}
+            yield fn, [n for n in ast.walk(fn) if id(n) not in nested]
+
+
+def _r10_covering_lookups(sources):
+    """N-no-expiry seams: each ``bisect_right(...) - 1`` -- "the entry covering
+    now" with no end of its own -- counted per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        for fn, nodes in _r10_functions(source):
+            for n in nodes:
+                if (isinstance(n, ast.BinOp) and isinstance(n.op, ast.Sub)
+                        and isinstance(n.left, ast.Call)
+                        and "bisect_right" in ast.unparse(n.left.func)
+                        and isinstance(n.right, ast.Constant) and n.right.value == 1):
+                    found[(name, fn.name)] += 1
+    return found
+
+
+#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions).
+_R10_COVERING_ALLOWED = {
+    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
+                                               "entry is documented extrapolation, never published as current"),
+    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
+    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
+    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
+}
+
+
+def _r10_covering_verdict(found):
+    allowed = {k: v[0] for k, v in _R10_COVERING_ALLOWED.items()}
+    return {k: (found.get(k, 0), allowed.get(k, 0))
+            for k in set(found) | set(allowed) if found.get(k, 0) != allowed.get(k, 0)}
+
+
+_r10_cov_found = _r10_covering_lookups(_r10_sources)
+_r10_cov_planted = _r10_covering_lookups({
+    "planted.py": "from bisect import bisect_right\n"
+                  "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
+    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
+    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+})
+R.check(
+    "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
+    "_covering_index or is on the reasoned list with its exact count",
+    not _r10_covering_verdict(_r10_cov_found)
+    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # null control and perturbation: a planted unbounded lookup, and a second
+    # lookup inside an allow-listed function, are each refused
+    and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
+    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
+    f"lookups in {len(_r10_sources)} modules",
+)
+
+_R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notified|seen)", re.I)
+
+
+def _r10_unlatched_logs(sources):
+    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
+    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
+    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    found = Counter()
+    for name, source in sources.items():
+        tree = ast.parse(source)
+
+        def walk(node, chain, fn):
+            for child in ast.iter_child_nodes(node):
+                inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
+                if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
+                        and child.func.attr in ("warning", "error")
+                        and ast.unparse(child.func.value) == "_LOGGER"):
+                    latched = False
+                    for test in chain:
+                        text = ast.unparse(test.test)
+                        if _R10_LATCH_WORD.search(text) or (
+                                isinstance(test.test, ast.Compare)
+                                and any(isinstance(o, ast.NotIn) for o in test.test.ops)
+                                and f"{ast.unparse(test.test.comparators[0])}.add(" in ast.unparse(fn)):
+                            latched = True
+                    if not latched:
+                        found[(name, fn.name if fn else "<module>")] += 1
+                walk(child, chain + [child] if isinstance(child, ast.If) else chain, inner)
+
+        walk(tree, [], None)
+    return found
+
+
+#: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
+#: disposition (dev/audit/rounds/round10/sweep-N-log-flood.md) less the
+#: instances routed through ``log_latch.log_held``.
+_R10_LOG_ALLOWED_BY_REASON = {
+    "the latch itself, or latched by a guard the static rule cannot read "
+    "(an outage counter, a transition notice, a once-per-attempt spacing, "
+    "an lru_cache parsing an option once per distinct text)": {
+        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
+        ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
+        ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
+        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
+        ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
+        ("curve_learning.py", "record_miss"): 1,
+    },
+    "once per event by the function's own state (a refit, an issue raised, a "
+    "rollback per alarm, a malformed month closed so it is not retried)": {
+        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "_raise_cop_issue"): 1,
+        ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+    },
+    "not reached per cycle: load, restore, migration, setup, frontend "
+    "registration, a service call or shutdown": {
+        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
+        ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
+        ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
+        ("snapshots.py", "best_restore"): 1, ("store.py", "_bound_instants"): 1,
+        ("store.py", "_surface_version"): 1, ("tariff.py", "from_dict"): 1,
+        ("thermal_model.py", "from_config"): 1, ("grid_fee.py", "from_config"): 1,
+        ("grid_fee.py", "apply_catalog"): 2, ("frontend.py", "_register_lovelace_resource"): 2,
+        ("frontend.py", "_register_static_path"): 2, ("dhw_schedule.py", "parse_day_overrides"): 1,
+        ("coordinator.py", "_async_load_manual_plan"): 1,
+        ("coordinator.py", "_async_load_thermal_learning"): 1,
+        ("coordinator.py", "_async_setup_peak_guard"): 1,
+        ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,
+        ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+    },
+    "one record per failed call, an event and not a held condition (the "
+    "sweep's actuation handlers, and an unexpected exception per failed update)": {
+        ("climate.py", "_async_publish_displace_from_current_action"): 1,
+        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
+        ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
+        ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
+        ("pump_arbiter.py", "switch_supply"): 1,
+    },
+}
+_R10_LOG_ALLOWED = {k: n for group in _R10_LOG_ALLOWED_BY_REASON.values() for k, n in group.items()}
+
+
+def _r10_log_verdict(found):
+    return {k: (found.get(k, 0), _R10_LOG_ALLOWED.get(k, 0))
+            for k in set(found) | set(_R10_LOG_ALLOWED)
+            if found.get(k, 0) != _R10_LOG_ALLOWED.get(k, 0)}
+
+
+_r10_log_found = _r10_unlatched_logs(_r10_sources)
+_r10_log_planted = _r10_unlatched_logs({
+    "planted.py": "def poll(self):\n    if not self._x:\n        _LOGGER.warning('none')\n"
+                  "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
+    "inputs.py": _r10_sources["inputs.py"]
+    + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+})
+R.check(
+    "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
+    "with its exact count -- a persisting condition goes through log_held",
+    not _r10_log_verdict(_r10_log_found)
+    # Non-vacuity: the enumerator read the whole package, not a stub. It drops
+    # as sites get latched (74 unlatched before this PR's ten, 65 after: the
+    # latch itself logs a start at WARNING, or at ERROR with a traceback).
+    and sum(_r10_log_found.values()) >= 60
+    # null control: a latched warning is not a site; perturbation: an unlatched
+    # one, and a second site inside a listed function, are each refused
+    and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
+    and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

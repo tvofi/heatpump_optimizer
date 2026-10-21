@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.0.0";
+const CARD_VERSION = "7.0.2";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -621,6 +621,21 @@ const STRINGS = {
     "setup.source_weather": "weather forecast",
     "setup.not_configured": "not configured",
     "setup.click_to_assign_title": "{label} — click to assign",
+
+    // the folded unset-inputs block (R10-UX-SETUP) and the options pages its
+    // Configure control names. Those four names are the options menu labels
+    // config_flow.py publishes; tests/card.mjs pins them against
+    // translations/en.json so the card cannot point at a step it misnames.
+    "setup.unset_count": "{n} optional inputs not set",
+    "setup.unset_count_one": "1 optional input not set",
+    "setup.fold_show": "Show the {n} unset inputs",
+    "setup.fold_hide": "Hide the {n} unset inputs",
+    "setup.configure": "Configure",
+    "setup.configure_page": "Configure: {page}",
+    "setup.page_entities": "Sensors and entities",
+    "setup.page_entities_pump": "Heat pump telemetry",
+    "setup.page_building": "Heating system and heat storage",
+    "setup.page_hot_water_tank": "Hot water tank and inlet",
 
     // entity picker
     "setup.picker_aria": "Entity for {slot}",
@@ -1294,6 +1309,17 @@ const STRINGS = {
     "setup.not_configured": "inte konfigurerad",
     "setup.click_to_assign_title": "{label} — klicka för att tilldela",
 
+    "setup.unset_count": "{n} valfria ingångar är inte angivna",
+    "setup.unset_count_one": "1 valfri ingång är inte angiven",
+    "setup.fold_show": "Visa de {n} oangivna ingångarna",
+    "setup.fold_hide": "Dölj de {n} oangivna ingångarna",
+    "setup.configure": "Konfigurera",
+    "setup.configure_page": "Konfigurera: {page}",
+    "setup.page_entities": "Givare och entiteter",
+    "setup.page_entities_pump": "Värmepumps telemetri",
+    "setup.page_building": "Värmesystem och värmelagring",
+    "setup.page_hot_water_tank": "Varmvattentank och inlopp",
+
     "setup.picker_aria": "Entitet för {slot}",
     "setup.picker_none": "(inte konfigurerad)",
     "setup.assign": "Tilldela",
@@ -1511,8 +1537,8 @@ const DEFAULTS = {
 // which forecast the values come from ("space", "dhw", "solar", or "either"
 // meaning prefer space then fall back to dhw). `field` is the forecast
 // attribute key. `color` is the light-card colour and `colorDark` the dark
-// one: the palette of record (handoff/round9/state/alt/design/DESIGN.md
-// section 4, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
+// one: the palette of record (DESIGN.md section 4, archived on the round-9
+// alt tag, tvofi's D3), measured per panel by tests/card.mjs against 3:1 on
 // its own card and against deuteranope, protanope and tritanope confusion
 // (D4). Both reach the markup through the `--hpo-series-<key>` tokens
 // (`seriesPaint`), so a theme switch repaints without a redraw.
@@ -1727,8 +1753,8 @@ const CLOSE_ICON =
 // One value axis per panel, on the left (R9-UI-4), so the plot no longer
 // pays for a second left axis or the two right-hand ones.
 const MARGIN = { top: 16, right: 20, bottom: 34, left: 52 };
-// R9-UI-4 (tvofi's D2, concept A; handoff/round9/state/alt/design/DESIGN.md
-// section 4): three panels stacked on the chart's one time axis, each with
+// R9-UI-4 (tvofi's D2, concept A; DESIGN.md section 4, archived on the round-9
+// alt tag): three panels stacked on the chart's one time axis, each with
 // its own value scale, gridlines and unit. `axes` are the value scales a
 // panel draws (SERIES_DEFS' `axis`); `share` divides the height between the
 // panels that have a visible series. All three live inside the ONE chart svg
@@ -2094,21 +2120,40 @@ const SETUP_MAX_Y = 2000;
 // the layout below has run.
 const SETUP_COL_W = 200;
 
-// How far the drawing's text sits inside a box's bounding rect, and how far
-// that keeps it off the contour the box is painted with.
-//
-// v5.1.4: this was 10, against contour walls at x+2 and x+w-2 -- eight
-// viewBox units of air, which on a desktop-width dialog reads as text
-// pressed against the wall it is inside. 16 leaves 14 units of margin on
-// both sides. The box width (200), the column abscissae and the row
-// arithmetic are all untouched: only the text moved inward.
+// How far the drawing's text sits inside a card, so nothing is pressed
+// against the border it is written in. v5.1.4 put this at 16 against the
+// hand-drawn contour's walls at x+2 and x+w-2; the card's border is at x and
+// x+w, so 16 now leaves a full 16 units of margin. The box width (200), the
+// column abscissae and the row arithmetic are unchanged.
 const SETUP_PAD = 16;
-// The gutter kept between a row's label and its right-anchored value, and
-// the narrowest label worth keeping whole-ish. Below `SETUP_MIN_LABEL_W` the
-// row stops squeezing the label and shortens the VALUE instead -- see
-// `fitSlotRow`.
+// The gutter kept between a row's label and its right-anchored value, and the
+// narrowest label worth keeping whole. Below `SETUP_MIN_LABEL_W` the row stops
+// squeezing the label and shortens the VALUE instead -- see `fitSlotRow`.
 const SETUP_ROW_GAP = 8;
 const SETUP_MIN_LABEL_W = 78;
+// How many lines a slot row's label may wrap to before its tail is cut
+// (R10-UX-SETUP). Two fits every label the places actually publish ("Lower
+// floor temperature", "Hot water circulation temperature") with the value
+// beside it; a third would start to cost more height than the name is worth.
+const SETUP_ROW_LINES = 2;
+// The card's corner radius, in viewBox units: `--hpo-radius-m` (12 px) at the
+// scale this diagram is authored at, so a card is as round as a tile.
+const SETUP_CARD_R = 10;
+// One precision per unit on the diagram (R10-UX-SETUP). Home Assistant
+// formats every entity at the precision that entity sets for itself, so the
+// same diagram carried "19.30 °C" beside "20.8 °C": two spellings of one unit
+// read as two different amounts of evidence about the same house. A unit NOT
+// named here keeps Home Assistant's own spelling -- inventing a precision for
+// a unit nobody chose is how a wrong number gets published.
+const SETUP_UNIT_DECIMALS = {
+  "°C": 1, "°F": 1, "K": 1, "%": 1, "W/m²": 0, "W/m2": 0,
+};
+// The chip drawn inside the diagram (the Configure control), in the product's
+// chip metrics: a 15-unit pill, an 11-unit label and this much padding either
+// side of it.
+const SETUP_CHIP_H = 15;
+const SETUP_CHIP_TEXT = 11;
+const SETUP_CHIP_PAD = 8;
 
 // ---- Text metrics for the setup drawing -----------------------------------
 //
@@ -2153,10 +2198,14 @@ const GLYPH_BOLD_FACTOR = 1.06;
 
 /** Rendered width of `s` at `size` px, in viewBox units.
  *
- * Deliberately NOT called `textWidth`: the chart already has a function of
- * that name (a flat `length * CHAR_WIDTH_EM`, good enough for axis units),
- * and function declarations hoist, so the later one would silently win and
- * this whole table would go unused.
+ * Per-glyph, where the chart's `textWidth` is a flat `length * CHAR_WIDTH_EM`:
+ * a row here carries a value beside a label, so the two have to be MEASURED
+ * against each other and a character count cannot tell "iiii" from "WWWW".
+ * The two functions are deliberately not merged -- the axis only needs to know
+ * whether a tick label clears its neighbour, this needs to know exactly how
+ * much room is left -- and neither may take the other's name: declarations
+ * hoist, so a second `textWidth` would silently win and leave this table
+ * unused (which is what D7-s3-02 found it doing).
  */
 function setupTextW(s, size, bold) {
   let em = 0;
@@ -2185,16 +2234,96 @@ function ellipsize(s, width, size, bold) {
   return out ? `${out}…` : "";
 }
 
+/** `text` broken into at most `maxLines` lines: the first fitted to `firstW`,
+ * the rest to `restW`, at word boundaries.
+ *
+ * SVG text does not wrap itself, so where a line ends is the drawing's to
+ * decide and this is the rule that decides it. A single word wider than the
+ * line it opens still opens it -- breaking a word mid-token reads worse than
+ * a line the reader can measure, and `ellipsize` is where such a line is
+ * finally cut. Whatever did not fit the last line is dropped, and the last
+ * line then says so with an ellipsis, so a label that continues still reads
+ * as a name rather than as a name that ended there.
+ */
+function wrapText(text, firstW, restW, maxLines, size) {
+  const wide = (s) => setupTextW(s, size, false);
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = "";
+  let room = firstW;
+  let cut = null;
+  for (let i = 0; i < words.length; i++) {
+    const grown = cur ? `${cur} ${words[i]}` : words[i];
+    if (!cur || wide(grown) <= room) {
+      cur = grown;
+      continue;
+    }
+    if (lines.length + 1 >= maxLines) {
+      cut = words.slice(i).join(" ");
+      break;
+    }
+    lines.push(cur);
+    cur = words[i];
+    room = restW;
+  }
+  const lastRoom = lines.length ? restW : firstW;
+  if (cut !== null) {
+    lines.push(ellipsize(`${cur} ${cut}`, lastRoom, size, false) || cur);
+    return lines;
+  }
+  if (cur) lines.push(cur);
+  const at = lines.length - 1;
+  const room0 = at === 0 ? firstW : restW;
+  if (at >= 0 && wide(lines[at]) > room0) {
+    lines[at] = ellipsize(lines[at], room0, size, false);
+  }
+  return lines.filter(Boolean);
+}
+
+/** `formatted` ("19.30 °C", "19,30 °C") at the precision its UNIT is drawn
+ * with (R10-UX-SETUP); anything else is returned as it came.
+ *
+ * The separator is the one the input used, so a comma-decimal language keeps
+ * its comma; the number itself is parsed and re-rendered rather than the
+ * string sliced, so "19.30" cannot come back as "19.3" by accident of where
+ * the unit happens to sit.
+ */
+function onePrecision(formatted, unit) {
+  const places = SETUP_UNIT_DECIMALS[unit];
+  if (places === undefined) return formatted;
+  const text = String(formatted);
+  const at = unit ? text.lastIndexOf(unit) : -1;
+  const raw = at > 0 ? text.slice(0, at) : text;
+  const tail = at > 0 ? text.slice(at) : "";
+  // What sits between the number and its unit -- and whether anything does --
+  // is the formatter's, not ours: "19.30 °C" keeps its space and "19.30°C"
+  // keeps its lack of one.
+  const digit = raw.replace(/\s+$/, "");
+  const m = /^(-?\d+(?:[.,]\d+)?)$/.exec(digit);
+  if (!m) return formatted;
+  const sep = m[1].includes(",") ? "," : ".";
+  const fixed = Number(m[1].replace(",", ".")).toFixed(places);
+  return `${sep === "," ? fixed.replace(".", ",") : fixed}${
+    raw.slice(digit.length)}${tail}`;
+}
+
 /** Fit one slot row's label and right-anchored value into `inner` units.
  *
- * The two share a single 200-unit row and SVG text does not wrap, so one of
- * them has to give when they do not both fit. The label gives first: it is
- * ellipsized down to whatever the value leaves it, and the row's tooltip
- * still carries the whole thing. Only once the label would drop below
- * `SETUP_MIN_LABEL_W` does the VALUE shorten, and then never by cutting the
+ * The two share one 200-unit row, and one of them has to give when they do
+ * not both fit. R10-UX-SETUP: the label WRAPS instead of being cut. v5.1.4
+ * ellipsized it into whatever the value left, which is what the owner's
+ * screenshot shows as "Hot water temperat…" and "Lower floor …": a name that
+ * continues is a name the reader cannot recognize, and the row had the
+ * vertical room for a second line all along. The value keeps the first
+ * line's right end, and the label takes what is left of that line and the
+ * whole width of the next.
+ *
+ * The value still shortens before the label does, and never by cutting the
  * reading itself: `values` is the ladder of acceptable spellings, longest
  * first ("123 W/m² · Open-Meteo", then "123 W/m²"), and the longest one that
- * leaves the label its minimum wins.
+ * leaves the label `SETUP_MIN_LABEL_W` wins. Only a value that cannot even
+ * leave the label that much is cut, and only past that does the label lose
+ * its tail.
  */
 function fitSlotRow(label, values, inner, size) {
   const alts = (Array.isArray(values) ? values : [values]).filter(
@@ -2214,198 +2343,56 @@ function fitSlotRow(label, values, inner, size) {
   // A single value so long that even the shortest spelling swamps the row
   // (a sensor whose state is a sentence) is cut as a last resort: an
   // unreadable row still beats two overlapping strings.
+  // The bound the ladder just used, so a value the ladder accepted is never
+  // cut here: only one that fit no spelling at all is, and then down to the
+  // room the label's own minimum reserves.
   let valueW = setupTextW(value, size, true);
-  if (valueW > inner - SETUP_ROW_GAP - 20) {
-    value = ellipsize(value, inner - SETUP_ROW_GAP - 20, size, true);
+  if (valueW > inner - SETUP_ROW_GAP - reserve) {
+    value = ellipsize(value, inner - SETUP_ROW_GAP - reserve, size, true);
     valueW = setupTextW(value, size, true);
   }
   return {
     value,
-    label: ellipsize(label, inner - SETUP_ROW_GAP - valueW, size, false),
+    lines: wrapText(label, inner - SETUP_ROW_GAP - valueW, inner,
+      SETUP_ROW_LINES, size),
     // What the row would have said with unlimited room, for the tooltip.
     full: alts[0],
     shortened: value !== alts[0],
   };
 }
 
-// The setup drawing's visual vocabulary (v4.3.0). Each place is drawn as the
-// piece of equipment it is instead of a plain rectangle. The geometry carrier
-// stays the (now invisible) `setup-box` rect -- the drag editor and the tests
-// read it -- and one of these generators paints the visible silhouette over
-// it. Every generator is written against the box's own (x, y, w, h), so a box
-// that grows a row, or is dragged, keeps its shape: the walls are the only
-// vertical segments, and everything else hugs the top or bottom band.
+// The setup drawing's visual vocabulary (R10-UX-SETUP). One flat card per
+// place, in the product's own materials: the surface, border, radius and type
+// scale the Plan, Savings, Advisor and Health tabs already use.
 //
-// Two stroke weights only: primary 2 (`setup-contour`), detail 1.25
-// (`setup-accent`). `inset` is how far a pipe endpoint pulls inside the
-// bounding box so pipes meet ink rather than the invisible rect.
-const PLACE_KIND = {
-  outdoor: "cloud",
-  heat_pump: "hp",
-  wood_tank: "tank",
-  buffer_tank: "tank",
-  dhw_tank: "tank",
-  mixing_valve: "valve",
-  upper_zone: "house",
-  lower_zone: "slab",
-};
-// The hairline between the title and the first slot row, shared by every
-// closed shape. It sits between the title's descenders and the first hit
-// rect, which is what lets each silhouette shape only the header band.
-// A row-less box (h = 32: title only, nothing under the line) gets no
-// divider at all -- it would separate the title from nothing, and on the
-// valve it grazes the bowtie's top edge. `rightPad` lets a shape whose
-// header band is already occupied (the heat pump's fan) stop the line
-// short of its own furniture. Both ends follow `SETUP_PAD`, so the rule
-// under a title starts where the title starts.
-const shapeDivider = (x, y, w, h, rightPad = SETUP_PAD) =>
+// v4.3.0's vocabulary painted a silhouette per place -- a cloud, a gabled
+// house, a domed cylinder, a fan shroud, a bowtie across the valve -- as a
+// `setup-contour` path laid over the geometry carrier. On screen that is a
+// second, hand-drawn visual language beside the flat tabs, and two outlines
+// where the carrier rect's own edge showed through the open parts of the
+// silhouette: the owner's 2026-10-14 screenshot names it as sketchy boxes
+// with wobbly double borders, and the valve's bowtie sat on the first row's
+// label. The card is painted by CSS on the carrier rect itself, so a box has
+// exactly ONE border, and it is opaque -- a pipe routed behind a card is
+// covered by it rather than drawn across the card's text.
+//
+// The rect stays the geometry carrier the drag editor and the tests read
+// (`setup-box`), and it is now also the paint; `.setup-contour`, `.setup-accent`
+// silhouettes and `.setup-coil` are gone with the vocabulary that drew them.
+// One pipe detail survives as a rule rather than as ink: a pipe endpoint stops
+// ON the card's border, so nothing pulls inside the box to meet a shape.
+const SETUP_INSET = 0;
+// The title/rows divider under a card's header, shared by every card. A
+// row-less card (h = 32: title only, nothing under the rule) gets none -- it
+// would separate the title from nothing. Both ends follow `SETUP_PAD`, so the
+// rule under a title starts where the title starts.
+const shapeDivider = (x, y, w, h) =>
   h < 49
     ? null
     : {
-        d: `M ${x + SETUP_PAD} ${y + 21.5} L ${x + w - rightPad} ${y + 21.5}`,
+        d: `M ${x + SETUP_PAD} ${y + 21.5} L ${x + w - SETUP_PAD} ${y + 21.5}`,
         cls: "setup-accent divider",
       };
-const NODE_SHAPES = {
-  // Vertical cylinder: domed top and bottom, straight walls. All three tanks
-  // share the silhouette deliberately -- they are the same object class --
-  // and identity comes from titles, captions and the wood tank's coil.
-  tank: {
-    contour: (x, y, w, h) =>
-      `M ${x + 2} ${y + 9} ` +
-      `A ${(w - 4) / 2} 7 0 0 1 ${x + w - 2} ${y + 9} ` +
-      `L ${x + w - 2} ${y + h - 9} ` +
-      `A ${(w - 4) / 2} 7 0 0 1 ${x + 2} ${y + h - 9} Z`,
-    accents: (x, y, w, h) => [shapeDivider(x, y, w, h)],
-    inset: { t: 4.5, r: 2, b: 4.5, l: 2 },
-  },
-  // Shallow gable over walls, with a chimney. The pitch is capped by the
-  // title geometry: the roofline at the title's x must clear the cap
-  // height -- at x+16 (v5.1.4's padding) the roof has risen to y+6.7,
-  // 2.3 units above the 13px title's cap line, so the wider padding
-  // relaxed this constraint rather than tightening it.
-  house: {
-    contour: (x, y, w, h) =>
-      `M ${x + 2} ${y + 7.5} ` +
-      `L ${x + w / 2 - 4} ${y + 1.9} ` +
-      // r=30 over an 8-unit chord: apex ~y+1.63, a near-smooth knuckle.
-      // (r=4 made chord = diameter -- a full semicircle bulging to y-2.1,
-      // above the bounding box.)
-      `A 30 30 0 0 1 ${x + w / 2 + 4} ${y + 1.9} ` +
-      `L ${x + w - 2} ${y + 7.5} ` +
-      `L ${x + w - 2} ${y + h - 8} ` +
-      `A 6 6 0 0 1 ${x + w - 8} ${y + h - 2} ` +
-      `L ${x + 8} ${y + h - 2} ` +
-      `A 6 6 0 0 1 ${x + 2} ${y + h - 8} Z`,
-    accents: (x, y, w, h) => [
-      {
-        d: `M ${x + w - 52} ${y + 4.7} V ${y + 1} ` +
-          `H ${x + w - 45} V ${y + 5.1}`,
-        cls: "setup-contour",
-      },
-      shapeDivider(x, y, w, h),
-    ],
-    inset: { t: 6, r: 2, b: 2, l: 2 },
-  },
-  // The slab: a flat plate with ground hatching under it. The ticks end at
-  // y+h+4 exactly -- the deepest overhang the viewBox margin never clips.
-  slab: {
-    contour: (x, y, w, h) =>
-      `M ${x + 6} ${y + 2} H ${x + w - 6} ` +
-      `A 4 4 0 0 1 ${x + w - 2} ${y + 6} V ${y + h - 6} ` +
-      `A 4 4 0 0 1 ${x + w - 6} ${y + h - 2} H ${x + 6} ` +
-      `A 4 4 0 0 1 ${x + 2} ${y + h - 6} V ${y + 6} ` +
-      `A 4 4 0 0 1 ${x + 6} ${y + 2} Z`,
-    accents: (x, y, w, h) => {
-      const out = [shapeDivider(x, y, w, h)];
-      for (let i = 0; i < 7; i++) {
-        out.push({
-          d: `M ${x + 34 + i * 22} ${y + h - 2} ` +
-            `L ${x + 28 + i * 22} ${y + h + 4}`,
-        });
-      }
-      return out;
-    },
-    inset: { t: 2, r: 2, b: 2, l: 2 },
-  },
-  // The machine: rounded cabinet with the fan in the header's free right
-  // corner. Two louvre strokes used to sit in the bottom-left band; from a
-  // step back they did not read as vents but as two stray lines in the
-  // corner of a box, so v5.1.4 removed them. The fan, its blades and its
-  // hub already say "heat pump", and ink that has to be explained is ink
-  // the drawing is better without.
-  hp: {
-    contour: (x, y, w, h) =>
-      `M ${x + 12} ${y + 2} H ${x + w - 12} ` +
-      `A 10 10 0 0 1 ${x + w - 2} ${y + 12} V ${y + h - 12} ` +
-      `A 10 10 0 0 1 ${x + w - 12} ${y + h - 2} H ${x + 12} ` +
-      `A 10 10 0 0 1 ${x + 2} ${y + h - 12} V ${y + 12} ` +
-      `A 10 10 0 0 1 ${x + 12} ${y + 2} Z`,
-    accents: (x, y, w, h) => [
-      {
-        d: `M ${x + w - 26} ${y + 13} ` +
-          `A 8 8 0 1 1 ${x + w - 10} ${y + 13} ` +
-          `A 8 8 0 1 1 ${x + w - 26} ${y + 13}`,
-      },
-      { cx: x + w - 18, cy: y + 13, r: 1.6, cls: "setup-accent hub" },
-      {
-        d: `M ${x + w - 18} ${y + 10.5} ` +
-          `A 5 5 0 0 1 ${x + w - 13.8} ${y + 8} ` +
-          `M ${x + w - 15.8} ${y + 14.3} ` +
-          `A 5 5 0 0 1 ${x + w - 15.8} ${y + 19.1} ` +
-          `M ${x + w - 20.2} ${y + 14.3} ` +
-          `A 5 5 0 0 1 ${x + w - 24.4} ${y + 11.9}`,
-      },
-      // The fan shroud's bottom is y+21, tangent to the divider's y+21.5:
-      // the line stops at x+w-30, clear of the shroud's left edge at x+w-26.
-      shapeDivider(x, y, w, h, 30),
-    ],
-    inset: { t: 2, r: 2, b: 2, l: 2 },
-  },
-  // Chamfered block, with the bowtie valve symbol straddling the bottom edge
-  // at the same-column pipe abscissa x+24 -- on its own pipe, the way a
-  // hydronic schematic marks a valve. No glyph in the header: valve titles
-  // are the longest on the page.
-  valve: {
-    contour: (x, y, w, h) =>
-      `M ${x + 12} ${y + 2} H ${x + w - 12} ` +
-      `L ${x + w - 2} ${y + 12} V ${y + h - 12} ` +
-      `L ${x + w - 12} ${y + h - 2} H ${x + 12} ` +
-      `L ${x + 2} ${y + h - 12} V ${y + 12} Z`,
-    accents: (x, y, w, h) => [
-      {
-        d: `M ${x + 18} ${y + h - 10} H ${x + 30} ` +
-          `L ${x + 24} ${y + h - 2} Z ` +
-          `M ${x + 24} ${y + h - 2} ` +
-          `L ${x + 18} ${y + h + 6} H ${x + 30} Z`,
-        cls: "setup-contour",
-      },
-      shapeDivider(x, y, w, h),
-    ],
-    inset: { t: 2, r: 2, b: 2, l: 2 },
-  },
-  // Outside air is unbounded, so it gets no walls: an open tray baseline the
-  // rows hang over, and a cloud glyph in the header's right corner. No
-  // header divider either -- the composition is open.
-  cloud: {
-    contour: (x, y, w, h) =>
-      `M ${x + 2} ${y + h - 8} ` +
-      `A 6 6 0 0 0 ${x + 8} ${y + h - 2} H ${x + w - 8} ` +
-      `A 6 6 0 0 0 ${x + w - 2} ${y + h - 8}`,
-    accents: (x, y, w) => [
-      {
-        d: `M ${x + w - 46} ${y + 19} ` +
-          `A 5.5 5.5 0 0 1 ${x + w - 43} ${y + 9.5} ` +
-          `A 7 7 0 0 1 ${x + w - 30} ${y + 6.5} ` +
-          `A 6 6 0 0 1 ${x + w - 19} ${y + 9} ` +
-          // r=6, not 5.5: this chord is sqrt(6^2+10^2) ~ 11.66, and a radius
-          // under chord/2 would be auto-scaled to an exact semicircle.
-          `A 6 6 0 0 1 ${x + w - 13} ${y + 19} Z`,
-        cls: "setup-contour",
-      },
-    ],
-    inset: { t: 0, r: 0, b: 2, l: 0 },
-  },
-};
 
 // Human names for the places pipes connect. Only the layout editor's
 // rejection line uses them -- every box already carries its own title -- so a
@@ -2435,6 +2422,29 @@ function edgeLabel(name) {
   const [a, b] = String(name).split(">");
   return `${placeLabel(a)} → ${placeLabel(b)}`;
 }
+
+// The options page each place's inputs are configured on, by place id, as the
+// key of the page's name in this file's STRINGS (R10-UX-SETUP's folded
+// "Configure" control).
+//
+// R10-DEEPLINK's carry is the reason it is a NAME and not a URL: Home
+// Assistant has no route into an options-flow step -- `haLink("options")`
+// lands on the integration page with this entry highlighted, and that page's
+// own Configure opens the flow -- so copy that points at a step has to say
+// which step it means. These are the names `_OPTION_PAGES` gives those steps
+// in config_flow.py, and `tests/card.mjs` pins each one against
+// `translations/en.json`'s own menu label, so the card cannot drift from the
+// flow it points at (the class #2222 is about).
+const SETUP_CONFIGURE_PAGE = {
+  outdoor: "setup.page_entities",
+  upper_zone: "setup.page_entities",
+  lower_zone: "setup.page_entities",
+  heat_pump: "setup.page_entities_pump",
+  buffer_tank: "setup.page_building",
+  mixing_valve: "setup.page_building",
+  wood_tank: "setup.page_building",
+  dhw_tank: "setup.page_hot_water_tank",
+};
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
@@ -3027,7 +3037,14 @@ function fmtTick(v) {
   return v.toFixed(1);
 }
 
-/** Rough rendered width of a label, in the chart's viewBox units. */
+/** Rough rendered width of a chart label, in the chart's viewBox units.
+ *
+ * The one owner of the chart's label-width rule (ARCH2-s5 C1): both places
+ * that ask how wide a tick label will be -- the axis pitch and the edge clamp
+ * -- go through here, because the two had drifted and only one of them knew
+ * about the boosted compact font (D4-01), which grows a label without moving
+ * its tick.
+ */
 function textWidth(str, size) {
   return str.length * size * CHAR_WIDTH_EM;
 }
@@ -3052,19 +3069,19 @@ const SlotModel = {
   /** Collapse per-step power into contiguous runs of "on". */
   runsFrom(forecast, field, threshold = 0.05, stepMs = 15 * 60000) {
     const runs = [];
-    let open = null;
+    let run = null;
     for (const point of forecast || []) {
       const t = Date.parse(point.t);
       if (!Number.isFinite(t)) continue;
       const on = Number(point[field]) > threshold;
-      if (on && !open) open = { start: t, end: t + stepMs };
-      else if (on && open) open.end = t + stepMs;
-      else if (!on && open) {
-        runs.push(open);
-        open = null;
+      if (on && !run) run = { start: t, end: t + stepMs };
+      else if (on && run) run.end = t + stepMs;
+      else if (!on && run) {
+        runs.push(run);
+        run = null;
       }
     }
-    if (open) runs.push(open);
+    if (run) runs.push(run);
     return runs;
   },
 
@@ -3199,12 +3216,11 @@ const SlotModel = {
 // the geometry carrier the drag editor and the QA renderer read.
 function setupSvgHtml(topo, ctx) {
   let boxesOut = null;
-  const W = SETUP_W;
   // The width this diagram is drawn at, in CSS px, through the ctx thunk;
-  // 0 before the canvas has ever been laid out (D4-01). The row-target
-  // floor converts px to viewBox units with it, so the rendered height is
-  // the floor itself rather than a fraction of it.
+  // 0 before the canvas has ever been laid out (D4-01).
   const drawnWidth = ctx.setupWidth ? ctx.setupWidth() : 0;
+  const editing = ctx.editing;
+  const W = SETUP_W;
   // Whether the model runs the wood tank as its own store (issue #40).
   // Published by `describe_setup`; absent on older descriptions, where
   // false is the right answer because that is the model they ran.
@@ -3227,7 +3243,7 @@ function setupSvgHtml(topo, ctx) {
   // from "WWWW" and had to be re-guessed every time the padding moved).
   // A caption is one line of prose and reads badly broken mid-phrase, so
   // it is allowed to lean into the right padding before it wraps: what it
-  // must not do is reach the contour. Eight units clear of the wall.
+  // must not do is reach the card's border. Eight units clear of it.
   const captionW = SETUP_COL_W - SETUP_PAD - 8;
   const wrapExtra = (s) => {
     const lines = [];
@@ -3302,27 +3318,96 @@ function setupSvgHtml(topo, ctx) {
     box(2, L("setup.box_lower_floor"), ["lower_zone", "floor_loop"]);
   }
 
-  // Lay the columns out top to bottom, then draw. All sizes in viewBox
-  // units; the SVG scales to the dialog like the chart does.
-  const colX = [16, 260, 504];
-  const colW = SETUP_COL_W;
+  // ---- what each box draws ------------------------------------------------
+  //
+  // Done before the layout, because a box's height follows the text it will
+  // hold and not the number of slots it has: a label wraps to a second line
+  // (R10-UX-SETUP, `fitSlotRow`) and a folded block is its own two.
   const rowH = 17;
   const pad = 8;
+  const colW = SETUP_COL_W;
+  const inner = colW - 2 * SETUP_PAD;
+  // The slot keys whose folded block the reader has opened. A Set of keys
+  // rather than of boxes, so a deep link that names one slot opens the block
+  // that slot is in without having to know which box that is.
+  const openKeys = ctx.unsetOpen || new Set();
+
+  for (const b of boxes) {
+    const liveRows = [];
+    const unsetRows = [];
+    for (const s of b.rows) {
+      let reading = ctx.slotLive(s);
+      // A value the plan actively uses must never read as absent: with no
+      // radiation sensor the irradiance still comes from Open-Meteo or
+      // the weather forecast, and the box says which.
+      if (reading === null && s.key === "solar_radiation_entity") {
+        reading = ctx.solarFallback();
+      }
+      if (reading === null) {
+        unsetRows.push({ slot: s });
+      } else {
+        // Spellings of this value from longest to shortest, for the row to
+        // choose between. Anything tagged with its provenance after a
+        // middot ("123 W/m² · Open-Meteo") can fall back to the reading on
+        // its own; the tag then rides in the row's tooltip, where it is
+        // still one hover away, instead of overwriting the label.
+        const alts = reading.includes(" · ")
+          ? [reading, reading.split(" · ")[0]]
+          : [reading];
+        liveRows.push({ slot: s, fit: fitSlotRow(s.label, alts, inner, 12) });
+      }
+    }
+    for (const row of unsetRows) {
+      row.fit = fitSlotRow(row.slot.label, [L("setup.not_configured")], inner, 12);
+    }
+    b.liveRows = liveRows;
+    b.unsetRows = unsetRows;
+    // Open when ANY of the box's unset slots was asked for by name.
+    // The fold's own open state. It is not `open`: that is the navigation
+    // primitive's name, which `tests/card.mjs`'s census refuses anywhere but
+    // `navigateTo` and the dialog's own `open()`, so an unrelated boolean
+    // carrying it would be a namesake the census cannot tell from a link.
+    b.foldOpen = unsetRows.some((r) => openKeys.has(r.slot.key));
+    // The folded block is ALWAYS drawn when there are unset slots -- its own
+    // count line and its Configure chip are what opens and closes the rows --
+    // so its rows are counted once here, wrapped once, and drawn from the
+    // same lines. Counting them anywhere else is how a box loses its last
+    // caption off the bottom of the drawing.
+    b.foldLines = unsetRows.length
+      ? wrapText(L(
+          unsetRows.length === 1 ? "setup.unset_count_one" : "setup.unset_count",
+          { n: unsetRows.length }
+        ), inner, inner, 2, 12)
+      : null;
+    const lines = (rows) => rows.reduce((n, r) => n + r.fit.lines.length, 0);
+    b.h = 24 + pad + rowH * (
+      lines(liveRows) + lines(b.foldOpen ? unsetRows : []) + b.extra.length +
+      (b.foldLines ? b.foldLines.length + 1 : 0)
+    );
+  }
+
+  // ---- where the boxes go -------------------------------------------------
+  //
+  // Three columns, top to bottom. A phone gets a legible drawing rather than
+  // a reflowed one: the canvas scrolls sideways under 600 px (the media query
+  // in the stylesheet, #40 feedback item 1), so the viewBox is never squeezed
+  // below the size this layout was authored at and a 12-unit row stays a
+  // tappable row. What the card does pay there is reaching half the system at
+  // a time -- which is what "labels fit or wrap at every width" is about, and
+  // what the row wrapping below answers.
+  const colX = [16, 260, 504];
   const colY = [16, 16, 16];
   for (const b of boxes) {
     b.x = colX[b.col];
     b.y = colY[b.col];
-    b.h = 24 + (b.rows.length + b.extra.length) * rowH + pad;
     colY[b.col] = b.y + b.h + 14;
   }
   let H = Math.max(...colY) + 4;
-
   // Cosmetic positions (v3.16.0): the column layout above still runs, so a
   // position for one box leaves every other box where it was, and a place
   // that no longer has a box is simply ignored rather than erroring. The
   // editor's own working positions win over the stored ones while it is
   // open, which is what makes a drag visible.
-  const editing = ctx.editing;
   const stored =
     topo.positions && typeof topo.positions === "object" ? topo.positions : {};
   const placed = editing
@@ -3347,50 +3432,34 @@ function setupSvgHtml(topo, ctx) {
 
   const parts = [];
   // Connections first, under the boxes: pump and furnace feed the buffer
-  // column, which feeds the house column.
-  const anchor = (b) => ({ x: b.x + colW, y: b.y + b.h / 2 });
-  const to = (b) => ({ x: b.x, y: b.y + b.h / 2 });
+  // column, which feeds the house column. A pipe is drawn BEFORE the cards
+  // and the cards are opaque, so a pipe routed behind one is covered by it
+  // rather than drawn across its text.
+  const anchor = (b) => ({ x: b.x + colW - SETUP_INSET, y: b.y + b.h / 2 });
+  const to = (b) => ({ x: b.x + SETUP_INSET, y: b.y + b.h / 2 });
   // Boxes are found by their place id, never by their (localized) title:
   // matching on display text is exactly what would silently drop pipes the
   // moment a title is translated.
   const findPlace = (p) => boxes.find((b) => b.place === p);
-  // Boxes in the same column stack vertically, so their connection is a
-  // short vertical pipe; a right-to-left curve between them crosses every
-  // box in between and reads as spaghetti. `edge` names the connection so
-  // tests can assert the drawn topology instead of path coordinates.
-  // Same-column is asked as "same x" so a box the user has dragged still
-  // gets the pipe its new position deserves; with nothing dragged the two
-  // questions have identical answers, because a column is one x.
-  // The silhouette each box wears (unknown places fall back to the plain
-  // cabinet), consulted for how far a pipe endpoint pulls inside the
-  // bounding box so pipes meet ink rather than the invisible rect.
-  const KIND = (b) => NODE_SHAPES[PLACE_KIND[b.place]] || NODE_SHAPES.hp;
-  // One pipe departs somewhere other than a wall midpoint: the DHW
-  // pre-heating coil hangs on the wood tank's upper-right wall, and its
-  // pipe must leave from the coil's bulge -- in every branch, including
-  // the same-column one a drag can create -- or the helix reads as
-  // ornament next to a pipe that ignores it. Keyed by place pair so the
-  // published edge and the legacy `wood-dhw` name both hit it.
-  // The pipe leaves from the midpoint of the helix's stub pair, which is
-  // height-dependent: a row-less wood tank (h < 49) wears the single-loop
-  // coil (stubs y+13/y+20), a taller one the two-loop coil (y+16/y+30).
-  const ANCHOR_OVERRIDES = {
-    "wood_tank>dhw_tank": {
-      from: (bb) => ({
-        x: bb.x + colW + 13,
-        y: bb.y + (bb.h < 49 ? 16.5 : 23),
-      }),
-    },
+  // Endpoint dots weld pipe to card, and one midpoint chevron says which way
+  // the water flows (skipped on rejected pipes -- an arrow on a connection
+  // that cannot exist would endorse it). None of these carry `data-edge`: the
+  // tests scrape it to read the drawn topology, and must keep seeing exactly
+  // one occurrence per pipe.
+  const pipeDots = (fx, fy, tx, ty) =>
+    `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
+    `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
+  // Apex 2 units ahead of the midpoint, tails 3 behind and 3 to each side.
+  const flowGlyph = (mx, my, ux, uy) => {
+    const nx = -uy;
+    const ny = ux;
+    const r = (n) => Math.round(n * 1000) / 1000;
+    return `<path class="setup-flow" d="M ${r(mx - 3 * ux + 3 * nx)} ${
+      r(my - 3 * uy + 3 * ny)} L ${r(mx + 2 * ux)} ${r(my + 2 * uy)} L ${
+      r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}" />`;
   };
-  // Endpoint dots weld pipe to silhouette, and one midpoint chevron says
-  // which way the water flows (skipped on rejected pipes -- an arrow on a
-  // connection that cannot exist would endorse it). None of these carry
-  // `data-edge`: the tests scrape it to read the drawn topology, and must
-  // keep seeing exactly one occurrence per pipe.
   const pipeDeco = (fx, fy, tx, ty, vertical, s, invalid) => {
-    const dots =
-      `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
-      `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
+    const dots = pipeDots(fx, fy, tx, ty);
     if (invalid) return dots;
     // The chevron sits at the pipe's midpoint and must lie ALONG it.
     // Both branches used to draw an axis-aligned glyph -- horizontal for
@@ -3427,16 +3496,7 @@ function setupSvgHtml(topo, ctx) {
         uy = vy / len;
       }
     }
-    // Apex 2 units ahead of the midpoint, tails 3 behind and 3 to each
-    // side: the same glyph as before, now in the pipe's own frame.
-    const nx = -uy;
-    const ny = ux;
-    const r = (n) => Math.round(n * 1000) / 1000;
-    const flow =
-      `M ${r(mx - 3 * ux + 3 * nx)} ${r(my - 3 * uy + 3 * ny)} ` +
-      `L ${r(mx + 2 * ux)} ${r(my + 2 * uy)} ` +
-      `L ${r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}`;
-    return `${dots}<path class="setup-flow" d="${flow}" />`;
+    return `${dots}${flowGlyph(mx, my, ux, uy)}`;
   };
   // A pipe is a removable connection only while the editor is open --
   // `removeEdge` (LayoutEditor.onClick/onKeyDown) is a no-op otherwise, so a
@@ -3454,27 +3514,19 @@ function setupSvgHtml(topo, ctx) {
     if (!a || !b) return "";
     const extra = cls || "";
     const invalid = extra === " invalid";
-    const over = ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
-    if (!over && a.x === b.x) {
+    if (a.x === b.x) {
       const upper = a.y < b.y ? a : b;
       const lower = a.y < b.y ? b : a;
       const x = a.x + 24;
-      const yTop = upper.y + upper.h - KIND(upper).inset.b;
-      const yBot = lower.y + KIND(lower).inset.t;
-      // The valve's bowtie accent straddles its bottom edge at this same
-      // abscissa, and the chevron's apex would land close enough to merge
-      // ink with it -- so the pipe into the valve keeps its dots but
-      // drops the chevron (pipeDeco's `invalid` path is exactly that).
-      const noFlow = invalid || b.place === "mixing_valve";
+      const yTop = upper.y + upper.h - SETUP_INSET;
+      const yBot = lower.y + SETUP_INSET;
       return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
         d="M ${x} ${yTop}
         L ${x} ${yBot}" />` +
-        pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, noFlow);
+        pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, invalid);
     }
-    const f = over
-      ? over.from(a)
-      : { x: anchor(a).x - KIND(a).inset.r, y: anchor(a).y };
-    const t = { x: to(b).x + KIND(b).inset.l, y: to(b).y };
+    const f = anchor(a);
+    const t = to(b);
     return `<path class="setup-pipe${extra}" data-edge="${edge}"${pipeKb(edge)}
       d="M ${f.x} ${f.y}
       C ${f.x + 40} ${f.y},
@@ -3506,23 +3558,15 @@ function setupSvgHtml(topo, ctx) {
     if (home) byPlace.set("wood_valve", home);
   }
 
-  // v3.16.0: the pipes are the coordinator's edge list, drawn as published.
-  // Hardcoding them here is what let the drawing and the physics drift
-  // apart in the first place. `topo.edges` is absent on a coordinator from
-  // before this release, and that fallback is the old drawing exactly.
+  // The coil helix that used to mark the wood tank's wall is gone with the
+  // silhouette vocabulary; the coil is carried by its own pipe and by the
+  // caption on the tank being preheated.
   const drawnEdges = editing
     ? ctx.edit.edges
     : Array.isArray(topo.edges)
       ? topo.edges
       : null;
-  // The coil helix (drawn on the wood tank below) follows the drawing, not
-  // the flag: while the editor is open the wood>DHW pipe is what claims a
-  // coil, so the helix must appear and vanish with it live. Without an
-  // edge list the flag is all there is, exactly like the legacy pipe
-  // branch below.
-  const coilDrawn = drawnEdges
-    ? drawnEdges.some((e) => e[0] === "wood_tank" && e[1] === "dhw_tank")
-    : dhwCoil && !!findPlace("dhw_tank");
+  const pipe = (a, b, edge, cls) => parts.push(line(a, b, edge, cls));
   if (drawnEdges) {
     const rejected = new Set(
       editing && Array.isArray(ctx.edit.invalid)
@@ -3532,8 +3576,8 @@ function setupSvgHtml(topo, ctx) {
     const matched = editing && ctx.edit.match ? " layout-match" : "";
     for (const e of drawnEdges) {
       const edge = `${e[0]}>${e[1]}`;
-      parts.push(line(byPlace.get(e[0]), byPlace.get(e[1]), edge,
-        rejected.has(edge) ? " invalid" : matched));
+      pipe(byPlace.get(e[0]), byPlace.get(e[1]), edge,
+        rejected.has(edge) ? " invalid" : matched);
     }
     // The connection being dragged, from its box to the pointer.
     const drag = editing ? ctx.edit.drag : null;
@@ -3544,115 +3588,167 @@ function setupSvgHtml(topo, ctx) {
         L ${drag.x} ${drag.y}" />`);
     }
   } else {
-    parts.push(line(findPlace("heat_pump"), bufferBox, "hp-buffer"));
+    pipe(findPlace("heat_pump"), bufferBox, "hp-buffer");
     if (twoTank) {
       // Both stores feed the same 4-way valve; there is no wood-side valve
       // and no path that pours the wood tank into the heat-pump tank.
-      parts.push(line(findPlace("wood_tank"), supplyBox, "wood-valve"));
+      pipe(findPlace("wood_tank"), supplyBox, "wood-valve");
     } else {
       // Tank to tank: the wood-side blending valve stopped being a box of
       // its own in v4.0.0 (#40 feedback, item 3).
-      parts.push(line(findPlace("wood_tank"), bufferBox, "wood-buffer"));
+      pipe(findPlace("wood_tank"), bufferBox, "wood-buffer");
     }
     // A second, separate path out of the wood tank: mains water on its way
     // into the hot water tank, not heating water on its way to the house.
     // No other edge stands for it, so without this pipe the diagram shows a
     // hot water tank that the wood tank cannot reach.
     if (dhwCoil) {
-      parts.push(line(findPlace("wood_tank"), findPlace("dhw_tank"),
-        "wood-dhw"));
+      pipe(findPlace("wood_tank"), findPlace("dhw_tank"), "wood-dhw");
     }
-    parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
-    if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
-    if (topo.two_zone) parts.push(line(supplyBox, findPlace("lower_zone"),
-      `${supplyName}-lower`));
+    pipe(supplyBox, houseBox, `${supplyName}-upper`);
+    if (valve) pipe(bufferBox, supplyBox, "buffer-valve");
+    if (topo.two_zone) pipe(supplyBox, findPlace("lower_zone"),
+      `${supplyName}-lower`);
     // Electric hot water: the pump heats the DHW tank on every layout
     // (#40 feedback, item 2) — stale payloads deserve the pipe too.
     if (topo.dhw) {
-      parts.push(line(findPlace("heat_pump"), findPlace("dhw_tank"),
-        "hp-dhw"));
+      pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
     }
   }
 
+  // The card's own controls, in the product's chip: the border, radius and
+  // padding the legend chips use, so a button drawn inside the diagram is the
+  // same object as a button drawn beside it.
+  //
+  // The chip is a control, so it owes the same pointer minimum every other
+  // target on the page does (SC 2.5.8, D4-01). Its own height is 15 units --
+  // 11.7 CSS px at a phone width -- so an invisible twin takes the pointer at
+  // `_targetMinPx()`, exactly as the row hit rects and the editor's ports do.
+  // The paint sits OVER the twin with `pointer-events: none`, so the twin is
+  // what is clicked and `:hover` on it is what lights the pill.
+  // ViewBox units per CSS pixel at the width this drawing lands in, 0 until
+  // the canvas has been laid out once (the chart's #256 contract). Every
+  // target in here converts its pixel floor through this one value.
+  const unitsPerPx = drawnWidth > 0 ? W / drawnWidth : 0;
+  const chip = (x, yTop, key, attr, aria) => {
+    const label = L(key);
+    const w = setupTextW(label, SETUP_CHIP_TEXT, false) + 2 * SETUP_CHIP_PAD;
+    const hitH = unitsPerPx > 0
+      ? Math.max(SETUP_CHIP_H, _targetMinPx() * unitsPerPx)
+      : SETUP_CHIP_H;
+    const hitY = yTop - (hitH - SETUP_CHIP_H) / 2;
+    return `<rect class="setup-chip-hit" ${attr}
+      tabindex="${ctx.picking ? "-1" : "0"}" role="button"
+      aria-label="${esc(aria)}" x="${x - SETUP_CHIP_PAD / 2}" y="${r2(hitY)}"
+      width="${r2(w + SETUP_CHIP_PAD)}" height="${r2(hitH)}"
+      rx="${r2(hitH / 2)}"><title>${esc(aria)}</title></rect>
+      <rect class="setup-chip" x="${x}" y="${r2(yTop)}" width="${r2(w)}"
+        height="${SETUP_CHIP_H}" rx="${SETUP_CHIP_H / 2}" />
+      <text class="setup-chip-label" x="${x + SETUP_CHIP_PAD}"
+        y="${r2(yTop + SETUP_CHIP_H - 4.6)}">${esc(label)}</text>`;
+  };
+  const r2 = (n) => Math.round(n * 100) / 100;
+
   for (const b of boxes) {
     const rows = [];
+    // A text element per row, with one tspan per wrapped line: SVG text does
+    // not wrap, so where a line ends is the drawing's to decide and
+    // `fitSlotRow` has already measured it. The value keeps the FIRST line's
+    // right end -- it is the reading, and a reading split across lines is not
+    // one -- and the label takes what is left of that line and the whole
+    // width of the next.
     let y = b.y + 20 + rowH;
-    for (const s of b.rows) {
-      const live = ctx.slotLive(s);
-      let cls = s.entity ? "setup-slot" : "setup-slot empty";
-      let value = live === null ? L("setup.not_configured") : live;
-      // A value the plan actively uses must never read as absent: with no
-      // radiation sensor the irradiance still comes from Open-Meteo or
-      // the weather forecast, and the box says which.
-      if (live === null && s.key === "solar_radiation_entity") {
-        const fallback = ctx.solarFallback();
-        if (fallback) {
-          value = fallback;
-          cls = "setup-slot";
-        }
-      }
-      // Spellings of this value from longest to shortest, for the row to
-      // choose between. Anything tagged with its provenance after a
-      // middot ("123 W/m² · Open-Meteo") can fall back to the reading on
-      // its own; the tag then rides in the row's tooltip, where it is
-      // still one hover away, instead of overwriting the label.
-      const valueAlts = value.includes(" · ")
-        ? [value, value.split(" · ")[0]]
-        : [value];
-      // The label and the right-anchored value share one 200-unit row;
-      // SVG text does not wrap, so whatever does not fit collides. Both
-      // strings are MEASURED (`fitSlotRow`) and the value is given its
-      // room first: the label is ellipsized into what is left, and only a
-      // value that would squeeze the label below readability is itself
-      // shortened -- never by cutting the reading, only by dropping the
-      // provenance tag after the middot. The old rule counted characters
-      // and let "123 W/m² · Open-Meteo" run through the label beside it.
-      //
-      // A row whose text was shortened says the whole thing in its
-      // tooltip and its accessible name, so nothing is only visible to
-      // someone with a wide screen.
-      const fit = fitSlotRow(s.label, valueAlts, colW - 2 * SETUP_PAD, 12);
-      // The tooltip and the accessible name always carry the whole label
-      // (they are built from it), and additionally the whole value when
-      // the row had to shorten it.
-      const title = L("setup.click_to_assign_title", { label: s.label });
+    const rowHtml = (row, cls) => {
+      const fit = row.fit;
+      const title = L("setup.click_to_assign_title", { label: row.slot.label });
       const full = fit.shortened ? `${title} — ${fit.full}` : title;
-      rows.push(`<text class="${cls}" x="${b.x + SETUP_PAD}" y="${y}">
-        <tspan>${esc(fit.label)}</tspan>
-        <tspan class="setup-value" x="${b.x + colW - SETUP_PAD}"
-          text-anchor="end">${esc(fit.value)}</tspan></text>`);
+      const lines = fit.lines.length ? fit.lines : [""];
+      const out = [`<text class="${cls}" x="${b.x + SETUP_PAD}" y="${y}">` +
+        lines.map((t, i) =>
+          `<tspan x="${b.x + SETUP_PAD}" y="${y + i * rowH}">${esc(t)}</tspan>`
+        ).join("") +
+        `<tspan class="setup-value" x="${b.x + colW - SETUP_PAD}" y="${y}"
+          text-anchor="end">${esc(fit.value)}</tspan></text>`];
       // A transparent rect over the row, not a handler on the text: text
       // is a thin target, and the gap between label and value would not
       // respond at all -- which reads as a diagram that is only sometimes
       // clickable.
-      const hitBase = rowH - 2;
+      const hitBase = rowH * lines.length - 2;
       // SC 2.5.8's minimum is owed to every pointer, not only to touch
       // (D4-01): the floor used to sit behind `_coarsePointer()`, and the
       // coarse branch converted px to viewBox units with `SETUP_W / 280`
       // -- a render width nothing here uses, so un-gating it as it stood
       // would have drawn rows a multiple of their own pitch tall.
-      // `height` counts viewBox units, and the conversion is `SETUP_W /
+      // `height` counts viewBox units, and the conversion is `W /
       // drawnWidth`: the same scale `point(ev)` hit-tests with, which
       // makes the rendered height the floor itself. `drawnWidth` is 0
       // until the canvas has been laid out once; that render keeps the
       // authored height and `_refitCharts` re-renders it once the browser
       // has a width (the chart's #256 contract).
-      const unitsPerPx = drawnWidth > 0 ? SETUP_W / drawnWidth : 0;
       const hitH = unitsPerPx > 0
         ? Math.max(hitBase, _targetMinPx() * unitsPerPx)
         : hitBase;
+
       const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
       // While the picker is open it covers the diagram, and it follows the
       // svg in the markup: rows left in the Tab order would send focus down
       // through the covered diagram and back up into the picker (#1522).
       // -1, not `inert`: a click on another row still retargets the picker,
       // and closing it restores focus to a row by script.
-      rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
+      out.push(`<rect class="setup-hit" data-key="${esc(row.slot.key)}"
         tabindex="${ctx.picking ? "-1" : "0"}" role="button" aria-label="${esc(full)}"
         x="${b.x + 4}" y="${hitY}" width="${colW - 8}"
         height="${hitH}" rx="3">
         <title>${esc(full)}</title></rect>`);
+      y += rowH * lines.length;
+      return out.join("");
+    };
+    for (const row of b.liveRows) rows.push(rowHtml(row, "setup-slot"));
+    // The unset slots of this box, folded into ONE muted block
+    // (R10-UX-SETUP): they used to render as "not configured" rows in the
+    // same weight as the readings, which crowds the readings out of the
+    // diagram drawn around them. The block says how many there are, opens
+    // this box's rows in place so nothing the diagram could do is off the
+    // page, and carries the way to Home Assistant's own options page for
+    // them.
+    if (b.unsetRows.length) {
+      const n = b.unsetRows.length;
+      const lines = b.foldLines;
+      rows.push(`<text class="setup-slot folded" x="${b.x + SETUP_PAD}" y="${y}">` +
+        lines.map((t, i) =>
+          `<tspan x="${b.x + SETUP_PAD}" y="${y + i * rowH}">${esc(t)}</tspan>`
+        ).join("") + `</text>`);
+      // The block's line is a control, so it owes the same pointer minimum
+      // the rows do: the text band is 17 units a line and the floor is more
+      // than that on a narrow card, so the rect grows symmetrically about it.
+      const foldBase = rowH * lines.length - 2;
+      const foldH = unitsPerPx > 0
+        ? Math.max(foldBase, _targetMinPx() * unitsPerPx)
+        : foldBase;
+      rows.push(`<rect class="setup-hit setup-fold-hit"
+        data-fold="${esc(b.unsetRows.map((r) => r.slot.key).join(","))}"
+        data-place="${esc(b.place || "")}"
+        aria-expanded="${b.foldOpen ? "true" : "false"}"
+        tabindex="${ctx.picking ? "-1" : "0"}" role="button"
+        aria-label="${esc(L(
+          b.foldOpen ? "setup.fold_hide" : "setup.fold_show",
+          { n: b.unsetRows.length }
+        ))}" x="${b.x + 4}" y="${r2(y - rowH + 5 - (foldH - foldBase) / 2)}"
+        width="${colW - 8}" height="${r2(foldH)}" rx="3"></rect>`);
+      y += rowH * lines.length;
+      // A place this card has no options page for (a place the backend added
+      // ahead of it) names the place instead of the page: a button that
+      // cannot say which step it opens says what it is for, rather than
+      // "undefined".
+      const page = SETUP_CONFIGURE_PAGE[b.place];
+      const aria = L("setup.configure_page",
+        { page: page ? L(page) : placeLabel(b.place) });
+      rows.push(chip(b.x + SETUP_PAD, y - rowH + 3, "setup.configure",
+        `data-configure="${esc(b.place || "")}"`, aria));
       y += rowH;
+    }
+    for (const row of b.foldOpen ? b.unsetRows : []) {
+      rows.push(rowHtml(row, "setup-slot empty"));
     }
     for (const ex of b.extra) {
       rows.push(`<text class="setup-slot extra" x="${b.x + SETUP_PAD}"
@@ -3700,58 +3796,17 @@ function setupSvgHtml(topo, ctx) {
             : L("setup.box_move_aria", { label: b.title })
         )}"`
       : "";
-    // The visible silhouette, painted right after the invisible carrier
-    // rect. Everything here is inert (`pointer-events: none`), so the hit
-    // rects, pipe clicks and drags behave exactly as before; the per-kind
-    // class rides on the contour path because the `<g>` must stay bare --
-    // three tests split the page on the literal "<g>".
-    const kindKey = PLACE_KIND[b.place];
-    const shape = NODE_SHAPES[kindKey] || NODE_SHAPES.hp;
-    const deco = [
-      `<path class="setup-contour kind-${esc(b.place || "")}"
-        d="${shape.contour(b.x, b.y, colW, b.h)}" />`,
-    ];
-    // An unknown place keeps the plain cabinet outline but none of the
-    // hp accents -- a fan on a box nobody named would be a claim.
-    if (kindKey) {
-      for (const acc of shape.accents(b.x, b.y, colW, b.h)) {
-        // The divider returns null for a row-less box; skip it.
-        if (!acc) continue;
-        deco.push(
-          acc.d
-            ? `<path class="${acc.cls || "setup-accent"}" d="${acc.d}" />`
-            : `<circle class="${acc.cls || "setup-accent"}" cx="${acc.cx}"
-                cy="${acc.cy}" r="${acc.r}" />`
-        );
-      }
-    }
-    // The DHW pre-heating helix on the wood tank's upper-right wall: two
-    // overlapping loops whose stubs pierce the straight wall below the
-    // dome. Part of the tank's own markup so it moves with the box during
-    // drags and survives `refresh()`'s innerHTML rebuild.
-    if (b.place === "wood_tank" && coilDrawn) {
-      // A row-less tank (h = 32, two-tank mode with the caption re-homed)
-      // only has straight wall from y+9 to y+23, so the two-loop coil's
-      // lower stub at y+30 would pierce empty air below the dome. It gets
-      // one loop, stubs at y+13 and y+20; anything taller keeps the
-      // two-loop helix, byte for byte. ANCHOR_OVERRIDES above computes
-      // the pipe's departure from the same stub pair.
-      deco.push(b.h < 49
-        ? `<path class="setup-coil"
-        d="M ${b.x + colW - 2} ${b.y + 13} H ${b.x + colW + 6}
-        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 20}
-        H ${b.x + colW - 2}" />`
-        : `<path class="setup-coil"
-        d="M ${b.x + colW - 2} ${b.y + 16} H ${b.x + colW + 6}
-        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 23}
-        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 30}
-        H ${b.x + colW - 2}" />`);
-    }
+    // The card IS the carrier rect: one outline per box, in the product's
+    // own surface, border and radius (`.setup-box` in the stylesheet). The
+    // header rule under a title is the only decoration left, and a row-less
+    // card drops even that.
+    const deco = [shapeDivider(b.x, b.y, colW, b.h)];
     parts.push(`
       <g>
         <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
-          height="${b.h}" rx="8" />
-        ${deco.join("")}
+          height="${b.h}" rx="${SETUP_CARD_R}" />
+        ${deco.filter(Boolean).map((acc) =>
+          `<path class="${acc.cls}" d="${acc.d}" />`).join("")}
         <text class="setup-title" x="${b.x + SETUP_PAD}"
           y="${b.y + 17}">${esc(b.title)}</text>
         ${rows.join("")}${ports}
@@ -3767,6 +3822,7 @@ function setupSvgHtml(topo, ctx) {
   return { html: out, boxes: boxesOut };
 }
 
+
 // ---- The token layer (R9-UI-3, #1791) -------------------------------------
 // The card's colours, spacing, radii and type scale as custom properties with
 // an `--hpo-` prefix, declared on :host by `cardStyleBlock(darkMode)` and read
@@ -3778,8 +3834,8 @@ function setupSvgHtml(topo, ctx) {
 // instead of the three dividers and two greys the literals had drifted to.
 // Light and dark are chosen in JS from `hass.themes.darkMode` for the reason
 // the D4-s1-01 colours below are (a profile switch, not the OS scheme).
-// Values are the design of record's (handoff/round9/state/alt/design/DESIGN.md
-// section 3, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
+// Values are the design of record's (DESIGN.md section 3, archived on the
+// round-9 alt tag, the status pairs from ux/DESIGN-UX.md); tests/card.mjs measures
 // the text, pill and tile pairs on these literals, and tests/card_browser.mjs's
 // P9 grid what Chromium paints. Each entry holds its light and dark literal,
 // plus the Home Assistant variable it stands for where there is one. The stylesheet is written with the LIGHT literal as
@@ -4162,7 +4218,10 @@ function cardStyleBlock(darkMode) {
         display: flex; flex-direction: column; gap: 4px; padding: 0 2px 8px 2px;
       }
       .legend-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-      .chip {
+      /* One rule, two surfaces: the legend's own chips and the layout bar's
+         buttons are the same control, so the bar cannot drift into an
+         unstyled set of boxes beside them (R10-UX-SETUP). */
+      .chip, .layout-bar button {
         display: inline-flex; align-items: center; gap: 6px;
         border: 1px solid var(--hpo-divider, #e0e0e0);
         border-radius: 14px; padding: 3px 10px; cursor: pointer;
@@ -4438,29 +4497,33 @@ function cardStyleBlock(darkMode) {
       }
       .setup-page { padding: 0.5em 0.25em; }
       .setup-svg { width: 100%; height: auto; display: block; }
-      /* The rect stays in the markup as the geometry carrier the tests
-         and the drag editor read; the contour paths draw the visible
-         outline (v4.3.0). */
-      .setup-box { fill: none; stroke: none; }
-      .setup-contour {
-        fill: none; stroke: var(--hpo-text, #212121);
-        stroke-width: 2; opacity: 0.75;
-        stroke-linecap: round; stroke-linejoin: round;
-        pointer-events: none;
+      /* The card (R10-UX-SETUP): the same surface, border and radius a
+         tile wears, painted on the rect that is also the geometry carrier
+         the tests and the drag editor read. ONE outline per box -- the
+         hand-drawn silhouettes it replaced drew a second one over this
+         rect's edge, which is the "wobbly double border" the owner's
+         screenshot names -- and opaque, so a pipe routed behind a card is
+         covered by it instead of crossing the text inside it. */
+      /* Everything inside a card takes its ink from the SAME darkMode switch
+         as the card's own surface: one pair, one switch, which is the rule
+         the tiles follow. A card that took its text from the theme's
+         variables would paint the theme's dark secondary grey on its own
+         light literal whenever Home Assistant reports darkMode false for a
+         theme that is dark -- measured at 2.63:1 on the HA dark arm before
+         this rule existed (R10-UX-SETUP). */
+      .setup-svg > g {
+        --hpo-text: var(--hpo-ink, #212121);
+        --hpo-text-2: var(--hpo-ink-2, #727272);
       }
+      .setup-box {
+        fill: var(--hpo-surface-2, #f7f9fb);
+        stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
+      }
+      /* The rule under a card's title, in the card's own border colour: it
+         divides the header band from the rows, it is not a second outline. */
       .setup-accent {
-        fill: none; stroke: var(--hpo-text-2, #727272);
-        stroke-width: 1.25; opacity: 0.6;
-        stroke-linecap: round; pointer-events: none;
-      }
-      .setup-accent.divider { opacity: 0.5; }
-      .setup-accent.hub {
-        stroke: var(--hpo-primary, #03a9f4); opacity: 0.9;
-      }
-      .setup-coil {
-        fill: none; stroke: var(--hpo-primary, #03a9f4);
-        stroke-width: 2; opacity: 0.85;
-        stroke-linecap: round; pointer-events: none;
+        fill: none; stroke: var(--hpo-divider, #e0e0e0);
+        stroke-width: 1; pointer-events: none;
       }
       .setup-pipe-dot {
         fill: var(--hpo-surface, #ffffff);
@@ -4479,13 +4542,40 @@ function cardStyleBlock(darkMode) {
         font-size: 13px; font-weight: 600;
         fill: var(--hpo-text, #212121);
       }
-      .setup-slot { font-size: 12px; fill: var(--hpo-text, #212121); }
-      .setup-slot.empty {
-        fill: var(--hpo-text, #212121);
-        font-style: italic;
+      .setup-slot {
+        font-size: 12px; fill: var(--hpo-text, #212121);
+        font-variant-numeric: tabular-nums;
       }
+      /* An unset input, drawn only when its box's folded block is open: the
+         secondary text colour, never the weight of a reading. It used to be
+         set in the same colour AND bold value as a live row, which is what
+         crowded the readings out of the diagram (R10-UX-SETUP). */
+      .setup-slot.empty { fill: var(--hpo-text-2, #727272); }
+      .setup-slot.empty .setup-value { font-weight: 400; }
+      /* The folded block's own line: the count, in the same muted voice as
+         the rows it stands for. */
+      .setup-slot.folded { fill: var(--hpo-text-2, #727272); }
       .setup-slot.extra { fill: var(--hpo-text-2, #727272); }
       .setup-value { font-weight: 600; }
+      /* The Configure control, in the product's chip: the same border,
+         radius and label size a legend chip wears, so a button drawn inside
+         the diagram is the same object as a button drawn beside it. */
+      .setup-chip {
+        fill: transparent;
+        stroke: var(--hpo-divider, #e0e0e0); stroke-width: 1;
+        pointer-events: none;
+      }
+      /* The twin under the pill is what takes the pointer, so it carries the
+         cursor and the hover state lights the pill it sits behind. */
+      .setup-chip-hit { fill: transparent; cursor: pointer; }
+      .setup-chip-hit:hover + .setup-chip {
+        stroke: var(--hpo-primary, #03a9f4);
+        fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.08;
+      }
+      .setup-chip-label {
+        font-size: 11px; fill: var(--hpo-accent, #026aa8);
+        pointer-events: none;
+      }
       .setup-hint {
         color: var(--hpo-text-2, #727272);
         font-size: 0.85em; padding: 0.5em 0.25em;
@@ -4503,23 +4593,31 @@ function cardStyleBlock(darkMode) {
       .setup-hit:hover {
         fill: var(--hpo-primary, #03a9f4); fill-opacity: 0.12;
       }
+      /* The folded block's own target says so differently: it is a
+         disclosure, not a slot, and a wash the width of the row would read
+         as the same control the chip beside it is. It carries no wash at
+         all. Declared after .setup-hit:hover, which has the same
+         specificity. */
+      .setup-fold-hit:hover {
+        fill: transparent; fill-opacity: 0;
+      }
 
       /* The layout editor (v3.16.0, issue #40) */
       .layout-bar {
         display: flex; align-items: center; gap: 0.5em;
         flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
       }
-      .layout-bar button {
-        font: inherit; font-size: 0.85em; cursor: pointer;
-        border: 1px solid var(--hpo-divider, #e0e0e0);
-        background: transparent; color: var(--hpo-text, #212121);
-        border-radius: 1em; padding: 0.2em 0.9em;
-      }
       .layout-bar button:focus-visible {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      .layout-edit-toggle.on { border-color: var(--hpo-primary, #03a9f4); }
+      /* A pressed toggle says so in the ink and not only in the border: the
+         accent is the token measured against the card, and a 1 px border
+         moving is a state a reader can miss at a glance. */
+      .layout-edit-toggle.on {
+        border-color: var(--hpo-primary, #03a9f4);
+        color: var(--hpo-accent, #026aa8);
+      }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
         flex: 1 1 100%; font-size: 0.85em;
@@ -5616,6 +5714,16 @@ class PlanSource {
       }
     }
     return null;
+  }
+
+  /** The empty state the card and the dialog's Plan page both show while
+   * there is no plan to draw: the one line, then `diagnose` for each plan
+   * kind. One owner, because the two call sites used to spell the same three
+   * lines twice (ARCH2-s5 C4). */
+  noPlanHtml() {
+    return `<div class="empty">${L("errors.no_plan_data")}<br>
+      ${this.diagnose("space")}<br>
+      ${this.diagnose("dhw")}</div>`;
   }
 
   // Explain precisely why a plan is missing. "Waiting for an entity" is not
@@ -6964,7 +7072,7 @@ function renderChart(frame, opts) {
   // for an unknown/unavailable sensor).
   // R9-UI-4: in the temperature panel's own first row, beside the curves it
   // reads against.
-  if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
+  if (finiteNum(nowTemp) && axes.temp) {
     parts.push(
       `<text class="now-temp" x="${plotL + 6}" y="${panelOf("temp").top + labelRow}" font-size="${font}" fill="var(--hpo-ink, #212121)">${esc(
         L("plan.now_temp", { temp: nowTemp.toFixed(1) })
@@ -7186,8 +7294,7 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   // Widest rendered label, plus a gap, in viewBox units. The chart uses the
   // default sans-serif face, whose characters average a little over half an
   // em at these sizes.
-  const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
-  const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
+  const labelWidth = ticks.reduce((n, tick) => Math.max(n, textWidth(tick.label, size)), 0) + size * 0.6;
   const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
   const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
   // Intervals that divide the day, so labels land on the same clock times
@@ -7226,7 +7333,7 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
       // label runs left under the value axis and the last runs off the
       // chart -- which the boosted compact font (D4-01) makes far more
       // likely, because the label grows while the tick does not move.
-      const half = (size * tick.label.length * CHAR_WIDTH_EM) / 2;
+      const half = textWidth(tick.label, size) / 2;
       let anchor = "middle";
       let lx = tick.x;
       if (plotL !== undefined && tick.x - half < plotL) {
@@ -8578,7 +8685,7 @@ function restartRows(plan) {
   const row = (act, title, detail) => ({ kind: "restart", status: "ready", value: null, act, title, detail });
   const refit = attrs.refit;
   const rows = [];
-  if (refit && typeof refit.scale === "number" && Number.isFinite(refit.scale)) {
+  if (refit && finiteNum(refit.scale)) {
     rows.push(row("adopt_refit",
       L("advisor.refit_title", { to: Number(refit.scale).toFixed(2), from: Number(attrs.current_scale).toFixed(2) }),
       L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
@@ -11746,6 +11853,11 @@ class SetupPage {
     this.clearTimer = null;
     // The status line under the diagram, re-applied after every rebuild.
     this.note = null;
+    // The slot keys whose folded "N optional inputs not set" block the
+    // reader has opened (R10-UX-SETUP). Keys rather than boxes, so a deep
+    // link that names one slot opens the block that slot is in without
+    // having to know which box that is.
+    this.unsetOpen = new Set();
   }
 
   /** The slot the open picker is for, read afresh from the topology the
@@ -11953,6 +12065,13 @@ class SetupPage {
     // over from the row before this one.
     this.closePicker();
     this.pickerKey = key;
+    // A slot with no reading is inside its box's folded block, so the row
+    // the picker belongs to is not on the diagram yet -- and both a deep
+    // link (openSetupSlot, from the Advisor ranking and the Health
+    // checklist) and a click on the folded line can name one. Opening the
+    // block first means the row is there to go back to when the picker
+    // closes, which is what `restoreFocus` needs.
+    this.unsetOpen.add(key);
     // Opened from the keyboard, focus must land in the picker: the hit
     // target that had it is rebuilt by the render that follows, so without
     // this the keyboard user is dropped back at the top of the dialog.
@@ -12006,17 +12125,17 @@ class SetupPage {
     // display override, so a natively-°F probe reads in °C on a metric
     // install here exactly as it does everywhere else in the frontend.
     // Raw state + unit stays as the fallback for older frontends.
+    const unit =
+      (st.attributes && st.attributes.unit_of_measurement) || "";
     if (this.host.hass && typeof this.host.hass.formatEntityState === "function") {
       try {
         const formatted = this.host.hass.formatEntityState(st);
-        if (formatted) return formatted;
+        if (formatted) return onePrecision(formatted, unit);
       } catch (e) {
         // fall through to the raw concatenation
       }
     }
-    const unit =
-      (st.attributes && st.attributes.unit_of_measurement) || "";
-    return `${st.state}${unit ? " " + unit : ""}`;
+    return onePrecision(`${st.state}${unit ? " " + unit : ""}`, unit);
   }
 
   /** The irradiance the plan actually runs on when no sensor is configured.
@@ -12047,6 +12166,9 @@ class SetupPage {
     return setupSvgHtml(topo, {
       editing,
       edit,
+      // Which folded blocks are open, and what the deep link a folded block
+      // carries is for: the options page each place's inputs live on.
+      unsetOpen: this.unsetOpen,
       picking: this.openSlot() !== null,
       // Recorded as it is read, so `_refitCharts` can compare what this
       // render assumed against what the browser then did (D4-01).
@@ -12156,6 +12278,42 @@ class SetupPage {
         else this.persistTanks(dhw, !wood);
       });
     });
+    // The diagram's own controls first: the folded unset-inputs block, whose
+    // line opens that box's unset rows in place, and its Configure chip,
+    // which is the ONE route out of the card to the options flow that owns
+    // them (`openHaLink`, R10-DEEPLINK's builder), so the copy that points
+    // at a step has to name it -- the chip's aria-label does.
+    for (const fold of root.querySelectorAll(".setup-fold-hit")) {
+      const toggle = (ev) => {
+        stop(ev);
+        const keys = String((ev.currentTarget.dataset || {}).fold || "")
+          .split(",").filter(Boolean);
+        const opening = !keys.every((k) => this.unsetOpen.has(k));
+        for (const k of keys) {
+          if (opening) this.unsetOpen.add(k);
+          else this.unsetOpen.delete(k);
+        }
+        this.host.render();
+      };
+      fold.addEventListener("click", toggle);
+      fold.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.preventDefault) ev.preventDefault();
+        toggle(ev);
+      });
+    }
+    for (const btn of root.querySelectorAll(".setup-chip-hit[data-configure]")) {
+      const follow = (ev) => {
+        stop(ev);
+        openHaLink(this.host, "options", null);
+      };
+      btn.addEventListener("click", follow);
+      btn.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.preventDefault) ev.preventDefault();
+        follow(ev);
+      });
+    }
     for (const hit of root.querySelectorAll(".setup-hit")) {
       hit.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -12380,19 +12538,6 @@ const LAYOUT_PIPE_SAMPLES = 24;
 // crossing the diagram does not take dozens of them; the same order of
 // magnitude as `layoutCost`'s own column gap.
 const LAYOUT_KB_STEP = 8;
-const LAYOUT_ANCHOR_OVERRIDES = {
-  "wood_tank>dhw_tank": {
-    from: (bb) => ({
-      x: bb.x + SETUP_COL_W + 13,
-      y: bb.y + (bb.h < 49 ? 16.5 : 23),
-    }),
-  },
-};
-
-function layoutKind(box) {
-  return NODE_SHAPES[PLACE_KIND[box.place]] || NODE_SHAPES.hp;
-}
-
 /** Every ordering of `items`; one item is a singleton, none is [[]]. */
 function layoutPermutations(items) {
   if (!items.length) return [[]];
@@ -12406,29 +12551,30 @@ function layoutPermutations(items) {
   return out;
 }
 
-/** Polyline for one edge, mirroring `setupSvgHtml`'s `line()`. */
+/** Polyline for one edge, mirroring `setupSvgHtml`'s `line()`.
+ *
+ * The mirror is exact because the editor prices the drawing it is making: a
+ * pipe that crosses a box or another pipe costs, and the cost is computed on
+ * these points. Both the per-place shapes and their insets went with the
+ * silhouette vocabulary (R10-UX-SETUP), so a pipe endpoint now sits on the
+ * card's own border at `SETUP_INSET` from the bounding box, which is what the
+ * renderer draws too.
+ */
 function layoutPipePolyline(a, b) {
   const colW = SETUP_COL_W;
-  const kindA = layoutKind(a);
-  const kindB = layoutKind(b);
-  const over = LAYOUT_ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
-  if (!over && a.x === b.x) {
+  if (a.x === b.x) {
     const upper = a.y < b.y ? a : b;
     const lower = a.y < b.y ? b : a;
-    const kindU = layoutKind(upper);
-    const kindL = layoutKind(lower);
     const x = a.x + 24;
     return [
-      { x, y: upper.y + upper.h - kindU.inset.b },
-      { x, y: lower.y + kindL.inset.t },
+      { x, y: upper.y + upper.h - SETUP_INSET },
+      { x, y: lower.y + SETUP_INSET },
     ];
   }
-  const anchor = (bb) => ({ x: bb.x + colW, y: bb.y + bb.h / 2 });
-  const toPt = (bb) => ({ x: bb.x, y: bb.y + bb.h / 2 });
-  const f = over
-    ? over.from(a)
-    : { x: anchor(a).x - kindA.inset.r, y: anchor(a).y };
-  const t = { x: toPt(b).x + kindB.inset.l, y: toPt(b).y };
+  const anchor = (bb) => ({ x: bb.x + colW - SETUP_INSET, y: bb.y + bb.h / 2 });
+  const toPt = (bb) => ({ x: bb.x + SETUP_INSET, y: bb.y + bb.h / 2 });
+  const f = anchor(a);
+  const t = toPt(b);
   const p0 = f;
   const p1 = { x: f.x + 40, y: f.y };
   const p2 = { x: t.x - 40, y: t.y };
@@ -13752,9 +13898,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._geom = null;
       this._geoms = [];
     } else if (!anyData) {
-      body = `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this.plan.diagnose("space")}<br>
-      ${this.plan.diagnose("dhw")}</div>`;
+      body = this.plan.noPlanHtml();
       this._plot = null;
       // And the lane geometry with it (#142): a stale one would let the edit
       // floor and a pointer hit-test answer against a chart that is not there.
@@ -13791,9 +13935,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               ? healthPageHtml(this)
               : anyData
                 ? `${stats}${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
-                : `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this.plan.diagnose("space")}<br>
-      ${this.plan.diagnose("dhw")}</div>`;
+                : this.plan.noPlanHtml();
       dialog = this.dialog.html({
         title: this._title(),
         pill: healthPillHtml(this.plan),
@@ -14001,12 +14143,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the table of every month below them is unchanged.
     const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
-    const money = (n) =>
-      typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
-    const pct = (n) =>
-      typeof n === "number" && Number.isFinite(n) ? `${n.toFixed(0)}%` : "—";
-    const amount = (n) =>
-      typeof n === "number" && Number.isFinite(n) ? Math.abs(n) : 0;
+    const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
+    const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
+    const amount = (n) => (finiteNum(n) ? Math.abs(n) : 0);
     // Scaled to the biggest month in the table, so the bar answers "compared
     // with the others" rather than against a figure the reader cannot see. A
     // table where nothing was saved has no biggest and draws no bar, which is
@@ -14014,7 +14153,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const biggest = rows.reduce((n, r) => Math.max(n, amount(r.savings_sek)), 0);
     const mag = (n) => {
       const w = biggest > 0 ? (amount(n) / biggest) * 100 : 0;
-      const neg = typeof n === "number" && Number.isFinite(n) && n < 0;
+      const neg = finiteNum(n) && n < 0;
       return `<span class="sv-mag${neg ? " neg" : ""}" style="width:${w.toFixed(1)}%"></span>`;
     };
     const tr = (row) => {

@@ -298,27 +298,42 @@ run() {
   run_always "$@"
 }
 
-# The gate lease guards only the scripts `gate_lock.py needs-lease` names
-# (stress.py, which measures the machine): taken for that one run, queueing
-# first come first served, and released right after it, so every other script
-# runs unleased. Fail closed: anything but an explicit "none" (a crash
-# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead,
-# re-queued when another label waits, and refused at once when the seat never
-# took it (flock-wrap would otherwise leave it held); auto-lease and flock-wrap both hold
-# flock for the run, so a crash releases at once (#404).
+# The lease `gate_lock.py needs-lease` names decides each run: `lease` for the
+# scripts that MEASURE the machine (stress.py, harness_headers.py), taken alone
+# and released right after the run; `slot` for the multi-minute CPU scripts
+# (>= SLOT_MIN_SECONDS in closures.json's recordings), which join the pool of
+# four so several can share the box; `none` for the seconds side, which runs
+# unleased. Fail closed: anything but those two words leases, a crash included.
+# A seat's own HPO_GATE_LOCK_LABEL is renewed instead, re-queued when another
+# label waits, and refused at once when the seat never took it (flock-wrap would
+# otherwise leave it held); auto-lease and flock-wrap both hold flock for the
+# run, so a crash releases at once (#404). A `slot` run already inside a slot
+# ($HPO_SLOT_LABEL, exported by prepr.sh step 1b or a slot-auto-lease above it)
+# joins that slot and takes nothing, so one seat's heavy tree is one slot.
 leased() {
-  local s one
+  local s one answer
   s=$(scope_script "$@")
   one="$WORKDIR/lease.$LANE.$step"
   printf '%s\n' "$s" > "$one"
-  if [ -z "$s" ] || [ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then
-    "$@"
-  elif [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
-    "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
-  else
-    echo "  LEASE: $s runs under the gate lease as run.sh-$$"
-    "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
-  fi
+  answer=none
+  [ -z "$s" ] || answer=$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)
+  case "$answer" in
+    none) "$@" ;;
+    slot)
+      if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+        "$@"
+      else
+        echo "  SLOT: $s joins a heavy slot as run.sh-$$"
+        "$PYTHON" tests/gate_lock.py slot-auto-lease --label "run.sh-$$" --owner-pid $$ -- "$@"
+      fi ;;
+    *)
+      if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+        "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
+      else
+        echo "  LEASE: $s runs under the gate lease as run.sh-$$"
+        "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
+      fi ;;
+  esac
 }
 
 # Same as run, but GATE_SCOPE cannot skip it. Inherited claims and the
@@ -494,13 +509,6 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
-  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
-  # the red-team games that must stay closed. The required check `arch-score`
-  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
-  # score's own files and structure.py; it measures a pinned tree, so the
-  # integration does not select it. The second script reads today's tree.
-  run "$PYTHON" tests/arch_score.py
-  run "$PYTHON" tests/arch_score_head.py
   # The typing ratchet (#303). The `# type: ignore` count is a source scan and
   # runs here on every pull request. The error count and its per-code split
   # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
@@ -533,13 +541,6 @@ lane_units() {
   # tree and drives a non-finite leaf through each one -- the property check
   # that makes the fifth-seam escape of #1296/#1345 unreachable.
   run "$PYTHON" tests/finite_boundary.py
-  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
-  # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
-  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
-  # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
-  # and an INERT path is in no closure, so a docs-only diff that moves one of
-  # its RESULT lines would select nothing that runs it.
-  run_always "$PYTHON" tests/harness_headers.py
   # R9-RO-1: the repository layout barrier, against the target tree in
   # tests/layout.json (report mode, exit 0, until R9-RO-9 enforces it). A pure
   # `git mv` is scoped only by its destination, so this cannot be scoped out.
@@ -581,6 +582,16 @@ lane_golden() {
       run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
     fi
   fi
+  # The architecture score's own check (R9-EG-A1): its calibration re-run, and
+  # the red-team games that must stay closed. The required check `arch-score`
+  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
+  # score's own files and structure.py; it measures a pinned tree, so the
+  # integration does not select it. The second script reads today's tree.
+  # In this lane, not lane_units (R10-CI-LAYOUT PR 0): lane_units ends last in
+  # CI's `fast` job and this lane ends sooner, so the pair moves `fast`'s end
+  # earlier at the same total work. tests/entities.py pins the placement.
+  run "$PYTHON" tests/arch_score.py
+  run "$PYTHON" tests/arch_score_head.py
 }
 
 # End-to-end optimizer behaviour, then the plan payloads, the card that
@@ -635,11 +646,24 @@ lane_e2e() {
   fi
 }
 
-# Alone, on an idle box, after everything else. See the header: its
-# solve-time guard calibrates against this machine while it runs, and the
-# rest of the suite must not be part of what it measures.
+# Alone, on an idle box, after everything else: the scripts that MEASURE the
+# machine. stress.py's solve-time guard calibrates against this machine while
+# it runs, and the rest of the suite must not be part of what it measures.
 lane_stress() {
   run "$PYTHON" tests/stress.py
+  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
+  # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
+  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
+  # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
+  # and an INERT path is in no closure, so a docs-only diff that moves one of
+  # its RESULT lines would select nothing that runs it.
+  # Here, after stress.py and with no lane beside it (R10-CI-LAYOUT PR 0): its
+  # CPU bounds are sized from the serial cost (harness_headers.py's
+  # CPU_LIMIT_S comment), and a CPU second is billed more under a co-runner.
+  # In lane_units it overlapped arch_score.py in lane_golden, and
+  # sysid_estimator_frontier.py read cpu=306.4s against its 240 s headroom
+  # (job 118380549631; 142.5-164.0 s on the base layout's push runs).
+  run_always "$PYTHON" tests/harness_headers.py
 }
 
 LANES="units golden e2e"
@@ -665,7 +689,7 @@ else
   done
   for pid in $pids; do wait "$pid"; done
   echo
-  echo "########## alone on the box: stress ##########"
+  echo "########## alone on the box: stress, then harness_headers ##########"
   ( trap - EXIT; LANE="stress"; step=0; lane_stress; : > "$WORKDIR/stress.done" ) &
   wait $!
 fi

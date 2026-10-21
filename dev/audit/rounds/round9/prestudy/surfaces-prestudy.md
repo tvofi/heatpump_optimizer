@@ -1,6 +1,6 @@
 # Pre-study: logic consolidation of the HA surfaces — scoping report
 
-tvofi, 2026-09-28. Read-only pre-study. All measurements at `origin/main` = `31394964` (`Merge pull request #1734`), taken in a detached worktree (`/Users/timmalmstrom/r9scratch/wt-main`, removed after this report). Every count below comes from a command run at that tree; file:line cites are at that baseline. NOT merging platform files (already ruled unsound) — this scopes merging the duplicated **decisions** the thin platform layers carry.
+tvofi, 2026-09-28. Read-only pre-study. All measurements at `origin/main` = `31394964` (`Merge pull request #1734`), taken in a detached worktree (`~/r9scratch/wt-main`, removed after this report). Every count below comes from a command run at that tree; file:line cites are at that baseline. NOT merging platform files (already ruled unsound) — this scopes merging the duplicated **decisions** the thin platform layers carry.
 
 ---
 

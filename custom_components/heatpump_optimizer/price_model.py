@@ -423,6 +423,67 @@ class PriceShapeModel:
         }
 
 
+@dataclass
+class PriceShapeLearner:
+    """The learned price shape and the days it has folded, which change together.
+
+    A day is folded once: ``fold`` skips a day already seen, and marks one
+    seen only when the model accepted it, so a partial or rejected day is
+    retried when it arrives complete. The quarter refinement (#19) keeps its
+    own record, because a day can arrive at hourly resolution first and at
+    full 15-minute resolution later. One store holds all three.
+    """
+
+    model: PriceShapeModel = field(default_factory=PriceShapeModel)
+    days_seen: set[str] = field(default_factory=set)
+    quarter_days_seen: set[str] = field(default_factory=set)
+
+    def fold(self, entries: list[dict[str, Any]]) -> bool:
+        """Fold every new complete day in ``entries``; whether anything was learned."""
+        learned = False
+        for day, hours in hourly_from_entries(entries).items():
+            if day not in self.days_seen and (when := _noon(day)) is not None \
+                    and self.model.observe_day(when, hours):
+                self.days_seen.add(day)
+                learned = True
+        for day, quarters in quarters_from_entries(entries).items():
+            if day not in self.quarter_days_seen and (when := _noon(day)) is not None \
+                    and self.model.observe_day_quarters(when, quarters):
+                self.quarter_days_seen.add(day)
+                learned = True
+        return learned
+
+    def store_payload(self) -> dict[str, Any]:
+        # Only recent days matter for de-duplication, and an unbounded set
+        # would grow forever.
+        return {
+            "model": self.model.as_dict(),
+            "days_seen": sorted(self.days_seen)[-90:],
+            "quarter_days_seen": sorted(self.quarter_days_seen)[-90:],
+        }
+
+    def restore(self, stored: dict[str, Any]) -> None:
+        """Adopt a stored payload; a record that is not a list keeps the one in memory."""
+        self.model = PriceShapeModel.from_dict(stored.get("model"))
+        days = stored.get("days_seen")
+        if isinstance(days, list):
+            self.days_seen = {str(d) for d in days}
+        qdays = stored.get("quarter_days_seen")
+        if isinstance(qdays, list):
+            self.quarter_days_seen = {str(d) for d in qdays}
+
+    def adopt_model(self, payload: dict[str, Any]) -> None:
+        """A snapshot's model (the drift rollback); the days already folded stay folded."""
+        self.model = PriceShapeModel.from_dict(payload)
+
+
+def _noon(day: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(f"{day}T12:00:00")
+    except ValueError:
+        return None
+
+
 def extend_price_series(
     known: list[float],
     n_steps: int,
@@ -648,39 +709,45 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
     homes = data.get("data", {}).get("viewer", {}).get("homes", [])
     if not homes:
         return "No homes found in Tibber data"
-    price_info = (homes[0].get("currentSubscription") or {}).get("priceInfo") or {}
+    subscription = homes[0].get("currentSubscription")
+    if not subscription:
+        # The API answered and the account holds no contract: a successful
+        # fetch of nothing, not an API error (pinned in tests/features.py).
+        return []
+    price_info = subscription.get("priceInfo") or {}
     prices: list[dict[str, Any]] = []
     for period in ("today", "tomorrow"):
         for row in price_info.get(period) or []:
             if not isinstance(row, dict):
                 continue
-            # R5-D1-06 (#1297): the entity path's own validator (#1090's
-            # drop-whole shape). A total that is not a finite float — a
-            # numeric string, null, a nested object, NaN — otherwise
-            # landed raw in `_prices`, crashing `_dhw_plan_fields`'
-            # np.mean and leaking through the uncovered `_current_spot_
-            # price` fallback. One rule for both ingress paths.
-            total = _raw_value(row)
-            if total is None:
+            # R5-D1-06 (#1297) and R10 D1-s3-02 (#2236): the entity path's
+            # own validators (#1090's drop-whole shape). A total that is not
+            # a finite float, or a start that is not a timestamp, drops the
+            # row: a startless row was placed by list position, 95 of 96
+            # quarters in the wrong slot. One rule for both ingress paths.
+            total, start = _raw_value(row), _raw_start(row)
+            if total is None or start is None:
                 continue
             prices.append(
-                {
-                    "total": total,
-                    "starts_at": row.get("startsAt") or row.get("starts_at") or "",
-                    "level": row.get("level", "NORMAL"),
-                }
+                {"total": total, "starts_at": start, "level": row.get("level", "NORMAL")}
             )
-    return prices
+    # R10 D1-s3-01 (#2233): a subscription with no usable row is a failed
+    # fetch, never an empty success -- an HTTP 200 with empty days used to
+    # replace a good series.
+    return prices or "Tibber returned no usable price rows"
 
 
 def _raw_start(item: dict[str, Any]) -> str | None:
+    """A row's start as ISO text, or None when it is absent or no timestamp."""
     start = item.get("start") or item.get("starts_at") or item.get("startsAt")
     if start is None:
         return None
-    if hasattr(start, "isoformat"):
-        return str(start.isoformat())
-    text = str(start).strip()
-    return text or None
+    text = str(start.isoformat()) if hasattr(start, "isoformat") else str(start).strip()
+    try:
+        datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return text
 
 
 def _raw_value(item: dict[str, Any]) -> float | None:

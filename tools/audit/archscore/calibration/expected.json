@@ -378,6 +378,42 @@
   "set": "corpus",
   "verdict": "NULL"
  },
+ "a3_card_clone_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_card_clone_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_card_clone_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_card_dead_definitions_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_card_dead_definitions_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_card_dead_definitions_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
  "a3_dead_by_reachability_control": {
   "admissible": false,
   "label": "BAD",
@@ -388,7 +424,7 @@
   "admissible": true,
   "label": "GOOD",
   "set": "planted",
-  "verdict": "NULL"
+  "verdict": "IMPROVES"
  },
  "a3_dead_by_reachability_null": {
   "admissible": true,
@@ -492,6 +528,42 @@
   "set": "planted",
   "verdict": "NULL"
  },
+ "a3_layer_violations_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_layer_violations_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_layer_violations_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_literal_clone_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_literal_clone_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_literal_clone_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
  "a3_payload_annotated_param_control": {
   "admissible": false,
   "label": "BAD",
@@ -534,6 +606,24 @@
   "set": "planted",
   "verdict": "IMPROVES"
  },
+ "a3_private_cross_module_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_private_cross_module_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "IMPROVES"
+ },
+ "a3_private_cross_module_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
  "a3_private_reach_control": {
   "admissible": false,
   "label": "BAD",
@@ -573,6 +663,30 @@
  "a3_public_surface_null": {
   "admissible": true,
   "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_control": {
+  "admissible": false,
+  "label": "BAD",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
+ "a3_shape_copies_fix": {
+  "admissible": true,
+  "label": "GOOD",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_null": {
+  "admissible": true,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "NULL"
+ },
+ "a3_shape_copies_respelled_control": {
+  "admissible": true,
+  "label": "BAD",
   "set": "planted",
   "verdict": "NULL"
  },
@@ -1037,5 +1151,191 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
+ },
+ "rt_20b_hub_event_pkg_wrap": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_21_lazy_solver_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_22_private_module_attr": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_23_layer_owner_import": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_24_layer_guarded_else": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_25_layer_negated_guard": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_26_layer_import_module": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_27_layer_absolute_self_import": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_28_layer_import_abs_alias": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_29_layer_import_abs_plain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_30_layer_from_abs_module": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_31_layer_import_module_kw": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_32_layer_parent_ns_alias": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_33_layer_parent_ns_from": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_34_layer_parent_ns_from_alias": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_35_layer_parent_ns_plain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_36_layer_getattr_chain": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_37_layer_module_const_name": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_38_layer_parent_ns_public": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_39_layer_parent_ns_public_pair": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_40_layer_module_const_ann": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_41_layer_chain_past_module": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42_literal_respelled": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42b_literal_module_constant": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42c_literal_keyword_args": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_42d_literal_module_attr": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_43_literal_local_hop": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44_card_rename_locals": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44b_card_noop_split": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_44c_card_empty_statement": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_45_shape_private_copy": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
  }
 }

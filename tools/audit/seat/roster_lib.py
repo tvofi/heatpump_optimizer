@@ -6,13 +6,13 @@
 
 This module is the one place the roster schema is read, and the one owner of
 which roster a tool reads (`roster_path`). The wave computation is
-`gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
+`gen_table_rev3.py`'s (the round-9 alt archive tag `archive/handoff/audit-r9-alt`), the
 critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
-satisfied and stop constraining the groups behind them. Only `roster_path` and
-`show_roster` shell out (to git); nothing touches the network, and the roster
-reaches a tool as a parsed dict.
+satisfied and stop constraining the groups behind them. `roster_path`,
+`show_roster` and `critical_path_groups` shell out (to git); nothing touches
+the network, and the roster reaches a tool as a parsed dict.
 
 Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
@@ -45,8 +45,13 @@ DONE_STAGES = ("done", "rca-done")
 # the round-10 tree carries the round-9 file too.
 ROSTERS_DIR = "dev/programme/rosters"
 _ROSTER_NAME = re.compile(r"\Awave-r(\d+)-groups\.json\Z")
-#: The ref a reader defaults to: the roster lives on main once its PR merges.
-DEFAULT_ROSTER_REF = "origin/main"
+#: Where a roster lands once its pull request merges, and the fallback reader.
+MAIN_REF = "origin/main"
+# THE DEFAULT READER REF (O17, tvofi 2026-10-18) is `default_roster_ref`, no
+# longer a constant: the round's roster branch, where the orchestrator's edits
+# live between landings on main. A constant `origin/main` left the tick and
+# the state docs reading four stale stages and missing one group while the
+# branch was 21 commits ahead.
 
 
 class RosterNotFound(Exception):
@@ -138,6 +143,58 @@ def round_branch(path: str) -> str:
     """The branch a round's roster edits ride to main on:
     `handoff/audit-r<N>-roster`, round-10's roster pull request's own."""
     return f"handoff/audit-r{roster_round(path)}-roster"
+
+
+def git_in(repo: str):
+    """A `git(argv) -> (returncode, output)` runner in `repo`, the shape
+    `default_roster_ref` takes so a caller with its own (stubbed) git can
+    pass that instead."""
+    def run(argv):
+        r = _git(repo, *argv)
+        return r.returncode, r.stdout + r.stderr
+    return run
+
+
+def round_ref(git) -> str | None:
+    """`origin/handoff/audit-r<N>-roster`, N the newest round at `MAIN_REF`;
+    None when no roster is readable there. Names the ref; never checks it."""
+    code, o = git(["ls-tree", "--name-only", MAIN_REF, ROSTERS_DIR + "/"])
+    path = None if code else newest_roster(o.split())
+    return None if path is None else "origin/" + round_branch(path)
+
+
+def default_roster_ref(git) -> tuple[str, str]:
+    """`(ref, note)`: the ref a reader reads the roster at when none is given.
+
+    `origin/handoff/audit-r<N>-roster`, N the newest round at `MAIN_REF`,
+    when this clone has that remote-tracking ref; else `MAIN_REF`. The note
+    is empty when the answer is current and otherwise says why it may not be:
+    the branch is absent here (so main, which lags the round's edits, is
+    read), or main carries roster changes the branch has not merged (a fix
+    pull request that edited the roster directly). The caller prints it; a
+    reader never silently reads a stale roster.
+    """
+    ref = round_ref(git)
+    if ref is None:
+        return MAIN_REF, f"no roster readable at {MAIN_REF}; reading {MAIN_REF}"
+    if git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"])[0]:
+        return MAIN_REF, (f"{ref} is absent in this clone (fetch it); reading "
+                          f"{MAIN_REF}, which lags the round's roster edits")
+    if git(["diff", "--quiet", f"{ref}...{MAIN_REF}", "--", ROSTERS_DIR + "/"])[0]:
+        return ref, (f"WARNING: {MAIN_REF} carries roster changes {ref} has "
+                     "not merged; merge main into it")
+    return ref, ""
+
+
+def reader_ref(repo: str, ref: str | None) -> str:
+    """A reader's `--roster-ref`: the one given, else `default_roster_ref`'s
+    answer in `repo`, its note printed to stderr."""
+    if ref:
+        return ref
+    ref, note = default_roster_ref(git_in(repo))
+    if note:
+        print(f"roster_lib: {note}", file=sys.stderr)
+    return ref
 
 
 def groups_of(roster: dict) -> dict:
@@ -235,7 +292,11 @@ def branch_of(group: dict) -> str:
             or "handoff/" + str(group.get("group") or "").lower())
 
 
-def _norm_branch(s: str) -> str:
+def norm_group(s: str) -> str:
+    """A roster group id or branch tail normalized for comparison:
+    lowercased with ``_`` written as ``-``. `group_for_branch` and the
+    critical-path reader both match on this rule, so a hand-edited case or an
+    underscore in either file cannot silently stop a group matching."""
     return s.replace("_", "-").lower()
 
 
@@ -255,12 +316,49 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     for g in roster.get("groups", []):
         if branch_of(g) == branch:
             return g.get("group")
-    tail = _norm_branch(branch.rstrip("/").rsplit("/", 1)[-1])
+    tail = norm_group(branch.rstrip("/").rsplit("/", 1)[-1])
     for g in roster.get("groups", []):
-        gid = _norm_branch(str(g.get("group") or ""))
+        gid = norm_group(str(g.get("group") or ""))
         if gid and gid == tail:
             return g.get("group")
     return None
+
+
+# ------------------------------------------------------- the critical-path set
+#
+# Which groups a wave must drain first is the orchestrator's policy, re-cut at
+# each wave edge and published beside the roster so a caller reads it without
+# the out-of-tree plan. The schema is two keys and nothing else:
+#
+#     {"at": "<iso8601>", "critical": ["R10-GROUP", ...]}
+#
+# `at` records when the set was published and is not read; `critical` is the
+# list of roster group ids. A missing, unreadable or differently-shaped file is
+# None -- "no group is critical" to a caller, never a crash and never "all are".
+CRITICAL_PATH_NAME = f"{ROSTERS_DIR}/critical-path.json"
+
+
+def critical_path_groups(repo: str, ref: str) -> set[str] | None:
+    """The normalized group ids `CRITICAL_PATH_NAME` lists at `ref`, or None.
+
+    Read at `ref` (`git show`), so a caller needs no checkout of the roster
+    branch. None covers every failure the caller must treat as "nothing is
+    critical": the file absent at this ref, git unreadable, invalid JSON, a
+    non-object, or a `critical` that is not a list of strings.
+    """
+    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
+    if r.returncode:
+        return None
+    try:
+        data = json.loads(r.stdout)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    ids = data.get("critical")
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        return None
+    return {norm_group(i) for i in ids}
 
 
 # ------------------------------------------------------------------ self-test
@@ -323,6 +421,28 @@ def _self_test() -> int:
         check("no roster on disk refuses loudly", "--roster-path" in why, why)
         put(9, "R9-A")
         put(10, "R10-A")
+        # The critical-path set: read at a ref and normalized; None for every
+        # failure shape, so a caller fails to FIFO rather than crashing.
+        check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
+        check("no critical-path file at a ref is None",
+              critical_path_groups(str(repo), "HEAD") is None)
+        (repo / CRITICAL_PATH_NAME).write_text(
+            json.dumps({"at": "2026-10-20T00:00:00Z", "critical": ["R10_A", "R10-B"]}),
+            encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "critical"],
+                       check=True)
+        check("the critical-path set reads at a ref, normalized",
+              critical_path_groups(str(repo), "HEAD") == {"r10-a", "r10-b"},
+              critical_path_groups(str(repo), "HEAD"))
+        for bad in ('{"critical": "R10-A"}', '{"critical": [1]}', "not json"):
+            (repo / CRITICAL_PATH_NAME).write_text(bad, encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "bad"],
+                           check=True)
+            check(f"a malformed critical-path file is None: {bad}",
+                  critical_path_groups(str(repo), "HEAD") is None,
+                  critical_path_groups(str(repo), "HEAD"))
         check("two rosters at a ref: the newest",
               roster_path(str(repo), "HEAD")
               == f"{ROSTERS_DIR}/wave-r10-groups.json")
@@ -344,6 +464,38 @@ def _self_test() -> int:
               "nope.json" in why, why)
         check("the round's roster branch",
               round_branch(roster_path(str(repo))) == "handoff/audit-r10-roster")
+
+        # WHICH REF (O17): the round's roster branch when this clone has it,
+        # main otherwise, and either answer says why when it is not current.
+        g = git_in(str(repo))
+        main_sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True).stdout.strip()
+
+        def ref(name: str, sha: str) -> None:
+            subprocess.run(["git", "-C", str(repo), "update-ref",
+                            f"refs/remotes/origin/{name}", sha], check=True)
+        ref("main", main_sha)
+        got = default_roster_ref(g)
+        check("no round branch here: main, and the note says the branch is absent",
+              got[0] == MAIN_REF and "handoff/audit-r10-roster" in got[1]
+              and "absent" in got[1], got)
+        ref("handoff/audit-r10-roster", main_sha)
+        got = default_roster_ref(g)
+        check("the round branch present and carrying main: it, with no note",
+              got == ("origin/handoff/audit-r10-roster", ""), got)
+        put(10, "R10-B")
+        ref("main", subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                   capture_output=True, text=True).stdout.strip())
+        got = default_roster_ref(g)
+        check("main moved the roster past the branch: the branch, with a warning",
+              got[0] == "origin/handoff/audit-r10-roster"
+              and got[1].startswith("WARNING") and MAIN_REF in got[1], got)
+        ref("handoff/audit-r10-roster", main_sha)
+        subprocess.run(["git", "-C", str(repo), "update-ref", "-d",
+                        "refs/remotes/origin/main"], check=True)
+        got = default_roster_ref(g)
+        check("no roster readable at main: main, with a note (null control)",
+              got[0] == MAIN_REF and got[1], got)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)

@@ -44,8 +44,9 @@ import importlib
 import logging
 import math
 import time as _time_mod
-from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from dataclasses import dataclass, field, replace
+from datetime import date, datetime, timedelta
+from functools import partial
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable
 
@@ -61,9 +62,31 @@ from .const import (
 )
 from .batchmath import row_sums
 from .dhw_planner import DhwPlanner
+from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
-from .payload import CurrentAction
+from .payload import (
+    CurrentAction,
+    IDLE_REASONS,
+    REASON_COMFORT_FLOOR,
+    REASON_CHEAP_PRICE,
+    REASON_PREHEAT_WEATHER,
+    REASON_SCHEDULED,
+    REASON_TERMINAL_VALUE,
+    REASON_SOLAR_SURPLUS,
+    REASON_DHW_WINDOW,
+    REASON_DHW_READY,
+    REASON_DHW_PREHEAT,
+    REASON_LEGIONELLA,
+    REASON_IDLE,
+    REASON_IDLE_OTHER,
+    REASON_IDLE_FUSE,
+    REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER,
+    REASON_IDLE_COASTING,
+    REASON_MANUAL,
+    REASON_PUMP_MODE,
+)
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
@@ -129,6 +152,55 @@ def _realize_draw(
             else _published_levels(clamp, dhw, p_min, p_max)
         ),
     )
+
+
+def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
+    """Whether the objective scores the levels that ship rounded."""
+    return opt.config.clamp_planned_levels and not opt._levels_relaxed
+
+
+def _relaxed_starts(
+    opt: HeatPumpOptimizer,
+    objective: Callable[..., float],
+    objective_batch: Callable[..., np.ndarray],
+    bounds: list[tuple[float, float]],
+    first: int,
+    args: tuple[Any, ...],
+    cands: list[np.ndarray],
+    maxiter: int,
+) -> list[np.ndarray]:
+    """``cands`` plus the first structural start refined unrounded.
+
+    On an install whose levels ship projected onto ``{0} ∪ [p_min,
+    p_max]`` the objective scores the projection, so it is flat between 0
+    and ``p_min``: a start descending into that band stalls there with a
+    zero gradient, and the plan books the floor whatever the price spread.
+    One L-BFGS-B run scoring the duty-cycle reading instead -- no flat
+    band -- carries the guess to where heat is cheap; the result rides as
+    one more candidate, which the multi-start refines and ranks on the
+    rounded objective like every other, so what ships is still scored as
+    it ships and is never scored worse than without it. Alternatives that
+    lost: smoothing the projection scores a level the install does not
+    deliver; moving the start in place, as the two-zone continuation does,
+    re-plans through another basin even where this candidate loses; price-
+    ranked seeds at fixed levels moved no stalled plan. Identity on an
+    install that can duty-cycle.
+    """
+    if not opt.config.clamp_planned_levels or first >= len(cands):
+        return cands
+    opt._levels_relaxed = True
+    try:
+        moved = _scoped_minimize(
+            objective, cands[first], args=args, method="L-BFGS-B",
+            bounds=bounds,
+            jac=(lambda x, *a: _batch_fd_gradient(
+                objective_batch, a, x, float(objective(x, *a)), 1e-4, bounds,
+            )) if _bounds_supported_by_batch(bounds) else None,
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        )
+    finally:
+        opt._levels_relaxed = False
+    return [*cands, np.asarray(moved.x, dtype=float)]
 
 
 def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
@@ -246,30 +318,178 @@ def _dhw_resolved_publish(params: ThermalParameters) -> dict[str, Any]:
     }
 
 
-def _utc_step_starts(
-    start: datetime, n: int, step: timedelta, offset: int = 0
-) -> list[datetime]:
-    """The start of steps ``offset`` .. ``offset + n - 1``, walked in UTC.
-
-    The one horizon clock: the optimizer's horizon, the coordinator's
-    forecast and price grids, and the silent-mode schedule all read it
-    (#1741), so no two of them can label one step differently. Adding a
-    wall-clock step invents the spring DST gap and stretches the autumn
-    overlap into a 75-minute step; walking the count in UTC keeps every label
-    a real instant, converted back to ``start``'s zone. A naive ``start``
-    keeps the wall-clock walk, so unzoned fixtures stay byte-identical.
-    """
-    tz = start.tzinfo
-    if tz is None:
-        return [start + step * (offset + i) for i in range(n)]
-    base = start.astimezone(timezone.utc)
-    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
-
-
 def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
     if baseline_power is None:
         return []
     return [float(v) for v in np.asarray(baseline_power, dtype=float)]
+
+
+def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
+    """The thermostat's setpoint at step ``i``: the comfort schedule's, else ``default``."""
+    if comfort_targets is not None and i < len(comfort_targets):
+        return float(comfort_targets[i])
+    return default
+
+
+def _floor_demand_at_target(
+    model: ThermalModel,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+) -> float:
+    """Thermal kW the slab-fed zone needs to sit at ``target``, zones equal.
+
+    Single-zone that is the room; two-zone the lower floor, whose inter-zone
+    exchange is zero with both floors at ``target`` (the two-zone demand adds
+    the exchange at the actual temperatures).
+    """
+    p = model.params
+    if not p.two_zone_enabled:
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation
+        )
+        q_solar = model.compute_solar_gain(solar_radiation)
+        return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
+    u_lower = model.effective_heat_loss_coefficient(
+        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    )
+    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
+    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
+    return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+
+
+def _thermostat_held_state(
+    model: ThermalModel, state: ThermalState, weather: WeatherSeries, target: float
+) -> ThermalState:
+    """``state`` as a thermostat holding ``target`` all along would have it (#2255).
+
+    The zones at ``target`` and the slab at the temperature that delivers the
+    step's demand -- the cascade's own slab target with no pull-back -- so the
+    first step draws the steady holding power. Tanks and every other field
+    stay as measured; the thermostat does not own them.
+    """
+    if not len(weather.outdoor_temps):
+        return state
+    assert weather.wind_speeds is not None and weather.precipitation is not None
+    assert weather.solar_radiation is not None
+    q_floor = _floor_demand_at_target(
+        model, target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
+        float(weather.precipitation[0]), float(weather.solar_radiation[0]),
+    )
+    return replace(
+        state,
+        room_temperature=target,
+        upper_floor_temperature=target,
+        lower_floor_temperature=target,
+        slab_temperature=target + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,
+    )
+
+
+def _thermostat_demand_single(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+) -> float:
+    """Thermal power a thermostat needs this step in the single-zone model."""
+    p = model.params
+    k_slab = p.slab_heat_transfer_floored
+
+    # Thermal power the room needs to sit at the setpoint.
+    q_demand = _floor_demand_at_target(
+        model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
+    )
+    # Slab temperature that delivers exactly that, plus a pull-back term
+    # if the room has drifted away from the setpoint.
+    slab_target = (
+        target
+        + max(0.0, q_demand) / k_slab
+        + 2.0 * (target - state.room_temperature)
+    )
+
+    q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
+    # Replace what the slab gives up to the room, and move the slab to
+    # where it needs to be.
+    return q_slab_to_room + p.slab_thermal_mass * (
+        slab_target - state.slab_temperature
+    ) / dt
+
+
+def _thermostat_demand_two_zone(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+) -> float:
+    """Thermal power a thermostat needs this step in the two-zone model.
+
+    The upper floor is fed directly by radiators while the lower floor is
+    fed through the slab, and the split between them is fixed by
+    ``radiator_power_fraction``. One control cannot hold both zones exactly,
+    which is also true of the real system being modelled, so the demand of
+    the two zones is summed the way an outdoor-reset curve on a single
+    mixing valve would.
+    """
+    p = model.params
+    k_slab = p.slab_heat_transfer_floored
+
+    u_upper = model.effective_heat_loss_coefficient(
+        p.upper_floor_heat_loss, wind_speed, precipitation
+    )
+    q_solar_upper, _ = model.solar_gain_per_zone(solar_radiation)
+    q_int_upper = p.internal_gains * p.upper_floor_area_ratio
+
+    t_upper = state.upper_floor_temperature
+    t_lower = state.lower_floor_temperature
+    q_inter = p.inter_zone_transfer * (t_lower - t_upper)
+
+    # Radiators reach the upper floor within the step, so its demand is
+    # met directly, including the pull-back on any drift.
+    q_upper = (
+        u_upper * (target - outdoor_temp)
+        - q_solar_upper
+        - q_int_upper
+        - q_inter
+        + p.upper_floor_thermal_mass * (target - t_upper) / dt
+    )
+    q_upper = max(0.0, q_upper)
+
+    # The lower floor is heated through the slab, so drive the slab to the
+    # temperature that sustains it and charge it over this step.
+    q_lower = _floor_demand_at_target(
+        model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
+    ) + q_inter
+    slab_target = (
+        target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
+    )
+    q_slab_to_lower = k_slab * (state.slab_temperature - t_lower)
+    q_floor = q_slab_to_lower + p.slab_thermal_mass * (
+        slab_target - state.slab_temperature
+    ) / dt
+    q_floor = max(0.0, q_floor)
+
+    # The heat pump makes one water temperature and the split between
+    # radiators and floor is fixed, so total output is sized to total
+    # demand the way an outdoor-reset curve does. The zones then settle at
+    # slightly different temperatures, which is what the real system does
+    # too, and inter-zone transfer pulls them back together.
+    thermal = q_upper + q_floor
+
+    # Replace what the buffer tank leaks so it does not sag over the day.
+    thermal += p.buffer_tank_heat_loss_coefficient * max(
+        0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+    )
+    return thermal
 
 
 # The comfort penalty on breaching the user's minimum temperature is quadratic,
@@ -1037,40 +1257,10 @@ def cycling_penalty_batch(
 
 
 # ---------------------------------------------------------------------------
-# Plan reason codes (item 16)
+# Plan reason codes (item 16): the codes and which of them mean idle are the
+# payload's vocabulary (``IDLE_REASONS``), because the settlement reads the
+# same grouping to decide whether a step's reason can explain a metered draw.
 # ---------------------------------------------------------------------------
-
-REASON_COMFORT_FLOOR = "comfort_floor"
-REASON_CHEAP_PRICE = "cheap_price"
-REASON_PREHEAT_WEATHER = "preheat_weather"
-#: The neutral fall-through: a step that is none of the specific cases below,
-#: which is to say an ordinary slot holding the house at target. Until v5.1.7
-#: these steps were tagged ``preheat_weather`` — the same code as the genuine
-#: high-heat-loss branch — so the card told a user that a mid-price hour on a
-#: mild afternoon was "Pre-heating before colder weather". A reason code that
-#: doubles as a default is a reason code that cannot be trusted, and this one
-#: was read as evidence that the optimizer was chasing weather it had not been
-#: shown.
-REASON_SCHEDULED = "scheduled"
-REASON_TERMINAL_VALUE = "terminal_value"
-REASON_SOLAR_SURPLUS = "solar_surplus"
-REASON_DHW_WINDOW = "dhw_window"
-REASON_DHW_READY = "dhw_ready"
-REASON_DHW_PREHEAT = "dhw_preheat"
-REASON_LEGIONELLA = "legionella"
-REASON_IDLE = "idle"
-#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
-#: code, the most specific that applies: a hard limit, then a named wait,
-#: then the price, then coasting. ``idle`` remains the fall-through.
-REASON_IDLE_OTHER = "idle_other_channel"
-REASON_IDLE_FUSE = "idle_fuse"
-REASON_IDLE_SOLAR = "idle_solar"
-REASON_IDLE_DEARER = "idle_dearer"
-REASON_IDLE_COASTING = "idle_coasting"
-_IDLE_REASONS = frozenset({
-    REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
-    REASON_IDLE_DEARER, REASON_IDLE_COASTING,
-})
 
 
 def _padded(values: np.ndarray | None, n: int) -> np.ndarray:
@@ -1258,19 +1448,6 @@ def classify_dhw_steps(
 # off, 1 forces it on — so a whole channel is a single array the solver bounds
 # can be built from directly. See ``manual_plan.py`` for how they are produced.
 
-#: A step ran because the manual plan said so, not because the optimizer chose
-#: it. Kept distinct from the automatic reasons so a pinned slot is never
-#: mistaken for the solver's own decision.
-REASON_MANUAL = "manual_plan"
-
-#: A step is empty because the heat pump's *operating mode* cannot serve that
-#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
-#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
-#: optimizer chose not to run, and a user reading "not heating" against a
-#: comfort floor the plan is missing would look for a bug in the optimizer
-#: instead of at the mode selector on the pump. See ``pump_mode.py``.
-REASON_PUMP_MODE = "pump_mode"
-
 #: How many times a manual plan may be repaired before its forced-off slots are
 #: abandoned entirely. Each round costs a full solve, so this trades run time
 #: against how precisely an unsafe plan can be salvaged.
@@ -1326,7 +1503,7 @@ def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
     if not blocked:
         return reasons
     return [
-        REASON_PUMP_MODE if reason in _IDLE_REASONS else reason
+        REASON_PUMP_MODE if reason in IDLE_REASONS else reason
         for reason in reasons
     ]
 
@@ -1813,7 +1990,7 @@ class _Horizon:
 
     @property
     def timestamps(self) -> list[datetime]:
-        return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
+        return utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
 
 
@@ -1867,6 +2044,22 @@ class SolveInputs:
     limits: SolveLimits = field(default_factory=SolveLimits)
 
 
+def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
+    """Whole-house heat loss after the learned correction, kW/°C.
+
+    Two-zone: the upper loss plus the learned lower-floor split; single-zone:
+    the configured coefficient. `hold_demand_kw`, `_buffer_charge_ceiling`
+    and the forecast summary's `typical_heat_loss` all price the whole house,
+    so they share this one reader of the split; `slab_settlement_cap` does
+    not -- it prices the lower zone alone.
+    """
+    if params.two_zone_enabled:
+        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
+    else:
+        base = params.heat_loss_coefficient
+    return base * scale
+
+
 def hold_demand_kw(
     params: ThermalParameters,
     target: float,
@@ -1895,12 +2088,8 @@ def hold_demand_kw(
     gains alone hold the target — which is a real and common summer state,
     not a degenerate one. Callers must handle it rather than dividing by it.
     """
-    if params.two_zone_enabled:
-        u_eff = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-    else:
-        u_eff = params.heat_loss_coefficient
     # D2-s2-01: the learned leakage scale the dynamics apply to both zones.
-    u_eff *= params.house_heat_loss_scale
+    u_eff = _house_ua_kw_per_c(params, params.house_heat_loss_scale)
     return max(
         0.0,
         u_eff * (target - out_mean)
@@ -2078,6 +2267,8 @@ class HeatPumpOptimizer:
     #: 0.5 for the continuation ``_optimize_space_only`` runs on its first
     #: start -- see there.
     _floor_l1_scale = 1.0
+    #: True while :func:`_relaxed_starts` scores the duty-cycle reading.
+    _levels_relaxed = False
 
     def __init__(
         self,
@@ -2886,7 +3077,7 @@ class HeatPumpOptimizer:
         tracker uses. That alone never settled which *instant* each window is
         sampled at, which is where they actually diverged (#777); the agreement
         rests on ``window_factors`` walking the windows in UTC, the same rule
-        ``_utc_step_starts`` applies to the step grid this power array is
+        ``drift.utc_step_starts`` applies to the step grid this power array is
         indexed on.
         """
         cfg = self.config
@@ -2978,9 +3169,13 @@ class HeatPumpOptimizer:
 
         # If lots of solar is coming in 6-12h, reduce current heating
         # The slab has enough thermal mass to coast through to solar period
-        typical_heat_loss = (  # the learned scale too, as the dynamics (D2-s2-01)
-            self.model.params.heat_loss_coefficient
-            * self.model.params.house_heat_loss_scale
+        p = self.model.params
+        # The learned scale and split too (#2239 / D2-s2-01): this prices the
+        # whole house, so it reads the model's effective UA, not the configured
+        # single-zone `heat_loss_coefficient` on its own.
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
+        typical_heat_loss = (
+            u_house
             * (self.config.target_temp - np.mean(outdoor_temps))
         )
         if typical_heat_loss > 0:
@@ -3154,7 +3349,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = _utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])
@@ -3323,7 +3518,11 @@ class HeatPumpOptimizer:
                             if not _pin_is_free(value) and value < 0.5:
                                 pins[i] = float("nan")
                                 released.add(i)
-                        _LOGGER.warning(
+                        # The release is surfaced to the user by the
+                        # ``manual_plan_released`` notification, which latches
+                        # per occurrence; the per-solve WARNING here was the
+                        # N-log-flood duplicate (R10-N-log-flood, #2337).
+                        _LOGGER.debug(
                             "Manual %s plan could not be made safe in %d "
                             "rounds; releasing every forced-off slot on that "
                             "channel and planning it freely",
@@ -3749,6 +3948,11 @@ class HeatPumpOptimizer:
             res = _multi_start_minimize(
                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
                 batch_objective=objective_batch,
+                move_starts=partial(  # the initial solve's alone: a warm pass adds none
+                    _relaxed_starts, self, objective, objective_batch, bounds,
+                    len(h.extra_starts or ()) if warm_start is None else len(starts),
+                    (dhw_plan,),
+                ),
             )
             power = np.clip(res.x, 0.0, headroom)
             return (
@@ -3759,7 +3963,12 @@ class HeatPumpOptimizer:
                 float(objective(power, dhw_plan)),
             )
         except Exception as e:
-            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            # On the first pass the ``failed (...)`` status below reaches the
+            # coordinator, which reports it once through its latched
+            # ``_note_solve_failure``; a failed ``_co_optimize`` candidate pass
+            # keeps the first pass's status and stays at DEBUG, as its sibling
+            # except does (R10-N-log-flood, #2337).
+            _LOGGER.debug("Space heating optimization (with DHW) failed: %s", e)
             return (
                 guess,
                 f"failed ({e})",
@@ -4114,7 +4323,7 @@ class HeatPumpOptimizer:
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
             space_power, dhw_plan_power = _realize_draw(
-                self.config.clamp_planned_levels, space_power, dhw_plan_power,
+                _scores_rounded(self), space_power, dhw_plan_power,
                 self.model.params.min_electrical_power, self.model.params.max_electrical_power,
             )
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
@@ -4141,18 +4350,9 @@ class HeatPumpOptimizer:
                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
             )
 
-            # --- Weather anticipation is the simulation's job ----------------
-            # ``simulate_trajectory`` already applies the solar gain and the
-            # wind/rain heat loss factors to the real physics, so the predicted
-            # trajectory itself tells the optimizer that heating just before a
-            # sunny spell is wasted and that coasting into a windy evening is
-            # expensive. Two extra objective terms used to re-state the same
-            # thing in invented currency: a penalty for heating before sun, and
-            # a *negative* cost that paid the plan to burn electricity before
-            # bad weather. Both double-counted, and the second existed only on
-            # the space-only path and not on the DHW one, so simply enabling
-            # hot water changed the space heating objective. Removing them made
-            # the shoulder season 4-6% cheaper at identical comfort.
+            # Weather anticipation is the simulation's (module docstring): two
+            # terms re-stating it in invented currency double-counted, and
+            # removing them made the shoulder season 4-6% cheaper.
 
             return (
                 energy_cost + penalty + comfort_cost
@@ -4185,7 +4385,7 @@ class HeatPumpOptimizer:
             silently.
             """
             space_matrix, dhw_plan_power = _realize_draw(
-                self.config.clamp_planned_levels, space_matrix, dhw_plan_power,
+                _scores_rounded(self), space_matrix, dhw_plan_power,
                 self.model.params.min_electrical_power, self.model.params.max_electrical_power,
             )
             traj = self.model.simulate_trajectory_batch(
@@ -4317,9 +4517,11 @@ class HeatPumpOptimizer:
             L-BFGS-B run inside the multi-start's own budget: it moves a
             start, it is not one.
             """
+            first = len(h.extra_starts or ())
+            cands = _relaxed_starts(self, objective, objective_batch, bounds, first, (),
+                                    cands, maxiter)
             if not self.model.params.two_zone_enabled:
                 return cands
-            first = len(h.extra_starts or ())
             self._floor_l1_scale = 0.5
             try:
                 cands[first] = np.asarray(_scoped_minimize(
@@ -4347,7 +4549,11 @@ class HeatPumpOptimizer:
             )
             status = _solver_status(result, objective, initial_power)
         except Exception as e:
-            _LOGGER.error("Optimization failed: %s", e)
+            # The ``failed (...)`` status reaches the coordinator, which
+            # reports the failure once through its own latched
+            # ``_note_solve_failure``; the per-solve ERROR here was the
+            # duplicate (R10-N-log-flood, #2337).
+            _LOGGER.debug("Optimization failed: %s", e)
             optimal_power = initial_power
             status = f"failed ({e})"
 
@@ -4374,10 +4580,13 @@ class HeatPumpOptimizer:
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets, humidity=h.humidity,
         )
+        space_caps = self._settlement_caps(outdoor_temps, humidity=h.humidity)
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps,
-            caps=self._settlement_caps(outdoor_temps, humidity=h.humidity),
-            humidity=h.humidity,
+            caps=space_caps, humidity=h.humidity,
+        ) - self._start_gap_cost(
+            initial_state, weather, comfort_targets, prices, outdoor_temps,
+            space_caps, h.humidity, baseline_cost,  # the space-only reference
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4662,6 +4871,10 @@ class HeatPumpOptimizer:
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
             ),
             humidity=h.humidity,
+        ) - self._start_gap_cost(
+            initial_state, weather, comfort_targets, prices, outdoor_temps,
+            self._settlement_caps(outdoor_temps, humidity=h.humidity), h.humidity,
+            float(energy_cost_of(baseline_power)),
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4838,15 +5051,11 @@ class HeatPumpOptimizer:
         if hi <= lo:
             return hi
         target = self.config.target_temp
-        if p.two_zone_enabled:
-            u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
-        else:
-            u_house = p.heat_loss_coefficient
         # The learned leakage scale rides along: the dynamics and the battery
         # view both apply it, and a learned-leaky house that omitted it here
         # got an optimistic ceiling — the one direction this bound must not
         # err (v4.0.5 review).
-        u_house *= p.house_heat_loss_scale
+        u_house = _house_ua_kw_per_c(p, p.house_heat_loss_scale)
         # What the valve keeps feeding the house while the tank charges: the
         # standing demand at the comfort target, the same steady-state frame
         # as the settlement caps themselves.
@@ -5009,6 +5218,14 @@ class HeatPumpOptimizer:
         temperature that sustains the setpoint, with a proportional term that
         pulls the room back if it has drifted.
 
+        The thermostat starts from the state it would have kept, not from
+        ``initial_state`` (``_thermostat_held_state``, #2255): a thermostat
+        running all along never inherits the optimiser's coasted or
+        pre-heated house. Started from that state, its first step was the
+        recovery transient -- the clip whenever the house sat below target,
+        0 kW above it -- and the settlement books the first step of every
+        plan, so the month's baseline was the transient's.
+
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
         horizon. ``coil_draws`` (the hot-water path's raw draws) runs the
@@ -5033,22 +5250,21 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        state = initial_state
+        state = _thermostat_held_state(
+            self.model, initial_state, weather,
+            _baseline_target(comfort_targets, 0, self.config.target_temp),
+        )
 
         for i in range(n_steps):
-            target = (
-                float(comfort_targets[i])
-                if comfort_targets is not None and i < len(comfort_targets)
-                else self.config.target_temp
-            )
+            target = _baseline_target(comfort_targets, i, self.config.target_temp)
             if p.two_zone_enabled:
-                required_thermal = self._baseline_thermal_demand_two_zone(
-                    state, target, outdoor_temps[i], wind_speeds[i],
+                required_thermal = _thermostat_demand_two_zone(
+                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
                     precipitation[i], solar_radiation[i], dt,
                 )
             else:
-                required_thermal = self._baseline_thermal_demand_single(
-                    state, target, outdoor_temps[i], wind_speeds[i],
+                required_thermal = _thermostat_demand_single(
+                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
                     precipitation[i], solar_radiation[i], dt,
                 )
 
@@ -5122,116 +5338,39 @@ class HeatPumpOptimizer:
 
         return baseline_power, state
 
-    def _baseline_thermal_demand_single(
+    def _start_gap_cost(
         self,
-        state: ThermalState,
-        target: float,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        solar_radiation: float,
-        dt: float,
+        initial_state: ThermalState,
+        weather: WeatherSeries,
+        comfort_targets: np.ndarray | None,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        caps: dict[str, float],
+        humidity: np.ndarray | None,
+        space_baseline_cost: float,
     ) -> float:
-        """Thermal power a thermostat needs this step in the single-zone model."""
-        p = self.model.params
-        k_slab = p.slab_heat_transfer_floored
+        """The start's side of the stored-heat settlement (#2255), netted off the end's.
 
-        u_eff = self.model.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-        q_solar = self.model.compute_solar_gain(solar_radiation)
-
-        # Thermal power the room needs to sit at the setpoint.
-        q_demand = u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
-        # Slab temperature that delivers exactly that, plus a pull-back term
-        # if the room has drifted away from the setpoint.
-        slab_target = (
-            target
-            + max(0.0, q_demand) / k_slab
-            + 2.0 * (target - state.room_temperature)
-        )
-
-        q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
-        # Replace what the slab gives up to the room, and move the slab to
-        # where it needs to be.
-        return q_slab_to_room + p.slab_thermal_mass * (
-            slab_target - state.slab_temperature
-        ) / dt
-
-    def _baseline_thermal_demand_two_zone(
-        self,
-        state: ThermalState,
-        target: float,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        solar_radiation: float,
-        dt: float,
-    ) -> float:
-        """Thermal power a thermostat needs this step in the two-zone model.
-
-        The upper floor is fed directly by radiators while the lower floor is
-        fed through the slab, and the split between them is fixed by
-        ``radiator_power_fraction``. One control cannot hold both zones exactly,
-        which is also true of the real system being modelled, so the demand of
-        the two zones is summed the way an outdoor-reset curve on a single
-        mixing valve would.
+        The thermostat starts held and the plan measured, so they start with
+        different stored heat as they end with it; this values the start gap as
+        ``_deferred_energy_cost`` values the end's. The end's ``caps`` price heat
+        above comfort at nothing, since nothing past the horizon uses it; the
+        plan coasts on it, so a pre-heated start is debited past the caps, by no
+        more than the thermostat's space-heat cost (``space_baseline_cost``):
+        house heat displaces space-heat purchases only, none where there are none.
         """
-        p = self.model.params
-        k_slab = p.slab_heat_transfer_floored
-
-        u_upper = self.model.effective_heat_loss_coefficient(
-            p.upper_floor_heat_loss, wind_speed, precipitation
+        held = _thermostat_held_state(
+            self.model, initial_state, weather,
+            _baseline_target(comfort_targets, 0, self.config.target_temp),
         )
-        u_lower = self.model.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+        capped = self._deferred_energy_cost(
+            held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )
-        q_solar_upper, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
-        area_ratio = p.upper_floor_area_ratio
-        q_int_upper = p.internal_gains * area_ratio
-        q_int_lower = p.internal_gains * (1.0 - area_ratio)
-
-        t_upper = state.upper_floor_temperature
-        t_lower = state.lower_floor_temperature
-        q_inter = p.inter_zone_transfer * (t_lower - t_upper)
-
-        # Radiators reach the upper floor within the step, so its demand is
-        # met directly, including the pull-back on any drift.
-        q_upper = (
-            u_upper * (target - outdoor_temp)
-            - q_solar_upper
-            - q_int_upper
-            - q_inter
-            + p.upper_floor_thermal_mass * (target - t_upper) / dt
+        uncapped = self._deferred_energy_cost(
+            held, initial_state, prices, outdoor_temps, caps=None, humidity=humidity,
         )
-        q_upper = max(0.0, q_upper)
-
-        # The lower floor is heated through the slab, so drive the slab to the
-        # temperature that sustains it and charge it over this step.
-        q_lower = (
-            u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower + q_inter
-        )
-        slab_target = (
-            target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
-        )
-        q_slab_to_lower = k_slab * (state.slab_temperature - t_lower)
-        q_floor = q_slab_to_lower + p.slab_thermal_mass * (
-            slab_target - state.slab_temperature
-        ) / dt
-        q_floor = max(0.0, q_floor)
-
-        # The heat pump makes one water temperature and the split between
-        # radiators and floor is fixed, so total output is sized to total
-        # demand the way an outdoor-reset curve does. The zones then settle at
-        # slightly different temperatures, which is what the real system does
-        # too, and inter-zone transfer pulls them back together.
-        thermal = q_upper + q_floor
-
-        # Replace what the buffer tank leaks so it does not sag over the day.
-        thermal += p.buffer_tank_heat_loss_coefficient * max(
-            0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
-        )
-        return thermal
+        surplus_above_caps = max(0.0, capped - uncapped)
+        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))
 
     def _stored_thermal_energy(
         self,
