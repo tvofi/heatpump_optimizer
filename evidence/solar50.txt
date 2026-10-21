@@ -1,0 +1,1 @@
+Q_solar(50)=0.2450 kW room_mass 10.0 upper 3.0 K/half-hour single-zone 0.0122

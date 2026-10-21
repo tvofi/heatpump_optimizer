@@ -1,0 +1,87 @@
+{
+  "group": "R10-BRIEFS-FOLD",
+  "lane": "IN",
+  "kind": "policy",
+  "issues": [
+    2222,
+    2269
+  ],
+  "fixes": [],
+  "findings": [
+    "D7 M7/M8 fold",
+    "owed brief edits",
+    "D11-s1-51 (policy half)"
+  ],
+  "class": "policy",
+  "severity": "medium",
+  "size": "M",
+  "wave": 4,
+  "files": [
+    "dev/governance/dimensions/D7.md",
+    "dev/governance/dimensions/D1.md",
+    "dev/governance/dimensions/D2.md",
+    "dev/governance/dimensions/D5.md",
+    "dev/governance/dimensions/D9.md",
+    "dev/governance/dimensions/D12.md",
+    "dev/audit/config/scopes.json",
+    "dev/audit/config/rotation.json",
+    "tools/policy/check-wave-script.mjs",
+    "tools/audit/check_scopes.py",
+    "dev/governance/roles/fix-review.md",
+    "dev/audit/rounds/round10/D13/s2/blocks_friction.mjs",
+    "dev/audit/rounds/round10/D14/sweep-N-gate-yield/enumerate.mjs",
+    "dev/governance/rules/ci-autofix.md",
+    "dev/governance/roles/fixer.md",
+    "CLAUDE.md"
+  ],
+  "hot_files": [],
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "policy: dimension briefs",
+  "rca": [],
+  "after": [
+    "R10-ARCHSCORE-COVERAGE",
+    "R10-D15-GRADER"
+  ],
+  "carry": [
+    "Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose.",
+    "If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).",
+    "From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.",
+    "From R10-ARCHSCORE-COVERAGE part 3 (#2320): the D7 brief must state what the layering counters do not see — a private crossing spelled `getattr(_o, \"_x\"+suffix)`, `vars(_o)[\"_x\"]` or through a rebound alias (C18's class); C19's tripwire satisfied by one bare read; and `a3_private_cross_module_fix` being a pure private-to-public rename. The measurements live in `tools/audit/archscore/ABOUT.md` under \"What R10-ARCHSCORE-COVERAGE part 3 moved\", with the attempt ids; cite them and re-measure at your merge base.",
+    "From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.",
+    "From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them.",
+    "From R10-ARCHSCORE-COVERAGE part 4 (#2373 review): the new metrics literal_clone_copies and card_clone_copies score three non-improvements as IMPROVES: a selector spelled through separate module-level constants (184->180, +0.0315), positional args respelled as keywords (184->180, +0.0315), and do-nothing statements inserted into the card (card_clone_copies 108->98, +0.1388). Unless #2373 closes them, record them as known-open red-team attempts and do not credit such moves.",
+    "From #2311 (ARCHSCORE-COVERAGE part 2, finding sweep P19): archscore gains C15 and C16 (tools/audit/archscore/ABOUT.md counter table; C16 roots hub_solve_writes at coordinator event callbacks). The D7 M7/M8 fold may cite them beside C14, C1b and C6b. Also from #2311's review: the instrument still has an under-fire game (a helper returning a callback) and an over-fire precision note; ABOUT.md \"What it does not see\" lists them once ARCHSCORE-COVERAGE p5 lands (fold file), so cite ABOUT.md at your merge base rather than carrying counts.",
+    "From #2373 review r3 (R10-ARCHSCORE-COVERAGE p4, 2026-10-18), supersedes the \"Unless #2373 closes them\" clause of this group's earlier ARCHSCORE carry: `literal_clone_copies` and `card_clone_copies` normalise a finite list of spellings (ABOUT.md, part 4); any other indirection of the same value -- a class attribute (`_H.L0` read 186->182), a constant expression (`12 * 2` read 186->182), a spelling not listed there -- reads a copy as removed, so a drop in either is credited only when the copies are actually gone from the source, never on the metric alone. Control: re-plant both spellings at your merge base with tools/audit/archscore/score.py and confirm the drop is not credited.",
+    "From R10-DIAG-REPLAY (#2399, handoff/r10-diag-replay): dev/governance/dimensions/D15.md must change in two places, and that file is not yet in this group's files. (1) D15 M1: a row carrying `version` is that release's; the restart-gap rule (\"`integration_version` is the download's, not each row's\") applies only to rows without one. Control: `tests/debug_collect.py`'s \"a cycle row carries the release that wrote it\" goes red with the stamp removed from `debugger.cycle_row`. (2) D15 inputs: retire \"While the download's `replay` is null (until R10-DIAG-REPLAY)\". The download's `debug.replay` is filled when the recorder is set up and the window fits the inline cap; otherwise `debug.manifest.replay` names why, and the export from the same box and window stands in. Re-measure at the D15 baseline.",
+    "From R10-RCA-FRICTION (issues #2331 and #2353, PR branch handoff/r10-rca-harness-friction): its detector patch against tools/policy/check-wave-script.mjs was not landed there, because that group's pull request edits policy text and the script is in another lane's seam. The first group to edit tools/policy/check-wave-script.mjs after #2390 (R10-TICK-DRIVERS) lands it. What it adds, inside the block 'the contract's verdict examples parse under the script's own grammar', after the `taughtWords` check: a shadow predicate `shadowed(ex)`, which matches `^blocked <sha> ([a-z][a-z0-9-]*):\\s*([a-z][a-z0-9-]*)` and returns the second word when it differs from the first and is itself a taught class (`classes.includes(m[2])`), plus three checks. (1) A negative control: `shadowed('blocked <sha> harness: class-open <seam>') === 'class-open'`. (2) A null control: `shadowed('blocked <sha> harness: class-rule-missing') === null`. (3) For every contract verdict example, a failure when the predicate fires, naming the spelling the example should use (`blocked <sha> <word>: ...`). Why: #1414 added `class-open` to VERDICT_CLASSES and in the same commit taught fix-review.md step 6's spelling `blocked <sha> harness: class-open <seam>`, which VERDICT_RE parses as class `harness`, so both readers agree and the existing arm is green while the new class word is reachable only by a reviewer who departs from the example; over v7.0.0..6e5753a4, 11 of 14 class-open blocks were keyed `harness` and 3 `class-open`, and the friction cron filed one obligation twice. Order: the detector is committed first and must fail on fix-review.md step 6 as it reads at your merge base; if R10-RCA-FRICTION has already corrected that example, the negative control still proves the predicate and the example loop stays green.",
+    "Source: #2368 Friction. `dev/governance/rules/claim-files.md: contradiction: a fixture whose baseline_cost moves cannot be claimed while it carries a may-drift entry, and a may-drift entry cannot excuse a judged-key move, so the held branch suspended twelve owner-sanctioned may-drift entries for the release -- the R8-P3 wood_coil precedent, recorded nowhere as the rule.`",
+    "Source: #2441 Forward-carry. `archscore.family_orphan_overrides` has no planted census; this PR exempts it with a reason. A finder planting it needs a plant that edits the `ENTITY_FAMILY_OVERRIDES` dict in place, which the arm's append-only plant cannot do.",
+    "Source: #2448 Friction. fixer-brief: stale: the group brief says to delete `HOUSE_LOSS_MAX_STEP` and update its pins in `tests/entities.py` and the `web-decomp-stage.js` facade list, but the constant has a second reader, `_reanchor_house_heat_loss_scale`'s threshold gate, so only the argument is deleted and both pins stand; the brief also names the second call site \"the reseed path\" (it is the lower-floor learner) and three harnesses where `git grep -ln max_step_fraction` finds four (D14 `enumerate.py`). Carry: R10-BRIEFS-FOLD",
+    "Source: #2448 Friction. fixer-handoff: contradiction: the dispatch says to hand off with `tools/audit/seat/handoff_push.sh` and to make no GitHub writes, but `handoff_push.sh` opens or updates the pull request through `app_push.sh` and `gh pr edit`; this seat pushed `handoff/r10-dead-rate-limit` with `git push` and the body with `tools/audit/seat/body_push.sh` (fixer.md step 6), leaving `handoff_push.sh` to the orchestrator. Carry: R10-BRIEFS-FOLD",
+    "Source: #2447 Forward-carry. An unpinned site is now a body obligation at two stages: `## Unpinned sites` (step 7d) and `mutation` under `## Red checks` (this change). If `mutation-autofix` pins the site after the push the `mutation` line becomes a stale claim in the body. Carry: R10-BRIEFS-FOLD (ci-autofix.md: the reviewer re-checks the line after the autofix commit).",
+    "Source: #2444 Friction. fixer-step-18: cost: the repository-local `.git/info/exclude` carries a bare `seat/` line, so `git add -A` silently leaves a new file under `tools/audit/seat/` untracked, and this branch's two instruments needed `git add -f`. A seat that misses this hands off code with no instrument. The exclude is local configuration, not the tree, so it is reported here and not changed. Carry: R10-BRIEFS-FOLD",
+    "Source: #2444 Friction. Supersedes the uncontrolled #2444 entry at roster ebf81fc1d. The repository-local `.git/info/exclude` carries a bare `seat/` line, so `git add -A` silently leaves a new file under tools/audit/seat/ untracked. #2444's two new instruments needed `git add -f`, and a seat that misses this hands off code with no instrument. The exclude is local configuration and not part of the tree, so it was reported and not changed; the group decides where to put the guidance (a brief step or a seat-start check).\nControl (precondition): in the affected clone, `touch tools/audit/seat/zz_probe.py; git check-ignore -v tools/audit/seat/zz_probe.py` prints `.git/info/exclude:<n>:seat/\ttools/audit/seat/zz_probe.py` and `git status --short` does not list the file (the line number <n> varies by clone). Null control: in a fresh clone without that line, the same `git check-ignore -v` prints nothing (rc=1) and `git status --short` lists the file as `??`. Remove the probe file afterwards.\nRe-measure: before the brief states how many seats are affected, run the check in each seat's checkout and worktree (`git rev-parse --git-common-dir` for the shared exclude) and count the ones that print the exclude line.",
+    "**R10-BRIEFS-FOLD (`dev/governance/dimensions/D7.md`).** The folded brief can cite `shape_copies` as a finder's census of rule families below the clone window. It should cite it with its stated limits: spelling-blind, weight 0, and C23 load-bearing only for copies below the window (`ABOUT.md`, part 5). The roster carry is the orchestrator's to write. (from #2401 body, Forward-carry; fix review 6253710004 owed list)",
+    "From #2521: tests/README.md line 272 cites `tools/audit/harnesses/k1725_blas_kernel_gap.py`, which does not exist; correct it to `dev/audit/harnesses/k1725_blas_kernel_gap.py`. The file is policy, so it rides this group."
+  ],
+  "architect_note": null,
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-briefs-fold",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every `after` group is done",
+    "note": null
+  },
+  "brief": "The D7 M7/M8 policy fold (tvofi, 2026-10-14) plus every brief edit the round owes, in one policy pull request. M7: arch-score opportunities, all counters on, a behaviour gate, an architectural argument, \"review trigger, never a target\", with the 150 % bar as the guideline. M8: a duplicated-shape census, enumerate implementations by seam rule, an agreement test, one owner. Write both from what the judges confirmed and voided; re-cut D7's three seats in dev/audit/config/scopes.json and rotation.json across M1-M8; update tools/policy/check-wave-script.mjs and tools/audit/check_scopes.py as needed. Owed edits: D1 step 3 checks the published and booked value, not only the plan; D2 step 5 tests learners under error in the other covariate; confirm under D2 that the 35 evidence-only stale-path seams are by design; the D5 and D12 briefs get the display-basis question (the published heat loss is the (U+L)s basis, 189.9 W/K, not the effective UA, 244.0 at ratio 1.6); the D7 brief gets the coordinator context write-once residual (L4); and the stale D7.md and D9.md lines of #2222 (D11-s1-51).\n\nAdded by the coordinator, 2026-10-15: (a) D5.md and D12.md carry D2-s3-73's published heat-loss basis: `heat_loss_kw_per_c` is on the (U+L) basis and reads 22 % below the effective UA at r=1.6, so the display-basis question names which basis a published heat-loss figure is on. (b) D7.md carries that CoordinatorContext is documented write-once but is replaced in `async_update_thermal_params`.\n\nForward-carried (finding-propagation.md): (1) Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose. (2) If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: dimension briefs. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nCountermeasure M4 is adopted under mandate 6175172275 (the recommended option): dev/governance/rules/ci-autofix.md, dev/governance/roles/fixer.md steps 5 and 18, and CLAUDE.md's ci-autofix index line must state the pre-PR sequence: predicted reds are repaired before handoff, and the bot's wait applies only once a PR exists.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.\n\nForward-carried precondition (finding-propagation.md): From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.\n\nForward-carried (finding-propagation.md): From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
+}

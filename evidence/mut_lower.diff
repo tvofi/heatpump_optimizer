@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 859b420ed..0a243bb77 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5248,7 +5248,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             return
+ 
+         # #2223: the same dark gate; the lower replay carries the same sun term.
+-        if is_sunlit_interval(previous_state.solar_radiation):
++        if False:
+             return
+ 
+         # Same physics as the solve when #53 is on; inert when off.

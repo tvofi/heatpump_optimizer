@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 1a5fd8d72..951771b4c 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1580,7 +1580,7 @@ def is_sunlit_interval(solar_radiation: float | None) -> bool:
+     sample written before the field existed) reads as no sun, which is how
+     the tree reads an unknown irradiance everywhere else.
+     """
+-    return float(solar_radiation or 0.0) > HEAT_LOSS_MAX_SOLAR_W_M2
++    return float(solar_radiation or 0.0) > 1000.0
+ 
+ 
+ @dataclass
