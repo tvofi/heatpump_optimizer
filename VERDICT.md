@@ -1,57 +1,58 @@
-Fix review: blocked 90788b1e5ea8ce015e7ae6c432d308d7a5aab476 harness: class-open the NOT_REQUIRED carve-out frees every NONBLOCK word in its sentence, so a nit or defect sharing a sentence with "not a required check" passes under ## Evidence
+Fix review: merge cb48de247b39b47ffe9e010689f8ff4f971b7e32
 
-bus-nonce: 4754a76a2b269a20cfbe6c86d9b4e3a8
+bus-nonce: aa42fa3468a15c64be454da5c30aa04d
 
-Round 1 of review for this head. Measured head: 90788b1e5ea8ce015e7ae6c432d308d7a5aab476 (ev/HEAD.txt), still the branch tip when this verdict was written (git ls-remote). Merge base with origin/main: 5d433771a; body's figures name 289426c1f, an ancestor of 5d433771a, and I measured the base end there.
-
-## Block
-
-- **The carve-out is wider than the body's account of it.** The body says the NOT_REQUIRED sentence states "a check's state, not a note" and that this carve-out "is the whole relaxation". The body also refused a NONBLOCK exemption under `## Evidence` because it freed #2441's nit and #2465's defect, and called that smuggling. But `items()` drops every sentence that matches NOT_REQUIRED before it reads NONBLOCK (`claims = " ".join(x for x in SENTENCE.split(t) if not NOT_REQUIRED.search(x))`). So the same two shapes pass when they share that sentence.
-- **The attack.** `ev/class_attack.py` was run at the head and at 289426c1f (output in `ev/class_attack.txt`, verbatim sentences there). Each case is one bullet under `## Evidence` in a merge verdict, and each puts a NONBLOCK word in the same sentence as "not a required check":
-  - case `same-sentence nit`: #2441's nit;
-  - the second case in that file: a defect given a low-severity word;
-  - case `parenthetical`: #2465's 0.27 K defect with "(not a required check)" inserted.
-
-  Each reads as no finding at the head and as a finding at the base. Controls: under `## Notes` the same text is a finding at both ends. With a `;` or `.` between the check clause and the nit, the head flags it too, as the PR's self-test row claims.
-- **The path is realistic.** The new prompt tells every reviewer that a check is evidence only "in a sentence saying it is not a required check". That makes the sentence the exempt unit. The pre-flight fails closed everywhere else, so this is the one fail-open path the diff adds.
-- **Proposed fix, a few lines.** Narrow the carve-out from the whole sentence to the check's own clause. Two ways:
-  - strip only the NOT_REQUIRED match and an adjoining block-state clause, then read NONBLOCK over the rest of the sentence; or
-  - exempt a NOT_REQUIRED sentence only when every NONBLOCK hit in it is a block-state phrase.
-
-  Either way, the nit and severity wording still flags. Add the three attack sentences as self-test rows, which fail on this head. The #2544 aeeb9432 sentence about composed-proof must still read as no finding.
+Round 2 of review (round 1 blocked 90788b1e5). Measured head: cb48de247b39b47ffe9e010689f8ff4f971b7e32, read from a detached worktree; still the branch tip when this verdict was written (`git ls-remote`, ev/head_at_verdict.txt). Merge base with origin/main: e7c664856, the base end of every both-ends figure below. The role file is current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
 
 ## Findings
 
-none
+- **Two of the joiners the body says it left out are not pinned, and the body's reason for leaving them out is wrong for both.** The body says that allowing `;`, `so` or `)` as a joiner in `NOT_REQUIRED` "frees one of the review's attack sentences, or its `semicolon` case". I widened the joiner one way at a time (ev/joiner_mutants.txt, run with `-B` so no stale bytecode is read):
+  - `)` frees round 1's parenthetical case, and the self-test kills it (1 failed).
+  - `;` and `so` each free none of round 1's five attack sentences. Both survive the self-test (`189 checks, 0 failed`).
+  - Each one does free a defect of the same shape: "The guard misses a deleted ref; mutation is not a required check; not blocking." and "The guard misses a deleted ref, which is not a required check so not blocking."
+
+  `r10_carry_parser_mutants.py` has deletion mutants only for the clause (`P-notreq-*`), so its `survived=0` cannot see a widening. The live regex refuses both joiners, and both sentences are findings at this head (ev/class_attack_r2_head.txt). So this blocks nothing now. It leaves the boundary that round 1 blocked on guarded on only one of its three sides. The fix is two self-test rows, one with each sentence, plus two widening mutants in the harness. Carry: dismissed: the code at this head is correct, both sentences flag here, and the gap is only in pinning; it rides any later edit of `NOT_REQUIRED`.
 
 ## Evidence
 
-- **Role file current:** `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- **Mutation proof (step 1), re-run by me:**
-  - M-A, the `elif verdict and EVIDENCE_HEADING.match(sec):` arm deleted (4 lines): `carry_audit self-test: 182 checks, 30 failed`, with the failing rows the body names. The replay under M-A prints v2544_reshaped=1, v2544_planted=2. See ev/mutation_MA.txt.
-  - M-B, the new prompt sentences deleted: `cloud_dispatch self-test: 31 checks, 1 failed` (the "separate findings ... from evidence" check). See ev/mutation_MB.txt.
-  - Unmutated head: 182/0 and 31/0.
-- **Per-site mutants:** `r10_carry_parser_mutants.py` head `RESULT sites=168 unmapped=0 mutants=224 survived=0`; at 289426c1f `RESULT sites=152 unmapped=0 mutants=190 survived=0`. These match the body (ev/mutants_*.txt). The harness has no mutant that widens the carve-out's scope beyond the check clause, so it cannot see the block above.
-- **Finder's instrument at both ends (step 2).** The group R10-VERDICT-ITEM-BARRIER is not in `dev/programme/rosters/wave-r10-groups.json` at origin/handoff/audit-r10-roster 2c76c3128 (`git log --all -S VERDICT-ITEM-BARRIER` finds nothing), so no roster brief names a harness. I used the instrument that parked the verdicts, `carry_audit.py pr N`. Head and 289426c1f print the same line for each PR:
-  - #2513: `2 finding item(s): 2 routed, 0 unrouted`;
-  - #2544: `1 finding item(s): 1 routed, 0 unrouted`;
-  - #2547: `1 finding item(s): 0 routed, 1 unrouted`.
+- **Round 1's block is resolved.** I ran round 1's attack (ev/class_attack_r1.py, from verdict/2571 at 378816bc) and my own wider set (ev/class_attack_r2.py) under `## Evidence` of a merge verdict.
+  - At the head every round-1 case is a finding: same-sentence nit, minor, defect, parenthetical and semicolon.
+  - The #2544 sentence ("it is not a required context and does not block the PR") is no finding at the head. At e7c664856 it is a finding, so the parked verdict is freed.
+  - Under `## Notes` every case is a finding at both ends.
+- **Residual inherent to the design, not a block.** Three of my sentences are freed at the head (ev/class_attack_r2_head.txt):
+  - "The guard misses a deleted ref; composed-proof is not a required check, not blocking."
+  - a sibling of that sentence;
+  - two stacked check clauses.
 
-  So it reads flat. The body's figure "1 finding item(s): 0 routed, 1 unrouted" for each no longer reproduces for #2513 and #2544, because the live comment threads moved since the body was written (ev/finder_carry_audit_pr.txt).
-- **Companion (the fixer's replay harness, disclosed as the fixer's):** `r10_verdict_item_barrier.py --fetch` at the head prints `fetch_*=identical` and the body's table exactly: verbatim 1/1/1, evidence 1/1/1, reshaped 0/0/0, planted 1/1/1. Run against 289426c1f's `carry_audit.py`, it gives reshaped 0/1/0 and planted 1/2/1, matching the body (ev/replay_*.txt).
-- **Sweep, both ends:** my own 83-PR corpus (the last 80 merged PRs by update time over REST, plus 2513, 2544, 2547 and 2556, de-duplicated; ev/sweep_corpus_prs.txt). Head and base both print `CARRY-AUDIT: 124 finding item(s): 83 routed, 38 unrouted, 3 bad destination(s)`, and the UNROUTED/BAD-DEST line sets are identical. The body's 131/85/42/4 over 84 PRs is not re-derived: the corpus is live and moved. The claim that this sweep reads identically at both ends holds.
-- **What-if:** on the same corpus, base `whatif_flagged=17` and head `whatif_flagged=33` (body: 18 and 32, on a different corpus). The only id flagged at the base and not at the head is #2544 aeeb9432, as the body says (ev/whatif_*.txt).
-- **Null control:** v*_planted=1 at the head for all three verdicts, confirmed.
-- **Generator, merge, and cheap checks:**
-  - The generator renders the new sections; covered by the M-B row.
-  - `git merge-tree --write-tree origin/main 90788b1e5ea8ce015e7ae6c432d308d7a5aab476` exits 0, tree b980d7a52 (ev/merge_tree.txt).
-  - VERSION, the manifest, RELEASE_NOTES and the claim files are untouched.
-  - `tests/structure.py`: STRUCTURE RATCHET PASSED. `tmp_paths.py --check`: 0 refused. `archscore --diff 5d433771a`: dS +0.0000 NULL.
-  - The new harness is classified in tests/closures.json, the only closures move.
-- **Head (step 7):** the body names 90788b1e5ea8ce015e7ae6c432d308d7a5aab476 as the head, and it is the head I measured.
-- **Forward-carry (step 10):** both items carry `Carry: dismissed: <reason>` in the body. No roster carry is claimed.
-- **CI on this head, read once from the check-runs API (ev/check_runs.tsv):**
-  - Concluded green: pr-contract (twice, the second started 14:20:44Z), hassfest, budget-raise-gate (first run), validate-hacs, arch-score, mutation, scope, closure-scope, briefs, delivery-status, policy-docs.
-  - Still queued or running when read: fast (3.14), env-matrix, wave-script, typing, instrument-self-tests, browser, coverage, budget-raise-gate (second run), and the Analyze jobs. I judged on the rest.
-  - `nightly-status` concluded red. It grades main's scheduled runs, and this diff (tools/audit, a harness, a delivery row, closures.json) does not reach what it reads.
-  - Step 11 is not judged: workflows on this head have not all concluded, and this verdict blocks on step 6.
+  In each, the only block-state words are the check's own clause, which the narrowing round 1 proposed deliberately frees. With no such words, the defect sentence alone ("The guard misses a deleted ref.") reads as no finding under the parser's word grammar anyway.
+- **Mutation proof (step 1), my own mutants** (ev/mutation_mine.txt; the unmutated head reads `189 checks, 0 failed` and cloud_dispatch reads `32 checks, 0 failed`):
+  - the whole Evidence arm deleted: many rows fail (as the body's M-A);
+  - `claims` freed whenever `NOT_REQUIRED` is in the item: 7 failed;
+  - the clause tail made unmatchable: 5 failed;
+  - the `(?!\s*:)` guard removed: 1 failed;
+  - `NONBLOCK` read over `t`, not `claims`: 5 failed;
+  - `DEFERRED` dropped: the DEFERRED rows fail;
+  - joiner widened to `;` or `so`: survive (see Findings).
+
+  cloud_dispatch M-B': the carve-out sentence reverted to round 1's wording gives `32 checks, 1 failed` (ev/mutation_MB.txt).
+- **Per-site mutants**: `r10_carry_parser_mutants.py` at the head prints `RESULT sites=166 unmapped=0 mutants=232 survived=0`, as the body says (ev/mutants_head.txt).
+- **Finder's instrument at both ends (step 2).** `R10-VERDICT-ITEM-BARRIER` has no entry in the roster at origin/handoff/audit-r10-roster 2c76c3128, as in round 1, so no brief names a harness. I used the instrument that parked the verdicts, `carry_audit.py pr N` (ev/finder_carry_audit_pr.txt). The head and e7c664856 print the same lines, as the body says:
+  - #2513: 2 routed / 0 unrouted;
+  - #2544: 1 routed / 0 unrouted;
+  - #2547: 0 routed / 1 unrouted.
+
+  One earlier head run returned a different #2547 thread and no #2513 line. It did not reproduce on two re-runs and reads as a transient fetch (kept as ev/finder_carry_audit_pr_run1_transient.txt).
+- **Companion (the fixer's replay harness, disclosed as the fixer's).** At the head it prints `fetch_*=identical`; RESULT verbatim 1/1/1, evidence 1/1/1, reshaped 0/0/0, planted 1/1/1, attack 1/1/1. At e7c664856 (harness copied in) it prints reshaped 0/1/0, planted 1/2/1, attack 1/2/1. Both ends match the body's table (ev/replay_*.txt).
+- **Null control:** v*_planted=1 at the head for all three verdicts, and the #2544 clause is freed.
+- **Not re-derived:** the body's 83-PR sweep and `--whatif` counts (33/33/17). They come from a live corpus fetched at 14:43Z. Round 1 re-derived the base and round-1 values on its own corpus, and I did not rebuild it.
+- **Generator (step 10 of fixer):** I rendered the reviewer prompt at the head, 90788b1e5 and e7c664856. The counts for `never in the rest of its sentence`, `evidence only in a sentence saying` and `## Evidence` are head 1/0/1, round 1 0/1/1 and base 0/0/0, matching the body (ev/generator.txt).
+- **Merge:** `git merge-tree --write-tree origin/main(b6a38f858) cb48de247` exits 0, tree a5ff6b16b, with no conflict (ev/merge_tree.txt).
+- **Untouched files:** VERSION, the manifest, RELEASE_NOTES, tests/golden and the claim files are untouched (ev/untouched.txt is empty).
+- **Cheap checks at the head:** STRUCTURE RATCHET PASSED; tmp_paths 0 refused; `Architecture score: dS +0.0000 NULL`; `MODE: SCOPED -- 1 script(s) run`; claims hygiene ok (ev/cheap_checks.txt).
+- **Moved numbers (step 14):** tests/closures.json gains one line, classifying the new harness. The mutant harness grows by the new sites. Both are earned by the diff.
+- **Head (step 7):** the body names cb48de247 as the head and describes the main merge of e7c664856, as the brief expects.
+- **Forward-carry (step 10):** the body says `n/a` with a reason (the pre-flight fails closed on old-format verdicts).
+- **CI on this head, read once from the check-runs API at the end (ev/check_runs.tsv):**
+  - Green: pr-contract (twice; the second started 15:24:11Z, after nightly-status concluded at 15:23:46Z), mutation, scope, closure-scope, briefs, policy-docs, delivery-status, budget-raise-gate (x2), hassfest, validate-hacs, env-matrix, wave-script, instrument-self-tests, typing, browser, arch-score (one run), and Analyze for actions and js-ts. CodeQL is neutral.
+  - Still running when read: fast (3.14), coverage (queued), Analyze (python), and a second arch-score run. I judged on the rest.
+  - Red: `nightly-status` only. It grades main's scheduled runs, and this diff does not reach what it reads. The body's Red checks section names it and answers it (step 11).
