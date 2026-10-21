@@ -1,5 +1,0 @@
-custom_components/heatpump_optimizer/coordinator.py:6229:        self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
-custom_components/heatpump_optimizer/coordinator.py:6373:        if signals.defrosting:
-custom_components/heatpump_optimizer/coordinator.py:10557:        defrosting = defrost_interval(self._pump_signals.defrosting)
-custom_components/heatpump_optimizer/pump_signals.py:9:* whether this interval contains a defrost (:attr:`PumpSignals.defrosting`).
-custom_components/heatpump_optimizer/pump_signals.py:297:            "defrosting": self.defrosting,

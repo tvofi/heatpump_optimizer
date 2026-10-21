@@ -13,5 +13,6 @@ RESULT freq_map_clean_folds=8 count
 RESULT freq_map_defrost_folds=8 count
 RESULT cop_gate_on_defrost='defrosting'
 RESULT thread_factor=1.000
-RESULT load1=0.38
+RESULT load1=0.64
 RESULT swapins=0
+EXIT=0

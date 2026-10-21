@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/freq_control.py b/custom_components/heatpump_optimizer/freq_control.py
+index 285153306..05c3e195d 100644
+--- a/custom_components/heatpump_optimizer/freq_control.py
++++ b/custom_components/heatpump_optimizer/freq_control.py
+@@ -75,7 +75,7 @@ def defrost_interval(defrosting: bool | None) -> bool:
+     ``active``). ``None`` -- no flag configured, or no evidence this cycle --
+     is not a defrost.
+     """
+-    return bool(defrosting)
++    return True
+ 
+ 
+ def resolve_reading(
