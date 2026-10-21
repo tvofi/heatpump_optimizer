@@ -1,0 +1,12 @@
+MUTANT stop: pr_args self-test: 62 checks, 2 failed
+      FAIL open_pr: TERM reaps the whole descendant tree, and the pusher is gone
+      FAIL update_pr: TERM reaps the whole descendant tree, and the pusher is gone
+MUTANT traps: pr_args self-test: 62 checks, 0 failed
+MUTANT recurse: pr_args self-test: 62 checks, 2 failed
+      FAIL open_pr: TERM reaps the whole descendant tree, and the pusher is gone
+      FAIL update_pr: TERM reaps the whole descendant tree, and the pusher is gone
+MUTANT grace: pr_args self-test: 62 checks, 0 failed
+MUTANT openfg: pr_args self-test: 62 checks, 1 failed
+      FAIL open_pr: TERM reaps the whole descendant tree, and the pusher is gone
+MUTANT openexit: pr_args self-test: 62 checks, 0 failed
+MUTANT updexit: pr_args self-test: 62 checks, 0 failed

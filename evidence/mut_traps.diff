@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 67836d0a7..2c112c5cc 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -32,7 +32,7 @@ pr_stopped() { # <status> <line> <command>: the ERR trap's report
+ pr_trap() { # errexit, the report of every stop it makes, and the signal reap
+   set -Eeo pipefail
+   trap 'pr_stopped $? $LINENO "$BASH_COMMAND"' ERR  # mut:trap
+-  pr_signal_traps
++  :
+ }
+ pr_need_args() { # <min> <got> <usage>
+   [ "$2" -ge "$1" ] || pr_refuse "$2 argument(s), at least $1 needed: $3"  # mut:arity

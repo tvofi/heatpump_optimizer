@@ -1,0 +1,49 @@
+pr-contract	completed	failure	2026-10-21T11:46:20Z	2026-10-21T11:46:52Z
+closures-autofix	completed	skipped	2026-10-21T11:41:51Z	2026-10-21T11:41:51Z
+ci-ratchet	completed	skipped	2026-10-21T11:41:51Z	2026-10-21T11:41:51Z
+composed-proof	completed	success	2026-10-21T11:42:28Z	2026-10-21T11:42:43Z
+coverage-ratchet	completed	success	2026-10-21T11:27:40Z	2026-10-21T11:27:51Z
+graders-head-copy	completed	success	2026-10-21T11:27:32Z	2026-10-21T11:29:59Z
+lane-proofs	completed	success	2026-10-21T11:27:35Z	2026-10-21T11:27:40Z
+closures	completed	success	2026-10-21T11:27:24Z	2026-10-21T11:41:51Z
+claims-autofix	completed	skipped	2026-10-21T11:04:44Z	2026-10-21T11:04:44Z
+CodeQL	completed	success	2026-10-21T11:00:59Z	2026-10-21T11:01:02Z
+nightly-ha	completed	skipped	2026-10-21T11:00:02Z	2026-10-21T11:00:02Z
+typing	completed	success	2026-10-21T11:01:11Z	2026-10-21T11:02:12Z
+fast (3.14)	completed	success	2026-10-21T11:01:12Z	2026-10-21T11:04:44Z
+browser	completed	success	2026-10-21T11:01:06Z	2026-10-21T11:05:06Z
+coverage	completed	success	2026-10-21T11:01:07Z	2026-10-21T11:27:02Z
+Analyze (actions)	completed	success	2026-10-21T11:00:21Z	2026-10-21T11:01:09Z
+Analyze (javascript-typescript)	completed	success	2026-10-21T11:00:33Z	2026-10-21T11:01:47Z
+Analyze (python)	completed	success	2026-10-21T11:00:29Z	2026-10-21T11:28:19Z
+mutation-pins	completed	skipped	2026-10-21T10:58:51Z	2026-10-21T10:58:51Z
+mutation-autofix	completed	skipped	2026-10-21T10:58:51Z	2026-10-21T10:58:51Z
+mutation-pin-plan	completed	skipped	2026-10-21T10:58:51Z	2026-10-21T10:58:51Z
+mutation-ledger-push	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+mutation-ledger	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+slow	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+record-autofix	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+recheck-gate	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+delivery-status-publish	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+mutation-nightly	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+record	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-21T10:57:53Z	2026-10-21T10:57:53Z
+closure-scope	completed	success	2026-10-21T10:59:40Z	2026-10-21T11:00:02Z
+briefs	completed	success	2026-10-21T10:58:54Z	2026-10-21T10:59:22Z
+policy-docs	completed	success	2026-10-21T10:59:47Z	2026-10-21T11:00:26Z
+mutation	completed	success	2026-10-21T10:58:16Z	2026-10-21T10:58:51Z
+cancel-superseded	completed	success	2026-10-21T10:59:27Z	2026-10-21T10:59:34Z
+delivery-status	completed	success	2026-10-21T10:59:01Z	2026-10-21T10:59:15Z
+instrument-self-tests	completed	success	2026-10-21T10:59:47Z	2026-10-21T11:05:03Z
+env-matrix	completed	success	2026-10-21T10:58:26Z	2026-10-21T11:01:41Z
+nightly-status	completed	failure	2026-10-21T10:58:01Z	2026-10-21T10:58:09Z
+arch-score	completed	success	2026-10-21T10:58:37Z	2026-10-21T10:59:41Z
+wave-script	completed	success	2026-10-21T10:58:26Z	2026-10-21T10:58:48Z
+scope	completed	success	2026-10-21T10:59:29Z	2026-10-21T10:59:44Z
+hassfest	completed	success	2026-10-21T10:57:56Z	2026-10-21T10:58:24Z
+arch-score	completed	success	2026-10-21T10:58:22Z	2026-10-21T10:59:22Z
+cancel-superseded	completed	success	2026-10-21T10:59:20Z	2026-10-21T10:59:27Z
+validate-hacs	completed	success	2026-10-21T10:58:12Z	2026-10-21T10:58:50Z
+budget-raise-gate	completed	success	2026-10-21T10:59:03Z	2026-10-21T10:59:18Z
+pr-contract	completed	failure	2026-10-21T10:57:57Z	2026-10-21T10:58:24Z
+budget-raise-gate	completed	success	2026-10-21T10:59:02Z	2026-10-21T10:59:17Z

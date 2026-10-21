@@ -1,0 +1,13 @@
+diff --git a/tools/pr/app_push.sh b/tools/pr/app_push.sh
+index 0feaa444e..3974e99ea 100644
+--- a/tools/pr/app_push.sh
++++ b/tools/pr/app_push.sh
+@@ -369,7 +369,7 @@ push_and_open() {
+   prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
+   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
+   if [ "$bonly" = 0 ] && [ "$skip" = 0 ]; then
+-    ( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!
++    ( cd "$wt" && bash "$prepr" "$body" "$@" ); prepr_pid=$!
+     wait "$prepr_pid" || prepr_rc=$?
+     [ "$prepr_rc" = 0 ] \
+       || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"

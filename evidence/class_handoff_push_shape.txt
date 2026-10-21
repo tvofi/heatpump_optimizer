@@ -1,0 +1,6 @@
+hp_shape.sh: pusher gone; non-zombie survivors after TERM: 4 of 4
+hp_fixed.sh: pusher gone; non-zombie survivors after TERM: 0 of 4
+hp_shape.sh: pusher gone; non-zombie survivors after TERM: 4 of 4
+hp_fixed.sh: pusher gone; non-zombie survivors after TERM: 0 of 4
+hp_shape.sh: pusher gone; non-zombie survivors after TERM: 4 of 4
+hp_fixed.sh: pusher gone; non-zombie survivors after TERM: 0 of 4

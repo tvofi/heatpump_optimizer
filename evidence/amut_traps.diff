@@ -1,0 +1,13 @@
+diff --git a/tools/pr/app_push.sh b/tools/pr/app_push.sh
+index 0feaa444e..97ee5290f 100644
+--- a/tools/pr/app_push.sh
++++ b/tools/pr/app_push.sh
+@@ -109,7 +109,7 @@ set -uo pipefail
+ PR_ARGS=$(cd "$(dirname -- "$0")/../audit/seat" 2>/dev/null && pwd)/pr_args.sh
+ [ -f "$PR_ARGS" ] || { printf 'app_push: REFUSE: no pr_args.sh beside this script at %s\n' "$PR_ARGS" >&2; exit 1; }
+ . "$PR_ARGS"
+-pr_signal_traps
++:
+ 
+ API=https://api.github.com
+ ACCEPT='Accept: application/vnd.github+json'
