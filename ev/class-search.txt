@@ -1,0 +1,43 @@
+tools/audit/seat/ci_predict_replay.sh:47:    git -C "$here" worktree remove --force "$wt" 2>/dev/null
+tools/audit/seat/cloud_relay.sh:396:  git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fix/topic-a-pr; NEW=$(git -C "$t/pr" rev-parse HEAD)
+tools/audit/seat/cloud_relay.sh:401:  rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
+tools/audit/seat/handoff_push.sh:63:  ( cd "$WT" && git fetch -q origin "$BR" && git reset -q --hard "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
+tools/audit/seat/handoff_push.sh:79:if [ -d "$WT" ]; then git worktree remove --force "$WT"; git branch -D "$BR" >/dev/null 2>&1; fi  # a refused earlier attempt, no PR
+tools/audit/seat/pr_args.sh:116:    && git -C "$o" checkout -q main && git -C "$o" reset -q --hard "$base" \
+tools/audit/seat/pr_args.sh:287:    rm -f "$hk"; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null
+tools/audit/seat/pr_args.sh:292:    git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; rm -rf "$sd"
+tools/audit/seat/pr_args.sh:334:    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+tools/audit/seat/pr_args.sh:388:    reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+tools/audit/seat/pr_args.sh:412:    reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
+tools/audit/seat/remerge_main.sh:17:( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ) || { echo "MERGE CONFLICT $PR"; exit 1; }
+tools/audit/seat/update_pr.sh:40:  git -C $o checkout -q --detach
+tools/audit/seat/update_pr.sh:43:[ -d $WT ] && git worktree remove --force $WT
+tools/audit/seat/update_pr.sh:44:git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
+tools/pr/app_approve.sh:591:  g checkout -q --detach "$1"; g merge -q --no-ff --no-edit -m "$3" "$2" >/dev/null
+tools/pr/app_approve.sh:597:g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:598:g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:599:g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:600:g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:601:g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:606:  local b=$1 sub=$2 ae; shift 2; g checkout -q --detach "$b"
+tools/pr/app_approve.sh:616:g checkout -q --detach "$V"; mkdir -p "$W/clone/tests/golden"; printf 'c1\nc2\n' > "$W/clone/tests/golden/claimed_drift.txt"
+tools/pr/app_approve.sh:618:H_CLAIMSDROP=$(g checkout -q --detach "$V_CL"; printf 'c1\n' > "$W/clone/tests/golden/claimed_drift.txt"
+tools/pr/app_approve.sh:620:H_CLAIMSADD=$(g checkout -q --detach "$V_CL"; printf 'c1\nc2\nc3\n' > "$W/clone/tests/golden/claimed_drift.txt"
+tools/pr/app_approve.sh:625:g checkout -q --detach "$V"; g commit -q --amend -m "ci: reworded"; H_REWRITE=$(g rev-parse HEAD)
+tools/pr/app_approve.sh:657:g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+tools/pr/app_approve.sh:659:g checkout -q --detach "$V_PINMOD"
+tools/pr/app_approve.sh:663:g checkout -q --detach "$V_PINMOD"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+tools/pr/app_approve.sh:667:g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+tools/pr/app_approve.sh:673:g checkout -q --detach "$V_PINMOD"; pinrow "tests/mutation_ledger/*"
+tools/pr/app_approve.sh:686:g checkout -q --detach "$DELBASE"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+tools/pr/app_approve.sh:688:g checkout -q --detach "$_dr1"; pinrow tests/mutation_ledger/killed_by/other.json
+tools/pr/app_approve.sh:690:g checkout -q --detach "$DELBASE"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+tools/pr/app_approve.sh:692:g checkout -q --detach "$_rr1"; pinrow tests/mutation_ledger/killed_by/row.json
+tools/pr/app_approve.sh:698:g checkout -q --detach "$V_PINMOD"; pinrow tests/mutation_ledger/killed_by/fresh.json
+tools/pr/app_approve.sh:1092:  git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit main >/dev/null
+tools/pr/app_approve.sh:1100:( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
+tools/pr/app_approve.sh:1118:g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
+tools/pr/app_push.sh:827:(cd "$R/wt" && rgit reset -q --hard origin/fix && rgit merge -q --no-edit origin/main)
+tools/pr/prepr.sh:1877:    git checkout -q --detach
+tools/pr/prepr.sh:1984:    && $G checkout -q --detach \
+tools/pr/prepr.sh:2098:    && $G checkout -q --detach && $G checkout -q -b pfork \
