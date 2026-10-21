@@ -9,10 +9,12 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
-step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+step on the unmutated file must pass first (NOT RUN otherwise). A mutant added
+since takes a per-file id (`cloud_relay-1`), never a new S number, so two
+branches adding mutants to different files never conflict. S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
@@ -103,13 +105,18 @@ MUTANTS = [
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
-    ("S35", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+    ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
-    ("S36", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),
-    ("S37", "cloud_relay.sh", "*[!0-9]*|0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'",
+    ("cloud_relay-2", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),
+    ("cloud_relay-3", "cloud_relay.sh", "*[!0-9]*|0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'",
      "0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'"),
-    ("S38", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+    ("cloud_relay-4", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if grep -qF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
+    ("cloud_relay-6", "cloud_relay.sh",
+     'held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }',
+     'held_prs=$(hold_list) || { return 2; }'),
+    ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

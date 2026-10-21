@@ -451,16 +451,27 @@ self_test() {
   chk "held <pr> says not held (rc 1) for an unlisted PR" 1 held 42
   chk "held <pr> matches the whole line (#4 is not #41)" 1 held 4
   chk "held refuses a non-number" 2 held 4x
+  chk "the CLI 'cloud_relay.sh held' says held (rc 0)" 0 bash "$HERE/cloud_relay.sh" held 41
+  chk "the CLI 'cloud_relay.sh held' says not held (rc 1)" 1 bash "$HERE/cloud_relay.sh" held 42
+  chk "a well-formed hold file logs no refusal (null control)" 1 grep -q handoff-hold-malformed "$LOG"
   for hb in '41 99' 'abc' '41x' '0' '-1' '041' '41,99' ' 41' '41 # c'; do
-    printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; ho=$(handoff_arm 2>&1)
+    printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; : > "$LOG"; ho=$(handoff_arm 2>&1)
     chk "a malformed hold file ('$hb') refuses the pass (rc 2)" 2 handoff_arm
     chk "and holds none: the PR is not updated" 0 test ! -e "$t/hupdated"
     chk "and holds all: no HELD line" 1 grep -q HELD <<< "$ho"
     chk "and names the refusal" 0 grep -q "refused: malformed hold file" <<< "$ho"
+    chk "and logs OWED handoff-hold-malformed" 0 grep -q "^OWED .* handoff-hold-malformed $hf\$" "$LOG"
     chk "and held refuses it too" 2 held 41
+    chk "and the CLI 'cloud_relay.sh held' refuses it (rc 2)" 2 bash "$HERE/cloud_relay.sh" held 41
   done
-  printf '41\n99' > "$hf"; ho=$(handoff_arm 2>&1)
-  chk "a last line without a newline is read" 0 grep -q "HELD #41 " <<< "$ho"
+  # the held number is the unterminated last line, so the check fails when that line is dropped
+  printf '99\n41' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a last line without a newline is read: it holds #41" 0 grep -q "HELD #41 " <<< "$ho"
+  chk "and held says held for it" 0 held 41
+  printf '41' > "$hf"
+  chk "a one-line file without a newline holds #41" 0 held 41
+  printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "the same file newline-terminated holds #41 (null control)" 0 grep -q "HELD #41 " <<< "$ho"
   rm -f "$hf" "$t/hupdated"; HPO_RELAY_UPDATE=$ustub
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
   # a failing update is noted once and not retried
