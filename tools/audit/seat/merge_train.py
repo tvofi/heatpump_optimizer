@@ -108,8 +108,8 @@ Same queue file; no head is re-merged with main. In order:
                  that decision at the merge, so admission is only the early
                  refusal, not the verdict;
   2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
-                 (git's text merge in place of every .gitattributes driver, which
-                 GitHub never runs), P_0 = origin/main; a head that does not merge
+                 (git's text merge in place of every merge driver the clone
+                 configures, which GitHub never runs: `text_merge`), P_0 = origin/main; a head that does not merge
                  cleanly goes serial, which covers every pairwise conflict;
   3. prove    -- B: two or more entries push P_n to batch/<tag>-<n> as the App
                  (`app_push.sh --branch-only`), dispatch DISPATCH on it, and wait
@@ -310,11 +310,31 @@ def stale(cr: dict, run_status: str) -> bool:
     return cr.get("status") in ("queued", "in_progress") and run_status == "completed"
 
 
+def text_merge(run) -> "list[str] | None":
+    """`-c` arguments putting git's own text merge in place of every merge
+    driver this clone's config defines, since GitHub runs none: a merge here
+    is then the one GitHub makes. None when the config could not be read
+    (rc 1 is git's "no such key", so no driver). Only a configured driver can
+    run; an attribute naming none already falls back to the text merge."""
+    code, o = run(["git", "config", "--get-regexp", r"^merge\..+\.driver$"])
+    if code not in (0, 1):
+        return None
+    names = sorted({k[len("merge."):-len(".driver")] for k in (x.split(" ", 1)[0] for x in o.splitlines()) if k})
+    return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+
+
 def conflicts(run, base: str, head: str) -> "list[str] | None":
     """K15 (c): the paths `git merge-tree --write-tree base head` leaves
-    conflicted, [] for a clean merge; None when git could not answer (an
-    unknown commit also exits 1, with no tree line)."""
-    code, o = run(["git", "merge-tree", "--write-tree", "--name-only", "--no-messages", base, head])
+    conflicted under GitHub's merge (`text_merge`), [] for a clean merge;
+    None when git could not answer (an unknown commit also exits 1, with no
+    tree line). A claim file the local claimnotes driver would resolve is
+    therefore listed: GitHub reports that head DIRTY, and the driver is its
+    repair, not a reason to read it clean (it also printed `MERGE-CLAIM:` to
+    stderr, which a stdout+stderr runner read as merge-tree output)."""
+    drivers = text_merge(run)
+    if drivers is None:
+        return None
+    code, o = run(["git", *drivers, "merge-tree", "--write-tree", "--name-only", "--no-messages", base, head])
     lines = [x.strip() for x in o.splitlines() if x.strip()]
     if code not in (0, 1) or not lines or not is_sha(lines[0]) or (code == 1) != (len(lines) > 1):
         return None
@@ -1542,12 +1562,12 @@ class Train:
     def build(self, base: str, entries: list[dict]) -> tuple[list[dict], list[str], list[dict]]:
         """Proof commits over <base>: P_i is the merge GitHub will make of P_(i-1)
         and entry i's head -- git's own text merge in place of every driver
-        main's .gitattributes names, since GitHub runs none. An entry that does
+        the clone configures (`text_merge`), since GitHub runs none. An entry that does
         not merge cleanly onto the entries before it is returned to go serial,
         which covers every pairwise conflict and the three-way ones besides."""
-        attrs = self.run(["git", "show", f"{base}:.gitattributes"])[1]
-        drivers = [x for n in sorted(set(re.findall(r"\bmerge=([\w-]+)", attrs)))
-                   for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+        drivers = text_merge(self.run)
+        if drivers is None:
+            raise Stop("build", "git config could not be read: no proof is built under an unknown merge driver")
         kept, proofs, conflicted, last = [], [], [], base
         for a in entries:
             code, o = self.run(["git", *drivers, "merge-tree", "--write-tree", last, a["head"]])
@@ -2932,6 +2952,14 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
               f"{'pending plus a record red' if want == 'wait' else 'a failed required context'}",
               said.startswith("OVERLAP: ") and ("revert" in said) == (want == "red")
               and ("still running" in said) == (want == "wait") and ("is RED" in said) == (want == "red"))
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (1, "HTTP 502"),
+              sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+              base="batch/x").main_green("a" * 40, ["fast", "record"], "revert it first")
+    check("K15 (a): unreadable check runs log the --overlap gate as unreadable, never as a wait on every "
+          "context (null control: the readable arms above)",
+          len(lines) == 1 and "check runs unreadable" in lines[0] and "still running" not in lines[0])
     # (b) a stale check-run: in progress over a completed workflow run.
     url = "https://github.com/o/r/actions/runs/119308796140/job/5"
     stale_cr = cr("budget-raise-gate", "in_progress", cid=7, url=url)
@@ -2952,6 +2980,14 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "with its run id",
           rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
           and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
+    stale2 = cr("closures", "in_progress", cid=8, url=url)
+    w = {"runs": [cr("fast"), stale_cr, stale2], "wf_runs": {"119308796140": "completed"}}
+    w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, stale2, cr("budget-raise-gate", started="2"),
+                                           cr("closures", started="2")])
+    rc, lines, calls = go(w)
+    check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
+          rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
+          and sum(ln.startswith("STALE ") for ln in lines) == 1)
     rc, lines, calls = go(stale_world("in_progress", False))
     check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
           rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
@@ -2984,31 +3020,70 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           and cli(red_pc, "fast\npr-contract\n", "--main")[0] == 0)
     check("K15 (d): a head still in flight is WAIT (rc 3) and reviewable; an unreadable ruleset refuses (rc 2)",
           cli([cr("fast", "in_progress"), cr("pr-contract")])[0] == 3 and cli(red_pc, "")[0] == 2)
-    # (c) a DIRTY head, from git merge-tree against a throwaway repository.
+    # (c) a DIRTY head, from git merge-tree against a throwaway repository:
+    # once bare, once with the claimnotes driver installed as claim-files.md
+    # tells every clone to, which resolves a notes-only claim conflict and
+    # says so on stderr. The claim notes are comment lines, which it unions.
     claim = "tests/golden/claimed_drift.txt"
-    with tempfile.TemporaryDirectory() as d:
-        env = throwaway_git_init(d, "-q", "-b", "main")
+    got, raw = {}, {}
+    for driver in (False, True):
+        with tempfile.TemporaryDirectory() as d:
+            env = throwaway_git_init(d, "-q", "-b", "main")
 
-        def rg(argv, cwd=d):
-            r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
-            return r.returncode, r.stdout + r.stderr
+            def rg(argv, cwd=d):
+                r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
+                return r.returncode, r.stdout + r.stderr  # the tick's Tick.git shape
 
-        def commit(files: dict, msg: str) -> None:
-            for f, text in files.items():
-                (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
-                (Path(d) / f).write_text(text)
-            rg(["git", "add", "-A"])
-            rg(["git", "commit", "-qm", msg])
+            def commit(files: dict, msg: str) -> None:
+                for f, text in files.items():
+                    (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                    (Path(d) / f).write_text(text)
+                rg(["git", "add", "-A"])
+                rg(["git", "commit", "-qm", msg])
 
-        commit({claim: "0\n", "roster_edit.py": "0\n"}, "base")
-        for br, files in (("claims", {claim: "c\n"}), ("content", {claim: "c\n", "roster_edit.py": "c\n"})):
-            rg(["git", "checkout", "-qb", br, "main"])
-            commit(files, br)
-        rg(["git", "checkout", "-q", "main"])
-        commit({claim: "m\n", "roster_edit.py": "m\n"}, "main")
-        got = {br: conflicts(rg, "main", br) for br in ("claims", "content", "main", "nope")}
+            if driver:
+                rg(["git", "config", "merge.claimnotes.driver",
+                    f"{sys.executable} {ROOT / 'tests/env_drift.py'} --merge-claim-file %O %A %B %L %P"])
+            commit({claim: "# claims-for: 1\n", "roster_edit.py": "0\n", ".gitattributes": f"{claim} merge=claimnotes\n"},
+                   "base")
+            for br, files in (("claims", {claim: "# claims-for: 1\n# c\n"}),
+                              ("content", {claim: "# claims-for: 1\n# c\n", "roster_edit.py": "c\n"})):
+                rg(["git", "checkout", "-qb", br, "main"])
+                commit(files, br)
+            rg(["git", "checkout", "-q", "main"])
+            commit({claim: "# claims-for: 1\n# m\n", "roster_edit.py": "m\n"}, "main")
+            got[driver] = {br: conflicts(rg, "main", br) for br in ("claims", "content", "main", "nope")}
+            raw[driver] = rg(["git", "merge-tree", "--write-tree", "--name-only", "--no-messages", "main", "claims"])
+    def shaped(code: int, out: str):
+        return lambda argv: (1, "") if argv[1] == "config" else (code, out)
+
+    check("K15 (c): an exit code that disagrees with the lines is no answer: a clean exit with a second "
+          "line (a driver's stderr) and a conflict exit with none are None (null control: each agreeing shape)",
+          conflicts(shaped(0, f"{'a' * 40}\nMERGE-CLAIM: resolved {claim}\n"), "main", "x") is None
+          and conflicts(shaped(1, f"{'a' * 40}\n"), "main", "x") is None
+          and conflicts(shaped(0, f"{'a' * 40}\n"), "main", "x") == []
+          and conflicts(shaped(1, f"{'a' * 40}\n{claim}\n"), "main", "x") == [claim])
+    unread = lambda argv, cwd=ROOT, stdin=None: (128, "fatal: bad config") if "config" in argv else (0, "a" * 40)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=unread, sleep=lambda s: None, log=lambda s: None,
+                  polls=1).build("a" * 40, [{"pr": 1, "head": "b" * 40}])
+        built = True
+    except Stop as e:
+        built = e.step != "build"
+    except Exception:  # a crash is not the stop
+        built = True
+    check("K15 (c): an unreadable git config is no answer and no proof: conflicts() None, build stops "
+          "(null control: rc 1, git's no-such-key, is a clean read above)",
+          conflicts(unread, "main", "x") is None and not built)
     check("K15 (c): merge-tree names the conflicted files; a clean merge is [] and an unknown head None",
-          got == {"claims": [claim], "content": ["roster_edit.py", claim], "main": [], "nope": None})
+          got[False] == {"claims": [claim], "content": ["roster_edit.py", claim], "main": [], "nope": None})
+    check("K15 (c): with the claimnotes driver installed the answer is GitHub's, which runs none: a claim-only "
+          "head lists its claim file and a content conflict lists no stderr line (null control: the bare "
+          "merge-tree in that clone resolves the claim and prints MERGE-CLAIM, and without the driver it does not)",
+          got[True] == got[False] and raw[True][0] == 0 and "MERGE-CLAIM: resolved" in raw[True][1]
+          and raw[False][0] == 1 and "MERGE-CLAIM" not in raw[False][1])
+    got = got[False]  # dirty_repair's own arm reads the driverless answer
     check("K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content "
           "conflict goes back to its fixer and its verdict does not carry",
           "claimnotes" in dirty_repair(got["claims"], (claim,))
