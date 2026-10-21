@@ -524,6 +524,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   A no-op edit reproduces the roster's bytes exactly and reports `no change`
   instead of an empty commit — the round-trip the self-test pins, because a
   dump that misses the file's formatting rewrites all 7503 lines on any edit.
+  The edit is committed in a detached worktree and pushed as
+  `<sha>:refs/heads/<branch>`, never by a local branch name another run of
+  the same `--checkout` can reset. A push lost to a rival re-applies the op
+  on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
+  `--worktree` whose HEAD is on no origin ref is not reused.
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup), and the one owner of WHICH
   roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`

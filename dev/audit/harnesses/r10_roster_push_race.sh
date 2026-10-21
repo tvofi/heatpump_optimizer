@@ -29,9 +29,9 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 R=dev/programme/rosters/wave-r9-groups.json
 git init -q -b main "$T/seed"
-mkdir -p "$T/seed/.claude/workflows" "$T/seed/dev/programme/rosters"
+mkdir -p "$T/seed/tools/policy" "$T/seed/dev/programme/rosters"
 printf "await new Promise(r => setTimeout(r, %d));\nconsole.log('TOTAL: 0 error(s) across 1 file(s)');\n" \
-  "$((LINT_S * 1000))" > "$T/seed/.claude/workflows/brief_lint.mjs"
+  "$((LINT_S * 1000))" > "$T/seed/tools/policy/brief_lint.mjs"
 "$PY" - "$T/seed/$R" <<'PYS'
 import json, sys
 g = lambda n: {"group": n, "lane": "L1", "issues": [], "fixes": [], "after": [],
