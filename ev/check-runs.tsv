@@ -1,0 +1,55 @@
+pr-contract	completed	success	2026-10-21T14:32:20Z	2026-10-21T14:34:07Z
+ci-ratchet	completed	skipped	2026-10-21T14:26:52Z	2026-10-21T14:26:51Z
+closures-autofix	completed	skipped	2026-10-21T14:26:52Z	2026-10-21T14:26:51Z
+composed-proof	completed	success	2026-10-21T14:27:39Z	2026-10-21T14:27:56Z
+arch-score	completed	success	2026-10-21T14:23:34Z	2026-10-21T14:24:16Z
+budget-raise-gate	completed	success	2026-10-21T14:25:43Z	2026-10-21T14:25:59Z
+arch-score	completed	success	2026-10-21T14:21:08Z	2026-10-21T14:22:11Z
+budget-raise-gate	completed	success	2026-10-21T14:21:16Z	2026-10-21T14:21:31Z
+pr-contract	completed	success	2026-10-21T14:21:16Z	2026-10-21T14:22:30Z
+coverage-ratchet	completed	success	2026-10-21T14:17:09Z	2026-10-21T14:17:19Z
+graders-head-copy	completed	success	2026-10-21T14:17:09Z	2026-10-21T14:17:30Z
+lane-proofs	completed	success	2026-10-21T14:17:08Z	2026-10-21T14:17:16Z
+closures	completed	success	2026-10-21T14:17:08Z	2026-10-21T14:26:51Z
+claims-autofix	completed	skipped	2026-10-21T14:14:56Z	2026-10-21T14:14:55Z
+mutation-autofix	completed	skipped	2026-10-21T14:04:05Z	2026-10-21T14:04:05Z
+mutation-pins	completed	skipped	2026-10-21T14:04:05Z	2026-10-21T14:04:05Z
+mutation-pin-plan	completed	skipped	2026-10-21T14:04:05Z	2026-10-21T14:04:05Z
+nightly-ha	completed	skipped	2026-10-21T14:03:47Z	2026-10-21T14:03:46Z
+typing	completed	success	2026-10-21T14:03:49Z	2026-10-21T14:05:21Z
+coverage	completed	success	2026-10-21T14:03:49Z	2026-10-21T14:17:05Z
+browser	completed	success	2026-10-21T14:03:49Z	2026-10-21T14:07:57Z
+fast (3.14)	completed	success	2026-10-21T14:03:49Z	2026-10-21T14:14:55Z
+pr-contract	completed	success	2026-10-21T14:03:38Z	2026-10-21T14:05:20Z
+CodeQL	completed	neutral	2026-10-21T14:03:30Z	2026-10-21T14:03:32Z
+mutation-ledger	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+slow	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+mutation-ledger-push	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+mutation-nightly	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+recheck-gate	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+record-autofix	completed	skipped	2026-10-21T14:03:23Z	2026-10-21T14:03:23Z
+briefs	completed	success	2026-10-21T14:03:27Z	2026-10-21T14:04:01Z
+cancel-superseded	completed	success	2026-10-21T14:03:26Z	2026-10-21T14:03:34Z
+nightly-status	completed	failure	2026-10-21T14:03:26Z	2026-10-21T14:03:36Z
+mutation	completed	success	2026-10-21T14:03:26Z	2026-10-21T14:04:05Z
+closure-scope	completed	success	2026-10-21T14:03:26Z	2026-10-21T14:03:46Z
+Analyze (python)	completed	success	2026-10-21T14:02:26Z	2026-10-21T14:02:29Z
+Analyze (actions)	completed	success	2026-10-21T14:02:18Z	2026-10-21T14:02:29Z
+Analyze (javascript-typescript)	completed	success	2026-10-21T14:02:22Z	2026-10-21T14:03:38Z
+delivery-status-publish	completed	skipped	2026-10-21T14:02:00Z	2026-10-21T14:01:54Z
+arch-score	completed	success	2026-10-21T14:02:04Z	2026-10-21T14:03:08Z
+budget-raise-gate	completed	success	2026-10-21T14:02:12Z	2026-10-21T14:02:31Z
+record	completed	skipped	2026-10-21T14:01:55Z	2026-10-21T14:01:54Z
+kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-21T14:01:55Z	2026-10-21T14:01:54Z
+env-matrix	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:03:50Z
+wave-script	completed	success	2026-10-21T14:01:58Z	2026-10-21T14:02:24Z
+policy-docs	completed	success	2026-10-21T14:01:58Z	2026-10-21T14:02:46Z
+pr-contract	completed	success	2026-10-21T14:02:10Z	2026-10-21T14:03:35Z
+instrument-self-tests	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:06:08Z
+delivery-status	completed	success	2026-10-21T14:01:58Z	2026-10-21T14:02:14Z
+budget-raise-gate	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:02:10Z
+validate-hacs	completed	success	2026-10-21T14:02:09Z	2026-10-21T14:03:00Z
+scope	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:02:09Z
+arch-score	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:03:00Z
+cancel-superseded	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:02:08Z
+hassfest	completed	success	2026-10-21T14:01:57Z	2026-10-21T14:02:24Z

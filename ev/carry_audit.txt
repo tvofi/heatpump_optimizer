@@ -1,0 +1,5 @@
+UNROUTED #2559 review 6317769971 item d4da81d2 (## What survives for the re-review (all measured at 5756617f1)) [non-blocking]: '- Body minor: "R10-BRIEFS-FOLD 19 to 20" reads as 18->20 measured from main (two appends, 02e96a915 and 4908d9'
+UNROUTED #2559 review 6317769971 item a406c960 (## What survives for the re-review (all measured at 5756617f1)) [non-blocking]: '- R10-OPENPR-SILENT "set to its stage": the stage stays `done` and only the commit pin moves; its `next_step` '
+UNROUTED #2559 review 6318238167 item 7f85b089 [non-blocking]: '- Noted, not blocking: R10-MERGE-PR-MANDATE\'s resume.note still says "has no pull request. Owed: recarry and o'
+CARRY-AUDIT #2559: 5 finding item(s): 2 routed, 3 unrouted, 0 bad destination(s)
+rc=1

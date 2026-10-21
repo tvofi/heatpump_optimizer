@@ -1,0 +1,5 @@
+0
+3:Carry delta since the last reviewed head (802b3850): the roster tip moved from `31e162fd` to `2c76c3128` by two roster_edit commits: `617ce1316` (append-carry R10-BRIEFS-FOLD, the tests/README.md harness-path carry from #2521) and `2c76c3128` (set-stage R10-MERGE-PR-MANDATE to done). The figures below are re-taken whole at `2c76c3128`.
+19:- Carries: +56 in all. 23 sit on the 17 new groups; 33 are appended to 14 existing groups: R10-CI-LAYOUT 14 to 27, R10-BRIEFS-FOLD 18 to 21, R10-POLICY-LINT-FAMILY 3 to 5, R10-REPLAY-LANE 3 to 5, R10-ROSTER-OPS 3 to 6, R10-REGISTRY-LEAK 1 to 3, and one each on R10-ADVISOR, R10-ARCH-SHAPES, R10-FAHRENHEIT, R10-HEAT-METER, R10-I5-DOCS, R10-RCA-FRICTION, R10-STAMP, R10-TICK-ORCH (13+3+2+2+3+2+8 = 33). No carry text is rewritten in place at an unchanged count.
+20:- The three R10-BRIEFS-FOLD carries added over main include the one this head adds (from #2521: tests/README.md cites `tools/audit/harnesses/k1725_blas_kernel_gap.py`, which does not exist; the correct path is `dev/audit/harnesses/k1725_blas_kernel_gap.py`).
+22:- Resume-note edits at an unchanged stage on 12 groups, among them R10-OPENPR-SILENT and R10-REGISTRY-LEAK.
