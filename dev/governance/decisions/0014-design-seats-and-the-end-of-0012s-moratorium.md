@@ -1,10 +1,11 @@
-# 0014 — Design seats for L and XL groups; decision 0012's moratorium is void
+# 0014 — Design seats for L and XL groups; decision 0012 is revoked
 
 Status: recorded 2026-10-21 from the repository owner's rulings R16–R19 of that
 date (owner ruling 2026-10-21, `dev/programme/flow-study/RULINGS-201-3.md` at
-commit `ddacf9856acb612692d1e9c8a28f0433d16219b3`, on branch
-`claude/dazzling-gauss-7l3u2b`). Amends 0012: its process moratorium ends today
-rather than on 2026-10-31. Lands as roster group R10-FLOW-DESIGN-POLICY.
+commit `30c57744ad8aab329d0054880fc9a3154262f204`, on branch
+`claude/dazzling-gauss-7l3u2b`) and the owner's addendum to R16 (#201 comment
+6322712314). Revokes 0012, which is kept as history. Lands as roster group
+R10-FLOW-DESIGN-POLICY.
 
 ## Context
 
@@ -22,9 +23,8 @@ until 2026-10-31.
 
 ## Decision
 
-1. **0012's moratorium is void** (R16): no new policy file, lint class or rule
-   is barred by it. The rest of 0012 stands: the cadence, the one enforcement
-   point and D14's stop rule.
+1. **0012 is revoked** (R16 and its addendum): no part of it binds a seat,
+   its moratorium included, and its file is kept as history only.
 2. **Two seats join the process** (R17): the designer
    (`dev/governance/roles/designer.md`) and the design reviewer
    (`dev/governance/roles/design-review.md`). Every roster group of size L or

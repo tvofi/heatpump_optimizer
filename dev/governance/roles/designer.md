@@ -30,7 +30,11 @@ merges. Time box: 1 h of seat time for L, 2 h for XL.
    finder's harness, null control, moving goldens with their claim file, and
    the mutation proof's target lines.
 7. **Name the hot files and serial position** the roster's `after` edges need,
-   and every carry this group owes or receives.
+   and every carry this group owes or receives. A hint, test or edge case for
+   the fixer goes in the note's "Notes for the fixer" section as a carried
+   observation, in `carry_audit.py`'s grammar: `Carry: <group> (item <id>)`,
+   or `Carry: dismissed: <reason of two or more words> (item <id>)`, colon
+   required.
 8. **Write it as the group's architect note**, extended, at `design/<group>`:
    one file, at most two pages, every path resolvable by `brief_lint.mjs`.
    Write no production code. A spike that proves a shape may be committed on
@@ -41,6 +45,16 @@ merges. Time box: 1 h of seat time for L, 2 h for XL.
    moves anything the note relies on, revise within 1 h of seat time, a hard
    box, or report `revalidation failed` with what moved.
 
-**Blocks you:** a finding without a harness, a predecessor whose seam is still
-undecided, or a brief that changes behaviour no finding names. Report each one;
-never design around it.
+**Stops you:** a predecessor whose seam is still undecided, or a brief that
+changes behaviour no finding names. Report each one and stop; never design
+around it.
+
+**A note, not a stop:** a finding with no finder harness.
+- **Owner-reported** (R10-SCORES, R10-UX-HEALTH, R10-HEAT-METER): the evidence
+  is often a private diagnostics bundle. Quote the owner's report as the
+  evidence, name in step 6 the synthetic fixture and failing test the fixer
+  builds to reproduce it, record "no finder harness: owner report", and carry on.
+- **Judge-verified without a committed harness**: name the judge's re-run as
+  the evidence, and say the same.
+- **Behaviour you cannot state precisely enough for a failing test**: a stop,
+  because the fixer could not start either.
