@@ -75,7 +75,7 @@ def defrost_interval(defrosting: bool | None) -> bool:
     ``active``). ``None`` -- no flag configured, or no evidence this cycle --
     is not a defrost.
     """
-    return bool(defrosting)
+    pass
 
 
 def resolve_reading(
