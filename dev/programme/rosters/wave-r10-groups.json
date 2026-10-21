@@ -5306,6 +5306,49 @@
     "next_step": "dispatch a fixer",
     "note": null
    }
+  },
+  {
+   "group": "R10-HANDOVER-REFRESH",
+   "lane": "IN",
+   "kind": "record",
+   "class": "record",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "dev/programme/HANDOVER.md"
+   ],
+   "hot_files": [
+    "dev/programme/HANDOVER.md"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-handover-refresh",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer dispatched 2026-10-21",
+    "note": null
+   },
+   "brief": "dev/programme/HANDOVER.md was measured 2026-10-21 by the tick as updated-for a commit 2072 commits behind origin/main. Rewrite it in place as the current durable state of round 10 under writing-for-agents.md: decisions and the measurement behind them, corrections to the record, traps, owed work; volatile state stays on #201 and nothing goes in both. The updated-for line names a commit reachable from the branch head, and tests/entities.py must pass. Chronology that is no longer state moves out rather than staying inline. Re-derive every figure at the merge base; carry none from the old text. Control: the policy budgets for the file do not grow (policy_lint.mjs --budgets)."
   }
  ]
 }
