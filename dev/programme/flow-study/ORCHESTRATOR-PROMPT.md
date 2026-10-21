@@ -1,4 +1,8 @@
-# Adoption plan for the round-10 orchestrator: **revision 16** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 17** (2026-10-21)
+
+**Revision 17** corrects revision 16's #2567 item. Revision 16 said a body edit does not move the head, but named no instrument. In this tree `update_pr.sh` and `handoff_push.sh` both merge main, so they do move it. Rule 3's exception wording pointed at `update_pr.sh` too.
+
+The head-preserving path is the K14 interim (STUDY K14): `tools/pr/app_push.sh` run directly at the PR's exact head. Item 7a and rule 3 now name it, with a stop if the head moves. BODY-PATCH (#2578) is the fallback.
 
 **Revision 16** answers s4's four measured points on revision 15. None of them blocks the plan:
 - the carry marker grammar is `Carry: dismissed: <reason>`, with the colon and at least two words, everywhere in the pack;
@@ -100,7 +104,14 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 7. **Fix #2582 and register the relay fly-in** (revision 14).
    - **#2582:** open_pr.sh left it half-opened as a draft with no delivery row, because prepr's ancestry-reds rule refused its body. Add `nightly-status` to its `## Red checks` through the body-only path (K14 interim, rule 3's exception), then let the delivery row generate. Rule 22 covers the next one.
    - **R10-FLY-RELAY-REVIEW-FF (S):** when a `review/<N>` push is refused as non-fast-forward, the relay fetches the ref, re-applies the same verdict commit on the fresh tip and pushes. It never forces. If the fresh tip already carries the same verdict for the same head, it skips. It logs either case. After any push, it **reports the remote tip** (`git ls-remote origin refs/heads/review/<N>`), not the commit it built locally. `bus.sh confirm` wants that tip, and it refused the probe commit the relay seat reported twice (revision 16). Until this lands, read the tip yourself, as you do now. The fix touches `cloud_relay.sh`, a hot file, so it is reviewed after #2547 and #2580 (rule 18).
-7a. **#2567's `nightly-status` red** (revision 16). Answer it in the body's `## Red checks` now (rule 22). A body edit does not move the head, so the pending round-5 verdict stays valid, and pr-contract re-runs on the edit.
+7a. **#2567's body says `## Red checks: none` while `nightly-status` is red.** That is a real gap: it must be fixed before #2567 merges (rule 22). **Do not use `update_pr.sh` or `handoff_push.sh`;** both merge main and would stale the round-5 verdict at `4ef1a827`. Use the K14 interim, the head-preserving path:
+   1. Run `git worktree add --detach <dir> 4ef1a827`, and confirm the tree is clean and that `4ef1a827` is the PR's live head (`gh pr view 2567 --json headRefOid`).
+   2. Write the corrected body: the current body, with `## Red checks` naming `nightly-status` (run, and why it is not this PR's).
+   3. Run `PREPR_SKIP_CLOSURES=1 tools/pr/app_push.sh <args as open_pr uses them> --dry-run`, then the same command live. `app_push.sh` checks that HEAD equals the branch tip and the tree is clean, pushes nothing new, and PATCHes the body as hpo-author with a read-back.
+   4. **Verify:** the head is still `4ef1a827`, and the body reads back byte-identical. pr-contract re-runs on the `edited` event.
+   5. **If the head moved, stop** and report it. The K14 inference ("pushes nothing, still PATCHes") is read from the code, and this is its first live run.
+
+   **Fallback:** if you would rather not run an untried path, hold #2567 (its verdict is pending anyway) until #2578 (BODY-PATCH) boards. BODY-PATCH's markers-only re-read cleared it, and it goes after #2529 and #2580 on the mutants file (rule 18). Then use its instrument, which refuses unless the live head equals the expected sha.
    - **OWED:** `handoff/audit-r10-plan` at `eceba844` with no PR is yours to route after the merge seat reports. It is the stranded-handoff case that R10-ORCH-MACHINERY's ledger ages to a DISPATCH line at 4 h.
 7b. **Everything in revisions 9–11 stands,** except where this revision changes it.
 8. **Prepare round 11's architect/planner** (revision 13, owner).
@@ -178,7 +189,7 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
    - **Owner mode,** for code-owned paths, approves as tvofi under `--mandate 6319294694`.
    - The train approves the same way (`--approval-carry`, `--mandate`).
 3. **Rule D: while the relay is up, never run `update_pr.sh` by hand.** The relay's handoff arm already updates every PR whose handoff tip is ahead. Wait for its `updating` line, read the new head, apply rule E, then dispatch the reviewer at that head.
-   - **Exceptions:** a body-only fix (the K14 interim, until BODY-PATCH lands) and a PR on RELAY-HOLD's hold list.
+   - **Exceptions:** a PR on RELAY-HOLD's hold list. A body-only fix never uses `update_pr.sh`, because it merges main and moves the head: use the K14 interim (`tools/pr/app_push.sh` at the PR's exact head; item 7a) until BODY-PATCH lands, then BODY-PATCH's instrument.
 4. **Rule E: dispatch a reviewer only at a reviewable head.** Read the latest run of each required context (ruleset `main-protect-checks`, live) at that head.
    - Any concluded failure: back to the fixer.
    - Pending is fine: the verdict posts after the checks conclude, and step 11 stands on the post-workflow pr-contract run (R9).

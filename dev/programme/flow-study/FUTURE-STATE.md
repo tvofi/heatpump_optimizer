@@ -438,3 +438,8 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 72. **Markers-only re-reads route nothing.** All four came back fully dismissed. That supports R10-FLY-CARRY-DISPOSITION: the orchestrator's own disposition would have cost nothing.
 73. **Design review: decisions are routed, and a design gets three notes at most.** On SCORES the revise points went 8 → 4 at about 20 min per round, and two round-1 asks were orchestrator decisions. The draft contract says so, and the 1-h revalidation box is unchanged.
 74. **The relay reports the remote tip of `review/<pr>`** (fly-in R10-FLY-RELAY-REVIEW-FF's scope). `bus.sh confirm` refused the reported probe commit twice. No verdict was lost, because the orchestrator read the tips.
+75. **Revision 16's #2567 item was wrong in this tree.** It said a body edit does not move the head, but named no instrument, and rule 3's exception wording pointed at `update_pr.sh`. That script, like `handoff_push.sh`, merges main and moves the head.
+    - The head-preserving path is K14's interim: `tools/pr/app_push.sh` at the PR's exact head, which pushes nothing new and PATCHes the body as hpo-author with a read-back. It has a stop if the head moves, because the inference is read from the code and this is its first live run.
+    - BODY-PATCH (#2578) is the fallback, after #2529 and #2580 on the mutants file.
+    - #2567's `## Red checks: none` with `nightly-status` red is a real gap. It must be fixed before #2567 merges.
+76. **Design review:** the orchestrator marks owner-only and orchestrator-only points as decisions in its review briefs. SCORES's round 3 is out, and a third `revise` means a minimal re-cut.

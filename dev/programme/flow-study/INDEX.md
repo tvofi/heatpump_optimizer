@@ -65,3 +65,5 @@ The model's design switches are in `tools/simulate.py`'s header.
 - Design review routes decisions, with three notes at most.
 - The relay reports the review ref's tip.
 - #2567's red is answered in its body.
+
+**Revision 17 (2026-10-21):** #2567's body fix uses K14's head-preserving path (`app_push.sh` at the exact head), never `update_pr.sh`. Rule 3's exception is corrected.
