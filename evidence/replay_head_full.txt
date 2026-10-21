@@ -1,3 +1,6 @@
++ cd /tmp/claude-0/-home-user-heatpump-optimizer/43ad3a60-04a6-5bca-bdc6-ada98075f595/scratchpad/head
++ PYTHONPATH=tests/hastub
++ /tmp/claude-0/-home-user-heatpump-optimizer/43ad3a60-04a6-5bca-bdc6-ada98075f595/scratchpad/venv/bin/python tests/replay.py
 
 === Replay: recorded days through the real coordinator ===
   ok   at least one fixture
@@ -84,8 +87,8 @@
 
 -- replay synthetic-dhw-only.json
   ok   synthetic-dhw-only.json: the replay ran to the end
-  48 cycles over 81 entities in 19.6 s; cost {'cpu_ratio': 1.3732, 'peak_kib': 1917.3, 'loop_cpu_ratio': 0.1206, 'timed': 23, 'traced': 24, 'ref_ms': 82.95811000000009, 'loop_ref_ms': 178.26276299999998}
-  record: synthetic-dhw-only.json cpu_ratio=1.942 peak_kib=2711 loop_cpu_ratio=0.1706
+  48 cycles over 81 entities in 12.9 s; cost {'cpu_ratio': 1.6218, 'peak_kib': 1914.4, 'loop_cpu_ratio': 0.0974, 'timed': 23, 'traced': 24, 'ref_ms': 60.8384700000002, 'loop_ref_ms': 183.51236300000016}
+  record: synthetic-dhw-only.json cpu_ratio=2.294 peak_kib=2707 loop_cpu_ratio=0.1377
   ok   synthetic-dhw-only.json: at least one cycle and one entity
   ok   synthetic-dhw-only.json: finite
   ok   synthetic-dhw-only.json: unit
@@ -93,20 +96,19 @@
   ok   synthetic-dhw-only.json: agreement
   ok   synthetic-dhw-only.json: cycle
   ok   synthetic-dhw-only.json: not_frozen
-  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1206 over its budget 0.12]
+  ok   synthetic-dhw-only.json: cycle_cost
   ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
-  cpu doubled: cost {'cpu_ratio': 2.8527, 'peak_kib': 1917.0, 'loop_cpu_ratio': 0.749, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 77.53754800000002, 'loop_ref_ms': 175.90870599999775}
+  cpu doubled: cost {'cpu_ratio': 3.6475, 'peak_kib': 1914.8, 'loop_cpu_ratio': 0.8426, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 56.39874800000122, 'loop_ref_ms': 144.58622100000085}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
   ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
   ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
-  memory doubled: cost {'cpu_ratio': 1.4141, 'peak_kib': 3829.7, 'loop_cpu_ratio': 0.1236, 'timed': 23, 'traced': 24, 'ref_ms': 80.059322, 'loop_ref_ms': 178.56043999999827}
+  memory doubled: cost {'cpu_ratio': 2.1256, 'peak_kib': 3826.6, 'loop_cpu_ratio': 0.1225, 'timed': 23, 'traced': 24, 'ref_ms': 51.114748999999904, 'loop_ref_ms': 161.15758699999992}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
   ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
-  loop doubled: cost {'cpu_ratio': 1.6866, 'peak_kib': 1916.8, 'loop_cpu_ratio': 0.2492, 'injected_ratio': 1.0002, 'timed': 23, 'traced': 24, 'ref_ms': 76.77871799999991, 'loop_ref_ms': 172.48198700000117}
+  loop doubled: cost {'cpu_ratio': 2.4925, 'peak_kib': 1917.1, 'loop_cpu_ratio': 0.203, 'injected_ratio': 1.0014, 'timed': 23, 'traced': 24, 'ref_ms': 52.707900000000585, 'loop_ref_ms': 194.91746199999938}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
   ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
 
-replay lane wall time 101.3 s
+replay lane wall time 70.6 s
 
-1 of 93 replay checks FAILED
-DONE2
+ALL 93 replay checks PASSED
