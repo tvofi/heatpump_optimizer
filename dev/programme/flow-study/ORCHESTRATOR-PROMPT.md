@@ -1,4 +1,10 @@
-# Adoption plan for the round-10 orchestrator: **revision 15** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 16** (2026-10-21)
+
+**Revision 16** answers s4's four measured points on revision 15. None of them blocks the plan:
+- the carry marker grammar is `Carry: dismissed: <reason>`, with the colon and at least two words, everywhere in the pack;
+- design review routes decisions instead of revising for them, with three notes at most;
+- the relay reports the review ref's remote tip, not its probe commit;
+- #2567's red gets its body answer now.
 
 **Revision 15** answers s4's four points on revision 14:
 - rule 21 is relaxed: a bookkeeping-only roster delta keeps its verdict, checked mechanically by `tools/roster_delta.py`;
@@ -70,7 +76,7 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 0c. **Parked verdicts** (#2547, #2580, #2578, #2569, all parked on unrouted notes).
    - Board #2571 first, since it is the carry_audit misread fix, then re-run pre-flight on the four. Some may pass once their notes stop reading as findings.
    - Still parked after that: markers-only re-reads now for #2580 (RELAY-HOLD) and #2578 (BODY-PATCH), which are expedites, and for #2569 (ROSTER-PUSH-RACE), which goes before PR-B. #2547 waits for R10-FLY-CARRY-DISPOSITION if that lands within about an hour, and is otherwise re-read too.
-   - Register **R10-FLY-CARRY-DISPOSITION (S)** and dispatch it now, ahead of every finish-first item. It lets the orchestrator add `Carry: dismissed <reason>` or `Carry: <group>` under its own identity, keyed to the verdict's head SHA and read back, without a review. It touches `carry_audit.py`, so it is reviewed after #2571 (rule 18). JIDOKA keeps its prepr scope.
+   - Register **R10-FLY-CARRY-DISPOSITION (S)** and dispatch it now, ahead of every finish-first item. It lets the orchestrator add `Carry: dismissed: <reason>` or `Carry: <group>` under its own identity, keyed to the verdict's head SHA and read back, without a review. It touches `carry_audit.py`, so it is reviewed after #2571 (rule 18). JIDOKA keeps its prepr scope.
 0d. **R10-FLY-OPENPR-ATOMIC (S).** open_pr.sh creates the PR only after the body contract (ancestry reds and `ref_privacy` included) passes. If a later step still fails, it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. This replaces revision 14's BODY-PATCH carry, since #2578 is parked with a verdict. Meanwhile, finish or close a half-opened PR by hand, as #2582 was.
 
 1. **Hot files first: protect the verdicts already paid for** (standing rule 18).
@@ -85,7 +91,7 @@ Where this message and nudge.md disagree, follow this message only on what R1–
    - the corpus-cap raise, with its Raise justification.
 3. **Start the first design now.** R10-SCORES's last predecessor (R10-ADVISOR) has dispatched, so its designer dispatches now. Until step 2 merges, it runs on the draft pinned at PACK_SHA: `dev/programme/flow-study/design-seats/designer.md`, and `design-review.md` for its reviewer. This is the same rule as a group not yet on the roster (rule A). The full schedule is in the "Design seats" section below.
 4. **Register fly-in R10-FLY-CAP-LINE (S).** The tick's "at the cap: do not dispatch" line should name its exceptions: expedites (rule 16) and the next chain link (rule 15). Until it lands, treat that line as holding lane dispatches only.
-5. **Tell reviewers about carry markers.** Every reviewer dispatch from now on carries rule 19's instruction. When a merge verdict is parked on an unmarked note, the orchestrator may post `Carry: dismissed <reason>` itself, but **only once JIDOKA's carry lands**. Until then, it parks as today. Ask for the re-verdict as a markers-only re-read, not a full review.
+5. **Tell reviewers about carry markers.** Every reviewer dispatch from now on carries rule 19's instruction. When a merge verdict is parked on an unmarked note, the orchestrator may post `Carry: dismissed: <reason>` itself, but **only once JIDOKA's carry lands**. Until then, it parks as today. Ask for the re-verdict as a markers-only re-read, not a full review.
 6. **Roster PR-B starts only after roster PR-A (#2576) has merged.** `handoff/audit-r10-roster` is PR-A's own branch, so every edit pushed to it moves PR-A's head and voids its verdict. Two carry appends already moved it from `df70cb6b` to `fe1365f0` and cost an extra Opus delta review. Merge PR-A as soon as its delta verdict posts (rule C), then open PR-B from the branch's new head. Until then, queue every roster edit (rule 21). PR-B then carries:
    - 23 flow groups, adding R10-FLOW-DESIGN-POLICY and R10-FLOW-DESIGN-STAGES (revision 12) and R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN (revision 13);
    - 23 carries, adding the design carry on the 7 eligible groups, the exemption note on the 5 exempt ones, and UPDATE-PR-SIGNALS's lock and reaper carry.
@@ -93,7 +99,9 @@ Where this message and nudge.md disagree, follow this message only on what R1–
    The flow groups' own revision-12 carries are in their group files at PACK_SHA. Use those files.
 7. **Fix #2582 and register the relay fly-in** (revision 14).
    - **#2582:** open_pr.sh left it half-opened as a draft with no delivery row, because prepr's ancestry-reds rule refused its body. Add `nightly-status` to its `## Red checks` through the body-only path (K14 interim, rule 3's exception), then let the delivery row generate. Rule 22 covers the next one.
-   - **R10-FLY-RELAY-REVIEW-FF (S):** when a `review/<N>` push is refused as non-fast-forward, the relay fetches the ref, re-applies the same verdict commit on the fresh tip and pushes. It never forces. If the fresh tip already carries the same verdict for the same head, it skips. It logs either case. The fix touches `cloud_relay.sh`, a hot file, so it is reviewed after #2547 and #2580 (rule 18).
+   - **R10-FLY-RELAY-REVIEW-FF (S):** when a `review/<N>` push is refused as non-fast-forward, the relay fetches the ref, re-applies the same verdict commit on the fresh tip and pushes. It never forces. If the fresh tip already carries the same verdict for the same head, it skips. It logs either case. After any push, it **reports the remote tip** (`git ls-remote origin refs/heads/review/<N>`), not the commit it built locally. `bus.sh confirm` wants that tip, and it refused the probe commit the relay seat reported twice (revision 16). Until this lands, read the tip yourself, as you do now. The fix touches `cloud_relay.sh`, a hot file, so it is reviewed after #2547 and #2580 (rule 18).
+7a. **#2567's `nightly-status` red** (revision 16). Answer it in the body's `## Red checks` now (rule 22). A body edit does not move the head, so the pending round-5 verdict stays valid, and pr-contract re-runs on the edit.
+   - **OWED:** `handoff/audit-r10-plan` at `eceba844` with no PR is yours to route after the merge seat reports. It is the stranded-handoff case that R10-ORCH-MACHINERY's ledger ages to a DISPATCH line at 4 h.
 7b. **Everything in revisions 9–11 stands,** except where this revision changes it.
 8. **Prepare round 11's architect/planner** (revision 13, owner).
    - **R10-FLOW-ARCH-PLANNER (policy):** dispatch it once R10-FLOW-DESIGN-POLICY has merged, since both edit `orchestrator.md` and `CLAUDE.md`. It lands:
@@ -138,6 +146,11 @@ If you judge a prototype not approved, say so on #201 and run the design review 
 Designer and design-reviewer seats open no pull request, so they do not count against the WIP cap. They are Opus seats.
 
 `cloud_dispatch.py` has no designer role yet (R10-FLOW-DESIGN-STAGES adds `designer` and `design-reviewer`). Until then, dispatch the probe role, with the brief overriding its "send no code to any ref" for exactly `design/<group-topic>` (designer) or `design-verdict/<group-topic>` (reviewer).
+
+**Design review routes decisions and stops at three notes** (draft `design-seats/design-review.md` at PACK_SHA).
+- A point only you or the owner can settle is marked `decision: orchestrator` or `decision: owner`, answered by you, and is not a revise point.
+- A third `revise` means re-cut to the minimal shape the fixer can start from, with the rest as carries. There is no fourth note.
+- Live: R10-SCORES took 8, then 4 revise points, at about 20 min per round. Two of round 1's asks were yours to decide. Keep the 1-h revalidation box as it is.
 
 **An owner-reported finding without a finder harness is a note, not a stop.** This applies to SCORES, UX-HEALTH and HEAT-METER, whose evidence is the owner's private diagnostics bundle. The designer quotes the owner's report, names the synthetic fixture and failing test the fixer will build, and carries on; the draft at PACK_SHA now says so. The R10-SCORES designer reported this blocker and designed the rest, which was right.
 
@@ -222,9 +235,10 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
     - Before dispatching a reviewer, list the PR's changed files (`git diff --name-only $(git merge-base origin/main <head>) <head>`). If an open PR that shares a hot file holds an unboarded merge verdict, board that one first: at the next pitch, or directly through `merge_pr.sh` (rule C). Review this one after it absorbs main.
     - Live on 2026-10-21: #2567 lost its verdict to #2560 and #2548 in `pr_args.sh`, and RELAY-HOLD, YIELD-PROBE and PR G each lost a code round in the mutants file.
     - R10-FLOW-DISPATCH's carry makes this mechanical.
-19. **Every observation in a first verdict carries a disposition:** `Carry: <group>` or `Carry: dismissed <reason>`. Pre-flight's carry gate parks a merge verdict on an unmarked note: #2576, #2567 and #2571 were parked, each costing a fresh Opus re-verdict (about 8k tokens of dispatch plus a review).
+19. **Every observation in a first verdict carries a disposition,** in `carry_audit.py`'s grammar (line 18 on main): `Carry: <GROUP>`, `Carry: #<issue>`, `Carry: O<n>[-name]`, or `Carry: dismissed: <reason>`. The colon after `dismissed` is required, and the reason must be two words or more. Earlier pack text left the colon out, which invites a first-pass refusal. Pre-flight's carry gate parks a merge verdict on an unmarked note: #2576, #2567 and #2571 were parked, each costing a fresh Opus re-verdict (about 8k tokens of dispatch plus a review).
     - Put this sentence in every reviewer dispatch until R10-FLOW-DISPATCH's prompt carries it.
     - R10-FLOW-JIDOKA's carry lets the orchestrator add the disposition afterwards, without a new review.
+    - Measured: the four markers-only re-reads (#2547, #2580, #2578, #2569) dismissed every item and routed none. The notes were non-blocking, which is the case R10-FLY-CARRY-DISPOSITION makes free.
 20. **Locks and orphans.** R10-UPDATE-PR-SIGNALS owns prevention: a lock held by a dead pid is broken with a logged line, and every self-test runs under a timeout in its own process group. R10-FLOW-ANDON owns detection: a handoff tip ahead of its PR for more than 20 min, a dead lock owner, or a self-test older than 1 h.
     - Until both land, check `upd-*.lock` owners with `kill -0` before waiting on a stalled handoff.
     - Live: a stale lock held PR G at `7752acbf` for over 30 min, and an orphaned self-test spun for 8.6 h.

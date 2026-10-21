@@ -59,3 +59,9 @@ The model's design switches are in `tools/simulate.py`'s header.
 - Rule 21 is amended.
 - Three fly-ins: CARRY-DISPOSITION, OPENPR-ATOMIC and RELAY-REVIEW-FF.
 - The hygiene adds ref_privacy and red checks.
+
+**Revision 16 (2026-10-21):**
+- The carry marker grammar matches `carry_audit.py`.
+- Design review routes decisions, with three notes at most.
+- The relay reports the review ref's tip.
+- #2567's red is answered in its body.

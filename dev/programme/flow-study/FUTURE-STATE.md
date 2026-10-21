@@ -401,7 +401,7 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - Open PRs collided at revision 12: #2524 and #2567 on `pr_args.sh` and `update_pr.sh`; #2529, #2578 and #2580 on the mutants file; #2547 and #2580 on `cloud_relay.sh`.
     - Board the verdicted one first, and review the others after they absorb it.
     - R10-FLOW-DISPATCH makes this mechanical, and mutants go inside their instrument's block.
-50. **Carry markers in the first verdict** (rule 19). R10-FLOW-JIDOKA's carry lets the orchestrator add `Carry: dismissed <reason>` without a new review (or #2571's owning group, if it is still open).
+50. **Carry markers in the first verdict** (rule 19). R10-FLOW-JIDOKA's carry lets the orchestrator add `Carry: dismissed: <reason>` without a new review (or #2571's owning group, if it is still open).
 51. **Locks and orphans** (rule 20): UPDATE-PR-SIGNALS prevents (dead-pid lock break, self-test timeout and reap), and ANDON detects.
 52. **The tick's cap line** gets fly-in R10-FLY-CAP-LINE, and FLOW-WIP keeps the change.
 53. **Tokens.** Modelled at about +4% programme-wide at the L threshold. Measure it from seat reports if the seats give token counts; the tree records none.
@@ -434,3 +434,7 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 68. **open_pr.sh atomicity becomes fly-in R10-FLY-OPENPR-ATOMIC**, not a carry on the parked #2578.
 69. **The carry disposition becomes fly-in R10-FLY-CARRY-DISPOSITION, first in line** after #2571 (the same file). Four parked verdicts each cost about 8k tokens and a cloud session to re-read. #2571 may clear some on a pre-flight re-run.
 70. **The tick's cap line stays queued as R10-FLY-CAP-LINE.** Until it lands, the orchestrator reads it as holding lane dispatches only, as it already does.
+71. **The carry marker grammar follows `carry_audit.py`** (line 18): `Carry: <GROUP> | #<issue> | O<n>[-name] | dismissed: <reason>`, where a dismissal reason is two words or more. The pack's wording left the colon out. Corrected everywhere: prompt, future state, group briefs.
+72. **Markers-only re-reads route nothing.** All four came back fully dismissed. That supports R10-FLY-CARRY-DISPOSITION: the orchestrator's own disposition would have cost nothing.
+73. **Design review: decisions are routed, and a design gets three notes at most.** On SCORES the revise points went 8 → 4 at about 20 min per round, and two round-1 asks were orchestrator decisions. The draft contract says so, and the 1-h revalidation box is unchanged.
+74. **The relay reports the remote tip of `review/<pr>`** (fly-in R10-FLY-RELAY-REVIEW-FF's scope). `bus.sh confirm` refused the reported probe commit twice. No verdict was lost, because the orchestrator read the tips.

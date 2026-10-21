@@ -754,7 +754,7 @@ REV12 = {
      "tip has been ahead of its pull request's head for more than 20 minutes, when a lock's "
      "owner pid is dead, and when any seat self-test process is older than 1 h."),
     "R10-FLOW-DISPATCH": ("Revision 12 (orchestrator, 2026-10-21): (1) the reviewer prompt requires every observation in "
-     "the first verdict to carry 'Carry: <group>' or 'Carry: dismissed <reason>', so pre-flight's "
+     "the first verdict to carry 'Carry: <group>' or 'Carry: dismissed: <reason>', so pre-flight's "
      "carry gate never parks a merge verdict on an unmarked note (it parked #2576, #2567 and "
      "#2571, each a fresh Opus re-verdict); (2) refuse a reviewer at a head that shares a hot "
      "file (pr_args.sh, update_pr.sh, cloud_relay.sh, orchestrator_tick.py, "
@@ -762,7 +762,7 @@ REV12 = {
      "verdict: that one boards first, and this one is reviewed after absorbing it, so a paid "
      "verdict is never killed by a content conflict (#2567 went DIRTY after its 16:21Z verdict)."),
     "R10-FLOW-JIDOKA": ("Revision 12, moved in revision 15: the orchestrator-added carry "
-        "disposition ('Carry: dismissed <reason>' or 'Carry: <group>', under the orchestrator "
+        "disposition ('Carry: dismissed: <reason>' or 'Carry: <group>', under the orchestrator "
         "identity, keyed to the verdict's head SHA, read back) is fly-in "
         "R10-FLY-CARRY-DISPOSITION, dispatched ahead of the finish-first list; this group keeps "
         "its prepr and roster-ref scope."),
