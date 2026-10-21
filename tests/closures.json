@@ -1357,6 +1357,7 @@
    "custom_components/heatpump_optimizer/prefill_offer.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/price_tiles.py",
    "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
@@ -4299,7 +4300,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 670.4
   },
   "tests/env_drift.py": {
