@@ -809,6 +809,14 @@ INERT_EXCEPT = (
     "tools/policy/friction_issues.mjs",
     "tools/policy/policy_lint_mutants.mjs",
     "tools/policy/rules_sync.mjs",
+    # R10-TRAIN-HOLD (issue #2302): tests/entities.py reads this file's
+    # HOLD_REF constant, so the record beat's ref name and the train's cannot
+    # drift apart (the TRAIN-HOLD block's cross-half pin). The `tools/audit/`
+    # prefix would keep it INERT while entities.py opens it -- the #357
+    # contradiction the 0c216ecc closures job reported as INERT READS
+    # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
+    # and an edit to the train selects tests/entities.py.
+    "tools/audit/seat/merge_train.py",
 )
 
 
