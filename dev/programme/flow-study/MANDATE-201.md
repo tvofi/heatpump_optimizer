@@ -1,0 +1,2 @@
+MANDATE: agents may approve as tvofi, scope all, from 2026-10-21T16:00Z until 2026-11-04T18:14Z
+Extends mandate 6175172275 (scope all, to 2026-10-28T18:14Z) for the round-10 flow plan (ruling R10). Intended end: 48 h after the round-10 stamp; the owner posts a revocation then if it comes before the date above. Everything else about agent approval is unchanged: identities per decision 0011, budget raises only under this grant's own rules, and a seat's own message is never approval.

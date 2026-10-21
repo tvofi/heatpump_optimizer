@@ -33,7 +33,7 @@
   "R10-FLOW-BODY-ONLY"
  ],
  "carry": [
-  "Owner action, outside the repo: create one standing trigger per seat role that reads a brief ref named in its fire text.",
+  "Owner ruling (R15): the orchestrator drafts the three standing trigger prompts (Opus fixer, Opus reviewer, Sonnet fixer) once this lands; the owner creates them in the harness.",
   "Pre-study: the Lean flow pre-study, section K16.",
   "Seam with R10-ORCH-MACHINERY: dispatch through bus.sh dispatch so the ledger's reviewer-fire close is written, and add the seat to workers.json, which the seats job reads."
  ],

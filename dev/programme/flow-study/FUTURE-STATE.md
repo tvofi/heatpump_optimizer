@@ -195,6 +195,7 @@ Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly
 | group | what | why (round time) | after | owner gate |
 |---|---|---|---|---|
 | **R10-FLOW-RECHAIN** | apply the decision seat's ruling: 8 drops, 3 required and 4 recommended edges, plus HEAT-METER ← THERMAL-POWER-OPTION (STUDY K7) | chain depth 11 → 8; the biggest single lever | R10-ROSTER-OPS (`set-after`) | ruling R6 |
+| **R10-FLOW-YIELD-PROBE** | explain the 0.52→0.15 fall in real-catch blocks per PR, stratum by stratum, and recommend the guardrail threshold | the guardrail must not rest on an unexplained baseline | — (expedite) | ruling R13 |
 | **R10-FLOW-BODY-PATCH** | PATCH a PR body at an unchanged head, after the body contract | no tool could repair a refused body without moving the head (#2560) | — (expedite) | mandate |
 | **R10-FLOW-MAIN-GATE** | the train's main-green gate: latest run per required context; pending is wait | it logged "revert main" on pending checks and owed record reds | #2570 (shared classifier; expedite) | mandate |
 | **R10-FLOW-DISPATCH** | one call per cloud seat: brief to a ref, one fire line | a payload and two pasted trigger bodies per seat | BODY-ONLY | mandate; standing triggers are an owner action |
@@ -233,6 +234,17 @@ Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly
 | R8 | Authority for the merge-queue probe ruleset (throwaway branch only) | yes |
 | R9 | fix-review step 11 stands on a green pr-contract run that started after the head's last workflow concluded; the step-1 mutation proof stays the reviewer's (HANDOVER: CI cannot produce it) | yes: HANDOVER's "never re-gate an unchanged head" |
 
+**Second set of rulings (2026-10-21, after the orchestrator's evidence):**
+
+| ruling | decision |
+|---|---|
+| R10 | Mandate extended to round 10's stamp + 48 h. The grammar needs a timestamp, so it is posted with a fixed date, and the owner revokes it 48 h after the stamp |
+| R11 | The andon watcher: this study's session sets up a cloud scheduled task (every 15 min, push notification on a heartbeat ref older than 20 min) once FLOW-ANDON lands, with the owner's approval then |
+| R12 | R10-ORCH-MACHINERY's design amendments (STUDY K17) are approved in its brief. The fix reviewer checks them at build; there is no design round 4 |
+| R13 | Investigate the real-catch fall (0.52 → 0.15) before any threshold: R10-FLOW-YIELD-PROBE. Until then the review-strength guardrail reports and does not trip |
+| R14 | Ledger aging for stranded handoffs: 4 h to a DISPATCH line, 12 h to an owner flag |
+| R15 | Standing cloud triggers: the orchestrator drafts the three per-role prompts once FLOW-DISPATCH lands; the owner creates them |
+
 Mandate 6175172275 covers the code-owned and policy PRs until **2026-10-28T18:14Z**. FLOW-PULL and the POLICY-FIXER-MD carry must merge before then, or need a fresh grant.
 
 ---
@@ -244,7 +256,7 @@ Mandate 6175172275 covers the code-owned and policy PRs until **2026-10-28T18:14
 | Main health | a **required** context (ruleset `main-protect-checks`, read live) whose **latest** run on a `main` push concluded failure. Pending is not red; `record*`, `nightly-status`, `delivery-status` and other non-required contexts (`ci-ratchet` today) are excluded | record the count at adoption | a required context red on two consecutive `main` pushes after a flow change merged |
 | Reverts | revert commits on `main` | 0 | any revert of a flow-change merge |
 | Reopened issues | issues reopened after closing | record at adoption | any reopened issue closed by a merge after adoption |
-| Review strength | real-catch blocks per reviewed PR, rolling 48 h | **0.15/PR** (47 PRs, 48 h before 14:50Z 10-21) | with at least 20 PRs reviewed in the window, the rate falls below **0.07/PR**, half the baseline |
+| Review strength | real-catch blocks per reviewed PR, rolling 48 h | **0.15/PR** (47 PRs, 48 h before 14:50Z 10-21); 0.52 over the round's first six days | **reported only; trips on nothing** until R10-FLOW-YIELD-PROBE explains the fall and recommends a threshold (ruling R13) |
 | Review evidence | every `merge` verdict names its mutation-proof result and the finder's harness at both ends | present in every verdict today | any merge verdict without both |
 
 The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption. That fall is a fact to watch, not the plan's doing. A non-required context that stays red (`ci-ratchet`: 11 `main` pushes since 11:34Z) is owed work, not a guardrail trip: #2531 (R10-CI-RATCHET-RED, `merge` verdict at its head) appears to be its fix and should board the next train.

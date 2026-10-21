@@ -2,8 +2,8 @@
 
 **Base:** live roster `origin/handoff/audit-r10-roster` at 617ce1316 when planned; the committed shadow is rebuilt at 2c76c3128 (one stage change on R10-MERGE-PR-MANDATE) (108 groups: 51 done, 20 in progress, 34 not started, 3 queued).
 
-**Shadow:** `roster/shadow-r10-groups.json`, 123 groups. It adds:
-- 15 flow groups
+**Shadow:** `roster/shadow-r10-groups.json`, 124 groups. It adds:
+- 16 flow groups
 - 6 carries folded into existing groups
 
 `node tools/policy/brief_lint.mjs roster/shadow-r10-groups.json` run from a main checkout prints `TOTAL: 0 error(s)`. Rebuild it at any newer roster ref with `python3 tools/build_shadow.py origin/handoff/audit-r10-roster`.
@@ -35,13 +35,14 @@ To verify, not caused by this plan:
 | B | other product groups | 4 |
 | C | process groups | 3 |
 | F | fly-ins (`R10-FLY-*`) | 2 |
-| **K** | the 15 flow groups: an improvement allowance on top of A–F during the drain | **2** |
+| **K** | the 16 flow groups: an improvement allowance on top of A–F during the drain | **2** |
 | expedite | line-stop items | bypasses the caps, one at a time |
 
 **Flow-group order** (each only once its `after` groups are done):
 - **Expedite, now:**
   1. FLOW-BODY-PATCH
   2. FLOW-MAIN-GATE (after #2570)
+  3. FLOW-YIELD-PROBE (ruling R13: explain the 0.52→0.15 real-catch fall before any threshold relies on it)
 - **Then:**
   3. FLOW-RECHAIN (applies the seat's ruling in the roster burst)
   4. FLOW-ROSTER-FREEZE
@@ -109,7 +110,7 @@ To verify, not caused by this plan:
 **Phase 1b: one burst on a fresh roster PR (as soon as #2559 and #2513 have merged).**
 In one sitting, through `roster_edit.py`'s lint gate:
 - the seat's 8 drops, 3 required and 4 recommended edges, and the HEAT-METER ← THERMAL-POWER-OPTION edge (`set-after`), with the note and brief text from the decision file;
-- the 15 flow groups (`append-group`; BODY-PATCH and MAIN-GATE may already be in flight as expedites: register them with their actual stage);
+- the 16 flow groups (`append-group`; BODY-PATCH and MAIN-GATE may already be in flight as expedites: register them with their actual stage);
 - the 6 carries (`append-carry`);
 - the set-resume notes;
 - the stage changes held back during Phase 1a.
@@ -153,7 +154,7 @@ Raise lane A to 4 in the same hour.
 
 Lane K is the flow allowance; BODY-PATCH and MAIN-GATE dispatch inside the drain as expedites. "after" lists the edges as re-chained by the seat.
 
-day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
+day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
@@ -178,8 +179,8 @@ day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
 | 0 | 12 | 0 | R10-RCA-ORCH-CONTINUITY | C | M | rca | in-progress | — |
 | 0 | 12 | 0 | R10-REPLAY-LANE | B | M | owner | in-progress | R10-DIAG-REPLAY |
 | 0 | 21 | 11 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
+| 0 | 21 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
 | 0 | 21 | 12 | R10-CURRENCY | A | S | defect | not-started | — |
-| 0 | 21 | 12 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 0 | 21 | 12 | R10-INPUT-STALENESS | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-LOOP-CPU | A | S | defect | not-started | R10-NIGHT-FOLDS |
 | 0 | 21 | 12 | R10-POLICY-GATE-SCOPING | C | S | policy | not-started | R10-TICK-DRIVERS |
@@ -192,7 +193,7 @@ day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
 | 1 | 29 | 12 | R10-SCORES | A | L | owner | not-started | R10-ADVISOR, R10-RATIO-SITES |
 | 1 | 29 | 21 | R10-CONFIG-NOTICES | A | S | arch | not-started | — |
 | 1 | 29 | 21 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
-| 1 | 29 | 21 | R10-FLOW-PULL | K | S | policy | not-started | — |
+| 1 | 29 | 21 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 1 | 29 | 21 | R10-LEARNER-DEFAULT | A | S | defect | not-started | — |
 | 1 | 29 | 21 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
 | 1 | 30 | 21 | R10-BRIEFS-FOLD | C | M | policy | not-started | R10-ARCHSCORE-COVERAGE, R10-D15-GRADER |
@@ -202,13 +203,13 @@ day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
 | 1 | 32 | 23 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
 | 1 | 33 | 24 | R10-CEILING-PROBE | B | M | production | not-started | R10-SETPOINT-BOOST, R10-CI-LAYOUT, R10-NIGHT-FOLDS |
 | 1 | 36 | 29 | R10-FLOW-ANDON | K | S | instrument | not-started | R10-TICK-RELAY-DECOUPLE |
-| 1 | 36 | 29 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
+| 1 | 36 | 29 | R10-FLOW-PULL | K | S | policy | not-started | — |
 | 1 | 36 | 30 | R10-POLICY-FIXER-MD | C | S | policy | not-started | R10-RCA-FRICTION, R10-BRIEFS-FOLD |
 | 1 | 37 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
 | 1 | 38 | 24 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |
 | 1 | 38 | 30 | R10-DEMAND-OVERBOOK | A | M | production | queued | R10-SETPOINT-BOOST |
 | 1 | 41 | 36 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
-| 1 | 41 | 36 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
+| 1 | 41 | 36 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
 | 1 | 42 | 29 | R10-SENSOR-PAYLOAD | A | L | arch | not-started | R10-SCORES |
 | 1 | 43 | 36 | R10-MUTATION-ANCHOR | C | M | instrument | not-started | — |
 | 1 | 44 | 37 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
@@ -216,11 +217,12 @@ day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
 | 1 | 46 | 29 | R10-CI-LAYOUT-P1 | C | XL | instrument | not-started | R10-CI-LAYOUT |
 | 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU |
 | 1 | 46 | 41 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
-| 2 | 48 | 41 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
+| 1 | 46 | 41 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 2 | 50 | 46 | R10-FLOW-DISPATCH | K | S | instrument | not-started | R10-FLOW-BODY-ONLY |
-| 2 | 53 | 48 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
+| 2 | 52 | 46 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
 | 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS |
-| 2 | 56 | 53 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
+| 2 | 55 | 50 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
+| 2 | 58 | 55 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 59 | 46 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
 | 2 | 59 | 46 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
 | 2 | 71 | 59 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |

@@ -36,7 +36,7 @@ from simulate_rules import HOT_ONLY, added as added_edges
 
 G = {g['group']: g for g in d['groups']}
 # Flow groups go first in lane C, biggest round-time lever first.
-FLOW_ORDER = ['R10-FLOW-BODY-PATCH', 'R10-FLOW-MAIN-GATE', 'R10-FLOW-RECHAIN', 'R10-FLOW-ROSTER-FREEZE',
+FLOW_ORDER = ['R10-FLOW-BODY-PATCH', 'R10-FLOW-MAIN-GATE', 'R10-FLOW-YIELD-PROBE', 'R10-FLOW-RECHAIN', 'R10-FLOW-ROSTER-FREEZE',
               'R10-FLOW-BODY-ONLY', 'R10-FLOW-PULL', 'R10-FLOW-ANDON', 'R10-FLOW-WIP', 'R10-FLOW-JIDOKA',
               'R10-FLOW-POSTMERGE', 'R10-FLOW-BOARD', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-DISPATCH',
               'R10-FLOW-MQ-PROBE', 'R10-FLOW-RECORD-PITCH']
@@ -98,7 +98,7 @@ for t in range(H + 1):
                              TGT[G[n].get('size')]))
     for n in cand:
         L = lane(n)
-        if t < HOLD and not n.startswith(('FLY-', 'R10-FLY')) and n not in ('R10-FLOW-RECHAIN', 'R10-FLOW-BODY-PATCH', 'R10-FLOW-MAIN-GATE'): continue
+        if t < HOLD and not n.startswith(('FLY-', 'R10-FLY')) and n not in ('R10-FLOW-RECHAIN', 'R10-FLOW-BODY-PATCH', 'R10-FLOW-MAIN-GATE', 'R10-FLOW-YIELD-PROBE'): continue
         if CAPS is None:
             if total >= 6 and L != 'F': continue
         elif wip[L] >= (KAIZEN if L == 'K' else CAPS[L]): continue

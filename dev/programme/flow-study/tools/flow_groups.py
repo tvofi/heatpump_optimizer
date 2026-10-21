@@ -151,10 +151,30 @@ GROUPS = [
         "the group builds the repo half. Controls: a fixture dispatch renders the same payload as "
         "today's three-step path, byte for byte; a host path still refuses; the printed line "
         "round-trips to the brief.",
-        ["Owner action, outside the repo: create one standing trigger per seat role that reads a "
-         "brief ref named in its fire text.",
+        ["Owner ruling (R15): the orchestrator drafts the three standing trigger prompts (Opus fixer, "
+         "Opus reviewer, Sonnet fixer) once this lands; the owner creates them in the harness.",
          "Pre-study: the Lean flow pre-study, section K16."],
         fixer="sonnet", reviewer="opus", severity="medium"),
+    group(
+        "R10-FLOW-YIELD-PROBE", "study", "S", [],
+        ["dev/governance/dimensions/D13.md"],
+        [],
+        "Explain the fall in review strength before any guardrail relies on it (Lean flow study, "
+        "owner ruling R13). Real-catch blocked verdicts per reviewed pull request fell from 0.52 "
+        "over round 10's first six days (112 pull requests) to 0.15 in the 48 h before the flow "
+        "plan's adoption (47 pull requests), before any flow change merged; bookkeeping blocks held "
+        "near 0.6 per pull request. Measure, on the review and verdict bus refs and the merged "
+        "pull requests, which of these moves the rate: the mix of pull requests reviewed (product "
+        "against instrument and process, size), the reviewer seat's model and agent kind (nudge.md "
+        "replaced dead Opus seats with other models), fixer quality (first-pass merge share by "
+        "fixer model), the verdict carries that replace re-reviews, and the real-catch classes "
+        "themselves. Each candidate is a stratified rate with its own count, and a null control "
+        "stratum whose rate must not move. Deliver the explanation and a recommended threshold "
+        "for the review-strength guardrail; until it lands the guardrail reports the rate and "
+        "trips on nothing. Follow D13's required outputs where they apply.",
+        ["Owner ruling: investigate the 0.52 to 0.15 fall first (R13).",
+         "Pre-study: the Lean flow pre-study, guardrail baselines (classes and enumerator)."],
+        fixer="opus", reviewer="opus", severity="high"),
     group(
         "R10-FLOW-BODY-ONLY", "instrument", "S", ["R10-UPDATE-PR-SIGNALS", "R10-FLOW-BODY-PATCH"],
         ["tools/audit/seat/update_pr.sh", "tools/audit/seat/cloud_relay.sh",
@@ -403,7 +423,9 @@ CARRIES = [
      "its code rather than building a second page, keeps the UNAVAILABLE page and the five "
      "mutation fixtures, and renders R10-FLOW-BOARD's flow section from the same model. "
      "(7) Inventory row M43 is stale: pr_cap.py gates dispatch, not opening, since #2525. "
-     "Owner decisions this needs: the two job rows and the ledger kind amend an approved design."),
+     "Owner rulings (2026-10-21): the amendments are approved in this brief and the fix reviewer checks "
+     "them against STUDY K17 at build (R12); the stranded-handoff aging defaults are 4 h to a DISPATCH "
+     "line and 12 h to an owner flag (R14), built behind the switch the brief already asks for."),
 
     ("R10-CI-LAYOUT-P2",
      "Lean flow study K9: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, the "
