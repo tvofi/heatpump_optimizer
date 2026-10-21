@@ -482,10 +482,12 @@ in its own pull request.
 50. **The deploy key's SSH on port 22 can time out from the stamping host.**
     Route `github.com` to `ssh.github.com:443` in the SSH config and verify the
     host key against GitHub's published fingerprints (v7.0.2's stamp).
-51. **The next-session prompt renders a group with no branch as
-    `git fetch origin None`** (`tools/audit/seat/handover_prompt.py`'s in-flight
-    line takes the field unguarded). That line is generator output, not a
-    command: such a group starts from `main`.
+51. **`body_push.sh`'s predictor does not run the layout guard.**
+    `tools/pr/ci_predict.py` passed a head that `prepr.sh` then refused inside
+    `open_pr.sh` on `new-reference` (R10-HANDOVER-REFRESH's first handoff, a
+    retired path cited in prose). Before `body_push.sh`, run
+    `python3 -I tests/layout.py --guard --base $(git merge-base origin/main HEAD)`;
+    rc=0 and `0 refusal(s)` is the pass.
 52. **A cloud seat's container may not put the toolchain on `PATH`, and the
     system `python3` cannot parse the suite.** Measure `python3 -V`: on 3.11
     `tests/entities.py` fails on its own f-string before any check runs. Prepend
