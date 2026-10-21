@@ -1261,7 +1261,8 @@
    ],
    "carry": [
     "Null control: popping the registry at unload reads 5 to 0; a live coordinator must keep its entry.",
-    "Follow-up test folded here rather than opened as its own pull request: handoff handoff/r10-earlycutoff-coverage at ecaf178c adds 52 lines to tests/features.py asserting the release/detach path of early_cutoff directly. This group owns that code and is done, so the test should ride the next touch of early_cutoff, or be opened as a test-only pull request if no touch is planned."
+    "Follow-up test folded here rather than opened as its own pull request: handoff handoff/r10-earlycutoff-coverage at ecaf178c adds 52 lines to tests/features.py asserting the release/detach path of early_cutoff directly. This group owns that code and is done, so the test should ride the next touch of early_cutoff, or be opened as a test-only pull request if no touch is planned.",
+    "Test-coverage residual of this group's fix (#2329): handoff r10-earlycutoff-coverage at ecaf178c (5 days old at 2026-10-21, no group of its own) adds four direct assertions to tests/features.py for early_cutoff.py's detach path. Open it from that handoff under this group; re-measure at your merge base before opening, since the handoff predates main's newer commits."
    ],
    "architect_note": null,
    "resume": {
