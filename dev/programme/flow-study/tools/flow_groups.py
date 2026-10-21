@@ -105,7 +105,8 @@ GROUPS = [
         "repairs the line). Ruling R4 forbids moving a clean head, and update_pr.sh merges main on "
         "every run, but no tool PATCHes a body alone: app_push.sh mints, pushes, then PATCHes, and "
         "has no body-only flag. Bodies that pr-contract or carry_audit refuse therefore stay red or "
-        "get a head move (2026-10-21: #2560's 111 to 113 figure). Add one seat instrument that "
+        "get a head move. (#2560's 111 to 113 figure, cited in revision 3, was not a live case: the "
+        "live body already said 113 from the round-3 recount; corrected in revision 4.) Add one seat instrument that "
         "takes a pull request number, the expected head sha and a body file; refuses unless the "
         "live head equals the expected sha; runs the body contract offline at that head (the "
         "policy_lint.mjs --pr-body arm prepr runs, and carry_audit.py check --body); PATCHes the "
@@ -116,8 +117,10 @@ GROUPS = [
         "exact request; mutants for the head check, the contract arm and the read-back.",
         ["Interim, until this lands: app_push.sh run from a clean worktree checked out at the pull "
          "request's exact head, with the corrected body and no new commit, should push nothing and "
-         "PATCH the body (read from the code, not run): try it once with --dry-run, then live on "
-         "#2560, and confirm the head sha unchanged.",
+         "PATCH the body (read from the code, never yet run). Its first real test is the first "
+         "block at an unchanged head whose repair is body-only; at revision 4 that is #2561 "
+         "(carry-missing at 1019d18d), unless #2559's merge clears its bad destinations first. "
+         "Run --dry-run, then live, and confirm the head sha unchanged.",
          "Pre-study: the Lean flow pre-study, section K14."],
         fixer="sonnet", reviewer="opus"),
     group(
@@ -138,10 +141,11 @@ GROUPS = [
         ["Sequence after #2570 (the tick's MAIN-section fix) and share its classifier.",
          "Pre-study: the Lean flow pre-study, section K15."]),
     group(
-        "R10-FLOW-DISPATCH", "instrument", "S", ["R10-FLOW-BODY-ONLY"],
+        "R10-FLOW-DISPATCH", "instrument", "S", [],
         ["tools/audit/seat/cloud_dispatch.py", "tools/audit/seat/INSTRUMENTS.md"],
         ["tools/audit/seat/cloud_dispatch.py"],
-        "One call per cloud seat (Lean flow study K16). Today each cloud seat costs a rendered "
+        "One call per cloud seat (Lean flow study K16; expedite since revision 4: the repo half has no "
+        "dependency on any other flow group, and its cost recurs for every seat). Today each cloud seat costs a rendered "
         "payload plus two trigger bodies pasted whole, and the renderer needs environment, model "
         "and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and "
         "model, derive the rest from the roster and the seat environment it already knows, write "
@@ -404,6 +408,11 @@ CARRIES = [
     ("R10-ORCH-MACHINERY",
      "Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the "
      "approved design's beat and ledger must own, and they land first, so build them in: "
+     "(0) The beat and every job it runs are detached processes, never an agent loop: in the live run of "
+     "2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed. "
+     "beatd.py runs under daemonize.py and an operating-system supervisor that restarts it (launchd on "
+     "the orchestrator's Mac, a user systemd unit elsewhere); an agent only reads beatd status and the "
+     "journal, and never hosts a job. "
      "(1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, "
      "timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, "
      "not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the "
@@ -440,8 +449,8 @@ CARRIES = [
 # Seams with R10-ORCH-MACHINERY's approved design (STUDY K17): each flow group that builds
 # something the design's beat or ledger will own says how it moves there.
 SEAMS = {
-    "R10-FLOW-ANDON": "Seam with R10-ORCH-MACHINERY: write the heartbeat as a standalone job script with --once, called by tick_loop.sh now and registered as the beat's heartbeat job later; do not entrench it in tick_loop.sh, which the design retires.",
-    "R10-FLOW-AUTOTRAIN": "Seam with R10-ORCH-MACHINERY: write the pitch as a standalone job script with --once (the design's job table has no train job); the beat hosts it as the pitch job; read the ledger's train-stop obligation when it exists.",
+    "R10-FLOW-ANDON": "Seam with R10-ORCH-MACHINERY: write the heartbeat as a standalone job script with --once, called by tick_loop.sh now and registered as the beat's heartbeat job later; do not entrench it in tick_loop.sh, which the design retires. The script runs detached (daemonize.py), never as an agent loop.",
+    "R10-FLOW-AUTOTRAIN": "Seam with R10-ORCH-MACHINERY: write the pitch as a standalone job script with --once (the design's job table has no train job); the beat hosts it as the pitch job; read the ledger's train-stop obligation when it exists. The script runs detached (daemonize.py), never as an agent loop.",
     "R10-FLOW-POSTMERGE": "Seam with R10-ORCH-MACHINERY: once the obligations ledger exists, record a failed step as the event kind postmerge-owed through ledger.py, not as a free OWED line, which the design refuses; until then the tick's OWED grammar.",
     "R10-FLOW-BODY-ONLY": "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists.",
     "R10-FLOW-ROSTER-FREEZE": "Seam with R10-ORCH-MACHINERY: read a live reviewer from the design's workers.json when it exists (else the review worktree heuristic); the beat's handoff job generalises this freeze to every head.",

@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH · K17 ORCH-MACHINERY alignment · guardrail baselines · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · guardrail baselines (method and script) · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -367,14 +367,26 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 
 ## K14 · R10-FLOW-BODY-PATCH (instrument, S, Sonnet fixer, Opus reviewer): expedite
 
-**Gap** (orchestrator, 2026-10-21): until R10-FLOW-BODY-ONLY lands, the plan said "PATCH the body without `update_pr.sh`, or carry the verdict". No PATCH tool exists, and carrying a verdict does not repair a body that `pr-contract` or `carry_audit` refuses. The open case is #2560's 111→113 figure.
+**Gap** (orchestrator, 2026-10-21): until R10-FLOW-BODY-ONLY lands, the plan said "PATCH the body without `update_pr.sh`, or carry the verdict". No PATCH tool exists, and carrying a verdict does not repair a body that `pr-contract` or `carry_audit` refuses.
+
+**Correction (revision 4).** Revision 3 cited #2560's "111→113" figure as the live case. **It was not one:**
+- that figure came from the round-1 reviewer's reading of `ref_privacy --check` at head f8694ba2;
+- the live body already said 113, matching the round-3 recount at 2108fcb0;
+- #2560's head has since moved to ca06fa6e, and it holds a `merge` verdict from an older head.
+
+**The interim procedure has no completed live run.**
+
+**First real test.** The first block at an **unchanged** head whose repair is body-only. At revision 4 (measured from the `review/*` bus at 2026-10-21 ≈17:10Z) the only open candidate is **#2561**: `carry-missing` at head 1019d18d, its destinations being issues with no owning group.
+- If #2559's merge clears those destinations, its next pr-contract run passes with no body change, and there is no test.
+- Otherwise the fixer re-routes the carries in the body: that is the first live run.
+- #2563 and #2529's carry-missing blocks are on heads that have since moved, so they do not qualify.
 
 **Facts**
 - `app_push.sh` (flags `--dry-run`, `--recarry`, `--branch-only`) runs prepr, then checks that HEAD equals the branch tip and the tree is clean, then the ref-privacy guard, then mints the App token, pushes, and PATCHes the body of an open PR with a read-back.
 - A run from a clean worktree at the PR's exact head, with a corrected body, pushes nothing new and still PATCHes. That is **read from the code, not run**.
 - `pr-contract.yml` re-runs on `edited` and reads the body from the API.
 
-**Interim, today:**
+**Interim, today (never yet run live):**
 1. Check out a clean worktree at the PR's exact head.
 2. Write the corrected body.
 3. Run `tools/pr/app_push.sh … --dry-run`, then the same command live.
@@ -409,7 +421,9 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 
 **Controls:** the e7c66485 shape reads wait or green; a failed required context reads red; mutants for each arm.
 
-## K16 · R10-FLOW-DISPATCH (instrument, S, Sonnet fixer, Opus reviewer), plus an owner action
+## K16 · R10-FLOW-DISPATCH (instrument, S, Sonnet fixer, Opus reviewer): **expedite since revision 4**, plus an owner action
+
+**Sequencing (revision 4).** Revision 3 put it after R10-FLOW-BODY-ONLY. There is no technical dependency: the repo half touches only `cloud_dispatch.py`. Every cloud seat meanwhile costs one rendered payload plus two full trigger bodies. It is now an expedite with no `after`.
 
 **Observed:** each cloud seat costs a rendered payload plus two trigger bodies pasted whole. The renderer needs environment, model and repo flags, and refuses host paths.
 
@@ -431,6 +445,13 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
   - **An OWED shape with no ledger kind is refused.**
 - **`plan_page.py`,** sharing one `plan_model()` with `plan_table.py`.
 
+**Requirement 0 (revision 4): the beat is detached processes, never an agent loop.**
+- **Evidence:** in the live run of 2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed by hand.
+- **Rule:** `beatd.py` runs under `daemonize.py` and an operating-system supervisor that restarts it: launchd (`KeepAlive`) on the orchestrator's Mac, or a user systemd unit with `Restart=always` elsewhere.
+- **Every job is a script with `--once`.** An agent reads `beatd status` and the journal. It never hosts a job, a relay pass or a tick.
+- **Until the beat lands,** `tick_loop.sh` and `cloud_relay.sh --watch` run under `daemonize.py` too, not inside an agent session.
+- **The same rule** binds FLOW-ANDON's heartbeat and FLOW-AUTOTRAIN's pitch.
+
 **Collisions, and how this plan resolves them:**
 
 | flow group | collides with | resolution (seam note on the group; binding carry on R10-ORCH-MACHINERY) |
@@ -451,9 +472,23 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 
 **Sequencing:** R10-ORCH-MACHINERY stays after R10-ROSTER-OPS and R10-CI-LAYOUT (design B5: each instrument lands with its wiring). The flow groups that land earlier are written as job scripts and functions so that the beat hosts them unchanged.
 
-## Guardrail baselines (for FUTURE-STATE §9), measured 2026-10-21 14:50Z from the `review/*` bus refs
+## Guardrail baselines: exactly how the figures were measured (revision 4)
 
-**Real-catch classes:**
+**The enumerator is `tools/review_baseline.py` on this branch.** Run it in any clone after:
+
+```
+git fetch origin '+refs/heads/review/*:refs/remotes/origin/review/*'
+```
+
+**Refs.** Every `refs/heads/review/<N>` with a numeric `<N>`: the reviewer's *proposed* verdicts, one commit appended per verdict by `bus.sh push-verdict`. The confirmed `verdict/<N>` refs are **not** used. Named refs such as `review/orch-machinery-design` are skipped.
+
+**A verdict.** A commit whose subject matches `Fix review: (merge|blocked) <40-hex>\s*\[?([a-z-]+)?`.
+- Its time is the committer date, in UTC.
+- A window is `[start, end)`.
+
+**Classes.** The class is the first token after the 40-hex head (a leading `[` is allowed).
+
+**Real-catch** is a `blocked` verdict whose class is one of:
 - harness
 - class-open
 - test-vacuous / vacuous-test / vacuous-check
@@ -465,17 +500,26 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 - policy-regression
 - figures-false
 
-Every other blocked class is bookkeeping.
+Every other `blocked` verdict is bookkeeping. That includes a missing or unparsed class, `carry-missing`, `root-cause-unanswered`, `ci-red` and `head-moved`.
 
-| window | reviewed PRs | real-catch blocks per PR | bookkeeping blocks per PR |
-|---|---|---|---|
-| round-10 study window (10-15 12:37Z → 10-21 11:00Z) | 112 | 0.52 | 0.58 |
-| last 48 h before adoption | 47 | **0.15** | 0.64 |
-| since 13:00Z 10-21 (the orchestrator's sample) | 11 | 0.36 | 0.45 |
+**Denominator.** Distinct PR numbers with at least one verdict in the window: reviewed PRs, not merged ones. Re-reviews count, so a PR blocked twice adds two blocks.
 
-The real-catch rate fell from 0.52 to 0.15 **before any flow change merged**. A guardrail on "a fall" therefore needs the pre-change baseline (0.15/PR over 47 PRs), a minimum sample and a defined trigger (FUTURE-STATE §9). Otherwise it fires on noise, or on a fall that predates the plan.
+**Figures** (re-run at revision 4; the windows lie in the past and the refs are append-only, so they reproduce):
 
-**Enumerator:** for each `review/<pr>` ref, take the commit subjects (`verdict: #N Fix review: merge|blocked <40hex> <class>: …`) by committer time in the window. Count PRs, merges, and blocked subjects by class.
+| window | reviewed PRs | verdicts | real-catch | per PR | bookkeeping per PR |
+|---|---|---|---|---|---|
+| study window 2026-10-15T12:37Z → 10-21T11:00Z | 112 | 257 | 58 | **0.52** | 0.58 |
+| 48 h before adoption 2026-10-19T14:50Z → 10-21T14:50Z | 47 | 84 | 7 | **0.15** | 0.64 |
+| **disjoint** earlier window 2026-10-15T12:37Z → 10-19T14:50Z | 83 | — | 57 | **0.69** | 0.53 |
+| rolling 48 h at ≈ 17:10Z 10-21 | 49 | 86 | 7 | 0.14 | 0.59 |
+
+**Caveat (revision 4).** The 0.52 and 0.15 windows **overlap**: the 48-h window is the tail of the study window. Compared disjointly, the fall is **0.69 → 0.15**, which is sharper than revision 3 stated.
+
+**Limits.**
+- The class is whatever the reviewer wrote first after the head sha. A reviewer who leads with a bookkeeping word on a real catch is counted as bookkeeping.
+- Proposed verdicts the orchestrator never confirmed are included.
+
+R10-FLOW-YIELD-PROBE owns explaining the fall. Until it reports, the guardrail only reports the rate (R13).
 
 ## Fly-in intake (no group: operating rule, carried by K3)
 

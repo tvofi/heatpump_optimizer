@@ -1,102 +1,100 @@
-# Final handover prompt for the round-10 orchestrator (revision 4: rulings R10–R15, the new mandate, the R10-ORCH-MACHINERY alignment; 2026-10-21)
+# Handover prompt for the round-10 orchestrator (revision 5, after two hours of live Phase 0; 2026-10-21)
 
-Send everything between the two lines as it is.
+Send everything between the two lines as it is. Revision 4 of this prompt (rulings R10–R15, the new mandate, the R10-ORCH-MACHINERY alignment) is folded in here, so nothing from it is lost if you ran Phase 0 against revision 3.
 
 ---
 
-You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/roles/orchestrator.md`, with `dev/governance/roles/nudge.md` as your turn. This replaces revisions 1 and 2. It takes in everything you reported:
-- the seat's re-chain;
-- `update_pr.sh` always merging `main`;
-- #2559 as a moving head;
-- `BAD-DEST`;
-- the missing body-PATCH tool;
-- the `--overlap` gate misreading pending checks;
-- the unusable guardrail;
-- the unpriced freeze;
-- the per-seat dispatch cost.
+You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/roles/orchestrator.md`, with `dev/governance/roles/nudge.md` as your turn. This revision answers your seven findings from the live run. FUTURE-STATE §11 items 11–17 say which were right and where the plan disagrees.
 
 **Authority.**
-- Rulings R1–R9 are #201 comment [6318002897](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6318002897).
-- Rulings R10–R15 are comment [6319292851](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319292851).
-- **Mandate [6319294694](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319294694)** (scope all, 2026-10-21T16:00Z → 2026-11-04T18:14Z) extends 6175172275. Cite 6319294694 wherever a mandate is asked for.
+- Rulings R1–R9: #201 comment [6318002897](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6318002897).
+- Rulings R10–R15: comment [6319292851](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319292851).
+- **Mandate [6319294694](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319294694)** (scope all, 2026-10-21T16:00Z → 2026-11-04T18:14Z) extends 6175172275. Cite 6319294694.
 - Never edit either comment: the gate voids an edited mandate.
 
 Where this message and nudge.md disagree, follow this message only on what R1–R15 name.
 
-**The pack** is on branch `claude/dazzling-gauss-7l3u2b`, `dev/programme/flow-study/` (a reading copy, not a PR).
+**The pack** is branch `claude/dazzling-gauss-7l3u2b`, `dev/programme/flow-study/`. It is a reading copy, not a PR. Pin the commit you brief from, and cite it in every rule-A dispatch.
 
 ```
 git fetch origin claude/dazzling-gauss-7l3u2b
 git -C ~/hpo-orch/flow-study checkout --detach origin/claude/dazzling-gauss-7l3u2b 2>/dev/null || git worktree add --detach ~/hpo-orch/flow-study origin/claude/dazzling-gauss-7l3u2b
-PACK=~/hpo-orch/flow-study/dev/programme/flow-study
+PACK=~/hpo-orch/flow-study/dev/programme/flow-study; PACK_SHA=$(git -C ~/hpo-orch/flow-study rev-parse HEAD)
 ```
 
-Read `$PACK/FUTURE-STATE.md` §9 and §11, then `$PACK/SHADOW-PLAN.md` §2 and §3.2. Brief each flow seat with its own `$PACK/STUDY.md` section.
+Read `$PACK/FUTURE-STATE.md` §11, then `$PACK/SHADOW-PLAN.md` §3.2 and §3.3.
 
-## Phase 0: drain, stop starting (now until about 12 h)
+## Loops are detached processes, never agent turns
+
+Run `tools/audit/seat/tick_loop.sh` and `cloud_relay.sh --watch` under `tools/audit/seat/daemonize.py`, not inside an agent session. Agent-hosted loops ended their turns twice in the live run. You read their logs and boards; you do not host them. R10-ORCH-MACHINERY's beat inherits this rule (STUDY K17, requirement 0).
+
+## Phase 0: drain, stop starting (continue)
 
 1. **Measure at your refs.** Never carry a number from this message into a record.
 2. **Start nothing new except:**
    - expedites;
-   - size-S fly-ins (registered in Phase 1b; noted on #201 until then);
-   - **two flow expedites that repair the line:**
-     - **R10-FLOW-BODY-PATCH:** STUDY K14; no `after`.
-     - **R10-FLOW-MAIN-GATE:** STUDY K15; after #2570, sharing its classifier.
-     - **R10-FLOW-YIELD-PROBE:** ruling R13. It explains the fall in real-catch blocks per PR from 0.52 to 0.15 before any guardrail threshold relies on it.
-3. **Reading `main`, until MAIN-GATE lands:** judge only the **latest run of each required context** (ruleset `main-protect-checks`, read live).
-   - Pending is wait.
-   - `record`, `record-autofix`, `nightly-status`, `delivery-status`, and every non-required context (`ci-ratchet` today), never trigger a revert.
-   - A "main is not green" line from the `--overlap` gate is not evidence until you have done that reading.
-4. **Pitch: on the hour, or when the previous train ends, whichever is later.**
-   - A train boards only heads that are **verdicted and green at load time**, proved together in one batch. It never waits for a slow head; that head boards the next pitch.
-   - Carry moved verdicts (`app_approve.sh --carry`) before any re-review.
+   - size-S fly-ins;
+   - **four flow expedites:**
+     - **R10-FLOW-BODY-PATCH** (STUDY K14)
+     - **R10-FLOW-MAIN-GATE** (STUDY K15; after #2570, sharing its classifier)
+     - **R10-FLOW-YIELD-PROBE** (R13)
+     - **R10-FLOW-DISPATCH** (STUDY K16; an expedite since this revision, with no dependency)
+3. **Their groups are not on the roster yet. Apply SHADOW-PLAN §3.3 rule A:**
+   - the dispatch names the group id and the brief source `$PACK/roster/groups/<NAME>.json` at `$PACK_SHA`;
+   - the PR body says `Group: <ID> (registration pending: roster PR-B)` and cites it;
+   - reviewers review against that pinned file;
+   - "group: none" is not acceptable;
+   - no carry may point to a pending group.
+
+   Fly-ins follow the same rule, with the brief text in the dispatch and one #201 line.
+4. **Reading main: rule B.** When `--overlap` says "main is not green", read the latest run of each required context (ruleset `main-protect-checks`, live):
+   - if they are all pending, that is **wait**: no revert, no main-red fixer, no overlapping train, never `--allow-red`;
+   - re-check next tick;
+   - pending longer than about 2 h (twice the train CI) is stalled, not red: check for zero runs and run `approve_held_runs.sh`;
+   - log each instance in one line on #201.
+5. **Pitch: on the hour, or when the previous train ends, whichever is later.**
+   - Board only heads that are verdicted and green at load time, in one batch.
+   - Carry moved verdicts before any re-review.
    - Use `--bot-prs` and both `--ignore-red` names.
-   - Log each train's CI time. About 57 min is the current measurement, and that is expected for one proof per pitch.
-   - #2531 (R10-CI-RATCHET-RED, verdicted at its head) appears to be the `ci-ratchet` fix: board it.
-5. **Body fixes without moving a head, until BODY-PATCH lands:**
-   1. Check out a clean worktree at the PR's **exact** head.
-   2. Write the corrected body.
-   3. Run `tools/pr/app_push.sh` with `--dry-run`, then live.
-   4. Confirm the head sha is unchanged and the read-back is identical. If the head moves, stop and report it: the procedure is read from the code, not yet run.
+   - Log each train's CI time.
+6. **Body fixes without moving a head,** until BODY-PATCH lands: use the K14 interim. Run `app_push.sh` from a clean worktree at the PR's exact head, `--dry-run` first, and confirm the head is unchanged afterwards.
+   - **It has never run live.** The #2560 case revision 3 cited was stale (its body already says 113).
+   - **The first real test is #2561** (carry-missing at 1019d18d), if that block survives #2559's merge. Otherwise it is the next block whose repair is body-only at an unchanged head.
+   - Run `update_pr.sh` only when the code tip moved, or the PR is DIRTY or conflicted.
+7. **Blocked heads** go back to their fixer in the same turn. **Reviewers** take critical-path groups first. Step 11 stands on the post-workflow pr-contract run (R9).
 
-   Do this first on #2560's 111→113 figure. Run `update_pr.sh` only when the handoff code tip moved, or the PR is DIRTY or conflicted. Carrying a verdict does not repair a refused body.
-6. **Blocked heads** go back to their fixer in the same turn.
-7. **Reviewers** take unreviewed heads oldest first, critical-path groups first. A verdict posts once required checks have concluded. Step 11 stands on the post-workflow pr-contract run (R9); the mutation proof stays the reviewer's.
+## Phase 1a: #2559 under the freeze (the clock is redefined)
 
-## Phase 1a: #2559 first, under a bounded freeze
+- **The freeze** runs from review dispatch until #2559 merges: no `roster_edit.py --push` in that window.
+- **The 4-h bound runs only while #2559 is under review,** from dispatch until a verdict posts.
+  - **Blocked verdict:** lift the freeze, push the held edits, and request one fresh review (its own clock).
+  - **No verdict in 4 h:** lift the freeze and push the held edits. That stale review then needs re-dispatching.
+  - **`merge` verdict:** the clock stops. The freeze holds until merge.
+- **Now:** #2559 holds a `merge` verdict at 802b3850 (16:58Z). The clock is stopped, and #2559 boards **as the first car of the next train**. If no train is running, merge it directly at once.
+- Its merge clears `BAD-DEST` on #2529, #2547 and #2561.
 
-- **The freeze runs from #2559's review dispatch until it merges.** No `roster_edit.py --push` in that window. Before the review starts, pushes are still allowed.
-- **#2559 boards the next train as its first car.** Do not merge it alongside a running train: the batch would re-prove, costing about one CI run.
-- **The expected cost** is about 3 h of lag on set-stage, fly-in registrations and carries. That is harmless during the drain.
-- **Bound:** if the freeze passes 4 h, lift it, push the held edits, and request one fresh review.
-- Merging #2559 also clears `BAD-DEST` on #2529, #2547 and #2561.
+## Phase 1b: two roster PRs, one review each (your default split, adopted)
 
-## Phase 1b: one burst, one new roster PR (once #2559 and #2513 have merged)
+**Roster PR-A, the re-chain** (once #2559 and #2513 have merged):
+- the seat's 8 drops, 3 required and 4 recommended edges, and HEAT-METER ← R10-THERMAL-POWER-OPTION (`set-after`);
+- the note and brief text from the seat's decision file, plus the seat's three files as evidence.
 
-Through `roster_edit.py`'s lint gate, in one sitting:
+One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HPO_WIP_CAP=13`; lanes A4 B4 C3 F2).
 
-1. **Your seat's ruling,** with `set-after`, plus the note and brief text from its decision file:
-   - the 8 drops
-   - the 3 required edges
-   - the 4 recommended edges
-   - HEAT-METER ← R10-THERMAL-POWER-OPTION
+**Roster PR-B, the bookkeeping** (after PR-A merges; one roster branch, so sequential):
+- **`append-group`** for each `$PACK/roster/groups/<NAME>.json`, in this order:
+  R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH.
+  - Give each group its actual stage and merge sha (the rule-A expedites may be done already).
+- **The 6 carries** (`$PACK/tools/flow_groups.py` `CARRIES`).
+- **The held stage changes.**
+- **Fly-in registrations.**
+- **Two notes:** whether #2528's remaining work overlaps #2526, and whether R10-ORCH-MACHINERY part (3) duplicates #2558.
 
-   Never apply the drops without the required edges. Land the seat's three files in the tree with this burst.
-2. **`append-group $PACK/roster/groups/<NAME>.json`,** in this order:
-   R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-DISPATCH, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH.
-   - Set each group's actual stage: the three expedites and RECHAIN may already be done or in flight.
-   - A brief_lint refusal means the roster moved: fix that line, never the linter.
-3. **The 6 carries,** with the texts in `$PACK/tools/flow_groups.py` `CARRIES`.
-4. **Everything held during Phase 1a,** plus two notes:
-   - whether #2528's remaining work overlaps #2526;
-   - whether R10-ORCH-MACHINERY part (3) duplicates #2558.
-5. **Open one new roster PR and dispatch one reviewer.** The freeze applies again for that review.
-6. **Raise lane A to 4** (`HPO_WIP_CAP=13`; lanes A4 B4 C3 F2).
-7. **One #201 comment** through `gh_comment.py`, with a byte-identical read-back.
+PR-B is mechanically reviewable. Each group must equal its pack file at `$PACK_SHA` (stage and resume fields excepted), each carry must equal its `CARRIES` text, `brief_lint` must print `TOTAL: 0`, and `carry_audit.py owners` must show no orphan. If PR-A's review loops, PR-B may go first. The freeze and its clock apply to each PR in turn.
 
-## Phase 2: flow groups through lane K, two at a time (from about 12 h)
+Then post one #201 comment through `gh_comment.py`, with a byte-identical read-back.
 
-In order, each only once its `after` group has merged:
+## Phase 2: flow groups through lane K, two at a time
 
 | flow group | waits for |
 |---|---|
@@ -109,28 +107,30 @@ In order, each only once its `after` group has merged:
 | POSTMERGE | #2554 |
 | BOARD | #2558 |
 | AUTOTRAIN | PULL and #2549 |
-| DISPATCH | BODY-ONLY |
 
-Each follows `fixer.md` in full. ANDON, AUTOTRAIN, POSTMERGE, BODY-ONLY, ROSTER-FREEZE, DISPATCH, WIP, MAIN-GATE and BOARD each carry a seam note: they are built as job scripts or functions that R10-ORCH-MACHINERY's beat and ledger will host unchanged (STUDY K17). When you dispatch R10-ORCH-MACHINERY, brief it its new alignment carry together with its approved design.
-- **Code-owned** (FLOW-PULL, the POLICY-FIXER-MD carry, `carry_audit.py`, workflows, R10-ORCH-MACHINERY's wiring): approved under mandate 6319294694, which runs to 2026-11-04T18:14Z.
-- **FLOW-DISPATCH builds only the repo half.** Under R15 you draft the three standing trigger prompts (Opus fixer, Opus reviewer, Sonnet fixer) once it lands; the owner creates them.
-- **When you dispatch R10-ORCH-MACHINERY,** brief it with its approved design plus its alignment carry. Under R12 the amendments are approved in that brief, and the fix reviewer checks them against STUDY K17. Under R14 the stranded-handoff aging defaults are 4 h to a DISPATCH line and 12 h to an owner flag.
-- **When R10-FLOW-ANDON merges, tell the owner on #201.** Under R11, the study session then sets up the off-host watcher.
-- Lanes A–F dispatch by pull, longest remaining chain first. The critical path is ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS.
+- Each follows `fixer.md` in full.
+- ANDON, AUTOTRAIN, POSTMERGE, BODY-ONLY, ROSTER-FREEZE, DISPATCH, WIP, MAIN-GATE and BOARD carry seam notes: they become job scripts or functions that R10-ORCH-MACHINERY's beat and ledger host unchanged. ANDON's and AUTOTRAIN's scripts run detached.
+- **When you dispatch R10-ORCH-MACHINERY,** brief it with its approved design plus its alignment carry: requirement 0 (detached), the two jobs, the `postmerge-owed` ledger kind, the every-head freeze, dispatch records, one classifier, one plan model.
+  - R12: the amendments are approved in that brief.
+  - R14: the stranded-handoff aging is 4 h to a DISPATCH line and 12 h to an owner flag.
+- **Code-owned work** is approved under mandate 6319294694.
+- **R15:** draft the three standing trigger prompts once DISPATCH lands; the owner creates them.
+- **R11:** when ANDON merges, say so on #201; the study session then sets up the off-host watcher.
+- Lanes A–F dispatch by pull. The critical path is ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS.
 
 ## Phase 3: decide (around day 2)
 
-FLOW-MQ-PROBE runs after R10-CI-LAYOUT-P1, on a throwaway branch and ruleset only. Report to the owner. If the queue is adopted, close FLOW-RECORD-PITCH unbuilt.
+FLOW-MQ-PROBE runs after R10-CI-LAYOUT-P1, on a throwaway branch and ruleset. Report to the owner. If the queue is adopted, close FLOW-RECORD-PITCH.
 
-## Guardrails: record the baselines at adoption, then stop and tell the owner on #201 if one trips
+## Guardrails: record the baselines at adoption
 
 | guardrail | trips when |
 |---|---|
 | Main health | a **required** context's latest run on a `main` push concludes failure on two consecutive pushes after a flow change merged. Pending and non-required contexts never trip it. |
 | Reverts | any revert of a flow-change merge |
 | Reopened issues | any issue reopened that a post-adoption merge closed |
-| Review strength | **reports only, trips on nothing** until R10-FLOW-YIELD-PROBE explains the fall (0.52 → 0.15 real-catch blocks per PR) and recommends a threshold (R13). Report the rolling-48 h rate with each #201 state comment. Classes and enumerator: STUDY "Guardrail baselines". |
-| Review evidence | a `merge` verdict that names no mutation-proof result or finder's harness at both ends |
+| Review strength | **reports only** (R13) until YIELD-PROBE reports. Re-measure with `python3 $PACK/tools/review_baseline.py --hours 48` after fetching the `review/*` refs, and put the figure in each #201 state comment. The method is in STUDY, "Guardrail baselines": the old 0.52 and 0.15 windows overlap; disjointly it is 0.69 → 0.15. |
+| Review evidence | a `merge` verdict naming no mutation-proof result or finder's harness at both ends |
 
 ## Unchanged
 
@@ -141,13 +141,6 @@ FLOW-MQ-PROBE runs after R10-CI-LAYOUT-P1, on a throwaway branch and ruleset onl
 - "Leaves #201 open".
 - Decision 0012's moratorium, to 2026-10-31.
 
-## Done looks like
-
-- Every roster group merged or deferred, then the stamp.
-- One proof per pitch.
-- No head moved by a body fix or a roster edit.
-- Lane A four wide.
-
-The model's figure is about 92 h after adoption, against about 207 h for the live roster on today's process. Report what you measure.
+The model's figure is about 92 h from adoption. Report what you measure.
 
 ---

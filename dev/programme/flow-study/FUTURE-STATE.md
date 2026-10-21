@@ -198,7 +198,7 @@ Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly
 | **R10-FLOW-YIELD-PROBE** | explain the 0.52→0.15 fall in real-catch blocks per PR, stratum by stratum, and recommend the guardrail threshold | the guardrail must not rest on an unexplained baseline | — (expedite) | ruling R13 |
 | **R10-FLOW-BODY-PATCH** | PATCH a PR body at an unchanged head, after the body contract | no tool could repair a refused body without moving the head (#2560) | — (expedite) | mandate |
 | **R10-FLOW-MAIN-GATE** | the train's main-green gate: latest run per required context; pending is wait | it logged "revert main" on pending checks and owed record reds | #2570 (shared classifier; expedite) | mandate |
-| **R10-FLOW-DISPATCH** | one call per cloud seat: brief to a ref, one fire line | a payload and two pasted trigger bodies per seat | BODY-ONLY | mandate; standing triggers are an owner action |
+| **R10-FLOW-DISPATCH** | one call per cloud seat: brief to a ref, one fire line | a payload and two pasted trigger bodies per seat | — (expedite since revision 4) | mandate; standing triggers are an owner action (R15) |
 | **R10-FLOW-ROSTER-FREEZE** | the relay leaves an open roster PR's head alone while it is under review; `carry_audit` also resolves destinations on the round's handoff roster | #2559 lost 5 reviewer rounds; `BAD-DEST` blocked #2529 #2547 #2561 | R10-ROSTER-OPS | mandate (`carry_audit.py` code-owned) |
 | **R10-FLOW-BODY-ONLY** | `update_pr.sh` absorbs main only on DIRTY or conflict; a body-only mode PATCHes the body without moving the head; the relay propagates body-only moves | R4 was not true in the tool: 5 clean heads moved on 2026-10-21 | R10-UPDATE-PR-SIGNALS | mandate |
 | **R10-FLOW-PULL** | nudge.md: pull, lanes, classes of service, pitch, frozen heads, verdict after CI, carry predicate before any re-review. orchestrator.md §5: the seam chain rule and the scope freeze | lead time and scope | — | policy (tvofi, mandate) |
@@ -290,4 +290,14 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - one plan model shared with #2558.
 
     Each flow group that lands first is written as a job script or function the beat can host unchanged.
+
+**Revision 4: corrections after two hours of live Phase 0 against revision 3**
+
+11. **K14's premise was stale.** #2560's "111→113" was the round-1 reviewer's reading at f8694ba2. The live body already said 113, and the head has moved on. The interim body-PATCH procedure has never run live. Its first real test is #2561, if its carry-missing block at 1019d18d survives #2559's merge (STUDY K14).
+12. **R10-FLOW-DISPATCH had a false dependency** on BODY-ONLY. It is now an expedite (STUDY K16).
+13. **The Phase-1b burst is split into two roster PRs:** PR-A, the re-chain, reviewed edge by edge against the seat's file; then PR-B, the groups, carries, stages and fly-ins, mechanically reviewable against the pack files (SHADOW-PLAN §3.2).
+14. **The freeze clock is defined.** The freeze still starts at review dispatch, but the 4-h bound runs only while #2559 is under review. A merge verdict stops the clock, and #2559 then boards the next train as first car. Starting the clock at boarding instead would leave the five-round review phase unbounded (SHADOW-PLAN §3.2).
+15. **The baseline's method is stated and committed** as `tools/review_baseline.py`. The 0.52 and 0.15 windows overlap; disjointly, the fall is **0.69 → 0.15** (STUDY, guardrail baselines).
+16. **The beat is detached processes, never an agent loop.** Agent relay and tick loops ended their turns twice in the live run (STUDY K17, requirement 0; on R10-ORCH-MACHINERY, FLOW-ANDON and FLOW-AUTOTRAIN).
+17. **Two undefined cases now have rules** (SHADOW-PLAN §3.3): an expedite whose group is not yet on the roster reviews against a pinned pack brief, never "group: none"; and an `--overlap` "not green" while every required context is pending is wait, not red.
 

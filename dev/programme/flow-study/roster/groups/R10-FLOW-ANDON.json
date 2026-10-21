@@ -35,7 +35,7 @@
  "carry": [
   "This is a countermeasure for R10-RCA-ORCH-CONTINUITY: cite that record, do not redo it.",
   "Pre-study: the Lean flow pre-study, section K8.",
-  "Seam with R10-ORCH-MACHINERY: write the heartbeat as a standalone job script with --once, called by tick_loop.sh now and registered as the beat's heartbeat job later; do not entrench it in tick_loop.sh, which the design retires."
+  "Seam with R10-ORCH-MACHINERY: write the heartbeat as a standalone job script with --once, called by tick_loop.sh now and registered as the beat's heartbeat job later; do not entrench it in tick_loop.sh, which the design retires. The script runs detached (daemonize.py), never as an agent loop."
  ],
  "architect_note": "",
  "brief": "Make an orchestrator stop visible within 20 minutes (Lean study K8). In round 10, two stops went unnoticed for 6 h and 16 h (R10-RCA-ORCH-CONTINUITY). No loop writes a liveness signal anyone outside the host can read: tick_loop.sh writes a local board, state_docs.py's beat pushes only when main moves, and wt_sync.sh only when a tree is dirty. Each tick pass updates one ref, heartbeat/orchestrator, to a commit whose message carries the pass time and the relay and tick return codes, pushed with the seat's existing credential. A watcher outside the host (an owner-scheduled cloud task) reads the ref's committer date and alerts the owner when it is older than 20 minutes. Controls: the loop's self-test shows a pass moves the ref and a failed push is printed, never silent; a stale-ref fixture makes the watcher command alert and a fresh one does not.",
