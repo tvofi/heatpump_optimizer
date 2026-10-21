@@ -5498,6 +5498,53 @@
     "branch": "handoff/r10-roster-push-race",
     "commit": null
    }
+  },
+  {
+   "group": "R10-CI-LAYOUT-P1",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2495
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "XL",
+   "wave": 3,
+   "files": [
+    ".github/workflows/tests.yml",
+    ".github/workflows/governance.yml",
+    ".github/workflows/ci.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "Code-owned (`/.github/workflows/`, `tests/run.sh` for PR 0, and `/.github/actions/` after PR 1, CODEOWNERS) and policy (PR 1: `ci-autofix.md`, `defect-root-cause.md` and `rules_sync`; PR 2: R-10's `pr-contract` change, `orchestrator.md` \u00a711, `nudge.md`, `steward/SKILL.md`, the PR template, `web-fragments.md`). PR 0 (stub plus ci-ratchet payments), PR G (after #2444, merged), PR 1 and PR 2 are each approved at their merged head by the CODEOWNER session under mandate 6175172275 (scope `all`, to 2026-10-28). tvofi's own step: the ruleset 23698884 `required_status_checks` PUT at PR 2's merge (one action, staged in PR 2's body). The design was approved at round 5 (`probe/design-ci-review5`, `afc00bfe`, on rev4 `1371a0a6`) and the plan addendum (A1-A6) was approved by the design review of 2026-10-19. R-3 needs no owner action (environments read 2026-10-19).",
+   "rca": [],
+   "after": [
+    "R10-CI-LAYOUT"
+   ],
+   "carry": [],
+   "architect_note": null,
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-layout-p1",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once R10-CI-LAYOUT (PR G #2529) is done",
+    "note": null
+   },
+   "brief": "Child group of R10-CI-LAYOUT (copied from R10-CI-LAYOUT's brief and issue #2495, tvofi/heatpump_optimizer): this group is PR 1 of the four-PR sequence PR 0, PR G, PR 1, PR 2, and nothing else; PR 0 (#2464) has merged and PR G (#2529) must merge first (after: R10-CI-LAYOUT). The other carries of R10-CI-LAYOUT stay on that group and are read there. The group's first paragraph, verbatim:\n\nCI consolidation of .github/workflows/tests.yml under one umbrella workflow and one required check, in FOUR pull requests, in this order: PR 0, PR G, PR 1, PR 2. DISPATCHABLE: the design review APPROVED at round 5 (probe/design-ci-review5, afc00bfe) on design revision 4 (probe/design-ci-rev4, 1371a0a6): the two design documents at the root of that ref (phase 1 and phase 2), the reader survey and measurements under its measure directory, the review's REVIEW.md under 'Non-blocking'. The plan addendum (A1-A6) and its design review (amended unit list and PR placement, items B1-B9) are approved; the orchestrator supplies both documents in the dispatch. Cite the design refs in the pull requests; build exactly the approved design, read from the ref, never from memory.\n\nScope, verbatim from R10-CI-LAYOUT: PR 1 (FULL; code-owned and policy): phase 1 less step 5b, W1 included, B9's producer check on the merge_group and recheck events after recheck-gate moves.\n\nDispatch order: PR 0 now; PR G after #2444 (merged); PR 1 after PR 0; PR 2 after PR 1.\n\nOwner rulings (tvofi, under the mandate): D-1 approve (record-autofix leaves the Tests push run; a unit test proves the tick still sees its failures). D-2 arch-score joins the required-gate list when the diff reaches custom_components/. D-3 keep the merge_group trigger. D-4 drop the C1 composition in phase 1, its proof covered per the design. D-5 keep CodeQL's O17 stand-down with its soundness check. Variant: the review is an event of the umbrella workflow, and a pull_request_review event re-runs only budget-raise-gate and gate (proved by a run's jobs list). R-10 option B: pr-contract lists open code-scanning alerts of the matched analyses, the lag wait is dropped, and U6 shows a planted python-only finding listed; the pr-contract change is policy and needs the owner's approval.\n\nMust-fix from the round-5 review (this programme defers nothing): N5-1, the driver keys on run attempts, not status transitions: for each run read each attempt up to run_attempt not yet swept (only attempt 1 under --nochain, every attempt under --chain) and log any attempt first seen already superseded. N5-2, the dismissed-alert subtraction reads by ref: for each alert number left after the base subtraction read the alert itself and drop it if its state is dismissed (alert-level, no ref), or add to U6 case 5 a dismissal made after case 4's upload. N5-3, pin the analyses listing's sort and direction parameters explicitly, in the entities.py row; say in R-10 that the same-M hand-upload residual is dominated by dismissal (same write grant); optionally record the severity spread of listed alerts in U6 case 6. N5-4, reword 4.3 to 'requested and not completed (queued, waiting, pending, requested or in_progress)'.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: see owner_gate (code-owned CI workflows, tests/run.sh for PR 0, and policy in PR 1 and PR 2); each PR is approved by the CODEOWNER session under mandate 6175172275. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   }
  ]
 }
