@@ -3588,7 +3588,9 @@
    "after": [
     "R10-RCA-FRICTION"
    ],
-   "carry": [],
+   "carry": [
+    "Rescope (Lean flow study): the countermeasure is already proposed, so this seat records, it does not design. Measured over round 10: 30 merge-to-merge re-reviews of unchanged code on the review bus refs, and a median of 4 main absorbs per fix branch (40% of its commits). Name the process state and run the cost test against R10-FLOW-PULL (step 9 absorb trigger), the K5 carry on R10-POLICY-FIXER-MD and R10-FLOW-MQ-PROBE as the countermeasure; keep this brief's own narrow candidate (a carry predicate covering autofix pin commits) only if the cost test still pays after those."
+   ],
    "architect_note": "",
    "brief": "ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). Issue #2389: recurring friction, head-moved rework (9 PRs against the 3-instance threshold). ORDER: after O10-rca-friction-2331-2353 (same friction family; read its output first).\nContract: dev/governance/roles/root-cause.md + defect-root-cause.md. Reproduce from the 9 PRs' review threads (REST only): why heads moved after the handoff freeze (merge-main bot, autofix pins, fixer pushes, orchestrator recarry). Name the process state (a-d) with evidence; cost test with numbers (review-rounds lost per instance); countermeasure (e.g. carry predicate covering bot pin commits, as #2379's r3 showed) or a recorded refusal. Record in the R10-HEAD-MOVED record under the rca directory + the issue's Root cause section (draft as a file; orchestrator posts). Heavy lanes to CI. Push refs only.",
    "resume": {
