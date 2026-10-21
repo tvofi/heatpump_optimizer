@@ -88,6 +88,7 @@ At the PR's reviewed head `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` (check-runs
 
 - **`nightly-status` (job 119485352084 at `59c5b20e`): main's red, not this diff's.** It grades `main`'s scheduled `tests.yml` run 39563978649 (`NIGHTLY FAILED: mutation-nightly, slow`), head `c77f89d`, which is an ancestor of this branch's base. This diff does not change `tests.yml` or `tests/nightly_status.py`. Its one `governance.yml` step runs the page's self-test, which that reporter does not read. Owned on `main` by the orchestrator, per `defect-root-cause.md`. No cheaper detector is owed by this diff.
 - Round-1 reds, already answered and now green: `closures` at `2b1ba538` was repaired by `closures-autofix` in `43b1307`. The cheaper detector, `ci_predict.py`'s `inert_siblings`, missed it because of its 3-sibling threshold; that root cause belongs to its own seat, not this fix. `pr-contract` at `43b1307` was `BAD-DEST R10-ORCH-MACHINERY`, because the group was not yet in the head's tree roster. It is green at `59c5b20e` (jobs 119485351325 and 119485887676), after the orchestrator's main merge.
+- **`closures` at the merged head (predicted, not yet run).** Merging origin/main into `a4a2a653` and running `ci_predict.py` predicts `closures` red: `tools/audit/seat/plan_page.py` is a new file beside 6 siblings that `tests/entities.py` lists as INERT. `closures-autofix` repairs exactly this shape (`ci-autofix.md`: wait for the bot commit, do not duplicate), and the round-1 occurrence was repaired the same way in `43b1307`. No code change is made here.
 - Local, not CI: `tests/entities.py` and `tests/harness_headers.py` need the CI requirements (`voluptuous`, `aiohttp`), which this container's `python3` lacks. They were run in a scratch venv built from `tests/requirements-ci.txt` with `--require-hashes` (result under `## Figures`).
 
 ## Unpinned sites
@@ -111,7 +112,7 @@ n/a: no production module under `custom_components/` changed. Every predicate `p
 
 ## Friction
 
-`tests/entities.py` and `tests/harness_headers.py` do not run under this container's `python3` (3.11, no CI requirements). A scratch venv built from `tests/requirements-ci.txt` was needed. Carry: dismissed: container setup gap, CI installs these requirements
+none
 
 ## Attribution
 
