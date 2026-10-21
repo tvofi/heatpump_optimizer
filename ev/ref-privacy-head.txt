@@ -1,0 +1,6 @@
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 66 checks, 0 failed
+ref_privacy: REFUSE tools/audit/seat/pr_args.sh:353: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+ref_privacy --check at HEAD: 19 file(s) with a push site, 9 guarded, 111 line(s) added since 03b49e1521a2 judged, 1 refused
+rc=0
