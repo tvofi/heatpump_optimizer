@@ -1,0 +1,7 @@
+== head
+0644c36d4831afd2593f39af61708647035b9972
+ref_privacy --check at HEAD: 20 file(s) with a push site, 9 guarded, 1002 line(s) added since 57f0c9c77cfd judged, 0 refused
+rc=0
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 66 checks, 0 failed
+rc=0

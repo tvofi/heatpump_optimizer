@@ -1,0 +1,6 @@
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+<carry_audit.Dests object at 0x7f5aa99a2fd0>
+DEST R10-CI-LAYOUT (True, '')
+DEST R10-CI-LAYOUT-P2 (True, '')
+DEST dismissed: counter moved by the later delivery-row commit, not by the fix (True, '')
