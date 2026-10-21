@@ -23,7 +23,7 @@ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head not
 # push line replaced by `true` in the real file: the null control then finds
 # a call missing and the step exits 1.
 handoff_push_self_test() (
-  local src t f=0 n=0 o m code base body i
+  local src t f=0 n=0 o m code base body i=0
   src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
   t=$(mktemp -d) || { echo "handoff_push self-test: no temporary directory"; return 1; }
   . "$src/../../../tests/throwaway_git.sh" && throwaway_git_env
