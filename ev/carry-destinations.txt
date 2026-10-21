@@ -1,0 +1,9 @@
+R10-LIVESTATE not-started after=["R10-SCORES","R10-PUMP-MODEL","R10-LOOP-CPU"]
+R10-UX-HEALTH not-started after=["R10-SCORES","R10-COP-GATE","R10-HEAT-METER"]
+roster ref origin/handoff/audit-r10-roster at f424d993d15f9ba103680ecf88a710539f789bcf
+--- R10-UX-HEALTH: brief+carry lines matching open_options|advisor:settings|_price_tiles|price_tiles.book|ADVISOR (excluding architect note):
+  (none)
+--- R10-LIVESTATE: brief+carry lines matching open_options|advisor:settings|_price_tiles|price_tiles.book|ADVISOR (excluding architect note):
+  (none)
+--- git grep open_options / price_tiles.book across roster tree dev/programme:
+  (none)

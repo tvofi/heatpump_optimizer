@@ -1,0 +1,17 @@
+# rule 1 (item 6) at 441d19932f40475ddc0420f3b67ba8d90202eb2c
+8702:  const row = { kind: "degree", status: "ready", act: "try_degree",
+8734:  const head = advisorRow(plan, "restart", () => ({}));
+8738:  const row = (act, title, detail) => ({ kind: "restart", status: "ready", value: null, act, title, detail });
+8762:    advisorRow(plan, "gap", (value, attrs) => {
+8771:    advisorRow(plan, "dhw", (to, attrs) => {
+8785:    advisorRow(plan, "valve", (to, attrs) => {
+# rule 2 (monthly scaling)
+custom_components/heatpump_optimizer/price_tiles.py:40:#: Hours in the month a what-if is scaled to: 30.4 days, the mean month.
+custom_components/heatpump_optimizer/price_tiles.py:41:MONTH_HOURS = 30.4 * 24.0
+custom_components/heatpump_optimizer/price_tiles.py:66:def per_month(delta: float, horizon_hours: float) -> float:
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:8652:const DAYS_PER_MONTH = 30;
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:8780:        value: perDay > 0 ? perDay * DAYS_PER_MONTH : null,
+custom_components/heatpump_optimizer/coordinator.py:11091:            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
+custom_components/heatpump_optimizer/coordinator.py:11094:            "monthly_held_cost_delta": round(price_tiles.per_month(
+# reviewer's widening: other monthly scalings ('month' arithmetic) in python
+custom_components/heatpump_optimizer/coordinator.py:9124:            monthly_kwh = monthly_kwh / max(1, now.day) * 30.0
