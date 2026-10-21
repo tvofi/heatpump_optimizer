@@ -99,9 +99,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"`## Findings` ending in its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>` "
             f"(finding-propagation.md). Everything else (RESULT lines, re-runs, CI state, figures you "
             f"could not re-derive) goes under `## Evidence`: tools/audit/carry_audit.py reads no item there "
-            f"as a finding unless it hands something on (later, deferred, follow-up, advisory, minor, "
-            f"residual, still has to ...), and the merge train parks a verdict holding a finding with no "
-            f"`Carry:`. Put the evidence files in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head "
+            f"as a finding unless it hands something on (deferred, for a later, follow-up, minor, advisory, "
+            f"residual, still has to, not blocking ...; a check that does not block is evidence only in a "
+            f"sentence saying it is not a required check), and the merge train parks a verdict holding a "
+            f"finding with no `Carry:`. Put the evidence files in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head "
             f"`{head}` (e.g. `ev/HEAD.txt` holding the head you reviewed, beside your command output): "
             f"bus.sh refuses a verdict whose `ev/` names no head. Do NOT run "
             f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
@@ -220,7 +221,7 @@ def self_test() -> int:
           "file under `ev/` contain the full 40-hex head `" + head + "`" in msg and "ev/HEAD.txt" in msg)
     check("the reviewer is told to separate findings, each with its own Carry:, from evidence",
           "`## Findings` ending in its own `Carry: " in msg and "goes under `## Evidence`" in msg
-          and "`## Block`" in msg)
+          and "`## Block`" in msg and "not a required check" in msg)
     check("the reviewer is given the unbracketed first-line grammar",
           "blocked " + head + " <class>: <reason>" in msg and "[class: reason]" not in msg)
     check("the prompt builds no repository (throwaway_git.py --check refuses a raw init)",
