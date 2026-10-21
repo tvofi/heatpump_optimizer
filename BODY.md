@@ -35,7 +35,9 @@ No policy file, lint class or rules entry is added (decision 0012). `governance.
 
 ## Head
 
-33f6c201f4f0814f4570c7441f43b175528a8154 (base `origin/main` `0cc148b2f80fe224ffe2c504b29fd4f0908183df`; figures taken 2026-10-21 09:00Z-09:40Z).
+`ad6bdbcd836286887c7e42c5a63676d97019d8db` merges origin/main `5006687576713535518634a154f7de1824432219` into the previous head `01d7ac8c75533bf9e4eff9cbc73d5205a65d6f1f`, which itself merged origin/main `03b49e152` into the authored code head `33f6c201f4f0814f4570c7441f43b175528a8154`. Both merges were clean. The second brings #2559's roster into the head, which `pr-contract` needs (see ## Red checks). It changes nothing in the branch's own diff: the three-dot diff at the new head equals the one at `01d7ac8c` except two hunk offsets (`tests/closures.json`, `tools/audit/seat/INSTRUMENTS.md`), still 10 files, +864/-4.
+
+33f6c201f4f0814f4570c7441f43b175528a8154 (base `origin/main` `0cc148b2f80fe224ffe2c504b29fd4f0908183df`; figures taken 2026-10-21 09:00Z-09:40Z, except those marked as re-taken at `ad6bdbcd`).
 
 ## Mutation proof
 
@@ -52,7 +54,7 @@ Each predicate in `tools/audit/seat/pulse.py` was deleted in a copy, then `--sel
 | M6 | skew guard `None if t > now` dropped | 1 failed ("a stamp ahead of the clock is never aged and is named skew") |
 | M7 | exit 2 for unreadable dropped | 1 failed ("--snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board") |
 
-Wiring: before the `governance.yml` step, `selftest_wiring.py --check` printed `UNWIRED tools/audit/seat/pulse.py`. After it, the check prints `38 self-testing, 38 wired, 0 unwired`.
+Wiring: before the `governance.yml` step, `selftest_wiring.py --check` printed `UNWIRED tools/audit/seat/pulse.py`. After it, the check prints `38 self-testing, 38 wired, 0 unwired` at the code head, and `39 self-testing, 39 wired, 0 unwired` re-taken at `ad6bdbcd` (main added one instrument since).
 
 ## Null control
 
@@ -74,7 +76,13 @@ Wiring: before the `governance.yml` step, `selftest_wiring.py --check` printed `
   - opener: 25 samples in 1 window, 2026-10-16 08:45Z–14:45Z.
   - state-beat: 37 samples in 5 windows (2026-10-17 11:15Z–15:15Z; 2026-10-19 11:15Z–11:45Z, 13:15Z, 15:00Z–16:45Z, 19:00Z–20:45Z).
   - The first cut of the opener rule fired on any aged orphan. It read STOPPED in 123 of 153 hourly samples.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `38 self-testing, 38 wired, 0 unwired`.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `38 self-testing, 38 wired, 0 unwired` at the code head; re-taken at `ad6bdbcd`: `39 self-testing, 39 wired, 0 unwired`.
+- Re-taken at `ad6bdbcd`: `python3 -I tools/audit/seat/pulse.py --self-test`: 21 checks, 0 failed; `python3 tools/audit/fold_ledger.py check`: 43 classes, 738 instances, 114 rca entries, 0 violations; `python3 -I tools/audit/seat/tmp_paths.py --check`: 0 refused.
+- Merge check at `ad6bdbcd` (HANDOVER trap 19): `tests/closures.json`, `dev/audit/config/finding.schema.json` and `dev/audit/config/bugclasses.json` parse as JSON; `node --check .claude/workflows/audit-find.js` passes; `python3 tools/audit/fold_ledger.py sync` leaves the tree clean.
+- `python3 -I tools/audit/carry_audit.py check --body <this body>`: at `01d7ac8c`, `4 finding item(s): 2 routed, 0 unrouted, 2 bad destination(s)`, exit 1; at `ad6bdbcd`, `4 routed, 0 unrouted, 0 bad destination(s)`, exit 0. With `--roster-ref origin/handoff/audit-r10-roster`: `4 routed, 0 unrouted, 0 bad destination(s)`, exit 0.
+- Scoped gate re-taken at `ad6bdbcd`, `PREPR_SKIP_CLOSURES=1 /opt/hpo/venv-ci/bin/python tests/closure.py select --diff 5006687576713535518634a154f7de1824432219`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. With `PYTHONPATH=tests/hastub`: `tests/entities.py` ALL 2382 ENTITY CHECKS PASSED, `tests/harness_headers.py` ALL 109 HARNESS HEADER CHECKS PASSED, `tests/env_drift.py --claims-only` ok, `tests/closure.py selftest` ALL 124 closure shrink pins PASSED, `tests/layout.py` ok, `tests/structure.py` STRUCTURE RATCHET PASSED. `node tools/policy/policy_lint.mjs`: 0 errors across 41 policy files. `python3 -I tools/policy/agreement_py.py --out F` then `node tools/policy/agreement.mjs --py-json F`: `AGREEMENT ok`.
+- `node tools/policy/policy_lint.mjs --pr-body <body> --red nightly-status,pr-contract` with the branch's changed paths: this body 0 errors. The body it replaces gets 2 errors, `nightly-status` and `pr-contract` unnamed.
+- `git show <ref>:dev/programme/rosters/wave-r10-groups.json`, groups `R10-ORCH-MACHINERY` and `R10-RCA-HANDOFF-SLIP`: 0 of 2 at `01d7ac8c`, 2 of 2 at origin/main; `git log --first-parent -S` puts both in `5226fd2d1` (#2559).
 - `python3 tools/audit/fold_ledger.py check`: 43 classes, 738 instances, 114 rca entries, 0 violations. `N-silent-stop` per_round R10=4, trigger per_round true.
 - `git log --first-parent --format='%ct %h' origin/main` against `git log --format=%ct origin/handoff/audit-r10-plan`: the state-follow latencies used under Null control.
 - `gh api repos/tvofi/heatpump_optimizer/issues/201/comments`: takeover notes 6216882536, 6240942713, 6285467757, 6310926491 and 6312035865, and the 2026-10-18 count of 23 tvofi comments.
@@ -93,7 +101,10 @@ Wiring: before the `governance.yml` step, `selftest_wiring.py --check` printed `
 
 ## Red checks
 
-none.
+Read from the check-runs API at `01d7ac8c75533bf9e4eff9cbc73d5205a65d6f1f`, latest run per name: two are red, `nightly-status` and `pr-contract`.
+
+- **`pr-contract`** (job 119212655116, 12:09Z). This PR's own red. The failing line: `BAD-DEST body item c64b5cbc: R10-ORCH-MACHINERY: R10-ORCH-MACHINERY is not a group of the roster`, and the same for `97b3bd6b` / `R10-RCA-HANDOFF-SLIP`. `carry_audit.py` reads the roster from the head's own tree. Both groups reached main's roster in #2559 (`5226fd2d1`), after this head's last main merge (`03b49e152`). So the carries were right, and the head was stale. Fixed at `ad6bdbcd` by merging origin/main. It reproduces at `01d7ac8c` (exit 1) and passes at `ad6bdbcd` (exit 0); see ## Figures. **Cheaper detector:** prepr's carry-audit arm already runs this check before a push. It reads the roster from the tree it is run in, though, so a run from a checkout of current main passes a head that CI then refuses. Running carry_audit at the head's own tree would have caught this, at a cost of seconds. No new check is built: the cure is one main merge, and the refusal already names each group it cannot find.
+- **`nightly-status`** (job 119196372889, 11:30Z). Main's red, not this PR's. The failing line is `NIGHTLY FAILED: slow failed 1 night ago.`, scheduled run 39387919507 on main `0c298f6`: `FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1114 over its budget 0.111]` (job 118512165515). The 2026-10-21 schedule, run 39563978649 on main `c77f89dc`, failed the same check at `0.1138`. It also failed `mutation-nightly` with `10 survivor(s) of 23 evaluated = 39.1% ... cap 30.0%`, all ten survivors under `custom_components/heatpump_optimizer/`. This diff touches `.github/workflows/governance.yml`, which is on the reporter's input list. The edit adds one step, `python3 -I tools/audit/seat/pulse.py --self-test`, to the `instrument-self-tests` job. `tests/nightly_status.py` (pinned to main `03b49e152` in the job) reads the Tests workflow's scheduled runs, which come from `tests.yml`. This diff touches neither that file, `tests/replay.py`, nor anything under `custom_components/`. **The fix exists:** #2548 (`290712ec0`, merged 17:03Z) re-records `loop_cpu_ratio` at 0.143, and this head carries it through the merge. No `workflow_dispatch` of `tests.yml` on main has concluded since then; the newest is 39256093598, from 2026-10-19. So the check goes green on the next concluded schedule or dispatch on main, not on anything this PR can push. The mutation-nightly cap breach has no fix PR in the open list. It is in production code this PR does not touch, and it belongs to the mutation lane's owner. **Cheaper detector:** none is cheaper. The slow lane is the detector, and it is a runner-timing budget, which only a run on the runner class measures.
 
 ## Forward-carry
 
@@ -104,3 +115,4 @@ none.
 ## Friction
 
 - fixer.md-5: unclear: the brief says the venv python is on PATH, but `python3` resolves to 3.11 (`/usr/local/bin/python3`). `tests/entities.py` fails to parse under it (an f-string SyntaxError), so the scoped gate needs `/opt/hpo/venv-ci/bin/python` named explicitly. Carry: dismissed: environment, outside this group's files
+- failure-logs: stale: `bash tools/audit/seat/failure_logs.sh 2557` reads the head with `gh pr view`, which is GraphQL, and a cloud seat's `gh` refuses that (HTTP 403). The script exits 2 and prints nothing. The REST job-log route also redirects to a blob host that the cloud proxy refuses (403). So the failing lines above were read through the GitHub MCP job-log tool. Carry: #201
