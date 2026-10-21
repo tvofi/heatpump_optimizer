@@ -3466,6 +3466,7 @@
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_leaf_solver_closure.py",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
+   "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",

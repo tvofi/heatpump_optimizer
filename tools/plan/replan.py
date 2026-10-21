@@ -51,11 +51,16 @@ Why it checks what it checks
     dependency is recorded in `generated.inherited_dependency_violations`, not
     refused -- the replan cannot undo it); a stamp cadence breach; a wave
     opening while the open-PR cap is full; a summary that disagrees with the
-    groups it summarises. `--self-test` plants each violation and proves the
-    refusal fires.
+    groups it summarises; a STALE plan -- one whose `generated.roster_blob`
+    is not the roster's blob at its `roster_ref` now (`stale_reason`, the
+    rule the page renderer `tools/audit/seat/plan_page.py` refuses on too).
+    A schedule computed from a roster that has since moved is not the plan
+    either, and before this rule `--check` printed PLAN OK on one.
+    `--self-test` plants each violation and proves the refusal fires.
 
 plan.json shape
-    schema; generated {roster_ref, roster_blob, start, version, caps,
+    schema; generated {roster_ref, roster_blob, start, version, durations,
+    model {sizes_hours, live_remaining_fraction, sizes_provenance}, caps,
     inherited_coordinator, inherited_dependency_violations}; summary {closure,
     wall_hours, ci_minutes, batches, stamps, ...}; critical_path [group...];
     groups {name: {wave, start, finish, slot, duration_minutes, size, lane,
@@ -125,8 +130,41 @@ def load_roster(repo: str, ref: str | None = None, path: str | None = None,
         roster = roster_lib.show_roster(repo, ref, path)
     except roster_lib.RosterNotFound as exc:
         raise PlanError(str(exc)) from exc
+    return roster, ref, roster_blob(repo, ref, path)
+
+
+def roster_blob(repo: str, ref: str, path: str) -> str:
+    """The blob id of `ref:path`; "" when git cannot name it."""
     blob = _git(repo, "rev-parse", f"{ref}:{path}")
-    return roster, ref, (blob.stdout.strip() if blob.returncode == 0 else "")
+    return blob.stdout.strip() if blob.returncode == 0 else ""
+
+
+def stale_reason(plan: dict, repo: str, ref: str | None = None,
+                 path: str | None = None) -> str | None:
+    """Why `plan` no longer describes the roster, or None when it does.
+
+    THE freshness rule, for `--check` and for the page renderer alike: the
+    roster blob the plan was built from must be the blob at `ref` (default:
+    the plan's own `generated.roster_ref`) now. A plan that pins no blob (a
+    `--roster-file` fixture) is refused too: its freshness is unknowable.
+    The ref is read as this clone has it; fetch it first.
+    """
+    gen = plan.get("generated") or {}
+    want = gen.get("roster_blob") or ""
+    ref = ref or gen.get("roster_ref") or ""
+    if not want:
+        return ("plan.json pins no roster blob (built from a --roster-file "
+                "fixture?), so its freshness is unknowable; replan from a ref")
+    try:
+        path = roster_lib.roster_path(repo, ref, path)
+    except roster_lib.RosterNotFound as exc:
+        return f"cannot read the roster the plan claims: {exc}"
+    have = roster_blob(repo, ref, path)
+    if have != want:
+        return (f"plan.json is stale: built from roster blob {want[:12]}, but "
+                f"{ref}:{path} is now {have[:12] or 'unreadable'}; re-run "
+                f"{SELF} --out <plan.json>")
+    return None
 
 
 def groups_of(roster: dict) -> dict:
@@ -510,6 +548,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "start": iso(start, 0),
             "version": version,
             "durations": durations.get("provenance") or {},
+            # The duration model this plan was computed with, so a reader of
+            # the plan states the figures it used rather than today's file's.
+            "model": {
+                "sizes_hours": dict(size_hours),
+                "live_remaining_fraction": live_fraction,
+                "sizes_provenance": durations.get("sizes_provenance") or "",
+            },
             "caps": {
                 "slots": slots, "seats": seats, "coordinator_cap": coord_cap,
                 "stamp_every": every, "batch_window_minutes": batch_window,
@@ -926,6 +971,47 @@ def selftest() -> int:
            any("exceeds_cap" in b for b in check_plan(oversized)),
            str(check_plan(oversized)))
 
+    # Freshness (`stale_reason`): a plan describes the roster blob it was
+    # built from, so a roster commit after the replan makes it stale -- the
+    # function and the `--check` command both refuse, and both pass it fresh.
+    sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_environ, throwaway_git_init
+    with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "repo"
+        rpath = repo / roster_lib.ROSTERS_DIR / "wave-r9-groups.json"
+        rpath.parent.mkdir(parents=True)
+        throwaway_git_init(repo, "-q", "-b", "main")
+
+        def commit(r: dict) -> None:
+            rpath.write_text(json.dumps(r), encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "r"], check=True)
+        commit(roster)
+        r_, ref_, blob_ = load_roster(str(repo), "main")
+        fresh = build_plan(r_, durations, caps, start, "v1.0.0", ref_, blob_)
+        expect("a plan pins the roster blob it was built from", len(blob_) == 40, blob_)
+        expect("a fresh plan is not stale",
+               stale_reason(fresh, str(repo)) is None, str(stale_reason(fresh, str(repo))))
+        planf = Path(td) / "plan.json"
+        planf.write_text(json.dumps(fresh), encoding="utf-8")
+        cmd = [sys.executable, "-I", __file__, "--check", "--plan", str(planf),
+               "--repo", str(repo)]
+        rc = subprocess.run(cmd, capture_output=True).returncode
+        expect("--check passes a fresh plan (null control)", rc == 0, f"rc={rc}")
+        moved = json.loads(json.dumps(roster))
+        moved["groups"][0]["resume"] = {"stage": "done"}
+        commit(moved)
+        why = stale_reason(fresh, str(repo)) or ""
+        expect("a roster commit after the replan makes the plan stale",
+               "stale" in why, why)
+        out = subprocess.run(cmd, capture_output=True, text=True)
+        expect("--check exits 1 on a stale plan",
+               out.returncode == 1 and "freshness" in out.stderr,
+               f"rc={out.returncode} {out.stderr[-200:]}")
+        why = stale_reason(plan, str(repo)) or ""
+        expect("a plan pinning no roster blob is refused as unknowable",
+               "unknowable" in why, why)
+
     # The six behaviours whose deletion the reviewer will attempt: each gets
     # an arm that names it, and the mutation harness below proves the arm goes
     # red when the line is removed.
@@ -1034,6 +1120,9 @@ def selftest() -> int:
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("ci = round((len(batch_rows) + len(stamps)) ", "* gate_report, 1)"),
              "ci = round(len(batch_rows) * gate_report, 1)"),
+            ("freshness",
+             _m("def stale_reason(plan: dict, ", "repo: str, ref: str | None = None,"),
+             _m("if have != ", "want:"), "if False:"),
             ("gate-cancellation",
              _m("def gate_minutes(durations: ", "dict) -> float:"),
              _m("return fast + clo + ana * ", "(1.0 + p_cancel)"), "return fast + clo + ana"),
@@ -1176,7 +1265,9 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Mechanical replanner for the wave roster.")
     p.add_argument("--repo", default=".", help="repository to read the roster from")
-    p.add_argument("--roster-ref", default="origin/handoff/audit-r10-roster")
+    p.add_argument("--roster-ref", default=None,
+                   help="default: origin/handoff/audit-r10-roster to build; "
+                        "the plan's own generated.roster_ref to --check")
     p.add_argument("--roster-path", default=None)
     p.add_argument("--roster-file", default=None, help="a fixture roster (self-tests)")
     p.add_argument("--durations", default=None,
@@ -1223,6 +1314,9 @@ def main(argv=None) -> int:
         plan_path = Path(args.plan or args.out)
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         bad = check_plan(plan)
+        stale = stale_reason(plan, args.repo, args.roster_ref, args.roster_path)
+        if stale:
+            bad.append(f"freshness: {stale}")
         if bad:
             print(f"REFUSED: {len(bad)} violation(s) in {plan_path}", file=sys.stderr)
             for b in bad:

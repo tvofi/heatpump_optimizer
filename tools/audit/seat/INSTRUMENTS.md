@@ -407,6 +407,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
   run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
+- `plan_page.py` — renders the round's plan page (HTML) from
+  `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`, and
+  GitHub's issue and pull-request state (`gh`, or `--github-snapshot`):
+  swimlanes on the plan's time axis with the slot-occupancy strip,
+  critical-path marks and planned stamps; the group ledger with status
+  classes, PRs, struck closed issues and blockers; waves, stamps and the
+  ETA method, every figure plan.json's. When: after a replan at a wave
+  edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
+  is not the roster's at its ref now; an `origin/` ref is fetched first) or
+  `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
+  replan.py applies the same freshness rule.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —

@@ -327,8 +327,8 @@ INERT = (
     "tools/coverage/",
     "tools/devices/",
     # The plan model (`tools/plan/replan.py` and the measured durations it
-    # reads) is run by hand at a wave edge and read by the out-of-tree
-    # renderer that draws the page; no gate script opens it. An inert home of
+    # reads) is run by hand at a wave edge and read by the page renderer
+    # `tools/audit/seat/plan_page.py`; no gate script opens it. An inert home of
     # the same kind as the four above, and `tests/entities.py`'s
     # must-classify check names it too -- a new file there still has to be
     # classified, it is just classified as unread.
