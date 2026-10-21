@@ -1,38 +1,48 @@
-Roster for round 10, fifth landing: brings main's `dev/programme/rosters/wave-r10-groups.json` (plus `critical-path.json` and `carry-201.json`) up to the roster branch tip, so that open pull requests' carries resolve against the tree's roster (finding-propagation.md). Part of #201.
+Roster for round 10, sixth landing: the R10-FLOW-RECHAIN re-chain of the coordinator.py `after` edges, as one roster pull request. It applies the decision seat's ruling, landed here as `dev/programme/round10/rechain/rechain-decision.md` with its edge lists `rechain-drops.json` and `rechain-adds.json`. Part of #201.
+
+The ruling, applied whole and never in part (the drops land in the same commit as the three required edges):
+
+- 8 drops: R10-RATIO-ANCHOR after R10-NIGHT-FOLDS; R10-INPUT-STALENESS after R10-RATIO-ANCHOR; R10-CURRENCY after R10-INPUT-STALENESS; R10-LOOP-CPU after R10-FREQ-DEFROST; R10-CONFIG-NOTICES after R10-LIVESTATE; R10-PARAMS-OWNER after R10-CONFIG-NOTICES; R10-ARCH-SHAPES after R10-PARAMS-OWNER; R10-LEARNER-ETA after R10-ARCH-SHAPES.
+- 3 required edges: R10-PARAMS-OWNER after R10-LIVESTATE; R10-ARCH-SHAPES after R10-LIVESTATE; R10-HEAT-METER after R10-PARAMS-OWNER and R10-ARCH-SHAPES.
+- 4 recommended edges: R10-LIVESTATE after R10-LOOP-CPU; R10-LOOP-CPU after R10-NIGHT-FOLDS; R10-PARAMS-OWNER after R10-NIGHT-FOLDS and R10-RATIO-ANCHOR; R10-ARCH-SHAPES after R10-INPUT-STALENESS.
+- The orchestrator's addition: R10-HEAT-METER after R10-THERMAL-POWER-OPTION. The two share flow_meter.py, config_flow.py, const.py and coordinator.py, and the ruling listed the pair as unresolved.
+- Architect note and brief text, as section 4 of the ruling specifies, in both copies (`architect_note`, and the older copy inside `brief`). The groups whose own `after` changed are R10-RATIO-ANCHOR, R10-INPUT-STALENESS, R10-CURRENCY, R10-LOOP-CPU, R10-CONFIG-NOTICES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-LEARNER-ETA and R10-HEAT-METER. For each, the coordinator.py clause becomes `coordinator.py (seam-ordered; before you: ...; after you: ...)`, and the start sentence becomes `Start from main.` or `Start from main; your merge follows <predecessors> if both are in one pitch.`. Only the `next:` list changes for R10-NIGHT-FOLDS and R10-FREQ-DEFROST. R10-HEAT-METER's `before you` also names R10-THERMAL-POWER-OPTION. R10-LOOP-CPU's carry naming R10-LIVESTATE stays, because the recommended edge that makes it true is applied.
+
+Each edge was applied by `tools/audit/seat/roster_edit.py`'s own `op_set_after`, which refuses an unknown group, a self-edge, a repeated edge and a cycle. The text edits load and dump the roster JSON through the same tool's `dump`. The one commit passed the tool's lint gate (brief_lint from a fresh origin/main checkout, `TOTAL: 0 error(s)`) before it reached the branch.
+
+This PR also carries the roster branch's commits since #2559 merged:
+
+- `c185c7257`: a carry of #2567's forward-carry (carry_audit beside prepr) onto R10-POLICY-FIXER-MD.
+- The merge seat's set-stage commits: `e80c0132a` (R10-ROSTER-OPS to done), `be1b9fa17` (R10-DEPENDABOT-AIOHTTP, its commit) and `5c51bdf6d` (R10-TICK-RELAY-DECOUPLE to done at `e9febe622`).
+
+It leaves #201 open and closes nothing by keyword.
 
 ## Head
 
-`a72c01ddd30d0eee1b6aa94d7b06b93cf903624d` merges the authored code head `31e162fd3a1207db596539b2330af1d274c36c85` and then merges origin/main `289426c1f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+The authored code head is `726e98d64866ab07e69889f3e225d669880a9743` (`handoff/audit-r10-roster`). `git diff --name-only $(git merge-base origin/main 726e98d64)...726e98d64` lists four files:
 
-`103b1118b2b2e23a18b413ec6b983c0127c9d7ec` merges the authored code head `31e162fd3a1207db596539b2330af1d274c36c85` and then merges origin/main `03b49e152` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+- `dev/programme/rosters/wave-r10-groups.json`
+- `dev/programme/round10/rechain/rechain-decision.md` (new)
+- `dev/programme/round10/rechain/rechain-drops.json` (new)
+- `dev/programme/round10/rechain/rechain-adds.json` (new)
 
-The authored code head is `31e162fd3a1207db596539b2330af1d274c36c85` (`handoff/audit-r10-roster`). `git diff --name-only origin/main...31e162fd` lists exactly three files: `dev/programme/rosters/wave-r10-groups.json`, `dev/programme/rosters/critical-path.json` (new) and `dev/programme/carries/carry-201.json`; the PR head adds only this PR's own delivery row.
-
-The diff, enumerated from the JSON at `origin/main` (03b49e15) and at `31e162fd` (groups 91 to 108, stage `done` 43 to 51, carries 201 to 254):
-
-- New groups (17): R10-HANDOFF-ARCHIVE and R10-DEPENDABOT-AIOHTTP (done); R10-ORCH-MACHINERY, R10-CARD-VOICE, R10-THERMAL-POWER-OPTION, R10-LEARNER-DEFAULT, R10-MUTANT-SKIP, R10-CI-LAYOUT-P1, R10-CI-LAYOUT-P2 (not-started); R10-TICK-OWED-LEVEL, R10-REPLAY-CAP, R10-RCA-HANDOFF-SLIP, R10-HANDOVER-REFRESH, R10-RCA-ORCH-CONTINUITY, R10-TICK-RELAY-DECOUPLE, R10-PLAN-ARTIFACT, R10-ROSTER-PUSH-RACE (in-progress). No group is removed.
-- Stage changes (18): to done: R10-SAV-REASONS, R10-TRAIN-HOLD, R10-DEEPLINK-HANDLERS, R10-STAMP, R10-RCA-NIGHTLY-PYSPY, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-UPDATE-PR-LOCK; to in-progress: R10-NIGHT-FOLDS, R10-FREQ-DEFROST, R10-ADVISOR, R10-I5-DOCS, R10-REPLAY-LANE, R10-RCA-FRICTION, R10-CI-LAYOUT, R10-UPDATE-PR-SIGNALS, and back from done to in-progress R10-PREPR-CAP, R10-CI-RATCHET-RED.
-- Carries appended (14 existing groups, 32 in all; the other 21 of the 53 are carried by the 17 new groups), among them R10-CI-LAYOUT 14 to 27 and R10-BRIEFS-FOLD 19 to 20 (from #2521: a wrong harness path in `tests/README.md`), R10-ORCH-MACHINERY 8 to 10 (from #2524: `daemonize.py --self-test` position; and update_pr.sh leaving its worktree on the branch, #2513, #2544, #2547), R10-REGISTRY-LEAK 1 to 3 (the second handoff r10-earlycutoff-coverage at ecaf178c, the test-coverage residual of #2329), and R10-REPLAY-LANE (one carry replaced by the #2548 round-2 text, count 3 to 5 in all), R10-REGISTRY-LEAK, R10-ROSTER-OPS 3 to 6 (the last three: this PR's own, from the fix review of #2513, comment 6314156311, item 3b97e1aa: three fail-closed surviving mutants of `roster_edit.py` and the key-less-group note).
-- Text edits (brief, issues, fixes, findings) on 16 existing groups; R10-CI-LAYOUT's `findings` now says four pull requests with PR 1 and PR 2 split into the -P1 and -P2 groups, where it said two.
-- `carry-201.json`: one carry added (the nightly-ha py-spy positive control, from #2479) and the `stage` text extended to name it.
-
-This PR leaves #201 open and closes nothing by keyword.
+All three new files sit under `dev/programme/`, a prefix on `tests/closure.py`'s `INERT` list, and none matches `is_handover`.
 
 ## Mutation proof
 
-n/a: roster state only; no production or test code.
+n/a: roster state and programme evidence only; no production or test code.
 
 ## Null control
 
-n/a: no measured claim. The lists above enumerate a JSON diff between `origin/main` and the head.
+The 96 roster groups outside the twelve edited ones are unchanged. `python3 -I tools/audit/carry_audit.py --roster-ref origin/main --roster-ref origin/handoff/audit-r10-roster sweep --from-dir <empty dir>` reports `ROSTER-DRIFT` (text that main holds and the branch lacks) for exactly the twelve groups whose note or brief this PR rewrites, and for no other group. Group count is 108 at both ends. Every carry list is unchanged except R10-POLICY-FIXER-MD's (5 to 6, `c185c7257`).
 
 ## Figures
 
-none
+- Critical-path depth over the open groups goes from 11 to 8. Run `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `python3 tools/audit/seat/plan_table.py --roster-ref 726e98d64` and read the swimlane table's last wave column (`roster_lib.depth_of` and `critical_path`). The path after: R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-ARCH-DOCS.
 
 ## Red checks
 
-none
+- `nightly-status`: it grades main (the nightly run), not this branch, so it is red at every head, main's own tip included. This diff changes only `dev/programme/rosters/wave-r10-groups.json` and three new files under `dev/programme/round10/rechain/`, and `nightly-status` reads none of them, so the red is not this PR's.
 
 ## Forward-carry
 
