@@ -28,6 +28,9 @@ T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
 D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
 git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ] && BR=$BR-pr  # a seat often holds a local branch of the default name
 mkdir -p "$D"; cd "$M"
+# The branch's lock, update_pr.sh's own, held to the end: cloud_relay's update_pr.sh detached this worktree
+# between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
+pr_branch_lock "$(dirname -- "$D")/upd-${BR//\//-}.lock" "$BR" "$WT"  # mut:oplock
 pr_handoff_tips "$T" 1
 git fetch -q origin handoff/$T handoff-body/$T
 pr_code_in_handoff "$C" "$T"
