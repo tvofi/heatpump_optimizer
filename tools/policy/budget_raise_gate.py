@@ -121,6 +121,10 @@ MANDATE_COVERS_RAISE = ("budget-raise", "all")
 # written record. The strictest reading is the safe one: a scope that does not
 # name this act does not license it.
 MANDATE_COVERS_POLICY = ("all",)
+# What covers an agent's approval, as the owner, of a code-owned path that is
+# neither policy nor a raise (merge_pr.sh's owner mode): the scope named for
+# it, or `all`. A `budget-raise` scope licenses a raise and nothing else.
+MANDATE_COVERS_CODE_OWNED = ("code-owned", "all")
 # tvofi, 2026-10-14: an agent raises a cap only under a mandate, and only after
 # showing no payment that improves the architecture exists -- moving, deleting,
 # sharing or refactoring code that arch_score (tools/audit/archscore/) does not
@@ -1027,6 +1031,16 @@ def self_test() -> int:
     # Refusal arm: the scope does not cover budget raises.
     check("mandate: scope code-owned does not cover a raise",
           rcm([agent()], mandate(MAND.replace("budget-raise", "code-owned")))[0], 1)
+    # MANDATE_COVERS_CODE_OWNED, merge_pr.sh's owner mode: code-owned or all, never budget-raise.
+    def covers_code_owned(scope):
+        return mandate_state(MID, mandate(MAND.replace("budget-raise", scope)), [],
+                             _when("2026-10-02T07:00:00Z"), "2026-10-02T07:00:00Z", "merge",
+                             MANDATE_COVERS_CODE_OWNED, "an owner approval of code-owned paths")[0]
+    check("mandate: scope code-owned covers an owner approval of code-owned paths",
+          covers_code_owned("code-owned"), True)
+    check("mandate: scope all covers an owner approval of code-owned paths", covers_code_owned("all"), True)
+    check("mandate: scope budget-raise does not cover an owner approval of code-owned paths",
+          covers_code_owned("budget-raise"), False)
     # Refusal arm: the review is not on the head.
     check("mandate: a mandated approval on a non-head commit fails", rcm([agent(sha=OLD)])[0], 1)
     # What the mandate leaves as it was.
