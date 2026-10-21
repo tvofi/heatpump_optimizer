@@ -2090,7 +2090,8 @@
     "mechanism_difference": "I3 is a required governance or CI check skipped, stale or bypassable; this is an obligation no check enumerates at all, and the three checks that read the record (the bus's change report, brief_lint's shape, delivery_status's presence) are green",
     "aliases": [],
     "rca": [
-      "R9-ORPHAN-HANDOFF"
+      "R9-ORPHAN-HANDOFF",
+      "N-orphaned-handoff"
     ],
     "rca_planned": [],
     "detector_idea": "the three-juncture predicate in the RCA: a handoff-body ref, no pull request at fix/<topic> or fix/<topic>-pr, no ancestry in main or a live head, older than a measured window",
@@ -4089,6 +4090,24 @@
       "landed": "4cc639844",
       "doc": [
         "dev/audit/rca/R9-RCA-ROW-STALE.md (landed by #2193)"
+      ]
+    },
+    "N-orphaned-handoff": {
+      "class": "N-orphaned-handoff",
+      "level": "class",
+      "subject": "round-10 orphaned-handoff class: the relay's handoff-no-pr level replayed as history (31,303 OWED lines over 236 refs against 12 stranded), a detector arm that read its own finding as unavailability for 143 passes, and no age or closer on an obligation (12 stranded refs, 11 genuine, four 41.9-48.9 h old)",
+      "trigger": "class: per_round (R9 7, R10 11), cross_round",
+      "date": "2026-10-20",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built; owned by R10-ORCH-MACHINERY's obligations ledger"
+      ],
+      "process_state": "(c) orchestrator.md 5b's opener duty was read and queued behind the open-PR cap, and two openers were dispatched and killed with no retry; residuals (a) no design-to-build kind, (d) a brief that grew after its handoff",
+      "countermeasure": "proposed barrier: the obligations ledger's handoff-no-pr kind derived from the live world each pass, aged (24 h DISPATCH, 48 h owner flag; thresholds tvofi's), an opener-attempt record, a content-covered close and a design-build kind; ~5 s per pass, 1.65-2.4 h per round against 5.13 h x P=1.0",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/N-orphaned-handoff.md",
+      "doc": [
+        "dev/audit/rca/N-orphaned-handoff.md"
       ]
     },
     "R10-RCA-2205": {

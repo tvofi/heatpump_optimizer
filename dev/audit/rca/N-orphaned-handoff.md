@@ -80,12 +80,35 @@ findings, 29,976 OWED lines over 229 subjects — it grew by 1,327 OWED lines in
 $HPO_STATE_DIR/cloud-relay.log` → 200 in the 24 h the log retains (it starts
 2026-10-19T18:11:37Z); the current tick loop ran **198 passes in 24 h** (8.25/h).
 
-**The roster contradicts the refs.** In `dev/programme/rosters/wave-r10-groups.json`:
+**The roster contradicts the refs.** In `dev/programme/rosters/wave-r10-groups.json`, as
+read at 18:00Z (the roster has moved since; §2a):
 `R10-I5-DOCS` and `R10-RCA-FRICTION` read `not-started`, so PLAN prints "UNBLOCKED, not
 started -- start a fixer on handoff/<topic>" — the fresh-implementer dispatch §5b forbids
 for a lane that already handed off. `R10-ROSTER-OPS` reads `in-progress / next_step
 open_pr`; `R10-MERGE-PR-MANDATE` reads `in-progress / next_step recarry`. The record and
 the instrument disagree for four of four.
+
+## 2a. Re-measured at a later main
+
+Re-taken by the fixer seat at origin/main `0cc148b2f`, 2026-10-21T08:54Z, 14.9 h after
+§2, with the same command: `bash tools/audit/seat/bus.sh orphans --min-age-h 0` exits 1
+and prints `orphans: 11 stranded, 1 superseded`. Of §2's five aged refs:
+
+- **still stranded**: `r10-earlycutoff-coverage` (111.3 h, still the content-covered
+  false obligation of Correction 1: `git cherry origin/main
+  origin/handoff/r10-earlycutoff-coverage` still prints `-`), `r10-merge-pr-mandate`
+  (63.6 h) and `r10-rca-harness-friction` (56.6 h). `gh api
+  'repos/tvofi/heatpump_optimizer/pulls?state=all&head=tvofi:fix/<topic>'`, and the same
+  at `fix/<topic>-pr`, return `[]` for all three.
+- **closed by an opening**: `r10-i5-docs` (PR #2521 at `fix/r10-i5-docs`) and
+  `r10-roster-ops` (PR #2513). These are the query's null control: the same command
+  returns a pull request where one exists, and the bus stops listing `r10-i5-docs`.
+  `r10-roster-ops` is listed again at a newer tip, `4e2223a5`, with `repair=review`: a
+  handoff ahead of its own pull request, the #2411 shape the tick's arm already names.
+
+The handoff of this record is itself listed (`r10-rca-handoff-slip`, 14.3 h,
+`repair=opener`): its opener was refused by `prepr.sh`'s pr-body check and no attempt
+was recorded on the obligation, §5.3's case. The class did not stop at measurement.
 
 ## 3. Process state: (c), followed, with the wrong result
 
@@ -151,9 +174,9 @@ different states and are not averaged in:
   write each pass: 4.07 MB x 8.25/h ≈ 34 MB/h, about 0.81 GB/day.
 - `cost(defect)`: **5.13 seat-hours** is measured, not estimated — the R9 RCA
   (`dev/audit/rca/R9-ORPHAN-HANDOFF.md`) records that a fresh opus seat spent 5.13 hours
-  re-implementing `r9-ux-10` before finding the orphan. This round adds a 47.5 h median
-  delay across four deliverables (41.9, 44.3, 47.5, 48.9), which the 5.13 h does not
-  include.
+  re-implementing `r9-ux-10` before finding the orphan. This round adds a 45.9 h median
+  age across the four genuine aged deliverables at 18:00Z (41.9, 44.3, 47.5, 48.9; the
+  median of four is the mean of the middle two), which the 5.13 h does not include.
 - `P(recurrence)` = **1.0**, measured. `dev/audit/config/bugclasses.json`'s
   `N-orphaned-handoff` carries `per_round: {"R9": 7}`; this round's `bus.sh orphans`
   reports 12 stranded (11 genuine after Correction 1). The class has met its per-round
@@ -205,9 +228,13 @@ and never accumulated. The extension:
    never be parsed as a clean zero. The design's B11 arm states the store half; this
    record adds the exit-code half as a distinct requirement.
 
-**Demonstration.** The prototype is `~/hpo-seats/r10s3/rca-handoff-slip/fold_demo.py`
-(scratch; not carried in this change), run read-only against the fetched ref namespace,
-the PR head list and the disposition ledger:
+**Demonstration.** The prototype was a scratch `fold_demo.py` on the orchestrator's host,
+not carried in this change and therefore not re-runnable from the tree. The figures below
+are this seat's record of one run; the demonstration `defect-root-cause.md` owes a
+detector (red on the defect, green once fixed, a null control) is owed by the built
+ledger in `R10-ORCH-MACHINERY`'s pull request, not by this record. The prototype was
+run read-only against the fetched ref namespace, the PR head list and the disposition
+ledger:
 
     python3 -I fold_demo.py --world live
 
@@ -243,15 +270,20 @@ countermeasure, not an addition to it.
 
 ## 7. Where the finding goes
 
-- The class's `rca` citation in `dev/audit/config/bugclasses.json` still points only at
-  `R9-ORPHAN-HANDOFF`; adding `N-orphaned-handoff` to it is a config change and is not in
-  this document-only handoff.
+- The class's `rca` citation in `dev/audit/config/bugclasses.json` now names this record
+  beside `R9-ORPHAN-HANDOFF`, with an `_rca` entry `N-orphaned-handoff` whose
+  `in_tree_home` is this file (the change that lands it).
+- §1's first cause (the board replaying the relay's level lines as history) is owned by
+  roster group `R10-TICK-OWED-LEVEL`, whose brief states the level/event split; the
+  ledger in §5 supersedes it when built, and the two must agree on the grammar.
 - The machinery design (`dev/audit/design/orch-machinery/DESIGN.md` at `09174d94`, §6.3
   and §6.4) is the destination for §5.1–§5.3 and §5.6; §5.5 is a new kind the design
   must add, and §5.4 is a `bus.sh` content-arm defect it must fix. Group
-  `R10-ORCH-MACHINERY` exists in the roster with a `not-started` build gated on
+  `R10-ORCH-MACHINERY`'s brief carries the extension ("Ledger extension owed",
+  `handoff/audit-r10-roster` at `a691012e5`), with a `not-started` build gated on
   `R10-ROSTER-OPS`.
-- §3's (d) observation belongs to the §6.4 record verifier: pin the brief at handoff and
-  compare it on a later pass.
+- §3's (d) observation belongs to the §6.4 record verifier, `R10-ROSTER-OPS`'s
+  roster-sync step: pin the brief at handoff and compare it on a later pass. Its brief at
+  `a691012e5` does not yet carry it; the roster is the orchestrator's to write.
 - The 24 h and 48 h thresholds are tvofi's; this record names the state they address and
   does not set them.
