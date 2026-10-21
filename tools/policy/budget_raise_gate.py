@@ -121,6 +121,10 @@ MANDATE_COVERS_RAISE = ("budget-raise", "all")
 # written record. The strictest reading is the safe one: a scope that does not
 # name this act does not license it.
 MANDATE_COVERS_POLICY = ("all",)
+# What covers an agent's approval, as the owner, of a code-owned path that is
+# neither policy nor a raise (merge_pr.sh's owner mode): the scope named for
+# it, or `all`. A `budget-raise` scope licenses a raise and nothing else.
+MANDATE_COVERS_CODE_OWNED = ("code-owned", "all")
 # tvofi, 2026-10-14: an agent raises a cap only under a mandate, and only after
 # showing no payment that improves the architecture exists -- moving, deleting,
 # sharing or refactoring code that arch_score (tools/audit/archscore/) does not

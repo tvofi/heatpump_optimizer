@@ -4,8 +4,8 @@
 #
 # owner mode approves code-owned paths as tvofi's account under the mandate
 # comment <comment-id> on #201, read live at this run by budget_raise_gate.py's
-# own reading (`_mandate`, `mandate_state` judged now, scope `code-owned` or
-# `all`). No --mandate, or one not in force now, refuses before anything is
+# own reading (`_mandate`, `mandate_state` judged now, its scope the gate's
+# MANDATE_COVERS_CODE_OWNED). No --mandate, or one not in force now, refuses before anything is
 # posted: the script never defaults to a mandate, because a stale one is a
 # forged grant (until R10-TRAIN-RAISE-HOLD it hard-coded one that had expired). A budget RAISE is still the gate's to refuse: this
 # approval says nothing of the raise justification `budget-raise-gate` reads.
@@ -33,7 +33,7 @@ except Exception as e:  # fail closed: an unread mandate grants nothing
     sys.exit(1)
 now = datetime.datetime.now(datetime.timezone.utc)
 ok, why = g.mandate_state(cid, comment, thread, now, now.strftime("%Y-%m-%dT%H:%M:%SZ"), "merge",
-                          ("code-owned", "all"), "an owner approval of code-owned paths")
+                          g.MANDATE_COVERS_CODE_OWNED, "an owner approval of code-owned paths")
 print(("IN FORCE: " if ok else "REFUSE: ") + why)
 sys.exit(0 if ok else 1)
 P
