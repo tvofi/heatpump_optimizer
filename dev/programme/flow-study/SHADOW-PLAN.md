@@ -153,9 +153,15 @@ To verify, not caused by this plan:
 
 - **Critical-path links** (ADVISOR, SCORES, LIVESTATE, PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS) get review before anything else in the queue.
 
-**Phase 3: decide (around day 2).**
-- FLOW-MQ-PROBE runs after R10-CI-LAYOUT-P1. You decide on the queue.
+**Phase 3: decide (when P1's PR 1 merges; revision 9).**
+- FLOW-MQ-PROBE starts when R10-CI-LAYOUT-P1's PR 1 merges, never on day 1: the probe should measure the layout that would be adopted.
+- You decide adoption at the round-10/11 boundary, together with R10-CI-LAYOUT-P2.
 - FLOW-RECORD-PITCH is then built or closed.
+
+**CI layout against the lane pulls (revision 9).**
+- R10-CI-RATCHET-RED and then R10-CI-LAYOUT-P1 (PR G #2529, then PR 1) take reviewer slots ahead of any lane A–F pull that is not on the critical chain.
+- R10-CI-LAYOUT-P2 waits for the round boundary, after the stamp.
+- The minutes and the reasons are in the prompt's "CI layout" section and FUTURE-STATE §11 items 32–35.
 
 ### 3.3 Rules for cases revision 3 left undefined (revision 4)
 

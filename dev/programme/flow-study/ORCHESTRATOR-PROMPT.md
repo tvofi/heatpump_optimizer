@@ -1,6 +1,6 @@
-# Handover prompt for the round-10 orchestrator: **revision 8** (2026-10-21)
+# Handover prompt for the round-10 orchestrator: **revision 9** (2026-10-21)
 
-**Revision 8** adds standing rules 11–14 for s4's four process points, which do not block adoption. **Revision 7** answered s4's six findings on revision 6. This prompt supersedes revisions 1–7 and is self-contained. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
+**Revision 9** answers where R10-CI-LAYOUT-P1, -P2 and R10-CI-RATCHET-RED sit against the lane A–F pulls, with CI minutes measured today, and keeps FLOW-MQ-PROBE off day 1 (section "CI layout", FUTURE-STATE §11 items 32–35). **Revision 8** added standing rules 11–14. This prompt supersedes revisions 1–8 and is self-contained. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
 
 ---
 
@@ -81,6 +81,38 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 
 **At most two expedite reviews run at once.** Critical-path product reviews (ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS) keep their own reviewer.
 
+## CI layout: what goes ahead of the lane A–F pulls (revision 9)
+
+The three groups are lane IN, so they take no A–F WIP slot. "Ahead" means they get the next reviewer slot (CODEOWNER mode under the mandate) before any lane pull that is **not** on the critical chain. Critical-chain product reviews keep their own reviewer.
+
+**Measured today** (job timestamps; a "train" is one batch CI run):
+- PR run 39625218966 (#2571 head, scoped): 48.6 min. coverage 25.8 min, then closures 20.3 min. closures starts the second coverage ends; that is the coverage→closures edge. fast took 11.0 min in parallel; composed-proof ran 17 s after a 1-min queue.
+- Main push run 39619839750 (#2544 merge, FULL scope): 47.8 min. fast 40.6 min, coverage 27.2, then closures 20.2.
+- The last 4 Tests push runs on main concluded `failure`. On the latest, `ci-ratchet` failed at "Gather this run's and the recent window's metrics" (R10-CI-RATCHET-RED's path) and `record-autofix` failed at "Enumerate the window's merges".
+
+| group | CI minutes removed per train | goes ahead of the A–F pulls? |
+|---|---|---|
+| **R10-CI-RATCHET-RED** | **0.** `ci-ratchet` is skipped on PR and batch runs; it runs only on main pushes. | **Yes, now.** R10-STAMP needs a green Tests push run (roster brief), so this group is on the round's end path, not on the train path. Its due date is the stamp. |
+| **R10-CI-LAYOUT-P1** (PR G #2529 first, then PR 1) | W1 deletes the coverage→closures edge and composed-proof. On today's timings that is **about 7 min** on a FULL-scope train (fast's 40 min becomes the long pole) and **about 19–21 min** on a scoped run (48.6 → about 27–30 min). The design's 4–6 min was measured on 10-18, when fast was co-critical (median 21 min); PR 0's arch_score move has since cut scoped fast to 11 min. PR 1's other parts remove 0 PR minutes. | **Yes, right after RATCHET-RED.** It also moves `record-autofix` off the Tests push run (D-1), which is the second red job on main pushes. |
+| **R10-CI-LAYOUT-P2** (the umbrella) | **Minus about 1 min.** It adds about 60 s per run (prelude, gate, hops) and removes nothing beyond W1, which is P1's. | **No. Run it at the round-10/11 boundary, after the stamp.** The roster brief already says "at a wave boundary". |
+
+**Why P2 waits.** Mid-round, P2 costs:
+- **R-1:** every open PR has no `gate` until it absorbs main, so every open PR (about 13) re-runs full CI. That is about one train cycle lost, under a freeze.
+- **R-2:** an edit or review made during a code run waits for that run (median 1406 s). That undoes the body-only path, where pr-contract alone answers in about 30 s.
+- **Push runs move:** `ci-ratchet` moves to `ci.yml` push runs, which changes what the stamp reads just before the stamp.
+
+If the owner's "CI layout first" means P2 as well, those are the costs. That decision is the owner's.
+
+**Firm gain from P1.**
+- Every critical-chain link boards one train: 8 × 7–20 min ≈ 1–2.7 h.
+- Fixer and absorb runs add up to about 4–8 h. Most of that overlaps review under rule E, because a pending head is reviewable. Count only the train part as firm.
+- The gain shrinks each hour P1 is late. If P1 has not merged by about hour 36 from adoption, finish it but do not pull reviewers off critical-chain work for it.
+
+**Steps.**
+1. Dispatch R10-CI-RATCHET-RED now. Its review takes the next expedite slot after wave 2.
+2. Then PR G #2529 → PR 1. PR 1's fixer first re-runs the design's critical-path counterfactual (the method behind `measure/p2/critpath.txt`) on the last 20 scoped PR runs and puts the figure in the body.
+3. If no group owns `record-autofix`'s "Enumerate the window's merges" failure, register it as fly-in `R10-FLY-RECORD-ENUM`: it also blocks a green push run, and P1 only moves the job.
+
 ## Phase 1b: two roster PRs, one review each, starting now
 
 **Roster PR-A, the re-chain** (`roster_edit.py set-after`, through its lint gate):
@@ -121,9 +153,15 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 - **R11:** when ANDON merges, say so on #201.
 - Lanes A–F dispatch by pull, longest remaining chain first.
 
-## Phase 3 (around day 2)
+## Phase 3 (when PR 1 merges; not day 1)
 
-FLOW-MQ-PROBE runs after R10-CI-LAYOUT-P1, on a throwaway ruleset only. Report to the owner. If the queue is adopted, close FLOW-RECORD-PITCH.
+- FLOW-MQ-PROBE starts when R10-CI-LAYOUT-P1's PR 1 merges, on a throwaway ruleset only.
+- The workflows are already queue-ready on main: 8 workflows carry `merge_group`. The probe could run on day 1, but it does not, because:
+  - P1 deletes composed-proof and moves record-autofix and the nightly lanes, so a day-1 probe measures a layout that is about to change;
+  - each `merge_group` run is a FULL-scope run (about 41–48 min), competing for runners with the day-1 drain;
+  - adoption is a ruleset change on main, and its payoff (retiring the train's batch proof and RECORD-PITCH) lands mostly in round 11.
+- Report to the owner. **Decide adoption at the round boundary, together with P2,** whose single `gate` is what reports on `merge_group`.
+- If the queue is adopted, close FLOW-RECORD-PITCH.
 
 ## Guardrails
 

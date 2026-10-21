@@ -323,4 +323,11 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 29. **An offline `carry_audit check --body` reads the worktree's roster,** and so passes carries that are not on the roster branch. BODY-PATCH and JIDOKA now pass `--roster-ref` with the freshly fetched round roster branch. The interim command is in the prompt, standing rule 12.
 30. **Stale check-runs recurred** (#2559, #2567); one re-run clears each. MAIN-GATE (b) applies it before every merge attempt and logs the run id; a third recurrence goes to a root-cause seat.
 31. **A relayed "verdict posted" must be read back from the PR's comments** before anyone acts on it. R10-ORCH-MACHINERY's ledger closes `verdict-unposted` only on that read-back (carry item 4b).
-
+32. **R10-CI-RATCHET-RED removes 0 train minutes.** `ci-ratchet` runs only on main pushes (skipped on PR run 39625218966). It still goes ahead of the lane pulls: the last 4 Tests push runs on main are red, `ci-ratchet` fails at its metrics-gather step, and R10-STAMP needs a green push run.
+33. **R10-CI-LAYOUT-P1's W1 is worth more than its design measured.**
+    - Measured today: about 19–21 min off a scoped run (48.6 → about 27–30 min) and about 7 min off a FULL-scope train, where fast's 40.6 min becomes the long pole.
+    - The design's 4–6 min was taken on 10-18, when scoped fast (median 21 min) was co-critical; PR 0's arch_score move since cut it to 11 min.
+    - The firm part on the critical chain is the train wait: about 1–2.7 h over 8 links.
+    - P1 goes ahead of the non-critical lane pulls. PR G (#2529) comes first.
+34. **R10-CI-LAYOUT-P2 adds about 1 min per run** and costs one forced re-run of every open PR at cut-over (R-1). Edits and reviews during a code run would wait a median of 1406 s (R-2). It runs at the round-10/11 boundary, as its own brief says ("at a wave boundary").
+35. **FLOW-MQ-PROBE stays off day 1.** The workflows are already queue-ready, but P1 changes the job set the probe would measure, and adoption pairs with P2's single `gate`. The probe starts when P1's PR 1 merges, and adoption is decided at the boundary.
