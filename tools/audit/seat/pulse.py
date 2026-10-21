@@ -372,6 +372,8 @@ def self_test() -> int:
           words(snap(main_t=None))["state-beat"] == words(snap(state_t=None))["state-beat"] == "UNREADABLE")
     check("bus.sh rc 0 with no summary line is UNREADABLE",
           words(snap(orphans={"rc": 0, "out": ""}))["opener"] == "UNREADABLE")
+    check("bus.sh rc 2 or more is UNREADABLE even beside a summary line",
+          words(snap(orphans={"rc": 3, "out": clean}))["opener"] == "UNREADABLE")
     # A stamp ahead of the clock is unknowable: never aged, named skew.
     sk = {arm: (w, d) for arm, w, d in judge(snap(
         verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now + 600}],
