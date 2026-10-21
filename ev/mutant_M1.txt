@@ -1,0 +1,3 @@
+  ERROR   [index] CLAUDE.md: does not name `dev/governance/roles/design-review.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
+  ERROR   [index] CLAUDE.md: does not name `dev/governance/roles/designer.md`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.
+TOTAL: 2 error(s) across 43 policy file(s)
