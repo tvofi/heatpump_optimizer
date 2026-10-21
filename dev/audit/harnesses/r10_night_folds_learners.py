@@ -22,7 +22,8 @@ Command (tree root):
 Expected at the fix's head: sunlit samples 0 on house and lower, dark samples
 > 0 on both, refit sunlit pairs 0 and dark pairs 192, gains.unconverged 0.0000,
 gains.converged > 0.05. At the baseline: sunlit samples > 0 on both, refit
-sunlit pairs 192, gains.unconverged ~1.0.
+sunlit pairs 192, gains.unconverged > 0 (the +10 % level error leaks into
+the hour profile, on the order of that error rather than of the profile).
 
 Null control: the dark arm of every pair reads the same at both ends.
 Perturbation: the sunlit arm -- set the interval's irradiance to 600 W/m2 and

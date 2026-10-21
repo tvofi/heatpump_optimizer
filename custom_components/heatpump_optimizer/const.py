@@ -1033,9 +1033,10 @@ SOLAR_APERTURE_MIN_SAMPLES: Final = 30
 #: the heat-loss folds take it and a sunlit one they leave to the aperture
 #: learner. Also the refit pair's admission and the internal-gains gate --
 #: one threshold, because they are one question. Justified where it binds:
-#: at the shipped aperture product the modelled solar gain at 50 W/m² is
-#: 0.30 kW, which one half-hour interval at the house capacity turns into
-#: under 0.02 K of residual against the learner's 1.0 K rejection.
+#: at the shipped aperture product (10 m² x 0.7 x 0.7) the modelled solar
+#: gain at 50 W/m² is 0.245 kW, which one half-hour interval at the house
+#: capacity turns into 0.012 K, under 0.02 K of residual against the
+#: learner's 1.0 K rejection.
 HEAT_LOSS_MAX_SOLAR_W_M2: Final = 50.0
 #: #53 — per-hour internal gains, ridge-regularised toward the constant.
 CONF_INTERNAL_GAINS_LEARNING_ENABLED: Final = (
