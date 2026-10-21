@@ -1,4 +1,4 @@
-Roster for round 10, sixth landing: the R10-FLOW-RECHAIN re-chain of the coordinator.py `after` edges, as one roster pull request. It applies the decision seat's ruling, landed here as `dev/programme/round10/rechain/rechain-decision.md` with its edge lists `rechain-drops.json` and `rechain-adds.json`. Part of #201.
+Roster for round 10, sixth landing: the R10-FLOW-RECHAIN re-chain of the coordinator.py `after` edges, as one roster pull request. It also classifies the new evidence directory in `tests/layout.json`. It applies the decision seat's ruling, landed here as `dev/programme/round10/rechain/rechain-decision.md` with its edge lists `rechain-drops.json` and `rechain-adds.json`. Part of #201.
 
 The ruling, applied whole and never in part (the drops land in the same commit as the three required edges):
 
@@ -19,14 +19,15 @@ It leaves #201 open and closes nothing by keyword.
 
 ## Head
 
-The authored code head is `726e98d64866ab07e69889f3e225d669880a9743` (`handoff/audit-r10-roster`). `git diff --name-only $(git merge-base origin/main 726e98d64)...726e98d64` lists four files:
+The authored code head is `f424d993d15f9ba103680ecf88a710539f789bcf` (`handoff/audit-r10-roster`). `git diff --name-only $(git merge-base origin/main f424d993d)...f424d993d` lists five files:
 
 - `dev/programme/rosters/wave-r10-groups.json`
 - `dev/programme/round10/rechain/rechain-decision.md` (new)
 - `dev/programme/round10/rechain/rechain-drops.json` (new)
 - `dev/programme/round10/rechain/rechain-adds.json` (new)
+- `tests/layout.json`
 
-All three new files sit under `dev/programme/`, a prefix on `tests/closure.py`'s `INERT` list, and none matches `is_handover`.
+The three new files sit under `dev/programme/`, a prefix on `tests/closure.py`'s `INERT` list, and none matches `is_handover`. `tests/layout.json` gains one glob, `dev/programme/round10/**`, beside the existing `dev/programme/round9/**` in the `dev/programme` category. Without it, the layout guard refused the first open with `placement: dev/programme/round10/rechain/rechain-adds.json is in 0 categories of tests/layout.json`. `tests/layout.json` is code-owned (`.github/CODEOWNERS`), so this PR needs the code-owner approval.
 
 ## Mutation proof
 
@@ -38,11 +39,11 @@ The 96 roster groups outside the twelve edited ones are unchanged. `python3 -I t
 
 ## Figures
 
-- Critical-path depth over the open groups goes from 11 to 8. Run `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `python3 tools/audit/seat/plan_table.py --roster-ref 726e98d64` and read the swimlane table's last wave column (`roster_lib.depth_of` and `critical_path`). The path after: R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-ARCH-DOCS.
+- Critical-path depth over the open groups goes from 11 to 8. Run `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `python3 tools/audit/seat/plan_table.py --roster-ref f424d993d` and read the swimlane table's last wave column (`roster_lib.depth_of` and `critical_path`). The path after: R10-ADVISOR, R10-SCORES, R10-LIVESTATE, R10-PARAMS-OWNER, R10-HEAT-METER, R10-COP-GATE, R10-UX-HEALTH, R10-ARCH-DOCS.
 
 ## Red checks
 
-- `nightly-status`: it grades main (the nightly run), not this branch, so it is red at every head, main's own tip included. This diff changes only `dev/programme/rosters/wave-r10-groups.json` and three new files under `dev/programme/round10/rechain/`, and `nightly-status` reads none of them, so the red is not this PR's.
+- `nightly-status`: it grades main (the nightly run), not this branch, so it is red at every head, main's own tip included. This diff changes only `dev/programme/rosters/wave-r10-groups.json`, three new files under `dev/programme/round10/rechain/` and one glob in `tests/layout.json`, and `nightly-status` reads none of them, so the red is not this PR's.
 
 ## Forward-carry
 
