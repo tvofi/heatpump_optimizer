@@ -1,0 +1,3 @@
+UNROUTED #2567 review 6320871704 item 47cb6add (## Carry of the previous review's items) [non-blocking]: 'The round-4 verdict (review/2567 21141036) already routed f053a70e and d3bf9b75, as `Carry: dismissed: the rou'
+UNROUTED #2567 review 6320871704 item a9388222 (## Carry of the previous review's items) [section]: 'bus-nonce: 84c4ff91ffe593f474b8b71e65da7c72'
+CARRY-AUDIT #2567: 7 finding item(s): 5 routed, 2 unrouted, 0 bad destination(s)

@@ -1,8 +1,0 @@
-## carry_audit
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-## policy_lint --pr-body (gh token)
-  record   red-history           10 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
-
-PR-BODY: 0 error(s) in /tmp/tmp.IcmPSkZS4Z/ev/pr_body_at_review.md
-rc=0
