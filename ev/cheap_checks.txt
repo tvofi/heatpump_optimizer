@@ -1,0 +1,7 @@
+selftest_wiring: 39 self-testing, 39 wired, 0 unwired
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 500668757671
+ref_privacy --check at HEAD: 19 file(s) with a push site, 9 guarded, 1105 line(s) added since 500668757671 judged, 0 refused
+claims hygiene: origin/main ok
+ModuleNotFoundError: No module named 'voluptuous'
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tests/closure.py changes the gate itself, so every closure is suspect
