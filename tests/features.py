@@ -20958,6 +20958,28 @@ R.check(
     bool(_cextf._freq_map.buckets),
     "#781: do not gate the fold on _learning_frozen wholesale",
 )
+# D7-s2-01: a defrost reverses the cycle, so the meter reads the pump clearing
+# its own coil rather than the load its frequency delivers. Every other learner
+# refuses the interval (_learning_frozen returns "defrosting"); the map did not.
+_cdf = _freq_coord()
+_cdf._pump_signals = PumpSignals(defrosting=True)
+_cdf._observe_frequency(_T6)
+R.check(
+    "a defrost interval never teaches the frequency map",
+    not _cdf._freq_map.buckets,
+    "the fold would learn a ratio that is not a kW-per-Hz point, and the "
+    "decile-keyed map is inherited when the user later switches to control",
+)
+# The carry's null control: the fact must not be over-read. A defrost flag
+# that is False is an ordinary interval, and the arm still folds.
+_cdf0 = _freq_coord()
+_cdf0._pump_signals = PumpSignals(defrosting=False)
+_cdf0._observe_frequency(_T6)
+R.check(
+    "null control: a non-defrost interval still folds",
+    _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
+    repr(_cdf0._freq_map.buckets),
+)
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
 _cnone = []
@@ -21112,6 +21134,24 @@ R.check(
     "overnight idle never trips the watchdog",
     not _ci7._freq_fallback and _ci7._freq_watchdog.strikes == 0,
     "compressor-off is not write-path divergence",
+)
+
+# A defrost is the pump working on its own coil, not on the plan's command:
+# a report that diverges during one says nothing about the write path, so the
+# tick is not active and must neither strike nor keep a streak alive.
+# D7-s2-01: the watchdog's own contract said this; the caller did not.
+_cdw = _armed_coord()
+_asyncio.run(_cdw._command_frequency())  # commands 45.0
+_cdw._pump_signals = PumpSignals(defrosting=True)
+_cdw.hass.states.set(
+    "number.freq", FakeState("90", attributes={"min": 20.0, "max": 120.0})
+)
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _cdw._observe_frequency(_T6)
+R.check(
+    "defrost ticks never stand control down",
+    not _cdw._freq_fallback and _cdw._freq_watchdog.strikes == 0,
+    "a defrost is not a write path that stopped listening",
 )
 
 # The first report after a command is a grace tick: the pump is entitled
@@ -32661,9 +32701,13 @@ R.check(
 )
 
 
-async def _pt_degree_at_seam():
-    """Both degree tiles' figures from a real solve and its real what-ifs."""
+async def _pt_degree_at_seam(room):
+    """Both degree tiles' figures from a real solve and its real what-ifs,
+    with the live house at ``room`` (its slab a kelvin above)."""
     coord = _solve_coord()
+    live = getattr(coord, "_ctx", coord)._current_state
+    live.room_temperature = live.upper_floor_temperature = live.lower_floor_temperature = room
+    live.slab_temperature = room + 1.0
     await coord.async_run_optimization()
     record = _solve_record_now(coord)
     out = {}
@@ -32673,14 +32717,33 @@ async def _pt_degree_at_seam():
     return out
 
 
-_pt_seam = _asyncio.run(_pt_degree_at_seam())
-_pt_down, _pt_up = _pt_seam["target_minus_1"][0], _pt_seam["target_plus_1"][0]
+# The held figure is the thermostat's, which starts held at its own target
+# whatever the live house is doing, so a coasted and a pre-heated house price
+# a degree alike; the plan's single-solve spend starts from the house as it
+# stands, so the two starts part it. The clock is fixed at a night and an
+# afternoon instant: what the check reads is the same at every hour it runs.
+_pt_seams = {}
+for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=UTC), datetime(2026, 1, 15, 15, 7, tzinfo=UTC)):
+    _fi_dt.freeze(_pt_at)
+    try:
+        for _pt_room in (19.0, 23.0):
+            _pt_seams[(_pt_at.hour, _pt_room)] = _asyncio.run(_pt_degree_at_seam(_pt_room))
+    finally:
+        _fi_dt.freeze(None)
+_pt_held = {k: (v["target_minus_1"][0], v["target_plus_1"][0]) for k, v in _pt_seams.items()}
+_pt_plan = {k: (v["target_minus_1"][1], v["target_plus_1"][1]) for k, v in _pt_seams.items()}
 R.check(
-    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, convexly",
-    _pt_down is not None and _pt_up is not None
-    and _pt_down < 0.0 < _pt_up and _pt_up + _pt_down >= -1.0,
-    f"held: cooler {_pt_down}, warmer {_pt_up}; the plan's single-solve figures "
-    f"{_pt_seam['target_minus_1'][1]} / {_pt_seam['target_plus_1'][1]}",
+    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, at night and by day",
+    all(d is not None and u is not None and d < 0.0 < u for d, u in _pt_held.values()),
+    f"held (cooler, warmer) by (hour, room): {_pt_held}",
+)
+R.check(
+    "#2257: the held figure prices a degree from a steady start: a coasted and a pre-heated house "
+    "read it alike, while the plan's single-solve spend tells them apart",
+    all(_pt_held[(h, 19.0)] == _pt_held[(h, 23.0)]
+        and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
+        for h in (3, 15)),
+    f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
 )
 
 
@@ -42583,6 +42646,19 @@ R.check(
     "would let a crash between them leave the ledger and its riders "
     "describing different months",
 )
+# #2257: the price tiles' days ride the same save, so a restart resumes their
+# 30-day mean instead of starting it over.
+_t3_pt = _t3_coord()
+_t3_pt_tile = {"overrides": {"target_temp": 22.0}, "days": [{"day": "2026-01-15", "sum": 30.0, "count": 1}]}
+price_tiles.book(_t3_pt)["target_plus_1"] = _t3_pt_tile
+_t3_pt._ledger_store = _T3SavingStore()
+_t3_drive(_t3_pt, "_async_save_ledger")
+_t3_pt_saved = _t3_pt._ledger_store.saved[0].get("price_tiles") if _t3_pt._ledger_store.saved else None
+R.check(
+    "#2257: the ledger save carries the price tiles' book, day by day",
+    _t3_pt_saved == {"target_plus_1": _t3_pt_tile},
+    repr(_t3_pt_saved),
+)
 _t3_sv_full = _t3_coord()
 _t3_sv_full._ledger_store = _T3FullStore()
 _t3_drive(_t3_sv_full, "_async_save_ledger")
@@ -51938,6 +52014,18 @@ R.check(
     "null control: a running plan with the pump in range is watched",
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
+)
+# The two bounds are exclusive at the floor and inclusive at the minimum on
+# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
+# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
+# exactly at the entity's minimum is in the compressor's running range. A
+# flipped bound is visible only at those two inputs, and no other driver feeds
+# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
+# drives (`pin-killed` measured it), and this check is their killer.
+R.check(
+    "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
+    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
 )
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----

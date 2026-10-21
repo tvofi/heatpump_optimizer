@@ -589,11 +589,11 @@ own advisor sensors, not from the card.*
   a degree warmer would cost, from the score sensor's price tiles: the whole
   comfort schedule moved one degree and held there, averaged over the last 30
   days, so one unusual day moves it by a thirtieth. The figures are checked
-  before they are shown: a degree cooler must save, a degree warmer must cost,
-  and the warmer degree must cost at least what the cooler one saves, give or
-  take the one unit rounding opens. A pair that fails is shown without money,
-  as not settled yet; a degree that saves nothing either way (no heating) is
-  no row. **Try in what-if** opens the Plan tab's what-if panel with the
+  before they are shown: a degree cooler must save and a degree warmer must
+  cost. The two need not match: each is averaged over the solves that priced
+  it, and they are priced in turn, so they differ by a few units either way. A
+  pair that fails is shown without money, as not settled yet; a degree cooler
+  that saves nothing (no heating) is no row. **Try in what-if** opens the Plan tab's what-if panel with the
   comfort slider on the cooler target and runs the simulation; that panel
   prices the plan from the house as it is now, so its figure includes the
   one-off coast or heat-up a change starts with. The tiles exist only while
@@ -837,12 +837,12 @@ To check, open the browser console and reload the dashboard. The card prints
 its version on load:
 
 ```
- heatpump-optimizer-card  v6.6.8
+ heatpump-optimizer-card  v<version>
 ```
 
-That is the card's own version, and it is rewritten to match on every release
-the integration stamps — the release step edits the card file itself, so the
-banner and the integration version move together. If the banner is older than
+where `<version>` is the card's own version. It is rewritten to match on every
+release the integration stamps — the release step edits the card file itself,
+so the banner and the integration version move together. If the banner is older than
 the integration version you installed, a stale copy of the card is loading.
 
 If it is older than that, or an error mentions a duplicate registration, go to

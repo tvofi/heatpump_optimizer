@@ -159,6 +159,8 @@ RATE_FLOOR = 0.2
 #: Non-standard conclusions: completed, but neither red nor pending, and
 #: they block a merge invisibly (wait-ci's GREEN set does not know them).
 NONSTANDARD = ("cancelled", "startup_failure", "timed_out")
+#: GitHub's annotation on a run its concurrency group cancelled for a newer one.
+SUPERSEDED = re.compile(r"Canceling since a higher priority waiting request for \S+ exists")
 #: The mandate citation a review body carries (budget_raise_gate's own shape).
 MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:?\s*#?(\d{6,})", re.I)
 #: The plan's disposition region (record-check keys on the region, not a row).
@@ -1110,6 +1112,13 @@ class Tick:
         else:
             latest = self.latest(runs)
             green, _, red = self.judge(latest)
+            sup = [n for n in red
+                   if n not in (req or ()) and self.superseded(latest[n])]
+            if sup:
+                red = [n for n in red if n not in sup]
+                self.line(S, f"main {tip[:12]}: superseded, not red (GitHub "
+                             "cancelled each for a newer run in its own "
+                             f"concurrency group): {', '.join(sup)}")
             if req is not None:
                 absent = [r for r in req if r not in latest and r not in PR_ONLY]
                 waiting, absent = self.split_absent(absent, latest)
@@ -1162,6 +1171,27 @@ class Tick:
                          "(an ancestor checkout is not current)", flag=True)
         elif code != 0:
             self.unreadable(S, "checkout staleness", o.strip()[-80:])
+
+    def superseded(self, cr: dict) -> bool:
+        """True when GitHub cancelled this run for a newer one in its own
+        concurrency group -- its annotation is GitHub's record of why. A
+        workflow_run follower of a PR head attaches to main's tip, and one
+        with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
+        design: its successor's conclusion is the status, and counting it red
+        sent a fixer after main for a run that never had a runner. Any other
+        cancellation, or an annotation list the API did not return, is red;
+        main() never asks for a required context, whose tip then has no
+        verdict at all."""
+        if cr.get("conclusion") != "cancelled" or not cr.get("id"):
+            return False
+        code, o = self.gh(["api", f"repos/{self.repo}/check-runs/{cr['id']}/annotations"])
+        try:
+            notes = json.loads(o) if code == 0 else []
+        except ValueError:
+            return False
+        return isinstance(notes, list) and any(
+            isinstance(a, dict) and SUPERSEDED.match(a.get("message") or "")
+            for a in notes)
 
     def policy_drift(self, S: str) -> None:
         """The newest commit on main touching any policy path, remembered in
@@ -2594,6 +2624,90 @@ def self_test() -> int:
                                      for l in t.sections["MAIN"])),
         ])
         total, failed = total + a, failed + f
+
+        # ---- MAIN: a lane GitHub cancelled for a newer run in its own
+        # concurrency group is superseded, not red (rerun-stale-contract on
+        # f58b14c1: a workflow_run follower of a PR head attaches to main's
+        # tip, and R10-FOLLOWER-DEBOUNCE's cancel-in-progress cancels it by
+        # design). Its annotation is GitHub's own record of why; any other
+        # cancellation, or an unreadable annotation list, stays red.
+        sup = ("Canceling since a higher priority waiting request for "
+               f"pr-contract-rerun-{H2} exists")
+        for label, ann, want_red in (
+                ("concurrency-superseded", [{"message": sup}], False),
+                ("cancelled otherwise (null control)",
+                 [{"message": "The operation was canceled."}], True),
+                ("annotations unreadable (fails closed)", None, True)):
+            gh = Stub()
+            gh.on("commits/main", out=H1)
+            gh.on(".[] | select(.name", out="42")
+            gh.on("rulesets/42", out="tests\n")
+            gh.on(f"commits/{H1}/check-runs",
+                  out=json.dumps(run_obj("tests")) + "\n" + json.dumps(
+                      run_obj("rerun-stale-contract", conclusion="cancelled",
+                              cid=119215715286)))
+            gh.on("check-runs/119215715286/annotations",
+                  rc=0 if ann is not None else 1,
+                  out=json.dumps(ann) if ann is not None else "HTTP 502")
+            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            t.main()
+            txt = [l["text"] for l in t.sections["MAIN"]]
+            briefed = any("main-red rerun-stale-contract" in x["text"]
+                          for x in t.findings)
+            a, f = check(f"MAIN cancelled lane: {label}", [
+                (f"brief {'present' if want_red else 'absent'}", briefed == want_red),
+                ("superseded line iff superseded",
+                 any("superseded" in x and "rerun-stale-contract" in x
+                     for x in txt) == (not want_red)),
+                ("main still reads green on its required contexts",
+                 any(x.startswith(f"main {H1[:12]} green") for x in txt)),
+            ])
+            total, failed = total + a, failed + f
+        # A required context superseded at the tip leaves the tip without its
+        # verdict: still REQUIRED not green, and its annotations never read.
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\n")
+        gh.on(f"commits/{H1}/check-runs", out=json.dumps(
+            run_obj("tests", conclusion="cancelled", cid=119215715286)))
+        gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        t.main()
+        txt = [l["text"] for l in t.sections["MAIN"]]
+        a, f = check("MAIN superseded required context stays red", [
+            ("REQUIRED not green", any("REQUIRED not green: tests" in x for x in txt)),
+            ("no superseded line", not any("superseded" in x for x in txt)),
+            ("annotations not read",
+             not any("annotations" in " ".join(c) for c in gh.calls)),
+        ])
+        total, failed = total + a, failed + f
+        # Only a cancelled lane is read: a failure carrying the same note is
+        # red, and its annotations are never fetched (one read per cancel).
+        gh = Stub()
+        gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        a, f = check("MAIN failed lane is never superseded", [
+            ("failure: not superseded", not t.superseded(
+                run_obj("x", conclusion="failure", cid=119215715286))),
+            ("and no annotation read", not gh.calls),
+        ])
+        total, failed = total + a, failed + f
+        # A body that is not a list (null, or an error object carrying the
+        # same text) is not GitHub's annotation list: red, never a crash.
+        for label, body in (("null", "null"), ("object", json.dumps({"message": sup}))):
+            gh = Stub()
+            gh.on("check-runs/119215715286/annotations", out=body)
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            try:
+                got = t.superseded(run_obj("x", conclusion="cancelled", cid=119215715286))
+            except Exception as e:  # noqa: BLE001 -- a crash is the failure shown
+                got = repr(e)
+            a, f = check(f"MAIN annotations body {label}", [
+                ("not superseded", got is False)])
+            total, failed = total + a, failed + f
 
         # mandate in force / expired, through the gate's own reader
         if gate_ok:
