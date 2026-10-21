@@ -192,7 +192,9 @@ printf '424242\n' > "$W/id/hpo-author.appid.txt"
 printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' > "$W/id/hpo-author.pem"
 # A real repository: base, then the head (adds b.txt), and a third commit the
 # "moved" head points at (adds c.txt), so a moved head is a real object.
-( cd "$W/repo" && git init -q . && git config user.email t@t && git config user.name t \
+. "$HERE/../../../tests/throwaway_git.sh" # the one way a script builds a throwaway repository
+throwaway_git_init "$W/repo" -q
+( cd "$W/repo" && throwaway_git_env \
   && echo a > a.txt && git add . && git commit -qm base && git rev-parse HEAD > "$W/base.sha" \
   && echo b > b.txt && git add b.txt && git commit -qm head && git rev-parse HEAD > "$W/head.sha" \
   && echo c > c.txt && git add c.txt && git commit -qm moved && git rev-parse HEAD > "$W/moved.sha" ) >/dev/null 2>&1
