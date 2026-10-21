@@ -1,6 +1,8 @@
+Posted as #201 comment 6319292851 (2026-10-21T15:05:45Z, read back identical).
+
 Owner rulings R10-R15, round-10 flow plan, second set (tvofi, 2026-10-21), taken after the orchestrator's evidence. They extend comment 6318002897 (R1-R9). Basis: the study pack on branch claude/dazzling-gauss-7l3u2b, dev/programme/flow-study, FUTURE-STATE.md section 8 and STUDY.md K14-K17.
 
-R10 Mandate: extended to round 10's stamp plus 48 h, by the separate MANDATE comment posted with this one. The mandate grammar needs a timestamp, so that comment carries a fixed date; the owner revokes it 48 h after the round-10 stamp if that comes first.
+R10 Mandate: extended to round 10's stamp plus 48 h, by the separate MANDATE comment posted with this one. The mandate grammar needs a timestamp, so that comment carries a fixed date; the owner withdraws it 48 h after the round-10 stamp if that comes first.
 
 R11 Andon watcher: once R10-FLOW-ANDON lands, the study session sets up a cloud scheduled task that checks the heartbeat ref every 15 min and notifies the owner when it is older than 20 min, with the owner's approval at that time.
 
