@@ -103,14 +103,14 @@
 # --row-only is update_pr.sh's push of a pull request's own delivery row onto
 # its live head (R10-ROW-ONLY-UPDATE: on a loaded box the full prepr held a
 # one-line row 30+ minutes, and `bus.sh dispatch` refuses a head without it).
-# It REPLACES prepr with pr-contract's two body checks (`row_only_checks`:
+# It REPLACES prepr with two of pr-contract's body checks (`row_only_checks`:
 # step 7's contract, red history included, and the carry check) only when
 # every one of these holds, each read here and failing closed:
 #   (a) HEAD has exactly one parent, the pull request's live head from the
 #       open-pull-request listing;
 #   (b) `git diff --name-status <live> HEAD` is exactly one added file,
 #       delivery_row.sh's `$ROW_DIR/<N>.md` for the listing's number <N>;
-#   (c) that file is one open row anchored on <N>, as
+#   (c) that file is one line, an open row anchored on <N>, as
 #       tests/delivery_status.py's `anchored` reads a row;
 #   (d) the body file is the live body under one new `## Head` note, the
 #       caller's: `head_note.py`'s `prefix(live, note)` -- no other edit.
@@ -226,7 +226,7 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
   _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
 }
 
-# What --row-only runs in prepr's place: the two body checks pr-contract runs,
+# What --row-only runs in prepr's place: two of the body checks pr-contract runs,
 # at the head the verdict judged and with the live title -- step 7's body
 # contract (`policy_lint.mjs --pr-body`) and the carry check
 # (`carry_audit.py check`, which prepr does not run). The contract is fed the
@@ -236,7 +236,8 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
 # its UNCHECKED skip. The other prepr steps read what the verdict has already
 # pinned to the live head, which passed them: one added row moves no claim
 # file, VERSION, code or closure, and (d) leaves the body the live one plus
-# the caller's note.
+# the caller's note -- so pr-contract's and prepr's figure lint and preflight,
+# which read only that body and that tree, are not re-run either.
 row_only_checks() { # worktree body head title -> rc 0 when both checks pass
   ( cd "$1" || exit 1
     base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main" >&2; exit 1; }
@@ -1004,6 +1005,8 @@ rocase oenvcred; : > "$W/oenvcred/gh-store"
 st "$(grep -c '^node-cred GITHUB_TOKEN=ghs_ENV_stub GH_TOKEN=ghs_ENV_stub$' "$W/oenvcred/log")$(calls oenvcred 'gh auth token')" 10 "null control: an environment token is the one handed on, and gh's store is not read"
 rocase oclosed; printf -- '- [#7](https://github.com/o/r/pull/7) — **merged**, the title\n' > "$W/oclosed/row"
 rorefused oclosed "dev/programme/delivery/7.md is not one open row anchored on #7"
+rocase omulti; printf '%s\n- [#9](https://github.com/o/r/pull/9) — **open**, t\n' "$ROW" > "$W/omulti/row"
+rorefused omulti "dev/programme/delivery/7.md is not one open row anchored on #7"
 rocase romoved; : > "$W/romoved/head-moves"; : > "$W/romoved/tip-moved"; : > "$W/romoved/prepr-fails"
 run romoved --row-only o/r "$W/tool-wt" "$BR" "$W/romoved/body.md"; st $? 1 "REFUSE: HEAD moved after the --row-only verdict judged it (the tip check agrees with the moved HEAD)"
 st "$(grep -c -- '--row-only: HEAD moved to 2222222222222222222222222222222222222222 after the verdict judged 1111111111111111111111111111111111111111' "$W/romoved/err")$(grep -c '^git .*push' "$W/romoved/log")$(calls romoved curl)" 100 "naming both shas, and nothing was minted or pushed"
@@ -1040,6 +1043,8 @@ reset_q; (cd "$Q/wt" && rgit commit -q --allow-empty -m empty && ensure_row . 7 
 st "$(qv live)" "parent 1 $(git -C "$Q/wt" rev-parse --short=8 HEAD~1) is not the live pull-request head $(git -C "$Q/wt" rev-parse --short=8 live)" "real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone"
 reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t | sed 's/[*][*]open[*][*]/**merged**/')" >/dev/null)
 st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row anchored on #7 that is not open runs prepr"
+reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null && printf 'more\n' >> dev/programme/delivery/7.md && rgit commit -q -a --amend --no-edit)
+st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row file of two lines, the first the open row anchored on #7, runs prepr"
 reset_q; (cd "$Q/wt" && ensure_row . 7 '- row' >/dev/null)
 st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row file that anchors nobody runs prepr"
 reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
