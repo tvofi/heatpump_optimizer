@@ -1009,7 +1009,7 @@ def _freq_fold_blocked(coord: Any) -> bool:
     bad fold matters here: the map is keyed by decile only, so it is
     inherited when the user later switches to control.
     """
-    if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
+    if _cop_fold_blocked(coord):
         return True
     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
         return True
@@ -10562,7 +10562,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # idle must not stand control down.
             watch_active = (
                 self._commanded_power() > 0.05 and reported >= hz_min
-                and not defrost_interval(self._pump_signals.defrosting)
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
