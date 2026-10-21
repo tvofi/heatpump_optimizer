@@ -9,9 +9,12 @@
     python3 -I tools/audit/seat/cloud_dispatch.py --self-test
 
 THE GROUP PATH (`--group`, or `dispatch_group()` for a caller that hosts it) takes
-a role, a roster group and a model. The roster at REF (default origin/main) gives
-the brief, the topic (the group's branch) and the repository; the head is that
-ref's tip; the environment id comes from the overlay / $HPO_CLOUD_ENV_ID. The
+a role, a roster group and a model. The roster at REF (default: the round's
+roster branch, roster_lib.default_roster_ref) gives the brief, the topic (the
+group's branch) and the repository; the head is --head, else origin/main's tip,
+never the roster ref's (a seat forks from main, not from the roster branch); a
+reviewer needs --head (the PR head); the environment id comes from the overlay /
+$HPO_CLOUD_ENV_ID. The
 payload is rendered by the same `render` as the flag path, so it is the flag
 path's byte for byte, and is published, with its prompt, on origin as
 `dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md); the one line printed is that
@@ -45,7 +48,8 @@ WHAT IT REFUSES (exit 2, nothing printed on stdout):
     prompt may not name the machine it was written on;
   * an unreadable brief;
   * with --group: a group the roster does not name, a roster that cannot be read,
-    and a ref name that would publish the host (ref_privacy.refusal).
+    a reviewer without --head, and a ref name that would publish the host
+    (ref_privacy.refusal).
 """
 from __future__ import annotations
 
@@ -189,6 +193,9 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
 
 #: The ref namespace a seat fetches its dispatch from: `dispatch/<role>-<topic>`.
 DISPATCH_NS = "dispatch"
+#: Where a seat's head comes from when none is passed: main, never the roster
+#: ref, whose tip is the roster branch a fixer must not fork from.
+HEAD_REF = roster_lib.MAIN_REF
 #: Identity of the commit that carries a dispatch (a constant, never the host's).
 _SEAT = ("-c", "user.name=seat", "-c", "user.email=seat@users.noreply.github.com")
 
@@ -229,15 +236,19 @@ def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> None:
 
 
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
-                   roster_ref: str = roster_lib.MAIN_REF, head: str = "", pr: str = "", nonce: str = "",
+                   roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
                    overlay: str | None = None, environ=None) -> str:
     """Render the seat for `group_id` from the roster, publish it, return its ref name.
 
-    The roster at `roster_ref` of `repo_dir` gives the brief, the topic (the
-    group's branch) and the repository; the head is that ref's tip unless one is
-    passed (a reviewer's is the PR head); the environment id comes from the
+    The roster at `roster_ref` of `repo_dir` (default: the round's roster
+    branch, `roster_lib.reader_ref`) gives the brief, the topic (the group's
+    branch) and the repository. The head is a separate source: the one passed,
+    else HEAD_REF's tip; a reviewer must pass its PR head. The environment id comes from the
     known seat environment (`--overlay` / $HPO_CLOUD_ENV_ID). Nothing is pushed
     unless the payload rendered, so every `render` refusal holds here too."""
+    if role == "reviewer" and not head:
+        raise Refusal("a reviewer is dispatched at its PR head: pass --head")
+    roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)
     try:
         roster = roster_lib.show_roster(repo_dir, roster_ref)
     except roster_lib.RosterNotFound as e:
@@ -248,7 +259,7 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
     topic = _topic_of(group)
-    payload = render(role, head or _git(repo_dir, "rev-parse", f"{roster_ref}^{{commit}}").strip(),
+    payload = render(role, head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip(),
                      env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                      pr=pr, topic=topic, nonce=nonce, brief=group.get("brief") or "")
     ref = f"{DISPATCH_NS}/{role}-{topic}"
@@ -311,7 +322,8 @@ def _group_checks(check) -> None:
         tip = git(work, "rev-parse", "origin/main").strip()
 
         def dispatch(group="R10-X", role="fixer", **kw):
-            return dispatch_group(role, group, "m-1", repo_dir=str(work), **{"environ": env, **kw})
+            with contextlib.redirect_stderr(io.StringIO()):  # roster_lib's absent-branch note
+                return dispatch_group(role, group, "m-1", repo_dir=str(work), **{"environ": env, **kw})
 
         def refused(*a, **kw):
             try:
@@ -354,9 +366,34 @@ def _group_checks(check) -> None:
               refused("R10-BAD") and "r10-bad" not in git(work, "ls-remote", str(origin)))
         check("a group the roster does not name refuses", refused("R10-NOPE"))
         check("an unknown environment refuses", refused(environ={}))
-        check("a reviewer needs its pr and nonce, as on the flag path", refused(role="reviewer"))
-        check("a reviewer dispatch with pr and nonce renders", dispatch(role="reviewer", pr="7", nonce="abc123")
-              == "dispatch/reviewer-r10-x")
+        check("a reviewer needs its pr and nonce, as on the flag path", refused(role="reviewer", head=tip))
+        check("a reviewer needs its PR head", refused(role="reviewer", pr="7", nonce="abc123"))
+        check("a reviewer dispatch with pr and nonce renders",
+              dispatch(role="reviewer", head=first, pr="7", nonce="abc123") == "dispatch/reviewer-r10-x")
+        check("a reviewer is dispatched at the PR head passed, not at a ref's tip",
+              first in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
+              and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        leak = DISPATCH_NS + "/fixer-" + users + "someone"
+        try:
+            _publish(str(work), leak, {"PROMPT.md": "x"})
+            published = True
+        except Refusal:
+            published = False
+        check("_publish itself refuses a ref that would publish the host, and pushes nothing",
+              not published and "someone" not in git(work, "ls-remote", str(origin)))
+        # Two sources, never one: the roster from the round's roster branch
+        # (O17), the head from main. The branch is one commit ahead of main
+        # with its own brief, so either swap shows.
+        main_tip = git(work, "rev-parse", "origin/main").strip()
+        roster.write_text(json.dumps({"repo": "owner/name", "groups": [{**grp, "brief": "On the branch.\n"}]}))
+        git(work, "commit", "-q", "-am", "roster edit")
+        git(work, "push", "-q", str(origin), "HEAD:refs/heads/handoff/audit-r10-roster")
+        git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
+        branch_tip = git(work, "rev-parse", "origin/handoff/audit-r10-roster").strip()
+        dispatch()
+        msg = fetched(line, "PROMPT.md")
+        check("by default the brief is the round's roster branch's and the head is main's tip, not that branch's",
+              "On the branch." in msg and main_tip in msg and branch_tip not in msg)
 
 
 
@@ -440,7 +477,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--role", required=True, choices=ROLES)
     ap.add_argument("--head")
     ap.add_argument("--group", help="a roster group: publish its seat to a dispatch ref, print the ref name")
-    ap.add_argument("--roster-ref", default=roster_lib.MAIN_REF)
+    ap.add_argument("--roster-ref", help="default: the round roster branch, else origin/main "
+                    "(roster_lib.default_roster_ref)")
     ap.add_argument("--pr", default="")
     ap.add_argument("--topic", default="")
     ap.add_argument("--nonce", default="")

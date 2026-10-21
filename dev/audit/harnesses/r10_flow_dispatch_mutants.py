@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""R10-FLOW-DISPATCH: each predicate of cloud_dispatch.py's group path dies alone.
+
+Written by the R10-FLOW-DISPATCH fixer, round 2, after the round-1 review found
+two survivors (head-ignored, privacy-off) that 42 green checks hid. Each
+mutant is a one-occurrence replacement in tools/audit/seat/cloud_dispatch.py;
+it is applied alone, `cloud_dispatch.py --self-test` run, and the file
+restored byte for byte. The drive refuses a dirty file and aborts on a
+pattern that is not found exactly once. Metric, one line per mutant:
+
+  RESULT mutant=<name> failed=<n> verdict=killed|SURVIVED|CRASHED
+  RESULT mutants=<n> survived=<n>
+
+failed=-1 is a self-test that died before its summary line (CRASHED: it is
+killed, but no check names what broke). Expected at the fixing head:
+survived=0. Null control: M0, the file unmutated, must print failed=0.
+
+    python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py [NAME ...]
+"""
+from __future__ import annotations
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+REL = "tools/audit/seat/cloud_dispatch.py"
+F = ROOT / REL
+
+MUTANTS = [
+    ("M0", None, None),
+    ("tree-skip", "    if tip and _git(repo_dir, \"rev-parse\"", "    if False and _git(repo_dir, \"rev-parse\""),
+    ("brief-drop", 'brief=group.get("brief") or ""', 'brief=""'),
+    ("parent-drop", '*(["-p", tip[0]] if tip else [])', "*[]"),
+    ("nonce-altered", "pr=pr, topic=topic, nonce=nonce,", "pr=pr, topic=topic, nonce=nonce + \"0\","),
+    ("topic-to-id", 'ref = f"{DISPATCH_NS}/{role}-{topic}"', 'ref = f"{DISPATCH_NS}/{role}-{group_id}"'),
+    ("render-host-off", "    m = HOME.search(json.dumps(payload))", "    m = None"),
+    ("privacy-off", "    if why:\n        raise Refusal(f\"the dispatch ref", "    if False:\n        raise Refusal(f\"the dispatch ref"),
+    ("head-ignored", 'head or _git(repo_dir, "rev-parse", f"{HEAD_REF}', '_git(repo_dir, "rev-parse", f"{HEAD_REF}'),
+    ("prompt-wrong", '"PROMPT.md": payload["job_config"]', '"PROMPT.md": "" or payload["job_config"]'),
+    ("roster-repo-ignored", 'repo=roster.get("repo") or known["repo"]', 'repo=known["repo"]'),
+    ("roster-ref-main", "roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)",
+     "roster_ref = roster_ref or roster_lib.MAIN_REF"),
+    ("head-from-roster-ref", 'f"{HEAD_REF}^{{commit}}"', 'f"{roster_ref}^{{commit}}"'),
+    ("reviewer-head-off", 'if role == "reviewer" and not head:', "if False:"),
+]
+SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")
+
+
+def run() -> tuple[int, list[str]]:
+    r = subprocess.run([sys.executable, "-I", str(F), "--self-test"], capture_output=True, text=True, cwd=ROOT)
+    m = SUMMARY.search(r.stdout)
+    return (int(m.group(2)) if m else -1), [ln.strip() for ln in r.stdout.splitlines() if "FAIL" in ln]
+
+
+def main(names: list[str]) -> int:
+    if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", REL]).returncode:
+        print(f"refused: {REL} has uncommitted changes")
+        return 2
+    orig = F.read_text()
+    survived = 0
+    picked = [m for m in MUTANTS if not names or m[0] in names]
+    try:
+        for name, old, new in picked:
+            if old is not None:
+                if orig.count(old) != 1:
+                    print(f"abort: {name}'s pattern occurs {orig.count(old)} times")
+                    return 2
+                F.write_text(orig.replace(old, new))
+            failed, fails = run()
+            F.write_text(orig)
+            if name == "M0":
+                verdict = "null-ok" if failed == 0 else "NULL-FAILED"
+            else:
+                verdict = "killed" if failed > 0 else "CRASHED" if failed < 0 else "SURVIVED"
+                survived += verdict == "SURVIVED"
+            print(f"RESULT mutant={name} failed={failed} verdict={verdict}")
+            for ln in fails:
+                print(f"    {ln}")
+    finally:
+        F.write_text(orig)
+    print(f"RESULT mutants={sum(1 for m in picked if m[1] is not None)} survived={survived}")
+    return 1 if survived else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
