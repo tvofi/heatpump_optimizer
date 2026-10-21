@@ -133,12 +133,19 @@ MUTANTS = [
      'if grep -qF "$pr" <<< "$held_prs"; then'),
     ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
     ("cloud_relay-6", "cloud_relay.sh",
-     'held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }',
-     'held_prs=$(hold_list) || { return 2; }'),
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'level_set'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
     # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
     ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
     ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
+    ("cloud_relay-10", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'logline OWED "handoff-hold-malformed $(hold_file)"; level_set'),
+    ("cloud_relay-11", "cloud_relay.sh",
+     'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
+     'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

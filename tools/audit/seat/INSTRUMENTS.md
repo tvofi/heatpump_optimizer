@@ -239,7 +239,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   once per pass, so a frozen PR's head stays put while its handoff branch keeps
   moving; removing the number resumes it. A missing or empty file holds nothing;
   a line that is not a plain PR number refuses the whole handoff arm for that
-  pass (rc 2, `OWED handoff-hold-malformed`), never hold-all or hold-none.
+  pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
   A handoff already inside its PR, or with no body ref, does nothing; a failed

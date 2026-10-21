@@ -84,8 +84,9 @@
 #       cloud_relay: HELD #<pr> <handoff tip>
 #     once per pass; removing the number resumes it. A missing or empty file
 #     holds nothing. A line that is not a plain PR number (or a file that is
-#     not readable) refuses the whole handoff arm that pass (rc 2, an OWED
-#     `handoff-hold-malformed` line): never hold-all, never hold-none.
+#     not readable) refuses the whole handoff arm that pass (rc 2, and
+#     `OWED <utc> handoff-hold-malformed <file> -` in <log>.level until a pass
+#     reads the file well-formed): never hold-all, never hold-none.
 #     `held <pr>` answers from the same file, for a driver that updates PRs
 #     itself (the beat's handoff job reads it unchanged).
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
@@ -221,7 +222,9 @@ held() { # held <pr>: rc 0 listed in the hold file, 1 not listed, 2 malformed fi
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs
   f=$state/cloud-handoff-failed; mkdir -p "$state"
-  held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }
+  : > "$state/cloud-level-hold.$$"   # the refusal is a level: owed while the file is malformed, gone once it is not
+  held_prs=$(hold_list) || { level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
+  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"
   { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
@@ -491,19 +494,23 @@ self_test() {
   chk "held refuses a non-number" 2 held 4x
   chk "the CLI 'cloud_relay.sh held' says held (rc 0)" 0 bash "$HERE/cloud_relay.sh" held 41
   chk "the CLI 'cloud_relay.sh held' says not held (rc 1)" 1 bash "$HERE/cloud_relay.sh" held 42
-  chk "a well-formed hold file logs no refusal (null control)" 1 grep -q handoff-hold-malformed "$LOG"
+  chk "a well-formed hold file owes no refusal (null control)" 1 grep -q handoff-hold-malformed "$LOG.level"
   for hb in '41 99' 'abc' '41x' '0' '-1' '041' '41,99' ' 41' '41 # c'; do
     printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; : > "$LOG"; ho=$(handoff_arm 2>&1)
     chk "a malformed hold file ('$hb') refuses the pass (rc 2)" 2 handoff_arm
     chk "and holds none: the PR is not updated" 0 test ! -e "$t/hupdated"
     chk "and holds all: no HELD line" 1 grep -q HELD <<< "$ho"
     chk "and names the refusal" 0 grep -q "refused: malformed hold file" <<< "$ho"
-    chk "and logs OWED handoff-hold-malformed" 0 grep -q "^OWED .* handoff-hold-malformed $hf\$" "$LOG"
+    # a refusal repeats every pass while the file stays malformed: a level, as #2547 made every such line
+    chk "and owes handoff-hold-malformed in the level file" 0 grep -q "^OWED .* handoff-hold-malformed $hf -\$" "$LOG.level"
+    chk "once after two passes (rewritten, never appended)" 0 test "$(grep -c handoff-hold-malformed "$LOG.level")" = 1
+    chk "and the event log carries no refusal line" 1 grep -q handoff-hold-malformed "$LOG"
     chk "and held refuses it too" 2 held 41
     chk "and the CLI 'cloud_relay.sh held' refuses it (rc 2)" 2 bash "$HERE/cloud_relay.sh" held 41
   done
   # the held number is the unterminated last line, so the check fails when that line is dropped
   printf '99\n41' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a pass that reads the file well-formed drops the refusal from the level" 1 grep -q handoff-hold-malformed "$LOG.level"
   chk "a last line without a newline is read: it holds #41" 0 grep -q "HELD #41 " <<< "$ho"
   chk "and held says held for it" 0 held 41
   printf '41' > "$hf"
