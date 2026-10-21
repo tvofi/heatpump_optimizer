@@ -5433,6 +5433,48 @@
     "note": null
    },
    "brief": "tools/audit/seat/tick_loop.sh runs cloud_relay.sh pass and orchestrator_tick.py serially each pass, so a relay pass that runs update_pr.sh (a full app_push.sh prepr, measured 27+ min on 2026-10-21 for #2525) leaves the tick board unwritten that whole time (tick.txt stale 66+ min while the loop was alive). Fix so the board is written every interval regardless of the relay: e.g. the relay pass runs as its own bounded or detached child with a lock so passes never overlap, and the tick still runs each interval; the TICK-PASS line reports relay=running when one is in flight. Never kill an update_pr mid-push. Self-test (tick_loop.sh --self-test, already wired) gains an arm: a stub relay that sleeps longer than the interval must not delay the tick write; demonstrate it failing on the current loop and passing on the fix, plus a null control with a fast relay. Cite R10-TICK-OWED-LEVEL and R10-RCA-ORCH-CONTINUITY; do not redo them. Run prepr with PREPR_SKIP_CLOSURES=1 (tvofi 2026-10-21)."
+  },
+  {
+   "group": "R10-PLAN-ARTIFACT",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "tooling",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "M",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/plan_table.py",
+    "tools/plan/replan.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-plan-artifact",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer dispatched 2026-10-21",
+    "note": null
+   },
+   "brief": "Group R10-PLAN-ARTIFACT (topic r10-plan-artifact). Port the round-10 plan page into the tree so it is built only by tracked instruments. Today it is built by an out-of-tree generator (inlined below, home paths replaced by $HOME/<...>) that tvofi wants kept; a previous session never merged it. Target: extend tools/audit/seat/plan_table.py (or a small new owning module beside it, per fixer.md step 17) with an `--html` output rendering, from the roster via roster_lib and from tools/plan/replan.py's plan.json: the time-based schedule; the SVG swimlane chart with real time axis and tooltips; the slot-occupancy strip against the cap; critical-path marks; planned stamps; status classes done/live/ready/partial/blocked (blocked = an `after` target not done); \"part merged\" from merged `R10-X:` PR titles; the PR column per group (roster_lib.group_for_branch first, the generator's tail match as fallback - it is what maps #2529); done groups' merged PR number (merge commit then branch, sha8 fallback); issue chips struck by real issue state; the summary strip; blocked-by = roster after minus done; status filter / hide-merged / tooltip JS; the waves table; the ETA methodology text with every number filled from plan.json/durations.json. Drop: the dependency-depth table; any hard-coded count. Add a freshness refusal: the html refuses (non-zero, nothing written) when plan.json's roster blob differs from the roster ref's blob, and `replan.py --check` must test that same freshness (today it prints PLAN OK on a stale plan - fix it). No GitHub calls in --self-test (inject fixtures). Self-test arms: each status class, the stale refusal (fails on a stale fixture, passes fresh), the PR lookup fallback, the closed-issue strike. Wire the self-test (selftest_wiring.py), list it in INSTRUMENTS.md, keep tmp_paths/ref_privacy clean (no home paths in output). Also check the unverified `;` in plan_table's gantt title against mermaid 11.4.1 grammar and fix if it mis-parses. Sanity-check your generated page against the live roster and `gh pr list` the way the out-of-tree checks did (group count = roster, stages = roster, open PRs shown, no merged PR shown open). Run prepr with PREPR_SKIP_CLOSURES=1 (tvofi 2026-10-21)."
   }
  ]
 }
