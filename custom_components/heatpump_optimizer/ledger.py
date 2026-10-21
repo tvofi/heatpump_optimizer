@@ -447,10 +447,7 @@ def explain_metered(
         # drawing nothing there, or there is no reason at all. Read as two
         # branches, not a conditional expression: the truthiness test is what
         # narrows ``str | None`` to the ``str`` the share is keyed by.
-        if reason and reason != REASON_UNTAGGED and reason not in IDLE_REASONS:
-            code = reason
-        else:
-            code = REASON_UNTAGGED
+        code = reason
         shares[code] = shares.get(code, 0.0) + kwh
     return list(shares.items())
 
