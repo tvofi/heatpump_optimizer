@@ -450,3 +450,10 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - Precedence for conflicts: policy, then rulings, then the prompt, then the pack, then defaults; and the tree beats the text.
 80. **The only physical exception is P2's ruleset PUT.** If the orchestrator's identity lacks admin, P2 is held merge-ready (never merged without the PUT) and the programme completes without it.
 81. **"Programme complete" is defined:** groups merged or deferred, main green and stamped, transition groups landed, CI-layout state, a final measurement comment, the handover refreshed. Then stop; round 11 starts on the owner's word.
+82. **"Programme complete" gains a deferral rule tied to the mandate's end** (T = 2026-11-04T18:14Z).
+    - At T − 48 h, unstarted groups stop dispatching, and every group not merged and without a merge verdict at a green head is deferred to round 11, with a reason and a slot.
+    - Verdicted groups board by T − 24 h, and the stamp lands by T − 12 h.
+    - Basis: 54 open groups at the measured 0.30 per hour is about 180 h, against about 330 h left, before the flow and design groups.
+83. **P2's ruleset cut-over is the orchestrator's** (`admin: true`, ruleset 23698884). It follows an eight-step checklist: dry read, timing, merge, whole-object PUT, read-back diff, live verify, two-action rollback, log. It is held only if the dry read does not match.
+84. **"The tree wins" is limited to facts.** Approvals, justifications and records that policy files require are still owed: the Raise justification with its architecture-score line, and the mandate cited in every policy or code-owned approval.
+85. **Revision 19 is the last.** The plan passes to the orchestrator, and #201's amendment log continues it.

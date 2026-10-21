@@ -73,3 +73,9 @@ The model's design switches are in `tools/simulate.py`'s header.
 - The K14 interim is proven.
 - Notes for the fixer in design review are findings.
 - The study channel is closed.
+
+**Revision 19 (2026-10-21), final:**
+- A deferral rule tied to the mandate's end.
+- The P2 cut-over checklist.
+- "The tree wins" limited to facts.
+- The plan is handed to the orchestrator.

@@ -1,4 +1,11 @@
-# Adoption plan for the round-10 orchestrator: **revision 18** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 19, final** (2026-10-21)
+
+**Revision 19** answers s4's last pushback:
+- a deferral rule ties "Programme complete" to the mandate window;
+- P2's ruleset cut-over is yours to perform, with a written checklist, because your identity has admin;
+- "the tree wins" covers facts, never which approval a policy requires.
+
+After this revision the plan is the orchestrator's. The pack is closed, and the amendment log on #201 continues it.
 
 **Revision 18** records three things:
 - **The K14 interim is proven** on #2567. The head stayed `4ef1a827` and the body read back with only a trailing newline changed. The caveats: use `update_pr.sh`'s private worktree, and clear a dead-pid lock first.
@@ -84,9 +91,20 @@ Where this message and nudge.md disagree, follow this message only on what R1–
   - R11's andon watcher and R15's three standing triggers: create them yourself if your environment can create scheduled tasks. Otherwise the tick's own heartbeat check stands in, and you note it once.
 - Identities (decision 0011) are unchanged. Approve as tvofi only under the mandate, and cite it.
 
-**The one physical exception: P2's ruleset cut-over.**
-- Change `main-protect-checks` from the 17 contexts to `gate` at P2's merge, if your identity has the permission.
-- If GitHub refuses the PUT for want of admin rights, **do not merge P2**: its required contexts would never report. Hold it merge-ready, post the exact PUT and the cut-over checklist once on #201, and complete the programme without it. P2 is not on the critical chain.
+**P2's ruleset cut-over is yours** (revision 19). Your identity reports `admin: true`, and ruleset 23698884 (`main-protect-checks`) lists the 17 required contexts. Perform it with this checklist, which follows DESIGN-P2's cut-over section (the archived design, `refs/tags/archive/probe/design-ci-rev4`).
+1. **Dry read.**
+   - `gh api repos/tvofi/heatpump_optimizer/rulesets/23698884 > ruleset-before.json`.
+   - Confirm the 17 context names and their integration ids. Confirm P2's head has a green `gate` run, and so does a test PR after P2's merge (integration 15368 per the design).
+   - If any of this does not match, hold P2 merge-ready and log an amendment.
+2. **Timing.** Use a pitch that satisfies the gap rule ("CI layout"): no critical-chain PR within about 1.5 h of boarding. Post the start on #201.
+3. **Merge P2** through `merge_pr.sh` in owner mode, citing the mandate.
+4. **PUT immediately.** Write the whole ruleset object from `ruleset-before.json`, with only `required_status_checks` replaced by `gate`. Never send a partial object.
+5. **Read back.** GET the ruleset again and diff it against `ruleset-before.json`: only that field may differ.
+6. **Verify live.**
+   - Run the cut-over sweep: absorb main into the in-flight chain PR first, keeping at most 4 full runs queued.
+   - The first absorbed PR shows `gate` required and reporting, and one merge goes through.
+7. **Roll back if 5 or 6 fails.** That is two actions, ruleset first: PUT `ruleset-before.json` back, then revert P2's merge if its contexts are the cause.
+8. **Log** the cut-over, or the rollback, as a `Plan amendment` line with the before and after JSON.
 
 **How to settle what used to come back to the study.**
 1. **Precedence:**
@@ -96,6 +114,10 @@ Where this message and nudge.md disagree, follow this message only on what R1–
    4. the pack's other files;
    5. sensible defaults.
 2. **The tree beats the text.** Where the tree behaves differently from what the pack says, act on the tree. Every correction s4 sent was this case: `update_pr.sh` merging main, the carry grammar, the relay's tip, a second worktree being refused. Verify the cheaper hypothesis first, then record it.
+   **The tree wins on facts, never on which approval is required.** Facts are how a tool behaves and what a check reads. A step a policy file requires stays a step, done by you under the mandate and recorded:
+   - **A budget raise** needs its `## Raise justification`, with `Payments tried:` and the `Architecture score: dS <n> <verdict>` line (decision 0013's amendment; `budget_raise_gate.py`).
+   - **A policy or code-owned approval** cites mandate 6319294694 in the approval itself.
+   - **Every other approval, record or justification** a policy file names is still owed in full.
 3. **A rule that measurably costs more than it saves may be amended.** Give the measurement in the amendment line.
 4. **A friction that recurs a third time goes to a root-cause seat** (`CLAUDE.md`, `defect-root-cause.md`). Its countermeasure is a fly-in (S only) or a roster group through a roster PR (rule 21). Fix first; file only when you cannot act (`CLAUDE.md`'s fallback chain).
 5. **The "Unchanged" list at the end of this prompt is never amended.**
@@ -116,7 +138,16 @@ That log is the plan's continuation. Number the amendments from A1, and never ed
 5. Re-take the live state (open PRs, roster stages, main's required contexts, the train lock, held seats) before acting on any line in "Where things stand", which is stale by design.
 
 **Programme complete** means all of these hold:
-1. **Groups:** every round-10 roster group is merged, or deferred to round 11 with its reason in the roster. The round-11 architect triages the deferrals.
+1. **Groups:** every round-10 roster group is merged, or deferred to round 11 with its reason in the roster. The round-11 architect triages the deferrals. **The deferral rule** is fixed to the mandate's end, T = 2026-11-04T18:14Z:
+   - **At T − 48 h (2026-11-02T18:14Z):** no group that has not started dispatches. Every group not yet merged and not holding a merge verdict at a green head is deferred, through one roster PR, with:
+     - a roster line giving its reason (stage reached, what remains);
+     - a round-11 slot;
+     - its branch or handoff kept.
+
+     In-flight seats stop at their next checkpoint and hand off. Nothing is forced to merge.
+   - **By T − 24 h:** groups holding a merge verdict at a green head board in the last trains. A verdict that goes stale after T − 48 h defers the group; it does not buy another review.
+   - **By T − 12 h:** the stamp, after a green Tests push run. That leaves margin for one stamp refusal and its repair.
+   - **The arithmetic:** 54 groups open at 0.30 groups closed per hour (the pack's measured baseline) is about 180 h, against about 330 h left in the window. The flow and design groups are on top. The rule is the backstop for the case where the future-state rate does not arrive.
 2. **Main and the stamp:** main is green on its required contexts, with a green Tests push run. The round-10 stamp is done through `tools/release/stamp.py --push --push-key`, with notes naming every merged PR.
 3. **The transition groups have landed:** the flow groups, R10-FLOW-DESIGN-POLICY and -STAGES, R10-FLOW-TOOLKIT-MEASURE and -MODEL, R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN, and the fly-ins. Any group that has not landed by the stamp gets a roster line with the reason and its round-11 slot.
 4. **CI layout:** R10-CI-LAYOUT-P1 is merged. P2 is merged with the ruleset cut over, or held merge-ready with the PUT posted.
