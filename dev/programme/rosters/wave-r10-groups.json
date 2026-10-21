@@ -2472,9 +2472,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-i5-docs",
-    "commit": "7a7102eb844cf4f549d52af241b7bdc8e5a74797",
+    "commit": "92b5bf442cceed04f660ff20d14d2507dbbc179d",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Handoff handoff/r10-i5-docs at 7a7102eb is this group's work: 7 commits over 11 files, the doc-claims and closures re-derivations. It was invisible because no pull request was ever opened. Owed: merge current main into the branch, re-take the body (it is 42 h old) and open the pull request."
