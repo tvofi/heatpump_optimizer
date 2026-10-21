@@ -6967,7 +6967,9 @@
    "owner_gate": "mandated approval under 6319294694",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "add `carry_audit.py landed` (body item id present in its routed group's carry or brief at --roster-ref; CARRY-MISSING lines; rc 1) and `land-ops` (append-carry ops tagged `(items <ids>)`); bus.sh dispatch refuses on rc 1; fixtures are the #2558 pair (refuse, then pass after landing), the #2545 paraphrase (pass by id, a text-match mutant refuses), a dismissed item and a wrong-group id"
+   ],
    "architect_note": "",
    "brief": "Let the orchestrator add 'Carry: dismissed: <reason>' or 'Carry: <group>' under its own identity, keyed to the verdict's head SHA and read back, without a review. Touches carry_audit.py, so it is reviewed after #2571 (merged 94612a9b2). Evidence: the four markers-only re-reads (#2547, #2580, #2578, #2569) dismissed every item and routed none.",
    "resume": {
