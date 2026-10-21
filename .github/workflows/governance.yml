@@ -480,6 +480,13 @@ jobs:
           grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
           python3 -I tools/audit/seat/selftest_wiring.py --check
 
+      - name: Show the review-strength enumerator deciding its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/review_strength.py --self-test | tee "$RUNNER_TEMP/review-strength-self-test.txt"
+          grep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"
+
       - name: Show the CI watcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |

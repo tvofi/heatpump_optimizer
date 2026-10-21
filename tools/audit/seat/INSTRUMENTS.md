@@ -515,6 +515,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   PR state, under a byte budget. When: a state beat; regenerate rather than
   hand-edit the resume. Refusal: over-budget output refuses with `--out`
   unwritten — archive before regenerating.
+- `review_strength.py` — real-catch blocks per reviewed PR, incidence and
+  first-pass share from the `review/*` bus, over git only (no REST), per
+  window and per stratum: reviewer kind (a probe-ref return is cloud), class,
+  re-review after a merge verdict, and with `--roster` the PR's origin, fixer
+  model, size and product. `--guardrail N --p0 P` prints the binomial test the
+  review-strength guardrail would apply, report-only. When: a flow guardrail
+  or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
+  is its first use. Refusal: an out-of-grammar subject is its own row,
+  never a verdict.
 - `roster_edit.py` — the safe roster edit: every op loads the whole roster,
   validates, and dumps with the file's own formatting; ops `set-stage`
   (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
