@@ -1,0 +1,3 @@
+UNROUTED review 6320657454 item 3df82198 [under lead]: "- SCORES' note still says `next: R10-LIVESTATE, R10-CONFIG-NOTICES`, and section 4 leaves it unchanged."
+UNROUTED review 6320657454 item 3d8a556c [under lead]: "- R10-THERMAL-POWER-OPTION's own note does not name HEAT-METER as after it. That edge is the orchestrator's ad"
+CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
