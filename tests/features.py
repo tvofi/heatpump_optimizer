@@ -139,10 +139,10 @@ def _solve_record_now(coord):
     """The record a solve started now would plan with (#1736): what the
     solve's tail -- the fuse advisor, the price tiles -- is handed."""
     from homeassistant.util import dt as _rec_dt
-    from heatpump_optimizer.plan_step import plan_step_start
+    from heatpump_optimizer.coordinator import _solve_anchor
 
     now = _rec_dt.now()
-    return coord._solve_record(plan_step_start(now), coord._forecast_arrays(now))
+    return coord._solve_record(_solve_anchor(now), coord._forecast_arrays(now))
 
 
 def _dhw_planner(opt):
@@ -3362,7 +3362,7 @@ _direct922.days = [30, 30]
 R.check(
     "a finite store round-trips to the identical model, warning-free",
     _finite922._price_model.as_dict() == _direct922.as_dict()
-    and _finite922._price_learner.days_seen == {"2026-01-19"}
+    and _finite922._price_days_seen == {"2026-01-19"}
     and len(_sink922.records) == _before922,
     f"warnings added={len(_sink922.records) - _before922}",
 )
@@ -37931,7 +37931,7 @@ async def _g9_fake_await(hass, optimizer, inputs):
 
 
 _g9_now = dt_util.now().replace(minute=0, second=0, microsecond=0)
-_g9_anchor = _coord_mod.plan_step_start(_g9_now)
+_g9_anchor = _coord_mod._solve_anchor(_g9_now)
 _g9_slot = {
     "start": (_g9_anchor + _g9_td(hours=1)).isoformat(),
     "end": (_g9_anchor + _g9_td(hours=3)).isoformat(),
@@ -39273,7 +39273,7 @@ def _f14_markers(c):
         "energy": c._energy_totals["total_energy_kwh"],
         "ledger": c._operation_score,
         "thermal": c._house_heat_loss_scale,
-        "price": sorted(c._price_learner.days_seen),
+        "price": sorted(c._price_days_seen),
         "accuracy": c._comfort_learner.learned_weight,
     }
 
@@ -39283,7 +39283,7 @@ def _f14_learn(c):
         c._energy_totals[key] = 1234.5
     c._operation_score = 77.0
     c._apply_house_heat_loss_scale(1.3)
-    c._price_learner.days_seen = {"2026-01-10", "2026-01-11"}
+    c._price_days_seen = {"2026-01-10", "2026-01-11"}
     c._comfort_learner.learned_weight = 7.5
 
 
@@ -40148,7 +40148,7 @@ def _t2_prices(entries, **config):
     c._t2_price_saves = []
 
     async def counted():
-        c._t2_price_saves.append(sorted(c._price_learner.days_seen))
+        c._t2_price_saves.append(sorted(c._price_days_seen))
 
     c._async_save_price_model = counted
     _asyncio.run(c._async_learn_price_shape())
@@ -40158,11 +40158,11 @@ def _t2_prices(entries, **config):
 _t2_price_day = _t2_prices(_t2_hourly("2026-02-02"))
 R.check(
     "a complete hourly day is folded into the shape and persisted once",
-    _t2_price_day._price_learner.days_seen == {"2026-02-02"}
-    and _t2_price_day._price_learner.quarter_days_seen == set()
+    _t2_price_day._price_days_seen == {"2026-02-02"}
+    and _t2_price_day._price_qdays_seen == set()
     and _t2_price_day._t2_price_saves == [["2026-02-02"]],
-    f"days {sorted(_t2_price_day._price_learner.days_seen)} "
-    f"qdays {sorted(_t2_price_day._price_learner.quarter_days_seen)} "
+    f"days {sorted(_t2_price_day._price_days_seen)} "
+    f"qdays {sorted(_t2_price_day._price_qdays_seen)} "
     f"saves {_t2_price_day._t2_price_saves} -- hourly data says nothing "
     "about intra-hour structure, so the quarter set stays empty",
 )
@@ -40178,18 +40178,18 @@ R.check(
 _t2_price_q = _t2_prices(_t2_quarterly("2026-02-03"))
 R.check(
     "a 15-minute day trains the hourly shape and the quarter factors both",
-    _t2_price_q._price_learner.days_seen == {"2026-02-03"}
-    and _t2_price_q._price_learner.quarter_days_seen == {"2026-02-03"},
-    f"days {sorted(_t2_price_q._price_learner.days_seen)} "
-    f"qdays {sorted(_t2_price_q._price_learner.quarter_days_seen)}",
+    _t2_price_q._price_days_seen == {"2026-02-03"}
+    and _t2_price_q._price_qdays_seen == {"2026-02-03"},
+    f"days {sorted(_t2_price_q._price_days_seen)} "
+    f"qdays {sorted(_t2_price_q._price_qdays_seen)}",
 )
 
 _asyncio.run(_t2_price_q._async_learn_price_shape())
 R.check(
     "the quarter seen-set has its own skip, checked separately from the hourly one",
-    _t2_price_q._price_learner.quarter_days_seen == {"2026-02-03"}
-    and _t2_price_q._price_learner.days_seen == {"2026-02-03"},
-    f"qdays {sorted(_t2_price_q._price_learner.quarter_days_seen)} after a second pass -- two "
+    _t2_price_q._price_qdays_seen == {"2026-02-03"}
+    and _t2_price_q._price_days_seen == {"2026-02-03"},
+    f"qdays {sorted(_t2_price_q._price_qdays_seen)} after a second pass -- two "
     "sets, because a day can arrive hourly and be refined to quarters later, "
     "and one set would then lock the refinement out",
 )
@@ -40201,9 +40201,9 @@ R.check(
 _t2_price_part = _t2_prices(_t2_hourly("2026-02-04")[:23])
 R.check(
     "a 23-hour day trains neither shape and is not marked seen",
-    _t2_price_part._price_learner.days_seen == set()
+    _t2_price_part._price_days_seen == set()
     and _t2_price_part._t2_price_saves == [],
-    f"days {sorted(_t2_price_part._price_learner.days_seen)} "
+    f"days {sorted(_t2_price_part._price_days_seen)} "
     f"saves {len(_t2_price_part._t2_price_saves)} -- a partial day missing "
     "its cheap night hours would bias every hour of the shape upward",
 )
@@ -40213,9 +40213,9 @@ _t2_price_zero = _t2_prices(
 )
 R.check(
     "a day averaging zero is rejected AND left unseen, so it can be retried",
-    _t2_price_zero._price_learner.days_seen == set()
+    _t2_price_zero._price_days_seen == set()
     and _t2_price_zero._t2_price_saves == [],
-    f"days {sorted(_t2_price_zero._price_learner.days_seen)} -- marking a rejected "
+    f"days {sorted(_t2_price_zero._price_days_seen)} -- marking a rejected "
     "day seen is the bug this pins: the set is written only where the model "
     "says it used the observation",
 )
@@ -40223,9 +40223,9 @@ R.check(
 _t2_price_off = _t2_prices(_t2_hourly("2026-02-02"), price_prior_enabled=False)
 R.check(
     "with the price prior off nothing is learned and nothing is written",
-    _t2_price_off._price_learner.days_seen == set()
+    _t2_price_off._price_days_seen == set()
     and _t2_price_off._t2_price_saves == [],
-    f"days {sorted(_t2_price_off._price_learner.days_seen)} "
+    f"days {sorted(_t2_price_off._price_days_seen)} "
     f"saves {len(_t2_price_off._t2_price_saves)}",
 )
 
@@ -41182,11 +41182,11 @@ _t3_pm_good = _t3_load_price_model(
 )
 R.check(
     "a stored price model restores both seen-sets, coercing each entry to text",
-    _t3_pm_good._price_learner.days_seen == {"2026-01-01", "2"}
-    and _t3_pm_good._price_learner.quarter_days_seen == {"2026-01-02"}
+    _t3_pm_good._price_days_seen == {"2026-01-01", "2"}
+    and _t3_pm_good._price_qdays_seen == {"2026-01-02"}
     and _t3_pm_good._t3_escaped is None,
-    f"days {sorted(_t3_pm_good._price_learner.days_seen, key=repr)} "
-    f"qdays {sorted(_t3_pm_good._price_learner.quarter_days_seen, key=repr)} -- the integer "
+    f"days {sorted(_t3_pm_good._price_days_seen, key=repr)} "
+    f"qdays {sorted(_t3_pm_good._price_qdays_seen, key=repr)} -- the integer "
     "2 arrives "
     "as '2', so a payload written by an older version cannot make the "
     "membership test in the learner miss and re-fold a day it already has",
@@ -41195,20 +41195,20 @@ _t3_pm_bare = _t3_load_price_model({"model": None})
 _t3_pm_str = _t3_load_price_model({"model": None, "days_seen": "2026-01-01"})
 R.check(
     "a payload with no lists, or a string where a list belongs, adds nothing",
-    _t3_pm_bare._price_learner.days_seen == set()
-    and _t3_pm_bare._price_learner.quarter_days_seen == set()
-    and _t3_pm_str._price_learner.days_seen == set(),
-    f"absent -> {sorted(_t3_pm_bare._price_learner.days_seen, key=repr)}, a bare "
-    f"string -> {sorted(_t3_pm_str._price_learner.days_seen, key=repr)} -- iterating "
+    _t3_pm_bare._price_days_seen == set()
+    and _t3_pm_bare._price_qdays_seen == set()
+    and _t3_pm_str._price_days_seen == set(),
+    f"absent -> {sorted(_t3_pm_bare._price_days_seen, key=repr)}, a bare "
+    f"string -> {sorted(_t3_pm_str._price_days_seen, key=repr)} -- iterating "
     "the string would "
     "seed the set with ten one-character days",
 )
 _t3_pm_none = _t3_load_price_model(None)
 R.check(
     "a store that has never been written leaves an empty model, not an error",
-    _t3_pm_none._price_learner.days_seen == set()
+    _t3_pm_none._price_days_seen == set()
     and _t3_pm_none._t3_escaped is None,
-    f"days {sorted(_t3_pm_none._price_learner.days_seen, key=repr)} escaped "
+    f"days {sorted(_t3_pm_none._price_days_seen, key=repr)} escaped "
     f"{_t3_pm_none._t3_escaped!r}",
 )
 _t3_pm_boom = _t3_coord()
@@ -41218,7 +41218,7 @@ _t3_drive(_t3_pm_boom, "_async_load_price_model")
 R.check(
     "a price model store that raises leaves the model it had and does not abort setup",
     _t3_pm_boom._price_model is _t3_pm_boom_before
-    and _t3_pm_boom._price_learner.days_seen == set()
+    and _t3_pm_boom._price_days_seen == set()
     and _t3_pm_boom._t3_escaped is None,
     f"escaped {_t3_pm_boom._t3_escaped!r} -- letting this out would fail "
     "setup over a learned shape the integration can relearn in a fortnight",
@@ -63638,58 +63638,6 @@ R.check(
     not _ec_freed("switch.hp", False),
 )
 
-# The #2329 release/detach path, asserted DIRECTLY rather than only through the
-# gc/weakref pair above -- that pair pins the drop but says nothing about what
-# detach clears, and nothing fires the listener's own callback after it. detach
-# must drop the listener AND the wiring that reaches the coordinator, and a room
-# event the listener would still have queued must be a no-op through _changed's
-# wiring guard, not a call on a None wiring.
-_ec_det = _EcCoord()
-_ec_det.arm()
-_ec_det_h = _ec.state_for(_ec_det)
-_ec_det_cb = [a for ids, a in _ec_det.hass.state_listeners if _EC_ROOM in ids][0]
-_ec.detach(_ec_det_h)
-_ec.detach(_ec_det_h)  # idempotent: a second detach must not raise
-R.check(
-    "detach drops the room listener and clears the wiring that reaches the coordinator",
-    _ec_det_h.unsub is None and _ec_det_h.wiring is None,
-    f"unsub={_ec_det_h.unsub!r} wiring={_ec_det_h.wiring!r}",
-)
-_ec_det.hass.services.calls.clear()
-try:
-    _ec_det_cb(_PaNS(data={"new_state": FakeState("30.0", unit="°C")}))
-    _ec_det_event = "ok"
-except AttributeError:
-    # The wiring guard gone: the callback reaches on_room_event with None wiring.
-    _ec_det_event = "AttributeError"
-R.check(
-    "a room event after detach is a no-op through the wiring guard, not a crash",
-    _ec_det_event == "ok" and _ec_det.hass.services.calls == [],
-    f"{_ec_det_event} {_ec_det.hass.services.calls}",
-)
-# Null control: an armed record that is NEVER detached still delivers the event
-# and cuts, so the guard above is doing work rather than passing vacuously.
-_ec_gd = _EcCoord()
-_ec_gd.arm()
-_ec_gd.room(22.0)
-R.check(
-    "null control: a record never detached still delivers the room event and cuts",
-    len(_ec_gd.offs()) == 1,
-    f"{_ec_gd.offs()}",
-)
-# allow_on's wiring guard: an early refresh after unload (a cut on record, the
-# wiring already dropped) must return the plan's own value, not read the wiring.
-_ec_aw = _ec.CutoffState(cut_at=_ec_dt.as_utc(_ec_dt.now()))
-try:
-    _ec_aw_on = _ec.allow_on(_ec_aw, True)
-except AttributeError:
-    _ec_aw_on = "AttributeError"
-R.check(
-    "allow_on returns the plan's value when the record carries no wiring (unloaded)",
-    _ec_aw_on is True and _ec.allow_on(_ec_aw, False) is False,
-    f"{_ec_aw_on!r}",
-)
-
 # The learners: a cut interval is one _learning_frozen reason, held for the
 # cycle that was cut and the one after it, then released.
 # Switch plus set-point and no meter: the unmetered tail freeze applies here.
@@ -64690,215 +64638,6 @@ R.check(
     all(abs(_o - _e) < 1e-12 for _, _, _o, _e in _fst_rows)
     and _fst_rows[2][2] > _fst_rows[1][2],
     f"got {[(z, r, round(o, 6), round(e, 6)) for z, r, o, e in _fst_rows]}",
-)
-
-
-# ===========================================================================
-# R10-PUMP-MODEL -- the duty floor as an argument, and the ledger's step start.
-# Each arm has its own fixtures, so this block runs standalone and its mutation
-# proof does not need the rest of the suite.
-# ===========================================================================
-R.section("R10-PUMP-MODEL -- the duty floor channel, the step-start fold")
-
-import ast as _rp_ast  # noqa: E402
-from types import SimpleNamespace as _RP_NS  # noqa: E402
-from zoneinfo import ZoneInfo as _RP_Zone  # noqa: E402
-
-from heatpump_optimizer import coordinator as _rp_coord  # noqa: E402
-from heatpump_optimizer import plan_step as _rp_ps  # noqa: E402
-from heatpump_optimizer import pump_arbiter as _rp_pa  # noqa: E402
-from heatpump_optimizer import thermal_model as _rp_tm  # noqa: E402
-
-_RP_T0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
-
-
-# --- D7-arch3-04: the plan's modulation floor is an argument -----------------
-# step_duty used to hand the plan's floor to planned_draw_runs through an
-# attribute on the function object, and clear it in a decorator's `finally`.
-# One module-level slot for a per-plan value: a reader that passes no floor
-# reads whichever plan last wrote. No production reader runs off the loop
-# (D7-s3-54, weakened to hygiene), so this is the channel, not a race: the spy
-# below stands in for that floorless caller and forwards the attribute writes
-# it sees, so the reading is the production channel's and not a stand-in's.
-_rp_plan = _RP_NS(
-    timestamps=[_RP_T0], power_schedule=[1.0], dhw_power_schedule=[0.0], duty_floor_kw=5.0
-)
-_rp_floorless: list[bool] = []
-
-
-class _RpChannelSpy:
-    """The reader, with every attribute write forwarded to the real function."""
-
-    def __init__(self, real):
-        object.__setattr__(self, "_real", real)
-
-    def __call__(self, *args, **kwargs):
-        _rp_floorless.append(_rp_tm.planned_draw_runs(0.5))
-        return self._real(*args, **kwargs)
-
-    def __setattr__(self, name, value):
-        setattr(self._real, name, value)
-
-
-_rp_real = _rp_tm.planned_draw_runs
-_rp_pa.planned_draw_runs = _RpChannelSpy(_rp_real)
-try:
-    _rp_duty = _rp_pa.step_duty(_rp_plan, _RP_T0)
-finally:
-    _rp_pa.planned_draw_runs = _rp_real
-    _rp_real.__dict__.pop("modulation_floor", None)
-R.check(
-    "D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument -- "
-    "a floorless reader is unaffected while step_duty runs",
-    _rp_floorless == [True, True] and _rp_duty == "idle",
-    f"floorless reads {_rp_floorless}, duty {_rp_duty!r}",
-)
-_rp_pa_src = _rp_pa.__file__
-_rp_pa_text = open(_rp_pa_src, encoding="utf-8").read()
-_rp_setattr_floor = [
-    n.lineno
-    for n in _rp_ast.walk(_rp_ast.parse(_rp_pa_text))
-    if isinstance(n, _rp_ast.Call)
-    and getattr(n.func, "id", None) == "setattr"
-    and "modulation_floor" in _rp_ast.unparse(n)
-]
-R.check(
-    "D7-arch3-04: no module-state floor is left behind -- no setattr names it, "
-    "and the reader carries no such attribute, so a raise between the reads "
-    "has nothing to leave set",
-    not _rp_setattr_floor
-    and not hasattr(_rp_tm.planned_draw_runs, "modulation_floor")
-    and not hasattr(_rp_pa, "_release_duty_floor"),
-    f"setattr sites {_rp_setattr_floor}, "
-    f"attr {getattr(_rp_tm.planned_draw_runs, 'modulation_floor', '<absent>')!r}, "
-    f"decorator {hasattr(_rp_pa, '_release_duty_floor')}",
-)
-# The RECEIVER half, on its own (#2365 review): the check above scans only
-# pump_arbiter for a setattr, so a reader that still consulted the attribute
-# would be re-opened by one setattr from any other module and stay green. Set
-# the plan's floor on the real reader from here, then ask it floorless: a
-# reader with no channel reads the 0.5 kW draw as running whatever is set.
-_rp_real.modulation_floor = _rp_plan.duty_floor_kw
-try:
-    _rp_receiver = _rp_tm.planned_draw_runs(0.5)
-finally:
-    _rp_real.__dict__.pop("modulation_floor", None)
-R.check(
-    "D7-arch3-04: the reader has no channel -- a floor set on planned_draw_runs "
-    "from outside pump_arbiter does not reach a floorless read",
-    _rp_receiver is True and _rp_tm.planned_draw_runs(0.5, modulation_floor=_rp_plan.duty_floor_kw) is False,
-    f"floorless read with the attribute set: {_rp_receiver!r}; the same draw "
-    f"against the floor passed as the argument: "
-    f"{_rp_tm.planned_draw_runs(0.5, modulation_floor=_rp_plan.duty_floor_kw)!r}",
-)
-
-
-# --- D7-s3-8x-slotfloor: the ledger key is the plan step's -------------------
-# The fold is behaviour-preserving by construction (the inline expression and
-# plan_step.plan_step_start are the same arithmetic at today's 15-minute
-# width), so this arm reads FLAT at both ends --
-# it is the guard that the fold did not change the key, driven through the
-# production _observe, over every instant of the autumn-DST day in both folds.
-# Its null control is the reference floor widened to 30 minutes, which must
-# move the count off zero or the comparison is not reading anything.
-def _rp_ledger_key(now, src_floor):
-    held = _rp_pa.ArbiterState()
-    inp = _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None)
-    _rp_pa._observe(held, inp, None, now)
-    key = held.step["start"] if held.step else None
-    ref = src_floor(now)
-    return (
-        isinstance(key, datetime)
-        and key == ref
-        and key.fold == ref.fold
-        and key.timestamp() == ref.timestamp()
-    )
-
-
-_rp_dst = datetime(2026, 10, 25, 0, 0, tzinfo=_RP_Zone("Europe/Stockholm"))
-_rp_instants = [
-    t.replace(fold=fold)
-    for fold in (0, 1)
-    for t in (
-        _rp_dst + timedelta(seconds=7 * i) for i in range(24 * 3600 // 7 + 1)
-    )
-]
-_rp_key_agrees = [_rp_ledger_key(now, _rp_ps.plan_step_start) for now in _rp_instants]
-# The control that the comparison reads the instant it is handed at all: the
-# same drive against a 30-minute floor, which is the same rule exactly on the
-# instants whose minute falls in the first half of a half hour -- so a
-# discriminating comparison agrees on precisely that many and no more (a
-# constant key, or a clock the drive ignored, would read 24686 or 0).
-_rp_key_null_agrees = sum(
-    _rp_ledger_key(
-        now,
-        lambda when: when.replace(minute=when.minute - when.minute % 30, second=0, microsecond=0),
-    )
-    for now in _rp_instants
-)
-_rp_key_null_expected = sum(1 for now in _rp_instants if now.minute % 30 < 15)
-R.check(
-    "D7-s3-8x-slotfloor: the ledger row's start is plan_step_start(now), fold and all, "
-    "on every instant of the autumn-DST day in both folds -- and a 30-minute "
-    "reference agrees on exactly the instants it must, so it is not vacuous",
-    all(_rp_key_agrees)
-    and _rp_key_null_agrees == _rp_key_null_expected
-    and 0 < _rp_key_null_expected < len(_rp_instants),
-    f"{sum(_rp_key_agrees)} of {len(_rp_instants)} agree with plan_step_start; the "
-    f"30-minute reference agrees on {_rp_key_null_agrees} against "
-    f"{_rp_key_null_expected} expected",
-)
-# One owner, one width (#2365 review). The solve's anchor and the arbiter's
-# ledger step are the same concern -- the optimizer's plan step covering now
-# -- and used to be spelled twice on two width sources (a literal 15 here,
-# FORECAST_STEP_MINUTES there), agreeing only while the two were equal. Widen
-# the one constant to 30 for the drive: both sides must follow it, so a width
-# a reader spells for itself reads 15 where this reads 30.
-_rp_widths = []
-_rp_saved = _rp_ps.PLAN_STEP_MINUTES
-_rp_ps.PLAN_STEP_MINUTES = 30
-try:
-    for _rp_now in (
-        datetime(2026, 1, 15, 12, 20, tzinfo=timezone.utc),
-        datetime(2026, 1, 15, 12, 50, 59, 999999, tzinfo=timezone.utc),
-    ):
-        _rp_held = _rp_pa.ArbiterState()
-        _rp_pa._observe(
-            _rp_held,
-            _RP_NS(config={}, state=_RP_NS(dhw_temperature=None), measured_power_kw=None),
-            None, _rp_now,
-        )
-        _rp_widths.append((
-            _rp_held.step["start"].minute,
-            _rp_coord.plan_step_start(_rp_now).minute,
-            _rp_now.minute - _rp_now.minute % 30,
-        ))
-finally:
-    _rp_ps.PLAN_STEP_MINUTES = _rp_saved
-R.check(
-    "D7-s3-8x-slotfloor: the arbiter's ledger step and the solve's anchor are "
-    "one function on one width -- widened to 30 minutes, both read the 30-minute "
-    "step",
-    all(a == c == e for a, c, e in _rp_widths)
-    and _rp_pa.plan_step_start is _rp_coord.plan_step_start is _rp_ps.plan_step_start
-    and not hasattr(_rp_pa, "_step_start")
-    and not hasattr(_rp_coord, "_solve_anchor"),
-    f"(ledger, anchor, 30-min floor) minutes: {_rp_widths}",
-)
-# The plan's last step is half-open like every other (#2365, the pin drive's
-# survivor): bisect hands step i the instants [stamps[i], stamps[i+1]), so the
-# last step must end at stamps[-1] + one plan step, not one instant after it.
-# Probed on either side of that edge, so a comparison turned either way fails.
-_rp_edge = _RP_T0 + timedelta(minutes=_rp_ps.PLAN_STEP_MINUTES)
-_rp_edge_reads = [
-    _rp_pa.step_duty(_rp_plan, _rp_edge - timedelta(microseconds=1)),
-    _rp_pa.step_duty(_rp_plan, _rp_edge),
-]
-R.check(
-    "D7-s3-8x-slotfloor: the plan's last step covers [stamp, stamp + one plan "
-    "step) -- live a microsecond before the edge, expired at it",
-    _rp_edge_reads[0] is not None and _rp_edge_reads[1] is None,
-    f"duty just before the edge {_rp_edge_reads[0]!r}, at the edge {_rp_edge_reads[1]!r}",
 )
 
 

@@ -423,67 +423,6 @@ class PriceShapeModel:
         }
 
 
-@dataclass
-class PriceShapeLearner:
-    """The learned price shape and the days it has folded, which change together.
-
-    A day is folded once: ``fold`` skips a day already seen, and marks one
-    seen only when the model accepted it, so a partial or rejected day is
-    retried when it arrives complete. The quarter refinement (#19) keeps its
-    own record, because a day can arrive at hourly resolution first and at
-    full 15-minute resolution later. One store holds all three.
-    """
-
-    model: PriceShapeModel = field(default_factory=PriceShapeModel)
-    days_seen: set[str] = field(default_factory=set)
-    quarter_days_seen: set[str] = field(default_factory=set)
-
-    def fold(self, entries: list[dict[str, Any]]) -> bool:
-        """Fold every new complete day in ``entries``; whether anything was learned."""
-        learned = False
-        for day, hours in hourly_from_entries(entries).items():
-            if day not in self.days_seen and (when := _noon(day)) is not None \
-                    and self.model.observe_day(when, hours):
-                self.days_seen.add(day)
-                learned = True
-        for day, quarters in quarters_from_entries(entries).items():
-            if day not in self.quarter_days_seen and (when := _noon(day)) is not None \
-                    and self.model.observe_day_quarters(when, quarters):
-                self.quarter_days_seen.add(day)
-                learned = True
-        return learned
-
-    def store_payload(self) -> dict[str, Any]:
-        # Only recent days matter for de-duplication, and an unbounded set
-        # would grow forever.
-        return {
-            "model": self.model.as_dict(),
-            "days_seen": sorted(self.days_seen)[-90:],
-            "quarter_days_seen": sorted(self.quarter_days_seen)[-90:],
-        }
-
-    def restore(self, stored: dict[str, Any]) -> None:
-        """Adopt a stored payload; a record that is not a list keeps the one in memory."""
-        self.model = PriceShapeModel.from_dict(stored.get("model"))
-        days = stored.get("days_seen")
-        if isinstance(days, list):
-            self.days_seen = {str(d) for d in days}
-        qdays = stored.get("quarter_days_seen")
-        if isinstance(qdays, list):
-            self.quarter_days_seen = {str(d) for d in qdays}
-
-    def adopt_model(self, payload: dict[str, Any]) -> None:
-        """A snapshot's model (the drift rollback); the days already folded stay folded."""
-        self.model = PriceShapeModel.from_dict(payload)
-
-
-def _noon(day: str) -> datetime | None:
-    try:
-        return datetime.fromisoformat(f"{day}T12:00:00")
-    except ValueError:
-        return None
-
-
 def extend_price_series(
     known: list[float],
     n_steps: int,

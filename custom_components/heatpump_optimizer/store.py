@@ -26,13 +26,10 @@ constructions outside it) and drives a non-finite leaf through each boundary.
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
 import logging
 import math
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
-from types import MappingProxyType
 from typing import Any, NamedTuple, TypeVar, cast
 
 from homeassistant.helpers import issue_registry as ir
@@ -131,7 +128,6 @@ def _bound_instants(
     naive_zone: tzinfo | None = timezone.utc,
     hits: list[str] | None = None,
     path: tuple[str | int, ...] = (),
-    node: Mapping[str, Any] = MappingProxyType({}),
 ) -> Any:
     """Bound every stored instant to ``bound``: none may lie beyond it.
 
@@ -148,10 +144,7 @@ def _bound_instants(
     healthy payload comes back unchanged. ``hits`` collects the ``/``-joined
     path of every leaf it rewrote: a loader whose rule differs for a stamp
     ahead of the clock (the outage heartbeat, card C13) reads it there, since
-    the bound leaves it equal to now. ``node`` is the store's ``DOMAINS``
-    trie at ``path``: a field declaring ``ahead_h`` may lie that much past
-    ``bound`` -- wherever it is stored, since an embedded payload's alias
-    carries its writer's declaration with it (D1-s2-01).
+    the bound leaves it equal to now.
     """
     if isinstance(value, str) and len(value) >= 16 and value[10:11] in ("T", " "):
         try:
@@ -160,10 +153,9 @@ def _bound_instants(
             return value
         naive = when.tzinfo is None
         when = when.replace(tzinfo=naive_zone or bound.tzinfo) if naive else when
-        limit = bound + timedelta(hours=getattr(node.get(""), "ahead_h", 0.0))  # undeclared: 0
-        if when <= limit:
+        if when <= bound:
             return value
-        clamped = limit.astimezone(when.tzinfo)
+        clamped = bound.astimezone(when.tzinfo)
         clamped = clamped.replace(tzinfo=None) if naive else clamped
         _LOGGER.warning(
             "%s: stored instant %s is ahead of the clock; bounded to %s",
@@ -174,12 +166,12 @@ def _bound_instants(
         return clamped.isoformat()
     if isinstance(value, dict):
         return {
-            k: _bound_instants(v, bound, where, naive_zone, hits, path + (k,), _child(node, k, "*"))
+            k: _bound_instants(v, bound, where, naive_zone, hits, path + (k,))
             for k, v in value.items()
         }
     if isinstance(value, list):
         return [
-            _bound_instants(child, bound, where, naive_zone, hits, path + (i,), _child(node, str(i), "#"))
+            _bound_instants(child, bound, where, naive_zone, hits, path + (i,))
             for i, child in enumerate(value)
         ]
     return value
@@ -195,9 +187,6 @@ class Domain(NamedTuple):
     grid may change the rest of its row or grid; empty when a bad cell costs
     only itself. ``unread``: why the loader does not install the stored value
     (the saver re-derives it), for the few fields that are written, not read.
-    ``ahead_h``: for an ``instant``, how far past its store's ``lead`` the
-    writer may stamp it -- a promise falls due later -- so the load's bound
-    (``_bound_instants``) keeps it in every store that embeds it.
     """
 
     kind: str
@@ -207,7 +196,6 @@ class Domain(NamedTuple):
     choices: tuple[Any, ...] = ()
     whole: str = ""
     unread: str = ""
-    ahead_h: float = 0.0
 
 
 def _parses(value: Any, parse: Any, size: int) -> bool:
@@ -289,9 +277,7 @@ _ACCURACY: dict[str, Domain | str] = {
     "samples/#/boost_space": _FLAG,
     "lead_sigma/~": Domain("choice", choices=_LEADS), "lead_sigma/*": _Z,
     "lead_counts/~": Domain("choice", choices=_LEADS), "lead_counts/*": Domain("int", 1),
-    # A promise falls due at its lead: up to the longest bucket ahead (D1-s2-01).
-    "lead_pending/#/0": Domain("instant", ahead_h=max(LEAD_BUCKETS)),
-    "lead_pending/#/1": Domain("choice", choices=LEAD_BUCKETS),
+    "lead_pending/#/0": _AT, "lead_pending/#/1": Domain("choice", choices=LEAD_BUCKETS),
     "lead_pending/#/2": _R,
     # #1936: the last restore -- pairs before it never feed a refit.
     "evidence_since": _AT,
@@ -503,19 +489,6 @@ def _tries() -> dict[str, dict[str, Any]]:
     return tries
 
 
-def _child(node: Mapping[str, Any], key: str, wildcard: str) -> dict[str, Any]:
-    """The trie node a stored ``key`` descends to: its own, else the wildcard's.
-
-    Never a declaration: ``""`` and ``"~"`` hold a node's ``Domain``s, so a
-    stored key spelled so is a data key like any other, not a step into them
-    (a corrupt leaf that did so raised out of the load and lost the store).
-    """
-    child = node.get(key)
-    if not isinstance(child, dict):
-        child = node.get(wildcard)
-    return child if isinstance(child, dict) else {}
-
-
 def _scalar_domain(node: dict[str, Any]) -> Domain | None:
     """The domain when this node declares one value, not a container of them.
 
@@ -534,12 +507,12 @@ def _fields(node: dict[str, Any], value: Any, path: tuple[Any, ...], out: list[A
         return
     if isinstance(value, dict):
         for key, child in value.items():
-            if not isinstance(node.get(key), dict):
+            if key not in node:
                 out.append((path + (key,), True, node.get("~") if "*" in node else None, key))
-            _fields(_child(node, key, "*"), child, path + (key,), out)
+            _fields(node.get(key, node.get("*", {})), child, path + (key,), out)
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _fields(_child(node, str(index), "#"), child, path + (index,), out)
+            _fields(node.get(str(index), node.get("#", {})), child, path + (index,), out)
     else:
         out.append((path, False, node.get(""), value))
 
@@ -551,11 +524,6 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool, 
     return out
 
 
-def _declared(domain: Domain | None, value: Any) -> bool:
-    """Whether a stored field is declared and inside its declaration: the one rule."""
-    return domain is not None and in_domain(domain, value)
-
-
 def admitted(name: str, payload: Any) -> bool:
     """Whether every field of ``payload`` -- store ``name``'s payload, or a
     fragment of it from its root -- is declared and inside its declaration.
@@ -563,27 +531,10 @@ def admitted(name: str, payload: Any) -> bool:
     For a loader whose stored record is opaque to it (a presentation dict
     it republishes whole) and that drops the record rather than repair it.
     """
-    return all(_declared(d, v) for _p, _k, d, v in stored_fields(name, payload))
+    return all(d is not None and in_domain(d, v) for _p, _k, d, v in stored_fields(name, payload))
 
 
-def off_domain(key: str, payload: Any) -> list[str]:
-    """The ``/``-joined path of every field of ``payload``, the document of the
-    store keyed ``key``, that is undeclared or outside its declaration, in walk
-    order (a map key and its value may both be listed). A key no ``DOMAINS``
-    entry names declares nothing, so every field of its document is off.
-    """
-    return [
-        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(store_name(key) or "", payload)
-        if not _declared(domain, value)
-    ]
-
-
-def quarantines(payload: Any) -> bool:
-    """Whether the next load would scrub a poisoned leaf of ``payload`` (``_sanitize``)."""
-    return bool(_sanitize(payload) != payload)
-
-
-def store_name(key: str) -> str | None:
+def _store_name(key: str) -> str | None:
     """The ``DOMAINS`` entry a store key names (its longest matching suffix)."""
     names = [name for name in DOMAINS if key.endswith("_" + name)]
     return max(names, key=len) if names else None
@@ -596,7 +547,11 @@ def _log_off_domain(store: Any, data: Any) -> None:
     entry in ``DOMAINS`` declares is refused by the standing sweep, not here.
     """
     where = str(getattr(store, "key", None) or getattr(store, "_key", "store"))
-    off = off_domain(where, data) if store_name(where) else []
+    name = _store_name(where)
+    off = [
+        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(name or "", data)
+        if domain is None or not in_domain(domain, value)
+    ] if name else []
     if off:
         _LOGGER.debug("%s: %d stored field(s) off their declared domain: %s", where, len(off), off[:5])
 
@@ -627,9 +582,6 @@ class QuarantiningStore(Store[_StorePayload]):
     #: The read in flight, kept until the next one, and the tasks reading.
     _reading: asyncio.Future[None] | None = None
     _readers: frozenset[asyncio.Task[Any] | None] = frozenset()
-    #: Digest of the payload the last ``async_save_if_changed`` saw accepted;
-    #: ``None`` once anything else wrote the store, or before any write.
-    _digest: str | None = None
 
     def __init__(
         self,
@@ -677,8 +629,7 @@ class QuarantiningStore(Store[_StorePayload]):
                 where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
                 hits: list[str] = []
                 self.bounded = hits
-                node = _tries().get(store_name(where) or "", {})
-                data = _bound_instants(data, bound, where, self._naive_zone, hits, (), node)
+                data = _bound_instants(data, bound, where, self._naive_zone, hits)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:
@@ -736,28 +687,12 @@ class QuarantiningStore(Store[_StorePayload]):
         on itself (#1740) -- or on a second load, which Home Assistant parks
         on the first (#1869).
         """
-        self._digest = None
         if asyncio.current_task() not in self._readers:
             await self.async_wait_for_read()
         if self._store_key in _NEWER_ON_DISK:  # kept for the release that wrote it
             _LOGGER.debug("%s: a newer release's document is kept; not saved", self._store_key)
             return
         await super().async_save(data)
-
-    async def async_save_if_changed(self, data: Any) -> None:
-        """``async_save``, unless this store last accepted exactly ``data``.
-
-        For a writer that runs every cycle and mostly changes nothing: a
-        rewrite is disk wear. The digest is the store's own, so it describes
-        what this store holds and no other writer can go round it -- a plain
-        ``async_save`` forgets it -- and it is recorded only after the save
-        returned, so a failed write is retried, not skipped as written.
-        """
-        digest = hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
-        if digest == self._digest:
-            return
-        await self.async_save(data)
-        self._digest = digest
 
     async def async_wait_for_read(self) -> None:
         """Return once the read in flight, if any, has landed.

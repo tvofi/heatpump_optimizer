@@ -56,7 +56,7 @@ def seed_stores(stores: dict, *, entry_id: str = REPLAY_ENTRY_ID) -> list[str]:
     from homeassistant.helpers import storage as stub
     written: list[str] = []
     for key, document in stores.items():
-        suffix = store_mod.store_name(key)
+        suffix = debug_ingest.domain_suffix(key, store_mod.DOMAINS)
         if suffix is None:
             continue
         dest = f"{DOMAIN}_{entry_id}_{suffix}"
@@ -154,7 +154,8 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     dest_acc = f"{DOMAIN}_{REPLAY_ENTRY_ID}_accuracy"
     dest_en = f"{DOMAIN}_{REPLAY_ENTRY_ID}_energy"
     loaded = json.loads(stub._DISK.get(dest_en, "{}"))
-    undeclared = store_mod.store_name("heatpump_optimizer_foreign_nope")
+    undeclared = debug_ingest.domain_suffix(
+        "heatpump_optimizer_foreign_nope", store_mod.DOMAINS)
     replay = json.loads(
         (ROOT / "tests" / "replay" / "synthetic-dhw-only.json").read_text())
     start = datetime.fromisoformat(replay["window"]["start"])

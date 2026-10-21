@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP 296c284b",
+  "killed_by": "tests/features.py",
+  "old": "    s_on = i < len(space) and planned_draw_runs(space[i])",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: BOOLOP (`s_on = i < len(space) or planned_draw_runs(space[i])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}

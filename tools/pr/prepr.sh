@@ -298,42 +298,6 @@ claims_remedy() { # env_drift output file
 # too: a push is no place to take a lease another seat holds. A `slot` answer
 # is NOT deferred -- this run already holds a slot (step 1b), so the recording
 # runs inside it (R10-PREPR-CAP, #2267).
-# Every unescaped backtick inside a double-quoted string, as `file:line: text`.
-# In double quotes a bare backtick is a command substitution, so a label meant to
-# print `slot` runs it (prepr.sh line 1738, #2267). Single quotes, comments and
-# quoted heredocs are skipped; $( ) opens a fresh quoting context.
-dq_backticks() {
-  python3 - "$@" <<'PY'
-import re, sys
-for path in sys.argv[1:]:
-    stack, hd = ['u'], None
-    for n, line in enumerate(open(path, encoding='utf-8').read().split('\n'), 1):
-        if hd:
-            if line.strip() == hd: hd = None
-            continue
-        i, seen = 0, False
-        while i < len(line):
-            c, m = line[i], stack[-1]
-            if m == 's':
-                if c == "'": stack.pop()
-            elif m == 'd':
-                if c == '\\': i += 1
-                elif c == '"': stack.pop()
-                elif c == '`' and not seen: print(f"{path}:{n}: {line.strip()[:150]}"); seen = True
-                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
-            else:
-                if c == '\\': i += 1
-                elif c in "'\"": stack.append('s' if c == "'" else 'd')
-                elif c == '#' and (i == 0 or line[i-1] in ' \t;'): break
-                elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
-                elif c == ')' and len(stack) > 1: stack.pop()
-                elif line[i:i+2] == '<<' and line[i:i+3] != '<<<':
-                    mm = re.match(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line[i:])
-                    if mm: hd = mm.group(2)
-            i += 1
-PY
-}
-
 closure_lane() { # script, strace present (1 or 0)
   local one; one=$(mktemp)
   printf '%s\n' "$1" > "$one"
@@ -1774,18 +1738,7 @@ EOS
   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
-  st "$(closure_lane tests/entities.py 1)" record "a \`slot\` script is recorded here, inside the slot this run holds (#2267)"
-  # The label above once sat in double quotes with bare backticks, so the shell ran
-  # `slot` as a command and printed "line 1738: slot: command not found" in the
-  # run's output (the label was also shifted by a stray argument). Drive the reader
-  # over a planted line (null control) and over every script in tools/pr/.
-  DQ=$(mktemp -d)
-  printf '%s\n' 'echo "a `slot` b"' > "$DQ/bad.sh"
-  printf '%s\n' 'echo "a \`slot\` b" '"'"'c `d` e'"'"' # f "`g`"' 'cat <<'"'"'X'"'"'' 'say "`h`"' 'X' > "$DQ/ok.sh"
-  [ -n "$(dq_backticks "$DQ/bad.sh")" ]; st $? 0 "a backtick inside a double-quoted string is reported (null control)"
-  [ -z "$(dq_backticks "$DQ/ok.sh")" ]; st $? 0 "and an escaped one, a single-quoted one, a comment and a heredoc are not"
-  [ -z "$(dq_backticks tools/pr/*.sh)" ]; st $? 0 "no script in tools/pr/ runs a command inside a double-quoted label"
-  rm -rf "$DQ"
+  st "$(closure_lane tests/entities.py 1)" record 0 "a `slot` script is recorded here, inside the slot this run holds (#2267)"
 
   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
   # and `heavy_skip` above), over a throwaway clone with one fixture branch per

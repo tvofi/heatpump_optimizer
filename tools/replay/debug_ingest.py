@@ -51,6 +51,12 @@ def load_bundle(path: Path) -> dict:
     return json.loads(raw)
 
 
+def domain_suffix(key: str, domains) -> str | None:
+    """Longest ``DOMAINS`` suffix of a store key (entry ids carry underscores)."""
+    hits = [s for s in domains if key.endswith("_" + s)]
+    return max(hits, key=len) if hits else None
+
+
 class Results:
     def __init__(self) -> None:
         self.fails: list[str] = []
@@ -93,10 +99,10 @@ def ingest(bundle: dict, *, corrupt: str = "") -> Results:
     from heatpump_optimizer.accuracy import AccuracyTracker
     stores = copy.deepcopy(bundle.get("stores") or {})
     results.check("stores-present", bool(stores), f"{len(stores)} stores")
-    undeclared = [k for k in stores if store_mod.store_name(k) is None]
+    undeclared = [k for k in stores if domain_suffix(k, store_mod.DOMAINS) is None]
     results.check("stores-declared", not undeclared, ",".join(undeclared[:3]))
     dirty = [k for k, document in stores.items()
-             if store_mod.quarantines(document)]
+             if store_mod._sanitize(document) != document]
     results.check("stores-sanitize-idempotent", not dirty, ",".join(dirty[:3]))
 
     accuracy_docs = [k for k in stores if k.endswith("_accuracy")]
