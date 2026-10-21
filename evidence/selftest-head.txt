@@ -63,7 +63,7 @@ delivery_row self-test: 5 checks, 0 failed
   ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
   ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
   ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
-  ok   null control: update_pr with code sha 'd43ae1b' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '3e0a28b' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 62 checks, 0 failed
