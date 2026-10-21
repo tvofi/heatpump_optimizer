@@ -557,7 +557,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   from pull-request state: a merged pull request on the group's branch makes
   it `done` at the merge commit (and routes the body's `Carry: <GROUP>` items
   to the destination's `carry`), an open one makes it `in-progress` with
-  `resume.pr`. Branch matching is the topic rule its docstring states. When:
+  `resume.pr`. Branch matching is the topic rule its docstring states; a head
+  two topics match is the longer one's. It prints `RECORD-INVALID <group>` for
+  a `resume.commit` naming no commit or several, or a done group's off
+  `origin/main` -- a finding, never a refusal. When:
   every `state_docs.py beat --apply` pass runs it; run it alone to see what a
   pass would write. Dry run by default; `--apply` writes through
   `roster_edit.commit_roster()`, the one write path and lint gate. Refusals: an
