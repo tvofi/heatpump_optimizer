@@ -327,7 +327,7 @@ const DECLARED = {
   'check stats': { none: 'a report; refuses nothing' },
   'check sunset': { none: PROSE },
   'pinned .claude/workflows/agreement.mjs': { none: 'the agreement lane; its corpora are live instances of registered concepts, not a check input field' },
-  'pinned .claude/workflows/agreement_py.py': { none: 'the lane\'s Python readers, run under -I; no input field of its own' },
+  'pinned .claude/workflows/agreement_py.py': { none: 'the lane\'s Python readers, run under -I; its restore precondition reads the wave-script restore list and its own imports, code not data, and its self-test plants the missing-pathspec and wildcard arms' },
   'pinned .claude/workflows/brief_lint.mjs': { none: 'reads the wave rosters and carries; residual, no arm here' },
   'pinned .claude/workflows/check-wave-script.mjs': { none: 'drives the wave script\'s branches, code not data' },
   'pinned .claude/workflows/field_coverage.mjs': { none: 'this program; its input is DECLARED and the arms above' },
@@ -343,7 +343,6 @@ const DECLARED = {
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
-  'pinned tools/policy/agreement_restore.py': { none: 'reads the wave-script restore list in governance.yml and the agreement reader\'s imports; both are code, and its own self-test plants the missing-pathspec and wildcard arms' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
 }
 

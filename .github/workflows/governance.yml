@@ -497,16 +497,17 @@ jobs:
           bash tools/audit/worktree_gc.sh --self-test
           python3 -I tools/coverage/partition.py --self-test
           python3 -I tools/merge/ledger_merge.py --self-test
+          python3 -I tools/plan/replan.py --self-test
           node tools/policy/policy_lint.mjs --self-test
           python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
           bash tools/pr/approve_held_runs.sh --self-test
           python3 -I tools/pr/head_note.py --self-test
           python3 -I tools/release/stamp.py --self-test
-          python3 -I tools/policy/agreement_restore.py --self-test
+          python3 -I tools/policy/agreement_py.py --self-test
           # The wave-script restore list is derived, never carried: every .py
           # file the agreement reader loads must be restored from the base,
           # or a head whose readers agree still reads divergent (#2423).
-          python3 -I tools/policy/agreement_restore.py --check
+          python3 -I tools/policy/agreement_py.py --restore
 
       - name: Show the CI watcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -911,8 +912,9 @@ jobs:
           # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
           # The `tests/` and `tools/` entries this reader needs are DERIVED from
           # its import closure, never carried:
-          # `python3 -I tools/policy/agreement_restore.py --check` names any
-          # closure file this list misses (the #2423 `divergent=2`).
+          # `python3 -I tools/policy/agreement_py.py --restore` names any
+          # closure file this list misses (the #2423 `divergent=2`), and the
+          # agreement lane below refuses to answer while one is missing.
           git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
@@ -954,25 +956,6 @@ jobs:
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
-      # The restore list is derived from the agreement reader's import
-      # closure, never carried (#2423's false `divergent=2`). Skipped, with
-      # the reason printed, while the base does not carry the derivation: on
-      # the pull request that lands it, the restored reader is the base's and
-      # the check would measure a list this job has not yet been able to
-      # derive against. From the next pull request on, the base's copy runs
-      # against this pull request's governance.yml, which is the invariant the
-      # job depends on.
-      - name: Refuse a restore list that misses a reader the agreement lane loads
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
-        run: |
-          set -euo pipefail
-          if ! git cat-file -e "$PINNED:tools/policy/agreement_restore.py" 2>/dev/null; then
-            echo "restore-closure lane: the base does not carry the derivation; skipped"
-          else
-            python3 -I tools/policy/agreement_restore.py --check
-          fi
-
       - name: Drive the wave script's branching
         run: if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs; else node tools/policy/check-wave-script.mjs; fi
 
@@ -981,7 +964,10 @@ jobs:
       # registered. The base's copy once the base carries the program (the
       # restore above); the pull request that lands it skips the lane, below. The tests
       # and audit scripts its Python readers load are restored from the base
-      # above too, so a pull request cannot change a reader it is graded by.
+      # above too, so a pull request cannot change a reader it is graded by;
+      # the restored `agreement_py.py` refuses to answer while that list
+      # misses a file it loads (its restore precondition, #2423), so the list
+      # is derived and checked here rather than carried by hand.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
