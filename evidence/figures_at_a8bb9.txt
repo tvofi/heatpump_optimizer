@@ -1,7 +1,0 @@
-at a8bb9a9c1ebda970fadfb1f24e3f8f35aa283389
-  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
-layout self-test: ok
-ModuleNotFoundError: No module named 'voluptuous'
-ModuleNotFoundError: No module named 'voluptuous'
-ALL 124 closure shrink pins PASSED
-claims hygiene: 5d433771aa88bbfd49b8868a9b53ea1241ab85a3 ok
