@@ -1,0 +1,25 @@
+== selftest_wiring
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired
+== tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 6961f0663796
+== structure
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (5), measured against the recorded closures in tests/closures.json:
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 89 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 93 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 96 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 125 files, no changed file is in its measured closure)
+== archscore
+Architecture score: dS +0.0000 NULL
+== entities
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+== rules/codeowners
+99:/.github/workflows/                       @tvofi

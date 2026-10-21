@@ -1,0 +1,8 @@
+RESULT live=origin/main groups=91 nonempty=64 empty=27 keyless=0 [] dump_roundtrip=True
+RESULT live=origin/main set-after-own-edges refused=0 byte_changes=0
+RESULT live=origin/main append+drop byte_changes=0 []
+RESULT live=origin/main cycle-probe refused: set-after: R10-TARIFF after ['R10-FEEDS'] closes a cycle: R10-FEEDS -> R10-TARIFF -> R10-FEEDS
+RESULT live=handoff/audit-r10-roster groups=108 nonempty=69 empty=37 keyless=2 ['R10-HANDOFF-ARCHIVE', 'R10-DEPENDABOT-AIOHTTP'] dump_roundtrip=True
+RESULT live=handoff/audit-r10-roster set-after-own-edges refused=0 byte_changes=0
+RESULT live=handoff/audit-r10-roster append+drop byte_changes=2 ['R10-HANDOFF-ARCHIVE', 'R10-DEPENDABOT-AIOHTTP']
+RESULT live=handoff/audit-r10-roster cycle-probe refused: set-after: R10-TARIFF after ['R10-FEEDS'] closes a cycle: R10-FEEDS -> R10-TARIFF -> R10-FEEDS
