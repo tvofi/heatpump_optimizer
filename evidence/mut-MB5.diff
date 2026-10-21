@@ -1,5 +1,5 @@
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index c03d49b30..a29898456 100644
+index 23afaa0cf..23c250d0a 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -11092,7 +11092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):

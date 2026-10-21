@@ -1,6 +1,0 @@
-tests/deployment_shape.py
-tests/entities.py
-tests/features.py
-tests/finite_boundary.py
-tests/card.mjs
-tests/card_browser.mjs

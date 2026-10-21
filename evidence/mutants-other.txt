@@ -1,3 +1,0 @@
-RESULT mutant=MX1 script=finite_boundary rc=0 fails=0
-RESULT mutant=MX2 script=finite_boundary rc=1 fails=1
-RESULT mutant=MX1 script=entities rc=0 fails=46

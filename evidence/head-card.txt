@@ -1,9 +1,0 @@
-wrote /tmp/plandata-b764d621bad4.json
-plan reason codes, price provenance and slot energy OK
-  ok    openHaLink falls back to the whole integration when the registry refuses
-
-ALL CARD CHECKS PASSED
-
-real	1m41.899s
-user	1m39.213s
-sys	0m15.916s
