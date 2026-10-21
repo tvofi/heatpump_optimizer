@@ -164,6 +164,7 @@
   "_raise_cop_issue": "learning",
   "_reading_ok": "core",
   "_reanchor_house_heat_loss_scale": "learning",
+  "_reanchor_learned": "learning",
   "_record_accuracy": "core",
   "_record_manual_release": "core",
   "_record_quiet_comfort_period": "learning",

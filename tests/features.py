@@ -7940,11 +7940,14 @@ class _LearnPersist:
     _apply_cop_scale = Coord._apply_cop_scale
     _house_heat_loss_anchor = Coord._house_heat_loss_anchor
     _reanchor_house_heat_loss_scale = Coord._reanchor_house_heat_loss_scale
+    _reanchor_learned = Coord._reanchor_learned
     _apply_learner_payloads = Coord._apply_learner_payloads
+    effective_config = Coord.effective_config
 
     def __init__(self, store) -> None:
         self._thermal_learning_store = store
         self._thermal_params = ThermalParameters()
+        self._config = {}  # no meter: the commanded replay basis
         self._buffer_cooling_rate = 6.0
         self._buffer_cooling_samples = 3
         self._house_heat_loss_scale = 1.1
@@ -8704,6 +8707,9 @@ _tz._thermal_params.two_zone_enabled = True
 _tz._thermal_params.upper_floor_heat_loss = 0.10
 _tz._thermal_params.lower_floor_heat_loss = 0.10
 _tz._apply_lower_floor_loss_ratio(1.0)
+# An unlearned split (#2239): the ratio's own law keeps it at 1.0, so this
+# arm reads the level's law alone; the split's arms are the #2239 block.
+_tz._lower_floor_loss_samples = 0
 _tz._apply_house_heat_loss_scale(2.0)
 _tz._house_heat_loss_samples = 300
 _aio.run(_tz._async_save_thermal_learning())
@@ -8741,6 +8747,154 @@ R.check(
     abs(_snap._house_heat_loss_scale * _NEW - _expected_eff) < 1e-9,
     f"effective {_snap._house_heat_loss_scale * _NEW:.4f} kW/°C after "
     "rollback",
+)
+
+# --- D12-s2-71 / G-ID-3 (#2239): the split and the replay basis re-anchor ---
+# The lower-floor ratio is fitted about `lower * scale` while the scale is
+# fitted from the upper zone, so it corrects the configured lower/upper
+# SPLIT. A reseed writing the learned zone losses into the options (upper
+# U*s, lower L*r*s) restored the old ratio over a lower nameplate that
+# already contained it: upper -36.8 %, lower +21.5 %, total kept. Both
+# multipliers now re-anchor -- the split first, then the level on the total.
+_ZR_U, _ZR_L, _ZR_S, _ZR_R = 0.10, 0.09, 1.567, 1.922
+
+
+def _zr_holder(upper, lower, scale=1.0, ratio=1.0, samples=(0, 0), config=None, store=None):
+    """A two-zone learner holder over `store`, configured with these zones."""
+    h = _LearnPersist(store if store is not None else _CountingLearnStore())
+    h._thermal_params.two_zone_enabled = True
+    h._thermal_params.upper_floor_heat_loss = upper
+    h._thermal_params.lower_floor_heat_loss = lower
+    h._apply_house_heat_loss_scale(scale)
+    h._apply_lower_floor_loss_ratio(ratio)
+    h._house_heat_loss_samples, h._lower_floor_loss_samples = samples
+    h._config = dict(config or {})
+    return h
+
+
+def _zr_zones(h):
+    """(upper, lower) effective loss, kW/°C, as the model rolls them."""
+    p = h._thermal_params
+    return (
+        p.upper_floor_heat_loss * h._house_heat_loss_scale,
+        p.lower_floor_heat_loss * h._lower_floor_loss_ratio * h._house_heat_loss_scale,
+    )
+
+
+def _zr_reload(learned, upper, lower, config=None):
+    """Save `learned` and load it over a new configuration."""
+    _aio.run(learned._async_save_thermal_learning())
+    fresh = _zr_holder(upper, lower, scale=7.0, ratio=7.0, config=config,
+                       store=learned._thermal_learning_store)
+    _aio.run(fresh._async_load_thermal_learning())
+    return fresh
+
+
+def _zr_learned(ratio=_ZR_R, samples=(310, 147), config=None):
+    return _zr_holder(_ZR_U, _ZR_L, _ZR_S, ratio, samples, config)
+
+
+_ZR_TRUE = (_ZR_U * _ZR_S, _ZR_L * _ZR_R * _ZR_S)
+_zr_rows = {}
+for _zr_label, _zr_r, _zr_u, _zr_l in (
+    ("reseed", _ZR_R, _ZR_U * _ZR_S, _ZR_L * _ZR_R * _ZR_S),
+    ("no nameplate edit", _ZR_R, _ZR_U, _ZR_L),
+    ("lower nameplate set to L*r", _ZR_R, _ZR_U, _ZR_L * _ZR_R),
+    ("reseed at ratio 1.0", 1.0, _ZR_U * _ZR_S, _ZR_L * _ZR_S),
+):
+    _zr_got = _zr_zones(_zr_reload(_zr_learned(_zr_r), _zr_u, _zr_l))
+    _zr_want = (_ZR_U * _ZR_S, _ZR_L * _zr_r * _ZR_S)
+    _zr_rows[_zr_label] = tuple(round(g / w - 1.0, 6) for g, w in zip(_zr_got, _zr_want))
+R.check(
+    "#2239 (D12-s2-71): a zone-loss edit keeps both learned zones, not only their total",
+    all(abs(e) < 1e-6 for row in _zr_rows.values() for e in row),
+    f"(upper, lower) relative error per edit {_zr_rows!r} -- the old ratio "
+    "kept over a lower nameplate that already contains it reads "
+    "(-0.368, +0.215) on the reseed row",
+)
+_zr_seed = _zr_reload(_zr_learned(), *_ZR_TRUE)
+R.check(
+    "#2239 (D12-s2-71): a full reseed comes back as scale 1 and ratio 1",
+    abs(_zr_seed._house_heat_loss_scale - 1.0) < 1e-6
+    and abs(_zr_seed._lower_floor_loss_ratio - 1.0) < 1e-6,
+    f"scale {_zr_seed._house_heat_loss_scale!r}, ratio "
+    f"{_zr_seed._lower_floor_loss_ratio!r}",
+)
+
+# The law at both ends of its evidence, on a lower-only edit (L -> 1.5 L):
+# 147 samples blends by the learner's own phi; zero samples keeps the edit.
+_zr_blend = _zr_reload(_zr_learned(), _ZR_U, _ZR_L * 1.5)
+_zr_phi = _hl_phi(147)
+_zr_blend_want = (1.0 - _zr_phi) + _zr_phi * _ZR_R / 1.5
+_zr_cold = _zr_reload(_zr_learned(samples=(310, 0)), _ZR_U, _ZR_L * 1.5)
+R.check(
+    "#2239 (D12-s2-71): the ratio re-anchors by the learner's confidence, and an unlearned split keeps the edit",
+    abs(_zr_blend._lower_floor_loss_ratio - _zr_blend_want) < 1e-6
+    and abs(_zr_cold._lower_floor_loss_ratio - 1.0) < 1e-12,
+    f"ratio {_zr_blend._lower_floor_loss_ratio!r} (want {_zr_blend_want!r}) at "
+    f"147 samples, {_zr_cold._lower_floor_loss_ratio!r} (want 1.0) at none",
+)
+# The clamp end: a split that cannot be expressed resets, never clips.
+_zr_clamp = _zr_reload(_zr_learned(ratio=2.9), _ZR_U, _ZR_L * 0.5)
+R.check(
+    "#2239 (D12-s2-71): an inexpressible split resets the ratio and its samples",
+    _zr_clamp._lower_floor_loss_ratio == 1.0 and _zr_clamp._lower_floor_loss_samples == 0,
+    f"ratio {_zr_clamp._lower_floor_loss_ratio!r}, "
+    f"{_zr_clamp._lower_floor_loss_samples} samples",
+)
+# The snapshot restore after a reseed runs the same law.
+_zr_snap_src = _zr_learned()
+_zr_snap = _zr_holder(*_ZR_TRUE)
+_zr_snap._apply_learner_payloads({"thermal_learning": _zr_snap_src._thermal_learning_payload()})
+_zr_snap_err = tuple(round(g / w - 1.0, 6) for g, w in zip(_zr_zones(_zr_snap), _ZR_TRUE))
+R.check(
+    "#2239 (D12-s2-71): a pre-reseed snapshot restores both learned zones",
+    all(abs(e) < 1e-6 for e in _zr_snap_err),
+    f"(upper, lower) relative error {_zr_snap_err!r}",
+)
+
+# G-ID-3: a fit replayed on commanded power carries the delivery shortfall
+# as heat loss, so a meter added (or removed) restarts the level from the
+# configuration; the split, which a shared shortfall cancels from, stays.
+_ZR_METER = {"heat_pump_power_entity": "sensor.hp_power"}
+_zr_meter = _zr_reload(_zr_learned(), _ZR_U, _ZR_L, config=_ZR_METER)
+_zr_same = _zr_reload(_zr_learned(config=_ZR_METER), _ZR_U, _ZR_L, config=_ZR_METER)
+R.check(
+    "#2239 (G-ID-3): a power meter added restarts the heat-loss level; the same basis keeps it",
+    _zr_meter._house_heat_loss_scale == 1.0
+    and _zr_meter._house_heat_loss_samples == 0
+    and abs(_zr_meter._lower_floor_loss_ratio - _ZR_R) < 1e-12
+    and abs(_zr_same._house_heat_loss_scale - _ZR_S) < 1e-12
+    and _zr_same._house_heat_loss_samples == 310,
+    f"meter added: scale {_zr_meter._house_heat_loss_scale!r} "
+    f"({_zr_meter._house_heat_loss_samples} samples), ratio "
+    f"{_zr_meter._lower_floor_loss_ratio!r}; same basis: scale "
+    f"{_zr_same._house_heat_loss_scale!r} ({_zr_same._house_heat_loss_samples} samples)",
+)
+# A store written before the anchors existed restores verbatim and adopts
+# them in one save; a second load over it writes nothing.
+_zr_pre = _zr_learned()
+_aio.run(_zr_pre._async_save_thermal_learning())
+for _zr_key in ("lower_floor_loss_anchor", "learner_power_basis"):
+    _zr_pre._thermal_learning_store.saved.pop(_zr_key)
+_zr_pre_store = _zr_pre._thermal_learning_store
+_zr_pre_saves = _zr_pre_store.saves
+_zr_adopt = _zr_holder(_ZR_U, _ZR_L, store=_zr_pre_store, config=_ZR_METER)
+_aio.run(_zr_adopt._async_load_thermal_learning())
+_zr_adopt_saves = _zr_pre_store.saves - _zr_pre_saves
+_zr_again = _zr_holder(_ZR_U, _ZR_L, store=_zr_pre_store, config=_ZR_METER)
+_aio.run(_zr_again._async_load_thermal_learning())
+R.check(
+    "#2239: a pre-anchor store restores verbatim and adopts its anchors in one save",
+    abs(_zr_adopt._house_heat_loss_scale - _ZR_S) < 1e-12
+    and abs(_zr_adopt._lower_floor_loss_ratio - _ZR_R) < 1e-12
+    and _zr_adopt_saves == 1
+    and _zr_pre_store.saved.get("learner_power_basis") == "metered"
+    and _zr_pre_store.saves - _zr_pre_saves == 1,
+    f"scale {_zr_adopt._house_heat_loss_scale!r}, ratio "
+    f"{_zr_adopt._lower_floor_loss_ratio!r}, {_zr_adopt_saves} adopting save(s), "
+    f"basis {_zr_pre_store.saved.get('learner_power_basis')!r}, "
+    f"{_zr_pre_store.saves - _zr_pre_saves} save(s) after the second load",
 )
 
 # --- The savings baseline follows the comfort schedule ---------------------

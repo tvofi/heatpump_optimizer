@@ -36617,7 +36617,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "once per event by the function's own state (a refit, an issue raised, a "
     "rollback per alarm, a malformed month closed so it is not retried)": {
-        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "reanchor_multiplier"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
     },
@@ -36634,6 +36634,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("frontend.py", "_register_static_path"): 2, ("dhw_schedule.py", "parse_day_overrides"): 1,
         ("coordinator.py", "_async_load_manual_plan"): 1,
         ("coordinator.py", "_async_load_thermal_learning"): 1,
+        ("coordinator.py", "_reanchor_learned"): 1,
         ("coordinator.py", "_async_setup_peak_guard"): 1,
         ("coordinator.py", "async_restore_learned_snapshot"): 1,
         ("coordinator.py", "async_update_thermal_params"): 1, ("coordinator.py", "async_simulate"): 1,

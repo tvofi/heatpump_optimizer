@@ -297,6 +297,12 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "buffer_cooling_rate": Domain("real", _POS),  # tank-dependent clamp inside this
         "house_heat_loss_anchor": Domain("real", _POS, unread=(
             "re-derived from the configured loss on save; the load reads it to re-anchor the scale")),
+        # D12-s2-71 / G-ID-3: the configured split the ratio corrects (null
+        # off two-zone) and the replay basis the heat-loss fits were taken on.
+        "lower_floor_loss_anchor": Domain("real", _POS, null=True, unread=(
+            "re-derived from the configured zone losses on save; the load reads it to re-anchor the ratio")),
+        "learner_power_basis": Domain("choice", choices=("metered", "flow", "commanded"), unread=(
+            "re-derived from the configured meters on save; the load reads it to restart a fit on another basis")),
         "house_heat_loss_scale": Domain("real", c.HOUSE_HEAT_LOSS_SCALE_MIN, c.HOUSE_HEAT_LOSS_SCALE_MAX),
         "lower_floor_loss_ratio": Domain("real", c.LOWER_FLOOR_LOSS_RATIO_MIN, c.LOWER_FLOOR_LOSS_RATIO_MAX),
         c.CONF_COP_SCALE: Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
