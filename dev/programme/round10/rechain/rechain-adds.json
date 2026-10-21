@@ -1,0 +1,26 @@
+{
+  "_comment": "Companion to rechain-drops.json. 'required' edges re-state an ordering a drop would otherwise remove between groups whose seams DO overlap; apply them in the same burst as the drops or do not apply the drops they pair with. 'recommended' edges close overlaps that are already unordered today (their old path ran through groups now done); they add 0 to the critical depth. See rechain-decision.md section 3.",
+  "required": [
+    {"group": "R10-PARAMS-OWNER", "add_after": ["R10-LIVESTATE"], "pairs_with_drop": "R10-CONFIG-NOTICES after R10-LIVESTATE; R10-PARAMS-OWNER after R10-CONFIG-NOTICES"},
+    {"group": "R10-ARCH-SHAPES", "add_after": ["R10-LIVESTATE"], "pairs_with_drop": "R10-ARCH-SHAPES after R10-PARAMS-OWNER"},
+    {"group": "R10-HEAT-METER", "add_after": ["R10-PARAMS-OWNER", "R10-ARCH-SHAPES"], "pairs_with_drop": "R10-LEARNER-ETA after R10-ARCH-SHAPES"}
+  ],
+  "recommended": [
+    {"group": "R10-LIVESTATE", "add_after": ["R10-LOOP-CPU"]},
+    {"group": "R10-LOOP-CPU", "add_after": ["R10-NIGHT-FOLDS"]},
+    {"group": "R10-PARAMS-OWNER", "add_after": ["R10-NIGHT-FOLDS", "R10-RATIO-ANCHOR"]},
+    {"group": "R10-ARCH-SHAPES", "add_after": ["R10-INPUT-STALENESS"]}
+  ],
+  "resulting_after_lists": {
+    "R10-RATIO-ANCHOR": [],
+    "R10-INPUT-STALENESS": [],
+    "R10-CURRENCY": [],
+    "R10-LOOP-CPU": ["R10-NIGHT-FOLDS"],
+    "R10-CONFIG-NOTICES": [],
+    "R10-LIVESTATE": ["R10-SCORES", "R10-PUMP-MODEL", "R10-LOOP-CPU"],
+    "R10-PARAMS-OWNER": ["R10-ARCHSCORE-COVERAGE", "R10-SERVICES-GUARD", "R10-LIVESTATE", "R10-NIGHT-FOLDS", "R10-RATIO-ANCHOR"],
+    "R10-ARCH-SHAPES": ["R10-SENSOR-PAYLOAD", "R10-FREQ-DEFROST", "R10-LIVESTATE", "R10-INPUT-STALENESS"],
+    "R10-LEARNER-ETA": [],
+    "R10-HEAT-METER": ["R10-LEARNER-ETA", "R10-INPUT-STALENESS", "R10-UX-SETUP", "R10-RATIO-ANCHOR", "R10-PARAMS-OWNER", "R10-ARCH-SHAPES"]
+  }
+}
