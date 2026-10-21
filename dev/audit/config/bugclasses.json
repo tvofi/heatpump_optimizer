@@ -4095,7 +4095,7 @@
     "N-orphaned-handoff": {
       "class": "N-orphaned-handoff",
       "level": "class",
-      "subject": "round-10 orphaned-handoff class: the relay's handoff-no-pr level replayed as history (31,303 OWED lines over 236 refs against 12 stranded), a detector arm that read its own finding as unavailability for 143 passes, and no age or closer on an obligation (12 stranded refs, 11 genuine, four 41.9-48.9 h old)",
+      "subject": "round-10 orphaned-handoff class: the tick keys five relay OWED kinds (probe-ref, handoff-no-pr, handoff-update, approve-held-runs, dispatch) on the kind token so no POSTED clears them, and replays the two levels as history (handoff-no-pr: 31,303 OWED lines over 236 refs against 12 stranded), a detector arm that read its own finding as unavailability for 143 passes, and no age or closer on an obligation (12 stranded refs, 11 genuine, four 41.9-48.9 h old)",
       "trigger": "class: per_round (R9 7, R10 11), cross_round",
       "date": "2026-10-20",
       "status": "proposed",
@@ -4103,7 +4103,7 @@
         "barrier not built; owned by R10-ORCH-MACHINERY's obligations ledger"
       ],
       "process_state": "(c) orchestrator.md 5b's opener duty was read and queued behind the open-PR cap, and two openers were dispatched and killed with no retry; residuals (a) no design-to-build kind, (d) a brief that grew after its handoff",
-      "countermeasure": "proposed barrier: the obligations ledger's handoff-no-pr kind derived from the live world each pass, aged (24 h DISPATCH, 48 h owner flag; thresholds tvofi's), an opener-attempt record, a content-covered close and a design-build kind; ~5 s per pass, 1.65-2.4 h per round against 5.13 h x P=1.0",
+      "countermeasure": "proposed barrier: the obligations ledger derives every relay OWED kind (levels from the live world each pass, one-shots keyed on their PR); handoff-no-pr, aged (24 h DISPATCH, 48 h owner flag; thresholds tvofi's), an opener-attempt record, a content-covered close and a design-build kind; ~5 s per pass, 1.65-2.4 h per round against 5.13 h (quoted from R9, not verified) x P=1.0",
       "landed": null,
       "in_tree_home": "dev/audit/rca/N-orphaned-handoff.md",
       "doc": [
