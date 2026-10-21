@@ -53,7 +53,7 @@ edit() { # checkout worktree op group value
     --roster-ref main --branch handoff/roster --worktree "$2" --lint-cwd "$T/seed" --push
 }
 # the branch exists first: both racers then share its tip as their parent
-edit "$T/drvA" "$T/wtA" set-stage R9-A seeded >/dev/null 2>&1 || { echo "setup edit failed"; exit 1; }
+edit "$T/drvA" "$T/wtA" set-stage R9-A seeded >"$T/setup.log" 2>&1 || { echo "setup edit failed:"; cat "$T/setup.log"; exit 1; }
 before=$(git -C "$T/origin.git" rev-parse handoff/roster)
 edit "$T/drvA" "$T/wtA" append-carry R9-A carry-from-A >"$T/A.log" 2>&1 & PA=$!
 if [ "$MODE" != solo ]; then
