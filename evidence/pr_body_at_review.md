@@ -104,9 +104,10 @@ The runner applies each mutant as one exact-string replacement in the worktree (
 
 ## Forward-carry
 
-- prepr.sh does not run `carry_audit.py check`, which is one of pr-contract's body steps, so "prepr passes" does not mean "pr-contract's body steps pass", while fixer.md step 5 names a body passing prepr as the seat's gate. This PR's round-1 body passed prepr and was refused by pr-contract three times for exactly this reason. The decision is one of two: prepr runs the carry check beside step 7, or step 5 names `carry_audit.py check --body` beside prepr. Carry: R10-POLICY-FIXER-MD
+- prepr.sh does not run `carry_audit.py check`, which is one of pr-contract's body steps, so "prepr passes" does not mean "pr-contract's body steps pass", while fixer.md step 5 names a body passing prepr as the seat's gate. This PR's round-1 body passed prepr and was refused by pr-contract three times for exactly this reason. The decision is one of two: prepr runs the carry check beside step 7, or step 5 names `carry_audit.py check --body` beside prepr. Carry: R10-POLICY-FIXER-MD The carry is on the round roster branch: handoff/audit-r10-roster at c185c7257199e3e420b29329a787edd52ab12252 (R10-POLICY-FIXER-MD carry list, last entry).
 
 ## Friction
 
 fixer.md-step-5: cost: this cloud container's default `python3` is 3.11, which cannot parse `tests/entities.py`; the always-run checks needed a 3.13 venv built by hand with `uv` from `tests/requirements-ci.txt`. Carry: dismissed: environment-only, the container image's interpreter, no repository change can fix it
+
 

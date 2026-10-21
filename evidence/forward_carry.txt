@@ -1,9 +1,23 @@
-roster ref origin/handoff/audit-r10-roster = 2c76c3128bf6d4e0cf37488eb8d29af830df54a0
-== origin/handoff/audit-r10-roster: R10-POLICY-FIXER-MD
-{"stage":"not-started","carries":5,"mentions_carry_audit":false,"mentions_2567":false}
-== origin/main: R10-POLICY-FIXER-MD
-{"stage":"not-started","carries":5,"mentions_carry_audit":false,"mentions_2567":false}
-git log -S'carry_audit.py check' on the roster branch's roster file:
-(none)
-precedent: #2447 Forward-carry into the same group:
-2
+tip: 67eb2561ed67a074a2c35624d15baaca4edfa9cf
+c185c72 is ancestor of tip: yes
+67eb2561e roster: R10-FLOW-RECHAIN -- 8 after-edge drops with the 3 required and 4 recommended replacement edges, R10-HEAT-METER after R10-THERMAL-POWER-OPTION, and the coordinator.py clause in each affected architect note and brief (tools/audit/seat/roster_edit.py ops)
+be1b9fa17 roster_edit set-stage R10-DEPENDABOT-AIOHTTP (tools/audit/seat/roster_edit.py)
+e80c0132a roster_edit set-stage R10-ROSTER-OPS (tools/audit/seat/roster_edit.py)
+commit c185c7257199e3e420b29329a787edd52ab12252
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Wed Oct 21 17:39:29 2026 +0200
+
+    roster: carry #2567 forward-carry (carry_audit beside prepr) onto R10-POLICY-FIXER-MD
+
+ dev/programme/rosters/wave-r10-groups.json | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+== c185c7257199e3e420b29329a787edd52ab12252
+== origin/handoff/audit-r10-roster
+== c185c7257199e3e420b29329a787edd52ab12252 c185c7257199e3e420b29329a787edd52ab12252
+stage: None carries: 6
+last: Source: #2567 Forward-carry. prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's gate 'the body passes pr
+CARRY#2567: Source: #2567 Forward-carry. prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's gate 'the body passes prepr' is not pr-contract's body gate: #2567's three pr-contract reds on 947d3631/93015eca (unrouted Forward-carry and Friction items) passed prepr. Owed in fixer.md: run `carry_audit.py check --body <body>` beside prepr in step 7, or name it beside prepr in step 5, so a body that pr-contract will refuse is caught before the handoff. Carry: R10-POLICY-FIXER-MD.
+== origin/handoff/audit-r10-roster 67eb2561ed67a074a2c35624d15baaca4edfa9cf
+stage: None carries: 6
+last: Source: #2567 Forward-carry. prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's gate 'the body passes pr
+CARRY#2567: Source: #2567 Forward-carry. prepr.sh does not run `carry_audit.py check`, so fixer.md step 5's gate 'the body passes prepr' is not pr-contract's body gate: #2567's three pr-contract reds on 947d3631/93015eca (unrouted Forward-carry and Friction items) passed prepr. Owed in fixer.md: run `carry_audit.py check --body <body>` beside prepr in step 7, or name it beside prepr in step 5, so a body that pr-contract will refuse is caught before the handoff. Carry: R10-POLICY-FIXER-MD.
