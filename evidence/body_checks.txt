@@ -1,11 +1,28 @@
-## pr-contract's body command at 93015ecada7190edc054e49a47538704b14e1f34, token in env:
-  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
-PR-BODY: 0 error(s) in ../body.md
-## same command, GH_TOKEN/GITHUB_TOKEN unset (a seat whose credential is in gh's store), as row_only_checks runs it:
-  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
-PR-BODY: 0 error(s) in ../body.md
-## carry_audit (pr-contract step 'Every finding the body records names its destination'):
-UNROUTED body item e493a208 (## Forward-carry) [section]: 'none. The `--row-only` arm changes how `update_pr.sh` pushes, and that is recorded in `tools/audit/seat/INSTRU'
-UNROUTED body item 03e03217 (## Friction) [section]: '- fixer.md-step-5: cost: `tools/audit/seat/seat_venv.sh` refused in this cloud container (`No download found f'
-CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
-rc=1
+## carry_audit
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+## closure select (vs 22615537a, the body's base)
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+## closure select (vs merge base 5d433771aa88bbfd49b8868a9b53ea1241ab85a3)
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+## archscore
+Architecture score: dS +0.0000 NULL
+## policy_lint body at head
+
+/tmp/claude-0/-home-user-heatpump-optimizer/7eda4fa8-6599-5e00-87ba-e34b687dd2f1/scratchpad/tmp.PDndQNQIAG/ev/pr_body_at_review.md
+  ERROR   [pr-body] /tmp/claude-0/-home-user-heatpump-optimizer/7eda4fa8-6599-5e00-87ba-e34b687dd2f1/scratchpad/tmp.PDndQNQIAG/ev/pr_body_at_review.md: `## Head` does not name HEAD, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: HEAD is not a full commit SHA.
+
+PR-BODY: 1 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/7eda4fa8-6599-5e00-87ba-e34b687dd2f1/scratchpad/tmp.PDndQNQIAG/ev/pr_body_at_review.md
+rc=0
+## policy_lint body at head (rerun with full sha; the HEAD-literal run above is my own invocation error)
+  record   red-history           7 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/7eda4fa8-6599-5e00-87ba-e34b687dd2f1/scratchpad/tmp.PDndQNQIAG/ev/pr_body_at_review.md
+rc=0
+## figure_lint at head
+
+FIGURES: 13 resolved, 0 not verified, 0 refused
+rc=0
+## preflight
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+rc=0

@@ -1,74 +1,109 @@
-fix(seat): a row-only `update_pr.sh` push takes the body contract, not the full prepr
+fix(seat): a row-only `update_pr.sh` push takes pr-contract's body checks, not the full prepr
 
-`update_pr.sh <branch> - <body>` exists to add a pull request's own delivery row, but its push ran the full `prepr.sh` (suites, mutants, the heavy-slot lease). On 2026-10-21, on a box queued on `gate_lock.py`'s four slots, the one-line rows for #2557 and #2558 sat 30+ minutes, and `bus.sh dispatch` refuses a head without `dev/programme/delivery/<N>.md`, so reviewer dispatch waited on them.
+`update_pr.sh <branch> - <body>` exists to add a pull request's own delivery row. Before this change its push ran the full `prepr.sh`: suites, mutants and the heavy-slot lease. On 2026-10-21, on a box queued on `gate_lock.py`'s four slots, the one-line rows for #2557 and #2558 waited 30+ minutes. `bus.sh dispatch` refuses a head without `dev/programme/delivery/<N>.md`, so reviewer dispatch waited on them too.
 
-**What changed.** `tools/pr/app_push.sh` gains `--row-only` beside `--recarry`, with `recarry_verdict`'s shape: `row_only_verdict` reads HEAD once, takes the live head, number, title and body from the open-pull-request listing app_push already reads, and skips prepr only when all four hold, each failing closed and named on one `app_push: ROW-ONLY:` line:
+**What changed.** `tools/pr/app_push.sh` gains `--row-only` beside `--recarry`, built the same way as `recarry_verdict`. `row_only_verdict` reads HEAD once. It takes the live head, number, title and body from the open-pull-request listing that app_push already reads. It skips prepr only when all four of these hold. Each one fails closed, and the result is named on one `app_push: ROW-ONLY:` line:
 
-- (a) HEAD has exactly one parent, the live pull-request head;
-- (b) `git diff --name-status <live> HEAD` is exactly one added file, `delivery_row.sh`'s `$ROW_DIR/<N>.md` for the listing's `<N>`;
-- (c) that file is one open row anchored on `<N>`, read by `tests/delivery_status.py`'s `anchored` and `OPEN_STATUS` (the tree's row reader, not a copy of its grammar);
-- (d) the body file is the live body under one new `## Head` note: `head_note.py`'s own `prefix(live, note)`.
+- (a) HEAD has exactly one parent, and that parent is the live pull-request head.
+- (b) `git diff --name-status <live> HEAD` is exactly one added file: `delivery_row.sh`'s `$ROW_DIR/<N>.md` for the listing's `<N>`.
+- (c) That file is one row, anchored on `<N>` and open. It is read with `tests/delivery_status.py`'s `anchored` and `OPEN_STATUS`.
+- (d) The body file is the live body under one new `## Head` note, as `head_note.py`'s own `prefix(live, note)` builds it.
 
-On the skip, `row_only_checks` runs step 7's body contract, pr-contract's command (`policy_lint.mjs --pr-body --head --title --paths-file --existing-file`) at the judged head with the pull request's live title; a refusal there pushes nothing. Anything else runs prepr exactly as without the flag. The push is pinned to the HEAD the verdict judged, as `--recarry`'s is. `update_pr.sh` passes `--row-only` for code sha `-` only (`# mut:rowonly`) and prints app_push's `ROW-ONLY:` line; a code sha never asks.
+When the skip is taken, `row_only_checks` runs the two body checks that pr-contract runs. Both run at the judged head and with the pull request's live title:
 
-**Why the other prepr steps are not re-run on the skip.** The brief named three: the body contract, claim files byte-identical, and the row lint. The body contract runs. The row lint is (c). Claim files, `VERSION`, the manifest, code, closures and transport cannot move under (a)+(b): any second path in the diff, a claim file included, fails (b) and takes the full prepr, which is the null control below. Running a claim-file check after (b) would re-read what (b) pinned.
+1. Step 7's body contract, `policy_lint.mjs --pr-body --head --title --paths-file --existing-file`. It is handed the credential prepr's step 7c reads: `gh_credential`'s order, which is `GITHUB_TOKEN`, then `GH_TOKEN`, then `gh auth token`. So the contract's red-history walk reads the ancestry reds.
+2. The carry check, `carry_audit.py check --body`.
+
+A refusal from either one pushes nothing. In every other case prepr runs exactly as it does without the flag. The push is pinned to the HEAD the verdict judged. `update_pr.sh` passes `--row-only` only for code sha `-` (`# mut:rowonly`) and prints app_push's `ROW-ONLY:` line. A code sha never asks for it.
+
+**This round answers the four blocking items of `Fix review: blocked 93015eca...`:**
+
+1. W4 now dies. Two new arms drive a row that is anchored on #7 but `**merged**`: the stubbed `oclosed`, and `real git: a row anchored on #7 that is not open runs prepr`.
+2. W7 now dies. `romoved` is the `--row-only` twin of `rmoved`: HEAD moves after the verdict, the push is refused, and nothing is minted or pushed.
+3. The body routes every finding item. `carry_audit.py check` on this body gives 0 unrouted (`## Figures`). The row-only path now runs the same check, so a row-only push cannot carry such a body.
+4. Step 7c is no longer dropped. The contract is handed 7c's credential and reads the same check runs; see the next paragraph.
+
+**Why the other prepr steps are not re-run on the skip.**
+
+- The body contract and the carry check run.
+- The row lint is (c).
+- **7c (ancestry reds).** prepr's 7c reads every failed check run on the branch's pushed commits from `merge-base..<remote head>`. It feeds them to the body check, which exempts the main-graded reporters (`MAIN_STATE_REPORTERS`) and pr-contract. The contract's red-history walk (`redHistoryForHead`) reads the same endpoint over `merge-base..HEAD`. HEAD is the live head plus the row commit. That commit is unpushed, so the walk reads it as no runs (404). This gives the same set of commits and the same exclusions, through the same `checkPrBody`. The only gap the reviewer found was the credential, which 7c takes from `gh auth token` and the walk does not. `row_only_checks` now hands that token on.
+- **Claim files, `VERSION`, the manifest, code, closures and transport.** None of these can move under (a)+(b). A second path in the diff, a claim file included, fails (b) and takes the full prepr. That is the null control below.
 
 **Alternatives and why each lost (fixer.md step 17).**
 
-- The skip decided in `update_pr.sh` alone, through `PREPR_BODY_PATH_ONLY` (prepr exits after its step 0): this lost because it bends a flag built for one step's test into a bypass, and the tool that mints and pushes would take a caller's word that the push is row-only. Here the verdict sits in `app_push.sh`, which owns the prepr gate and reads the live head itself, as `--recarry` does.
-- A `prepr.sh --row-only` mode: this lost because it puts a second entry into a 2977-line script and still needs app_push's live-head reading to decide.
-- `--recarry` itself: its (a) requires a two-parent merge, and a row commit has one parent.
+- **Decide the skip in `update_pr.sh` alone, via `PREPR_BODY_PATH_ONLY`.** This bends a flag built for one step's test into a bypass. It would also make the tool that mints and pushes take a caller's word that the push is row-only.
+- **A `prepr.sh --row-only` mode.** This adds a second entry point to prepr and still needs app_push's live-head read to decide.
+- **`--recarry`.** Its (a) requires a two-parent merge.
+- **For item 4, calling prepr's `reds_line` directly.** app_push would have to source prepr.sh, a 2977-line script that runs its own main on load. It would also run a second walk over check runs the contract already reads. Handing on the credential reuses the one walk that pr-contract runs in CI.
 
-**Scope beyond the brief's file list.** The brief listed `update_pr.sh`, `pr_args.sh`, `delivery_row.sh` and `INSTRUMENTS.md`. app_push.sh runs prepr unconditionally, so no change confined to those files could skip it soundly (see the first alternative). `delivery_row.sh` is unchanged: the verdict sources it for `ROW_DIR`, the one owner of the row's path.
+`delivery_row.sh` is unchanged: the verdict sources it for `ROW_DIR`.
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+https://claude.ai/code/session_01HtDdgVefD3aTZG3Qi94jUw
 
 ## Head
 
-`93015ecada7190edc054e49a47538704b14e1f34` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2567.md`. The authored code head is `e6dba2408a5f101ee43917b9e64b245888ec664f`.
+`f16956542b2c4470de5a3e12fc843f97cef1840e` merges the authored code head `daa1d0dbd544588b25920e971a4261dfe1622560` and then merges origin/main `5d433771a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`947d36312a73a35d5ecfaf4b4581ca2dbc37c086` merges origin/main `dbea71db7` into the authored code head `e6dba2408a5f101ee43917b9e64b245888ec664f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
-
-`e6dba2408a5f101ee43917b9e64b245888ec664f`, cut from origin/main `3688cf259` (the base given), measured 2026-10-21T13:01Z.
+`daa1d0dbd544588b25920e971a4261dfe1622560` is the code head. It is the round-2 commit on top of `bea33c801e2a9c79c5b105a5fcc03be0080a5afe`. That commit merges origin/main `22615537a497c87cf0560ecc7dd09faac52b1de5` (tip at 2026-10-21T13:10:39Z) into the round-1 code head `e6dba2408a5f101ee43917b9e64b245888ec664f`, with no conflict. Everything below is measured at `daa1d0dbd`, on 2026-10-21.
 
 ## Mutation proof
 
-Each mutant is a copy of `tools/pr/app_push.sh` beside it with one predicate removed, then `bash <copy> --self-test` (167 checks):
+Each mutant is applied in place in the worktree as an exact-string replacement, then the owning self-test runs, then the file is restored with `git checkout`:
 
-- M1, the `row_only_verdict ... && skip=1` line deleted (the row-only arm always runs prepr): 20 failed, among them `--row-only: the live head plus one commit adding only its own open row ...: pushed (prepr-fails set)` and `the body contract ran in its place ...`.
-- M2, the verdict's result ignored (`; skip=1`), so every other arm skips: 8 failed. These are all eight `... prepr ran once, the one line names why (...)` arms: omore, oother, oedit, otwo, olive, orow, obody and onone.
-- M3, (b)'s diff check deleted: 6 failed: omore, oother, oedit, and `real git: the same commit with one more file runs prepr (null control)`, `real git: another pull request's row runs prepr`, `real git: a rewrite of a row the live head carries runs prepr`.
-- M4, (a)'s parent check deleted: 2 failed: olive, and `real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone`.
-- M7, (c)'s row-lint refusal deleted: 2 failed: orow, and `real git: a row file that anchors nobody runs prepr`.
-- M6, (d)'s body refusal deleted: 2 failed: obody, and `real git: a body that is not the live one under one new note runs prepr`.
-- M5, the `row_only_checks` call deleted: 3 failed: `the body contract ran in its place ...`, `--row-only: a body the contract refuses refuses, though prepr was skipped`, and `and nothing was minted or pushed`.
-- `update_pr.sh`'s `# mut:rowonly` line is pinned by `pr_args.sh`'s own mutant arm: `mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr`.
+- W1 widens (b) to "the diff contains the row" (`printf '%s\n' "$d" | grep -qxF ...`). Result: 2 failed: `omore`'s `... prepr ran once ...` and `real git: the same commit with one more file runs prepr (null control)`.
+- W2 changes (a)'s `-eq 1` to `-ge 1`. Result: 1 failed: `otwo`.
+- W3 replaces (d)'s exit with `sys.exit(0)`. Result: 2 failed: `obody` and `real git: a body that is not the live one under one new note runs prepr`.
+- W4 deletes ` and OPEN_STATUS in ls[0]` (blocking item 1). Result: 2 failed: `oclosed` and `real git: a row anchored on #7 that is not open runs prepr`.
+- W5 replaces the `row_only_checks` call with `true`. Result: 8 failed. Among them are `the body contract ran in its place ...`, `and the carry check pr-contract runs ...`, and both credential arms.
+- W6 changes `update_pr.sh` to `RO=--row-only` for every code sha. Result: `pr_args self-test: 57 checks, 1 failed`, and the failing check is `null control: a code sha never asks for --row-only, so its push runs the full prepr`.
+- W7 narrows the head guard to `[ "$recarry" = 0 ] || ...` (blocking item 2). Result: 1 failed: `romoved`'s `naming both shas, and nothing was minted or pushed` (got `018`: the push ran and 8 curl calls followed).
+- W8 drops the `gh auth token` fallback (blocking item 4). Result: 1 failed: `the contract was handed gh's stored token, so its red-history walk reads the ancestry reds prepr's 7c reads`.
+- W9 drops the carry check (blocking item 3). Result: 3 failed: `and the carry check pr-contract runs ...`, `--row-only: a body whose finding names no destination refuses (carry_audit.py) ...`, and its `nothing was minted or pushed`.
+
+Failing test first: W8 and W9 are the round-1 production lines, so the new arms fail against them. W4 and W7 restore round-1 code that was already correct but that no arm pinned. Each mutant fails only its new arm.
 
 ## Null control
 
-- A whitespace-only mutant copy (M0) passes: `app_push self-test: 167 checks, 0 failed`. So the copy-beside-it runner fails only on a removed predicate.
-- Skip versus prepr on the same row commit: `real git: ensure_row's own row commit on the live head skips prepr` passes. The same commit amended with one more file (`y`) gets the verdict line `the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: A dev/programme/delivery/7.md; A y)` and runs prepr. In the stubbed arm `omore`, a diff with `tools/x.py` beside the row runs prepr once and no row-only check.
-- `null control: a code sha never asks for --row-only, so its push runs the full prepr` (`pr_args.sh`).
-- Failing test first, at the base's code with the new arms: `app_push self-test: 167 checks, 28 failed` (`row_only_verdict: command not found` in the real-git block) and `pr_args self-test: 59 checks, 1 failed` (`update_pr: code sha '-' asks app_push.sh for --row-only ...`). At the head: `app_push self-test: 167 checks, 0 failed`, `delivery_row self-test: 5 checks, 0 failed`, `pr_args self-test: 59 checks, 0 failed`.
+- M0 is the same runner with no replacement. Result: `app_push self-test: 179 checks, 0 failed`. So the in-place runner fails only on a mutant.
+- `oenvcred` sets `GITHUB_TOKEN` in the environment. The token handed on is that one, and `gh auth token` is not called (`... gh's store is not read`). The credential read therefore adds a token only where 7c would find one and the environment has none.
+- Skip versus prepr on the same row commit: `real git: ensure_row's own row commit on the live head skips prepr` passes. The same commit amended with one more file runs prepr, and so does the stubbed `omore`.
+- The live walk on the reviewed head 93015eca with the round-1 body, using the same command and inputs:
+  - With no token: `skip red-history ... UNCHECKED`.
+  - With the environment's token: `record red-history 3 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status`.
+  - Both gave `PR-BODY: 0 error(s)`, because `nightly-status` is a `MAIN_STATE_REPORTERS` member. So the credential is what turns an unread history into a read one. The refusal of an unanswered red is pinned by policy_lint's own fixtures.
 
 ## Figures
 
-- `bash tools/pr/app_push.sh --self-test`: the tally line, 0 failed at the head; per mutant as in `## Mutation proof`.
-- `bash tools/audit/seat/update_pr.sh --self-test`: delivery_row's and pr_args's tally lines, 0 failed at the head.
-- `python3 tests/closure.py select --diff 3688cf25977ca71b4406be942df9592577d9b42e`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out`, over the four changed files.
-- Ran from `tests/run.sh`'s `run_always` lines with `PYTHONPATH=tests/hastub` under Python 3.13 (seat_venv.sh's 3.14 has no uv download here; a 3.13 venv from `tests/requirements-ci.txt`): `python3 tests/env_drift.py --claims-only 3688cf25977ca71b4406be942df9592577d9b42e` gave claims hygiene ok. The others: `python3 tests/closure.py selftest`, `python3 tests/layout.py`, `python3 tests/harness_headers.py`, `python3 tests/entities.py`; each printed its PASSED/ok line.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 3688cf25977ca71b4406be942df9592577d9b42e`: `Architecture score: dS +0.0000 NULL`.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`: exit 0, `PRE-PR: e6dba2408a5f101ee43917b9e64b245888ec664f` with every step ok or skip and no refusal.
-- Not measured: the wall-clock of a live row-only push. That push needs the App key, which no seat holds; the 30+ minutes is the brief's measurement.
+- `bash tools/pr/app_push.sh --self-test` gave `app_push self-test: 179 checks, 0 failed` at the head. The counts per mutant are in `## Mutation proof`.
+- `bash tools/audit/seat/update_pr.sh --self-test` gave `delivery_row self-test: 5 checks, 0 failed` and `pr_args self-test: 57 checks, 0 failed`. The drop from round 1's 59 is main's rewrite of pr_args.sh's open_pr cap arms, as the review found.
+- `python3 tests/closure.py select --diff 22615537a497c87cf0560ecc7dd09faac52b1de5` gave `MODE: SCOPED -- 0 script(s) run, 33 scoped out`, over four changed files.
+- The `run_always` lines of `tests/run.sh`, run with `PYTHONPATH=tests/hastub` under a Python 3.13 venv built from `tests/requirements-ci.txt`:
+  - `python3 tests/env_drift.py --claims-only 22615537a497c87cf0560ecc7dd09faac52b1de5` printed `claims hygiene: ... ok`.
+  - `python3 tests/closure.py selftest` printed `ALL 124 closure shrink pins PASSED`.
+  - `python3 tests/layout.py` printed `layout self-test: ok`.
+  - `python3 tests/harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`.
+  - `python3 tests/entities.py` printed `ALL 2375 ENTITY CHECKS PASSED`.
+- `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff 22615537a497c87cf0560ecc7dd09faac52b1de5` printed `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/audit/carry_audit.py check --body <this body>` printed `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`, and it printed the same with `--roster-ref origin/handoff/audit-r10-roster`. The null control is the same command on the round-1 body, which printed `CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)`, the reviewer's reading.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` exited 0 at the head, with no REFUSE line. On this unpushed seat branch its push-order and ancestry-reds steps print their skip, because no remote branch exists yet. The ancestry reds of the pull request's own commits are answered under `## Red checks`, read from the check-runs API.
+- Not measured: the wall-clock time of a live row-only push. It needs the App key, which no seat holds. The 30+ minutes is the brief's measurement.
 
 ## Red checks
 
-none
+- **pr-contract** was red on 947d3631 (two runs) and on 93015eca. Each time the failing step was `Every finding the body records names its destination` (`carry_audit.py check`). The cause was the round-1 body: its `## Forward-carry` and `## Friction` items named no destination.
+  - The cheaper detector is the seat's own pre-push gate. prepr runs pr-contract's contract (step 7) but not `carry_audit.py`, so the red got past it.
+  - The standing cost of adding it is one ~0.1 s Python call per prepr run. This PR adds it to the row-only path. Adding it to prepr, or to fixer.md step 5's gate, is carried to R10-POLICY-FIXER-MD under `## Forward-carry`.
+- **nightly-status** was red on 93015eca. It is main's red: it reports the last concluded scheduled run of `Tests` on main, and that run (39563978649, 2026-10-21, `c77f89dc6`) failed. This diff touches only seat tooling. It is not this PR's red.
 
 ## Forward-carry
 
-none. The `--row-only` arm changes how `update_pr.sh` pushes, and that is recorded in `tools/audit/seat/INSTRUMENTS.md`'s `app_push.sh` and `update_pr.sh` entries in this diff. No later stage's brief has to work differently.
+- prepr.sh does not run `carry_audit.py check`, which is pr-contract's last step. So "prepr passes" does not mean "pr-contract's body steps pass". fixer.md step 5 nevertheless names a body passing prepr as the seat's gate. This PR's round-1 body passed prepr and was refused by pr-contract three times for exactly this reason.
+  - R10-POLICY-FIXER-MD disposes fixer.md's recurring friction (#2378), and this is one more line for it. The roster's R10-PREPR-CAP, which touched prepr, is done on the tree's roster, so it is not a live destination.
+  - The decision is one of two: prepr runs the carry check as a body step beside step 7, or step 5 names `carry_audit.py check --body` beside prepr. Carry: R10-POLICY-FIXER-MD
 
 ## Friction
 
-- fixer.md-step-5: cost: `tools/audit/seat/seat_venv.sh` refused in this cloud container (`No download found for request: cpython-3.14.7-linux-x86_64-gnu`), and the system `python3` (3.11) cannot parse `tests/entities.py`, so the always-run checks needed a hand-built 3.13 venv. Carry: none (environment; reported here).
+fixer.md-step-5: cost: in this cloud container the system `python3` is 3.11, which cannot parse `tests/entities.py`. The always-run checks needed a 3.13 venv built by hand with `uv` from `tests/requirements-ci.txt`. Carry: dismissed: environment-only, the container image's interpreter, no repository change can fix it
 

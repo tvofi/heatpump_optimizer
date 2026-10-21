@@ -97,6 +97,7 @@ ok   REFUSE: --recarry does not combine with --branch-only
 ok   --row-only: the live head plus one commit adding only its own open row, the live body under one new note: pushed (prepr-fails set)
 ok   and prepr was skipped, naming the path and why in one line
 ok   the body contract ran in its place, pr-contract's command at the head, with the pull request's own title
+ok   and the carry check pr-contract runs (carry_audit.py check), on the same body
 ok   the open pull request is re-bodied with the body file unchanged: --row-only writes no note of its own
 ok   --row-only REFUSES the skip (omore): prepr runs and passes, so it pushes
 ok   ... prepr ran once, the one line names why (the head adds or changes more than), and no row-only check ran
@@ -116,6 +117,16 @@ ok   --row-only REFUSES the skip (onone): prepr runs and passes, so it pushes
 ok   ... prepr ran once, the one line names why (no open pull request whose live head reads back), and no row-only check ran
 ok   --row-only: a body the contract refuses refuses, though prepr was skipped
 ok   and nothing was minted or pushed
+ok   --row-only: a body whose finding names no destination refuses (carry_audit.py), though the contract passed
+ok   and nothing was minted or pushed
+ok   --row-only, no token in the environment, one in gh's store: pushed
+ok   the contract was handed gh's stored token, so its red-history walk reads the ancestry reds prepr's 7c reads
+ok   --row-only, GITHUB_TOKEN set: pushed
+ok   null control: an environment token is the one handed on, and gh's store is not read
+ok   --row-only REFUSES the skip (oclosed): prepr runs and passes, so it pushes
+ok   ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran
+ok   REFUSE: HEAD moved after the --row-only verdict judged it (the tip check agrees with the moved HEAD)
+ok   naming both shas, and nothing was minted or pushed
 ok   REFUSE: --recarry does not combine with --row-only
 ok   before any call
 ok   real git: ensure_row's own row commit on the live head skips prepr
@@ -124,6 +135,7 @@ ok   real git: another pull request's row runs prepr
 ok   real git: a rewrite of a row the live head carries runs prepr
 ok   real git: an up-to-date main merge (no commit) then the row skips prepr
 ok   real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone
+ok   real git: a row anchored on #7 that is not open runs prepr
 ok   real git: a row file that anchors nobody runs prepr
 ok   real git: a body that is not the live one under one new note runs prepr
 ok   a recarry of a body whose prose quotes `## Head` pushes
@@ -165,8 +177,8 @@ ok   naming the state the read answered
 ok   zero retries, zero settles: one read, no sleeping
 ok   and no success line
 ok   the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)
-app_push self-test: 167 checks, 0 failed
+app_push self-test: 179 checks, 0 failed
 
-real	0m24.667s
-user	0m13.634s
-sys	0m4.521s
+real	0m31.621s
+user	0m17.267s
+sys	0m6.760s
