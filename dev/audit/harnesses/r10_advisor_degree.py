@@ -23,6 +23,19 @@ Arms (each prints RESULT lines, then the arm's verdict):
          Counted per arm: days whose pair is not monotone (a cooler degree
          that does not save, or a warmer one that does not cost), and the
          day-to-day spread; for the head, the spread of the published mean.
+         Then production's sampling, replayed: ONE tile per scheduled solve,
+         the cursor rotating over ``price_tiles.specs`` as
+         ``_maybe_refresh_price_tile`` does, at the cadences in
+         ``CADENCES_MIN`` (``optimization_interval`` is the user's, 10-120
+         min, default 30), each answer folded by ``price_tiles.record`` and
+         published by ``price_tiles.published``; each local evening the
+         published pair goes through the card's own ``degreeRow`` (run in
+         Node, from this tree's card) and is counted shown, hidden or no row.
+         The solver is stubbed there, because the held figure is the
+         thermostat's and is computed before the solve; the arm first
+         asserts that at three starts the stub's figure is the real
+         solver's. Null control: a flat price and a constant outdoor
+         temperature, where the card must show the row every evening.
   null   Closed loops, three days each, at the comfort schedule moved -1, 0
          and +1 K: a flat price and a constant outdoor temperature, so the
          plan has no timing to exploit. Its realised cost per degree it
@@ -32,24 +45,29 @@ Arms (each prints RESULT lines, then the arm's verdict):
          the outdoor temperature's daily swing, where buying in warmer hours
          is a real saving the held figure does not claim.
 
-    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_degree.py [days] [null] [timing]
+    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_degree.py [days] [rotation] [null] [timing]
 
 The null's 15 % is the loop's own error: the stored heat each loop drew is
 bought back at the window's mean price and COP, not at what refilling it
-would cost. With no arm named, ``days`` runs. ``null`` and ``timing`` are slow (about
+would cost. With no arm named, ``days`` runs; ``rotation`` is its second half, run
+alone. ``null`` and ``timing`` are slow (about
 300 solves each).
 """
 from __future__ import annotations
 
+import contextlib
 import copy
+import json
 import math
+import subprocess
 import sys
+import types
 from datetime import datetime, timedelta
 
 import numpy as np
 
 from profiles import DT, house, prices, solve_inputs, weather
-from heatpump_optimizer import price_tiles
+from heatpump_optimizer import optimizer as _optimizer_mod, price_tiles
 from heatpump_optimizer.coordinator import _SIM_OVERRIDE_CONFIG_CASTS
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
@@ -164,6 +182,126 @@ def arm_days() -> bool:
     ok = bad(head_rows) == 0 and bad(settled) == 0
     print(f"VERDICT days {'head monotone every day' if ok else 'head NOT monotone'}; base non-monotone on "
           f"{bad(base_rows)} of 40 days")
+    return arm_rotation() and ok
+
+
+#: The cadences the rotation is replayed at, in minutes.
+CADENCES_MIN = (30, 60, 120)
+
+#: The card's own ``degreeRow`` on each (cooler, warmer) pair read from stdin.
+_CARD_JS = r"""
+import fs from "fs";
+import vm from "vm";
+import { makeCardContext, loadCard, CARD_PATH } from "./tests/card_rig.mjs";
+const { ctx } = makeCardContext();
+loadCard(ctx, fs.readFileSync(CARD_PATH, "utf8"));
+const degreeRow = vm.runInContext("degreeRow", ctx);
+const tile = (v) => ({ overrides: {}, monthly_cost_delta: v, horizon_days: 30 });
+const pairs = JSON.parse(fs.readFileSync(0, "utf8"));
+console.log(JSON.stringify(pairs.map(([d, u]) => {
+  const row = degreeRow({ down: tile(d), up: tile(u) }, "SEK");
+  return row === null ? "no-row" : row.value === null ? "hidden" : "shown";
+})));
+"""
+
+
+def _card_verdicts(pairs: list[tuple[float, float]]) -> list[str]:
+    run = subprocess.run(["node", "--input-type=module", "-e", _CARD_JS], input=json.dumps(pairs),
+                         capture_output=True, text=True, check=True)
+    return json.loads(run.stdout.strip().splitlines()[-1])
+
+
+@contextlib.contextmanager
+def _stub_solver():
+    """The solver returns its first start unrefined; nothing else changes."""
+    real = _optimizer_mod._multi_start_minimize
+
+    def stub(objective, starts, bounds, maxiter=200, **_kw):
+        x = np.asarray(starts[0], float)
+        return types.SimpleNamespace(x=x, fun=float(objective(x)), success=True, nit=0, status=0, message="stub")
+
+    _optimizer_mod._multi_start_minimize = stub
+    try:
+        yield
+    finally:
+        _optimizer_mod._multi_start_minimize = real
+
+
+def _series(days: int, flat: bool) -> tuple[np.ndarray, list[np.ndarray]]:
+    pr, wx = [], [[], [], [], []]
+    for k in range(days):
+        p, w, _ = _day(k)
+        pr.append(p)
+        for i in range(4):
+            wx[i].append(w[i])
+    prices_ = np.concatenate(pr)
+    series = [np.concatenate(a) for a in wx]
+    if flat:
+        prices_ = np.full_like(prices_, 1.20)
+        series[0] = np.full_like(series[0], float(np.mean(series[0])))
+    return prices_, series
+
+
+def _held(opt, shadow, j: int, pr: np.ndarray, wx: list[np.ndarray]) -> float | None:
+    """The tile's figure from the solve starting at step ``j``, as ``async_simulate`` publishes it."""
+    t = START + timedelta(hours=j * DT)
+    sl = slice(j, j + N)
+    room, slab = STARTS[(j // N) % len(STARTS)]
+    kw = dict(prices=pr[sl], outdoor_temps=wx[0][sl], wind_speeds=wx[1][sl], precipitation=wx[2][sl],
+              solar_radiation=wx[3][sl], start_time=t)
+    live = opt.optimize(inputs=solve_inputs(initial_state=_state(room, slab, float(wx[0][j])), **kw))
+    sim = shadow.optimize(inputs=solve_inputs(initial_state=_state(room, slab, float(wx[0][j])), **kw))
+    answer = {"monthly_held_cost_delta": round(price_tiles.per_month(
+        sim.baseline_cost - live.baseline_cost, opt.config.horizon_hours), 2)}
+    return price_tiles.monthly_figure({}, answer)
+
+
+def _rotation(cadence_min: int, days: int, flat: bool) -> list[tuple[float, float]]:
+    """Each local evening's published (cooler, warmer) pair under production's rotation."""
+    opt, model = _optimizer()
+    specs = price_tiles.specs(opt.config, 6.0)
+    shadows = {name: _shadow(opt, model, ov) for name, ov in specs if "power_cap_kw" not in ov}
+    pr, wx = _series(days + 2, flat)
+    step = cadence_min * 60 // int(DT * 3600)
+    book: dict = {}
+    pairs: list[tuple[float, float]] = []
+    for cursor, j in enumerate(range(0, days * N, step)):
+        t = START + timedelta(hours=j * DT)
+        name, overrides = specs[cursor % len(specs)]
+        if name in shadows:  # the cap tile's turn prices no degree
+            value = _held(opt, shadows[name], j, pr, wx)
+            price_tiles.record(book, name, overrides, {"monthly_held_cost_delta": value}, t)
+        if (t + timedelta(minutes=cadence_min)).date() != t.date():
+            view = price_tiles.published(book, t.date())
+            if "target_minus_1" in view and "target_plus_1" in view:
+                pairs.append((view["target_minus_1"]["monthly_cost_delta"],
+                              view["target_plus_1"]["monthly_cost_delta"]))
+    return pairs
+
+
+def arm_rotation(days: int = 40) -> bool:
+    opt, model = _optimizer()
+    shadow = _shadow(opt, model, dict(price_tiles.specs(opt.config, 6.0))["target_plus_1"])
+    pr, wx = _series(3, False)
+    starts = (0, 7 * 4, 13 * 4)
+    real = [_held(opt, shadow, j, pr, wx) for j in starts]
+    with _stub_solver():
+        stub = [_held(opt, shadow, j, pr, wx) for j in starts]
+    print(f"RESULT rotation precondition held figure real solver {real} stub {stub}")
+    if real != stub:
+        print("VERDICT rotation INVALID: the stub moves the held figure, so it cannot stand in for the solver")
+        return False
+    ok = True
+    with _stub_solver():
+        for label, cadence, flat in [*(("rotation", c, False) for c in CADENCES_MIN), ("null", 30, True)]:
+            pairs = _rotation(cadence, days, flat)
+            seen = _card_verdicts(pairs)
+            gaps = [round(d + u, 2) for d, u in pairs]
+            print(f"RESULT {label} cadence {cadence} min evenings {len(pairs)} shown {seen.count('shown')} "
+                  f"hidden {seen.count('hidden')} no_row {seen.count('no-row')} "
+                  f"gap (warmer + cooler) {min(gaps):+.2f}..{max(gaps):+.2f}", flush=True)
+            ok = ok and len(pairs) == days and seen.count("shown") == days
+    print(f"VERDICT rotation {'the card shows the row every evening at every cadence' if ok else 'the card HIDES the row on some evening'}")
     return ok
 
 
@@ -239,6 +377,8 @@ if __name__ == "__main__":
     for arm in arms:
         if arm == "days":
             results.append(arm_days())
+        elif arm == "rotation":
+            results.append(arm_rotation())
         elif arm == "null":
             results.append(arm_loop("null", flat_outdoor=True))
         elif arm == "timing":

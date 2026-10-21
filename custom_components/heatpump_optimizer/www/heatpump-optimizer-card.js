@@ -8689,25 +8689,27 @@ function priceTiles(plan) {
 }
 
 /** The price of a degree as an inbox row, checked before it is rendered
- * (#2257): a degree cooler must save and a degree warmer cost, and the warmer
- * degree must cost at least what the cooler one saves -- heat loss grows with
- * the indoor-outdoor gap, so the cost of comfort is convex. The check reads
- * the whole units the row renders, so convexity is allowed the one unit two
- * roundings can open between a linear pair. A pair that fails is shown
- * without money; a degree that saves nothing either way is no row. */
+ * (#2257): a degree cooler must save and a degree warmer must cost, in the
+ * whole units the row renders. That order is what the held figure keeps at
+ * every start, so any mean of its samples keeps it too. How far apart the two
+ * are is not checked: the thermostat's cost is linear in its target up to its
+ * own discretisation, and the tiles are sampled at different solves
+ * (price_tiles.py), so their gap is a few units either way and a convexity
+ * check hid true pairs. A pair out of order is shown without money; a degree
+ * cooler that saves nothing (no heating) is no row. */
 function degreeRow(tiles, currency) {
   const save = -Math.round(Number(tiles.down.monthly_cost_delta));
   const cost = Math.round(Number(tiles.up.monthly_cost_delta));
   const days = Math.min(Number(tiles.down.horizon_days) || 1, Number(tiles.up.horizon_days) || 1);
   const row = { kind: "degree", status: "ready", act: "try_degree",
     target: Number(tiles.down.overrides && tiles.down.overrides.target_temp) };
-  if (save > 0 && cost > 0 && cost >= save - 1) {
-    return { ...row, value: save, title: L("advisor.degree_title"),
-      detail: L("advisor.degree_detail", { up: cost, currency, days }) };
+  if (!(save >= 0 && cost >= 0)) {
+    return { ...row, value: null, title: L("advisor.optin_degree"),
+      detail: L("advisor.degree_unsettled", { days }) };
   }
-  if (save === 0 && cost >= 0) return null;
-  return { ...row, value: null, title: L("advisor.optin_degree"),
-    detail: L("advisor.degree_unsettled", { days }) };
+  if (save === 0) return null;
+  return { ...row, value: save, title: L("advisor.degree_title"),
+    detail: L("advisor.degree_detail", { up: cost, currency, days }) };
 }
 
 /** Linear cost per day at an off-grid setpoint, clamped to the swept range. */

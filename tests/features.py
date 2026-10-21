@@ -32661,9 +32661,13 @@ R.check(
 )
 
 
-async def _pt_degree_at_seam():
-    """Both degree tiles' figures from a real solve and its real what-ifs."""
+async def _pt_degree_at_seam(room):
+    """Both degree tiles' figures from a real solve and its real what-ifs,
+    with the live house at ``room`` (its slab a kelvin above)."""
     coord = _solve_coord()
+    live = getattr(coord, "_ctx", coord)._current_state
+    live.room_temperature = live.upper_floor_temperature = live.lower_floor_temperature = room
+    live.slab_temperature = room + 1.0
     await coord.async_run_optimization()
     record = _solve_record_now(coord)
     out = {}
@@ -32673,14 +32677,33 @@ async def _pt_degree_at_seam():
     return out
 
 
-_pt_seam = _asyncio.run(_pt_degree_at_seam())
-_pt_down, _pt_up = _pt_seam["target_minus_1"][0], _pt_seam["target_plus_1"][0]
+# The held figure is the thermostat's, which starts held at its own target
+# whatever the live house is doing, so a coasted and a pre-heated house price
+# a degree alike; the plan's single-solve spend starts from the house as it
+# stands, so the two starts part it. The clock is fixed at a night and an
+# afternoon instant: what the check reads is the same at every hour it runs.
+_pt_seams = {}
+for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=UTC), datetime(2026, 1, 15, 15, 7, tzinfo=UTC)):
+    _fi_dt.freeze(_pt_at)
+    try:
+        for _pt_room in (19.0, 23.0):
+            _pt_seams[(_pt_at.hour, _pt_room)] = _asyncio.run(_pt_degree_at_seam(_pt_room))
+    finally:
+        _fi_dt.freeze(None)
+_pt_held = {k: (v["target_minus_1"][0], v["target_plus_1"][0]) for k, v in _pt_seams.items()}
+_pt_plan = {k: (v["target_minus_1"][1], v["target_plus_1"][1]) for k, v in _pt_seams.items()}
 R.check(
-    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, convexly",
-    _pt_down is not None and _pt_up is not None
-    and _pt_down < 0.0 < _pt_up and _pt_up + _pt_down >= -1.0,
-    f"held: cooler {_pt_down}, warmer {_pt_up}; the plan's single-solve figures "
-    f"{_pt_seam['target_minus_1'][1]} / {_pt_seam['target_plus_1'][1]}",
+    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, at night and by day",
+    all(d is not None and u is not None and d < 0.0 < u for d, u in _pt_held.values()),
+    f"held (cooler, warmer) by (hour, room): {_pt_held}",
+)
+R.check(
+    "#2257: the held figure prices a degree from a steady start: a coasted and a pre-heated house "
+    "read it alike, while the plan's single-solve spend tells them apart",
+    all(_pt_held[(h, 19.0)] == _pt_held[(h, 23.0)]
+        and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
+        for h in (3, 15)),
+    f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
 )
 
 
@@ -42582,6 +42605,20 @@ R.check(
     "every saved key is one the method's own source names -- two stores "
     "would let a crash between them leave the ledger and its riders "
     "describing different months",
+)
+# #2257: the price tiles' days ride the same save, so a restart resumes their
+# 30-day mean instead of starting it over.
+_t3_pt = _t3_coord()
+price_tiles.record(price_tiles.book(_t3_pt), "target_plus_1", {"target_temp": 22.0},
+                   {"monthly_held_cost_delta": 30.0}, datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_t3_pt._ledger_store = _T3SavingStore()
+_t3_drive(_t3_pt, "_async_save_ledger")
+_t3_pt_saved = _t3_pt._ledger_store.saved[0].get("price_tiles") if _t3_pt._ledger_store.saved else None
+R.check(
+    "#2257: the ledger save carries the price tiles' book, day by day",
+    _t3_pt_saved == price_tiles.book(_t3_pt)
+    and _t3_pt_saved["target_plus_1"]["days"] == [{"day": "2026-01-15", "sum": 30.0, "count": 1}],
+    repr(_t3_pt_saved),
 )
 _t3_sv_full = _t3_coord()
 _t3_sv_full._ledger_store = _T3FullStore()

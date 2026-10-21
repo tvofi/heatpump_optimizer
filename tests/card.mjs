@@ -3652,15 +3652,22 @@ const restartStates = (patch = {}) => {
   check("the screenshot's pair (-140 cooler, -266 warmer) renders no money and no \"more\"",
     /Not shown yet: over the last 30 days/.test(shot.row) && /no estimate/.test(shot.row)
     && !/costs/.test(shot.row) && !/266|140/.test(shot.row), shot.row);
-  const concave = degreeOf(-90, 50);
-  check("a warmer degree cheaper than the cooler one saves is not convex, so not shown",
-    /Not shown yet/.test(concave.row) && !/≈ 90/.test(concave.row), concave.row);
+  // Monotone is the whole check (#2572 round 2): the held figure's cost is
+  // linear in the target up to the thermostat's own discretisation, and
+  // production samples the two tiles at different solves, so a pair a few
+  // units apart either way is the estimator's, not a broken one.
+  const apart = degreeOf(-77.64, 76.4);
+  check("a pair production's rotation publishes, the warmer degree a unit under the saving, is shown",
+    /≈ 78 SEK\/month/.test(apart.row) && /costs 76 SEK\/month more/.test(apart.row), apart.row);
   const rounded = degreeOf(-74.7, 74.4);
-  check("a linear pair the two roundings open by one unit is still convex",
+  check("a linear pair the two roundings open by one unit is shown",
     /≈ 75 SEK\/month/.test(rounded.row) && /costs 74 SEK\/month more/.test(rounded.row), rounded.row);
-  const sharp = degreeOf(-75.6, 74.4);
-  check("two units below the saving is concave, not rounding",
-    /Not shown yet/.test(sharp.row), sharp.row);
+  const flatUp = degreeOf(-60, 0.3);
+  check("a warmer degree that rounds to no cost is still in heating's order, so shown",
+    /≈ 60 SEK\/month/.test(flatUp.row) && /costs 0 SEK\/month more/.test(flatUp.row), flatUp.row);
+  const cheaper = degreeOf(-60, -3);
+  check("a warmer degree that saves is out of heating's order, so not shown",
+    /Not shown yet/.test(cheaper.row) && !/≈ 60/.test(cheaper.row), cheaper.row);
   const free = degreeOf(0, 0);
   check("a degree that saves nothing either way (no heating) is no row",
     !/data-act="try_degree"/.test(free.h));
