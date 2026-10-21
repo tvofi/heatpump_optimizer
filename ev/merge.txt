@@ -1,0 +1,7 @@
+## merge-tree origin/main 1ebc737e7e187a1d45c62069ae8ab69c465db928 vs head
+32e2eea9aa36f6784445519e7d04931ffb093254
+rc=0
+## VERSION/manifest untouched
+(empty = untouched)
+## roles diff since merge base
+(empty = current)

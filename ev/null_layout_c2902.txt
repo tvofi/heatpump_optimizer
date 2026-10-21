@@ -1,0 +1,3 @@
+    new-reference: dev/programme/HANDOVER.md cites retired path docs/HANDOVER.md: `CORPUS_EXCLUDED` still spells its pre-move path, `docs/HANDOVER.md`. The
+layout: GUARD: 1 refusal(s) against 0cc148b2f80f
+rc=1

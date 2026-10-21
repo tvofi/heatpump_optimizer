@@ -1,0 +1,23 @@
+== M_none (head)
+handover_prompt self-test: 15 checks, 0 failed
+== M1
+handover_prompt self-test: 15 checks, 1 failed
+FAIL in-flight group without branch or note names neither (got: # Next-session prompt (fixture)
+== M2
+handover_prompt self-test: 15 checks, 1 failed
+FAIL in-flight group with a branch and no note fetches it, names no note (got: # Next-session prompt (fixture)
+== M3
+handover_prompt self-test: 15 checks, 1 failed
+FAIL in-flight group with a branch and no note fetches it, names no note (got: # Next-session prompt (fixture)
+== M4
+handover_prompt self-test: 15 checks, 0 failed
+== M5
+handover_prompt self-test: 15 checks, 1 failed
+FAIL in-flight group without branch or note names neither (got: # Next-session prompt (fixture)
+== M6
+handover_prompt self-test: 15 checks, 0 failed
+== M0
+handover_prompt self-test: 15 checks, 3 failed
+FAIL in-flight pickup command (got: )
+FAIL in-flight group without branch or note names neither (got: # Next-session prompt (fixture)
+FAIL in-flight group with a branch and no note fetches it, names no note (got: # Next-session prompt (fixture)
