@@ -1,0 +1,11 @@
+
+ALL 11 typing-ruler source checks PASSED
+STRUCTURE RATCHET PASSED
+layout self-test: ok
+claims hygiene: 0cc148b2f80fe224ffe2c504b29fd4f0908183df ok
+SyntaxError: f-string: f-string: expecting '}'
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tests/requirements-ci.txt changes the gate itself, so every closure is suspect
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+ALL 124 closure shrink pins PASSED
