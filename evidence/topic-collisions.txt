@@ -1,0 +1,4 @@
+COLLISION R10-DEEPLINK (topic r10-deeplink, stage done) also matches R10-DEEPLINK-CENSUS's branch handoff/r10-deeplink-census (stage done)
+COLLISION R10-DEEPLINK (topic r10-deeplink, stage done) also matches R10-DEEPLINK-HANDLERS's branch handoff/r10-deeplink-handlers (stage done)
+COLLISION R10-STALE-PATHS (topic r10-stale-paths, stage done) also matches R10-STALE-PATHS-2's branch handoff/r10-stale-paths-2 (stage done)
+RESULT topic_collisions= 3
