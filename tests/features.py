@@ -59382,7 +59382,7 @@ R.check(
 # R9-EG-B9 (#1752, #1753): the boost overlay acts on a copy of the plan's
 # own base action, and the price tile and fuse advisor stop borrowing the
 # user what-if's limiter and cache. Probes ported from the #1736 shape
-# screen (handoff/round9/state/alt/evidence/screen/S1.py, S2.py at 8061ec9b):
+# screen (S1.py, S2.py at 8061ec9b, archived on the round-9 alt tag):
 # probe arms against null arms, real coordinator, real in-process solves.
 import asyncio as _r9egb9_aio  # noqa: E402
 from unittest import mock as _r9egb9_mock  # noqa: E402
