@@ -423,6 +423,8 @@ self_test() {
   chk "a handoff already merged into its PR does nothing (null control)" 0 test ! -e "$t/updated"
   # the hold file: a listed PR is skipped with one HELD line per pass; a malformed file refuses the pass
   hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$hu"; HPO_RELAY_UPDATE=$hu
+  printf '41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a held PR whose handoff is already in its head prints no HELD (nothing to hold)" 1 grep -q HELD <<< "$ho"
   rm -f "$t/updated" "$t/hupdated" "$t/state/cloud-handoff-failed"; : > "$LOG"
   git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
@@ -434,6 +436,9 @@ self_test() {
   ho=$(handoff_arm 2>&1)
   chk "a held PR whose handoff tip moved is still not updated" 0 test ! -e "$t/hupdated"
   chk "and HELD names the moved tip" 0 grep -q "HELD #41 $HS2\$" <<< "$ho"
+  echo "topic-a $HS2" > "$t/state/cloud-handoff-failed"; ho=$(handoff_arm 2>&1)
+  chk "a hold outranks a recorded failed update: still HELD" 0 grep -q "HELD #41 $HS2\$" <<< "$ho"
+  rm -f "$t/state/cloud-handoff-failed"
   printf '99\n' > "$hf"; ho=$(handoff_arm 2>&1)
   chk "an unheld PR is updated as before (null control)" 0 grep -q "^fix/topic-a-pr $HS2\$" "$t/hupdated"
   chk "and prints no HELD" 1 grep -q HELD <<< "$ho"

@@ -49,6 +49,11 @@ ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
 
+# cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
+_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
+_FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
+
 # name, file, old (exactly once in the file), new
 MUTANTS = [
     ("S01", "ci-watch.sh", '[ -n "$RS" ] && REQ=$(gh api', '[ -n "$RS" ] || REQ=$(gh api'),
@@ -117,6 +122,9 @@ MUTANTS = [
      'held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }',
      'held_prs=$(hold_list) || { return 2; }'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
+    # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
+    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
