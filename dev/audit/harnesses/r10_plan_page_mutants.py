@@ -3,7 +3,8 @@
 
 Each mutant is one exact one-occurrence replacement in
 tools/audit/seat/plan_page.py or tools/plan/replan.py (the freshness rule the
-page shares). The driver applies one, runs `plan_page.py --self-test`, restores
+page shares). The driver applies one, runs `plan_page.py --self-test` (and
+`replan.py --self-test` too, for a replan.py mutant and for M0), restores
 the file byte for byte, and refuses to start on a file with uncommitted edits.
 Metric, one line per mutant:
 
@@ -66,6 +67,13 @@ MUTANTS = [
     ("stamp-on-axis", PAGE,
      "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]])",
      "end = _t(plan[\"summary\"][\"closure\"])"),
+    # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
+    ("B-model-record-refusal", PAGE, "if \"model\" not in plan[\"generated\"]:", "if False:"),
+    ("C-check_plan-refusal", PAGE, "bad = replan.check_plan(plan)", "bad = []"),
+    ("D-caption-drawn-count", PAGE, "f\"start, ETA and wave. {drawn} of",
+     "f\"start, ETA and wave. {max(0, len(chain) - 1) - drawn} of"),
+    ("E-explicit-ref-wins", PLAN, "    ref = ref or gen.get(\"roster_ref\") or \"\"",
+     "    ref = gen.get(\"roster_ref\") or ref or \"\""),
 ]
 
 
@@ -88,21 +96,23 @@ def main(argv: list[str]) -> int:
                     print(f"abort: {name}: {old!r} occurs {text.count(old)} times in {rel}")
                     return 2
                 path.write_text(text.replace(old, new), encoding="utf-8")
-            r = subprocess.run([sys.executable, "-I", str(ROOT / PAGE), "--self-test"],
-                               capture_output=True, text=True)
+            runs = [subprocess.run([sys.executable, "-I", str(ROOT / s), "--self-test"],
+                                   capture_output=True, text=True)
+                    for s in (PAGE, PLAN) if s == PAGE or rel == PLAN or old is None]
         finally:
             path.write_bytes(orig)
-        fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL")]
+        fails = [ln for r in runs for ln in r.stdout.splitlines() if ln.startswith("FAIL")]
+        rc = max(r.returncode for r in runs)
         if name == "M0":
-            verdict = "null" if r.returncode == 0 and not fails else "SURVIVED"
-        elif fails and r.returncode:
+            verdict = "null" if rc == 0 and not fails else "SURVIVED"
+        elif fails and rc:
             verdict = "killed"
-        elif r.returncode:
+        elif rc:
             verdict = "CRASHED"
         else:
             verdict = "SURVIVED"
         survived += verdict in ("SURVIVED", "CRASHED")
-        print(f"RESULT mutant={name} rc={r.returncode} fails={len(fails)} verdict={verdict}")
+        print(f"RESULT mutant={name} rc={rc} fails={len(fails)} verdict={verdict}")
         for ln in fails:
             print("   ", re.sub(r"\(got: .*", "", ln))
     print(f"RESULT survived={survived}")

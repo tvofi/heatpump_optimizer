@@ -49,8 +49,10 @@ never reaches GitHub: the fetch is replaced by one that fails the test.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import html
+import io
 import json
 import os
 import re
@@ -614,6 +616,21 @@ def _self_test() -> int:
         check("the filter and hide-merged controls ship",
               'id="hide-done"' in page and 'data-f="blocked"' in page)
         check("no machine path in the page", not re.search(r"/(home|Users|tmp)/", page))
+        # The caption's figure is the links the chart draws, not the ones it
+        # leaves to the marks: two fixtures where those differ, one each way.
+        links = max(0, len(plan["critical_path"]) - 1)
+        check("the caption counts the links drawn (none drawn, one left)",
+              page.count('class="critline"') == 0 and links == 1
+              and f"0 of {links} critical-path links are drawn" in page,
+              re.findall(r"\d+ of \d+ critical-path links", page))
+        apart = json.loads(json.dumps(plan))
+        apart["groups"]["R9-BLOCK"]["lane"] = "Product UX"  # adjacent lane: drawn
+        page2 = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                       apart, snap)
+        check("the caption counts the links drawn (one drawn, none left)",
+              page2.count('class="critline"') == 1
+              and f"1 of {links} critical-path links are drawn" in page2,
+              re.findall(r"\d+ of \d+ critical-path links", page2))
 
         out = Path(td) / "page.html"
         argv = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
@@ -621,6 +638,31 @@ def _self_test() -> int:
         check("a fresh plan renders (null control)",
               main(argv, fetch=fetch_refused) == 0 and out.is_file())
         out.unlink()
+
+        def refused(variant: dict, why: str) -> tuple:
+            """main on a fresh variant of the plan: rc, a file, the refusal."""
+            vf = Path(td) / "variant.json"
+            vf.write_text(json.dumps(variant), encoding="utf-8")
+            err = io.StringIO()
+            try:
+                with contextlib.redirect_stderr(err):
+                    rc = main(["--plan", str(vf)] + argv[2:], fetch=fetch_refused)
+            except Exception as exc:  # a refusal that crashes is not one
+                rc = f"raised {type(exc).__name__}"
+            return rc, out.exists(), why in err.getvalue()
+        modelless = json.loads(json.dumps(plan))
+        del modelless["generated"]["model"]
+        check("a fresh plan recording no duration model is refused, nothing written",
+              refused(modelless, "generated.model") == (1, False, True),
+              refused(modelless, "generated.model"))
+        violating = json.loads(json.dumps(plan))
+        violating["summary"]["stamps"] += 1
+        check("the violating variant is fresh: only check_plan can refuse it",
+              replan.stale_reason(violating, str(repo)) is None
+              and replan.check_plan(violating))
+        check("a fresh plan that check_plan refuses is refused, nothing written",
+              refused(violating, "summary: stamp count") == (1, False, True),
+              refused(violating, "summary: stamp count"))
         moved = json.loads(json.dumps(roster))
         moved["groups"][3]["resume"]["stage"] = "done"
         commit(moved)
