@@ -1,0 +1,106 @@
+## rule 1
+.claude/workflows/audit-find.js:260:    `You are the collector of box ${box}, audit round ${round}. In ${repo}, create branch handoff/audit-r${round}-find-${box} from origin/main (never check it out in a shared checkout; use a worktree), copy into it ${RUN.map((s) => `${seatDir(s)}/`).join(', ')} from ${prep.exportDir} and from the seat worktrees ${JSON.stringify(prep.worktrees)}, and write ${ROUND_DIR}/reports-${box}.json with exactly this object (two-space indent, trailing newline): ${JSON.stringify({ box, missing: missingHere, reports: Object.fromEntries(mine.filter((id) => reports[id]).map((id) => [id, reports[id]])) })}. Commit and push the branch (git push -u origin HEAD:handoff/audit-r${round}-find-${box}). Return JSON {branch, commit}.`,
+.claude/workflows/audit-find.js:403:3. Copy ${ROUND_DIR}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set dev/audit/config/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
+tools/audit/seat/body_push.sh:52:git push -q origin "$C:refs/heads/$REF"
+tools/audit/seat/bus.sh:154:# the first `git push` rather than after one. Keyed on the poster and not on
+tools/audit/seat/bus.sh:266:  git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
+tools/audit/seat/bus.sh:610:  git -C "$W/seat" push -q origin HEAD:refs/heads/main
+tools/audit/seat/bus.sh:700:  git -C "$W/seat" push -q origin "$t:refs/heads/review/11"
+tools/audit/seat/bus.sh:703:  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/12"
+tools/audit/seat/bus.sh:718:  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/13"
+tools/audit/seat/bus.sh:751:  git -C "$W/seat" push -q origin HEAD:refs/heads/handoff/t1
+tools/audit/seat/bus.sh:791:  git -C "$W/seat" push -q origin "$v1:refs/heads/verdict/15"
+tools/audit/seat/bus.sh:794:  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+tools/audit/seat/bus.sh:819:  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+tools/audit/seat/bus.sh:827:    git -C "$W/seat" push -q origin "$t:refs/heads/verdict/7"
+tools/audit/seat/bus.sh:840:  git -C "$W/seat" push -q origin "$t:refs/heads/verdict/8"
+tools/audit/seat/bus.sh:847:  git -C "$W/seat" push -q origin "$t:refs/heads/review/10"
+tools/audit/seat/bus.sh:862:  git -C "$W/seat" push -q origin :refs/heads/handoff/t1
+tools/audit/seat/bus.sh:866:  git -C "$W/seat" push -q origin HEAD:refs/heads/handoff-body/t1
+tools/audit/seat/bus.sh:992:  git -C "$W/seat" push -q origin "$o1:refs/heads/handoff/orph1" "$o1:refs/heads/handoff-body/orph1"
+tools/audit/seat/bus.sh:1002:  git -C "$W/seat" push -q origin "$o2:refs/heads/handoff/nb1"
+tools/audit/seat/bus.sh:1010:  git -C "$W/seat" push -q origin "$u1:refs/heads/fix/orp-upd-pr" \
+tools/audit/seat/bus.sh:1019:  git -C "$W/seat" push -q origin "$x1:refs/heads/fix/orp-exact-pr" \
+tools/audit/seat/bus.sh:1024:  git -C "$W/seat" push -q -f origin "$x2:refs/heads/fix/orp-exact-pr"
+tools/audit/seat/bus.sh:1031:  git -C "$W/seat" push -q origin "$c1:refs/heads/fix/orp-rev" \
+tools/audit/seat/bus.sh:1040:  git -C "$W/seat" push -q origin "$s1:refs/heads/handoff/orp-super" "$s1:refs/heads/handoff-body/orp-super"
+tools/audit/seat/bus.sh:1042:  git -C "$W/seat" push -q origin "$m1:refs/heads/main"
+tools/audit/seat/bus.sh:1051:  git -C "$W/seat" push -q origin "$o1:refs/heads/fix/orph1" \
+tools/audit/seat/bus.sh:1061:  git -C "$W/seat" push -q origin "$f1:refs/heads/handoff/orp-force" "$f1:refs/heads/handoff-body/orp-force"
+tools/audit/seat/bus.sh:1063:  git -C "$W/seat" push -q -f origin "$f2:refs/heads/handoff/orp-force"
+tools/audit/seat/cloud_dispatch.py:106:            f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
+tools/audit/seat/merge_train.py:1299:        `git push`: its committer date is the publication time the record
+tools/audit/seat/merge_train.py:1794:            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+tools/audit/seat/merge_train.py:2969:                code, o = g(wt, "push", "-q", "origin", f"HEAD:refs/heads/{br}")
+tools/audit/seat/r10_deeplink_mutants.py:316:IH = kd('try { globalThis[["Hist", "ory"].join("")].prototype[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}')
+tools/audit/seat/r10_deeplink_mutants.py:554:        'try { __capHI[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}'),
+tools/audit/seat/r9_rc_bus_fetchhead.sh:64:git -C "$W/seat" push -q origin HEAD:refs/heads/main
+tools/audit/seat/r9_rc_bus_fetchhead.sh:76:git -C "$W/seat" push -q origin HEAD:refs/heads/main
+tools/audit/seat/r9_rc_bus_fetchhead.sh:195:  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+tools/audit/seat/r9_rc_bus_fetchhead.sh:196:  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+tools/audit/seat/r9_rc_bus_fetchhead.sh:240:  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+tools/audit/seat/r9_rc_bus_fetchhead.sh:241:  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+tools/audit/seat/r9_rc_bus_fetchhead.sh:243:  git -C "$W/seat" push -q origin "HEAD:refs/heads/handoff/A"
+tools/audit/seat/ref_privacy.py:32:it does not fix itself calls it before `git push`; the `guard` subcommand is the
+tools/audit/seat/ref_privacy.py:342:    "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+tools/audit/seat/ref_privacy.py:661:        g("push", "-q", "origin", "main")
+tools/audit/seat/ref_privacy.py:712:        g("push", "-q", "origin", "main")
+tools/audit/seat/ref_privacy.py:759:    lines = [("tools/x/new.sh", 3, 'git push -q origin "$c:refs/heads/x/$slug"'),
+tools/audit/seat/ref_privacy.py:760:             ("tools/x/guarded.sh", 9, '  git -C "$w" push -q origin "$ref"'),
+tools/audit/seat/ref_privacy.py:761:             ("tools/x/note.sh", 1, "# git push in a comment"),
+tools/audit/seat/ref_privacy.py:766:             ("tools/x/py.py", 5, '    run(["git", "push", "-q", "origin", branch])'),
+tools/audit/seat/ref_privacy.py:767:             ("tools/x/gfn.py", 7, '    code, o = g(wt, "push", "-q", "origin", f"HEAD:refs/heads/{br}")'),
+tools/audit/seat/ref_privacy.py:781:             ("tools/policy/vendor/v.js", 1, "git push"),
+tools/audit/seat/ref_privacy.py:782:             (SELF, 1, "git push")]
+tools/audit/seat/ref_privacy.py:802:    texts = {"tools/x/guarded.sh": 'RP=ref_privacy.py; "$RP" guard --ref "$ref" && git push',
+tools/audit/seat/ref_privacy.py:811:    texts["tools/x/guarded.sh"] = "# ref_privacy.py is named in a comment only\ngit push"
+tools/audit/seat/roster_edit.py:483:                      f"git -C {a.worktree} push origin {refspec}")
+tools/audit/seat/roster_edit.py:485:            r = subprocess.run(["git", "-C", str(a.worktree), "push", "-q",
+tools/audit/seat/roster_edit.py:1046:    run(["git", "-C", str(seed3), "push", "-q", str(origin3),
+tools/audit/seat/state_docs.py:465:            run(["git", "push", "-q", "origin",
+tools/audit/seat/state_docs.py:669:            git("-C", str(seed), "push", "-q", str(bare),
+tools/audit/seat/state_docs.py:678:            git("-C", str(seed), "push", "-q", str(bare),
+tools/audit/seat/wt_sync.sh:24:  git -C "$w" push -q --no-verify -f origin "$c:refs/heads/wip-sync/$slug" && echo "synced $slug ${c:0:8}"
+tools/audit/seat/wt_sync.sh:43:git -C $R push -q --no-verify -f origin "$c:refs/heads/wip-sync/orchestrator-scratch" && echo "synced orch scratch ${c:0:8}"
+tools/policy/fragments_sync.mjs:186:  ok(keylessStampPushes([['a.js', 'git push --push-option=ci.skip; git push --push']]).length === 0,
+tools/pr/app_push.sh:808:  && (cd "$R/wt" && printf 'x\n' > x && rgit add x && rgit commit -qm base && rgit push -q origin HEAD:main \
+tools/pr/app_push.sh:809:      && rgit checkout -q -b fix && printf 'f\n' > f && printf 'fx\n' > x && rgit add f x && rgit commit -qm fix && rgit push -q origin fix \
+tools/pr/app_push.sh:812:      && rgit checkout -q main && rgit merge -q --no-ff --no-edit other && rgit push -q origin main \
+tools/pr/app_push.sh:813:      && rgit checkout -q -b conf origin/main~1 && printf 'cm\n' > o && rgit add o && rgit commit -qm conf && rgit push -q origin conf \
+tools/pr/app_push.sh:823:  "$(git -C "$R/wt" rev-parse main)" | git -C "$R/wt" fast-import --quiet && rgit -C "$R/wt" push -q origin main
+tools/pr/cancel_superseded.py:159:          ids(runs=runs + [_r(NEW - 9, OLD_SHA, "push", branch="main")]), sorted([OLD, OLD_DISPATCH]))
+tools/pr/cancel_superseded.py:163:          ids(runs=[_r(OLD, OLD_SHA, "merge_group"), _r(OLD_DISPATCH, OLD_SHA, "push")]), [])
+tools/pr/codeql_scope.py:161:        for ev in ("push", "schedule", "merge_group", "workflow_dispatch", ""):
+tools/pr/contract_rerun.py:160:          stale_contract(T0, [pc(3, event="push")])[:2], ("none", None))
+tools/pr/merge_main_bot.py:263:        r = git(repo, *cfg, "push", "-q", "origin", f"{sha}:refs/heads/{branch}", check=False)
+tools/pr/push.sh:274:    || { say REFUSE "push" "the branch or a commit it publishes would publish this host (#2310)"; exit 5; }
+tools/pr/push.sh:275:  git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
+tools/pr/push.sh:276:  say ok "push" "origin/$BR at $(git rev-parse --short HEAD)"
+tools/release/stamp.py:252:        return runner("git", "push", "origin", refspec)
+tools/release/stamp.py:255:    return runner("git", "push", KEY_PUSH_URL, refspec, env=env)
+tools/release/stamp.py:981:          calls == [(("git", "push", "origin", "HEAD:main"), {})])
+tools/release/stamp.py:986:          _argv == ("git", "push", "git@github.com:tvofi/heatpump_optimizer.git", "HEAD:main"))
+tools/release/stamp.py:1062:    # call site still builds its own `git push origin` -- so the region is read.
+tools/release/stamp.py:1067:          _pr.count("push_via(") == 2 and '"git", "push"' not in _pr)
+tools/release/stamp.py:1351:            events.append(("push", refspec, key, hosts))
+tools/release/stamp.py:1377:          not any(e[0] == "push" for e in _ev))
+tools/release/stamp.py:1384:          _res == 0 and [e for e in _ev if e[0] == "push"] ==
+tools/release/stamp.py:1385:          [("push", "HEAD:main", "/k/stamp.key", "/k/hosts"), ("push", "v6.6.2", "/k/stamp.key", "/k/hosts")])
+tools/release/stamp.py:1389:              i for i, e in enumerate(_ev) if e[0] == "push"))
+tools/release/stamp.py:1518:                         "--event", "push", "--json", "status,conclusion,databaseId",
+tools/release/stamp.py:1916:                  + (why[-1] if why else "git push failed"), file=sys.stderr)
+## rule 2 (-B)
+tools/audit/seat/INSTRUMENTS.md:109:  checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
+tools/audit/seat/a1_dispatch_arms.sh:112:    git checkout -q -B "batch/test-$label" main
+tools/audit/seat/merge_train.py:603:                and self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
+tools/audit/seat/merge_train.py:1102:                if not self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
+tools/audit/seat/merge_train.py:1507:            self.git("-C", str(wt), "checkout", "-q", "-B", branch, sha)
+tools/audit/seat/merge_train.py:1508:        elif not self.ok("git", "worktree", "add", "-q", "-B", branch, str(wt), sha):
+tools/audit/seat/ref_privacy.py:742:        # It runs the checkout's ci_predict.py first (R10-HANDOFF-PREPR-BOUNCE M2);
+tools/audit/seat/roster_edit.py:30:one a concurrent run can reset under this one (`checkout -B` at git 2.38
+tools/audit/seat/roster_edit.py:888:    # 0 while no ref on origin ever held that commit: the rival's checkout -B
+tools/policy/budget_raise_gate.py:1311:            git("checkout", "-q", "-B", name, fork)
+## rule 3
+tools/audit/seat/remerge_main.sh:25:push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 || true)
+tools/audit/seat/remerge_main.sh:26:printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED' || true
+tools/pr/merge_main_bot.py:263:        r = git(repo, *cfg, "push", "-q", "origin", f"{sha}:refs/heads/{branch}", check=False)
