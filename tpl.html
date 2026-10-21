@@ -1,0 +1,199 @@
+<meta charset="utf-8">
+<title>Round 10 Fix Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a control-room board — summary strip, swimlane chart, then the full group ledger. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --fg:#17232b; --muted:#5d6b74; --line:#d8dee2;
+  --accent:#d9561f; --done:#2f8f5b; --live:#1f6fb0; --ready:#a07a00; --blocked:#8a96a0; --partial:#75508f;
+  --done-bg:#e3f2ea; --live-bg:#e2eef8; --ready-bg:#f6efd6; --blocked-bg:#eceff1; --partial-bg:#efe8f6;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Source Sans 3","Segoe UI",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
+  --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
+  --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
+  --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
+  --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font:700 2.1rem/1 var(--display);letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
+.sub{color:var(--muted);margin:6px 0 0}
+.strip{display:flex;flex-wrap:wrap;gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
+.stat b{display:block;font:600 1.6rem/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.stat span{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat.end b{color:var(--accent);font-size:1.15rem;padding-top:6px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.scroll{overflow-x:auto}
+svg{display:block;font-family:var(--mono)}
+.grid{stroke:var(--line);stroke-width:1}
+.tick{fill:var(--muted);font-size:10px}
+.lane{fill:transparent;stroke:var(--line)}
+.lanelab{fill:var(--muted);font:600 13px var(--display);letter-spacing:.05em;text-transform:uppercase}
+.bar{stroke-width:1}
+.bar.live{fill:var(--live-bg);stroke:var(--live)}
+.bar.ready{fill:var(--ready-bg);stroke:var(--ready)}
+.bar.blocked{fill:var(--blocked-bg);stroke:var(--blocked)}
+.bar.partial{fill:var(--partial-bg);stroke:var(--partial);stroke-dasharray:3 2}
+.bar.crit{stroke:var(--accent);stroke-width:2.2}
+.barlab{fill:var(--fg);font-size:10.5px;paint-order:stroke;stroke:var(--panel);stroke-width:3;stroke-linejoin:round}
+.critline{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 3;opacity:.85}
+.critmark{fill:var(--accent);font-size:10px;paint-order:stroke;stroke:var(--panel);stroke-width:2.5;stroke-linejoin:round}
+.cpw{color:var(--muted);font:600 .8em var(--mono)}
+.occ{fill:none;stroke:var(--accent);stroke-width:1.6;opacity:.9}
+.slotcap{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.waveline{stroke:var(--line);stroke-width:1;stroke-dasharray:6 4}
+.wavelab{fill:var(--muted);font-size:9px}
+.stampline{stroke:var(--done);stroke-width:1.2;stroke-dasharray:1 3}
+.stamplab{fill:var(--done);font-size:10px;font-weight:600}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-left:6px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;border:1px solid}
+.cpnote{font-size:.9rem;margin-top:8px}
+.cpnote b{color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{font:600 .8rem var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--line);padding:6px 8px;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top}
+td.g{font:600 .85rem var(--mono);white-space:nowrap}
+td.d{min-width:260px;max-width:440px;color:var(--fg)}
+.lanec{font:400 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
+.blk{color:var(--muted);font-size:.82rem;max-width:200px}
+.cp{color:var(--accent);margin-right:4px}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;white-space:nowrap;border:1px solid}
+.pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
+.pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
+.pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
+.pill.blocked{background:var(--blocked-bg);color:var(--blocked);border-color:var(--blocked)}
+.pill.partial{background:var(--partial-bg);color:var(--partial);border-color:var(--partial);border-style:dashed}
+.chip{display:inline-block;font:.76rem var(--mono);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin:0 3px 3px 0}
+.chip.closer{border-color:var(--fg);font-weight:600}
+.chip.closed{text-decoration:line-through;color:var(--muted)}
+.tw{display:inline-block;margin:0 4px 4px 0;padding:0 6px;border-radius:4px;font:.78rem var(--mono);border:1px solid var(--line);color:var(--muted)}
+.tw.live{color:var(--live);border-color:var(--live)}
+.tw.ready{color:var(--ready);border-color:var(--ready)}
+.tw.partial{color:var(--partial);border-color:var(--partial);border-style:dashed}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.filters button{font:600 .8rem var(--body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--fg);color:var(--panel);border-color:var(--fg)}
+.filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{color:var(--muted);font-size:.85rem;max-width:72ch}
+.tip{position:fixed;z-index:20;max-width:300px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:12px/1.4 var(--body);box-shadow:0 8px 22px rgba(0,0,0,.18);pointer-events:none}
+.tip b{font-family:var(--mono);font-size:12.5px}
+.tip span{color:var(--muted)}
+</style>
+<main>
+<header>
+  <h1>Round 10 Fix Plan</h1>
+  <p class="sub">heatpump_optimizer audit programme · snapshot {{now}} UTC · schedule read from <code>plan.json</code> · tracking issue #201</p>
+</header>
+
+<div class="strip">
+  <div class="stat"><b>{{n_done}}</b><span>groups merged</span></div>
+  <div class="stat"><b>{{n_live}}</b><span>fixers working</span></div>
+  <div class="stat"><b>{{n_ready}}</b><span>ready, not started</span></div>
+  <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
+  <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
+  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #201)</span></div>
+  <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
+</div>
+
+<section>
+  <h2>Swimlanes</h2>
+  <div class="scroll">{{svg}}</div>
+  <div class="legend">
+    <span><i style="background:var(--live-bg);border-color:var(--live)"></i>fixer working</span>
+    <span><i style="background:var(--ready-bg);border-color:var(--ready)"></i>ready</span>
+    <span><i style="background:var(--blocked-bg);border-color:var(--blocked)"></i>waiting</span>
+    <span><i style="background:var(--partial-bg);border-color:var(--partial);border-style:dashed"></i>part merged</span>
+    <span><i style="background:transparent;border-color:var(--accent);border-width:2px"></i>critical path (◆ marks each link)</span>
+    <span><i style="background:transparent;border-color:var(--done);border-style:dashed"></i>planned stamp</span>
+    <span><i style="background:transparent;border:0;border-top:2px solid var(--accent)"></i>groups in flight above the {{slots}}-slot cap line</span>
+  </div>
+  <p class="cpnote"><b>Critical path:</b> {{crit}}</p>
+  <p class="note">{{slots_note}}</p>
+</section>
+
+<section>
+  <h2>Groups</h2>
+  <div class="filters" role="group" aria-label="Filter by status">
+    <button type="button" id="f-all" data-f="all" aria-pressed="true">All</button>
+    <button type="button" id="f-live" data-f="live" aria-pressed="false">Working</button>
+    <button type="button" id="f-ready" data-f="ready" aria-pressed="false">Ready</button>
+    <button type="button" id="f-blocked" data-f="blocked" aria-pressed="false">Waiting</button>
+    <button type="button" id="f-partial" data-f="partial" aria-pressed="false">Part merged</button>
+    <button type="button" id="f-done" data-f="done" aria-pressed="false">Merged</button>
+    <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <tbody id="rows">{{trs}}</tbody>
+  </table>
+  </div>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = already closed. ◆ marks the critical path. Blocked-by lists only unmerged groups on the replanned graph. <b>Part merged</b> means a merged pull request delivered part of the group and its own brief names the residual, so the group stays open and is not counted as merged.</p>
+</section>
+
+<section>
+  <h2>Planned stamps</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Version</th><th>Projected (UTC)</th><th>Carries</th><th>Kind</th></tr></thead>
+    <tbody>{{stamps}}</tbody>
+  </table></div>
+  <p class="note">Cadence: one patch stamp per ~5 production groups merged, once main's Tests are green and the release notes name every merged PR. The minor stamp closes the programme.</p>
+</section>
+
+<section>
+  <h2>How the ETAs are computed</h2>
+  <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, from <code>tools/plan/durations.json</code>: {{dur_sizes}}, the median lead time of done round-10 groups of that size (S is above M because small groups waited in review; XL has no merged sample and is 1.5 × L). A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate. Those are measured lead times, not effort: review rounds and queueing are inside them, so the slot schedule is an upper bound on closure. The batching window is 0 minutes — merge as soon as a batch is ready — because closure is the first objective; the measured trade is in <code>durations.json</code>.</p>
+</section>
+</main>
+<div id="tip" class="tip" hidden></div>
+<script>
+(function(){
+  var tip=document.getElementById('tip');
+  function move(e){
+    var x=Math.min(e.clientX+14, window.innerWidth-310), y=Math.max(8,e.clientY-12);
+    tip.style.left=x+'px'; tip.style.top=y+'px';
+  }
+  document.querySelectorAll('svg g.grp').forEach(function(g){
+    g.addEventListener('mouseenter',function(e){
+      var d=g.dataset;
+      tip.innerHTML='<b>'+d.name+'</b><br><span>'+d.state+'</span><br>starts '+d.start+
+                    '<br>ETA '+d.eta+'<br>wave '+d.wave;
+      tip.hidden=false; move(e);
+    });
+    g.addEventListener('mousemove',move);
+    g.addEventListener('mouseleave',function(){tip.hidden=true});
+  });
+})();
+</script>
+<script>
+(function(){
+  var bs=document.querySelectorAll('.filters button'), rows=document.querySelectorAll('#rows tr'),
+      hide=document.getElementById('hide-done'), f='all';
+  var bars=document.querySelectorAll('svg g.grp');
+  function apply(){
+    rows.forEach(function(r){
+      var isDone=r.getAttribute('data-st')==='done';
+      var okF=(f==='all'||r.getAttribute('data-st')===f);
+      r.hidden=!(okF && !(hide.checked && isDone));
+    });
+    bars.forEach(function(b){
+      var st=b.getAttribute('data-st');
+      var okF=(f==='all'||st===f);
+      b.style.display=(okF && !(hide.checked && st==='done'))?'':'none';
+    });
+  }
+  bs.forEach(function(b){b.addEventListener('click',function(){
+    bs.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+    f=b.getAttribute('data-f'); apply();
+  })});
+  hide.addEventListener('change',apply);
+})();
+</script>
