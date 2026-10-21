@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "plan",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8791",
+        "--directory",
+        "/Users/timmalmstrom/hpo-orch/r10s3/plan"
+      ],
+      "port": 8791,
+      "url": "http://localhost:8791"
+    }
+  ]
+}
