@@ -1,0 +1,12 @@
+.github/workflows/arch-score.yml
+.github/workflows/budget-raise-gate.yml
+.github/workflows/codeql.yml
+.github/workflows/governance.yml
+.github/workflows/hassfest.yml
+.github/workflows/kernel-points.yml
+.github/workflows/merge-main.yml
+.github/workflows/pages.yml
+.github/workflows/pr-contract-rerun.yml
+.github/workflows/pr-contract.yml
+.github/workflows/tests.yml
+.github/workflows/validate.yml
