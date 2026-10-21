@@ -5346,7 +5346,9 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "tools/audit/seat/handover_prompt.py emits `git fetch origin None` for a group whose resume.branch is null (#201 comment 6310616463); emit no fetch line, or the group's branch-to-be, instead."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
