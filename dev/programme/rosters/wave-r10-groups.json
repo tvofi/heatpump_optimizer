@@ -1635,7 +1635,9 @@
     2238,
     2242
    ],
-   "fixes": [],
+   "fixes": [
+    2242
+   ],
    "findings": [
     "D8-s1-01",
     "D7-s2-51 (arch2-01)",
@@ -4146,7 +4148,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-tick-selftest-ci",
-    "commit": "c3530277373ddf87652858f9ecb0ee1cf36f4347",
+    "commit": "c35302773738",
     "last_step": null,
     "next_step": "fixer",
     "note": null
@@ -4353,8 +4355,7 @@
     "From the orchestrator 2026-10-19: orchestrator_tick.py's owner-gated age check (around line 1643) counts every open group with a non-empty owner_gate as 'blocked on owner disposition', including owner_gate 'mandated approval under 6175172275', which needs no owner action. The count rises with every mandated group added (13->16 on 2026-10-19) and buries the real owner asks. Fix: count only gates that need tvofi in person (no mandate citation, or an explicit owner-disposition value), and pin it with a mandated-gate null. Also fold: the 'prepr slots N running' line overcounts self-test subshells; and roster_edit append-group pushed nothing once while reporting no error (the commit stayed local; the branch had to be fast-forwarded by hand).",
     "From #2471 round 1 (blocked body-figures-stale): `open_pr.sh` opened the roster PR with the previous roster PR's (#2467) body, regenerating only the Head paragraph, so every group, stage and carry figure described another diff. A re-opened PR on a reused branch needs its body taken from the new diff, or the opener should refuse a body whose diff enumeration does not match.",
     "From #2469 (R10-UPDATE-PR-LOCK) round 3, a non-blocking reviewer note: the round-4 `update_pr.sh` depends on `ps`, for its process-group leader check and for the lock holder's group drain. On a host with no `ps`, a run re-execs forever and the holder never frees the lock. Guard both with a `--self-test` arm that runs with `ps` off PATH and requires a refusal rather than a hang.",
-    "Design contribution from the approved orchestration-machinery design (design ref handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577; round-3 review DESIGN REVIEW: APPROVE at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639): the roster-sync step this brief requires gains three predicates, and this group is their one owner. (1) Gate coverage is class times mandate scope, read from tools/policy/budget_raise_gate.py's own constants, so a group whose owner gate the in-force mandate covers is ready and not blocked on the owner. (2) An absorbed disposition is accepted only when every after-edge of the absorbed group is present on the absorbing group or its transitive closure; otherwise the stage stays open and the check names the missing edge. (3) A commit field shorter than 40 hex is resolved with git rev-parse --disambiguate plus an ancestry test against origin/main; only an ambiguous or unresolvable prefix is invalid. Controls: the run that prints this roster's gate set at the mandate's scope returns every covered group ready and none blocked on the owner; a deliberately absorbed group missing one edge is refused; a 12-hex prefix that resolves uniquely is accepted and one that does not resolve is refused.",
-    "\u00a73's (d) observation is that a brief grew 41 h after its handoff. The countermeasure is to pin the brief at handoff and compare it on a later pass, which is the \u00a76.4 roster-sync step. It is not yet in `R10-ROSTER-OPS`'s brief in `dev/programme/rosters/wave-r10-groups.json` at `a691012e5`, and the roster is the orchestrator's to write. Carry: R10-ROSTER-OPS (from #2545)"
+    "Design contribution from the approved orchestration-machinery design (design ref handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577; round-3 review DESIGN REVIEW: APPROVE at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639): the roster-sync step this brief requires gains three predicates, and this group is their one owner. (1) Gate coverage is class times mandate scope, read from tools/policy/budget_raise_gate.py's own constants, so a group whose owner gate the in-force mandate covers is ready and not blocked on the owner. (2) An absorbed disposition is accepted only when every after-edge of the absorbed group is present on the absorbing group or its transitive closure; otherwise the stage stays open and the check names the missing edge. (3) A commit field shorter than 40 hex is resolved with git rev-parse --disambiguate plus an ancestry test against origin/main; only an ambiguous or unresolvable prefix is invalid. Controls: the run that prints this roster's gate set at the mandate's scope returns every covered group ready and none blocked on the owner; a deliberately absorbed group missing one edge is refused; a 12-hex prefix that resolves uniquely is accepted and one that does not resolve is refused."
    ],
    "architect_note": null,
    "group": "R10-ROSTER-OPS",
@@ -5220,9 +5221,7 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [
-    "\u00a71's first cause, the board replaying level lines as history, is the live defect `R10-TICK-OWED-LEVEL`'s brief in `dev/programme/rosters/wave-r10-groups.json` states. Its grammar must agree with the ledger's when that lands. Carry: R10-TICK-OWED-LEVEL (from #2545)"
-   ],
+   "carry": [],
    "architect_note": "",
    "brief": "Found 2026-10-21 by the orchestrator: the tick board replays cloud_relay.sh's whole OWED history. The relay re-appends a timestamped level line (handoff-no-pr, probe-ref) for every undisposed ref on every pass, by design, and orchestrator_tick.py prints every OWED line with no later POSTED, so the log reached 35214 lines (about 281 distinct kind/ref pairs) and the board 4.5 MB with a dispatch list of 35317, which hid owed work. Fix: one owner of the log grammar treats level kinds as a level (newest pass, minus disposed ref+sha) and one-shot kinds as events; the board prints each currently-owed item once. Control: a single-pass log prints the same count before and after; a multi-pass log prints the distinct current set after. INSTRUMENTS.md entries for both instruments stay true in the same diff.",
    "resume": {
@@ -5349,9 +5348,7 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [
-    "tools/audit/seat/handover_prompt.py emits `git fetch origin None` for a group whose resume.branch is null (#201 comment 6310616463); emit no fetch line, or the group's branch-to-be, instead."
-   ],
+   "carry": [],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
