@@ -1,0 +1,40 @@
+== services.py stated count
+1:"""The domain's thirteen services: schemas, handlers and registration.
+ custom_components/heatpump_optimizer/services.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL no comment or docstring states a whole-registry count that differs from it  [['services.py:1 states 14, registered 13']]
+1 of 183 checks FAILED
+== plant '(advanced)' suffix on a menu label in docs/setup.md, backtick and plain forms
+    C -- "Enter thermal values<br/>directly" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+ALL 183 checks PASSED
+== plant 'Add integration → Heat Pump Optimizer' in README
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [README.md: 'Add integration -> Heat Pump Optimizer' but the picker 
+1 of 183 checks FAILED
+== plant height 700 on a different sized img in docs/index.html
+306:<img src="img/card/advisor-light.png" data-repo="docs/img/card/advisor-light.png" width="1056" height="616" loading="lazy" alt="The card's Advisor tab: a Worth doing section of ranked rows, each with one button, a More advice section of advisors that are off by default, then the ranking of sensors that would tighten the model">
+ docs/index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every declared width and height equals the PNG header  [docs/index.html: img/card/advisor-light.png declares 1056x701, file is 1056x616]
+1 of 183 checks FAILED
+== plant 'v7.0.2' literal in the banner sample
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL the sample shows the placeholder, not a literal version  [["banner sample shows 'v7.0.2', a literal the next stamp falsifies"]]
+  FAIL a literal version planted in the sample is refused (null control)
+2 of 183 checks FAILED
+== plant '(advanced)' suffix on the bold label in docs/configuration.md
+-**Enter thermal values directly** is for someone holding a real energy
++**Enter thermal values directly (advanced)** is for someone holding a real energy
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [docs/configuration.md:164: 'Enter thermal values directly (advanced
+1 of 183 checks FAILED
+== plant a backticked variant (outside the arm's stated rule: bold or double-quoted)
+-**Enter thermal values directly** is for someone holding a real energy
++`Enter thermal values directly (expert)` is for someone holding a real energy
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+ALL 183 checks PASSED
+RESULT mismatches=0 count
+note: the first '(advanced)' plant targeted docs/setup.md:70, a mermaid line reading 'Enter thermal values<br/>directly'; the sed matched nothing (no diff stat printed), so it was a no-op and is superseded by the configuration.md:164 plant.
