@@ -96,7 +96,7 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
         degree(-1.0), degree(1.0), {"power_cap_kw": round(0.75 * max_kw, 2)})))
 
 
-def sample(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
+def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
     """The monthly figure a tile averages: a degree held, or the plan under a cap."""
     key = "monthly_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
     value = answer.get(key)
@@ -124,7 +124,7 @@ def record(
 ) -> None:
     """Fold one what-if answer into tile ``name``; an answer without the
     figure the tile reads changes nothing."""
-    value = sample(overrides, answer)
+    value = monthly_figure(overrides, answer)
     if value is None:
         return
     tiles[name] = {

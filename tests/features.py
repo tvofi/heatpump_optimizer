@@ -32590,11 +32590,11 @@ R.check(
 )
 R.check(
     "#2257: a degree tile reads the held figure, the cap tile the plan's",
-    price_tiles.sample(_pt_specs["target_plus_1"],
+    price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
-    and price_tiles.sample(_pt_specs["power_cap_75"],
+    and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
                            {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
-    and price_tiles.sample(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
+    and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
 _pt_days = []
@@ -32669,7 +32669,7 @@ async def _pt_degree_at_seam():
     out = {}
     for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
         answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
-        out[name] = (price_tiles.sample(overrides, answer), answer.get("monthly_cost_delta"))
+        out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
 
 

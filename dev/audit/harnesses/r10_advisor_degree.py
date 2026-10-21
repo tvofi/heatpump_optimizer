@@ -16,7 +16,7 @@ Arms (each prints RESULT lines, then the arm's verdict):
                  kelvin, the plan's single-solve spend difference scaled to
                  a month (``async_simulate``'s ``monthly_cost_delta``);
            head  ``price_tiles.specs`` (the whole comfort schedule moved),
-                 ``price_tiles.sample`` reading the held figure the head's
+                 ``price_tiles.monthly_figure`` reading the held figure the head's
                  ``async_simulate`` publishes (the thermostat baselines'
                  difference, ``price_tiles.per_month``), and the published
                  figure ``price_tiles.published`` averages over the horizon.
@@ -139,7 +139,7 @@ def arm_days() -> bool:
                 "monthly_cost_delta": price_tiles.per_month(sim.predicted_cost - live.predicted_cost, hours),
                 "monthly_held_cost_delta": price_tiles.per_month(sim.baseline_cost - live.baseline_cost, hours),
             }
-            head_pair.append(price_tiles.sample(overrides, answer))
+            head_pair.append(price_tiles.monthly_figure(overrides, answer))
             price_tiles.record(book, name, overrides, answer, kw["start_time"])
         view = price_tiles.published(book, kw["start_time"].date())
         published.append((view["target_minus_1"]["monthly_cost_delta"],
