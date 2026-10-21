@@ -1,0 +1,21 @@
+mutant MB2 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index dbd80104c..998642e27 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -98,7 +98,7 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
+ 
+ def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
+     """The monthly figure a tile averages: a degree held, or the plan under a cap."""
+-    key = "monthly_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
++    key = "monthly_cost_delta"
+     value = answer.get(key)
+     return float(value) if isinstance(value, (int, float)) else None
+ 
+features rc=1
+  FAIL one solve refreshes exactly one tile, in rotation
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #2257: a degree tile reads the held figure, the cap tile the plan's
+  FAIL an errored answer advances the cursor but publishes nothing; a good one publishes  [errored -> cursor 1, tiles []; good -> cursor 1, tiles []]
+  ok   a pump command that FAILED is not remembered as done
+3 of 4276 FEATURE CHECKS FAILED

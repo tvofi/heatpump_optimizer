@@ -1,0 +1,17 @@
+mutant MC2 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..d9cbafe07 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8701,7 +8701,7 @@ function degreeRow(tiles, currency) {
+   const days = Math.min(Number(tiles.down.horizon_days) || 1, Number(tiles.up.horizon_days) || 1);
+   const row = { kind: "degree", status: "ready", act: "try_degree",
+     target: Number(tiles.down.overrides && tiles.down.overrides.target_temp) };
+-  if (save > 0 && cost > 0 && cost >= save - 1) {
++  if (save > 0 && cost > 0 && cost >= save) {
+     return { ...row, value: save, title: L("advisor.degree_title"),
+       detail: L("advisor.degree_detail", { up: cost, currency, days }) };
+   }
+card rc=1
+  FAIL  a linear pair the two roundings open by one unit is still convex
+1 CARD CHECK(S) FAILED

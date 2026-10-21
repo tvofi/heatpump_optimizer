@@ -1,0 +1,18 @@
+mutant MC6 at 21eeb5b2325bf6a99f2a282f2e38bafbee44ab70
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9f290a77e..90fc674a7 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8865,7 +8865,7 @@ function advisorInboxHtml(host) {
+   const rows = advisorRows(host);
+   const feedback = feedbackGaps(host.plan);
+   const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
+-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
++      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}</span>
+       <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+     </div>`).join("");
+   return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+card rc=1
+  FAIL  each enable-to-see row names the options step that turns it on
+  FAIL  the price-of-a-degree opt-in names Savings vs comfort
+2 CARD CHECK(S) FAILED
