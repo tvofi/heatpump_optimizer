@@ -1,0 +1,6 @@
+check-runs at ea5f660303823ce04ed55af4022b4f7064ee403e, read once at the end (2026-10-21 ~16:45Z, MCP get_check_runs, 46 runs):
+in_progress: closures (job 119343181666, started 16:30:59Z)
+failure: nightly-status (job 119332631870): "NIGHTLY FAILED: mutation-nightly, slow failed last night. scheduled run 39563978649, head c77f89d" -- grades main's nightly, diff does not reach tests/nightly_status.py or those lanes
+success: fast (3.14) [16:44:22Z], coverage, typing, browser, briefs, closure-scope, mutation, Analyze (actions|javascript-typescript|python [16:38:06Z]), CodeQL, pr-contract x2 (16:09:17Z, 16:11:10Z), hassfest, validate-hacs, policy-docs, wave-script, env-matrix, budget-raise-gate x2, arch-score x2, instrument-self-tests, delivery-status, coverage-ratchet, graders-head-copy, lane-proofs, scope, cancel-superseded x2
+skipped: record, record-autofix, delivery-status-publish, mutation-{autofix,pins,pin-plan,ledger,ledger-push,nightly}, slow, recheck-gate, nightly-ha, kernel-points, claims-autofix
+mutation lane: success; the diff writes no production code line (workflow/tests/harness only), so changed_lines draws no mutant -- the green says nothing; mutation proof is the reviewer's own (reviewer_mutants.txt, entities_mutant_unfiltered.txt).

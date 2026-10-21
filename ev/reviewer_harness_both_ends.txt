@@ -1,0 +1,10 @@
+== e9febe6224eaccedbdcd3ffdf3f92a84cb034e9a
+RESULT mode=ok rc=0 window=window: 45 ci-metrics artifact(s) files=90 traceback=False gh_msg_surfaced=False listings=1
+RESULT mode=empty rc=1 window=None files=0 traceback=True gh_msg_surfaced=True listings=1
+RESULT mode=fail_unfiltered rc=1 window=None files=0 traceback=True gh_msg_surfaced=True listings=1
+RESULT mode=fail_one rc=0 window=window: 45 ci-metrics artifact(s) files=90 traceback=False gh_msg_surfaced=False listings=1
+== ea5f660303823ce04ed55af4022b4f7064ee403e
+RESULT mode=ok rc=0 window=window: 45 ci-metrics artifact(s) files=30 traceback=False gh_msg_surfaced=False listings=3
+RESULT mode=empty rc=1 window=None files=0 traceback=False gh_msg_surfaced=True listings=1
+RESULT mode=fail_unfiltered rc=0 window=window: 45 ci-metrics artifact(s) files=30 traceback=False gh_msg_surfaced=False listings=3
+RESULT mode=fail_one rc=1 window=None files=0 traceback=False gh_msg_surfaced=True listings=2

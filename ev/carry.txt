@@ -1,0 +1,11 @@
+ea5f660303823ce04ed55af4022b4f7064ee403e b66251e23eb40e1341a81033594d645974cb0252 record: the delivery row for #2575
+b66251e23eb40e1341a81033594d645974cb0252 d0c4989f683541b8c4c753c7b8294c3b81ab4d5f e9febe6224eaccedbdcd3ffdf3f92a84cb034e9a Merge remote-tracking branch 'origin/main' into fix/r10-ci-ratchet-window
+e9febe6224eaccedbdcd3ffdf3f92a84cb034e9a 5226fd2d11b71deddd359c328f7ec1805e22b752 61fd4f27cbd3e3e3eb092044b6e55fa24028683f Merge pull request #2549 from tvofi/fix/r10-tick-relay-decouple
+merge-tree(d0c4989,e9febe6)=8e64c7f95196942c5495767d3798fcceecab042f
+tree(b66251e)=8e64c7f95196942c5495767d3798fcceecab042f
+ea5f660 vs b66251e:
+ dev/programme/delivery/2575.md | 1 +
+ 1 file changed, 1 insertion(+)
+c4c5db7b vs d0c4989 (tracked):
+ tests/closures.json | 1 +
+ 1 file changed, 1 insertion(+)

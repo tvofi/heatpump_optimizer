@@ -1,0 +1,16 @@
+RESULT mutant='R0 unmutated' SURVIVED by=[]
+RESULT mutant='R1 delete unique_by(.run) (one artifact per run)' SURVIVED by=[]
+RESULT mutant="R2 '|| true' after jq -s add" SURVIVED by=[]
+RESULT mutant="R3 '|| true' on the listing (delete fail-loud)" KILLED by=['a failed artifacts listing stops the gather step before']
+RESULT mutant='R4 drop second sort before cap' KILLED by=['the ci-ratchet window lists each upload lane by name, n']
+RESULT mutant="R5 delete 'set -euo pipefail'" KILLED by=['a failed artifacts listing stops the gather step before']
+RESULT mutant='R6 cat instead of jq -s add' KILLED by=['the ci-ratchet window lists each upload lane by name, n']
+RESULT mutant='R7 run id from .run_id only' KILLED by=['the ci-ratchet window lists each upload lane by name, n']
+RESULT mutant='R8 delete expired filter' SURVIVED by=[]
+RESULT mutant='R9 cap 16' KILLED by=['the ci-ratchet window lists each upload lane by name, n']
+RESULT mutant="R10 drop ': > lanes.json' truncation" SURVIVED by=[]
+NULL CONTROL (base step under head checks):
+FAIL the ci-ratchet window lists each upload lane by name, newest 15 runs each, this run excluded  :: upload lanes=['closures', 'coverage', 'fast'], ratchet lanes=['closures', 'coverage', 'fast']; rc=1 listings=['repos/o/r/actions/artifacts?per_page=100'] files=[] stderr='^^^^^^^^^^^^^^\n  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode\n    raise JSONDecodeError("Expecting value", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n'
+FAIL a failed artifacts listing stops the gather step before the window is read, naming the HTTP status (every listing answered 500)  :: rc=1 files=[] stderr='^^^^^^^^^^^^^^\n  File "/usr/lib/python3.11/json/decoder.py", line 337, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/usr/lib/python3.11/json/decoder.py", line 355, in raw_decode\n    raise JSONDecodeError("Expecting value", s, err.value) from None\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n'
+FAILS 2
+

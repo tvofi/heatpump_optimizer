@@ -1,0 +1,4 @@
+.github/workflows/tests.yml:2568:          ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=closure-recordings-tree-$TREE" \
+.github/workflows/tests.yml:2916:            gh api "repos/${{ github.repository }}/actions/artifacts?name=ci-metrics-$lane&per_page=100" \
+dev/programme/rosters/wave-r10-groups.json:3994:    "CI flake, 2026-10-20 15:06Z at 4e5801eb (job 118705405380): the ci-ratchet job's artifact download in tests.yml (the heredoc near line 2907 that pipes 'gh api repos/.../actions/artifacts?per_page=100' into j
+.github/workflows/tests.yml:2937:                      ["gh", "api", f"repos/{repo}/actions/artifacts/"
