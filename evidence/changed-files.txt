@@ -1,7 +1,0 @@
-dev/programme/carries/carry-201.json
-dev/programme/delivery/2559.md
-dev/programme/rosters/critical-path.json
-dev/programme/rosters/wave-r10-groups.json
-json-ok dev/programme/carries/carry-201.json
-json-ok dev/programme/rosters/critical-path.json
-json-ok dev/programme/rosters/wave-r10-groups.json
