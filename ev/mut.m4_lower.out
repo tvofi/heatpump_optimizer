@@ -1,0 +1,6 @@
+rc=1
+  FAIL #2223: the lower-floor split takes a night interval and refuses a sunlit one  [night 1.010 on 1 samples, day 1.010 on 1]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+1 of 4289 FEATURE CHECKS FAILED
