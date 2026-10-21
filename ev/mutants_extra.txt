@@ -1,0 +1,2 @@
+RESULT mutant=M4 rc=1 ['roster_edit self-test: 106 checks, 1 failed', 'FAIL a worktree holding an unpushed edit is not reused (got: edit would be lost']
+RESULT mutant=R1_push_by_name rc=1 []

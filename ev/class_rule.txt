@@ -1,0 +1,30 @@
+## rule 1 at head
+.claude/workflows/audit-find.js
+tools/audit/seat/body_push.sh
+tools/audit/seat/bus.sh
+tools/audit/seat/cloud_dispatch.py
+tools/audit/seat/merge_train.py
+tools/audit/seat/r10_deeplink_mutants.py
+tools/audit/seat/r9_rc_bus_fetchhead.sh
+tools/audit/seat/ref_privacy.py
+tools/audit/seat/roster_edit.py
+tools/audit/seat/state_docs.py
+tools/audit/seat/wt_sync.sh
+tools/policy/fragments_sync.mjs
+tools/pr/app_push.sh
+tools/pr/cancel_superseded.py
+tools/pr/codeql_scope.py
+tools/pr/contract_rerun.py
+tools/pr/merge_main_bot.py
+tools/pr/push.sh
+tools/release/stamp.py
+## rule 1 at 5d433771a (prev round base) diff:
+diff_exit=0
+## rule 2
+tools/audit/seat/roster_edit.py:32:one a concurrent run can reset under this one (`checkout -B` at git 2.38
+tools/audit/seat/roster_edit.py:1110:    # 0 while no ref on origin ever held that commit: the rival's checkout -B
+## branch -f / update-ref of roster branch
+## rule 3
+tools/audit/seat/remerge_main.sh:25:push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 || true)
+tools/audit/seat/remerge_main.sh:26:printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED' || true
+tools/pr/merge_main_bot.py:263:        r = git(repo, *cfg, "push", "-q", "origin", f"{sha}:refs/heads/{branch}", check=False)

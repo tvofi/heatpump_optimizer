@@ -1,0 +1,8 @@
+roster_edit self-test: 82 checks, 7 failed
+FAIL race: the loser's edit reaches origin (got: solo-2)
+FAIL race: the sha reported pushed is origin's tip (got: (['a6d41bcab714112d2bc8e53c70caf00ad7edc13d'], 'ee02e06d84c2c2912be9f4a5bda07a52bc29468d'))
+FAIL race: the lost race is said (got: roster: dev/programme/rosters/wave-r9-groups.json on edit-race
+FAIL race on every attempt: refused (rc 2), said loudly (got: roster: dev/programme/rosters/wave-r9-groups.json on edit-race
+FAIL race on every attempt: bounded at PUSH_ATTEMPTS rivals (got: ['rival carry 1'])
+FAIL race on every attempt: origin holds every rival, not this edit (got: ('solo-2', ['rival carry 1']))
+FAIL a non-race push failure refuses at once (rc 2), no retry (got: roster_edit: REFUSED: /tmp/hpo-fr8-selftest-ommlpe1a/wt-race has uncommitted changes; refusing to reuse it

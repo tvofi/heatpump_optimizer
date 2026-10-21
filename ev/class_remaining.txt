@@ -1,0 +1,35 @@
+== .claude/workflows/audit-find.js
+260:    `You are the collector of box ${box}, audit round ${round}. In ${repo}, create branch handoff/audit-r${round}-find-${box} from origin/main (never check it out in a shared checkout; use a worktree), copy into it ${RUN.map((s) => `${seatDir(s)}/`).join(', ')} from ${prep.exportDir} and from the seat worktrees ${JSON.stringify(prep.worktrees)}, and write ${ROUND_DIR}/reports-${box}.json with exactly this object (two-space indent, trailing newline): ${JSON.stringify({ box, missing: missingHere, reports: Object.fromEntries(mine.filter((id) => reports[id]).map((id) => [id, reports[id]])) })}. Commit and push the branch (git push -u origin HEAD:handoff/audit-r${round}-find-${box}). Return JSON {branch, commit}.`,
+403:3. Copy ${ROUND_DIR}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set dev/audit/config/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
+== tools/audit/seat/cloud_dispatch.py
+106:            f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
+== tools/audit/seat/merge_train.py
+1299:        `git push`: its committer date is the publication time the record
+1794:            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+2969:                code, o = g(wt, "push", "-q", "origin", f"HEAD:refs/heads/{br}")
+== tools/audit/seat/r10_deeplink_mutants.py
+316:IH = kd('try { globalThis[["Hist", "ory"].join("")].prototype[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}')
+554:        'try { __capHI[["push", "State"].join("")].call(globalThis.history, null, "", "/config/integrations"); } catch (_e) {}'),
+== tools/audit/seat/r9_rc_bus_fetchhead.sh
+64:git -C "$W/seat" push -q origin HEAD:refs/heads/main
+76:git -C "$W/seat" push -q origin HEAD:refs/heads/main
+195:  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+196:  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+240:  git -C "$W/seat" push -q origin "$a1:refs/heads/handoff-body/A"
+241:  git -C "$W/seat" push -q origin "$b1:refs/heads/handoff-body/B"
+== tools/audit/seat/ref_privacy.py
+32:it does not fix itself calls it before `git push`; the `guard` subcommand is the
+342:    "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+661:        g("push", "-q", "origin", "main")
+712:        g("push", "-q", "origin", "main")
+759:    lines = [("tools/x/new.sh", 3, 'git push -q origin "$c:refs/heads/x/$slug"'),
+760:             ("tools/x/guarded.sh", 9, '  git -C "$w" push -q origin "$ref"'),
+== tools/policy/fragments_sync.mjs
+186:  ok(keylessStampPushes([['a.js', 'git push --push-option=ci.skip; git push --push']]).length === 0,
+== tools/pr/cancel_superseded.py
+159:          ids(runs=runs + [_r(NEW - 9, OLD_SHA, "push", branch="main")]), sorted([OLD, OLD_DISPATCH]))
+163:          ids(runs=[_r(OLD, OLD_SHA, "merge_group"), _r(OLD_DISPATCH, OLD_SHA, "push")]), [])
+== tools/pr/codeql_scope.py
+161:        for ev in ("push", "schedule", "merge_group", "workflow_dispatch", ""):
+== tools/pr/contract_rerun.py
+160:          stale_contract(T0, [pc(3, event="push")])[:2], ("none", None))

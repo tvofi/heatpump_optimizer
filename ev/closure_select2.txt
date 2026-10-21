@@ -1,0 +1,6 @@
+### select --diff 49c222280d4650f4c608385cb95856e1a937a5b2
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+### select --diff e9febe6224eaccedbdcd3ffdf3f92a84cb034e9a
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py

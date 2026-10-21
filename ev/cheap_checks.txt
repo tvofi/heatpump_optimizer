@@ -1,0 +1,48 @@
+### python3 tests/closure.py select --diff 49c222280d4650f4c608385cb95856e1a937a5b2 --workdir $W/head
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0
+### python3 tests/entities.py
+  File "$W/head/tests/entities.py", line 4072
+    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+rc=1
+### python3 tests/structure.py
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 718 <= 718
+
+STRUCTURE RATCHET PASSED
+rc=0
+### python3 tests/harness_headers.py
+    from homeassistant.config_entries import ConfigEntryState
+  File "$W/head/tests/hastub/homeassistant/config_entries.py", line 47, in <module>
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'
+rc=1
+### python3 tests/layout.py
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: ok
+rc=0
+### python3 tests/env_drift.py --claims-only 49c222280d4650f4c608385cb95856e1a937a5b2
+claims hygiene: 49c222280d4650f4c608385cb95856e1a937a5b2 ok
+rc=0
+### python3 -I tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 49c222280d46
+rc=0
+### python tools/audit/seat/ref_privacy.py --self-test
+  ok   scrub leaves no leak class under the planted identity, and keeps the line count
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 66 checks, 0 failed
+rc=0
+### python3 tests/closure.py selftest
+  ok   the census refuses a planted rename-detecting diff, and only it
+  ok   and reports every allow entry nothing matches as stale
+
+ALL 124 closure shrink pins PASSED
+rc=0
