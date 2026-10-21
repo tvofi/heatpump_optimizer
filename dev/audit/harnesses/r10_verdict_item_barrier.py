@@ -35,10 +35,21 @@ post-merge check that "still has to be done", which the base never flagged):
 what moves to `## Evidence` unedited is caught wherever it hands something on.
 
     python3 dev/audit/harnesses/r10_verdict_item_barrier.py [--fetch]
+    python3 dev/audit/harnesses/r10_verdict_item_barrier.py --whatif DIR
+
+--whatif reads a `carry_audit.py sweep --from-dir` corpus (DIR/comments/<N>.json,
+`gh api --paginate --slurp repos/<repo>/issues/<N>/comments?per_page=100`)
+and renames every heading of each `Fix review:` verdict `## Evidence`, one
+inserted after the first line: the adversarial reading of the new heading.
+It prints each item still read as a finding, and
+  RESULT whatif_verdicts=<n> whatif_flagged=<n items read as findings>
+Run at the base and the head over one corpus, the items flagged at the base
+and not at the head are what the heading frees.
 """
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -251,7 +262,28 @@ def not_routed(text: str) -> int:
     return sum(r["status"] != "routed" for r in rows)
 
 
+def whatif(corpus: str) -> int:
+    n_v = n_flag = 0
+    for f in sorted(Path(corpus, "comments").glob("*.json")):
+        for c in (c for page in json.loads(f.read_text() or "[]") for c in page):
+            b = (c.get("body") or "").lstrip()
+            if not ca.VERDICT.match(b):
+                continue
+            n_v += 1
+            first, rest = (b.split("\n", 1) + [""])[:2]
+            rest = re.sub(r"(?m)^#{1,6}\s+.*$", "## Evidence", rest)
+            for it in ca.items(f"{first}\n\n## Evidence\n{rest}", True):
+                if it["flagged"]:
+                    n_flag += 1
+                    snip = re.sub(r"\s+", " ", it["text"])[:120]
+                    print(f"FLAGGED #{f.stem} {c.get('id')} {it['id']} [{it['why']}] {snip!r}")
+    print(f"RESULT whatif_verdicts={n_v} whatif_flagged={n_flag}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
+    if argv[:1] == ["--whatif"]:
+        return whatif(argv[1])
     if "--fetch" in argv:
         for pr, (cid, parts) in VERDICTS.items():
             r = subprocess.run(["gh", "api", f"repos/{REPO}/issues/comments/{cid}"],
