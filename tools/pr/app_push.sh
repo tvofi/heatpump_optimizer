@@ -4,7 +4,7 @@
 # -- the author identity decision 0011 built this tool for, with the body's
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
-#   tools/pr/app_push.sh [--dry-run] [--recarry] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
+#   tools/pr/app_push.sh [--dry-run] [--recarry|--row-only] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
 #   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
 #   tools/pr/app_push.sh --self-test
 #
@@ -99,6 +99,23 @@
 # the push must still be. The branch's own diff and body passed
 # prepr and review, main's commits passed on main, and CI's pr-contract and
 # suite run at the new head before the train merges.
+#
+# --row-only is update_pr.sh's push of a pull request's own delivery row onto
+# its live head (R10-ROW-ONLY-UPDATE: on a loaded box the full prepr held a
+# one-line row 30+ minutes, and `bus.sh dispatch` refuses a head without it).
+# It REPLACES prepr with step 7's body contract (`row_only_checks`) only when
+# every one of these holds, each read here and failing closed:
+#   (a) HEAD has exactly one parent, the pull request's live head from the
+#       open-pull-request listing;
+#   (b) `git diff --name-status <live> HEAD` is exactly one added file,
+#       delivery_row.sh's `$ROW_DIR/<N>.md` for the listing's number <N>;
+#   (c) that file is one open row anchored on <N>, as
+#       tests/delivery_status.py's `anchored` reads a row;
+#   (d) the body file is the live body under one new `## Head` note, the
+#       caller's: `head_note.py`'s `prefix(live, note)` -- no other edit.
+# Anything else runs prepr exactly as without the flag. It writes no note of
+# its own; one `app_push: ROW-ONLY:` line names the path taken and why, and
+# the push must still be the HEAD the verdict judged.
 set -uo pipefail
 
 API=https://api.github.com
@@ -167,6 +184,61 @@ sys.exit(open(sys.argv[1]).read().rstrip("\n") != live.rstrip("\n"))' "$body" 2>
     || { _rv_no "the body file is not the live pull-request body"; return 1; }
   RV_P2=$p2
   _rv_no "HEAD ${RV_HEAD:0:8} is the clean merge of the live head ${p1:0:8} and origin/main's ${p2:0:8}, and the body is the live one"
+}
+
+# The --row-only verdict: (a), (b), (c) and (d) of the header, in that order,
+# the first failure named; recarry_verdict's shape. It reads HEAD ONCE and
+# judges that sha, leaves RV_HEAD, RV_TITLE (the live title, the one
+# pr-contract reads) and RV_WHY set, and prints RV_WHY.
+row_only_verdict() { # worktree listing body -> RV_*; rc 0 = the row-only checks replace prepr
+  local wt=$1 listing=$2 body=$3 live="" num="" row d ps
+  RV_TITLE="" RV_HEAD=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || RV_HEAD=""
+  _rv_no() { RV_WHY=$*; echo "$*"; }
+  [[ $RV_HEAD =~ ^[0-9a-f]{40}$ ]] || { _rv_no "HEAD does not read back"; return 1; }
+  read -r live num RV_TITLE < <(printf '%s' "$listing" | python3 -c 'import sys, json
+d = json.load(sys.stdin)[0]; print(d["head"]["sha"], int(d["number"]), " ".join(str(d.get("title") or "").split()))' 2>/dev/null)
+  [[ $live =~ ^[0-9a-f]{40}$ ]] || { _rv_no "no open pull request whose live head reads back"; return 1; }
+  ps=($(git -C "$wt" rev-parse "$RV_HEAD^@" 2>/dev/null)) # shas: word splitting is the parse
+  [ "${#ps[@]}" -eq 1 ] || { _rv_no "HEAD has ${#ps[@]} parent(s), not one commit on the live head"; return 1; }
+  [ "${ps[0]}" = "$live" ] || { _rv_no "parent 1 ${ps[0]:0:8} is not the live pull-request head ${live:0:8}"; return 1; }
+  . "$(dirname -- "$0")/../audit/seat/delivery_row.sh" || { _rv_no "delivery_row.sh did not load, so the row's path is unknown"; return 1; }
+  row=$ROW_DIR/$num.md
+  d=$(git -C "$wt" diff --no-renames --name-status "$live" "$RV_HEAD" 2>/dev/null) \
+    || { _rv_no "the diff against the live head could not be read"; return 1; }
+  [ "$d" = "$(printf 'A\t%s' "$row")" ] \
+    || { _rv_no "the head adds or changes more than this pull request's own row $row (git diff --name-status: $(printf '%s' "$d" | tr '\t' ' ' | paste -sd';' - | sed 's/;/; /g'))"; return 1; }
+  git -C "$wt" show "$RV_HEAD:$row" 2>/dev/null | python3 -I -c 'import sys
+sys.path.insert(0, sys.argv[2] + "/tests")
+from delivery_status import OPEN_STATUS, anchored
+ls = sys.stdin.read().splitlines()
+sys.exit(not (len(ls) == 1 and anchored(int(sys.argv[1]), ls[0]) and OPEN_STATUS in ls[0]))' "$num" "$wt" 2>/dev/null \
+    || { _rv_no "$row is not one open row anchored on #$num (tests/delivery_status.py's anchored)"; return 1; }
+  printf '%s' "$listing" | python3 -c 'import json, sys
+sys.path.insert(0, sys.argv[2])
+from head_note import head_offset, prefix
+live = json.load(sys.stdin)[0].get("body") or ""
+b = open(sys.argv[1]).read()
+i = head_offset(b)
+j = b.find("\n\n", i) if i >= 0 else -1
+sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "$body" "$(dirname -- "$0")" 2>/dev/null \
+    || { _rv_no "the body file is not the live pull-request body under one new \`## Head\` note"; return 1; }
+  _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
+}
+
+# What --row-only runs in prepr's place: step 7's body contract, pr-contract's
+# own command, at the head the verdict judged and with the live title. The
+# other prepr steps read what the verdict has already pinned to the live
+# head, which passed them: one added row moves no claim file, VERSION, code
+# or closure, and (c) leaves the body the live one plus the caller's note.
+row_only_checks() { # worktree body head title -> rc of the body contract
+  ( cd "$1" || exit 1
+    base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main" >&2; exit 1; }
+    p=$(mktemp) e=$(mktemp)
+    git diff --no-renames --name-only "$base"...HEAD > "$p" && git diff --no-renames --name-only --diff-filter=a "$base"...HEAD > "$e" \
+      || { rm -f "$p" "$e"; echo "the changed-path list did not derive from $base...HEAD" >&2; exit 1; }
+    lint=tools/policy/policy_lint.mjs; test -f .claude/workflows/policy_lint.mjs && lint=.claude/workflows/policy_lint.mjs
+    node "$lint" --pr-body "$2" --head "$3" --title "$4" --paths-file "$p" --existing-file "$e"; rc=$?
+    rm -f "$p" "$e"; exit "$rc" )
 }
 
 # --- the bounded read-back (R9-RC-RECARRY-READBACK) -------------------------
@@ -274,9 +346,10 @@ confirm_readback() { # url num head body
 }
 
 push_and_open() {
-  local dry=0 bonly=0 recarry=0
+  local dry=0 bonly=0 recarry=0 rowonly=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
   [ "${1:-}" = "--recarry" ] && { recarry=1; shift; }
+  [ "${1:-}" = "--row-only" ] && { rowonly=1; shift; }
   if [ "${1:-}" = "--branch-only" ]; then
     bonly=1; shift
     [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
@@ -284,7 +357,9 @@ push_and_open() {
     set -- "$1" "$2" "$3" /dev/null
   fi
   [ "$recarry$bonly" != 11 ] || die "--recarry and --branch-only do not combine: a batch/ branch has no pull request to recarry"
-  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
+  [ "$recarry$rowonly" != 11 ] || die "--recarry and --row-only do not combine: a recarry's head is a merge, a row's is one commit"
+  [ "$rowonly$bonly" != 11 ] || die "--row-only and --branch-only do not combine: a batch/ branch has no pull request to row"
+  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry|--row-only] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
   local repo=$1 wt=$2 br=$3 body=$4
   shift 4
   [[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "repo '$repo' is not owner/repo"
@@ -333,7 +408,7 @@ push_and_open() {
   # then the note is written in both paths, naming the head the verdict judged.
   # Only the skip path's note says the merge took no resolution: on the other,
   # the verdict has just found it is not that merge, and prepr checks the head.
-  local skip=0 RV_HEAD="" RV_P2="" RV_WHY=""
+  local skip=0 RV_HEAD="" RV_P2="" RV_WHY="" RV_TITLE="" flag=recarry
   if [ "$recarry" = 1 ]; then
     recarry_verdict "$wt" "$listing" "$body" >/dev/null && skip=1
     if [ "$skip" = 1 ]; then echo "app_push: RECARRY: prepr SKIPPED: $RV_WHY"; else echo "app_push: RECARRY: prepr RUNS: $RV_WHY"; fi
@@ -349,6 +424,12 @@ push_and_open() {
     [ "$dry" = 1 ] || python3 "$(dirname -- "$0")/head_note.py" "$body" "$note" \
       || die "--recarry: head_note.py named no new head under a ## Head heading in $body; nothing was minted or pushed"
   fi
+  if [ "$rowonly" = 1 ]; then
+    flag=row-only
+    row_only_verdict "$wt" "$listing" "$body" >/dev/null && skip=1
+    if [ "$skip" = 1 ]; then echo "app_push: ROW-ONLY: prepr SKIPPED: $RV_WHY"; else echo "app_push: ROW-ONLY: prepr RUNS: $RV_WHY"; fi
+    [ -n "$RV_HEAD" ] || die "--row-only: HEAD in $wt does not read back"
+  fi
 
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
@@ -357,6 +438,8 @@ push_and_open() {
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
   [ "$bonly" = 1 ] || [ "$skip" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
     || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+  [ "$rowonly$skip" != 11 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
+    || die "--row-only: the body contract (policy_lint.mjs --pr-body) refused $body, so NOTHING was minted, pushed or posted"
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
   # clean. A dirty worktree would push a sha whose tree the body never
@@ -368,8 +451,8 @@ push_and_open() {
   [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
   [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] \
     || die "worktree $wt is dirty; only a committed tip is pushed -- commit or clean it first"
-  [ "$recarry" = 0 ] || [ "$head" = "$RV_HEAD" ] \
-    || die "--recarry: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
+  [ "$recarry$rowonly" = 00 ] || [ "$head" = "$RV_HEAD" ] \
+    || die "--$flag: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
   local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
   # The branch name and every commit message the push publishes for the first
   # time: one naming this host is refused before anything is minted (#2310).
@@ -520,6 +603,10 @@ cat > "$W/bin/git" <<'STUB'
 #!/bin/bash
 printf 'git %s\n' "$*" >> "$STUB/log"
 case "$*" in
+  *"diff --no-renames --name-status "*) cat "$STUB/namestatus" ;;
+  *"show "*":dev/programme/delivery/"*) cat "$STUB/row" ;;
+  *"merge-base origin/main HEAD") echo 8888888888888888888888888888888888888888 ;;
+  *"diff --no-renames --name-only"*) [[ $* == *--diff-filter=a* ]] || echo dev/programme/delivery/7.md ;;
   *"rev-parse HEAD")    # head-moves: the first read (the verdict's) is head.sha, every later one OTHER
     if [ -f "$STUB/head-moves" ] && [ -f "$STUB/head-read" ]; then printf '%s\n' "$OTHER_SHA_STUB"
     else : > "$STUB/head-read"; cat "$STUB/../head.sha"; fi ;;
@@ -837,6 +924,93 @@ st "$(grep -c 'HEAD moved to 2222222222222222222222222222222222222222 after the 
 
 mkcase rbonly
 run rbonly --recarry --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 1 "REFUSE: --recarry does not combine with --branch-only"
+
+# --row-only (R10-ROW-ONLY-UPDATE): update_pr.sh's push of the pull request's
+# own delivery row onto its live head. The stubbed arms drive the wiring: the
+# skip runs the body contract (a stub node) and never prepr; every refusal of
+# the skip runs prepr exactly as without the flag. The real-git block after
+# them drives the production row_only_verdict.
+ROW='- [#7](https://github.com/o/r/pull/7) — **open**, the title'
+mkdir -p "$W/tool-wt/tests" && cp "$(dirname -- "$SELF")/../../tests/delivery_status.py" "$(dirname -- "$SELF")/../../tests/layout.py" \
+  "$(dirname -- "$SELF")/../../tests/layout.json" "$W/tool-wt/tests/"
+cp "$(dirname -- "$SELF")/../audit/seat/delivery_row.sh" "$W/audit/seat/"
+cat > "$W/bin/node" <<'STUB'
+#!/bin/bash
+printf 'node %s\n' "$*" >> "$STUB/log"
+[ -f "$STUB/node-fails" ] && { echo "policy_lint: REFUSE stub" >&2; exit 1; }
+exit 0
+STUB
+chmod +x "$W/bin/node"
+cp "$W/body.md" "$W/rolive.md"
+python3 "$W/tool/head_note.py" "$W/rolive.md" "\`$P1_STUB\` an earlier note." >/dev/null
+rocase() { # name [live-body-file] -> a --row-only case: one parent, the live head P1, its row added
+  mkcase "$1"; cp "$W/rolive.md" "$W/$1/body.md"
+  python3 "$W/tool/head_note.py" "$W/$1/body.md" "\`$SHA\` adds this PR's own row." >/dev/null
+  python3 -c 'import json, sys
+print(json.dumps([{"number": 7, "title": "the title", "head": {"sha": sys.argv[1]}, "body": open(sys.argv[2]).read().rstrip("\n")}]))' \
+    "$P1_STUB" "${2:-$W/rolive.md}" > "$W/$1/listing.json"
+  printf '%s\n' "$P1_STUB" > "$W/$1/parents"; printf 'A\tdev/programme/delivery/7.md\n' > "$W/$1/namestatus"
+  printf '%s\n' "$ROW" > "$W/$1/row"; : > "$W/$1/prepr-fails"
+}
+rocase ook
+run ook --row-only o/r "$W/tool-wt" "$BR" "$W/ook/body.md"; st $? 0 "--row-only: the live head plus one commit adding only its own open row, the live body under one new note: pushed (prepr-fails set)"
+st "$(calls ook prepr)$(grep -c '^app_push: ROW-ONLY: prepr SKIPPED: HEAD 11111111 is the live head 55555555 plus one commit adding only dev/programme/delivery/7.md' "$W/ook/out")" 01 "and prepr was skipped, naming the path and why in one line"
+st "$(grep -c "^node tools/policy/policy_lint.mjs --pr-body $W/ook/body.md --head $SHA --title the title --paths-file .* --existing-file " "$W/ook/log")" 1 "the body contract ran in its place, pr-contract's command at the head, with the pull request's own title"
+st "$(grep -c '^curl PATCH repos/o/r/pulls/7$' "$W/ook/log")$(cmp -s "$W/ook/live-body" "$W/ook/body.md" && echo same)" 1same "the open pull request is re-bodied with the body file unchanged: --row-only writes no note of its own"
+rorefused() { # name want-reason -- prepr runs once, as without the flag, and passes
+  rm -f "$W/$1/prepr-fails"
+  run "$1" --row-only o/r "$W/tool-wt" "$BR" "$W/$1/body.md"; st $? 0 "--row-only REFUSES the skip ($1): prepr runs and passes, so it pushes"
+  st "$(calls "$1" prepr)$(grep -c "^app_push: ROW-ONLY: prepr RUNS: $2" "$W/$1/out")$(calls "$1" node)" 110 "... prepr ran once, the one line names why ($2), and no row-only check ran"
+}
+rocase omore; printf 'A\tdev/programme/delivery/7.md\nM\ttools/x.py\n' > "$W/omore/namestatus"
+rorefused omore "the head adds or changes more than"
+rocase oother; printf 'A\tdev/programme/delivery/8.md\n' > "$W/oother/namestatus"; rorefused oother "the head adds or changes more than"
+rocase oedit; printf 'M\tdev/programme/delivery/7.md\n' > "$W/oedit/namestatus"; rorefused oedit "the head adds or changes more than"
+rocase otwo; printf '%s\n%s\n' "$P1_STUB" "$P2_STUB" > "$W/otwo/parents"; rorefused otwo "HEAD has 2 parent(s), not one commit on the live head"
+rocase olive "$W/body.md"; printf '%s\n' "$OTHER" > "$W/olive/parents"; rorefused olive "parent 1 22222222 is not the live pull-request head 55555555"
+rocase orow; printf -- '- [#8](https://github.com/o/r/pull/8) — **open**, t\n' > "$W/orow/row"; rorefused orow "dev/programme/delivery/7.md is not one open row anchored on #7"
+rocase obody "$W/edited.md"; rorefused obody "the body file is not the live pull-request body under one new"
+mkcase onone; cp "$W/body.md" "$W/onone/body.md"; rorefused onone "no open pull request whose live head reads back"
+rocase ofail; : > "$W/ofail/node-fails"
+run ofail --row-only o/r "$W/tool-wt" "$BR" "$W/ofail/body.md"; st $? 1 "--row-only: a body the contract refuses refuses, though prepr was skipped"
+st "$(calls ofail prepr)$(grep -c '^git .*push' "$W/ofail/log")$(calls ofail curl)" 000 "and nothing was minted or pushed"
+mkcase orecarry
+run orecarry --recarry --row-only o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: --recarry does not combine with --row-only"
+st "$(wc -l < "$W/orecarry/log" | tr -d ' ')" 0 "before any call"
+# The production row_only_verdict, extracted from this file, against REAL git:
+# a fix branch (the live head) and the row commit update_pr.sh's ensure_row
+# writes on it, then each perturbation of that commit. The null control of the
+# skip is the same commit with one more file.
+Q="$W/rreal"; mkdir -p "$Q"
+eval "$(sed -n '/^row_only_verdict() {/,/^}/p' "$SELF")"
+. "$(dirname -- "$SELF")/../audit/seat/delivery_row.sh"
+printf '## Head\n\n`live`\n\n## Figures\n\nf\n' > "$W/qlive.md"
+qv() { # <live ref> -> the verdict's line for HEAD in $Q/wt; rc as the verdict's
+  local live; live=$(git -C "$Q/wt" rev-parse "$1")
+  cp "$W/qlive.md" "$W/qbody.md"; python3 "$(dirname -- "$SELF")/head_note.py" "$W/qbody.md" "\`$(git -C "$Q/wt" rev-parse HEAD)\` adds the row." >/dev/null
+  row_only_verdict "$Q/wt" "$(python3 -c 'import json, sys
+print(json.dumps([{"number": 7, "title": "t", "head": {"sha": sys.argv[1]}, "body": open(sys.argv[2]).read()}]))' "$live" "$W/qlive.md")" "$W/qbody.md"; }
+throwaway_git_init "$Q/wt" -q -b main && (cd "$Q/wt" && mkdir tests && cp "$W/tool-wt/tests/"*.py "$W/tool-wt/tests/layout.json" tests/ \
+  && printf 'x\n' > x && rgit add -A && rgit commit -qm base && rgit checkout -q -b fix && printf 'f\n' > f && rgit add f && rgit commit -qm fix && rgit tag live)
+reset_q() { (cd "$Q/wt" && rgit reset -q --hard live && rgit clean -qfdx); }
+reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
+st "$(qv live >/dev/null; echo $?)" 0 "real git: ensure_row's own row commit on the live head skips prepr"
+(cd "$Q/wt" && printf 'y\n' > y && rgit add y && rgit commit -q --amend --no-edit)
+st "$(qv live)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: A dev/programme/delivery/7.md; A y)" "real git: the same commit with one more file runs prepr (null control)"
+reset_q; (cd "$Q/wt" && ensure_row . 8 "$(row_line 8 o/r t)" >/dev/null)
+st "$(qv live)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: A dev/programme/delivery/8.md)" "real git: another pull request's row runs prepr"
+reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null && rgit tag -f live2 && row_line 7 o/r u > dev/programme/delivery/7.md && rgit commit -qam edit)
+st "$(qv live2)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: M dev/programme/delivery/7.md)" "real git: a rewrite of a row the live head carries runs prepr"
+reset_q; (cd "$Q/wt" && rgit merge -q --no-edit main && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
+st "$(qv live >/dev/null; echo $?)" 0 "real git: an up-to-date main merge (no commit) then the row skips prepr"
+reset_q; (cd "$Q/wt" && rgit commit -q --allow-empty -m empty && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
+st "$(qv live)" "parent 1 $(git -C "$Q/wt" rev-parse --short=8 HEAD~1) is not the live pull-request head $(git -C "$Q/wt" rev-parse --short=8 live)" "real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone"
+reset_q; (cd "$Q/wt" && ensure_row . 7 '- row' >/dev/null)
+st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row file that anchors nobody runs prepr"
+reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
+st "$(cp "$W/qlive.md" "$W/qbody.md"; row_only_verdict "$Q/wt" "$(python3 -c 'import json, sys
+print(json.dumps([{"number": 7, "title": "t", "head": {"sha": sys.argv[1]}, "body": "## Head\n\nx\n"}]))' "$(git -C "$Q/wt" rev-parse live)")" "$W/qbody.md")" \
+  "the body file is not the live pull-request body under one new \`## Head\` note" "real git: a body that is not the live one under one new note runs prepr"
 
 # R10-RECARRY-HEAD: each recarry's note names its head under the `## Head`
 # HEADING, read by the reader pr-contract runs (policy_lint.mjs --pr-body).

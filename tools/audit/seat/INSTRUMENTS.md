@@ -32,7 +32,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the `hpo-author` App, with the body's contract check before the push. When:
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
-  failing the contract check never reaches the remote.
+  failing the contract check never reaches the remote. `--row-only`
+  (`update_pr.sh`'s) replaces prepr with the body contract only when the head
+  is the live head plus one commit adding exactly that PR's own open row and
+  the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -634,7 +637,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
   origin/main (merge), adds the PR's own delivery row when the head lacks
   it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
-  `hpo-author`. When: updating a PR after review prep or a main merge.
+  `hpo-author`. With code sha `-` it asks `app_push.sh --row-only`, so a push
+  that only adds the row takes the body contract instead of the full prepr,
+  and prints app_push's `ROW-ONLY:` line naming which ran and why.
+  When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
   silently; no open PR at the branch stops before any push. Up front, each an
   `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a
