@@ -1,0 +1,10 @@
+$ grep -rn "POST.*access_tokens" tools/pr tools/audit/seat | grep -v "STUB\|printf"
+tools/pr/app_mint.sh:57:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+tools/pr/app_comment.sh:126:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+tools/pr/app_approve.sh:458:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+
+$ grep -rln "hpo-author.pem\|hpo-author.appid" tools .github
+tools/pr/app_mint.sh
+tools/pr/app_push.sh
+tools/pr/app_comment.sh
+tools/audit/seat/body_patch.sh

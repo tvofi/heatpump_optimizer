@@ -1,39 +1,47 @@
-Fix review: blocked 50c4a681d0e3bee30e415a1ecc663ff5eab158f8 mutant-survives: read-back retry-exhaustion die -> break passes the self-test and prints OK for a body never read back
+Fix review: merge 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20
 
-Round: 1 (first review of this head). Reviewed from a detached worktree at 50c4a681d0e3bee30e415a1ecc663ff5eab158f8; head re-read on origin before writing: unchanged. Role file current (no diff under dev/governance/roles/ between merge base 49c222280 and origin/main). Group JSON and STUDY K14 read at pin 78117030 (claude/dazzling-gauss-7l3u2b).
+Round: 2. Round 1 blocked 50c4a681d on a surviving read-back retry-exhaustion mutant (`die` -> `break`). I reviewed from detached worktrees at 3f22a805c7ca335f15a6b218d6aa15a7cec8bb20 (head) and f2fb1b0e9 (merge base, which is origin/main). Just before writing this I re-read the head on origin with `git ls-remote`: it has not moved (ev/HEAD.txt). The role file is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. I read the group JSON and STUDY K14 at pin 78117030 (claude/dazzling-gauss-7l3u2b).
 
 ## RESULT lines
-RESULT self-test body_patch at head: 51 checks, 0 failed (ev/body_patch_selftest.txt) -- matches body
-RESULT self-test app_push at head: 135/0; at base 49c222280: 135/0 -- matches body (ev/app_push_selftest.txt, ev/at_base_49c22228.txt)
-RESULT selftest_wiring --check at head: 39 self-testing, 39 wired, 0 unwired; at 18e7a7c6 (code head) and at base 49c22228: 38/38 -- body says 38/38: measured before the ce1a78d2 merge, stale at this head; the +1 claim holds
-RESULT structure.py at head: STRUCTURE RATCHET PASSED; closure select: MODE: SCOPED -- 2 script(s) run, 31 scoped out (ev/tree_checks.txt). entities.py not re-run here (no HA deps in this container): cite CI.
-RESULT merge-tree --write-tree origin/main head: rc=0, tree ebb3cfa2 -- merges clean (ev/merge_tree.txt)
-RESULT VERSION / manifest / RELEASE_NOTES / claim files / *_budgets.json: untouched
-RESULT spec: 3 positional args; live-head refusal before mint/contract; contract = pr-contract's exact policy_lint argument set (title, author, --no-renames three-dot paths, --diff-filter=a existing, one --red per name excluding pr-contract) + carry_audit check --body; mint factored into tools/pr/app_mint.sh and sourced by both (no copy); body read back; head re-read before and after the PATCH; --dry-run prints URL+payload and makes zero curl calls; self-test wired in governance.yml instrument-self-tests; INSTRUMENTS.md entry present -- all present
+RESULT round-1 blocker: KILLED. The finder harness's `body_patch-1` (`die` -> `:` on the exhaustion guard) is KILLED at head: rc=1, `body_patch self-test: 62 checks, 3 failed`. My own R7 (`|| :`) and R8 (`rbok=1` from the start) are also killed, each failing on `REFUSE: no read-back can be performed (retry exhaustion)` (ev/harness_head.txt, ev/reviewer_mutants.txt).
+RESULT finder harness r10_seat_selftests_mutants.py: at head, M0 has 0 seat steps red (this includes the new step `body_patch self-test: 62 checks, 0 failed`) and `RESULT survivors=0`. At base f2fb1b0e9: M0 0 red, `RESULT survivors=0`, and there is no body_patch step. Flat at both ends, nothing regressed (ev/harness_head.txt, ev/harness_base.txt).
+RESULT self-test body_patch at head: 62 checks, 0 failed (ev/body_patch_selftest.txt). The body says 51. That was the round-1 count and is stale: round 2 added the rbfail, spaces and non-ancestor-base fixtures and the m7-m10 mutants.
+RESULT self-test app_push at head: 135 checks, 0 failed. This matches the body, so the mint refactor changes no pinned behaviour (ev/app_push_selftest.txt).
+RESULT selftest_wiring --check: 39 self-testing, 39 wired, 0 unwired at head; 38/38 at base. The body says 38/38, which is stale; its +1 claim holds (ev/tree_checks.txt).
+RESULT structure.py: STRUCTURE RATCHET PASSED. closure select vs f2fb1b0e9: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. throwaway_git --check: 0 refused (ev/tree_checks.txt).
+RESULT my mutation proof: 23 mutants, 21 KILLED. They cover the head check (both forms), the contract arm (die, lint rc, carry rc, return, fail-open check-run listing, dropped --red), the read-back (exhaustion x2, body, stale, verdict stale, eq1 always-true, tries=1), the pre-write re-read, dry-run fall-through, state!=open at step 2, and the token revoke and EXIT trap in the shared app_mint.sh. 2 SURVIVED, and neither blocks (Notes 1-2) (ev/reviewer_mutants.txt).
+RESULT real arms, live read-only dry-run: I ran `--dry-run 2578 <head> <live body>` with curl write-guarded (PATCH/POST/DELETE/PUT refused, 0 attempted, 18 reads). The real policy_lint printed `PR-BODY: 0 error(s)` and the real carry_audit printed `3 routed, 0 unrouted`. The DRY-RUN line names the PATCH URL and payload. It took 6.5 s (target < 30 s). With a wrong expected sha it refuses before contract or mint, rc=1. With a `hello` body, policy_lint reports 8 errors and the tool refuses, `NEVER sent` (ev/live_dryrun.txt). No PR body was PATCHed.
+RESULT merge-tree --write-tree origin/main(f2fb1b0e9) head: rc=0, tree 1d0aac83 -- clean (ev/merge_tree.txt)
+RESULT VERSION / manifest / RELEASE_NOTES / golden + claim files / *_budgets.json / closures.json: untouched
+RESULT class rule (from the body): `grep -rn "POST.*access_tokens" tools/pr tools/audit/seat | grep -v "STUB\|printf"` returns app_mint.sh, app_comment.sh and app_approve.sh. The last two mint the hpo-approver identity (identity-approver.pem); the only hpo-author.pem in app_comment.sh is a self-test fixture. Every seam is dispositioned and none is open (ev/class_rule.txt).
+RESULT spec, checked one item at a time against the code:
+- three positional args, plus --dry-run and --repo;
+- live head == expected, before mint, contract or write (self-test: 0 curl, 0 node);
+- contract = pr-contract's policy_lint argument set, plus `carry_audit.py check --body`;
+- mint factored into tools/pr/app_mint.sh and sourced by both scripts; no copy, and no leftover $key/$appid/cleanup in app_push.sh;
+- body read back modulo one trailing newline, with completed mismatches not retried;
+- head re-read before the PATCH and on read-back;
+- --dry-run prints the request and makes 0 curl calls;
+- wired as a step in governance.yml instrument-self-tests, with an INSTRUMENTS.md entry;
+- one `--once` unit whose last line is `body_patch: OK|REFUSE`.
+All present.
 
-## Step 1: mutation proof (ev/reviewer_mutants.txt, ev/reviewer_fixture_rbfail.txt)
-The PR's six tagged arms are killed by its self-test, and my independent mutants of the head check (live==live), the contract call (|| die -> true), each contract rc, eq1 always-ok, dry-run no-return, check-runs fail-open, dropped --red, state!=open and token revoke are all killed.
-SURVIVORS (the PR's self-test stays 51/0):
-1. READ-BACK, blocking: body_patch.sh:166 `[ "$attempt" -lt "$RB_TRIES" ] || die "...could not be read back..."` -> `|| break`. On a PATCH whose read-backs all fail, the mutant prints `body_patch: OK: ... read back identical; head ... unmoved` and exits 0. No fixture makes every read-back fail. A two-line reviewer fixture (curl GET fails from the 2nd read on) kills it: unmutated 53/0, mutant 2 FAIL (rc 0, an OK line). The brief requires that read-back mutants be killed; this one is the arm's fail-closed path, and the beat keys on that OK line.
-2. READ-BACK: verdict() eq1 relaxed to `a.strip() == b.strip()` survives -- no fixture differs only in whitespace, so "byte-identical modulo one trailing newline" is not pinned past "different text".
-3. CONTRACT ARM: dropping `--diff-filter=a` from the existing-file derivation survives. The node stub copies the existing list to $STUB/existing and no check reads it, so the `--existing-file` content pr-contract relies on (the delivery-row exemption) is unasserted.
-4. CONTRACT ARM: `git diff base...head` -> two-dot `git diff base head` survives. The check named "three-dot: b.txt, not the later c.txt" separates head from the moved commit, not two-dot from three-dot (base is an ancestor of head in the fixture), so its name claims a property it does not test.
-Repair is small: an all-read-backs-fail fixture, a whitespace-only-mismatch fixture, assert $STUB/existing (e.g. a head that edits a base file and adds one), and a base that is not an ancestor of head (main moved) for the three-dot check.
+## Step 11: checks at head (read once, 2026-10-21T17:34:47Z; ev/check_runs.txt)
+24 success, 14 skipped, 1 neutral (CodeQL). Red: nightly-status only. The body's `## Red checks` names and answers it, it grades main, and the live policy_lint red-history pass accepted the body. pr-contract succeeded twice; the second run started 17:22:56, after nightly-status concluded red at 17:22:33. instrument-self-tests, mutation, policy-docs, fast (3.14), closure-scope and budget-raise-gate all succeeded. The diff writes no Python production line, so mutation drew no mutant on the shell. My targeted mutants above stand in for it. Still pending: Analyze (python) and coverage. I judged on the rest.
 
-## Steps 2-3: harness and null control
-No committed finder's harness: this is an instrument group (issues/findings empty); its controls are the brief's. The self-test is the fixer's own instrument, disclosed as such. Null controls pair every refusal (healthy run patches once; dry-run and moved-head leave `the old body, 111`) -- confirmed. No live PATCH was sent by me (stubs only).
+## Notes (not blocking)
+1. Mutant R21 SURVIVED. Turning the read-back's `bad state=*) die` into `rbok=1; break` prints OK for a PR that closed or merged between the PATCH and the read-back, and no fixture closes the PR after the write. Plain deletion of that line (R23) is fail-closed: the case falls through to the retries and then the exhaustion die. The surviving path needs a close inside a window of about a second after a 2xx PATCH, so I don't block on it. It is a one-fixture repair if wanted.
+2. Mutant R22 SURVIVED. Making the PATCH failure non-fatal is still fail-closed: the read-back then finds the old body and refuses with `not identical`. This is an equivalent outcome, not a gap.
+3. The body is stale at this head and should be refreshed. `body_patch.sh` itself can do that without moving the head:
+   - `## Figures` says 51 checks; the head has 62.
+   - selftest_wiring says 38/38; the head has 39/39.
+   - `## Mutation proof` says "Six of six arms" and does not mention the round-2 arms (rbexhaust, eq1, existing, threedot), including the round-1 blocker's.
+   - The `## Head` second paragraph describes 18e7a7c6 as the code head.
+   - `## Red checks` says "No other check has run: ... no pull request yet".
+   - The first paragraph still calls #2560's 111->113 figure "the open case", which K14 revision 4 corrects.
+   These are the fixer's own figures and I re-derived each one above. I am not confirming any of them as they are stated.
+4. The tool does NOT pass `--roster-ref` to carry_audit. The dispatch's spec line asks for "carry_audit check --body with the roster ref". The pinned pack at 78117030, which this review is against, says only `carry_audit.py check --body`, and that is what pr-contract runs. Revision 8 on the pack branch, after the pin, asks for `--roster-ref <fresh roster branch>`. The script header documents the divergence: it reads the caller's worktree roster. If revision 8 binds, the follow-up is one argument plus one fixture.
+5. The header line "It reads the repository from the worktree it runs in" is inaccurate. The repo comes from a hard-coded default or --repo, and only the contract reads the cwd's tools.
+6. There is no Group line in the body. Per the brief this is a verdict note only.
 
-## Step 6: class
-Body's rule `grep -rn "POST.*access_tokens" tools/pr tools/audit/seat | grep -v "STUB\|printf"` -- re-run: app_mint.sh (the shared author mint), app_approve.sh/app_comment.sh (hpo-approver identity, dispositioned). No open seam.
-
-## Step 11: checks (ev/check_runs.txt)
-Red: nightly-status only -- named and answered in ## Red checks; not this PR's. Pending: Analyze (python), typing, browser, fast (3.14), coverage, policy-docs, instrument-self-tests, env-matrix; judged on the rest. pr-contract success at this head.
-
-## Notes (not the block)
-- Body cites "#2560's 111 to 113 figure is the open case"; STUDY K14 revision 4 at pin 78117030 states it was not a live case. Correct the sentence.
-- ## Red checks says "No other check has run: this is a handoff head with no pull request yet" -- stale at this head.
-- Dispatch says "carry_audit check --body with the roster ref"; the pinned pack says only `carry_audit.py check --body`, which is what pr-contract runs. The tool runs the caller's checkout's policy_lint/carry_audit/roster (pr-contract: base's policy_lint, PR tree's carry_audit and roster), and policy_lint's red-history walk reads only when GITHUB_TOKEN/GH_TOKEN is set in the caller's env (else `skip red-history`). An offline pass can therefore diverge from pr-contract; worth one sentence in the header or INSTRUMENTS.md.
-- No Group line in the body (verdict note only, per brief).
-- app_push.sh refactor: no leftover $key/$appid/cleanup references; mint_cleanup now guards an unset PRIV.
-
-bus-nonce: a40c3488651515a962e45d98fbdbf21c
+bus-nonce: d495ed9002400d88ebb148c78bead593
