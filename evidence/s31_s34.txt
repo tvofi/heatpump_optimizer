@@ -1,0 +1,4 @@
+removed lines in dev/audit/harnesses/r10_seat_selftests_mutants.py, main..head (only the docstring range):
+-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+S31..S34 rows, main vs head:
+IDENTICAL
