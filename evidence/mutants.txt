@@ -1,0 +1,10 @@
+MUTANT tree-skip:   FAIL a re-dispatch of the same brief moves no ref   FAIL a changed brief fast-forwards the ref cloud_dispatch self-test: 42 checks, 2 failed 
+MUTANT brief-drop:   FAIL the printed line round-trips to a payload byte-identical to today's flag path   FAIL the roster brief is inlined and the roster tip is the head   FAIL a changed brief fast-forwards the ref   FAIL a host path in a roster brief refuses and pushes nothing cloud_dispatch self-test: 42 checks, 4 f
+MUTANT parent-drop: SyntaxError: invalid syntax 
+MUTANT topic-to-id:   FAIL a group dispatch prints one short line, the ref name   FAIL a reviewer dispatch with pr and nonce renders cloud_dispatch self-test: 42 checks, 2 failed 
+MUTANT privacy-off: cloud_dispatch self-test: 42 checks, 0 failed 
+MUTANT roster-repo-ignored: 
+MUTANT head-ignored: cloud_dispatch self-test: 42 checks, 0 failed 
+MUTANT prompt-wrong:   FAIL the ref carries the prompt the payload carries   FAIL a changed brief fast-forwards the ref cloud_dispatch self-test: 42 checks, 2 failed 
+MUTANT parent-drop:     raise Refusal(f"git {argv[0]} failed: {(r.stderr or r.stdout).strip()[:200]}") Refusal: git push failed: To /tmp/tmpczcuyb__/origin.git  ! [rejected]        c70942d6d5dc512c192005f32f81ead15a05d6ba -> dispatch/fixer-r10-x (non-fast-forward) error: failed to push some refs to '/tmp/tmpczcuyb__/origin.git' 
+MUTANT roster-repo-ignored:               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   File "/tmp/claude-0/-home-user-heatpump-optimizer/bb3a5482-e014-5a1a-b865-615a75366879/scratchpad/tmp.4XL6Nt6ISK/wt/tools/audit/seat/cloud_dispatch.py", line 164, in render     raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable") Refusal: no repo: pass a flag, an 

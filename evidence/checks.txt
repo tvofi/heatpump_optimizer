@@ -1,0 +1,10 @@
+  ok   a reviewer needs its pr and nonce, as on the flag path
+  ok   a reviewer dispatch with pr and nonce renders
+cloud_dispatch self-test: 42 checks, 0 failed
+ref_privacy --check at HEAD: 18 file(s) with a push site, 10 guarded, 187 line(s) added since 49c222280d46 judged, 0 refused
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 49c222280d46
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+STRUCTURE RATCHET PASSED
+merge-tree:
+4ea9398b7b51b77e0fc8e17aba26e62f04439772
+rc=0

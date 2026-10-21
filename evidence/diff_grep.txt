@@ -1,0 +1,4 @@
+300:     ap.add_argument("--role", required=True, choices=ROLES)
+301:-    ap.add_argument("--head", required=True)
+319:+            raise Refusal("--head is required without --group")
+exit=0 (1 = no match)
