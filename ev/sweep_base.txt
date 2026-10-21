@@ -1,0 +1,43 @@
+UNROUTED #2444 review 6268417953 item 31ce0d3e (## Verified) [non-blocking]: "- I ran the PR's harness `r10_seat_selftests_mutants.py` (it is the fixer's own: the finding came from #2433's"
+UNROUTED #2444 review 6270065579 item 60bed4d6 (## Not blocking, but no merge could be returned on it now (step 11)) [section]: 'These are from the check-runs API at 14:44Z with filter=all (ev/check-runs.tsv, 49 runs).'
+UNROUTED #2444 review 6270065579 item 278fd432 (## Not blocking, but no merge could be returned on it now (step 11)) [section]: '- The re-runs failed again on the same installation rate limit, before any check body ran: - `arch-score` 1181'
+UNROUTED #2444 review 6270065579 item d97c2a26 (## Not blocking, but no merge could be returned on it now (step 11)) [section]: '- No `pr-contract` run has read the body at this head. `closures` 118120973522 and `Analyze (python)` were sti'
+UNROUTED #2444 review 6270065579 item c4aab480 (## Not blocking, but no merge could be returned on it now (step 11)) [section]: "- `nightly-status` is main's red, and the body answers it."
+UNROUTED #2444 review 6270065579 item 754b063c (## Not blocking, but no merge could be returned on it now (step 11)) [section]: '- Because the workflows have not all concluded and no `pr-contract` run has checked the body, I do not block o'
+UNROUTED #2444 review 6270561812 item 0a8e3214 (## Carry controls, re-run by me (step 10). All four reproduce.) [non-blocking]: 'Roster: `handoff/audit-r10-roster` tip is 1dc0151de365911c7b635dc87d26333317731b3e (ev/roster_tip.txt), which '
+UNROUTED #2444 review 6270755953 item 4af1db90 [non-blocking]: '- validate-hacs 118114888472: red, `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded '
+UNROUTED #2447 review 6268507266 item f88a7f8d (## Carried from round 1 (non-blocking)) [section]: "R10-PREPR-UNPINNED-RED's own carry list still holds the #2441 body_push.sh/ci_predict entry, which R10-CI-LAYO"
+UNROUTED #2447 review 6268678080 item 9319a6e8 (## Non-blocking (carried from rounds 1-2)) [section]: "R10-PREPR-UNPINNED-RED's own carry list still holds the #2441 body_push.sh/ci_predict entry, which R10-CI-LAYO"
+UNROUTED #2452 review 6292509962 item e1dc0d4b (## RESULT lines (my own runs)) [non-blocking]: 'Three of the sixteen before/after pairs re-derive as the body states: green at `8b3ea42c`, red at the head. Tw'
+UNROUTED #2464 review 6282808408 item 9b312a34 (## RESULT lines) [lead]: '- **Caveat: one pull_request run against push runs.** lane_golden is now the critical lane. It ran env_drift `'
+UNROUTED #2464 review 6282808408 item 4467599a (## RESULT lines) [non-blocking]: '- The pin reads text placement (function bodies and the `LANES` string), not the scheduler that makes lane_str'
+UNROUTED #2464 review 6282808408 item 4fa1d72e (## Non-blocking notes) [section]: '1. **The run-alone pin is a text pin, and the forward-carry overstates it.** The carry says any later lane edi'
+UNROUTED #2464 review 6282808408 item 51434f62 (## Non-blocking notes) [section]: '2. **R10-STAMP roster row.** It still says "the B4 window above". It should restate the window: the median wal'
+UNROUTED #2464 review 6282808408 item b40ca8eb (## Non-blocking notes) [section]: '3. **`## Head`** names `88e29a866989057c5da001ebeba275355a5af720`, which does not exist in the repository. Thi'
+UNROUTED #2464 review 6282808408 item 264fd102 (## Non-blocking notes) [section]: '4. **Watch item for the window rule.** On push runs the critical path is now lane_golden: env_drift `--all` (D'
+UNROUTED #2464 review 6282808408 item 2511084e (## Non-blocking notes) [section]: 'bus-nonce: 26509a33afa7ad7987a53f2f3edcf9a6'
+UNROUTED #2465 review 6281093060 item 6fabb96c (## Notes, non-blocking) [section]: 'bus-nonce: 0f1f8919bff09df03e399b56241f22ab'
+UNROUTED #2465 review 6290666488 item e3ad2a83 (## Ratchet) [non-blocking]: "Non-blocking accuracy point for round 2: the body's `## Red checks` mutation answer calls `mutation_table.py -"
+UNROUTED #2465 review 6290666488 item 4c2d05fb (## Notes, non-blocking) [section]: '- **A hand-set fractional disinfection floor on a whole-degree entity can re-raise the issue the repair clears'
+UNROUTED #2465 review 6290666488 item 123c6166 (## Notes, non-blocking) [section]: '- `dev/audit/harnesses/draw_range_evidence.py` still runs against the changed `observed()` return (`ev/draw_ra'
+UNROUTED #2465 review 6290666488 item b8c871cd (## Notes, non-blocking) [section]: '- The idle window learned at the gate can absorb compressor draw (disclosed and carried to R10-CEILING-PROBE).'
+UNROUTED #2465 review 6291407983 item 537eaedc (## Notes, non-blocking (carried from round 1, still standing)) [section]: "- The body's mutation answer still calls `mutation_table.py --scope changed --base origin/main` a source-only "
+UNROUTED #2465 review 6291407983 item ed2600b8 (## Notes, non-blocking (carried from round 1, still standing)) [non-blocking]: '- A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 °C on a °F install) is written'
+UNROUTED #2465 review 6291419486 item 537eaedc (## Notes, non-blocking (carried from round 1, still standing)) [section]: "- The body's mutation answer still calls `mutation_table.py --scope changed --base origin/main` a source-only "
+UNROUTED #2465 review 6291419486 item ed2600b8 (## Notes, non-blocking (carried from round 1, still standing)) [non-blocking]: '- A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 °C on a °F install) is written'
+UNROUTED #2471 review 6281178194 item fe4ce583 [non-blocking]: 'CI (ev/checks.tsv, check-runs API at this head): 23 success, 17 skipped, 1 neutral, and 2 still in_progress (c'
+UNROUTED #2475 review 6283964707 item 02c1ca3a [non-blocking]: '- R10-ROSTER-OPS added carry (ps dependency, "#2469 round 3 reviewer note"): I could not locate its source tex'
+UNROUTED #2475 review 6284191179 item 02c1ca3a [non-blocking]: '- R10-ROSTER-OPS added carry (ps dependency, "#2469 round 3 reviewer note"): I could not locate its source tex'
+BAD-DEST #2479 review 6285806939 item 8104154f: #2479: #2479 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2479.json
+UNROUTED #2480 review 6288112470 item 4af7a769 (## Notes (non-blocking)) [section]: "- The body's `## Figures` says `tests/entities.py` printed `ALL 2351 ENTITY CHECKS PASSED`. That figure is a s"
+UNROUTED #2480 review 6288112470 item 59aef51c (## Notes (non-blocking)) [section]: '- `Analyze (python)` is `cancelled` at this head. It is a 30-minute job timeout (`codeql.yml` line 184), not a'
+UNROUTED #2480 review 6288112470 item 6c58fac3 (## Notes (non-blocking)) [section]: '- The design residuals from round 1 stand and are now carried in the destination brief: the API-lag gap, the "'
+UNROUTED #2480 review 6288112470 item 909521f0 (## Notes (non-blocking)) [section]: "- Both round-1 blocks are henceforth owned by this PR's head, not a later stage. `Carry: dismissed: repaired i"
+UNROUTED #2486 review 6292032143 item 55dc4f3f (## Notes (non-blocking)) [section]: "- `nightly-status` is red at this head. Its only failing step is `Report the last scheduled run's conclusion` "
+UNROUTED #2486 review 6292032143 item b097bd08 (## Notes (non-blocking)) [section]: '- The generated `## Red checks` bullet says "the red is the batch this beat exists to close" beneath a lead th'
+UNROUTED #2486 review 6292032143 item 7fe7ad26 (## Notes (non-blocking)) [section]: '- The `.claude/workflows/policy_lint.mjs` fallback in `_body_check` is a retired path that does not exist at t'
+BAD-DEST #2516 review 6303434765 item 8108414a: dismissed:: `dismissed:` needs a reason of two words or more
+BAD-DEST #2516 review 6304446287 item 550af6e2: dismissed:: `dismissed:` needs a reason of two words or more
+UNROUTED #2547 review 6315224098 item b579380b [non-blocking]: 'Forward-carry: the body\'s "none" holds for this PR\'s own findings. The roster carries one item INTO this group'
+CARRY-AUDIT: 124 finding item(s): 83 routed, 38 unrouted, 3 bad destination(s)
+CARRY-SWEEP: 83 pull request(s), 0 other unowned finding(s)
