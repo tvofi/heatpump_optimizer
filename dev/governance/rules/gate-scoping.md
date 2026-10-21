@@ -22,7 +22,7 @@ which a script takes: `lease`, exclusive, for the scripts that measure the machi
 of four, for the multi-minute CPU scripts -- a `closures.json` recording at or above
 `SLOT_MIN_SECONDS`, and an UNRECORDED script, never timed; `none` only where the
 recording says seconds. The pool is `$HPO_HEAVY_SLOTS` slots;
-`$HPO_SLOT_LABEL` names the one it is inside. First come, first served; a dead or expired
+`$HPO_SLOT_LABEL` names the one it is inside. Priority, then arrival; a dead or expired
 ticket is skipped. A seat that waited one lease period may leave `stress.py` to CI and
 name it unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
 with `tests/gate_lock.py`, never `mkdir`:
