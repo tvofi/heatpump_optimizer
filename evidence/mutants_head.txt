@@ -1,0 +1,23 @@
+== M1
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL after three passes it is owed once (a level is rewritten, never appended) (rc=1, want 0)
+  FAIL after three passes the no-PR ref is owed once (rewritten, never appended) (rc=1, want 0)
+cloud_relay self-test: 81 checks, 2 failed
+== M4
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL and drops its level line at once, not at the next pass (rc=0, want 1)
+  FAIL and drops its line from the level beside that log (rc=0, want 1)
+cloud_relay self-test: 81 checks, 2 failed
+== M2
+ tools/audit/seat/orchestrator_tick.py | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+  FAIL relay OWED: each level-file line prints once; the log's per-pass copies print none
+  FAIL relay OWED: the skipped copies are counted, unflagged
+orchestrator_tick self-test: 172 checks, 2 failed
+== M3
+ tools/audit/seat/orchestrator_tick.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL relay OWED: null control: without that POSTED both kind-first lines print
+orchestrator_tick self-test: 172 checks, 1 failed

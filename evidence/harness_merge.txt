@@ -1,0 +1,14 @@
+roles diff vs main:
+0
+  OWED: OWED 2026-10-21T08:00:00Z handoff-update 9 topic-9 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  OWED: OWED reviewer-fire 10 cccccccccccccccccccccccccccccccccccccccc 00000000000000000000000000000000 2026-10-21T08:00:00Z
+RESULT tree=71a577c96 passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes
+  OWED: OWED reviewer-fire 10 cccccccccccccccccccccccccccccccccccccccc 00000000000000000000000000000000 2026-10-21T08:00:00Z
+RESULT tree=71a577c96 passes=1 refs=5 disposed=0 log_lines=5 printed=8 distinct=8 match=yes
+merge-tree vs origin/main 5006687576713535518634a154f7de1824432219:
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (800 entries)
+  re-run the gate that owns this file before pushing
+ca7834813f48a83e70bd231d7f0fe6fe465f85db
+exit=0
+version-untouched-check-done

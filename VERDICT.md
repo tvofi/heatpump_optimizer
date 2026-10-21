@@ -1,7 +1,36 @@
-Fix review: merge 90bab078d19dd6aebba140fa360576b7780a560a
+Fix review: merge 71a577c96be311326cc93e3044d8dd9907a21694
 
-This is a markers-only re-issue of the earlier verdict at this exact head, routing its items. Re-check only: head unchanged (PR head and fetched ref both 90bab078d19dd6aebba140fa360576b7780a560a); `git merge-tree --write-tree origin/main 90bab078d19dd6aebba140fa360576b7780a560a` is clean (exit 0); check-runs on this head: 32 success, 16 skipped, 1 failure (`nightly-status`, a scheduled-status row and not a PR gate; nothing else red, none pending). The code was not re-reviewed; the earlier merge verdict stands.
+Round: re-review of a recarry (round 2 against the 90bab078 merge verdict); the authored code is unchanged.
 
-Carry: dismissed: observation only, nothing owed by this PR (item b579380b)
+## Head and resolution delta
+- Measured head `71a577c96be311326cc93e3044d8dd9907a21694`, still the PR head when written (`pulls/2547` head.sha). Parents: `90bab078d19dd6aebba140fa360576b7780a560a` (reviewed head) and main `57f0c9c77cfd5958e0a2443e158bea8326bedae2`.
+- Branch's own diff, three-dot: `git diff 6961f0663 90bab078` (old merge base) and `git diff 57f0c9c77 71a577c96be311326cc93e3044d8dd9907a21694` touch the same six files with byte-identical +/- lines in each (ev/delta.txt): harness, delivery/2547.md, tests/closures.json (+1), INSTRUMENTS.md, cloud_relay.sh, orchestrator_tick.py.
+- tests/closures.json: P..H carries exactly main's closures.json lines (sha1 of main-side and P..H +/- lines identical), and main..H carries exactly the branch's one line (`dev/audit/harnesses/r10_tick_owed_level.py` in `tests/harness_headers.py` inert reads). Both sides kept, nothing else introduced.
+- Recomputed `git merge-tree --write-tree 90bab078 57f0c9c77` with the repo's merge drivers installed: `LEDGER-MERGE: resolved tests/closures.json`, exit 0, tree identical to the head's tree (`git diff <tree> 71a577c96be311326cc93e3044d8dd9907a21694` empty; `git show --remerge-diff 71a577c96be311326cc93e3044d8dd9907a21694` empty). The resolution is exactly the driver's; no hand edit.
+- Code paths are NOT byte-identical to 90bab078 (main changed orchestrator_tick.py, cloud_relay.sh, INSTRUMENTS.md underneath), so all four named mutants were re-run at this head rather than one per arm.
 
-bus-nonce: c2c5075c4ebcb40ffb1e164a8ee4f777
+## Mutation proof at this head (ev/mutants_head.txt)
+- Unmutated: `orchestrator_tick self-test: 172 checks, 0 failed`, `cloud_relay self-test: 81 checks, 0 failed`.
+- M1 level_set awk -> cat: 2 FAIL, `81 checks, 2 failed`. Killed.
+- M4 dispose awk -> cat: 2 FAIL, `81 checks, 2 failed`. Killed.
+- M2 no-PR OWED replayed (`owed.setdefault(pr or f[2], ...)`): 2 FAIL, `172 checks, 2 failed`. Killed.
+- M3 key `f[1:4]` -> `f[2:3]`: 1 FAIL (null control arm), `172 checks, 1 failed`. Killed.
+- Each restored with `git checkout --`; worktree clean afterwards.
+
+## Figures at this head (ev/harness_merge.txt)
+- RESULT tree=71a577c96 passes=3 refs=5 disposed=1 log_lines=5 printed=7 distinct=7 match=yes (body's head figure reproduces).
+- RESULT tree=71a577c96 passes=1 refs=5 disposed=0 log_lines=5 printed=8 distinct=8 match=yes (null control reproduces).
+- The harness is the fixer's own, disclosed in the body (no committed finder harness existed); the baseline and read-log figures were confirmed in the prior merge verdict and are untouched by this delta.
+- The body's self-test counts (154 / 81) are the authored head's; at this head orchestrator_tick reports 172 because main's merged changes added checks underneath. Carry: dismissed: count grew from main's merged checks, not this diff (item 5a1e0c01)
+- The body's `## Head` line says "no resolution" while the merge ran the LEDGER-MERGE driver on tests/closures.json; the result equals the driver's automatic output, so nothing was hand-resolved. Carry: dismissed: wording only, content verified identical (item 5a1e0c02)
+
+## Merge and version
+- `git merge-tree --write-tree origin/main 71a577c96be311326cc93e3044d8dd9907a21694` (origin/main 5006687576713535518634a154f7de1824432219): `LEDGER-MERGE: resolved tests/closures.json`, exit 0, clean.
+- VERSION, manifest version and RELEASE_NOTES.md untouched against the merge base.
+- `git diff $(merge-base)...origin/main -- dev/governance/roles/`: empty; contract current.
+
+## CI at this head (check-runs API, 49 runs)
+- Every concluded check is success or skipped except `nightly-status` (failure). Its log grades main's nightly run 39563978649 (`mutation-nightly`, `slow` failure); this diff touches tools/audit/seat scripts, a harness, a delivery row and one closures entry, nothing those lanes read, so it is not this PR's (fix-review.md step 11); `## Red checks: none` stands.
+- `closures` success, `closure-scope` success, `instrument-self-tests` success, `mutation` success, `pr-contract` success on the latest run (started 19:51:34Z, after every other workflow concluded). tests/entities.py runs inside the scoped gate (`fast (3.14)` success).
+
+bus-nonce: 2abb7208f909844fc3bd5673f1060372
