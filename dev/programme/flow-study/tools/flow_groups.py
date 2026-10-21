@@ -98,6 +98,54 @@ GROUPS = [
         ["Pre-study: the Lean flow pre-study, section K11."],
         fixer="sonnet", reviewer="opus"),
     group(
+        "R10-FLOW-BODY-ONLY", "instrument", "S", ["R10-UPDATE-PR-SIGNALS"],
+        ["tools/audit/seat/update_pr.sh", "tools/audit/seat/cloud_relay.sh",
+         "tools/audit/seat/pr_args.sh", "tools/audit/seat/INSTRUMENTS.md"],
+        ["tools/audit/seat/update_pr.sh"],
+        "Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into "
+        "the head unconditionally, in the step after it takes the handoff code head, and has no "
+        "flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: "
+        "observed 2026-10-21 on #2513, #2544, #2548, #2529 and #2549, each then carried by "
+        "app_approve.sh --carry or re-reviewed. Change: (a) merge origin/main only when the "
+        "pull request is DIRTY or git merge-tree --write-tree origin/main HEAD reports a conflict; "
+        "(b) a body-only mode, taken when the code sha argument is the dash and the pull request "
+        "head already contains the handoff tip: no worktree commit, no delivery-row commit when the "
+        "row exists, the body contract (prepr's pr-body step and carry_audit.py check) run at the "
+        "unchanged head, then app_push.sh's body PATCH with nothing pushed, and the script refuses "
+        "if the head moved; (c) cloud_relay.sh's handoff arm, which today skips any topic whose "
+        "code tip the head already contains and so never propagates a body-only move, calls the "
+        "body-only mode when the handoff-body tip changed. pr-contract re-runs on the edited event, "
+        "so the body is re-gated without a push. Controls: with main ahead and a clean merge-tree, "
+        "the head sha is identical before and after; a DIRTY fixture still absorbs; a body-only run "
+        "on a moved head refuses; the relay fixture calls body-only exactly once per body move; each "
+        "rule has a mutant. Sequence with the open row-only change #2567 and #2560 (update_pr lock), "
+        "which touch the same script.",
+        ["Pre-study: the Lean flow pre-study, section K12.",
+         "Until this lands the orchestrator carries verdicts with app_approve.sh --carry (#1667)."]),
+    group(
+        "R10-FLOW-ROSTER-FREEZE", "instrument", "S", ["R10-ROSTER-OPS"],
+        ["tools/audit/seat/cloud_relay.sh", "tools/audit/carry_audit.py",
+         "tools/audit/seat/INSTRUMENTS.md"],
+        ["tools/audit/carry_audit.py"],
+        "The roster pull request as a frozen head, and carries that can name the round's roster "
+        "(Lean flow study K13). Every roster_edit.py push lands on handoff/audit-r10-roster and the "
+        "relay carries it into the open roster pull request, so a review of that pull request comes "
+        "back head-moved or body-stale: #2559 lost five reviewer rounds that way on 2026-10-21. And "
+        "carry_audit.py check resolves carry destinations against main's roster only, so a carry to "
+        "a group that exists only on the handoff roster fails as a bad destination until the roster "
+        "pull request merges: #2529, #2547 and #2561 were blocked by it. Change: (a) the relay "
+        "does not move an open roster pull request's head while a review of it is in flight (a "
+        "review worktree or an undisposed review dispatch for that number), the freeze fixer.md "
+        "already gives a fix head; roster edits accumulate on the handoff ref and land between "
+        "reviews; (b) carry_audit.py also reads the round's handoff roster ref "
+        "(roster_lib.round_ref) as a destination source, naming which ref resolved each carry, so "
+        "a destination on the handoff roster passes and one on neither still fails. carry_audit.py "
+        "is code-owned: tvofi's review under the mandate. Controls: a fixture carry to a "
+        "handoff-only group passes and names the handoff ref; a carry to a group on neither fails; "
+        "the relay fixture with a review in flight leaves the roster head unchanged and moves it "
+        "once the review posts; mutants for both arms.",
+        ["Pre-study: the Lean flow pre-study, section K13."]),
+    group(
         "R10-FLOW-JIDOKA", "instrument", "S", ["R10-PREPR-CAP"],
         ["tools/pr/prepr.sh", "tools/policy/fixtures/policy-rot/prepr"],
         ["tools/pr/prepr.sh"],
@@ -189,24 +237,29 @@ GROUPS = [
         "R10-FLOW-RECHAIN", "instrument", "S", ["R10-ROSTER-OPS"],
         ["dev/programme/rosters/wave-r10-groups.json"],
         ["dev/programme/rosters/wave-r10-groups.json"],
-        "Shorten the round's critical path by re-chaining on seams, not files (Lean flow study K7). "
-        "The owner's demand is a whole programme round in about 100 h, so the round's length is set "
-        "by its longest chain of not-done after edges, not by group count. Sixteen not-done groups "
-        "sit on one serial chain through coordinator.py (architect-note positions 6 to 25), yet "
-        "each note already confines its group to a named, disjoint owning seam inside that file. An "
-        "after edge between two such groups orders merges on one file; it does not carry one change "
-        "into another. For every after edge between two coordinator.py groups, decide from the two "
-        "owning seams and the two briefs whether the later group reads or changes what the earlier "
-        "one changes. Where it does not, drop the edge with roster_edit.py set-after (it lands with "
-        "R10-ROSTER-OPS) and amend both architect notes so the later group starts from main, not "
-        "from the earlier merge; the hourly batch proof and the fix review still see the combined "
-        "result. Keep every edge that carries a real dependency, and say why. Do not split groups: "
-        "splitting adds a review, a CI run and a record per part and shortens no chain. This is a "
-        "roster pull request by the orchestrator under orchestrator.md section 5. Controls: "
-        "brief_lint passes; roster_lib's critical path is printed before and after; every dropped "
-        "edge names the two disjoint seams; a null control, a non-coordinator edge, is unchanged.",
-        ["Owner ruling owed: chains by owning-seam overlap rather than by file.",
-         "Pre-study: the Lean flow pre-study, section K7 (edge-by-edge proposal)."],
+        "Apply the re-chain the decision seat ruled (Lean flow study K7). The seat examined all 15 "
+        "after edges between two not-done coordinator.py groups against the code at main 5d433771a "
+        "and roster 2c76c3128: 8 drop, 7 keep, and the drops need 3 replacement edges, or groups "
+        "that edit the same functions end up unordered. Critical depth goes from 11 to 8. Drop: "
+        "RATIO-ANCHOR after NIGHT-FOLDS, INPUT-STALENESS after RATIO-ANCHOR, CURRENCY after "
+        "INPUT-STALENESS, LOOP-CPU after FREQ-DEFROST, CONFIG-NOTICES after LIVESTATE, PARAMS-OWNER "
+        "after CONFIG-NOTICES, ARCH-SHAPES after PARAMS-OWNER, LEARNER-ETA after ARCH-SHAPES. "
+        "Required, in the same burst: PARAMS-OWNER after LIVESTATE; ARCH-SHAPES after LIVESTATE; "
+        "HEAT-METER after PARAMS-OWNER and ARCH-SHAPES. Recommended, each at no depth cost: "
+        "LIVESTATE after LOOP-CPU; LOOP-CPU after NIGHT-FOLDS; PARAMS-OWNER after NIGHT-FOLDS and "
+        "RATIO-ANCHOR; ARCH-SHAPES after INPUT-STALENESS; and, from this study, HEAT-METER after "
+        "R10-THERMAL-POWER-OPTION, which shares flow_meter.py, config_flow.py and const.py with it "
+        "and has no edge today. Apply with roster_edit.py set-after (R10-ROSTER-OPS) in the one "
+        "roster burst after the open roster pull request merges, together with the architect-note "
+        "and brief text the decision file lists per group. Do not apply the drops without the "
+        "required edges. Land the seat's decision, drops and adds files as this burst's evidence "
+        "in the tree, never only on a host. Controls: brief_lint TOTAL 0; roster_lib depth_of and "
+        "critical_path at the new head print depth 8 and the path ADVISOR, SCORES, LIVESTATE, "
+        "PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS; no edge outside coordinator.py "
+        "changes except the THERMAL-POWER-OPTION addition.",
+        ["The decision is made: this group applies it. K7's first proposal (10 drops) was wrong on "
+         "four edges the seat showed coupled in code; the seat's file is the authority.",
+         "Pre-study: the Lean flow pre-study, section K7."],
         fixer="opus", reviewer="opus"),
     group(
         "R10-FLOW-ANDON", "instrument", "S", ["R10-TICK-RELAY-DECOUPLE"],

@@ -134,7 +134,7 @@ flow board: round fever chart = critical chain done vs buffer consumed
 
 The coordinator cap of 2 protected a file-ordered chain. Once the chain orders seams, parallel PRs on disjoint seams of `coordinator.py` merge cleanly, and the batch proof catches the exception. The train stops at the first refusal and returns that PR to its fixer.
 
-In the projection, lane A at 2 → 4 on a re-chained roster cuts the remaining round from 95 h to 77 h.
+In the projection, lane A at 2 → 4 on the seat's re-chained roster cuts the remaining round from about 103 h to about 92 h.
 
 ### 4.4 Fly-ins, designed in
 
@@ -172,21 +172,21 @@ Spotted in passing, not caused by the flow groups (verify before acting):
 
 ## 6. Projection (model in `tools/simulate.py`; assumptions in SHADOW-PLAN §5)
 
-Hours from adoption to the last roster merge, with fly-ins arriving every 4 h. **Today** is the live roster's 57 open groups. The other rows add the 10 flow groups (67 in all): the improvements pay for their own build inside the window.
+Hours from adoption to the last roster merge, with fly-ins arriving every 4 h. **Today** is the live roster's 57 open groups. The other rows add the 12 flow groups (68 in all): the improvements pay for their own build inside the window.
 
 | scenario | levers | hours |
 |---|---|---|
 | Today | lead times as measured; `HPO_WIP_CAP` 6; chain by file | **≈ 207** |
-| Re-chain plus lanes only | FLOW-RECHAIN (a roster PR) and caps A4 B4 C3 F2 (a ruling); lead times unchanged | **≈ 133** |
-| Lead time only | target lead times (pull, frozen heads, error-proofing, pitch, andon); chain by file | ≈ 106 |
-| **Full future state** | both; drain-first phasing (SHADOW-PLAN §3) | **≈ 78** |
-| Full, but lane A kept at 2 | re-chain without the cap ruling | ≈ 95 |
-| Full, slower ramp | as above, with lead times reaching target over 96 h, not 48 h | ≈ 97 |
+| Re-chain plus lanes only | the seat's re-chain (depth 8) and caps A4 B4 C3 F2; lead times unchanged | **≈ 158** |
+| Lead time only | target lead times (pull, frozen heads, error-proofing, pitch, andon); chain by file | ≈ 109 |
+| **Full future state** | both; drain-first phasing (SHADOW-PLAN §3); depth 8 | **≈ 92** |
+| Full, but lane A kept at 2 | re-chain without the cap ruling | ≈ 103 |
+| Full, slower ramp | as above, with lead times reaching target over 96 h, not 48 h | ≈ 109 |
 | Stacking added | (dropped) | no change |
 
-Round 10 cannot come in at 100 h: 168 h are already spent. **It can end in about 3–4 days instead of about 9.**
+Round 10 cannot come in at 100 h: 168 h are already spent. **It can end in about 4 days instead of about 9–10.**
 
-Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly achieved, then P4 of a seam-chained, scope-frozen roster at about 77 h for a round-10-sized scope. The rounds would have a fixed cadence and a buffer.
+Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly achieved, then P4 of a seam-chained, scope-frozen roster at about 92 h for a round-10-sized scope. The rounds would have a fixed cadence and a buffer.
 
 ---
 
@@ -194,7 +194,9 @@ Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly
 
 | group | what | why (round time) | after | owner gate |
 |---|---|---|---|---|
-| **R10-FLOW-RECHAIN** | drop `after` edges between disjoint-seam coordinator.py groups (edge-by-edge proposal in STUDY K7) | chain depth 11 → 5; the biggest single lever | R10-ROSTER-OPS (`set-after`) | ruling R6 |
+| **R10-FLOW-RECHAIN** | apply the decision seat's ruling: 8 drops, 3 required and 4 recommended edges, plus HEAT-METER ← THERMAL-POWER-OPTION (STUDY K7) | chain depth 11 → 8; the biggest single lever | R10-ROSTER-OPS (`set-after`) | ruling R6 |
+| **R10-FLOW-ROSTER-FREEZE** | the relay leaves an open roster PR's head alone while it is under review; `carry_audit` also resolves destinations on the round's handoff roster | #2559 lost 5 reviewer rounds; `BAD-DEST` blocked #2529 #2547 #2561 | R10-ROSTER-OPS | mandate (`carry_audit.py` code-owned) |
+| **R10-FLOW-BODY-ONLY** | `update_pr.sh` absorbs main only on DIRTY or conflict; a body-only mode PATCHes the body without moving the head; the relay propagates body-only moves | R4 was not true in the tool: 5 clean heads moved on 2026-10-21 | R10-UPDATE-PR-SIGNALS | mandate |
 | **R10-FLOW-PULL** | nudge.md: pull, lanes, classes of service, pitch, frozen heads, verdict after CI, carry predicate before any re-review. orchestrator.md §5: the seam chain rule and the scope freeze | lead time and scope | — | policy (tvofi, mandate) |
 | **R10-FLOW-WIP** | pr_cap.py: lane caps; counts fly-ins and orphaned handoffs; `next` prints the ranked dispatch list | WIP, critical chain first | FLOW-PULL | mandate |
 | **R10-FLOW-AUTOTRAIN** | the pitch as a loop: build the queue from verdict refs and the carry predicate, run `merge_train.py batch --bot-prs` every hour | removes a manual queue build and the waiting between turns | FLOW-PULL, R10-TICK-RELAY-DECOUPLE | mandate |
@@ -250,3 +252,13 @@ A fall in the real-catch rate after FLOW-PULL or the K5 carry means review got w
 - **Seat concurrency:** lanes summing to 13 assume about 8 Opus fixers, 3 Sonnet fixers and 2–3 reviewers running at once. With fewer seats, the effective cap is the seat count. The flow board shows it.
 - **The projection is a model.** Lead-time targets (S 3 h, M 5 h, L 8 h, XL 12 h dispatch → verdicted) are design targets; the 48-h ramp is an assumption, and the 96-h ramp (97 h) is the pessimistic case.
 - **The mandate expiry** (10-28) and **moratorium end** (10-31) bound which changes can land without fresh grants.
+
+---
+
+## 11. Corrections after the orchestrator's evidence (2026-10-21, later the same day)
+
+1. **K7 was wrong on four edges.** The R10-FLOW-RECHAIN decision seat checked all 15 coordinator.py edges against the code: 8 drop, 7 keep, 3 required and 4 recommended additions. The critical depth is **8, not 5**. Every projection here is re-run on the seat's chain, and the full future state moves from about 78 h to **about 92 h**. Reading seam *names* from architect notes is not evidence of independence: code-level function maps are (STUDY K7).
+2. **R4 was not true in the tool.** `update_pr.sh` merges main on every run and has no body-only mode, so body fixes moved five clean heads. New group: **R10-FLOW-BODY-ONLY** (STUDY K12).
+3. **The roster PR is a moving head.** Every roster edit moves it, and `carry_audit` cannot see the handoff roster. #2559 lost five reviewer rounds, and three PRs were `BAD-DEST`-blocked. The Phase-1 burst now runs **after #2559 merges, on a new roster PR, under a manual roster freeze**. New group: **R10-FLOW-ROSTER-FREEZE** (STUDY K13).
+4. **The pitch is "on the hour, or when the previous train ends, whichever is later"**, not a strict hour. A 2-h pitch costs about 2 h in the model. Set the pitch from measured train CI time.
+

@@ -1,11 +1,12 @@
 """Render the projected schedule (projection.json) of the shadow roster as markdown tables."""
 import json, functools, collections
-d = json.load(open('shadow-r10-groups.json')); G = {g['group']: g for g in d['groups']}
+import sys
+d = json.load(open(sys.argv[1] if len(sys.argv) > 1 else '../roster/shadow-r10-groups.json')); G = {g['group']: g for g in d['groups']}
 P = json.load(open('projection.json'))['state']
 DONE = ('done', 'rca-done'); PROC = {'instrument', 'policy', 'rca', 'record', 'docs', 'fix'}
 st = lambda n: (G[n].get('resume') or {}).get('stage')
-from simulate_rules import HOT_ONLY
-edges = lambda n: [a for a in G[n].get('after') or [] if (n, a) not in HOT_ONLY]
+from simulate_rules import HOT_ONLY, added
+edges = lambda n: [a for a in G[n].get('after') or [] if (n, a) not in HOT_ONLY] + [a for a in added(n) if a in G]
 @functools.lru_cache(None)
 def depth(n): return 0 if st(n) in DONE else 1 + max([depth(a) for a in edges(n)] or [0])
 def lane(n):

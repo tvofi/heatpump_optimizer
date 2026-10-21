@@ -20,25 +20,29 @@ E = os.environ.get
 LEADMODE = E('LEAD', 'target'); RAMP = int(E('RAMP', '48'))
 CAPS_RAW = E('CAPS', '{"A": 4, "B": 4, "C": 3, "F": 2}')
 CAPS = None if CAPS_RAW == 'none' else json.loads(CAPS_RAW)
-RECHAIN = E('RECHAIN', '1') == '1'; STACK = E('STACK', '0') == '1'
+RECHAIN = E('RECHAIN', '1') == '1'; REC = E('REC', '1') == '1'; STUDYADD = E('STUDYADD', '1') == '1'; STACK = E('STACK', '0') == '1'
 ADD = int(E('ADD', '0')); FLY = int(E('FLY', '4'))
 INPROG = float(E('INPROG', '1.0'))  # share of today's lead still ahead of an in-progress group
 KAIZEN = int(E('KAIZEN', '2'))      # >0: flow groups get their own lane K of this size
-HOLD = int(E('HOLD', '12'))          # hours before any not-started group may dispatch (drain first)
+HOLD = int(E('HOLD', '12'))
+PITCH = int(E('PITCH', '1'))        # hours between merge trains          # hours before any not-started group may dispatch (drain first)
 DONE = ('done', 'rca-done')
 PROC = {'instrument', 'policy', 'rca', 'record', 'docs', 'fix'}
 NOW = {'S': 11, 'M': 12, 'L': 20, 'XL': 24, None: 11}
 TGT = {'S': 3, 'M': 5, 'L': 8, 'XL': 12, None: 3}
 # Edges between coordinator.py groups whose owning seams (architect notes) are disjoint: they
 # order merges on one file, not one change on another. The RECHAIN seat confirms each one.
-from simulate_rules import HOT_ONLY
+from simulate_rules import HOT_ONLY, added as added_edges
 
 G = {g['group']: g for g in d['groups']}
 # Flow groups go first in lane C, biggest round-time lever first.
-FLOW_ORDER = ['R10-FLOW-RECHAIN', 'R10-FLOW-PULL', 'R10-FLOW-ANDON', 'R10-FLOW-WIP', 'R10-FLOW-POSTMERGE',
-              'R10-FLOW-JIDOKA', 'R10-FLOW-BOARD', 'R10-FLOW-AUTOTRAIN', 'R10-FLOW-MQ-PROBE', 'R10-FLOW-RECORD-PITCH']
+FLOW_ORDER = ['R10-FLOW-RECHAIN', 'R10-FLOW-ROSTER-FREEZE', 'R10-FLOW-BODY-ONLY', 'R10-FLOW-PULL',
+              'R10-FLOW-ANDON', 'R10-FLOW-WIP', 'R10-FLOW-JIDOKA', 'R10-FLOW-POSTMERGE', 'R10-FLOW-BOARD',
+              'R10-FLOW-AUTOTRAIN', 'R10-FLOW-MQ-PROBE', 'R10-FLOW-RECORD-PITCH']
 st = lambda g: (g.get('resume') or {}).get('stage')
-edges = lambda n: [a for a in (G[n].get('after') or []) if not (RECHAIN and (n, a) in HOT_ONLY)]
+def edges(n):
+    base = [a for a in (G[n].get('after') or []) if not (RECHAIN and (n, a) in HOT_ONLY)]
+    return base + ([a for a in added_edges(n, REC, STUDYADD) if a in G and a not in base] if RECHAIN else [])
 
 @functools.lru_cache(None)
 def depth(n):
@@ -64,10 +68,9 @@ for n, g in G.items():
         S[n] = {'start': 0, 'ready': INPROG * NOW[g.get('size')], 'merged': None}
 merges = []; added = 0; flys = 0
 for t in range(H + 1):
-    for n in sorted((n for n in S if S[n].get('merged') is None and S[n]['ready'] <= t),
+    for n in sorted([] if t % PITCH else (n for n in S if S[n].get('merged') is None and S[n]['ready'] <= t),
                     key=lambda n: S[n]['ready']):
-        if all(S.get(a, {}).get('merged') is not None for a in G[n].get('after') or []
-               if not (RECHAIN and (n, a) in HOT_ONLY)):
+        if all(S.get(a, {}).get('merged') is not None for a in edges(n)):
             S[n]['merged'] = t; merges.append((t, n))
     if ADD and t and t % ADD == 0:
         added += 1; nm = f'ADD-{added:02d}'; k = 'instrument' if added % 5 < 3 else 'defect'

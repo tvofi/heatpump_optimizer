@@ -1,0 +1,49 @@
+{
+ "group": "R10-FLOW-ROSTER-FREEZE",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/seat/cloud_relay.sh",
+  "tools/audit/carry_audit.py",
+  "tools/audit/seat/INSTRUMENTS.md"
+ ],
+ "hot_files": [
+  "tools/audit/carry_audit.py"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-ROSTER-OPS"
+ ],
+ "carry": [
+  "Pre-study: the Lean flow pre-study, section K13."
+ ],
+ "architect_note": "",
+ "brief": "The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). Every roster_edit.py push lands on handoff/audit-r10-roster and the relay carries it into the open roster pull request, so a review of that pull request comes back head-moved or body-stale: #2559 lost five reviewer rounds that way on 2026-10-21. And carry_audit.py check resolves carry destinations against main's roster only, so a carry to a group that exists only on the handoff roster fails as a bad destination until the roster pull request merges: #2529, #2547 and #2561 were blocked by it. Change: (a) the relay does not move an open roster pull request's head while a review of it is in flight (a review worktree or an undisposed review dispatch for that number), the freeze fixer.md already gives a fix head; roster edits accumulate on the handoff ref and land between reviews; (b) carry_audit.py also reads the round's handoff roster ref (roster_lib.round_ref) as a destination source, naming which ref resolved each carry, so a destination on the handoff roster passes and one on neither still fails. carry_audit.py is code-owned: tvofi's review under the mandate. Controls: a fixture carry to a handoff-only group passes and names the handoff ref; a carry to a group on neither fails; the relay fixture with a review in flight leaves the roster head unchanged and moves it once the review posts; mutants for both arms.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-roster-freeze",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

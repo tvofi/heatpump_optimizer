@@ -1,0 +1,51 @@
+{
+ "group": "R10-FLOW-BODY-ONLY",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/seat/update_pr.sh",
+  "tools/audit/seat/cloud_relay.sh",
+  "tools/audit/seat/pr_args.sh",
+  "tools/audit/seat/INSTRUMENTS.md"
+ ],
+ "hot_files": [
+  "tools/audit/seat/update_pr.sh"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-UPDATE-PR-SIGNALS"
+ ],
+ "carry": [
+  "Pre-study: the Lean flow pre-study, section K12.",
+  "Until this lands the orchestrator carries verdicts with app_approve.sh --carry (#1667)."
+ ],
+ "architect_note": "",
+ "brief": "Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into the head unconditionally, in the step after it takes the handoff code head, and has no flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: observed 2026-10-21 on #2513, #2544, #2548, #2529 and #2549, each then carried by app_approve.sh --carry or re-reviewed. Change: (a) merge origin/main only when the pull request is DIRTY or git merge-tree --write-tree origin/main HEAD reports a conflict; (b) a body-only mode, taken when the code sha argument is the dash and the pull request head already contains the handoff tip: no worktree commit, no delivery-row commit when the row exists, the body contract (prepr's pr-body step and carry_audit.py check) run at the unchanged head, then app_push.sh's body PATCH with nothing pushed, and the script refuses if the head moved; (c) cloud_relay.sh's handoff arm, which today skips any topic whose code tip the head already contains and so never propagates a body-only move, calls the body-only mode when the handoff-body tip changed. pr-contract re-runs on the edited event, so the body is re-gated without a push. Controls: with main ahead and a clean merge-tree, the head sha is identical before and after; a DIRTY fixture still absorbs; a body-only run on a moved head refuses; the relay fixture calls body-only exactly once per body move; each rule has a mutant. Sequence with the open row-only change #2567 and #2560 (update_pr lock), which touch the same script.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-body-only",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

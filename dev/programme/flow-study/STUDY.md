@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -188,54 +188,41 @@ Null control for every rate: the same enumerator over 2026-10-08 → 10-14 (roun
 
 ---
 
-## K7 · R10-FLOW-RECHAIN (orchestrator roster PR, S, Opus) — replaces the earlier split and stack proposals
+## K7 · R10-FLOW-RECHAIN (orchestrator roster burst, S, Opus): **decided by the seat; this group applies it**
 
-**Why not split, and why not stack.** The demand is a round in about 100 h, so round length is set by the longest chain, not by group count.
-- **Splitting** adds a review, a CI run and a record per part and removes no link from a chain.
-- **Stacking** (starting a link before its predecessor merges) bought nothing in the projection once the chain was cut, and it needs a roster schema change. Both are dropped.
+**Correction to this study.** The first K7 proposal dropped 10 edges based on the owning-seam *names* in the architect notes. The R10-FLOW-RECHAIN decision seat (2026-10-21) checked all 15 coordinator.py edges against the code at main 5d433771a and roster 2c76c3128: it mapped functions with `ast`, mapped every prototype-patch hunk, and recomputed depth with `roster_lib.depth_of`. **Four of the ten drops were wrong:**
+- **SCORES ← ADVISOR:** one sensor publishes both, at sensor.py L2679, and the two views are adjacent in `_insight_view`.
+- **ARCH-SHAPES ← FREQ-DEFROST:** both edit `_freq_fold_blocked`.
+- **HEAT-METER ← RATIO-ANCHOR:** HEAT-METER calls RATIO-ANCHOR's re-anchor, and they are config_flow.py chain positions 1 and 2.
+- **HEAT-METER ← LEARNER-ETA:** LEARNER-ETA's status view reads the learner state HEAT-METER adds.
 
-**Facts**
-- `roster_lib.depth_of` treats every `after` edge as done-before-start. `roster_edit.py` has no op that edits `after` until R10-ROSTER-OPS (#2513) lands `set-after`.
-- The live roster lints clean at 617ce13 (`brief_lint` `TOTAL: 0`). The two R10-PARAMS-OWNER path errors seen at 8afd645 have been fixed upstream.
-- Every coordinator.py group's architect note names a **disjoint owning seam** and says "Touch only the owning seam named here". orchestrator.md §5, which those notes cite, holds no chain rule (L129–131 only).
+The drops also lost two real orderings, PARAMS-OWNER and ARCH-SHAPES after LIVESTATE. Reading a seam's name was not enough: the seat's code-level evidence governs.
 
-**The chain today** (architect-note positions, of 25): NIGHT-FOLDS 6 → RATIO-ANCHOR 7 → INPUT-STALENESS 8 → CURRENCY 9 → FREQ-DEFROST 13 → LOOP-CPU 14 → SAV-REASONS 16 → ADVISOR 17 → SCORES 18 → LIVESTATE 19 → CONFIG-NOTICES 20 → PARAMS-OWNER 21 → ARCH-SHAPES 22 → LEARNER-ETA 23 → HEAT-METER 24 → COP-GATE 25.
+**The ruling** (the seat's files `rechain-decision.md`, `rechain-drops.json` and `rechain-adds.json` are the record; land them in the tree with the burst):
 
-**Edge-by-edge proposal** (the seat confirms or rejects each from the two briefs; the owning seams are quoted from the notes):
+| | edges |
+|---|---|
+| **drop (8)** | RATIO-ANCHOR ← NIGHT-FOLDS · INPUT-STALENESS ← RATIO-ANCHOR · CURRENCY ← INPUT-STALENESS · LOOP-CPU ← FREQ-DEFROST · CONFIG-NOTICES ← LIVESTATE · PARAMS-OWNER ← CONFIG-NOTICES · ARCH-SHAPES ← PARAMS-OWNER · LEARNER-ETA ← ARCH-SHAPES |
+| **keep (7)** | SCORES ← ADVISOR · LIVESTATE ← SCORES · ARCH-SHAPES ← FREQ-DEFROST · HEAT-METER ← LEARNER-ETA · HEAT-METER ← INPUT-STALENESS · HEAT-METER ← RATIO-ANCHOR · COP-GATE ← HEAT-METER |
+| **required, in the same burst (3)** | PARAMS-OWNER ← LIVESTATE · ARCH-SHAPES ← LIVESTATE · HEAT-METER ← PARAMS-OWNER, ARCH-SHAPES |
+| **recommended, 0 depth each (4)** | LIVESTATE ← LOOP-CPU · LOOP-CPU ← NIGHT-FOLDS · PARAMS-OWNER ← NIGHT-FOLDS, RATIO-ANCHOR · ARCH-SHAPES ← INPUT-STALENESS |
+| **this study's addition, 0 depth** | HEAT-METER ← R10-THERMAL-POWER-OPTION: they share flow_meter.py, config_flow.py and const.py, and THERMAL-POWER-OPTION has no edge today. HEAT-METER already waits at depth 5, so THERMAL-POWER-OPTION (depth 1) can start now at no cost. R10-LEARNER-DEFAULT also has no edges; check it the same way. |
 
-| edge (later ← earlier) | later's owning seam | earlier's owning seam | proposal |
-|---|---|---|---|
-| RATIO-ANCHOR ← NIGHT-FOLDS | options-save path and the stored ratio | heat-loss fold methods | drop: file order only |
-| INPUT-STALENESS ← RATIO-ANCHOR | max-age table and its freshness check | options-save path, stored ratio | drop |
-| CURRENCY ← INPUT-STALENESS | `_narrative_view` money rendering | max-age table | drop |
-| LOOP-CPU ← FREQ-DEFROST | `_replay_interval` call site | `_observe_frequency` | drop |
-| SCORES ← ADVISOR | `_scores_view`, `_close_score_day`, score sensors, card section | advisor what-if, card section | drop for coordinator.py. **Check the card file**: both write card sections (heatpump-optimizer-card.js chain 3 → 4 of 5) |
-| CONFIG-NOTICES ← LIVESTATE | config-notice fields | `_current_state`, away state, callbacks | drop |
-| LEARNER-ETA ← ARCH-SHAPES | learner status in the payload | float coercion helpers | drop |
-| HEAT-METER ← LEARNER-ETA | new input key, options step, COP and house-learner sample sites | learner status | drop |
-| HEAT-METER ← RATIO-ANCHOR | as above | options-save path | drop. **Check**: both touch the options save |
-| ARCH-SHAPES ← FREQ-DEFROST | float coercion helpers | `_observe_frequency` | drop |
-| LIVESTATE ← SCORES | publish-whole state | `_scores_view` | **keep**: copy-then-publish wraps the views |
-| PARAMS-OWNER ← CONFIG-NOTICES | `_thermal_params`, coordinator context | config-notice fields moved "behind the owner" | **keep** |
-| ARCH-SHAPES ← PARAMS-OWNER | float coercion helpers | the owner | **keep** |
-| HEAT-METER ← INPUT-STALENESS | new input key | freshness rule keyed on the source kind | **keep**: the new input needs the rule |
-| COP-GATE ← HEAT-METER | COP eligibility | heat-energy reader | **keep** |
-| UX-HEALTH ← SCORES, COP-GATE, HEAT-METER | Health card | their published state | **keep** |
-| ARCH-DOCS ← 36 groups | architecture docs | all of them | **keep**: it documents the end state; it is the round's last group by design |
+**New critical path (8):** ADVISOR → SCORES → LIVESTATE → PARAMS-OWNER → HEAT-METER → COP-GATE → UX-HEALTH → ARCH-DOCS.
+- `tools/simulate_rules.py` encodes exactly this.
+- The projection moves from about 78 h (the wrong 10 drops) to **about 92 h**. The recommended and study edges cost 0 h.
+- Every critical-path link except ADVISOR is L or XL. Their review should jump the queue: in a critical chain, a link's waiting time is round time.
 
-**Effect in the projection:** critical depth 11 → 5. With lane A at 4, the remaining round falls from about 215 h to about 133 h at today's lead times, and to about 77 h at the target lead times (FUTURE-STATE §6).
+**Why still no splitting.** The path's XL links (LIVESTATE, PARAMS-OWNER, HEAT-METER) could only get shorter by splitting if the next link depended on just one part. Nothing in the seat's evidence shows that. Splitting would add review, CI and record cost per part for an unproven gain. Re-open it only with a code-level dependency map like the seat's.
 
-**Change**
-- For every edge marked drop that the seat confirms: `roster_edit.py set-after <later> <remaining edges>`, plus `edit-brief` or a note amendment.
-- In each amended architect note, replace "Start from the previous group's merge" with "Start from main; your merge follows <predecessor> if both are in one pitch."
-- **Merge order** within one pitch is the train's queue order (oldest first). A content conflict stops the train at that entry (`merge_train.py` stops at the first refusal) and returns to the later group's fixer: the cost of a wrong drop is one rework, caught by the gate, never a silent merge.
+**Apply** (in the Phase-1 burst, SHADOW-PLAN §3.2):
+- `roster_edit.py set-after` for the 8 drops plus all additions.
+- The architect-note and brief text the decision file lists per group.
 
 **Controls**
 - `brief_lint` `TOTAL: 0`.
-- `roster_lib` critical path printed before and after.
-- Every dropped edge names its two seams.
-- Null control: an edge outside coordinator.py is unchanged.
-- `carry_audit.py owners`: no issue orphaned.
+- `roster_lib` prints depth 8 and the path above.
+- No edge outside coordinator.py changes, except the THERMAL-POWER-OPTION addition.
 
 ## K8 · R10-FLOW-ANDON (instrument, S, Sonnet fixer, Opus reviewer)
 
@@ -323,6 +310,60 @@ Null control for every rate: the same enumerator over 2026-10-08 → 10-14 (roun
 Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zero **after** the merge line. It never retries the merge and never reverts.
 
 **Controls:** a `--dry-run` fixture prints the exact comment and commands; a refused comment yields `OWED`; deleting each step fails a named self-test arm. `governance.yml` already runs the seat self-tests: check that `selftest_wiring.py --check` stays green.
+
+## K12 · R10-FLOW-BODY-ONLY (instrument, S, Opus): R4 made true in the tool
+
+**Facts at main**
+- **`update_pr.sh`** (usage `update_pr.sh <branch> <code-sha|-> <body-file> [issues...]`) runs:
+  1. a flock lock
+  2. derives the topic
+  3. fetches the handoff code head (when the code sha is not `-`)
+  4. re-adds the worktree at the PR branch
+  5. merges the code head
+  6. **merges `origin/main` unconditionally** (L70; no flag skips it)
+  7. ensures the delivery row (a commit when missing)
+  8. checks the author
+  9. prefixes the body
+  10. runs `app_push.sh`, which runs prepr, mints, pushes, then PATCHes the body and reads it back
+- **`app_push.sh`:** flags `--dry-run`, `--recarry`, `--branch-only`; **no body-only mode**. A run whose HEAD equals the branch tip pushes nothing new and still PATCHes the body. That is inferred from the code, not run.
+- **`cloud_relay.sh`'s handoff arm** (around L179–235) skips any topic whose `handoff/<topic>` tip the PR head already contains (L196). **A body-only move is therefore never propagated by the relay.** The orchestrator runs `update_pr.sh` by hand, which merges main.
+- **`pr-contract.yml`** triggers on `edited` (L23) and reads the body from the API at run time, so a body PATCH re-gates without a push.
+
+**Observed 2026-10-21:** body fixes moved clean heads on #2513, #2544, #2548, #2529 and #2549. The orchestrator carried their verdicts with `app_approve.sh --carry`.
+
+**Change**
+- (a) L70 becomes conditional: merge only when the PR is DIRTY or `git merge-tree --write-tree origin/main HEAD` reports a conflict.
+- (b) Body-only mode: code sha `-`, and the PR head already contains the handoff tip. It makes no worktree commit, and no row commit when the row exists. It runs the body contract at the unchanged head, then the body PATCH with nothing pushed. It asserts that the head sha is unchanged, and refuses otherwise.
+- (c) The relay's handoff arm calls body-only when the `handoff-body/<topic>` tip changed and the code tip is already contained.
+
+**Controls**
+- With main ahead and a clean merge-tree, the head sha is identical before and after.
+- A DIRTY fixture still absorbs.
+- Body-only on a moved head refuses.
+- The relay calls body-only exactly once per body move.
+- One mutant per rule.
+
+**Sequence:** after R10-UPDATE-PR-SIGNALS (#2524), and with #2567 (row-only update) and #2560 (update_pr lock), which edit the same script.
+
+## K13 · R10-FLOW-ROSTER-FREEZE (instrument, S, Opus)
+
+**Facts**
+- Roster edits push to `handoff/audit-r10-roster`, and the relay carries them into the open roster PR. On 2026-10-21, #2559 lost five reviewer rounds to `head-moved` and `body-stale`.
+- `carry_audit.py check` resolves destinations against main's roster only. A carry to a group that exists only on the handoff roster fails as `BAD-DEST` until the roster PR merges. That blocked #2529, #2547 and #2561.
+- `carry_audit.py` already accepts a repeatable `--roster-ref` global option. `pr-contract.yml` (around L384–386) calls `check --body` without one.
+
+**Change**
+- (a) The relay does not move an open roster PR's head while a review of it is in flight: the fix-head freeze, applied to the roster PR.
+- (b) `carry_audit.py` also reads the round's handoff roster (`roster_lib.round_ref`) as a destination source, and names which ref resolved each carry.
+
+`carry_audit.py` is code-owned, so it needs tvofi's review under the mandate.
+
+**Controls**
+- A handoff-only destination passes and names its ref; a destination on neither ref fails.
+- With a review in flight, the roster head is unchanged, and it moves once the verdict posts.
+- Mutants for both arms.
+
+**Until this lands:** freeze roster pushes by hand while #2559 is under review (SHADOW-PLAN §3.2 Phase 1a).
 
 ## Fly-in intake (no group: operating rule, carried by K3)
 
