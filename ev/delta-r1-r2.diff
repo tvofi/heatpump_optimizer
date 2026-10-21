@@ -1,0 +1,3 @@
+134a135,136
+> +    "tools/audit/seat/pr_args.sh": ("fixture", "its self-test's stub app_push.sh pushes the branch it is given "
+> +                                    "into a scratch origin repository; the file pushes nothing else"),
