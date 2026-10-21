@@ -1,0 +1,11 @@
+## pr-contract's body command at 93015ecada7190edc054e49a47538704b14e1f34, token in env:
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
+PR-BODY: 0 error(s) in ../body.md
+## same command, GH_TOKEN/GITHUB_TOKEN unset (a seat whose credential is in gh's store), as row_only_checks runs it:
+  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+PR-BODY: 0 error(s) in ../body.md
+## carry_audit (pr-contract step 'Every finding the body records names its destination'):
+UNROUTED body item e493a208 (## Forward-carry) [section]: 'none. The `--row-only` arm changes how `update_pr.sh` pushes, and that is recorded in `tools/audit/seat/INSTRU'
+UNROUTED body item 03e03217 (## Friction) [section]: '- fixer.md-step-5: cost: `tools/audit/seat/seat_venv.sh` refused in this cloud container (`No download found f'
+CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
+rc=1
