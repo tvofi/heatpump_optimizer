@@ -1,0 +1,11 @@
+== baseline f1695654 (finder's head) at f16956542b2c4470de5a3e12fc843f97cef1840e
+dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)
+rc=1
+== PR head at 54bf182104e450c0ac2e6eb007da59b9315e0565
+dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)
+rc=1
+== PR head under W11 at 54bf182104e450c0ac2e6eb007da59b9315e0565
+HEAD 1f1ef3ea is the live head 1c1c386c plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note
+rc=0
+base W11 app_push self-test: 179 checks, 0 failed
+base M0 app_push self-test: 179 checks, 0 failed

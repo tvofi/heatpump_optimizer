@@ -1,0 +1,10 @@
+_rv_no "HEAD does not read back
+_rv_no "no open pull request whose live head reads back
+_rv_no "HEAD has ${#ps[@]} parent(s), not one commit on the live head
+_rv_no "parent 1 ${ps[0]:0:8} is not the live pull-request head ${live:0:8}
+_rv_no "delivery_row.sh did not load, so the row's path is unknown
+_rv_no "the diff against the live head could not be read
+_rv_no "the head adds or changes more than this pull request's own row $row (git diff --name-status: $(printf '%s' 
+_rv_no "$row is not one open row anchored on #$num (tests/delivery_status.py's anchored)
+_rv_no "the body file is not the live pull-request body under one new \`## Head\` note
+_rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note
