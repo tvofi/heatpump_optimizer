@@ -1,0 +1,8 @@
+origin/main e7c664856776542bf60bd770c98aba1eaadb4041:
+{"group":"R10-ROSTER-OPS","stage":"in-progress","commit":"9969e3ca80bd6255cd1231b1b4e53410a6fbeb88","note":"Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."}
+{"group":"R10-MERGE-PR-MANDATE","stage":"in-progress","commit":"6219325ca20928f82c80880b1ed7fadf3e1c93b2","note":"Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."}
+head 802b38503eb5de20e87c278ba7923508a50c0f1f:
+{"group":"R10-OPENPR-SILENT","resume":{"stage":"done","branch":"handoff/r10-openpr-silent","commit":"dbea71db76f1eea499c41df9c10678695f56bb0b","last_step":null,"next_step":"PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it","note":"delivered by PR #2422; follow-up #2525 (soft cap gates dispatch only) is open under this group"}}
+{"group":"R10-MERGE-PR-MANDATE","resume":{"stage":"done","branch":"handoff/r10-merge-pr-mandate","commit":"22615537a497c87cf0560ecc7dd09faac52b1de5","last_step":"fixer","next_step":"recarry","note":"Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its one path, the mandate id reaches proof_watch, refusal before any GitHub write) has no pull request. Owed: recarry and open; it touches tools/policy/budget_raise_gate.py, so the owner reviews."}}
+PR #2555:
+closed	2026-10-21T13:10:40Z	22615537a497c87cf0560ecc7dd09faac52b1de5	fix/r10-merge-pr-mandate

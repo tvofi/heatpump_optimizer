@@ -1,0 +1,52 @@
+groups 91 108
+done 43 52
+carries 201 257
+removed []
+new 17 [('R10-HANDOFF-ARCHIVE', 'done', 0), ('R10-DEPENDABOT-AIOHTTP', 'done', 0), ('R10-ORCH-MACHINERY', 'not-started', 10), ('R10-CARD-VOICE', 'not-started', 6), ('R10-THERMAL-POWER-OPTION', 'not-started', 0), ('R10-LEARNER-DEFAULT', 'not-started', 0), ('R10-MUTANT-SKIP', 'not-started', 0), ('R10-TICK-OWED-LEVEL', 'in-progress', 1), ('R10-REPLAY-CAP', 'in-progress', 0), ('R10-RCA-HANDOFF-SLIP', 'in-progress', 0), ('R10-HANDOVER-REFRESH', 'in-progress', 1), ('R10-RCA-ORCH-CONTINUITY', 'in-progress', 0), ('R10-TICK-RELAY-DECOUPLE', 'in-progress', 0), ('R10-PLAN-ARTIFACT', 'in-progress', 0), ('R10-ROSTER-PUSH-RACE', 'in-progress', 0), ('R10-CI-LAYOUT-P1', 'not-started', 3), ('R10-CI-LAYOUT-P2', 'not-started', 2)] carries on new 23
+stage changes 19
+  ('R10-NIGHT-FOLDS', 'not-started', 'in-progress')
+  ('R10-FREQ-DEFROST', 'not-started', 'in-progress')
+  ('R10-SAV-REASONS', 'not-started', 'done')
+  ('R10-ADVISOR', 'not-started', 'in-progress')
+  ('R10-I5-DOCS', 'not-started', 'in-progress')
+  ('R10-PREPR-CAP', 'done', 'in-progress')
+  ('R10-REPLAY-LANE', 'not-started', 'in-progress')
+  ('R10-TRAIN-HOLD', 'not-started', 'done')
+  ('R10-DEEPLINK-HANDLERS', 'planned', 'done')
+  ('R10-RCA-FRICTION', 'not-started', 'in-progress')
+  ('R10-CI-LAYOUT', 'not-started', 'in-progress')
+  ('R10-STAMP', 'not-started', 'done')
+  ('R10-RCA-NIGHTLY-PYSPY', 'in-progress', 'done')
+  ('R10-CI-RATCHET-RED', 'done', 'in-progress')
+  ('R10-MERGE-PR-MANDATE', 'in-progress', 'done')
+  ('R10-FOLLOWER-DEBOUNCE', 'in-progress', 'done')
+  ('R10-SETPOINT-BOOST', 'in-progress', 'done')
+  ('R10-UPDATE-PR-LOCK', 'in-progress', 'done')
+  ('R10-UPDATE-PR-SIGNALS', 'queued', 'in-progress')
+carry changes 14 33
+  ('R10-FAHRENHEIT', 3, 4)
+  ('R10-ADVISOR', 10, 11)
+  ('R10-REGISTRY-LEAK', 1, 3)
+  ('R10-ARCH-SHAPES', 5, 6)
+  ('R10-HEAT-METER', 4, 5)
+  ('R10-I5-DOCS', 1, 2)
+  ('R10-TICK-ORCH', 1, 2)
+  ('R10-BRIEFS-FOLD', 18, 21)
+  ('R10-REPLAY-LANE', 3, 5)
+  ('R10-RCA-FRICTION', 1, 2)
+  ('R10-POLICY-LINT-FAMILY', 3, 5)
+  ('R10-CI-LAYOUT', 14, 27)
+  ('R10-STAMP', 9, 10)
+  ('R10-ROSTER-OPS', 3, 6)
+carry rewritten at same count []
+text edits 16 ['R10-ADVISOR', 'R10-SCORES', 'R10-SENSOR-PAYLOAD', 'R10-REPLAY-LANE', 'R10-RCA-FRICTION', 'R10-SAV-COMFORT', 'R10-MUTATION-ANCHOR', 'R10-MERGE-SUBJECT-HARDEN', 'R10-CI-LAYOUT', 'R10-ROSTER-OPS', 'R10-MERGE-PR-MANDATE', 'R10-CEILING-PROBE', 'R10-DEMAND-OVERBOOK', 'R10-BUFFER-STORE', 'R10-COP-PARTLOAD', 'R10-UPDATE-PR-SIGNALS']
+resume edits same stage 12 ['R10-TRUST-RELATIVE', 'R10-REGISTRY-LEAK', 'R10-PUMP-MODEL', 'R10-SENSOR-PAYLOAD', 'R10-DEAD-RATE-LIMIT', 'R10-OPENPR-SILENT', 'R10-TICK-SELFTEST-CI', 'R10-SEAT-SELFTESTS-CI', 'R10-RECARRY-HEAD', 'R10-SETPOINT-POWER', 'R10-PREPR-UNPINNED-RED', 'R10-ROSTER-OPS']
+R10-OPENPR-SILENT 
+ A {"stage": "done", "branch": "handoff/r10-openpr-silent", "commit": "7ab3030bbfff", "last_step": null, "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it", "note": "delivered by PR #2422"} 
+ B {"stage": "done", "branch": "handoff/r10-openpr-silent", "commit": "dbea71db76f1eea499c41df9c10678695f56bb0b", "last_step": null, "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it", "note": "delivered by PR #2422; follow-up #2525 (soft cap gates dispatch only) is open under this group"}
+R10-MERGE-PR-MANDATE 
+ A {"stage": "in-progress", "branch": "handoff/r10-merge-pr-mandate", "commit": "6219325ca20928f82c80880b1ed7fadf3e1c93b2", "last_step": "fixer", "next_step": "recarry", "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."} 
+ B {"stage": "done", "branch": "handoff/r10-merge-pr-mandate", "commit": "22615537a497c87cf0560ecc7dd09faac52b1de5", "last_step": "fixer", "next_step": "recarry", "note": "Handoff handoff/r10-merge-pr-mandate at 6219325c (3 commits, 5 files: merge_pr reads the budget gate at its one path, the mandate id reaches proof_watch, refusal before any GitHub write) has no pull request. Owed: recarry and open; it touches tools/policy/budget_raise_gate.py, so the owner reviews."}
+R10-ROSTER-OPS 
+ A {"stage": "in-progress", "branch": "handoff/r10-roster-ops", "commit": "9969e3ca80bd6255cd1231b1b4e53410a6fbeb88", "last_step": "fixer", "next_step": "open_pr", "note": "Folded into wave 2 by tvofi 2026-10-19: handoff existed without a group or PR."} 
+ B {"stage": "in-progress", "branch": "handoff/r10-roster-ops", "commit": "9969e3ca80bd6255cd1231b1b4e53410a6fbeb88", "last_step": "fixer", "next_step": "open the ops handoff at 9969e3ca (set-after, drop-carry, mutant driver) as a draft PR; then dispatch the brief's second deliverable at a new head: the roster-sync reconciler in state_docs.py beat (--apply, dry run by default), deriving merged->done and open->in-progress from the repository and appending a merged body's Carry through carry_audit.py's parser, never overwriting deferred/refused.", "note": "Handoff handoff/r10-roster-ops at 9969e3ca (1 commit, 361 lines: set-after and drop-carry ops plus a mutant driver) has no pull request. Owed: recarry and open."}
