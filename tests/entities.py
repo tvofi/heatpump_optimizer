@@ -20307,6 +20307,26 @@ R.check(
     re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
     "without the trigger `gh workflow run codeql.yml` is refused with 422",
 )
+# `Analyze (python)` is a required context, so a cancelled analysis fails the
+# pull request. Its runtime swings with runner load, and the 30-minute cap sat
+# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
+# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
+# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
+# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
+# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
+# design choice. The cap is pinned against the YAML (not left as prose in the
+# workflow) because a one-line edit shrinking it back is exactly what no other
+# check reads.
+_CODEQL_JOBS = (_yaml.safe_load(
+    (pathlib.Path(__file__).resolve().parents[1] / ".github"
+     / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
+_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+R.check(
+    "codeql.yml's analyze cap clears the python leg's measured worst case",
+    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
+    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
+    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+)
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
 # stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
@@ -22690,6 +22710,9 @@ _INERT_TOOL_HOMES = (
     "tools/pr/",
     "tools/coverage/",
     "tools/devices/",
+    # The schedule model and its measured durations: run by hand at a wave
+    # edge, read by no gate script (closure.py lists it as an inert home).
+    "tools/plan/",
 )
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
@@ -26678,6 +26701,120 @@ R.check(
         "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
     "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
     "the repository's full name, must each turn the lookup pin red",
+)
+# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
+# while it is live and deletes it at its closing line, and this beat's
+# automerge step must not merge a record pull request while that ref is
+# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
+# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
+# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
+# stubbed API: the status it prints is what proves the skip happens before the
+# guard and the merge, so a check placed after them (or an inverted age
+# comparison) cannot pass. The bound is read from the step, never carried.
+_HOLD_STEP = next((s for s in ((_yaml.safe_load(_TESTS_YML) or {}).get("jobs") or {})
+                   .get("record-autofix", {}).get("steps") or []
+                   if str(s.get("id") or "") == "automerge"), {})
+_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
+_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
+_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
+_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
+_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
+                         Path("tools/audit/seat/merge_train.py").read_text())
+
+
+def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
+    """The automerge step's `status=` and whether it warned "unreadable" over a
+    stubbed API whose train-hold read answers (code, body); every other read is
+    the minimum the step needs.
+
+    The record-row guard is a stub that refuses, so an arm that did NOT skip
+    reaches it and reports `refused`: a missing or unreached skip is visible
+    in the status, not inferred from an absence. `GET /commits/<ref>` answers
+    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
+    live 2026-10-20), never 404 -- an absent hold must be silent, or every
+    beat with no train running logs a warning."""
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
+            "import sys\nsys.exit(1)\n")
+        answers = t / "answers.json"
+        answers.write_text(json.dumps({
+            "hold": {"code": code, "body": body},
+            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
+            "reviews": {"code": 200, "body": "[]"},
+            "other": {"code": 404, "body": "{}"}}))
+        bin_ = t / "bin"
+        bin_.mkdir()
+        (bin_ / "curl").write_text(
+            "#!" + sys.executable + "\n"
+            "import json, sys\n"
+            f"ans = json.load(open({str(answers)!r}))\n"
+            "a = sys.argv[1:]\n"
+            "url = a[-1]\n"
+            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
+            "       else 'reviews' if '/reviews' in url\n"
+            "       else 'pulls' if '/pulls/' in url else 'other')\n"
+            "code, body = ans[key]['code'], ans[key]['body']\n"
+            "if '-o' in a:\n"
+            "    p = a[a.index('-o') + 1]\n"
+            "    if p != '/dev/null':\n"
+            "        open(p, 'w').write(body)\n"
+            "    if '-w' in a:\n"
+            "        sys.stdout.write(str(code))\n"
+            "else:\n"
+            "    sys.stdout.write(body)\n")
+        (bin_ / "curl").chmod(0o755)
+        out = t / "out"
+        out.write_text("")
+        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
+                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
+        warned = "unreadable" in (p.stdout + p.stderr)
+        return (found[-1] if found else ""), warned
+
+
+def _hold_when(offset_s: int) -> str:
+    """A commit read whose committer date is now + offset_s seconds."""
+    at = datetime.now(UTC) + timedelta(seconds=offset_s)
+    return json.dumps({"commit": {"committer": {
+        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
+
+
+R.check(
+    "tests.yml's automerge skips while a live merge train holds the record "
+    "beat (executed, issue #2302)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
+    f"bound={_HOLD_BOUND}, "
+    f"status={_train_hold_status(200, _hold_when(-60))!r}",
+)
+R.check(
+    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
+    "one (the API's own 422) and an unreadable one do not skip -- and only the "
+    "unreadable ones warn (null controls)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
+    and _train_hold_status(422, "{}") == ("refused", False)
+    and _train_hold_status(404, "{}") == ("refused", False)
+    and _train_hold_status(500, "{}") == ("refused", True)
+    and _train_hold_status(200, "{}") == ("refused", True),
+    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
+    "date ahead of the reading clock is unknowable, never young (#775); the "
+    "commits endpoint answers 422 for an absent ref, so that arm must be "
+    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
+    "behaviour, which is the safe failure",
+)
+R.check(
+    "the beat's hold ref and the train's hold ref name the same branch",
+    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
+    and "/commits/$HOLD_REF" in _HOLD_RUN
+    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
+    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
+    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
 )
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
