@@ -1,0 +1,3 @@
+  UNWIRED tools/audit/seat/tmp_paths.py: no workflow run line names its self-test
+selftest_wiring: 37 self-testing, 36 wired, 1 unwired
+rc=1

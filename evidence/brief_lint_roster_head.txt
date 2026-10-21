@@ -1,0 +1,12 @@
+
+== dev/programme/rosters/wave-r10-groups.json ==
+  WARNING [R10-RCA-FRICTION] path:line: fix-review.md:29: no anchor text extracted near the citation; line range only
+  WARNING [R10-CI-RATCHET-RED] path: PLAN.md: not in the tree and no tag cited; could be shorthand for blueprints/automation/notify_on_manual_plan.yaml, custom_components/heatpump_optimizer/dhw_planner.py, custom_components/heatpump_optimizer/manual_plan.py, custom_components/heatpump_optimizer/plan_step.py, dev/audit/rounds/round10/D14/sweep-I1/logs/manual_plan.log -- verify by hand
+  WARNING [R10-TICK-RELAY-DECOUPLE] path: tick.txt: not in the tree and no tag cited; could be shorthand for .claude/workflows/fixtures/policy-rot/prepr/backtick-bad-event.md, tools/audit/harnesses/r10_tick_drivers.py, tools/audit/harnesses/r10_tick_train_mutants.sh, tools/audit/harnesses/r10_tick_which_roster.py, tools/audit/round8/evidence/D5/s2_backtick_check.py -- verify by hand
+  WARNING [R10-PLAN-ARTIFACT] path: plan.json: not in the tree and no tag cited; could be shorthand for blueprints/automation/notify_on_manual_plan.yaml, custom_components/heatpump_optimizer/dhw_planner.py, custom_components/heatpump_optimizer/manual_plan.py, custom_components/heatpump_optimizer/plan_step.py, dev/audit/rounds/round10/D14/sweep-I1/logs/manual_plan.log -- verify by hand
+  -- 0 error(s), 4 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)
+rc=0
