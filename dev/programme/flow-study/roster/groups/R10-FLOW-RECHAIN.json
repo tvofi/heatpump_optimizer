@@ -1,0 +1,48 @@
+{
+ "group": "R10-FLOW-RECHAIN",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "dev/programme/rosters/wave-r10-groups.json"
+ ],
+ "hot_files": [
+  "dev/programme/rosters/wave-r10-groups.json"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-ROSTER-OPS"
+ ],
+ "carry": [
+  "Owner ruling owed: chains by owning-seam overlap rather than by file.",
+  "Pre-study: the Lean flow pre-study, section K7 (edge-by-edge proposal)."
+ ],
+ "architect_note": "",
+ "brief": "Shorten the round's critical path by re-chaining on seams, not files (Lean flow study K7). The owner's demand is a whole programme round in about 100 h, so the round's length is set by its longest chain of not-done after edges, not by group count. Sixteen not-done groups sit on one serial chain through coordinator.py (architect-note positions 6 to 25), yet each note already confines its group to a named, disjoint owning seam inside that file. An after edge between two such groups orders merges on one file; it does not carry one change into another. For every after edge between two coordinator.py groups, decide from the two owning seams and the two briefs whether the later group reads or changes what the earlier one changes. Where it does not, drop the edge with roster_edit.py set-after (it lands with R10-ROSTER-OPS) and amend both architect notes so the later group starts from main, not from the earlier merge; the hourly batch proof and the fix review still see the combined result. Keep every edge that carries a real dependency, and say why. Do not split groups: splitting adds a review, a CI run and a record per part and shortens no chain. This is a roster pull request by the orchestrator under orchestrator.md section 5. Controls: brief_lint passes; roster_lib's critical path is printed before and after; every dropped edge names the two disjoint seams; a null control, a non-coordinator edge, is unchanged.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-rechain",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

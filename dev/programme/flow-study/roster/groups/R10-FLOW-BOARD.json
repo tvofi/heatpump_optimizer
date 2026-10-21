@@ -1,0 +1,51 @@
+{
+ "group": "R10-FLOW-BOARD",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/merge_throughput.py",
+  "tools/audit/seat/state_docs.py",
+  "tools/audit/seat/INSTRUMENTS.md",
+  ".github/workflows/governance.yml"
+ ],
+ "hot_files": [
+  "tools/audit/seat/state_docs.py"
+ ],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-PLAN-ARTIFACT"
+ ],
+ "carry": [
+  "Pre-study: the Lean flow pre-study, section K1 (shadow plan).",
+  "Seam: R10-PLAN-ARTIFACT builds the plan page; share its model, do not build a second one."
+ ],
+ "architect_note": "",
+ "brief": "Flow board (Lean study K1). Today nothing measures throughput against the owner's demand of one roster group merged per hour, so no flow change can show it worked. Extend tools/audit/merge_throughput.py with a flow subcommand rather than adding a file: read the first-parent log of origin/main, the review and verdict bus refs (tools/audit/seat/bus.sh publishes one commit per verdict, subject 'verdict: #N Fix review: merge|blocked <sha> <class>: ...'), and the roster through tools/audit/seat/roster_lib.py. Print per rolling hour and per 24 h: roster groups closed against takt 1.0; fly-ins closed; main moves split into group-carrying, record, roster-edit and fly-in; work in progress by flow lane (A critical path, B product, C process, F fly-in); first-pass yield of fix review and the blocked-class mix; lead time per size. Add it to tools/audit/seat/state_docs.py's generator list so the beat publishes it beside the plan table, and print UNAVAILABLE, never zeros, when a source is unreadable. Wire its self-test into governance.yml's instrument-self-tests job. Controls: a fixture with one merge, one blocked then merged verdict and one record merge gives exact counts; a null control (an unchanged fixture) reads identical before and after; its mutants fail named arms.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-board",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

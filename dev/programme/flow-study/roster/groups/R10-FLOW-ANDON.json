@@ -1,0 +1,49 @@
+{
+ "group": "R10-FLOW-ANDON",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/seat/tick_loop.sh",
+  "tools/audit/seat/INSTRUMENTS.md"
+ ],
+ "hot_files": [
+  "tools/audit/seat/tick_loop.sh"
+ ],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-TICK-RELAY-DECOUPLE"
+ ],
+ "carry": [
+  "This is a countermeasure for R10-RCA-ORCH-CONTINUITY: cite that record, do not redo it.",
+  "Pre-study: the Lean flow pre-study, section K8."
+ ],
+ "architect_note": "",
+ "brief": "Make an orchestrator stop visible within 20 minutes (Lean study K8). In round 10, two stops went unnoticed for 6 h and 16 h (R10-RCA-ORCH-CONTINUITY). No loop writes a liveness signal anyone outside the host can read: tick_loop.sh writes a local board, state_docs.py's beat pushes only when main moves, and wt_sync.sh only when a tree is dirty. Each tick pass updates one ref, heartbeat/orchestrator, to a commit whose message carries the pass time and the relay and tick return codes, pushed with the seat's existing credential. A watcher outside the host (an owner-scheduled cloud task) reads the ref's committer date and alerts the owner when it is older than 20 minutes. Controls: the loop's self-test shows a pass moves the ref and a failed push is printed, never silent; a stale-ref fixture makes the watcher command alert and a fresh one does not.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-andon",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

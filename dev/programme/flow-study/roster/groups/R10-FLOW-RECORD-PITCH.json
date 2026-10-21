@@ -1,0 +1,52 @@
+{
+ "group": "R10-FLOW-RECORD-PITCH",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  ".github/workflows/tests.yml",
+  "tools/audit/seat/record_row.py"
+ ],
+ "hot_files": [
+  ".github/workflows/tests.yml"
+ ],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-CI-LAYOUT-P1",
+  "R10-FLOW-PULL",
+  "R10-FLOW-MQ-PROBE"
+ ],
+ "carry": [
+  "Conditional: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, heads no longer absorb main and a record merge no longer stales them; close this group as not needed instead of building it.",
+  "Pre-study: the Lean flow pre-study, section K6.",
+  "HANDOVER trap 15 binds: one record per merge; batching the merge time, not the rows."
+ ],
+ "architect_note": "",
+ "brief": "Records in the pitch (Lean study K6). In round 10, record pull requests were about half of every merge to main, and each one moves main under every open head. The record-autofix beat merges its own pull request whenever record_row.py --automerge-check passes and no young train-hold ref exists. Add a pitch bound to that automerge step: skip when the last record merge on main is younger than one pitch (3600 s), unless the oldest unrowed merge is older than two pitches (bounded staleness, so one record per merge stays the truth condition). The train's --bot-prs sweep then lands it inside the pitch. Land it where R10-CI-LAYOUT-P1 moves record-autofix off the Tests push run (its D-1), not in the old place. Controls: the step's harness shows a young record merge skips and a stale backlog proceeds; the existing train-hold arm is unchanged. Code-owned workflow: tvofi's review under the mandate.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-record-pitch",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}
