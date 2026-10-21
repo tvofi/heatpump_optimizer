@@ -317,3 +317,10 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 26. **A reviewer was dispatched at a red head** (#2563 at 9851d39d). There is now a pre-dispatch check, the dispatcher refuses such a dispatch, and K15 (d) defines a reviewable head (rule E).
 27. **The expedites competed for reviewers.** They now go one wave at a time, at most two expedite reviews at once, and critical-path reviews are not displaced.
 
+**Revision 8** (s4: "no objection to the design remains"; four process points, none blocking)
+
+28. **The K14 dry run costs about 3 min, because it runs prepr.** That is accepted for the interim. R10-FLOW-BODY-PATCH runs only the body contract (target under 30 s).
+29. **An offline `carry_audit check --body` reads the worktree's roster,** and so passes carries that are not on the roster branch. BODY-PATCH and JIDOKA now pass `--roster-ref` with the freshly fetched round roster branch. The interim command is in the prompt, standing rule 12.
+30. **Stale check-runs recurred** (#2559, #2567); one re-run clears each. MAIN-GATE (b) applies it before every merge attempt and logs the run id; a third recurrence goes to a root-cause seat.
+31. **A relayed "verdict posted" must be read back from the PR's comments** before anyone acts on it. R10-ORCH-MACHINERY's ledger closes `verdict-unposted` only on that read-back (carry item 4b).
+

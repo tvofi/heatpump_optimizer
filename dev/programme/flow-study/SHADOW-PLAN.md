@@ -227,7 +227,7 @@ Then it merges with `--match-head-commit`. The train approves the same way (`--a
 
 Lane K is the flow allowance; BODY-PATCH and MAIN-GATE dispatch inside the drain as expedites. "after" lists the edges as re-chained by the seat.
 
-day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
+day 0: 29 · day 1: 29 · day 2: 9 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
@@ -240,10 +240,8 @@ day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 | 0 | 11 | 0 | R10-RCA-FRICTION | C | S | policy | in-progress | — |
 | 0 | 11 | 0 | R10-RCA-HANDOFF-SLIP | C | S | rca | in-progress | — |
 | 0 | 11 | 0 | R10-REPLAY-CAP | B | S | defect | in-progress | — |
-| 0 | 11 | 0 | R10-ROSTER-OPS | C | S | instrument | in-progress | — |
 | 0 | 11 | 0 | R10-ROSTER-PUSH-RACE | B | - | defect | in-progress | — |
 | 0 | 11 | 0 | R10-TICK-OWED-LEVEL | C | S | instrument | in-progress | — |
-| 0 | 11 | 0 | R10-TICK-RELAY-DECOUPLE | C | S | fix | in-progress | — |
 | 0 | 11 | 0 | R10-UPDATE-PR-SIGNALS | C | S | instrument | in-progress | — |
 | 0 | 12 | 0 | R10-ADVISOR | A | M | owner | in-progress | R10-UX-SETUP, R10-SAV-REASONS |
 | 0 | 12 | 0 | R10-CI-RATCHET-RED | B | M | defect | in-progress | — |
@@ -254,7 +252,7 @@ day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 | 0 | 21 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
 | 0 | 21 | 12 | R10-CURRENCY | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-INPUT-STALENESS | A | S | defect | not-started | — |
-| 0 | 21 | 12 | R10-LOOP-CPU | A | S | defect | not-started | R10-NIGHT-FOLDS |
+| 0 | 21 | 12 | R10-LOOP-CPU | A | S | defect | not-started | R10-NIGHT-FOLDS, R10-NIGHT-FOLDS |
 | 0 | 21 | 12 | R10-POLICY-GATE-SCOPING | C | S | policy | not-started | R10-TICK-DRIVERS |
 | 0 | 21 | 12 | R10-POLICY-LINT-FAMILY | C | S | instrument | not-started | — |
 | 0 | 21 | 12 | R10-RCA-HEADMOVED | B | S | study | not-started | R10-RCA-FRICTION |
@@ -288,18 +286,18 @@ day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 | 1 | 44 | 37 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
 | 1 | 45 | 38 | R10-MUTANT-SKIP | C | M | instrument | not-started | — |
 | 1 | 46 | 29 | R10-CI-LAYOUT-P1 | C | XL | instrument | not-started | R10-CI-LAYOUT |
-| 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU |
+| 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU, R10-LOOP-CPU |
 | 1 | 46 | 41 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
 | 1 | 46 | 41 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
 | 2 | 50 | 46 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
 | 2 | 50 | 46 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS |
+| 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS, R10-LIVESTATE, R10-INPUT-STALENESS |
 | 2 | 55 | 50 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
 | 2 | 55 | 50 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
 | 2 | 58 | 55 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 59 | 46 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
-| 2 | 59 | 46 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
-| 2 | 71 | 59 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
+| 2 | 59 | 46 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
+| 2 | 71 | 59 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
 | 3 | 76 | 71 | R10-COP-GATE | A | M | study | not-started | R10-HEAT-METER, R10-SENSOR-PAYLOAD |
 | 3 | 79 | 71 | R10-CONFIGFLOW-PAGES | A | L | arch | not-started | R10-HEAT-METER |
 | 3 | 84 | 76 | R10-UX-HEALTH | A | L | owner | not-started | R10-SCORES, R10-COP-GATE, R10-HEAT-METER |

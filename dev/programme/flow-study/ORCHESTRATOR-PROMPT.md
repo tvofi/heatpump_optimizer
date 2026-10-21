@@ -1,6 +1,6 @@
-# Handover prompt for the round-10 orchestrator: **revision 7** (2026-10-21, ≈ 17:45Z)
+# Handover prompt for the round-10 orchestrator: **revision 8** (2026-10-21)
 
-**Revision 7.** This answers the six findings s4 measured after about 20 minutes on revision 6; all six were right. It supersedes revisions 1–6 and is self-contained: you need nothing from earlier revisions. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
+**Revision 8** adds standing rules 11–14 for s4's four process points, which do not block adoption. **Revision 7** answered s4's six findings on revision 6. This prompt supersedes revisions 1–7 and is self-contained. The study channel is one-way, so this file on branch `claude/dazzling-gauss-7l3u2b` is the reply.
 
 ---
 
@@ -54,6 +54,16 @@ Where this message and nudge.md disagree, follow this message only on what R1–
    - Use `--bot-prs` and both `--ignore-red` names.
    - Log each train's CI time.
 10. **Forward-carries during a roster-PR freeze.** Until RELAY-HOLD lands, a carry-blocked PR waits. If one has waited longer than one train's CI (about 1 h), merge the frozen roster PR directly (rule C), even mid-train. Once RELAY-HOLD lands, a freeze means "the roster PR is on the hold list", and carries keep landing.
+
+11. **The K14 body-only interim is slow but correct.** It costs about 3 minutes, because `app_push.sh` runs prepr. Accept that until BODY-PATCH lands; BODY-PATCH runs only the body contract (target under 30 s).
+12. **An offline `carry_audit.py check --body` reads the roster from the worktree,** so it passes a carry that is not on the roster branch, and only fix-review step 10 would catch it. Until JIDOKA and BODY-PATCH pass the roster ref themselves, run it as:
+    ```
+    git fetch origin handoff/audit-r10-roster
+    python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <file>
+    ```
+    `--roster-ref` is a global option, so it goes before `check`.
+13. **Stale check-runs recur** (#2559, #2567). One re-run of the stale run clears each: do that before any merge attempt, never a merge retry loop. Log each instance with its run id on #201; **a third instance goes to a root-cause seat** (`defect-root-cause.md`). MAIN-GATE (b) automates the re-run in `merge_pr.sh` and the train.
+14. **A relayed "verdict posted" is not evidence. Read it back from the PR's comments:** the first line must match `Fix review: merge|blocked <the head sha>` and carry the dispatch nonce. Only then confirm, approve, board or return it (`comment-readback.md`). R10-ORCH-MACHINERY's ledger closes `verdict-unposted` only on that read-back (its carry, item 4b).
 
 ## Expedites: one wave at a time, by dependency, so reviewers are not spread
 
