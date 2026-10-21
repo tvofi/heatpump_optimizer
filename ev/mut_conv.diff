@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 859b420ed..d0a5b706b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9038,7 +9038,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         settled = house_loss_confidence(getattr(self, "_house_heat_loss_samples", 0))
+         if (
+             not ctx._config.internal_gains_learning_enabled
+-            or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+         ):
+             return
+         if is_sunlit_interval(previous_state.solar_radiation):

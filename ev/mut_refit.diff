@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_components/heatpump_optimizer/accuracy.py
+index ca4c96658..eecf9419c 100644
+--- a/custom_components/heatpump_optimizer/accuracy.py
++++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -691,7 +691,7 @@ def _refit_pair(
+     pred, act, out = s.predicted_temp, s.actual_temp, s.outdoor_temp
+     if s.boost_space or pred is None or act is None or out is None:
+         return None
+-    if is_sunlit_interval(s.solar_radiation):
++    if False:
+         return None
+     residual = act - pred
+     delta_t = (act + pred) / 2.0 - out

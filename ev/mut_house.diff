@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 859b420ed..8eee9a87b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5154,7 +5154,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # internal-gains profile.
+         self._fold_solar_aperture(previous_state, residual, dt_h)
+         # #2223: dark only; a sunlit residual carries the aperture's error here.
+-        if is_sunlit_interval(previous_state.solar_radiation):
++        if False:
+             return
+         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
+ 

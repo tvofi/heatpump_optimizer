@@ -1,0 +1,9 @@
+RESULT same_residual.rel_dev=1.0000
+RESULT positive.rel_dev=0.7143
+RESULT net_of_ua_part.rel_dev=0.0000
+RESULT net_of_ua_part.positive_rel_dev=0.0000
+RESULT ridge0.02.ua_rel_dev=1.0000 positive_rel_dev=0.7143
+RESULT ridge0.50.ua_rel_dev=0.1000 positive_rel_dev=0.0909
+RESULT ridge1.00.ua_rel_dev=0.0500 positive_rel_dev=0.0476
+RESULT ridge1.50.ua_rel_dev=0.0333 positive_rel_dev=0.0323
+RESULT ridge2.00.ua_rel_dev=0.0000 positive_rel_dev=1.0000
