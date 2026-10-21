@@ -30,9 +30,9 @@ EXPECTED RESULT (head of r10-verdict-item-barrier):
 At the merge base (289426c1f) the reshaped forms read 0, 1, 0 and the planted
 1, 2, 1: #2544's CI paragraph ("does not block the PR") is refused under any
 heading. At the head the evidence forms still refuse #2513 and #2547 (their
-own deferral, now read as DEFERRED) and #2544 (a post-merge check that "still
-has to be done", which the base never flagged): what moves to `## Evidence`
-unedited is caught wherever it hands something on.
+own deferral: "noted for a later tightening", "advisory") and #2544 (a
+post-merge check that "still has to be done", which the base never flagged):
+what moves to `## Evidence` unedited is caught wherever it hands something on.
 
     python3 dev/audit/harnesses/r10_verdict_item_barrier.py [--fetch]
 """
