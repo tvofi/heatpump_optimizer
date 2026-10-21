@@ -61,7 +61,7 @@ F = ROOT / REL
 PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
           "ledger_unrouted")
 PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARRY_SECTIONS", "NONE_ITEM",
-            "TRAILER", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
+            "TRAILER", "EVIDENCE_LINE", "EVIDENCE_HEADING", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
             "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
 MUTANTS = [
@@ -112,6 +112,14 @@ MUTANTS = [
     ("I-trailer", "        if TRAILER.match(first) or VERDICT.match(first):", "        if VERDICT.match(first):"),
     ("I-verdict-line", "        if TRAILER.match(first) or VERDICT.match(first):", "        if TRAILER.match(first):"),
     ("I-verdict", "        elif verdict:\n", "        elif False:\n"),
+    # items(): evidence (r10-verdict-item-barrier)
+    ("I-ev-line", "        elif EVIDENCE_LINE.match(first) or verdict and", "        elif verdict and"),
+    ("I-ev-verdict", " or verdict and EVIDENCE_HEADING.match(sec):", " or EVIDENCE_HEADING.match(sec):"),
+    ("I-ev-heading", " or verdict and EVIDENCE_HEADING.match(sec):", ":"),
+    ("I-ev-match", "EVIDENCE_HEADING.match(sec)", "EVIDENCE_HEADING.search(sec)"),
+    ("I-ev-lead", 'why = ("lead" if LEAD.match(first) else "evidence"', 'why = ("lead" if False else "evidence"'),
+    ("I-ev-deferred", 'else "evidence" if DEFERRED.search(t)', 'else "evidence" if False'),
+    ("I-ev-inh", 'else "under lead" if inherited else "")\n        elif verdict:', 'else "under lead" if False else "")\n        elif verdict:'),
     ("I-bsec-block", "            block_sec = BLOCK_HEADING.search(sec) and not", "            block_sec = True and not"),
     ("I-bsec-nonblock", " and not NONBLOCK.search(sec)\n", "\n"),
     ("I-nsec", "NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)", "NOTE_HEADING.search(sec)"),
@@ -120,7 +128,7 @@ MUTANTS = [
     ("I-why-block", '"" if block_sec\n', '"" if False\n'),
     ("I-why-note", '"section" if note_sec else "lead" if LEAD.match(first)\n                   else "under', '"section" if False else "lead" if LEAD.match(first)\n                   else "under'),
     ("I-why-vlead", 'else "lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        elif', 'else "lead" if False\n                   else "under lead" if inherited else "")\n        elif'),
-    ("I-why-vinh", 'else "under lead" if inherited else "")\n        elif', 'else "under lead" if False else "")\n        elif'),
+    ("I-why-vinh", 'else "under lead" if inherited else "")\n        elif sec', 'else "under lead" if False else "")\n        elif sec'),
     ("I-carry-sec", "        elif sec.lower() in CARRY_SECTIONS:", "        elif False:"),
     ("I-carry-lower", "        elif sec.lower() in CARRY_SECTIONS:", "        elif sec in CARRY_SECTIONS:"),
     ("I-none", '            why = "" if NONE_ITEM.match(t) else "section"', '            why = "section"'),
@@ -196,6 +204,7 @@ MUTANTS = [
     ("P-tsep", 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{3,}")', 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{4,}")'),
     ("P-fentry", '`?[A-Za-z0-9_./#-]+`?\\s*:\\s*`?[a-z-]+`?\\s*:")', '`?[A-Za-z0-9_./#-]+`?\\s*:")'),
     ("P-verdict-sha", '[0-9a-f]{7,40}\\b")', '[0-9a-f]{40}\\b")'),
+    ("P-ev-word", 'EVIDENCE_HEADING = re.compile(r"evidence\\b", re.I)', 'EVIDENCE_HEADING = re.compile(r"evidence", re.I)'),
     ("P-block", 'BLOCK_HEADING = re.compile(r"\\bblock", re.I)', 'BLOCK_HEADING = re.compile(r"\\bblocked", re.I)'),
     # the patterns: the marker grammar's anchors and quantifiers
     ("P-carry-look", 'CARRY = re.compile(r"(?<![\\w-])Carry:")', 'CARRY = re.compile(r"Carry:")'),

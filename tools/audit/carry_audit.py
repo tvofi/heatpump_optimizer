@@ -29,9 +29,13 @@ starts an item without a bullet. A FINDING item:
            anywhere; else, outside a section holding the block (a heading
            naming a block, or any heading of a `blocked` verdict), one under a
            NOTE_HEADING (residual, owed, instrument findings ...) or led by LEAD.
+  evidence a verdict's `## Evidence` section, or a `RESULT` or `Evidence:`
+           line anywhere: NONBLOCK is not read there ("does not block" says
+           what a check does to the merge); an item led by LEAD, under a lead,
+           or saying DEFERRED (later, follow-up, advisory, residual ...) is.
   both     a paragraph that is finding-shaped and ends in `:` is a lead: its
-           bullets are the items, it is not one. The bus trailer, `RESULT`
-           lines and the attribution line never are.
+           bullets are the items, it is not one. The bus trailer and the
+           attribution line never are.
 
 A DESTINATION (`Dests.check`):
   GROUP      a group of the newest roster (`roster_lib`), not done;
@@ -88,8 +92,17 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 # An explicit none: the template's `none` or `n/a: <reason>`. A `none` that goes
 # on to record something is not one (#2341's "recorded rather than propagated").
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
-# Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
-TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
+# Not a finding wherever it sits: attribution and the bus trailer.
+TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:)", re.I)
+# Evidence: a raw RESULT or `Evidence:` line, or any item under a verdict's
+# `## Evidence` heading. There "does not block" says what a check does to the
+# merge, so NONBLOCK is not read; a defect handed on still is a finding: an
+# item opening with LEAD, under a lead, or saying DEFERRED anywhere.
+EVIDENCE_LINE = re.compile(r"^\W*(?:Evidence:|RESULT\b)", re.I)
+EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
+DEFERRED = re.compile(r"\bdeferred\b|follow-?up|\blater\b|out of scope|not fixed here|known[- ]open"
+                      r"|distinct finding|residual|caveat|observation|advisory|\bminor\b|secondary note"
+                      r"|owed to the record|still (?:has|have|needs?) to", re.I)
 # The words a seat uses for "this is not done here". LEAD keys an item's first
 # words (or, in a body, its section heading); NONBLOCK flags a verdict item
 # wherever it says so, and is what a blocking section still lets through.
@@ -179,6 +192,9 @@ def items(text: str, verdict: bool) -> list[dict]:
         why = ""
         if TRAILER.match(first) or VERDICT.match(first):
             pass
+        elif EVIDENCE_LINE.match(first) or verdict and EVIDENCE_HEADING.match(sec):
+            why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t)
+                   else "under lead" if inherited else "")
         elif verdict:
             # The block is owed in this pull request, so a section that holds it
             # -- a block heading, or any heading of a `blocked` verdict -- makes
@@ -851,6 +867,44 @@ def _self_test() -> int:
     item_grammar += [("a numbered list item is a bullet",
                       head + "## Friction\n\n1. a: unclear: x.\n2. b: cost: y. Carry: R10-LIVE\n", (),
                       [("section", R_), ("section", U)])]
+    # A verdict's `## Evidence` (r10-verdict-item-barrier): what a check does
+    # to the merge is no finding there; a defect handed on still is.
+    item_grammar += [
+        ("under a verdict's Evidence heading a check that does not block is no finding", head,
+         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"), []),
+        ("the Evidence heading reads in any case and with words after it", head,
+         verdict_of("merge", "## EVIDENCE (not findings)\n\n- nightly-status is red, not blocking.\n"), []),
+        ("a heading that only mentions evidence is not the Evidence heading", head,
+         verdict_of("merge", "## Notes on evidence\n\n- nightly-status is red, not blocking.\n"),
+         [("non-blocking", U)]),
+        ("a heading whose first word only starts `evidence` is not the Evidence heading", head,
+         verdict_of("merge", "## Evidenced claims\n\n- nightly-status is red, not blocking.\n"),
+         [("non-blocking", U)]),
+        ("a deferral under the Evidence heading is a finding", head,
+         verdict_of("merge", "## Evidence\n\n- M4 survives, not blocking, noted for a later tightening.\n"),
+         [("evidence", U)]),
+        ("... and routed by its own Carry: it passes (null control)", head,
+         verdict_of("merge", "## Evidence\n\n- M4 survives, noted for a later tightening. "
+                    "Carry: dismissed: fail-closed survivor\n"), [("evidence", R_)]),
+        ("a LEAD opening under the Evidence heading is a finding", head,
+         verdict_of("merge", "## Evidence\n\n- Residual: the census misses one.\n"), [("lead", U)]),
+        ("a lead's bullets under the Evidence heading are findings", head,
+         verdict_of("merge", "## Evidence\n\nNon-blocking notes:\n- a re-booking.\n"), [("under lead", U)]),
+        ("the Evidence heading is read only in a verdict: a body's is a plain section",
+         head + "## Evidence\n\n- the figure is deferred to round 11.\n", (), []),
+        ("a RESULT line that hands a defect on is a finding",
+         head + "## Figures\n\nRESULT mutant=M4 SURVIVES; deferred to a later tightening\n", (), [("evidence", U)]),
+        ("an `Evidence:` line that hands a defect on is a finding",
+         head + "## Figures\n\nEvidence: ev/m4.txt, a follow-up owed\n", (), [("evidence", U)]),
+        ("a RESULT line saying a check does not block is no finding", head,
+         verdict_of("merge", "RESULT nightly-status=failure, not blocking\n"), []),
+    ]
+    item_grammar += [(f"DEFERRED reads {w!r} under the Evidence heading", head,
+                      verdict_of("merge", f"## Evidence\n\n- the check is {w} here.\n"), [("evidence", U)])
+                     for w in ("deferred", "a follow-up", "later", "out of scope", "not fixed here", "known-open",
+                               "a distinct finding", "residual", "a caveat", "an observation", "advisory",
+                               "minor", "a secondary note", "owed to the record", "still has to",
+                               "still have to", "still needs to")]
     for name, text, comments, want in item_grammar:
         got = sorted((x["why"], x["status"]) for x in run(text, comments)["rows"])
         check(f"items: {name}", got == sorted(want))
