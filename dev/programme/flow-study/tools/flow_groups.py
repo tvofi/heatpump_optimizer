@@ -738,7 +738,11 @@ HYGIENE = ("Self-test hygiene: (a) a new seat-selftest mutant in "
            "(b) A self-test builds any git repository through tests/throwaway_git.py, never a "
            "hand-built git init (a pusher-reap handoff was refused for exactly that in "
            "tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the "
-           "handoff.")
+           "handoff. (c) Any new git push site is registered in PUSHERS in "
+           "tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it "
+           "(#2582's heartbeat push did). (d) The body's Red checks section answers every check "
+           "red on main's ancestry, one line each (today nightly-status), or pr-contract refuses "
+           "it (standing rule 22).")
 for _g in GROUPS:
     if _g["kind"] == "instrument":
         _g["carry"].append(HYGIENE)
@@ -757,11 +761,11 @@ REV12 = {
      "r10_seat_selftests_mutants.py) with an open pull request that holds an unboarded merge "
      "verdict: that one boards first, and this one is reviewed after absorbing it, so a paid "
      "verdict is never killed by a content conflict (#2567 went DIRTY after its 16:21Z verdict)."),
-    "R10-FLOW-JIDOKA": ("Revision 12 (orchestrator, 2026-10-21): the carry gate accepts a disposition the "
-     "orchestrator adds after the verdict, 'Carry: dismissed <reason>' or 'Carry: <group>', "
-     "posted under the orchestrator identity, keyed to the verdict's head SHA, and read back "
-     "(comment-readback.md), without a new review. If the group that owns #2571's carry_audit "
-     "fix is still open, this carry goes there instead: one owner for the gate."),
+    "R10-FLOW-JIDOKA": ("Revision 12, moved in revision 15: the orchestrator-added carry "
+        "disposition ('Carry: dismissed <reason>' or 'Carry: <group>', under the orchestrator "
+        "identity, keyed to the verdict's head SHA, read back) is fly-in "
+        "R10-FLY-CARRY-DISPOSITION, dispatched ahead of the finish-first list; this group keeps "
+        "its prepr and roster-ref scope."),
     "R10-FLOW-WIP": ("Revision 12: the tick's cap line names its exceptions: at the cap, new lane dispatches "
      "hold, while expedites (standing rule 16) and the next critical-chain link (rule 15) go "
      "over it; list the pending expedites on the same line. A fly-in lands the one-line change "

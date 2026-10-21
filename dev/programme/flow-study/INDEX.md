@@ -53,3 +53,9 @@ The model's design switches are in `tools/simulate.py`'s header.
 - A designer cloud role through R10-FLOW-DESIGN-STAGES.
 - The designer's owner-report note.
 - R16–R19 cited as comment 6322679091.
+
+**Revision 15 (2026-10-21):**
+- `tools/roster_delta.py` classifies a roster delta against a verdict.
+- Rule 21 is amended.
+- Three fly-ins: CARRY-DISPOSITION, OPENPR-ATOMIC and RELAY-REVIEW-FF.
+- The hygiene adds ref_privacy and red checks.

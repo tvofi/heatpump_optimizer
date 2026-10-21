@@ -1,4 +1,12 @@
-# Adoption plan for the round-10 orchestrator: **revision 14** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 15** (2026-10-21)
+
+**Revision 15** answers s4's four points on revision 14:
+- rule 21 is relaxed: a bookkeeping-only roster delta keeps its verdict, checked mechanically by `tools/roster_delta.py`;
+- the self-test hygiene adds `ref_privacy` PUSHERS and red checks;
+- open_pr.sh's half-open becomes fly-in R10-FLY-OPENPR-ATOMIC;
+- the carry disposition becomes fly-in R10-FLY-CARRY-DISPOSITION, ahead of the finish-first list.
+
+It also prices the queued SCORES → LEARNER-ETA edge: dispatch LEARNER-ETA now, or the edge costs 6–8 h. Steps 0a–0d below come first.
 
 **Revision 14** answers s4's six points on revision 13:
 - roster edits wait while a roster PR is under review (rule 21);
@@ -46,6 +54,24 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 **The pack** is `dev/programme/flow-study/` on that branch. Pin the commit you brief from, `PACK_SHA`. FUTURE-STATE §11 items 22–27 record what revision 7 changed. SHADOW-PLAN §3.3 holds rules A–E and the expedite waves.
 
 ## Adoption plan (revision 12): do these in order
+
+**Revision 15: do these first.**
+
+0a. **Unstall the roster** (rule 21, as amended).
+   - For each queued edit (the two fly-ins, the five set-stages, the SCORES after-edge), push it to `handoff/audit-r10-roster` only if `python3 dev/programme/flow-study/tools/roster_delta.py <PR-A's verdicted SHA> <the new head>` prints CARRIES, and brief_lint and `carry_audit owners` pass.
+   - Then carry the verdict with `app_approve.sh --carry`, using that output as the note.
+   - If `app_approve.sh --carry` refuses a delta that is not an absorption of main, the edits queue as before. Ask once on #201 for the carry to accept a CARRIES delta.
+   - **Measured on PR-A's own history:** both carry appends (`9dc08aac2` UX-HEALTH, `23ef06dc6` LIVESTATE) print CARRIES. The LIVESTATE carry touched only fields outside the reviewed ones (`after`, `architect_note`, `brief`), so the extra Opus delta review was avoidable.
+   - The structural fix is RELAY-HOLD (#2580): with PR-A on the hold list, roster edits stop moving its head at all.
+0b. **SCORES → LEARNER-ETA.** If you add that edge, dispatch R10-LEARNER-ETA **now**, over the cap: it becomes the critical chain's head (rule 15), and `critical-path.json` already lists it.
+   - At a normal pull, the model puts SCORES from h12 to h30, and the round at 94 h against 86 (97 against 91 at 2× slip).
+   - Dispatched now, it costs 0 h: LEARNER-ETA merges by h12, as ADVISOR does.
+   - LEARNER-ETA is size M, so it has no design step.
+0c. **Parked verdicts** (#2547, #2580, #2578, #2569, all parked on unrouted notes).
+   - Board #2571 first, since it is the carry_audit misread fix, then re-run pre-flight on the four. Some may pass once their notes stop reading as findings.
+   - Still parked after that: markers-only re-reads now for #2580 (RELAY-HOLD) and #2578 (BODY-PATCH), which are expedites, and for #2569 (ROSTER-PUSH-RACE), which goes before PR-B. #2547 waits for R10-FLY-CARRY-DISPOSITION if that lands within about an hour, and is otherwise re-read too.
+   - Register **R10-FLY-CARRY-DISPOSITION (S)** and dispatch it now, ahead of every finish-first item. It lets the orchestrator add `Carry: dismissed <reason>` or `Carry: <group>` under its own identity, keyed to the verdict's head SHA and read back, without a review. It touches `carry_audit.py`, so it is reviewed after #2571 (rule 18). JIDOKA keeps its prepr scope.
+0d. **R10-FLY-OPENPR-ATOMIC (S).** open_pr.sh creates the PR only after the body contract (ancestry reds and `ref_privacy` included) passes. If a later step still fails, it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. This replaces revision 14's BODY-PATCH carry, since #2578 is parked with a verdict. Meanwhile, finish or close a half-opened PR by hand, as #2582 was.
 
 1. **Hot files first: protect the verdicts already paid for** (standing rule 18).
    - **`pr_args.sh` and `update_pr.sh`:** #2567 holds a merge verdict from 16:21Z but went DIRTY. Repair it per rule 5 and re-verdict it. Board it before #2524 (UPDATE-PR-SIGNALS) is reviewed; #2524 is reviewed after absorbing it.
@@ -188,6 +214,8 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
 17. **Self-test hygiene.** Every pack brief for an instrument group now carries both points; they come from today's live findings.
     - **(a)** A new seat-selftest mutant in `dev/audit/harnesses/r10_seat_selftests_mutants.py` takes a per-file id (`cloud_relay-1`), never a new `S` number (the P6 convention). It goes inside the block of the instrument it tests, never appended at the file's end.
     - **(b)** A self-test builds git repositories only through `tests/throwaway_git.py`, never a hand-built `git init`, and runs `python3 tests/throwaway_git.py --check` before the handoff.
+    - **(c)** Any new `git push` site is registered in `PUSHERS` in `tools/audit/seat/ref_privacy.py` in the same PR. #2582's heartbeat push was refused for this.
+    - **(d)** `## Red checks` answers every ancestry red (rule 22).
 
     Point (a) cost a code round each to RELAY-HOLD, YIELD-PROBE and PR G in one day. That is the third instance, so by CLAUDE.md it goes to a root-cause seat (`root-cause.md`), not an issue. The countermeasure available now is brief text, because decision 0012's moratorium bars a new check until 2026-10-31. The seat records whether a check is worth building after that.
 18. **A paid verdict is never killed by a hot-file conflict.** The hot files are `tools/audit/seat/pr_args.sh`, `update_pr.sh`, `cloud_relay.sh`, `orchestrator_tick.py` and `dev/audit/harnesses/r10_seat_selftests_mutants.py`.
@@ -200,7 +228,12 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
 20. **Locks and orphans.** R10-UPDATE-PR-SIGNALS owns prevention: a lock held by a dead pid is broken with a logged line, and every self-test runs under a timeout in its own process group. R10-FLOW-ANDON owns detection: a handoff tip ahead of its PR for more than 20 min, a dead lock owner, or a self-test older than 1 h.
     - Until both land, check `upd-*.lock` owners with `kill -0` before waiting on a stalled handoff.
     - Live: a stale lock held PR G at `7752acbf` for over 30 min, and an orphaned self-test spun for 8.6 h.
-21. **No roster edit lands on a roster branch while its PR holds a merge verdict.** Queue it: the carry, stage or note goes into the next roster PR. If a carry-blocked fix PR has waited longer than one train's CI (about 1 h), merge the verdicted roster PR directly (rule C) instead of appending to it. Once R10-FLOW-RELAY-HOLD lands, the roster PR sits on the hold list, and this is enforced.
+21. **A roster edit lands on a verdicted roster PR's branch only if it keeps the verdict.** `tools/roster_delta.py <verdicted SHA> <new head>` must print CARRIES:
+    - new groups appended;
+    - stage, resume, carry or edge changes on groups the verdicted diff never touched;
+    - and on a group it did touch, bookkeeping only in fields other than the ones the reviewer read.
+
+    Also run brief_lint and `carry_audit owners`, then carry the verdict (`app_approve.sh --carry`) with the output as its note. Anything that prints REVIEW queues for the next roster PR. A carry-blocked fix PR that has waited more than one train's CI gets the verdicted roster PR merged directly (rule C). Once R10-FLOW-RELAY-HOLD lands, the roster PR sits on the hold list and edits stop reaching its head.
 22. **A PR body answers every ancestry red in `## Red checks`.** prepr's ancestry-reds rule refuses a body that leaves out a check that is red on main's ancestry. Today that check is `nightly-status`, until the first scheduled run after #2548's re-record is green.
     - Write one line per red check: the check, the run, and why it is not this PR's.
     - Every PR that touches `.github/workflows/governance.yml` hits this, as #2582 did. So do the CI-layout PRs.
