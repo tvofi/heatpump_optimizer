@@ -46,4 +46,7 @@
   ok   a reviewer is dispatched at the PR head passed, not at a ref's tip
   ok   _publish itself refuses a ref that would publish the host, and pushes nothing
   ok   by default the brief is the round's roster branch's and the head is main's tip, not that branch's
-cloud_dispatch self-test: 48 checks, 0 failed
+  ok   an explicit roster ref is read, not the round's roster branch
+  ok   the --group CLI passes --head and --roster-ref through
+  ok   a re-dispatch from a second clone fast-forwards the existing ref
+cloud_dispatch self-test: 51 checks, 0 failed

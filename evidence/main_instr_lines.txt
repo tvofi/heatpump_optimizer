@@ -1,0 +1,53 @@
+-  that is not `rev-*` (a probe seat's return, a stray push) appends
+-  `OWED <utc> probe-ref <ref> <sha>` on EVERY pass until
++  that is not `rev-*` (a probe seat's return, a stray push) is
++  `OWED <utc> probe-ref <ref> <sha>` in `<log>.level` until
+-  that moves is owed again at its new sha. It relays each `rev-*` ref+sha
++  that moves is owed again at its new sha. Every pass REWRITES its kind's
++  lines in `<log>.level` and appends none to the log (appended, 2026-10-21: 34757 copies
++  of ~281 items once reached the board); `dispose [--log FILE]` drops the
++  line at once from the level beside that log (the pass's `--log`), and a
++  failed listing leaves the level as it was. It relays each `rev-*` ref+sha
+-  appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
+-  the same way (a fixer's return the orchestrator has not opened, or a merged
+-  PR's refs not yet archived); a failed PR listing reports none, since an
+-  empty list would make every ref look orphaned. Note the two
+-  OWED shapes: `OWED reviewer-fire` carries no timestamp first, the others
+-  (`OWED <utc> ...`) do.
++  is `OWED <utc> handoff-no-pr <ref> <sha>` in `<log>.level`, rewritten every
++  pass, until disposed the same way (a fixer's return the orchestrator has
++  not opened, or a merged PR's refs not yet archived); a failed PR listing
++  leaves those lines as they were, since an empty list would make every ref
++  look orphaned. The log holds events only, each naming its PR in its first
++  all-digit field: `OWED reviewer-fire <pr> ...` carries no timestamp first,
++  the others (`OWED <utc> ...`) do.
++  `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
++  (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
++  push line replaced by `true` reddens it (#2444).
+-  force, refuses before anything posts.
++  force, refuses before anything posts. `--self-test` also drives the whole
++  script offline over a scratch clone and a fake `gh`, so the `gh pr merge …
++  --match-head-commit` line is pinned: replaced by `exit 0` it records no
++  merge and the null control reddens (#2444).
+-  `OWED: <line>` prints every pass for each OWED entry in `cloud_relay.sh`'s
+-  log (its default, `$HPO_STATE_DIR/cloud-relay.log`) with no later POSTED for
+-  the same PR; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
++  `OWED: <line>` prints every pass for each line of `cloud_relay.sh`'s level
++  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`)
++  and for each OWED event in the log with no later POSTED for the same PR (its
++  first all-digit field); an OWED naming no PR is an older writer's per-pass
++  level copy, skipped and counted, never replayed; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
+-- `selftest_wiring.py` — refuses a self-testing file under
+-  `tools/audit/seat/` that no workflow `run:` line, comments removed, invokes
+-  with its self-test (`--check`, `--self-test`). Runs first among the seat
+-  steps of `instrument-self-tests`. When: adding a seat instrument with a
+-  `--self-test`; add its step in the same pull request. Refusal: each unwired
+-  file by path; a mention in a comment, a step name or a `--check` call does
+-  not wire it.
++- `selftest_wiring.py` — refuses a self-testing file under `tools/` (widened
++  from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:`
++  line, comments removed, invokes with its self-test (`--check`,
++  `--self-test`). Runs first among the seat steps of
++  `instrument-self-tests`. When: adding a tool with a `--self-test`; add its
++  step in the same pull request. Refusal: each unwired file by path; a
++  mention in a comment, a step name or a `--check` call does not wire it.

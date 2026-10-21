@@ -2,12 +2,14 @@ RESULT mutant=M0 failed=0 verdict=null-ok
 RESULT mutant=tree-skip failed=2 verdict=killed
     FAIL a re-dispatch of the same brief moves no ref
     FAIL a changed brief fast-forwards the ref
-RESULT mutant=brief-drop failed=5 verdict=killed
+RESULT mutant=brief-drop failed=7 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to today's flag path
     FAIL the roster brief is inlined and the roster tip is the head
     FAIL a changed brief fast-forwards the ref
     FAIL a host path in a roster brief refuses and pushes nothing
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=parent-drop failed=-1 verdict=CRASHED
 RESULT mutant=nonce-altered failed=1 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to today's flag path
@@ -22,13 +24,17 @@ RESULT mutant=render-host-off failed=5 verdict=killed
     FAIL a host path in a roster brief refuses and pushes nothing
 RESULT mutant=privacy-off failed=1 verdict=killed
     FAIL _publish itself refuses a ref that would publish the host, and pushes nothing
-RESULT mutant=head-ignored failed=1 verdict=killed
+RESULT mutant=head-ignored failed=3 verdict=killed
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
-RESULT mutant=prompt-wrong failed=4 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=prompt-wrong failed=6 verdict=killed
     FAIL the ref carries the prompt the payload carries
     FAIL a changed brief fast-forwards the ref
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=roster-repo-ignored failed=-1 verdict=CRASHED
 RESULT mutant=roster-ref-main failed=1 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
@@ -36,4 +42,14 @@ RESULT mutant=head-from-roster-ref failed=1 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
 RESULT mutant=reviewer-head-off failed=1 verdict=killed
     FAIL a reviewer needs its PR head
-RESULT mutants=13 survived=0
+RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=cli-head-dropped failed=2 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-roster-ref-dropped failed=1 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=fetch-skipped failed=1 verdict=killed
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutants=17 survived=0
