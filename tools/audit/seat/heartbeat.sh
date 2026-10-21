@@ -68,6 +68,10 @@ hb_self_test() (
   b=$(git -C "$t/remote.git" rev-parse heartbeat/orchestrator)
   [ "$a" != "$b" ] && [ "$(git -C "$t/remote.git" rev-list --count heartbeat/orchestrator)" = 1 ]
   ck "a second pass force-moves the same ref (one parentless commit, no history)" $?
+  out=$(bash "$hb" --once --message "TICK-PASS $HOME/x"); rc=$?
+  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q 'ref_privacy guard refused' \
+    && [ "$(git -C "$t/remote.git" rev-parse heartbeat/orchestrator)" = "$b" ]
+  ck "a message carrying the host's home directory is refused and the reachable ref does not move" $?
   out=$(bash "$hb" --watch --max-age 600); rc=$?
   [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT FRESH'
   ck "watcher: a fresh ref does not alert" $?
@@ -84,9 +88,6 @@ hb_self_test() (
   out=$(bash "$hb" --once --message "TICK-PASS x"); rc=$?
   [ $rc = 1 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED: .'
   ck "a refused push is printed with its reason and exits 1, never silent" $?
-  out=$(bash "$hb" --once --message "TICK-PASS $HOME/x"); rc=$?
-  [ $rc = 1 ] && printf '%s\n' "$out" | grep -q 'ref_privacy guard refused'
-  ck "a message carrying the host's home directory is refused before any push" $?
   rm -rf "$t"
   echo "heartbeat self-test: $n checks, $f failed"
   [ "$f" = 0 ]
