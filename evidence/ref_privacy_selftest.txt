@@ -1,0 +1,2 @@
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 66 checks, 0 failed

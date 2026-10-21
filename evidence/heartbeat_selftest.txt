@@ -1,0 +1,8 @@
+  ok   --once moves heartbeat/orchestrator to a commit carrying the pass line
+  ok   a second pass force-moves the same ref (one parentless commit, no history)
+  ok   a message carrying the host's home directory is refused and the reachable ref does not move
+  ok   watcher: a fresh ref does not alert
+  ok   watcher: a ref older than the limit alerts, naming its message
+  ok   watcher: an absent ref alerts
+  ok   a refused push is printed with its reason and exits 1, never silent
+heartbeat self-test: 7 checks, 0 failed
