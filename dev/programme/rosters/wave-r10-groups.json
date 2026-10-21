@@ -3073,9 +3073,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-train-hold",
-    "commit": null,
+    "commit": "059f81ca1a12342c882b2d41554c2bd2e559a8ec",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
