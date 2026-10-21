@@ -1,0 +1,19 @@
+ .../heatpump_optimizer/coordinator.py              | 36 +++++++--------
+ .../heatpump_optimizer/freq_control.py             | 22 ++++++++-
+ dev/programme/delivery/2521.md                     |  2 +-
+ dev/programme/delivery/2527.md                     |  1 +
+ dev/programme/delivery/2531.md                     |  2 +-
+ dev/programme/delivery/2548.md                     |  2 +-
+ dev/programme/delivery/2560.md                     |  2 +-
+ dev/programme/delivery/2570.md                     |  2 +-
+ dev/programme/delivery/2574.md                     |  2 +-
+ dev/programme/delivery/2581.md                     |  1 +
+ tests/entities.py                                  | 48 ++++++++++++++++++++
+ tests/features.py                                  | 52 ++++++++++++++++++++++
+ ...dinator._observe_frequency.BOOLOP.b0c65a3c.json |  6 ---
+ ...ator._observe_frequency.GUARD_OFF.2b0cbc5a.json |  6 +++
+ ...ator._observe_frequency.GUARD_OFF.596d5ac8.json |  6 +++
+ .../_freq_fold_blocked.GUARD_OFF.26183fd7.json     |  6 ---
+ .../_freq_fold_blocked.GUARD_OFF.7a7bb337.json     |  6 +++
+ .../defrost_interval.RETURN_DEL.465f4c37.json      |  6 +++
+ 18 files changed, 170 insertions(+), 38 deletions(-)
