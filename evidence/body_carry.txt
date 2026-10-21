@@ -1,0 +1,8 @@
+== body under origin/main
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== body under origin/handoff/audit-r10-roster
+BAD-DEST body item baaf0e33: R10-ROSTER-OPS: R10-ROSTER-OPS is done (resume.stage done); R10-ROSTER-OPS: R10-ROSTER-OPS is done (resume.stage done)
+BAD-DEST body item 04b646b7: R10-ROSTER-OPS: R10-ROSTER-OPS is done (resume.stage done)
+CARRY-AUDIT: 5 finding item(s): 3 routed, 0 unrouted, 2 bad destination(s)
+rc=1
