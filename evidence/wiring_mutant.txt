@@ -1,3 +1,0 @@
-  UNWIRED tools/audit/seat/review_strength.py: no workflow run line names its self-test
-selftest_wiring: 39 self-testing, 38 wired, 1 unwired
-selftest_wiring: 39 self-testing, 39 wired, 0 unwired
