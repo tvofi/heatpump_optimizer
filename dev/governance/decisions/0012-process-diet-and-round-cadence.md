@@ -57,7 +57,9 @@ does.
 
 ### The process moratorium
 
-**Until 2026-10-31** (the end date the owner confirmed on 2026-09-24), no new
+**Void since 2026-10-21** by the owner's rulings R16–R19, recorded in
+`0014-design-seats-and-the-end-of-0012s-moratorium.md`; the rest of this
+record stands. As first recorded: **until 2026-10-31** (the end date the owner confirmed on 2026-09-24), no new
 policy file, lint class, or `.claude/rules/*` rule is added. The only
 exceptions are what a landed D14 barrier requires to enforce a class it
 closes, or what a critical/high `D11` finding requires. `policy_budgets.json`
@@ -129,6 +131,11 @@ refutes with executed numbers kill at panel), from tvofi's round-9 ask of
 2026-09-25, in `#1627`. The rest of this record stands: the moratorium (`#1627`
 edits existing policy files and adds none), the cadence, the one enforcement
 point and D14's stop rule.
+
+## Superseded in part (2026-10-21)
+
+The process moratorium is void (decision 0014, the owner's ruling R16). The
+cadence, the one enforcement point and D14's stop rule stand.
 
 ## Approval
 

@@ -115,6 +115,8 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 | `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; turn `nudge.md`. |
 | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
+| `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
+| `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer, and two `revise` rounds go to the orchestrator |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |

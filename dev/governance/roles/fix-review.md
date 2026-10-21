@@ -46,8 +46,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     its control as a precondition (`finding-propagation.md`). One only
     in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
-    trigger). Read the PR's own checks — `get_check_runs`, or
-    the commit's own `check-runs` API — not the body's account, and never a
+    trigger). Read the PR's own checks (`get_check_runs`, or
+    the commit's `check-runs` API), not the body's account, and never a
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
@@ -131,10 +131,10 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     body lists and hunt one it missed: one that truly improves the code is
     `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
-    from the architect note, is `blocked <sha> architecture-unsound: <how>`.
+    from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
-Return a verdict with your RESULT lines, in the exact shape your dispatch
-prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
+Return a verdict with your RESULT lines, in your dispatch prompt's exact
+shape: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
