@@ -1,0 +1,6 @@
+      5 tree=49c222280 mode=separate hasB=0 silent_losses=0 false_reports=0 refused=1 pushes=1
+      5 tree=49c222280 mode=shared hasB=1 silent_losses=1 false_reports=1 refused=0 pushes=1
+      2 tree=49c222280 mode=solo hasB=0 silent_losses=0 false_reports=0 refused=0 pushes=1
+      5 tree=8c008227a mode=separate hasB=1 silent_losses=0 false_reports=0 refused=0 pushes=2
+      5 tree=8c008227a mode=shared hasB=1 silent_losses=0 false_reports=0 refused=0 pushes=2
+      2 tree=8c008227a mode=solo hasB=0 silent_losses=0 false_reports=0 refused=0 pushes=1

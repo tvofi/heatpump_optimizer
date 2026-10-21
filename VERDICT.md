@@ -1,34 +1,45 @@
-Fix review: merge 5ffbaaaeb827f184ed44abd9ead267ee8e626b08
+Fix review: merge 8c008227a25192fc542bca64abbd4098a2862d1a
 
-PR #2569 (R10-ROSTER-PUSH-RACE), first review of this head. Measured at 5ffbaaaeb827f184ed44abd9ead267ee8e626b08; it was still the branch head when this verdict was written (ev/head_at_post.txt). Contract: dev/governance/roles/fix-review.md from main; `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+PR #2569 (R10-ROSTER-PUSH-RACE), round 2: re-review after the fixer's main merge d729496d9 (resolving tools/audit/seat/roster_edit.py) and the automatic main merge 8c008227a. Measured head 8c008227a25192fc542bca64abbd4098a2862d1a, the PR head at the start and at the end of the review; origin/main 49c222280 is its merge base (0 behind). Roles diff merge-base...origin/main -- dev/governance/roles/ is empty, so this contract is current.
 
-RESULT selftest_head=76_checks_0_failed                       (ev/selftest_head.txt)
-RESULT selftest_failing_first_e19bda54f=82_checks_7_failed     (ev/selftest_e19bda54f_failing_first.txt; matches the body)
-RESULT mutants M1=7 M2=7 M3=2 M4=1 M5=4 failed                 (ev/mutants.txt; each matches the body exactly)
-RESULT reviewer_mutants M6_push_by_branch_name=self-test crashes rc 1, M7_apply_op_only_on_attempt_1=5 failed, M8_non-race_refuse->print=1 failed
-RESULT finder_repro base shared: A rc=0, reported sha NOT on origin, edit lost: 6/6 (diff/same group); head: 6/6 both edits land, reported sha on origin
-RESULT finder_repro base separate: A rc=2 loud 6/6; head: both land 6/6
-RESULT null_control solo base=6/6 ok head=6/6 ok, 1 commit each
-RESULT three_seat_shared base: A silently lost; head: 3/3 land, 3 commits (ev/reviewer_race3.txt)
-RESULT fixer_harness head shared=10/10 silent_losses=0 pushes=2; head separate=10/10 clean; solo=3/3 both trees
-RESULT fixer_harness base shared silent_losses=1 in 9/10 (body says 6/10); false_reports=1 in 2/10 (body: 3/10)
-RESULT merge_tree origin/main e7c664856 rc=0 tree 15e2fd455 (no conflict)
-RESULT VERSION/manifest/notes/claims/golden/budgets untouched
-RESULT ci at head: all check runs completed; only nightly-status is red (main's scheduled lane, not this PR's)
+RESULT merge-tree origin/main..head: exit 0, tree 92550c62bf == the head's own tree (ev/merge_tree.txt)
+RESULT self-test head: roster_edit self-test: 106 checks, 0 failed; origin/main: 94 checks, 0 failed (ev/selftest_*.txt)
+RESULT failing-test-first e19bda54f: 82 checks, 7 failed, the 7 race/non-race FAILs the body quotes (ev/failing_test_first_e19bda54f.txt)
+RESULT mutants M1-M7 (the body's exact replacements; I wrote the driver myself, ev/mut.py): M1 7 failed, M2 7, M3 2, M4 1, M5 4, M6 AttributeError before the tally, M7 TypeError before the tally. All match the body. File restored, git diff --exit-code clean.
+RESULT my own extra mutants: R1 push by branch name: self-test aborts rc 1. R3 no discard: 7 failed. R4 return 0 after exhausting: 1 failed. R5 'pushed' ignoring rc: 7 failed. R6 set-after dropped from apply_op: 18 failed. R7 no lint on re-apply: 3 failed. R2 (drop the re-fetch before classifying a rejection) SURVIVES the self-test (106/0), because the self-test's rival pushes through the same checkout and so updates origin/<branch> itself. See the R2 note below.
+RESULT reviewer race harness, base 49c222280 vs head 8c008227a (5 runs per race arm with B delayed 2/4/6/8/12 s, 2 solo runs; ev/rev_race_tally.txt):
+  base shared: 5/5 rcA=0 silent_losses=1 false_reports=1 pushes=1 (the 2026-10-21 shape, reproduced)
+  head shared: 5/5 silent_losses=0 false_reports=0 refused=0 pushes=2, 'lost a race' said
+  base separate: 5/5 silent_losses=0 refused=1 (a loud rc 2)
+  head separate: 5/5 silent_losses=0 false_reports=0 refused=0 pushes=2, 'lost a race' said
+  solo (null control), both trees: 2/2 silent_losses=0 refused=0 pushes=1, no race said
+RESULT head+R2 under my harness: separate arm rcB=2 refused (no silent loss, no false report); shared arm still pushes=2.
+RESULT checkout -B / branch -f / update-ref in tools/: only the two comments at roster_edit.py:32 and :1110; no code path creates or moves a local branch (ev/class_rule.txt)
+RESULT cheap checks at head (venv-ci 3.14.7, PYTHONPATH=tests/hastub): closure select vs 49c222280 and vs e9febe622: MODE: SCOPED -- 1 script(s) run, 32 scoped out, RUN tests/entities.py; entities ALL 2375 ENTITY CHECKS PASSED; structure STRUCTURE RATCHET PASSED; harness_headers ALL 109 PASSED; layout ok; env_drift --claims-only ok; tmp_paths 0 refused; ref_privacy self-test 66/0; closure selftest ALL 124 PASSED (ev/cheap_checks.txt, ev/closure_select*.txt)
 
-Steps:
-1. Mutation proof: I re-applied M1-M5 exactly as the body names them. Every count matches. My own mutants M6-M8 also fail: pushing by branch name again, applying the op only once, and turning the non-race refusal into a print.
-2/9. No finder harness is committed. The roster brief prescribes the reproduction ("two concurrent edits in a scratch bare repo"), and r10_roster_push_race.sh is the fixer's own. I therefore built and disclose my OWN harness, ev/reviewer_race.sh and ev/reviewer_race3.sh. It interleaves deterministically: a lint stub blocks run A after its commit and before its push until rival B has landed, which is the 2026-10-21 shape, with no timing luck involved. At the base it reproduces the field defect 6/6: A exits rc 0 and prints "pushed ... at <sha>" for a sha origin does not hold. At the head both edits land 6/6, with the sha reported on origin. I also ran the fixer's harness at both ends (ev/fixer_harness_summary.txt).
-3. The null control holds: solo runs add one commit, the reported one, at both ends.
-6. Class: I re-ran the body's enumeration rule myself (ev/class_rule.txt). Every production push site it returns is dispositioned in the body. The hits the body leaves unnamed are self-tests or harnesses: merge_train.py:2969 is the self-test stub, ref_privacy.py:661/712 are in self_test, budget_raise_gate.py:1311 is in _end_to_end, and r9_rc_bus_fetchhead.sh and a1_dispatch_arms.sh are harnesses. Also checked: other configurations (same-group carries, a three-seat race) and callers of roster_edit (r10_tick_which_roster.py reads the worktree HEAD, not the removed local branch; the governance.yml grep still matches).
-7. The body names head 5ffbaaaeb, the head I measured.
-8. Not re-derivable: the body's base-shared tallies (6/10 silent, 3/10 false reports) come from a sleep-timed harness and are stochastic. My 10 runs gave 9/10 and 2/10, the same direction. I could not reproduce the exact counts and do not confirm them. The head figures (10/10 clean) re-derive exactly. The tally fix (`passed` already counts failures) is confirmed by reading check().
-10. Forward-carry `n/a: <reason>`: the seat-facing change is in INSTRUMENTS.md, inside this diff. Accepted.
-11. pr-contract went red at 8b0a838d4 and aff55f82f. I read the job log: carry_audit UNROUTED on the Forward-carry line in both cases. The body names the check and answers it. Both pr-contract runs at this head are green and started after the body was last edited (14:08:06Z). nightly-status is red but answered, and the diff does not reach what it reads. Cancelled runs on the superseded heads are not reds.
-13. merge-tree is clean against current origin/main.
-14. tests/closures.json gains one INERT-reads entry, earned by the new harness file that harness_headers reads. No budget, claim or score moved.
-15. apply_op removes the duplicated dispatch; the detached worktree plus push-by-sha is the sound mechanism. No breach found.
+Harness (step 9). No finder harness is committed. The roster brief at origin/handoff/audit-r10-roster (f424d993d, group R10-ROSTER-PUSH-RACE, read with jq) prescribes a procedure: "reproduce with two concurrent edits in a scratch bare repo". dev/audit/harnesses/r10_roster_push_race.sh is the fixer's own instrument. It is visible as added in this diff, but the body calls it "The harness" without saying the fixer built it. I did not use it. I built my own reproduction from the brief's words, ev/rev_race.sh, and disclose it as mine. It uses a real bare repo, the real r10 roster from the handoff branch, the real brief_lint (a ~16 s lint window) and two concurrent roster_edit.py --push processes. Its figures above agree in direction and shape with the body's (base shared loses edits and reports false shas; head loses none; separate clones never lose silently).
 
-Not re-run by me (cited from CI per step 11): the gate, mutation, harness_headers (needs voluptuous, absent here) and entities. instrument-self-tests, closures, closure-scope and mutation are green at the head. I ran these cheap checks myself: layout rc 0, structure PASSED, ref_privacy 66/0, tmp_paths 0 refused.
+Re-verification after the conflict resolution (brief):
+- --push never prints 'pushed' with rc 0 for a commit not on origin: false_reports=0 in all 10 head race runs. The 'pushed' print sits only on r.returncode == 0 of a '<sha>:refs/heads/<branch>' push. R5 and R1 are killed.
+- Re-fetch/re-apply on a moved tip, at most 3 attempts, then rc 2: head shared and separate both re-apply and land both edits. The bound and the rc 2 are pinned by the self-test's race-on-every-attempt arm (M3, R4 and R7 are killed).
+- No local checkout -B or branch -f of the shared roster branch remains: prepare_worktree checks out '--detach base_sha' only (M5 is killed).
+- Main's code in roster_edit.py is intact. I diffed the merged file against origin/main's version (ev/roster_edit_vs_main.diff). Every hunk is the fix's own: the docstring, PUSH_ATTEMPTS, apply_op, prepare_worktree, the attempt loop in main(), and the self-test additions, plus one tally line. apply_op carries main's nine-way dispatch verbatim: set-stage, wire-issue, unwire-issue, append-group, edit-brief, set-resume, set-after, drop-carry, and the else branch append-carry. The arguments are unchanged, including match to drop-carry (M6, M7 and R6 are killed). The lint gate, the ref_privacy refusal, the no-op 'no change' path and roster_lib.roster_path are unchanged. Every attempt re-runs the lint gate. The tally change from passed+len(failed) to passed is correct, because check() increments passed on every call (line 630).
 
-bus-nonce: 277db9ac1c42a10b967e4edadf5a17d4
+Class (step 6). I ran the body's rule at head. The file set equals the set at 5d433771a (diff exits 0). I opened each hit the body leaves as 'remaining' (ev/class_remaining.txt): audit-find.js has push instructions in agent prompts; cloud_dispatch.py's hit is a prompt string; r10_deeplink_mutants, fragments_sync, cancel_superseded, codeql_scope and contract_rerun are fixtures or the word 'push'; r9_rc_bus_fetchhead.sh is a harness; ref_privacy.py hits are its self-test. One correction: merge_train.py:1794 is a production 'git push --delete' (line 2969 is a self-test stub). It reports 'deleted' only on rc 0 and otherwise logs NOT deleted, so it is guarded and outside this class. The body's 'none is a production push' is therefore slightly overstated, but no seam is left open.
+
+Non-blocking notes:
+1. Survivor R2: the self-test does not pin the re-fetch, so the separate-clone retry is unpinned. Without the re-fetch, a rival from another clone turns the run into a loud rc 2 refusal, which the brief permits ("re-applies ... or refuses with a non-zero exit"). The fixer's separate arm and mine both catch it. Worth one self-test case with a rival from a second clone in a later touch.
+2. prepare_worktree's docstring has a garbled clause: "a HEAD the base does no origin ref contains".
+
+Step 4/5: no fixture, claim file, VERSION, manifest or RELEASE_NOTES heading is in the diff. Step 7: the body's head paragraph names 8c008227a and its parents correctly. Step 8: the body's harness counts are the fixer's harness's, at d729496d9. I re-derived only their direction with my own harness; I did not re-run its exact 10-run tallies. Step 10: the forward-carry is 'n/a' and INSTRUMENTS.md in this diff carries the seat-facing change; no later stage is affected. Step 14: tests/closures.json gains only the new harness path under harness_headers, and no budget moved.
+
+Step 11 (CI, read once at the end; ev/checks_final.txt):
+- Still running: closures and Analyze (python). I judged on the rest.
+- The one red check is nightly-status, which grades main's last scheduled Tests run. This diff does not reach what it reads, and the body names and answers it.
+- The earlier-round pr-contract red at aff55f82 is answered in the body.
+- Both pr-contract runs at this head are green (16:20:27Z, 16:23:13Z). Both started before nightly-status concluded at 16:25:36Z, so no pr-contract run postdates the head's last workflow yet. The body's red-check section already names nightly-status, so nothing is unanswered.
+- mutation is green; I did not read its log, and my targeted mutants stand in for it.
+
+Round 2.
+
+bus-nonce: 060a085f4ed98e9def007eee9b4aa4d7
