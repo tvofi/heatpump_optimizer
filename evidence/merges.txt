@@ -1,0 +1,17 @@
+bfcdece3 vs 28cc73dd0 tree diff (empty = identical):
+auto-merge recompute 28cc73dd0+f2fb1b0e9:
+LEDGER-MERGE: resolved tests/closures.json
+be628a73e316065c5eb5b4dfea5180f4aa5ad14e
+rc=0
+head tree: be628a73e316065c5eb5b4dfea5180f4aa5ad14e
+bfcdece3 resolution recompute 7752acbf+49c22228:
+b26e177af1750e625da013fd6087110df7a8c4c7
+100644 e4657d6222b5e1889d8c93a486fad9546cdd934d 1	dev/audit/harnesses/r10_seat_selftests_mutants.py
+100644 dfa38028a41ab830d377b6b7f9bf7b474909f06a 2	dev/audit/harnesses/r10_seat_selftests_mutants.py
+100644 cd61db831d6daf15d5dc0440c382656420ee6ac6 3	dev/audit/harnesses/r10_seat_selftests_mutants.py
+
+Auto-merging .github/workflows/governance.yml
+Auto-merging dev/audit/harnesses/r10_seat_selftests_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_seat_selftests_mutants.py
+
+bfcdece3 tree: 185ece783576946f387b2605d874d9773057a919

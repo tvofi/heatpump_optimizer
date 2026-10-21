@@ -1,0 +1,57 @@
+$ python3 -I tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 72 self-testing, 72 wired, 0 unwired
+rc=0
+$ python3 -I tools/audit/seat/offline_spy.py tools/audit/seat/handoff_push.sh tools/audit/seat/merge_pr.sh
+offline_spy: tools/audit/seat/handoff_push.sh rc=0 network=0 remote_git=0 git=74 subprocess=n/a backstop=none offline | handoff_push self-test: 2 checks, 0 failed
+offline_spy: tools/audit/seat/merge_pr.sh rc=0 network=0 remote_git=0 git=10 subprocess=n/a backstop=none offline | merge_pr self-test: 16 checks, 0 failed
+offline_spy: 2 files, 0 refused
+rc=0
+$ bash tools/audit/seat/handoff_push.sh --self-test
+delivery_row self-test: 5 checks, 0 failed
+  ok   null control: the open path pushes the pull request, then its row
+  ok   null control: the update path pushes its head once
+handoff_push self-test: 2 checks, 0 failed
+rc=0
+$ bash tools/audit/seat/merge_pr.sh --self-test
+  ok   no mandate date is written into this script
+  ok   null control: the merge records the reviewed head
+  ok   a refused merge fails the script (the line's own exit)
+merge_pr self-test: 16 checks, 0 failed
+rc=0
+$ python3 -I tools/pr/gate_priority.py --self-test
+gate_priority self-test: 12 checks, 0 failed
+rc=0
+$ python3 -I tools/policy/agreement_py.py --restore
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+rc=0
+$ python3 -I tools/policy/agreement_py.py --self-test
+  ok   a wildcard pathspec over tests/ does not cover a nested file
+  ok   a workflow with no wave-script job is refused, not read as covered
+  ok   and --out refuses to answer on it (the precondition, not a report)
+agreement_py self-test: 7 checks, 0 failed
+rc=0
+$ python3 -I tests/structure.py
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 718 <= 718
+
+STRUCTURE RATCHET PASSED
+rc=0
+$ python3 -I tests/layout.py --guard --base f2fb1b0e9
+layout: GUARD: 0 refusal(s) against f2fb1b0e950e
+rc=0
+$ python3 -I tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since f2fb1b0e950e
+rc=0
+$ node tools/policy/policy_lint.mjs
+
+TOTAL: 0 error(s) across 41 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+$ python3 tools/pr/ci_predict.py --base origin/main
+CI PREDICT: no closures or fast red predicted against f2fb1b0e950e (a data-file read is not seen)
+rc=0
+$ python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
+ok: plan_path(fc76a05)=docs/plan-2026-09-open-issues.md; a new-path-only read misses it
+ok: plan_path(HEAD)=dev/programme/plan-2026-09-open-issues.md
+rc=0
