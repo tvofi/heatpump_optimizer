@@ -1,0 +1,2 @@
+selftest_wiring: 70 self-testing, 70 wired, 0 unwired
+ls: cannot access 'tools/pr/gate_priority.py': No such file or directory

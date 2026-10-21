@@ -1,0 +1,17 @@
+M1-precondition rc=1 ::   ok   a list missing one transitive reader exits 1 and names it|  FAIL and --out refuses to answer on it (the precondition, not a report)|agreement_py self-test: 7 checks, 1 failed|
+M2b-list-stamp rc=1 ::   UNRESTORED tools/release/stamp.py: no wave-script restore pathspec covers it|agreement_py restore: 13 closure file(s), 12 covered by the wave-script restore list, 1 missing|
+S31 rc=1 :: delivery_row self-test: 5 checks, 0 failed|  FAIL null control: the update path pushes its head once|handoff_push self-test: 2 checks, 1 failed|
+S32 rc=1 :: delivery_row self-test: 5 checks, 0 failed|  FAIL null control: the open path pushes the pull request, then its row|handoff_push self-test: 2 checks, 1 failed|
+S33 rc=1 :: delivery_row self-test: 5 checks, 0 failed|  FAIL null control: the open path pushes the pull request, then its row|handoff_push self-test: 2 checks, 1 failed|
+S34 rc=1 ::   FAIL null control: the merge records the reviewed head (state CLEAN)|  FAIL a refused merge fails the script|merge_pr self-test: 14 checks, 2 failed|
+CTR-bash5 rc=1 :: delivery_row self-test: 5 checks, 0 failed|tools/audit/seat/handoff_push.sh: line 55: i: unbound variable|
+D-rowfiles rc=1 :: FAIL: no commit on 9e2f6ed's history still resolves at the old plan path|
+-- null controls
+NULL rc=0 python3 -I tools/policy/agreement_py.py --self-test :: agreement_py self-test: 7 checks, 0 failed
+NULL rc=0 python3 -I tools/policy/agreement_py.py --restore :: agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+NULL rc=0 bash tools/audit/seat/handoff_push.sh --self-test :: handoff_push self-test: 2 checks, 0 failed
+NULL rc=0 bash tools/audit/seat/merge_pr.sh --self-test :: merge_pr self-test: 14 checks, 0 failed
+NULL rc=0 python3 -I tools/policy/record-predicate/row_files_replay.py --self-test :: ok: plan_path(HEAD)=dev/programme/plan-2026-09-open-issues.md
+NULL rc=0 python3 -I tools/audit/seat/selftest_wiring.py --self-test :: selftest_wiring self-test: 18 checks, 0 failed
+NULL rc=0 python3 -I tools/pr/gate_priority.py --self-test :: gate_priority self-test: 12 checks, 0 failed
+M2-list-delivery_status (line 926 only) rc=1 json_written=no ::   UNRESTORED tests/delivery_status.py: no wave-script restore pathspec covers it|agreement_py restore: 13 closure file(s), 12 covered by the wave-script restore list, 1 missing|
