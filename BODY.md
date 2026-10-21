@@ -1,3 +1,7 @@
+Group: R10-FLOW-YIELD-PROBE (registration pending: roster PR-B)
+
+Pinned pack file: `dev/programme/flow-study/roster/groups/R10-FLOW-YIELD-PROBE.json` at pack commit 78117030 on branch `claude/dazzling-gauss-7l3u2b`.
+
 R10-FLOW-YIELD-PROBE (owner ruling R13, expedite): why real-catch blocks per reviewed PR fell from 0.52 to 0.15, and a recommended threshold for the review-strength guardrail.
 
 This PR adds two things:
@@ -41,7 +45,7 @@ https://claude.ai/code/session_01TK6mKUXAxvPYEwHCB7ed3j
 
 ## Head
 
-`7864970031c4c9a24b077a6ccd01fdf02ba192a0`. The base is `origin/main` at `e7c664856776542bf60bd770c98aba1eaadb4041`; the bus was measured 2026-10-21T15:24Z (`date -u`). Every window is closed (it ends at or before 15:15Z) and the bus is append-only, so the figures are a function of the refs, not of `main`'s tip.
+The code head is `7864970031c4c9a24b077a6ccd01fdf02ba192a0`. The base is `origin/main` at `e7c664856776542bf60bd770c98aba1eaadb4041`; the bus was measured 2026-10-21T15:24Z (`date -u`). Every window is closed (it ends at or before 15:15Z) and the bus is append-only, so the figures are a function of the refs, not of `main`'s tip.
 
 ## Mutation proof
 
@@ -120,10 +124,10 @@ none. Local results at this head with `/opt/hpo/venv-ci/bin/python3`, `PYTHONPAT
 
 ## Forward-carry
 
-- **The guardrail threshold, the extended class list, the seat-family arm, and the calibration that a planted defect owes.** These change how the review-strength guardrail must work. The guardrail is the orchestrator beat's report (the study pack's future-state section 9 and the orchestrator prompt's "Review strength" row, on the study branch claude/dazzling-gauss-7l3u2b). R10-ORCH-MACHINERY is the live roster group that builds that beat. This seat may push only its return refs, so it edited neither file. `dev/audit/rounds/round10/D13/yield-probe.md`'s "recommended threshold" section is the text to carry. Carry: R10-ORCH-MACHINERY
+- **The guardrail threshold, the extended class list, the seat-family arm, and the calibration that a planted defect owes.** These change how the review-strength guardrail must work. The guardrail is the orchestrator beat's report (the study pack's future-state section 9 and the orchestrator prompt's "Review strength" row, on the study branch claude/dazzling-gauss-7l3u2b). R10-ORCH-MACHINERY is the live roster group that builds that beat. This seat may push only its return refs, so it edited neither file. `dev/audit/rounds/round10/D13/yield-probe.md` (it exists in the code tip tree: `git show 7864970031c4c9a24b077a6ccd01fdf02ba192a0:dev/audit/rounds/round10/D13/yield-probe.md`, 271 lines) "recommended threshold" section is the text to carry. Carry: R10-ORCH-MACHINERY
 - **The reviewer model is not on the bus.** `bus.sh dispatch` records a reviewer id but no model, so a model stratum is unmeasurable (18 of 306 verdicts have one in the orchestrator ledger). R12 already puts dispatch records (bus.sh dispatch and the workers record) in that group; the model belongs in the same record. Carry: R10-ORCH-MACHINERY
 
 ## Friction
 
-- `fixer.md`: cost: the seat's default `python3` is 3.11 without `voluptuous`, so `tests/entities.py` (an f-string needing 3.12) and `tests/harness_headers.py` fail to import. The gate was run with `/opt/hpo/venv-ci/bin/python3` instead. Carry: dismissed (the environment's venv is the documented interpreter)
+- `fixer.md`: cost: the seat's default `python3` is 3.11 without `voluptuous`, so `tests/entities.py` (an f-string needing 3.12) and `tests/harness_headers.py` fail to import. The gate was run with `/opt/hpo/venv-ci/bin/python3` instead. Carry: dismissed: the environment's venv is the documented interpreter
 
