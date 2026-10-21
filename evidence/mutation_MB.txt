@@ -1,3 +1,3 @@
-== M-B
-  FAIL the reviewer is told to separate findings, each with its own Carry:, from evidence
-cloud_dispatch self-test: 31 checks, 1 failed
+== M-B' carve-out sentence reverted to round 1
+  FAIL the reviewer is told the not-required carve-out is the check's clause, never its sentence
+cloud_dispatch self-test: 32 checks, 1 failed

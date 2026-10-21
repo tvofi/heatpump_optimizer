@@ -1,0 +1,31 @@
+=== joiner widened: semicolon
+carry_audit self-test: 189 checks, 0 failed
+## Evidence  r1 same-sentence nit             -> ['evidence']
+## Evidence  r1 same-sentence minor           -> ['evidence']
+## Evidence  r1 same-sentence defect          -> ['evidence']
+## Evidence  r1 parenthetical                 -> ['evidence']
+## Evidence  r1 semicolon                     -> ['evidence']
+## Evidence  semicolon joiner, defect first   -> []
+## Evidence  so joiner, defect first          -> ['evidence']
+## Evidence  paren joiner                     -> ['evidence']
+=== joiner widened: paren
+FAIL items: a parenthetical defect beside a not-required check's clause is a finding
+carry_audit self-test: 189 checks, 1 failed
+## Evidence  r1 same-sentence nit             -> ['evidence']
+## Evidence  r1 same-sentence minor           -> ['evidence']
+## Evidence  r1 same-sentence defect          -> ['evidence']
+## Evidence  r1 parenthetical                 -> []
+## Evidence  r1 semicolon                     -> ['evidence']
+## Evidence  semicolon joiner, defect first   -> ['evidence']
+## Evidence  so joiner, defect first          -> ['evidence']
+## Evidence  paren joiner                     -> []
+=== joiner widened: so
+carry_audit self-test: 189 checks, 0 failed
+## Evidence  r1 same-sentence nit             -> ['evidence']
+## Evidence  r1 same-sentence minor           -> ['evidence']
+## Evidence  r1 same-sentence defect          -> ['evidence']
+## Evidence  r1 parenthetical                 -> ['evidence']
+## Evidence  r1 semicolon                     -> ['evidence']
+## Evidence  semicolon joiner, defect first   -> ['evidence']
+## Evidence  so joiner, defect first          -> []
+## Evidence  paren joiner                     -> ['evidence']

@@ -1,0 +1,3 @@
+carry_audit self-test: 189 checks, 0 failed
+  ok   the rendered text carries no home directory
+cloud_dispatch self-test: 32 checks, 0 failed

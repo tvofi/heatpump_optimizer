@@ -1,0 +1,56 @@
+== M1-sentence-carve
+FAIL items: the carve-out is its clause's: a nit after it is a finding (#2441's shape)
+FAIL items: a `;` ends a sentence: a nit after a not-required check's clause is a finding
+FAIL items: a nit beside a not-required check's clause is a finding
+FAIL items: a minor defect beside a not-required check's clause is a finding
+FAIL items: a defect beside a not-required check's clause is a finding
+FAIL items: a parenthetical defect beside a not-required check's clause is a finding
+FAIL items: a colon-led nit beside a not-required check's clause is a finding
+carry_audit self-test: 189 checks, 7 failed
+== M2-no-tail
+FAIL items: under the Evidence heading a check that is not a required context and does not block is no finding
+FAIL items: ... `not required check` reads too
+FAIL items: the Evidence heading reads in any case and with words after it
+FAIL items: the check's clause frees `, and it is not blocking` (null control)
+FAIL items: ... and `, non-blocking`
+carry_audit self-test: 189 checks, 5 failed
+== M3-no-colon-guard
+FAIL items: a colon-led nit beside a not-required check's clause is a finding
+carry_audit self-test: 189 checks, 1 failed
+== M4-delete-arm
+FAIL items: under the Evidence heading a check that is not a required context and does not block is no finding
+FAIL items: ... `not required check` reads too
+FAIL items: under the Evidence heading a check that does not block, not said to be unrequired, is a note
+FAIL items: the carve-out is its clause's: a nit after it is a finding (#2441's shape)
+FAIL items: a defect left in place, not blocking, under the Evidence heading is a finding (#2465's shape)
+FAIL items: the Evidence heading reads in any case and with words after it
+FAIL items: a deferral under the Evidence heading is a finding
+FAIL items: ... and routed by its own Carry: it passes (null control)
+FAIL items: DEFERRED reads 'a follow-up' under the Evidence heading
+FAIL items: DEFERRED reads 'out of scope' under the Evidence heading
+FAIL items: DEFERRED reads 'not fixed here' under the Evidence heading
+FAIL items: DEFERRED reads 'known-open' under the Evidence heading
+== M5-joiner-semicolon
+carry_audit self-test: 189 checks, 0 failed
+== M6-joiner-so
+carry_audit self-test: 189 checks, 0 failed
+== M7-nonblock-on-t
+FAIL items: under the Evidence heading a check that is not a required context and does not block is no finding
+FAIL items: ... `not required check` reads too
+FAIL items: the Evidence heading reads in any case and with words after it
+FAIL items: the check's clause frees `, and it is not blocking` (null control)
+FAIL items: ... and `, non-blocking`
+carry_audit self-test: 189 checks, 5 failed
+== M8-drop-deferred
+FAIL items: ... and routed by its own Carry: it passes (null control)
+FAIL items: DEFERRED reads 'a follow-up' under the Evidence heading
+FAIL items: DEFERRED reads 'out of scope' under the Evidence heading
+FAIL items: DEFERRED reads 'not fixed here' under the Evidence heading
+FAIL items: DEFERRED reads 'known-open' under the Evidence heading
+FAIL items: DEFERRED reads 'a distinct finding' under the Evidence heading
+FAIL items: DEFERRED reads 'residual' under the Evidence heading
+FAIL items: DEFERRED reads 'for later' under the Evidence heading
+FAIL items: DEFERRED reads 'moved to a later round' under the Evidence heading
+FAIL items: DEFERRED reads 'fixed in the later pass' under the Evidence heading
+FAIL items: DEFERRED reads 'left until later' under the Evidence heading
+FAIL items: DEFERRED reads 'a caveat' under the Evidence heading
