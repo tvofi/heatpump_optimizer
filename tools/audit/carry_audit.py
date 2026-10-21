@@ -29,13 +29,13 @@ starts an item without a bullet. A FINDING item:
            anywhere; else, outside a section holding the block (a heading
            naming a block, or any heading of a `blocked` verdict), one under a
            NOTE_HEADING (residual, owed, instrument findings ...) or led by LEAD.
-  evidence a verdict's `## Evidence` section, or a `RESULT` or `Evidence:`
-           line anywhere: NONBLOCK is not read there ("does not block" says
-           what a check does to the merge); an item led by LEAD, under a lead,
-           or saying DEFERRED (later, follow-up, advisory, residual ...) is.
+  evidence a verdict's `## Evidence` section: NONBLOCK is not read there
+           ("does not block" says what a check does to the merge); an item led
+           by LEAD, under a lead, or saying DEFERRED (for a later, follow-up,
+           advisory, residual ...) is a finding.
   both     a paragraph that is finding-shaped and ends in `:` is a lead: its
-           bullets are the items, it is not one. The bus trailer and the
-           attribution line never are.
+           bullets are the items, it is not one. The bus trailer, `RESULT`
+           lines and the attribution line never are.
 
 A DESTINATION (`Dests.check`):
   GROUP      a group of the newest roster (`roster_lib`), not done;
@@ -92,17 +92,15 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 # An explicit none: the template's `none` or `n/a: <reason>`. A `none` that goes
 # on to record something is not one (#2341's "recorded rather than propagated").
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
-# Not a finding wherever it sits: attribution and the bus trailer.
-TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:)", re.I)
-# Evidence: a raw RESULT or `Evidence:` line, or any item under a verdict's
-# `## Evidence` heading. There "does not block" says what a check does to the
-# merge, so NONBLOCK is not read; a defect handed on still is a finding: an
-# item opening with LEAD, under a lead, or saying DEFERRED anywhere.
-EVIDENCE_LINE = re.compile(r"^\W*(?:Evidence:|RESULT\b)", re.I)
+# Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
+TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
+# A verdict's `## Evidence` section: there "does not block" says what a check
+# does to the merge, so NONBLOCK is not read; a defect handed on still is a
+# finding: an item opening with LEAD, under a lead, or saying DEFERRED.
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
-DEFERRED = re.compile(r"\bdeferred\b|follow-?up|\blater\b(?!-)|not owed here|out of scope|not fixed here|known[- ]open"
-                      r"|distinct finding|residual|caveat|observation|advisory|\bminor\b|secondary note"
-                      r"|owed to the record|still (?:has|have|needs?) to", re.I)
+DEFERRED = re.compile(r"\bdeferred\b|follow-?up|(?:for|to|in|until) (?:a |the )?later\b|not owed here"
+                      r"|out of scope|not fixed here|known[- ]open|distinct finding|residual|caveat|observation"
+                      r"|advisory|\bminor\b|secondary note|owed to the record|still (?:has|have|needs?) to", re.I)
 # The words a seat uses for "this is not done here". LEAD keys an item's first
 # words (or, in a body, its section heading); NONBLOCK flags a verdict item
 # wherever it says so, and is what a blocking section still lets through.
@@ -192,7 +190,7 @@ def items(text: str, verdict: bool) -> list[dict]:
         why = ""
         if TRAILER.match(first) or VERDICT.match(first):
             pass
-        elif EVIDENCE_LINE.match(first) or verdict and EVIDENCE_HEADING.match(sec):
+        elif verdict and EVIDENCE_HEADING.match(sec):
             why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t)
                    else "under lead" if inherited else "")
         elif verdict:
@@ -892,17 +890,16 @@ def _self_test() -> int:
          verdict_of("merge", "## Evidence\n\nNon-blocking notes:\n- a re-booking.\n"), [("under lead", U)]),
         ("the Evidence heading is read only in a verdict: a body's is a plain section",
          head + "## Evidence\n\n- the figure is deferred to round 11.\n", (), []),
-        ("a RESULT line that hands a defect on is a finding",
-         head + "## Figures\n\nRESULT mutant=M4 SURVIVES; deferred to a later tightening\n", (), [("evidence", U)]),
-        ("an `Evidence:` line that hands a defect on is a finding",
-         head + "## Figures\n\nEvidence: ev/m4.txt, a follow-up owed\n", (), [("evidence", U)]),
-        ("a RESULT line saying a check does not block is no finding", head,
-         verdict_of("merge", "RESULT nightly-status=failure, not blocking\n"), []),
+        ("a RESULT line under the Evidence heading stays a trailer", head,
+         verdict_of("merge", "## Evidence\n\n- RESULT repro: a run 0.2 s later takes the lock; residual 0\n"), []),
+        ("a time `later` under the Evidence heading is no deferral", head,
+         verdict_of("merge", "## Evidence\n\n- a run 2.5 s later takes the lock.\n"), []),
     ]
     item_grammar += [(f"DEFERRED reads {w!r} under the Evidence heading", head,
                       verdict_of("merge", f"## Evidence\n\n- the check is {w} here.\n"), [("evidence", U)])
-                     for w in ("deferred", "a follow-up", "later", "out of scope", "not fixed here", "known-open",
-                               "a distinct finding", "residual", "a caveat", "an observation", "advisory",
+                     for w in ("deferred", "a follow-up", "out of scope", "not fixed here", "known-open",
+                               "a distinct finding", "residual", "for later", "moved to a later round",
+                               "fixed in the later pass", "left until later", "a caveat", "an observation", "advisory",
                                "minor", "a secondary note", "owed to the record", "still has to",
                                "still have to", "still needs to", "not owed here")]
     item_grammar += [("a later-stage compound is no deferral", head,

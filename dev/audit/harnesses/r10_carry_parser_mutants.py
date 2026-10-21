@@ -61,7 +61,7 @@ F = ROOT / REL
 PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
           "ledger_unrouted")
 PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARRY_SECTIONS", "NONE_ITEM",
-            "TRAILER", "EVIDENCE_LINE", "EVIDENCE_HEADING", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
+            "TRAILER", "EVIDENCE_HEADING", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
             "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
 MUTANTS = [
@@ -113,9 +113,8 @@ MUTANTS = [
     ("I-verdict-line", "        if TRAILER.match(first) or VERDICT.match(first):", "        if TRAILER.match(first):"),
     ("I-verdict", "        elif verdict:\n", "        elif False:\n"),
     # items(): evidence (r10-verdict-item-barrier)
-    ("I-ev-line", "        elif EVIDENCE_LINE.match(first) or verdict and", "        elif verdict and"),
-    ("I-ev-verdict", " or verdict and EVIDENCE_HEADING.match(sec):", " or EVIDENCE_HEADING.match(sec):"),
-    ("I-ev-heading", " or verdict and EVIDENCE_HEADING.match(sec):", ":"),
+    ("I-ev-verdict", "        elif verdict and EVIDENCE_HEADING.match(sec):", "        elif EVIDENCE_HEADING.match(sec):"),
+    ("I-ev-heading", "        elif verdict and EVIDENCE_HEADING.match(sec):", "        elif False:"),
     ("I-ev-match", "EVIDENCE_HEADING.match(sec)", "EVIDENCE_HEADING.search(sec)"),
     ("I-ev-lead", 'why = ("lead" if LEAD.match(first) else "evidence"', 'why = ("lead" if False else "evidence"'),
     ("I-ev-deferred", 'else "evidence" if DEFERRED.search(t)', 'else "evidence" if False'),
@@ -204,7 +203,6 @@ MUTANTS = [
     ("P-tsep", 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{3,}")', 'TABLE_SEP = re.compile(r"^\\s*\\|?\\s*:?-{4,}")'),
     ("P-fentry", '`?[A-Za-z0-9_./#-]+`?\\s*:\\s*`?[a-z-]+`?\\s*:")', '`?[A-Za-z0-9_./#-]+`?\\s*:")'),
     ("P-verdict-sha", '[0-9a-f]{7,40}\\b")', '[0-9a-f]{40}\\b")'),
-    ("P-later-compound", '|\\blater\\b(?!-)|', '|\\blater\\b|'),
     ("P-ev-word", 'EVIDENCE_HEADING = re.compile(r"evidence\\b", re.I)', 'EVIDENCE_HEADING = re.compile(r"evidence", re.I)'),
     ("P-block", 'BLOCK_HEADING = re.compile(r"\\bblock", re.I)', 'BLOCK_HEADING = re.compile(r"\\bblocked", re.I)'),
     # the patterns: the marker grammar's anchors and quantifiers
