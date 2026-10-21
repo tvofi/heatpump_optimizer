@@ -146,8 +146,7 @@ never listed here.
   `## Approval` and no code-owner review. `policy_budgets.json` names it in
   `roles.record.opens`, which charges the rules that path loads, not the file:
   `policy_lint.mjs --budgets` prints the same aggregates with this file grown.
-  `CORPUS_EXCLUDED` still spells its pre-move path, `docs/HANDOVER.md`. The
-  residual is a reviewer's: prose moved here leaves the corpus.
+  The residual is a reviewer's: prose moved here leaves the corpus.
 - **The `hpo-ledger` bypass on `main-protect` is gone.** The owed item that asked
   tvofi to ratify or remove App 5094721's `always` bypass on 22628467 (#201
   comment 5902383542; 0011's 2026-10-02 setup recommends removal) is retired: a
