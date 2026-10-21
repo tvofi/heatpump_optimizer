@@ -683,27 +683,47 @@ class Tick:
                     self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
 
     def relay_owed(self, S: str) -> None:
-        """`OWED: <line>`, a level line every pass, for each OWED entry in
-        cloud_relay.sh's log with no later POSTED for the same PR (the round-10
-        orchestrator, 2026-10-18: a relayed verdict left unposted). The log's
-        lines are `POSTED <utc> <pr> <sha>` and `OWED <utc> <pr> <sha|-> <why>`.
-        No log is no relay yet, not a failure; an unreadable one is UNREADABLE."""
-        try:
-            with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
-                rows = fh.read().splitlines()
-        except FileNotFoundError:
-            self.line(S, "cloud-relay log: none yet (no OWED to report)")
-            return
-        except OSError as e:
-            self.unreadable(S, "cloud-relay log", str(e)[:100])
-            return
+        """`OWED: <line>` every pass for what cloud_relay.sh says is owed now.
+        Two sources, one writer. The LEVEL -- a probe or handoff ref owed until
+        disposed -- is `<log>.level`, which every relay pass rewrites whole, so
+        each of its lines prints as is. The log holds EVENTS, each naming its
+        PR in its first all-digit field (`OWED <utc> <pr> <sha|-> <why>`,
+        `OWED <utc> handoff-update <pr> ...`, `OWED reviewer-fire <pr> ...`,
+        `POSTED <utc> <pr> <sha>`); an OWED prints until a later POSTED for its
+        PR. An OWED naming no PR is a level line an older writer appended on
+        every pass: replaying those printed each pass's copy, so they are
+        skipped and counted. No log is no relay yet; an unreadable file is
+        UNREADABLE."""
+        rows: dict[str, list[str]] = {}
+        for name, path in (("log", self.relay_log), ("level", self.relay_log + ".level")):
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    rows[name] = fh.read().splitlines()
+            except FileNotFoundError:
+                rows[name] = []
+                if name == "log":
+                    self.line(S, "cloud-relay log: none yet (no OWED to report)")
+            except OSError as e:
+                rows[name] = []
+                self.unreadable(S, f"cloud-relay {name}", str(e)[:100])
+        for row in rows["level"]:
+            if row.startswith("OWED "):
+                self.line(S, f"OWED: {row.strip()}", flag=True)
         owed: dict[str, list[str]] = {}
-        for row in rows:
+        stale = 0
+        for row in rows["log"]:
             f = row.split()
-            if len(f) >= 3 and f[0] == "OWED":
-                owed.setdefault(f[2], []).append(row.strip())
-            elif len(f) >= 3 and f[0] == "POSTED":
-                owed.pop(f[2], None)
+            pr = next((x for x in f[1:4] if x.isdigit()), None)
+            if f[:1] == ["OWED"]:
+                if pr is None:
+                    stale += 1
+                else:
+                    owed.setdefault(pr, []).append(row.strip())
+            elif f[:1] == ["POSTED"] and pr is not None:
+                owed.pop(pr, None)
+        if stale:
+            self.line(S, f"cloud-relay log: {stale} OWED line(s) naming no PR skipped "
+                      "(an older writer's level lines; the level file is the level)")
         for pr in sorted(owed, key=lambda x: (len(x), x)):
             for row in owed[pr]:
                 self.line(S, f"OWED: {row}", flag=True)
@@ -3338,12 +3358,17 @@ def self_test() -> int:
         total, failed = total + a, failed + f
 
         # ---- OWED from cloud_relay.sh's log (2026-10-18) ----
-        def owed_lines(text):
+        def owed_lines(text, level=None):
             lg = tmp / "relay.log"
+            lv = tmp / "relay.log.level"
             if text is None:
                 lg.unlink(missing_ok=True)
             else:
                 lg.write_text(text)
+            if level is None:
+                lv.unlink(missing_ok=True)
+            else:
+                lv.write_text(level)
             t = tick(relay_log=str(lg))
             t.relay_owed("PRS")
             return t.sections.get("PRS", [])
@@ -3357,7 +3382,28 @@ def self_test() -> int:
         again = owed_lines("\n".join([o1, p1, o3]) + "\n")
         none = owed_lines(None)
         twice = owed_lines("\n".join([o1, o3]) + "\n")
+        # the level (cloud_relay.sh rewrites <log>.level each pass) beside an older
+        # writer's log, which appended the same level line on every pass
+        lvl = [f"OWED 2026-10-21T07:35:0{i}Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
+               for i in range(2)]
+        old = [f"OWED 2026-10-21T0{p}:00:00Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
+               for p in range(3) for i in range(3)]
+        levels = owed_lines("\n".join(old + [o2]) + "\n", "\n".join(lvl) + "\n")
+        hu = f"OWED 2026-10-18T19:00:00Z handoff-update 9 topic-9 {'d' * 40}"
+        rf = f"OWED reviewer-fire 9 {'d' * 40} {'0' * 32} 2026-10-18T19:01:00Z"
+        hu_posted = owed_lines("\n".join([hu, rf, f"POSTED 2026-10-18T19:30:00Z 9 {'e' * 40}"]) + "\n")
+        hu_open = owed_lines("\n".join([hu, rf]) + "\n")
         a, f = check("relay OWED", [
+            ("each level-file line prints once; the log's per-pass copies print none",
+             [l["text"] for l in levels if l["flag"]]
+             == [f"OWED: {x}" for x in lvl] + [f"OWED: {o2}"]),
+            ("the skipped copies are counted, unflagged",
+             any(not l["flag"] and "9 OWED line(s) naming no PR skipped" in l["text"]
+                 for l in levels)),
+            ("an OWED <utc> handoff-update <pr> is keyed on its PR: a later POSTED clears it",
+             not any(l["text"].startswith("OWED:") for l in hu_posted)),
+            ("null control: without that POSTED both kind-first lines print",
+             [l["text"] for l in hu_open if l["flag"]] == [f"OWED: {hu}", f"OWED: {rf}"]),
             ("each OWED with no later POSTED prints OWED: <line>, flagged",
              [l["text"] for l in both if l["flag"]] == [f"OWED: {o1}", f"OWED: {o2}"]),
             ("null control: an OWED followed by a POSTED prints nothing",

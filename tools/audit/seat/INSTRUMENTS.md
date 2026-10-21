@@ -196,11 +196,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `cloud_relay.sh --watch [--interval N] [--once]` is the orchestrator's poll
   loop, tracked: every N seconds (default 120) it runs the probe arm, which
   lists every `refs/heads/probe/*` with `git ls-remote origin`. A probe ref
-  that is not `rev-*` (a probe seat's return, a stray push) appends
-  `OWED <utc> probe-ref <ref> <sha>` on EVERY pass until
+  that is not `rev-*` (a probe seat's return, a stray push) is
+  `OWED <utc> probe-ref <ref> <sha>` in `<log>.level` until
   `cloud_relay.sh dispose <ref> <sha>` records it handled: a level, not a
   diff, so a missed line is repeated rather than lost, and a disposed ref
-  that moves is owed again at its new sha. It relays each `rev-*` ref+sha
+  that moves is owed again at its new sha. Every pass REWRITES its kind's
+  lines in `<log>.level` and appends none to the log (appended, 2026-10-21: 34757 copies
+  of ~281 items once reached the board); `dispose [--log FILE]` drops the
+  line at once from the level beside that log (the pass's `--log`), and a
+  failed listing leaves the level as it was. It relays each `rev-*` ref+sha
   once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
   or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
   left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
@@ -236,12 +240,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR): it is
   not recorded, and the next pass retries it. Every
   `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
-  appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
-  the same way (a fixer's return the orchestrator has not opened, or a merged
-  PR's refs not yet archived); a failed PR listing reports none, since an
-  empty list would make every ref look orphaned. Note the two
-  OWED shapes: `OWED reviewer-fire` carries no timestamp first, the others
-  (`OWED <utc> ...`) do.
+  is `OWED <utc> handoff-no-pr <ref> <sha>` in `<log>.level`, rewritten every
+  pass, until disposed the same way (a fixer's return the orchestrator has
+  not opened, or a merged PR's refs not yet archived); a failed PR listing
+  leaves those lines as they were, since an empty list would make every ref
+  look orphaned. The log holds events only, each naming its PR in its first
+  all-digit field: `OWED reviewer-fire <pr> ...` carries no timestamp first,
+  the others (`OWED <utc> ...`) do.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
@@ -392,9 +397,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue
   whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
-  `OWED: <line>` prints every pass for each OWED entry in `cloud_relay.sh`'s
-  log (its default, `$HPO_STATE_DIR/cloud-relay.log`) with no later POSTED for
-  the same PR; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
+  `OWED: <line>` prints every pass for each line of `cloud_relay.sh`'s level
+  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`)
+  and for each OWED event in the log with no later POSTED for the same PR (its
+  first all-digit field); an OWED naming no PR is an older writer's per-pass
+  level copy, skipped and counted, never replayed; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
   prints every pass for each complete handoff no PR head carries, read by
   `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
   included, #2411); a run with no summary line is UNCHECKED, never a clean

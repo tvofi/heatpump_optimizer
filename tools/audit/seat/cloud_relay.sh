@@ -2,7 +2,7 @@
 # cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>    relay one cloud reviewer's verdict
 # cloud_relay.sh --watch [--interval N] [--once] [--confirm] [--log FILE]
 # cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]
-# cloud_relay.sh dispose <ref> <sha40>                                record an OWED ref handled
+# cloud_relay.sh dispose [--log FILE] <ref> <sha40>                    record an OWED ref handled
 # cloud_relay.sh --self-test
 #
 # WHY. A cloud reviewer cannot run `bus.sh push-verdict`: the dispatch record
@@ -34,10 +34,12 @@
 #
 # --watch is the orchestrator's poll loop: every N seconds (default 120) it runs
 # the probe arm, `git ls-remote origin 'refs/heads/probe/*'`. A ref that is not
-# probe/rev-* appends `OWED <utc> probe-ref <ref> <sha>` on EVERY pass until
-# `dispose <ref> <sha>` writes `<ref> <sha>` to <state>/cloud-disposed: a level,
-# not a diff, so a missed line is repeated rather than lost, and a disposed ref
-# that moves is owed again. It relays each probe/rev-* ref+sha once.
+# probe/rev-* is OWED until `dispose <ref> <sha>` writes `<ref> <sha>` to
+# <state>/cloud-disposed: a level, not a diff, so a missed line is repeated rather
+# than lost, and a disposed ref that moves is owed again. The level is `<log>.level`
+# (beside --log), whose `OWED <utc> probe-ref <ref> <sha>` lines EVERY pass rewrites,
+# never appends; dispose drops its line at once; a failed listing leaves it as it was.
+# It relays each probe/rev-* ref+sha once.
 # The dispatch record ($HPO_BUS_STATE or ~/.zcode/bus, field order `pr head
 # thread nonce`) supplies the head and full nonce for a ref's pr and nonce8; a ref
 # with no record is logged and left for a later pass. A refused ref+sha is noted
@@ -71,8 +73,9 @@
 #     a topic whose update failed is noted in `<ledger>.handoff-failed` by
 #     `<topic> <code-sha>` and retried only when handoff/<topic> moves, with an
 #     `OWED handoff-update` line. Every handoff/* or handoff-body/* ref whose
-#     topic has no open PR appends `OWED <utc> handoff-no-pr <ref> <sha>` on
-#     every pass until disposed; a failed PR listing reports none.
+#     topic has no open PR is `OWED <utc> handoff-no-pr <ref> <sha>` in
+#     <log>.level, rewritten every pass, until disposed; a failed PR listing
+#     leaves those lines as they were. The log itself holds events only.
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
 # `--loop` repeats a pass every --interval seconds (default 120); without it a
@@ -88,7 +91,18 @@ HERE=$(cd "$(dirname -- "$0")" && pwd)
 
 die() { echo "cloud_relay: refused: $*" >&2; return 2; }
 
-logline() { mkdir -p "$(dirname -- "${LOG:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relay.log}")" && printf '%s %s\n' "$1" "$(date -u +%FT%TZ) $2" >> "${LOG:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relay.log}"; }
+relay_log() { printf '%s' "${LOG:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relay.log}"; }
+logline() { mkdir -p "$(dirname -- "$(relay_log)")" && printf '%s %s\n' "$1" "$(date -u +%FT%TZ) $2" >> "$(relay_log)"; }
+# The level is state, not an event: an arm writes `OWED <utc> <kind> <ref> <sha>` lines to a
+# file of its own, then level_set makes them the whole of <kind> in <log>.level, which the
+# tick prints as is. Appended to the log on every pass they were replayed whole (2026-10-21).
+level_line() { printf 'OWED %s %s %s %s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3"; }
+level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level become that file's
+  local lv; lv=$(relay_log).level
+  mkdir -p "$(dirname -- "$lv")" || return 1
+  { [ -f "$lv" ] && awk -v k="$1" '$3 != k' "$lv"; cat "$2"; } > "$lv.$$" && mv -f "$lv.$$" "$lv"
+  rm -f "$2"
+}
 posted() { logline POSTED "$1 $2"; echo "cloud_relay: POSTED #$1 $2"; }
 owed() { logline OWED "$1 $2 $3"; echo "cloud_relay: OWED #$1: $3" >&2; }
 
@@ -144,17 +158,22 @@ dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled
   [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
   case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/ or handoff-body/ ref"; return;; esac
   printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
-  mkdir -p "$state" && echo "$1 $2" >> "$state/cloud-disposed" && echo "cloud_relay: disposed $1 $2"
+  mkdir -p "$state" && echo "$1 $2" >> "$state/cloud-disposed" || return 1
+  local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
+  if [ -f "$lv" ]; then awk -v r="$1" -v s="$2" '!($4 == r && $5 == s)' "$lv" > "$lv.$$" && mv -f "$lv.$$" "$lv"; fi
+  echo "cloud_relay: disposed $1 $2"
 }
 
 probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sha, any other is OWED until disposed
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} led bus sha ref k pr n8 rec nonce head rc
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+  # a failed listing leaves the level as it was: unknown is not "nothing owed"
   git ls-remote origin 'refs/heads/probe/*' > "${TMPDIR:-/tmp}/cloud_relay_ls.$$" || { echo "cloud_relay: ls-remote failed; will retry" >&2; rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"; return 0; }
+  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"
   while read -r sha ref; do
     [ -n "$ref" ] || continue
     case $ref in refs/heads/probe/rev-*) ;;
-      *) disposed "$ref" "$sha" || { logline OWED "probe-ref $ref $sha"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
+      *) disposed "$ref" "$sha" || { level_line probe-ref "$ref" "$sha" >> "$state/cloud-level-probe.$$"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
     if { [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; } || { [ -f "$led.refused" ] && grep -qxF "$ref $sha" "$led.refused"; }; then continue; fi
     k=${ref#refs/heads/probe/rev-}; pr=${k%%-*}; n8=${k#*-}
     rec=$(awk -v p="$pr" -v n="$n8" '$1 == p && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
@@ -165,6 +184,7 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
     if [ $rc -ne 0 ]; then mkdir -p "$state" && echo "$ref $sha" >> "$led.refused"; fi
   done < "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
   rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
+  level_set probe-ref "$state/cloud-level-probe.$$"
 }
 
 watch() { # [--interval N] [--once]
@@ -218,18 +238,20 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { logline OWED "dispatch $pr no new head read after the update"; continue; }
     if nonce=$( { if [ -n "${HPO_RELAY_DISPATCH:-}" ]; then "$HPO_RELAY_DISPATCH" "$pr" "$nh" cloud; else bash "$HERE/bus.sh" dispatch "$pr" "$nh" cloud; fi; } | sed -n 's/^bus-nonce: //p' | head -n 1) \
        && printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$'; then
-      mkdir -p "$(dirname -- "${LOG:-$state/cloud-relay.log}")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +%FT%TZ)" >> "${LOG:-$state/cloud-relay.log}"
+      mkdir -p "$(dirname -- "$(relay_log)")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +%FT%TZ)" >> "$(relay_log)"
       echo "cloud_relay: OWED reviewer-fire #$pr $nh"
     else logline OWED "dispatch $pr $nh bus.sh dispatch failed; run it by hand"; fi
   done < "$state/cloud-prs.$$"
   # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
   cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
+  : > "$state/cloud-level-handoff.$$"
   while read -r hs ref; do
     [ -n "$ref" ] || continue
     topic=${ref#refs/heads/handoff-body/}; topic=${topic#refs/heads/handoff/}
     grep -qxF "$topic" "$state/cloud-topics.$$" && continue
-    disposed "$ref" "$hs" || { logline OWED "handoff-no-pr $ref $hs"; echo "cloud_relay: OWED handoff-no-pr $ref $hs"; }
+    disposed "$ref" "$hs" || { level_line handoff-no-pr "$ref" "$hs" >> "$state/cloud-level-handoff.$$"; echo "cloud_relay: OWED handoff-no-pr $ref $hs"; }
   done < "$state/cloud-hrefs.$$"
+  level_set handoff-no-pr "$state/cloud-level-handoff.$$"
   rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$"
 }
 
@@ -343,22 +365,33 @@ self_test() {
   chk "a watch pass with --confirm confirms and logs POSTED" 0 grep -q "^POSTED .* 5 " "$LOG"
   CONFIRM=
   # the probe arm's other refs: any probe/* that is not rev-* is OWED on every pass until disposed
-  LOG=$t/probe.log; : > "$LOG"; mk 5 $h $h $n
+  # The level is <log>.level, rewritten by each pass: appended to the log, every pass's copy
+  # was replayed by the tick (2026-10-21), so "once per pass" is checked on the file itself.
+  LOG=$t/probe.log; LV=$LOG.level; : > "$LOG"; rm -f "$LV"; mk 5 $h $h $n
   git -C "$t/o.git" update-ref refs/heads/probe/scan-x "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8})"; PX=$(git -C "$t/o.git" rev-parse refs/heads/probe/scan-x)
   probe_arm >/dev/null 2>&1
-  chk "a non-rev probe ref is logged OWED with ref and sha" 0 grep -q "^OWED .* probe-ref refs/heads/probe/scan-x $PX$" "$LOG"
-  chk "a rev ref is relayed, not logged OWED (null control)" 1 grep -q "probe-ref refs/heads/probe/rev-" "$LOG"
-  probe_arm >/dev/null 2>&1
-  chk "it is logged again on the next pass (a level, not a diff)" 0 test "$(grep -c "probe-ref refs/heads/probe/scan-x" "$LOG")" = 2
+  chk "a non-rev probe ref is OWED in the level file with ref and sha" 0 grep -q "^OWED .* probe-ref refs/heads/probe/scan-x $PX$" "$LV"
+  chk "a rev ref is relayed, not OWED (null control)" 1 grep -q "probe-ref refs/heads/probe/rev-" "$LV"
+  printf 'OWED 2026-01-01T00:00:00Z handoff-no-pr refs/heads/handoff/keep %s\n' "$h" >> "$LV"
+  probe_arm >/dev/null 2>&1; probe_arm >/dev/null 2>&1
+  chk "after three passes it is owed once (a level is rewritten, never appended)" 0 test "$(grep -c "probe-ref refs/heads/probe/scan-x" "$LV")" = 1
+  chk "and the probe arm leaves the handoff arm's level lines alone" 0 grep -q "handoff-no-pr refs/heads/handoff/keep " "$LV"
+  chk "the event log carries no level line" 1 grep -q "probe-ref" "$LOG"
+  git remote set-url origin "$t/absent.git"; probe_arm >/dev/null 2>&1; git remote set-url origin "$t/o.git"
+  chk "a failed listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "probe-ref refs/heads/probe/scan-x $PX$" "$LV"
   chk "dispose refuses a ref outside probe/ and handoff" 2 dispose refs/heads/main "$PX"
   chk "dispose refuses a short sha" 2 dispose refs/heads/probe/scan-x "${PX%?}"
   chk "dispose takes a probe ref at its sha" 0 dispose refs/heads/probe/scan-x "$PX"
-  : > "$LOG"; probe_arm >/dev/null 2>&1
-  chk "a disposed ref is not logged" 0 test ! -s "$LOG"
+  chk "and drops its level line at once, not at the next pass" 1 grep -q "probe-ref refs/heads/probe/scan-x" "$LV"
+  probe_arm >/dev/null 2>&1
+  chk "a disposed ref is not owed" 1 grep -q "probe-ref" "$LV"
   mk 5 $h $h ffffffffffffffffffffffffffffffff
   git -C "$t/o.git" update-ref refs/heads/probe/scan-x "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8})"; PX2=$(git -C "$t/o.git" rev-parse refs/heads/probe/scan-x)
   probe_arm >/dev/null 2>&1
-  chk "a disposed ref that moved is OWED again at its new sha" 0 grep -q "^OWED .* probe-ref refs/heads/probe/scan-x $PX2$" "$LOG"
+  chk "a disposed ref that moved is OWED again at its new sha" 0 grep -q "^OWED .* probe-ref refs/heads/probe/scan-x $PX2$" "$LV"
+  X=$t/other.log; printf 'OWED 2026-01-01T00:00:00Z probe-ref refs/heads/probe/scan-y %s\n' "$h" > "$X.level"
+  chk "dispose --log FILE (the CLI) takes the ref" 0 bash "$HERE/cloud_relay.sh" dispose --log "$X" refs/heads/probe/scan-y "$h"
+  chk "and drops its line from the level beside that log" 1 grep -q scan-y "$X.level"
   # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
   unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
   prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -411,26 +444,27 @@ self_test() {
   chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
   chk "nor logged OWED" 1 grep -q "handoff-update" "$LOG"
   # handoff refs with no open PR are OWED on every pass until disposed
-  : > "$LOG"; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
+  LV=$LOG.level; : > "$LOG"; rm -f "$LV"; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
   handoff_arm >/dev/null 2>&1
-  chk "a handoff ref with no open PR is logged OWED" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB$" "$LOG"
-  chk "a handoff ref with an open PR is not (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-a " "$LOG"
-  chk "nor its handoff-body ref (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff-body/topic-a " "$LOG"
-  handoff_arm >/dev/null 2>&1
-  chk "the no-PR ref is logged again on the next pass" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LOG")" = 2
+  chk "a handoff ref with no open PR is OWED in the level file" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB$" "$LV"
+  chk "a handoff ref with an open PR is not (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-a " "$LV"
+  chk "nor its handoff-body ref (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff-body/topic-a " "$LV"
+  handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "after three passes the no-PR ref is owed once (rewritten, never appended)" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LV")" = 1
+  chk "the event log carries no level line" 1 grep -q "handoff-no-pr" "$LOG"
   git -C "$t/o.git" fetch -qf "$t/b" "HEAD:refs/heads/handoff-body/topic-c"; OC=$(git -C "$t/o.git" rev-parse refs/heads/handoff-body/topic-c)
-  : > "$LOG"; handoff_arm >/dev/null 2>&1
-  chk "a handoff-body ref with no open PR is logged OWED" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff-body/topic-c $OC$" "$LOG"
+  handoff_arm >/dev/null 2>&1
+  chk "a handoff-body ref with no open PR is OWED" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff-body/topic-c $OC$" "$LV"
   dispose refs/heads/handoff/topic-b "$OB" >/dev/null; dispose refs/heads/handoff-body/topic-c "$OC" >/dev/null
-  : > "$LOG"; handoff_arm >/dev/null 2>&1
-  chk "disposed no-PR refs are not logged" 1 grep -q "handoff-no-pr" "$LOG"
+  handoff_arm >/dev/null 2>&1
+  chk "disposed no-PR refs are not owed" 1 grep -q "handoff-no-pr" "$LV"
   git -C "$t/o.git" update-ref -d refs/heads/handoff-body/topic-c; git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b
   hc moved; mkref handoff/topic-b; OB2=$(git -C "$t/pr" rev-parse HEAD)
-  : > "$LOG"; handoff_arm >/dev/null 2>&1
-  chk "a disposed no-PR ref that moved is OWED again" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB2$" "$LOG"
+  handoff_arm >/dev/null 2>&1
+  chk "a disposed no-PR ref that moved is OWED again" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB2$" "$LV"
   failprs=$t/failprs.sh; printf '#!/bin/sh\nexit 1\n' > "$failprs"; chmod +x "$failprs"
-  : > "$LOG"; HPO_RELAY_PRS=$failprs handoff_arm >/dev/null 2>&1
-  chk "a failed PR listing reports no ref as without a PR" 0 test ! -s "$LOG"
+  HPO_RELAY_PRS=$failprs handoff_arm >/dev/null 2>&1
+  chk "a failed PR listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2$" "$LV"
   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b; : > "$LOG"
   chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
@@ -444,9 +478,9 @@ case ${1:-} in
   --self-test) self_test; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
   pass) shift; pass "$@"; exit $?;;
-  dispose) shift; dispose "$@"; exit $?;;
+  dispose) shift; [ "${1:-}" = --log ] && { LOG=${2:-}; shift 2; }; dispose "$@"; exit $?;;
   --confirm|--log) while [ $# -gt 0 ]; do case $1 in --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; *) break;; esac; done
     [ $# = 3 ] || { echo "usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
-  ''|-*) echo "usage: cloud_relay.sh <pr> <nonce> <head40> | pass [--confirm] [--log FILE] [--loop [--interval N]] | dispose <ref> <sha40> | --watch [--interval N] [--once] [--confirm] [--log FILE] | --self-test" >&2; exit 2;;
+  ''|-*) echo "usage: cloud_relay.sh <pr> <nonce> <head40> | pass [--confirm] [--log FILE] [--loop [--interval N]] | dispose [--log FILE] <ref> <sha40> | --watch [--interval N] [--once] [--confirm] [--log FILE] | --self-test" >&2; exit 2;;
   *) [ $# = 3 ] || { echo "usage: cloud_relay.sh <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
 esac
