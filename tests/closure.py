@@ -633,6 +633,21 @@ INERT_EXCEPT = (
     # openat), so they stay under the docs/ prefix. The arm also opens
     # DISCLAIMER.md for the page's DISCLAIMER.md#disclaimer claims.
     "docs/index.html",
+    # #2298: the image-size arm of tests/doc_claims.py OPENS each PNG a sized
+    # <img> on a published page names, to read its IHDR, so those files are
+    # its reads, not stat()s: a re-exported screenshot of another height
+    # selects the script. The rest of docs/img/ stays under the prefix. A new
+    # sized <img> adds its PNG here, as a new reader doc does above.
+    "docs/img/card/advisor-light.png",
+    "docs/img/card/card-plan-chart.png",
+    "docs/img/card/options-hot-water-by-day.png",
+    "docs/img/card/plan-why-light.png",
+    "docs/img/model/card-dhw-band-weekly.png",
+    "docs/img/readme/how-it-works.png",
+    "docs/img/setup/01-first-screen.png",
+    "docs/img/setup/03-menu.png",
+    "docs/img/setup/04-quick-setup.png",
+    "docs/img/setup/08-setup-overview.png",
     # R9-WEB-3: the same arm opens the stylesheet the built pages link, to refuse
     # a third-party @import or url() in it; the route docs/index.html took.
     "docs/site/docs.css",
