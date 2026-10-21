@@ -167,7 +167,8 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
       runner)
         if ! printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_exit_trap([[:space:]]|$)'; then
           echo "OPEN $f runner: no pr_exit_trap, so a stop leaves its tree"; bad=1
-        elif printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' | grep -qvE '[^&]&([^&]|$)'; then
+        elif printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' \
+             | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
           echo "OPEN $f runner: a push runs in the foreground, so an INT waits behind it"; bad=1
         else echo "ok   $f runner"; fi ;;
       runner-py)
@@ -456,14 +457,14 @@ STUB
   ( pr_pushers > "$t/census" ); [ $? = 0 ] && ! grep -q '^OPEN' "$t/census" \
     && [ "$(grep -c '^ok ' "$t/census")" = "$(printf '%s\n' "$PR_PUSHERS" | grep -c .)" ]
   ck "the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps" $?
-  census() { # <extra file> <its text> [<entry whose pr_exit_trap line goes>]
+  census() { # <extra file> <its text> [<entry> [<sed script applied to it; default: its pr_exit_trap line goes>]]
     local c=$t/census-tree f r
     rm -rf "$c"; mkdir -p "$c"; git -C "$c" init -q
     r=$(cd "$src/../../.." && pwd)
     for f in $(printf '%s\n' "$PR_PUSHERS" | awk '{ print $1 }'); do
       mkdir -p "$c/$(dirname "$f")"; cp "$r/$f" "$c/$f"
     done
-    [ -z "$3" ] || sed -i '/^[^#]*pr_exit_trap/d' "$c/$3"
+    [ -z "${3:-}" ] || sed -i "${4:-/^[^#]*pr_exit_trap/d}" "$c/$3"
     [ -z "$1" ] || { mkdir -p "$c/$(dirname "$1")"; printf '%s\n' "$2" > "$c/$1"; }
     git -C "$c" add -A; ( pr_pushers "$c" > "$t/census" ); echo $? > "$t/rc"
   }
@@ -475,6 +476,9 @@ STUB
   census "" "" tools/audit/seat/handoff_push.sh
   [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/handoff_push.sh runner: no pr_exit_trap" "$t/census"
   ck "  a runner without pr_exit_trap is refused" $?
+  census "" "" tools/audit/seat/handoff_push.sh '/bash "\$_push"/s/ &$//'
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/handoff_push.sh runner: a push runs in the foreground" "$t/census"
+  ck "  a runner whose push runs in the foreground is refused (its \`2>&1\` backgrounds nothing)" $?
   arm "update_pr: two arguments refuse, naming the count" arity \
     "update_pr: REFUSE: 2 argument(s), at least 3 needed" update_pr.sh fix/x "$code"
   arm "update_pr: an abbreviated code sha refuses as not 40-hex" hex \
