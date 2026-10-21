@@ -1,0 +1,20 @@
+  ok   #2223: the refit's dark gauge is the tree's, inclusive at the threshold
+  ok   #2223: a sunlit window offers the refit no pair at all
+  ok   #2223: a dark window folds exactly the pairs it always did
+  ok   #2223: a half-sunny window folds only its dark half
+  ok   #2223: the sample carries the interval's sun through its stored form
+  ok   #2223: the dark gauge is inclusive at its own threshold, and unknown is dark
+  ok   #2223: a fold's zone is the upper floor in two-zone mode, else the room
+  ok   #2223: and the fold's capacity is that same zone's thermal mass
+  ok   #2223: a night interval still folds the house heat loss
+  ok   #2223: a sunlit interval takes no house heat-loss sample
+  ok   #2223: the house fold's interval window is inclusive at both bounds
+  ok   #2223: the sunlit interval is still the aperture learner's
+  ok   #2223: the detector is fed the interval even when the heat-loss fold refuses it
+  ok   #2223: the hour shape waits for the heat-loss level
+  ok   #2223: and folds its hour once the level has converged
+  ok   #2223: a heat-loss level exactly on the confidence threshold has converged
+  ok   #2223: the lower-floor split takes a night interval and refuses a sunlit one
+  FAIL #2223: an accuracy sample records the sun its prediction was made under  [1 samples, sun None]
+  FAIL #2223: the coordinator's sunlit prediction settles with its sun, and the refit refuses it  [sunlit: sun None pair (0.0, 23.0); dark: sun None pair (0.0, 23.0)]
+2 of 4290 FEATURE CHECKS FAILED

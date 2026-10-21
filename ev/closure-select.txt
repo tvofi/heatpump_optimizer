@@ -1,0 +1,69 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 29 script(s) run, 4 scoped out.
+  changed files (25), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/accuracy.py
+      custom_components/heatpump_optimizer/const.py
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/store.py
+      custom_components/heatpump_optimizer/thermal_model.py
+      dev/audit/harnesses/r10_night_folds_alternatives.py
+      dev/audit/harnesses/r10_night_folds_learners.py
+      dev/audit/harnesses/r10_vent_sun_transient.py
+      dev/programme/delivery/2563.md
+      tests/closures.json
+      tests/features.py
+      tests/mutation_ledger/killed_by/accuracy.py/_refit_pair.GUARD_OFF.13c5d9a2.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_house_heat_loss.CMP_BOUND.b929c414.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_house_heat_loss.GUARD_OFF.a47af5ac.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_house_heat_loss.GUARD_OFF.b929c414.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss.GUARD_OFF.a47af5ac.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_internal_gains.CMP_BOUND.c7930f6b.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_internal_gains.GUARD_OFF.47d9953d.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_internal_gains.GUARD_OFF.a47af5ac.json
+      tests/mutation_ledger/killed_by/coordinator.py/_learned_zone_temperature.GUARD_OFF.3e72e988.json
+      tests/mutation_ledger/killed_by/coordinator.py/_learned_zone_temperature.RETURN_DEL.9ffc374c.json
+      tests/mutation_ledger/killed_by/coordinator.py/_zone_capacity.RETURN_DEL.3eba1bcd.json
+      tests/mutation_ledger/killed_by/thermal_model.py/is_sunlit_interval.CMP_BOUND.e0242a4c.json
+      tests/mutation_ledger/killed_by/thermal_model.py/is_sunlit_interval.RETURN_DEL.e0242a4c.json
+      tests/structure_budgets.json
+
+      RUN   tests/arch_score_head.py
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py
+      RUN   tests/boost_drift_replay.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/debug_collect.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/frontend.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/open_meteo.py
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py
+      RUN   tests/card.mjs
+      RUN   tests/card_drift.mjs
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0
