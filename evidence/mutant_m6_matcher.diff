@@ -1,0 +1,17 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 8da40dc18..00909c7c2 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -3669,12 +3669,6 @@ def _p2_match_defrost_decides(n, parents):
+     and the watchdog both ask it that way. Any other decision-context read is
+     a hit.
+     """
+-    par = parents.get(n)
+-    if isinstance(par, ast.Call) and n in par.args and (
+-        getattr(par.func, "id", None) == "defrost_interval"
+-        or getattr(par.func, "attr", None) == "defrost_interval"
+-    ):
+-        return False
+     return (
+         isinstance(n, ast.Attribute)
+         and n.attr == "defrosting"

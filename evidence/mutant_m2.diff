@@ -1,13 +1,13 @@
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index eb1f8964d..1aeb21ea6 100644
+index cf474d95d..771c622d6 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
-@@ -10595,7 +10595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
-                 )
-         if (
-             self._measured_power is None or self._immersion_active
--            or defrosting or _freq_fold_blocked(self)
-+            or _freq_fold_blocked(self)
-         ):
-             return
-         self._freq_map.observe(
+@@ -1009,7 +1009,7 @@ def _freq_fold_blocked(coord: Any) -> bool:
+     bad fold matters here: the map is keyed by decile only, so it is
+     inherited when the user later switches to control.
+     """
+-    if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
++    if False:
+         return True
+     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
+         return True
