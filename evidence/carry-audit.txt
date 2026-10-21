@@ -1,4 +1,2 @@
-UNROUTED body item 058090a8 (## Forward-carry) [section]: '- The #2547, #2548 and #2549 rows are not repaired by this diff. The stale worktrees under `$HPO_STATE_DIR/pr/'
-UNROUTED body item 11c47230 (## Forward-carry) [section]: "- `app_push.sh`'s head check cannot say why HEAD is not the tip. Not changed here (the check is right: it refu"
-CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted, 0 bad destination(s)
-rc=1
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+rc=0

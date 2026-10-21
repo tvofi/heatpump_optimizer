@@ -1,36 +1,32 @@
-Fix review: blocked f8694ba2d73595da723f0de3ed78c3e05df78b3d ci-red: instrument-self-tests is red on this diff (ref_privacy --check refuses the new push site at tools/audit/seat/pr_args.sh:353) and pr-contract is red (carry_audit: both Forward-carry items unrouted), while the body says Red checks: none
+Fix review: blocked 085a4cafa84022120460fd23701a21883321536f harness: class-open tools/audit/seat/ci_predict_replay.sh:47
 
-Round 1 for this head. Group: none (no roster entry for topic r10-openpr-row-push); reviewed against the PR body.
-Measured at head f8694ba2d73595da723f0de3ed78c3e05df78b3d (ev/HEAD.txt); refs/pull/2560/head still f8694ba2d73595da723f0de3ed78c3e05df78b3d when this verdict was written. Merge base 03b49e152 = origin/main; dev/governance/roles/ is unchanged between the base and origin/main.
+Round 2. Group: none (no entry for r10-openpr-row-push in origin/handoff/audit-r10-roster's dev/programme/rosters/wave-r10-groups.json at 31e162fd3, searched with jq). Reviewed against the PR body.
+Measured at head 085a4cafa84022120460fd23701a21883321536f (ev/HEAD.txt). Before writing, refs/pull/2560/head and fix/r10-openpr-row-push-pr were still 085a4cafa84022120460fd23701a21883321536f. Merge base 289426c1f. dev/governance/roles/ is the same at the merge base and at origin/main 3688cf259.
 
 ## Blocking
 
-1. **instrument-self-tests: failure** (check-run 119202734228, step 23 "Refuse a push that names the host, and an unregistered pusher"). Re-run locally at the head: `python3 -I tools/audit/seat/ref_privacy.py --check` prints
-   `ref_privacy: REFUSE tools/audit/seat/pr_args.sh:353: a push site in a file PUSHERS does not name: guard it ... and register it, or register why not` and
-   `ref_privacy --check at HEAD: 19 file(s) with a push site, 9 guarded, 111 line(s) added since 03b49e1521a2 judged, 1 refused` (ev/ref-privacy-head.txt).
-   At the base worktree the same command prints `0 refused`. Line 353 is the stub `app_push.sh` heredoc this diff adds to the self-test (`git -C "$wt" push -q origin "$br"`). The fix is the fixer's: register `pr_args.sh` in `PUSHERS` with its reason (a self-test stub pushing to a scratch origin), or reshape the fixture so it is not a push site.
-2. **pr-contract: failure** (both runs, 119202272281 and 119202779945): `carry_audit.py check --body` prints `UNROUTED body item 058090a8 (## Forward-carry)` and `UNROUTED body item 11c47230 (## Forward-carry)`, `CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted`. Reproduced locally (ev/carry-audit.txt, rc=1). `Carry: orchestrator` and `Carry: none` are not destinations the audit accepts (GROUP | #issue | O<n> | dismissed: <reason>). Step 10 also: the first item (#2547/#2548 rows unrepaired) has no stage it was written to.
-3. **## Red checks says "none"** while the head has both reds above (step 11). Not posted as root-cause-unanswered because the head's workflows had not all concluded (Analyze, browser, closures, env-matrix, fast, coverage-ratchet, graders-head-copy still running at 11:52Z; ev/check-runs-final.tsv); the ci-red block stands on its own, and the re-pushed body owes the answer for whatever is red then.
-   nightly-status is red too; it grades main and this diff does not reach what it reads -- not this PR's.
+1. **class-open** (step 6). The body's enumeration rule (`grep -nE "checkout -q --detach|reset -q --hard|worktree add -q -B|worktree remove --force|branch -D" tools/audit/seat/*.sh tools/audit/seat/*.py tools/pr/*.sh`) returns 43 lines at this head (ev/class-search.txt). `tools/audit/seat/ci_predict_replay.sh:47` (`git -C "$here" worktree remove --force "$wt"`) is not a self-test or app_approve fixture, it is not in the diff, and the body does not disposition it (`grep -c ci_predict_replay` on the body = 0, ev/body.md). Round 1's verdict listed it and said "The re-pushed body should name it". My reading is that it is outside the class: it force-removes only `$scratch/wt-$sha`, a detached worktree it adds itself under a caller-given scratch directory, and it holds no branch. So the fix is one disposition line in the body and no code. That disposition is mine and not the body's, and the contract does not let a reviewer supply it.
 
-## What holds (verified, carries forward if only the above changes)
+## Non-blocking (fix in the same body edit)
 
-RESULT selftest-head: `pr_args self-test: 62 checks, 0 failed`, `delivery_row self-test: 5 checks, 0 failed` (ev/selftest-head.txt) -- matches the body.
-RESULT selftest-main(03b49e152): `pr_args self-test: 56 checks, 0 failed` (ev/selftest-main.txt) -- matches the body's "56 on origin/main".
-RESULT null-control (43f79c08b + head pr_args.sh): `62 checks, 4 failed`, the four exactly the ones the body names (ev/null-control.txt). The oplock+unpushed arm passes against the old scripts, i.e. the "is not the committed tip" defect reproduces there.
-RESULT my mutants on production lines, full self-test each (ev/mutant-*.diff, ev/mutant-*.txt):
-  A delete open_pr.sh mut:oplock line -> 1 failed (race arm)
-  B delete update_pr.sh mut:unpushed line -> 2 failed (oplock arm, unpushed arm)
-  C both -> 3 failed
-  D open_pr takes a differently named lock (open-<br>.lock, not shared with update_pr) -> 1 failed (race arm)
-  E unpushed check direction inverted (is-ancestor origin/BR HEAD) -> 2 failed
-  All killed; no vacuous arm found.
-RESULT lock path: open_pr's `$(dirname $D)/upd-${BR//\//-}.lock` = $STATE/pr/upd-<br>.lock = update_pr's $WT.lock, taken after the -pr rename of BR; open_pr has no EXIT trap of its own for pr_branch_lock's to clobber.
-RESULT structure: `STRUCTURE RATCHET PASSED` (ev/structure.txt). archscore: `Architecture score: dS +0.0000 NULL` (ev/archscore.txt). Both match the body.
-RESULT VERSION / manifest / notes heading / claim files / budgets / closures.json untouched (ev/untouched.txt; CI pr-contract also prints "no version edit").
-RESULT merge: `git merge-tree --write-tree origin/main f8694ba2d73595da723f0de3ed78c3e05df78b3d` exit 0, no conflict (ev/merge-tree.txt).
-RESULT class search: the body's grep returns 43 lines (ev/class-search.txt). Beyond the body's dispositions (update_pr closed; handoff_push, remerge_main, cloud_relay fixtures) it returns: app_push.sh:827 and prepr.sh:1877/1984/2098 (self-test throwaway clones, inside the body's stated self-test exclusion), app_approve.sh fixtures (excluded), and tools/audit/seat/ci_predict_replay.sh:47, which the body does not disposition. My disposition, stated as mine: it removes a detached worktree it created itself one loop iteration earlier under its own scratch dir at a commit already on origin; it holds no branch and cannot drop another instrument's work, so it is outside the class. The re-pushed body should name it.
-Harness: no committed finder harness; the finding's evidence is the reflogs and lock files in the body. The race arm in pr_args.sh's self-test is the fixer's own instrument (disclosed as such); I measured with it plus my own mutants above.
-Not checked: entities.py locally (needs the CI python; tree file classification left to CI's closure-scope/entities, closure-scope green).
+- The figures line quotes `ref_privacy --check`: "111 line(s) added since 289426c1fdde judged". At this head and at the code head 88a352d3b it prints **113** (ev/ref-privacy-head.txt, ev/ref-privacy-codehead.txt). 111 looks carried over from round 1's base 03b49e152. Not verified as quoted.
 
-bus-nonce: 60c0cd20873ffadd8b9124823443ac67
+## Round-1 blocking items: resolved at this head
+
+RESULT r1-item1 instrument-self-tests: `python3 -I tools/audit/seat/ref_privacy.py --check` prints `19 file(s) with a push site, 9 guarded, 113 line(s) added since 289426c1fdde judged, 0 refused`, rc 0 (ev/ref-privacy-head.txt). CI's instrument-self-tests check-run 119221975434 succeeded on this head. `--self-test` prints `66 checks, 0 failed` (ev/ref-privacy-selftest.txt).
+RESULT r1-item1 mutant: deleting the new PUSHERS entry for pr_args.sh makes `--check` print `REFUSE tools/audit/seat/pr_args.sh:353 ... 1 refused`, rc 1 (ev/mutant-pushers.txt). The entry carries the fix. Step 14: the diff names one file with a reason and changes no rule, scope or pattern, so ref_privacy is not gamed. The stub at pr_args.sh:353 pushes only to the self-test's scratch origin, which matches the "fixture" reason.
+RESULT r1-item2 pr-contract: `carry_audit.py check --body` on the current body prints `CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)`, rc 0 (ev/carry-audit.txt). Both pr-contract runs on this head succeeded (119221974401, 119223585472). The rows follow-up for #2547/#2548/#2549 moved into the Summary as the orchestrator's follow-up. Forward-carry is none, and nothing in the diff changes how a later stage works, so step 10 has nothing to carry.
+RESULT r1-item3 red checks: the body's `## Red checks` names instrument-self-tests and pr-contract with a cheaper detector and a standing cost each, and calls nightly-status main's. At this head the only red is nightly-status (119221976298), which grades main, and this diff does not reach what it reads. Not all of the head's runs had concluded when I checked (Analyze (python) and browser in progress; coverage, fast (3.14) and typing queued; ev/check-runs.tsv). No root-cause-unanswered applies.
+
+## What holds (carries forward)
+
+RESULT delta: the authored diff at this head equals round 1's (03b49e152...f8694ba2d) plus exactly the two PUSHERS lines (ev/delta-r1-r2.diff). So round 1's mutants A-E on production lines (oplock, unpushed, both, a differently named lock, an inverted ancestry check), all killed, and its null control (62 checks, 4 failed at 43f79c08b with the head's pr_args.sh) carry unchanged.
+RESULT selftest-head: `pr_args self-test: 62 checks, 0 failed`, `delivery_row self-test: 5 checks, 0 failed`, rc 0 (ev/selftest-head.txt). This matches the body.
+RESULT merge: `git merge-tree --write-tree origin/main 085a4cafa84022120460fd23701a21883321536f` (origin/main 3688cf259) exits 0 with tree 2e21422a7 and no conflict (ev/merge-tree.txt).
+RESULT structure: `STRUCTURE RATCHET PASSED` (ev/structure.txt).
+RESULT untouched: VERSION, the manifest, RELEASE_NOTES, the claim files, *_budgets.json and closures.json are not in the three-dot diff (ev/untouched.txt).
+RESULT head-in-body: the body names 085a4cafa84022120460fd23701a21883321536f as the head, with code head 88a352d3b. Both confirmed.
+Harness: there is no committed finder harness. The finding's evidence is the reflogs and lock files in the body. The race arm is the fixer's own instrument, disclosed as such. I measured with it, with round 1's mutants, and with my PUSHERS mutant.
+Not re-run: archscore (the round-2 delta is a registry dict entry) and entities.py (closure-scope is green on this head, 119221976399).
+
+bus-nonce: fa6eb2e975611e9aca353f4d9f00ea4d
