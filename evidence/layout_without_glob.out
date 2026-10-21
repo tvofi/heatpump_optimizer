@@ -1,0 +1,45 @@
+layout: 6260 tracked path(s) enumerated
+  category  12 finding(s)
+    outside the allowed categories: .claude/workflows/carry-1921.json
+    outside the allowed categories: .claude/workflows/wave-3l-groups.json
+    outside the allowed categories: dev/programme/round10/rechain/rechain-adds.json
+    outside the allowed categories: dev/programme/round10/rechain/rechain-decision.md
+    outside the allowed categories: dev/programme/round10/rechain/rechain-drops.json
+    outside the allowed categories: tools/audit/fold_ledger.py
+    outside the allowed categories: tools/audit/merge_fastpath.py
+    outside the allowed categories: tools/audit/repo_root.mjs
+    outside the allowed categories: tools/audit/repo_root.py
+    outside the allowed categories: tools/audit/repo_root.sh
+    ... 2 more (--verbose)
+  retired   3 finding(s)
+    planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
+    reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
+    reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
+  reference 960 finding(s)
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:57 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:58 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:104 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:109 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:204 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/defect-root-cause.md:145 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/gate-scoping.md:44 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/gate-scoping.md:45 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/ratchet-budgets.md:8 cites retired path tools/audit/README.md; use dev/audit/README.md
+    ... 950 more (--verbose)
+  dead      0 finding(s)
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+    placement: dev/programme/round10/rechain/rechain-adds.json is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
+    placement: dev/programme/round10/rechain/rechain-decision.md is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
+    placement: dev/programme/round10/rechain/rechain-drops.json is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
+layout: GUARD: 3 refusal(s) against 49c222280d46
+Traceback (most recent call last):
+  File "/tmp/tmp.aKBR6vpAoc/wt/tests/layout.py", line 813, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/tmp/tmp.aKBR6vpAoc/wt/tests/layout.py", line 806, in main
+    failed = self_test(ROOT) + locate_self_test(ROOT) + guard_self_test()
+             ^^^^^^^^^^^^^^^
+  File "/tmp/tmp.aKBR6vpAoc/wt/tests/layout.py", line 653, in self_test
+    from throwaway_git import throwaway_git_init
+ModuleNotFoundError: No module named 'throwaway_git'
