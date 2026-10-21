@@ -5174,6 +5174,53 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-TICK-OWED-LEVEL",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Found 2026-10-21 by the orchestrator: the tick board replays cloud_relay.sh's whole OWED history. The relay re-appends a timestamped level line (handoff-no-pr, probe-ref) for every undisposed ref on every pass, by design, and orchestrator_tick.py prints every OWED line with no later POSTED, so the log reached 35214 lines (about 281 distinct kind/ref pairs) and the board 4.5 MB with a dispatch list of 35317, which hid owed work. Fix: one owner of the log grammar treats level kinds as a level (newest pass, minus disposed ref+sha) and one-shot kinds as events; the board prints each currently-owed item once. Control: a single-pass log prints the same count before and after; a multi-pass log prints the distinct current set after. INSTRUMENTS.md entries for both instruments stay true in the same diff.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-tick-owed-level",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
   }
  ]
 }
