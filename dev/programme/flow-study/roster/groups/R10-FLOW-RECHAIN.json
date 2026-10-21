@@ -1,48 +1,49 @@
 {
- "group": "R10-FLOW-RECHAIN",
- "lane": "IN",
- "kind": "instrument",
- "class": "instrument",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "high",
- "size": "S",
- "wave": 4,
- "files": [
-  "dev/programme/rosters/wave-r10-groups.json"
- ],
- "hot_files": [
-  "dev/programme/rosters/wave-r10-groups.json"
- ],
- "fixerModel": "opus",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "opus",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "mandated approval under 6175172275",
- "rca": [],
- "after": [
-  "R10-ROSTER-OPS"
- ],
- "carry": [
-  "The decision is made: this group applies it. K7's first proposal (10 drops) was wrong on four edges the seat showed coupled in code; the seat's file is the authority.",
-  "Pre-study: the Lean flow pre-study, section K7."
- ],
- "architect_note": "",
- "brief": "Apply the re-chain the decision seat ruled (Lean flow study K7). The seat examined all 15 after edges between two not-done coordinator.py groups against the code at main 5d433771a and roster 2c76c3128: 8 drop, 7 keep, and the drops need 3 replacement edges, or groups that edit the same functions end up unordered. Critical depth goes from 11 to 8. Drop: RATIO-ANCHOR after NIGHT-FOLDS, INPUT-STALENESS after RATIO-ANCHOR, CURRENCY after INPUT-STALENESS, LOOP-CPU after FREQ-DEFROST, CONFIG-NOTICES after LIVESTATE, PARAMS-OWNER after CONFIG-NOTICES, ARCH-SHAPES after PARAMS-OWNER, LEARNER-ETA after ARCH-SHAPES. Required, in the same burst: PARAMS-OWNER after LIVESTATE; ARCH-SHAPES after LIVESTATE; HEAT-METER after PARAMS-OWNER and ARCH-SHAPES. Recommended, each at no depth cost: LIVESTATE after LOOP-CPU; LOOP-CPU after NIGHT-FOLDS; PARAMS-OWNER after NIGHT-FOLDS and RATIO-ANCHOR; ARCH-SHAPES after INPUT-STALENESS; and, from this study, HEAT-METER after R10-THERMAL-POWER-OPTION, which shares flow_meter.py, config_flow.py and const.py with it and has no edge today. Apply with roster_edit.py set-after (R10-ROSTER-OPS) in the one roster burst after the open roster pull request merges, together with the architect-note and brief text the decision file lists per group. Do not apply the drops without the required edges. Land the seat's decision, drops and adds files as this burst's evidence in the tree, never only on a host. Controls: brief_lint TOTAL 0; roster_lib depth_of and critical_path at the new head print depth 8 and the path ADVISOR, SCORES, LIVESTATE, PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS; no edge outside coordinator.py changes except the THERMAL-POWER-OPTION addition.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-rechain",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-RECHAIN",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "high",
+  "size": "S",
+  "wave": 4,
+  "files": [
+    "dev/programme/rosters/wave-r10-groups.json"
+  ],
+  "hot_files": [
+    "dev/programme/rosters/wave-r10-groups.json"
+  ],
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [
+    "R10-ROSTER-OPS"
+  ],
+  "carry": [
+    "The decision is made: this group applies it. K7's first proposal (10 drops) was wrong on four edges the seat showed coupled in code; the seat's file is the authority.",
+    "Pre-study: the Lean flow pre-study, section K7.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "Apply the re-chain the decision seat ruled (Lean flow study K7). The seat examined all 15 after edges between two not-done coordinator.py groups against the code at main 5d433771a and roster 2c76c3128: 8 drop, 7 keep, and the drops need 3 replacement edges, or groups that edit the same functions end up unordered. Critical depth goes from 11 to 8. Drop: RATIO-ANCHOR after NIGHT-FOLDS, INPUT-STALENESS after RATIO-ANCHOR, CURRENCY after INPUT-STALENESS, LOOP-CPU after FREQ-DEFROST, CONFIG-NOTICES after LIVESTATE, PARAMS-OWNER after CONFIG-NOTICES, ARCH-SHAPES after PARAMS-OWNER, LEARNER-ETA after ARCH-SHAPES. Required, in the same burst: PARAMS-OWNER after LIVESTATE; ARCH-SHAPES after LIVESTATE; HEAT-METER after PARAMS-OWNER and ARCH-SHAPES. Recommended, each at no depth cost: LIVESTATE after LOOP-CPU; LOOP-CPU after NIGHT-FOLDS; PARAMS-OWNER after NIGHT-FOLDS and RATIO-ANCHOR; ARCH-SHAPES after INPUT-STALENESS; and, from this study, HEAT-METER after R10-THERMAL-POWER-OPTION, which shares flow_meter.py, config_flow.py and const.py with it and has no edge today. Apply with roster_edit.py set-after (R10-ROSTER-OPS) in the one roster burst after the open roster pull request merges, together with the architect-note and brief text the decision file lists per group. Do not apply the drops without the required edges. Land the seat's decision, drops and adds files as this burst's evidence in the tree, never only on a host. Controls: brief_lint TOTAL 0; roster_lib depth_of and critical_path at the new head print depth 8 and the path ADVISOR, SCORES, LIVESTATE, PARAMS-OWNER, HEAT-METER, COP-GATE, UX-HEALTH, ARCH-DOCS; no edge outside coordinator.py changes except the THERMAL-POWER-OPTION addition.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-rechain",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

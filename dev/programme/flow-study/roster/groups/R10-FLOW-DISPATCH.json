@@ -1,48 +1,49 @@
 {
- "group": "R10-FLOW-DISPATCH",
- "lane": "IN",
- "kind": "instrument",
- "class": "instrument",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "medium",
- "size": "S",
- "wave": 4,
- "files": [
-  "tools/audit/seat/cloud_dispatch.py",
-  "tools/audit/seat/INSTRUMENTS.md"
- ],
- "hot_files": [
-  "tools/audit/seat/cloud_dispatch.py"
- ],
- "fixerModel": "sonnet",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "sonnet",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "mandated approval under 6175172275",
- "rca": [],
- "after": [],
- "carry": [
-  "Owner ruling (R15): the orchestrator drafts the three standing trigger prompts (Opus fixer, Opus reviewer, Sonnet fixer) once this lands; the owner creates them in the harness.",
-  "Pre-study: the Lean flow pre-study, section K16.",
-  "Seam with R10-ORCH-MACHINERY: dispatch through bus.sh dispatch so the ledger's reviewer-fire close is written, and add the seat to workers.json, which the seats job reads."
- ],
- "architect_note": "",
- "brief": "One call per cloud seat (Lean flow study K16; expedite since revision 4: the repo half has no dependency on any other flow group, and its cost recurs for every seat). Today each cloud seat costs a rendered payload plus two trigger bodies pasted whole, and the renderer needs environment, model and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and model, derive the rest from the roster and the seat environment it already knows, write the rendered brief to a ref the seat fetches, and print the one short line the trigger needs (the ref name), so a standing trigger per role can be fired with that line alone. Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; the group builds the repo half. Controls: a fixture dispatch renders the same payload as today's three-step path, byte for byte; a host path still refuses; the printed line round-trips to the brief. The dispatcher refuses a reviewer dispatch for a head where a required context's latest run has concluded failure (revision 7: #2563 was dispatched for review at 9851d39d with two required checks red), reading R10-FLOW-MAIN-GATE's classifier.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-dispatch",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-DISPATCH",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "medium",
+  "size": "S",
+  "wave": 4,
+  "files": [
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [
+    "tools/audit/seat/cloud_dispatch.py"
+  ],
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [],
+  "carry": [
+    "Owner ruling (R15): the orchestrator drafts the three standing trigger prompts (Opus fixer, Opus reviewer, Sonnet fixer) once this lands; the owner creates them in the harness.",
+    "Pre-study: the Lean flow pre-study, section K16.",
+    "Seam with R10-ORCH-MACHINERY: dispatch through bus.sh dispatch so the ledger's reviewer-fire close is written, and add the seat to workers.json, which the seats job reads.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "One call per cloud seat (Lean flow study K16; expedite since revision 4: the repo half has no dependency on any other flow group, and its cost recurs for every seat). Today each cloud seat costs a rendered payload plus two trigger bodies pasted whole, and the renderer needs environment, model and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and model, derive the rest from the roster and the seat environment it already knows, write the rendered brief to a ref the seat fetches, and print the one short line the trigger needs (the ref name), so a standing trigger per role can be fired with that line alone. Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; the group builds the repo half. Controls: a fixture dispatch renders the same payload as today's three-step path, byte for byte; a host path still refuses; the printed line round-trips to the brief. The dispatcher refuses a reviewer dispatch for a head where a required context's latest run has concluded failure (revision 7: #2563 was dispatched for review at 9851d39d with two required checks red), reading R10-FLOW-MAIN-GATE's classifier.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-dispatch",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

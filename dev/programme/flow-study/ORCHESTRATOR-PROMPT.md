@@ -1,4 +1,10 @@
-# Handover prompt for the round-10 orchestrator: **revision 10** (2026-10-21)
+# Handover prompt for the round-10 orchestrator: **revision 11** (2026-10-21)
+
+**Revision 11** answers s4's four points on revision 10:
+- standing rule 16 states that expedites go over the WIP cap;
+- standing rule 17 and every instrument brief now carry the self-test hygiene;
+- the RATCHET-RED facts are corrected;
+- a stacking option is added for P1 on PR G.
 
 **Revision 10** has two parts:
 - the owner's ask that R10-CI-LAYOUT-P2 land as soon after PR 1 as possible, in a gap between critical-chain groups;
@@ -71,6 +77,20 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 13. **Stale check-runs recur** (#2559, #2567). One re-run of the stale run clears each: do that before any merge attempt, never a merge retry loop. Log each instance with its run id on #201; **a third instance goes to a root-cause seat** (`defect-root-cause.md`). MAIN-GATE (b) automates the re-run in `merge_pr.sh` and the train.
 14. **A relayed "verdict posted" is not evidence. Read it back from the PR's comments:** the first line must match `Fix review: merge|blocked <the head sha>` and carry the dispatch nonce. Only then confirm, approve, board or return it (`comment-readback.md`). R10-ORCH-MACHINERY's ledger closes `verdict-unposted` only on that read-back (its carry, item 4b).
 15. **The next critical-chain link never waits for a lane slot.** When a chain link's predecessor merges, dispatch it even if its lane is at cap: it counts one over the cap until the lane drains below it. This is CCPM's capacity buffer. The model found a chain link losing an hour to a full lane A (FUTURE-STATE §12).
+16. **Expedites go over the WIP cap; that is the intent.** The board read 17 against a cap of 6, with 24 open PRs. The groups below dispatch over the cap:
+    - the five flow expedites (RELAY-HOLD, BODY-PATCH, MAIN-GATE, YIELD-PROBE, DISPATCH);
+    - FLOW-ANDON;
+    - R10-CI-LAYOUT-P1 and P2's units (the owner's ask);
+    - the next critical-chain link (rule 15).
+
+    A rework round on a group already dispatched (PR G round 2) is not a new dispatch. Everything else waits for the drain.
+
+    If `pr_cap.py` has no per-group override, set `HPO_WIP_CAP` to the board's count plus one **for that one dispatch command only**. Never persist it, and log each one in a line on #201. At most two expedite reviews run at once, as before. When roster PR-A merges, the persistent cap becomes 13 (A4 B4 C3 F2), with lane K's 2 on top.
+17. **Self-test hygiene.** Every pack brief for an instrument group now carries both points; they come from today's live findings.
+    - **(a)** A new seat-selftest mutant in `dev/audit/harnesses/r10_seat_selftests_mutants.py` takes a per-file id (`cloud_relay-1`), never a new `S` number (the P6 convention).
+    - **(b)** A self-test builds git repositories only through `tests/throwaway_git.py`, never a hand-built `git init`, and runs `python3 tests/throwaway_git.py --check` before the handoff.
+
+    Point (a) cost a code round each to RELAY-HOLD, YIELD-PROBE and PR G in one day. That is the third instance, so by CLAUDE.md it goes to a root-cause seat (`root-cause.md`), not an issue. The countermeasure available now is brief text, because decision 0012's moratorium bars a new check until 2026-10-31. The seat records whether a check is worth building after that.
 
 ## Expedites: one wave at a time, by dependency, so reviewers are not spread
 
@@ -99,8 +119,8 @@ The three groups are lane IN, so they take no A–F WIP slot. They get the next 
 
 | group | CI minutes per train | when |
 |---|---|---|
-| **R10-CI-RATCHET-RED** (#2531 is ready; #2575 is a second, draft PR for the same group, so keep one) | 0: it runs only on main pushes | **Review now.** The stamp needs a green push run. |
-| **R10-CI-LAYOUT-P1** | about 7 min (FULL train) to about 19–21 min (scoped run) | **Dispatch now, beside PR G #2529.** The roster edge P1 → CI-LAYOUT orders merges only. PR G gets the next reviewer, because it gates P1's merge. |
+| **R10-CI-RATCHET-RED**: #2531 merged at 17:00Z and #2575 is closed | 0: it runs only on main pushes | **Done.** `ci-ratchet` reads an empty or partial window body as a failed fetch, never as an empty window, on main at f2fb1b0e9 (`tests.yml`, the "Gather this run's and the recent window's metrics" step). #2575's other half (list the window lane by lane; a failed listing fails the step) is not on main. Reopen it only if Gather still fails. The first push runs carrying #2531 were still in progress at 17:08Z (39640285028, 39640647700, 39640981803), so main is not yet confirmed green. |
+| **R10-CI-LAYOUT-P1** | about 7 min (FULL train) to about 19–21 min (scoped run) | **Dispatch now, beside PR G #2529.** The roster edge P1 → CI-LAYOUT orders merges only. PR G gets the next reviewer once its head reaches the round-2 handoff (`bfcdece3`) and is reviewable, because it gates P1's merge. Where P1's files overlap PR G's (`governance.yml`, the self-test wiring), base P1 on PR G's head rather than main, and merge main in after PR G lands. That avoids a fourth content-conflict round. |
 | **R10-CI-LAYOUT-P2** | about +1 min per run. Its value is one required `gate` in place of 17 contexts, and no rerun followers. | **As soon after PR 1 as possible** (below). |
 
 **P2 schedule.** Units follow DESIGN-P2 L1374–1377:
@@ -117,7 +137,7 @@ That leaves about 6 h between PR 1's merge and P2's verdict. The model puts P1 a
 - **Then one cut-over sweep.** It is the one exception to rule D. Absorb main into the in-flight critical-chain PR first, then the rest in pull order. Keep at most 4 full CI runs queued at once. The relay's handoff arm does not do this for you.
 
 **P2's brief carries three things.**
-- (a) RATCHET-RED's never-read-empty fix moves into the re-keyed `ci-ratchet`, which reads `ci.yml` push runs.
+- (a) The re-keyed `ci-ratchet`, which reads `ci.yml` push runs, keeps #2531's never-read-empty fetch. It is on main; carry it, do not re-derive it.
 - (b) After cut-over, an edit or review made during an in-flight code run waits for that run (R-2; median 1406 s before W1, less after). So BODY-PATCH's 30-s target holds only when no code run is in flight. MAIN-GATE (d) reads `gate`.
 - (c) The stamp needs one green `ci.yml` push run on main after cut-over.
 
@@ -167,7 +187,7 @@ One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HP
   - Give each its actual stage and merge sha.
   - **MQ-PROBE and RECORD-PITCH now wait on R10-CI-LAYOUT-P2** (revision 10). Use their files at this revision's commit.
   - **MAIN-GATE's file is size M with the widened brief at this revision.** Use the file at this revision's commit.
-- **The 8 carries** (`tools/flow_groups.py` `CARRIES`). Revision 10 adds the owner's shape-docs carry on R10-ARCH-DOCS and its table carry on R10-ORCH-MACHINERY.
+- **The 10 carries** (`tools/flow_groups.py` `CARRIES`). Revision 11 adds the self-test hygiene carry on R10-CI-LAYOUT-P2 and R10-ORCH-MACHINERY. Revision 10 added the owner's shape-docs carry on R10-ARCH-DOCS and its table carry on R10-ORCH-MACHINERY.
 - **Revision 10's edges:** R10-ARCH-DOCS ← R10-ORCH-MACHINERY, R10-CI-LAYOUT-P2 and R10-FLOW-TOOLKIT-MODEL (`set-after`; 0 depth).
 - **Held stage changes and fly-in registrations.**
 - **Two notes:** whether #2528's remaining work overlaps #2526, and whether R10-ORCH-MACHINERY part (3) duplicates #2558.

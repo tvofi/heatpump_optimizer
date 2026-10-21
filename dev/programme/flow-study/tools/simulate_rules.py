@@ -56,8 +56,8 @@ PRIORITY = ['R10-CI-RATCHET-RED', 'R10-PREPR-CAP', 'R10-TICK-OWED-LEVEL', 'R10-R
             'R10-RCA-FRICTION', 'R10-BRIEFS-FOLD', 'R10-POLICY-FIXER-MD', 'R10-ORCH-MACHINERY',
             'R10-PLAN-ARTIFACT', 'R10-FLOW-JIDOKA', 'R10-FLOW-BOARD', 'R10-POLICY-GATE-SCOPING',
             'R10-POLICY-LINT-FAMILY']
-# Not held by the drain-first HOLD (PRIO=1): the owner's CI-layout ask and the top-CD3 enablers.
-EXPEDITE = ['R10-CI-LAYOUT-P1', 'R10-CI-LAYOUT-P2', 'R10-FLOW-ANDON', 'R10-BRIEFS-FOLD']
+# Over the WIP cap (PRIO=1), with the five flow expedites the model already exempts: the owner's CI-layout ask and ANDON.
+EXPEDITE = ['R10-CI-LAYOUT-P1', 'R10-CI-LAYOUT-P2', 'R10-FLOW-ANDON']  # revision 11: BRIEFS-FOLD waits for the drain
 # In-progress groups with a PR up: hours to merge when given the next reviewer (PRIO=1).
 FAST = {'R10-CI-LAYOUT': 6, 'R10-CI-RATCHET-RED': 3, 'R10-TICK-OWED-LEVEL': 3, 'R10-REPLAY-CAP': 3, 'R10-I5-DOCS': 3,
         'R10-PREPR-CAP': 6, 'R10-ROSTER-PUSH-RACE': 6, 'R10-UPDATE-PR-SIGNALS': 6,

@@ -1,48 +1,49 @@
 {
- "group": "R10-FLOW-MAIN-GATE",
- "lane": "IN",
- "kind": "instrument",
- "class": "instrument",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "high",
- "size": "M",
- "wave": 4,
- "files": [
-  "tools/audit/seat/merge_train.py",
-  "tools/audit/seat/INSTRUMENTS.md"
- ],
- "hot_files": [
-  "tools/audit/seat/merge_train.py"
- ],
- "fixerModel": "opus",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "opus",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "mandated approval under 6175172275",
- "rca": [],
- "after": [],
- "carry": [
-  "Sequence after #2570 (the tick's MAIN-section fix) and share its classifier.",
-  "Pre-study: the Lean flow pre-study, section K15.",
-  "Seam with R10-ORCH-MACHINERY: the beat's tick and the sweep read this classifier; no third is-main-red rule."
- ],
- "architect_note": "",
- "brief": "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it misleads the operator today). At main e7c66485 on 2026-10-21, 30 checks had concluded and 7 were in flight; the only failures were record and record-autofix, red because the record beat was owed; yet the --overlap gate logged that main is not green and should be reverted. Judge main on the latest run of each context only; a queued or in-progress run is wait, never red; count only the contexts the ruleset main-protect-checks requires, read live, never record, record-autofix, nightly-status or delivery-status. One owner for 'is main red': share the classifier the open #2570 gives the tick's MAIN section rather than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait or green, not red; a failed required context reads red; an unreadable ruleset is a refusal, never green; mutants for each arm. Revision 7 widens it into the one owner of state classification for the train, the merge seat and the tick: (b) a check-run whose status is in_progress or queued while its workflow run has completed is stale, not pending: re-run that run once and re-read (2026-10-21: #2559's budget-raise-gate check-run 119308796140 stayed in_progress over a completed successful run, mergeStateStatus read BLOCKED, and the merge seat burned 8 attempts; it recurred on #2567, and one re-run cleared each), applied by merge_pr.sh and the train before their merge attempt, each instance logged with its run id so a third recurrence goes to a root-cause seat; (c) a pull request reported DIRTY is classified from git merge-tree --write-tree origin/main <head>: the conflicted files are named first, and the claimnotes repair is offered only when every conflicted file is a claim file; a content conflict returns to the owning fixer and its verdict does not carry (2026-10-21: the tick told #2569 to absorb main with the claimnotes driver while the conflict was content in roster_edit.py); (d) a head is reviewable only when no required context's latest run there has concluded failure. If the fixer has already started on (a), (b) to (d) are its second pull request.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-main-gate",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-MAIN-GATE",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "high",
+  "size": "M",
+  "wave": 4,
+  "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [
+    "tools/audit/seat/merge_train.py"
+  ],
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [],
+  "carry": [
+    "Sequence after #2570 (the tick's MAIN-section fix) and share its classifier.",
+    "Pre-study: the Lean flow pre-study, section K15.",
+    "Seam with R10-ORCH-MACHINERY: the beat's tick and the sweep read this classifier; no third is-main-red rule.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it misleads the operator today). At main e7c66485 on 2026-10-21, 30 checks had concluded and 7 were in flight; the only failures were record and record-autofix, red because the record beat was owed; yet the --overlap gate logged that main is not green and should be reverted. Judge main on the latest run of each context only; a queued or in-progress run is wait, never red; count only the contexts the ruleset main-protect-checks requires, read live, never record, record-autofix, nightly-status or delivery-status. One owner for 'is main red': share the classifier the open #2570 gives the tick's MAIN section rather than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait or green, not red; a failed required context reads red; an unreadable ruleset is a refusal, never green; mutants for each arm. Revision 7 widens it into the one owner of state classification for the train, the merge seat and the tick: (b) a check-run whose status is in_progress or queued while its workflow run has completed is stale, not pending: re-run that run once and re-read (2026-10-21: #2559's budget-raise-gate check-run 119308796140 stayed in_progress over a completed successful run, mergeStateStatus read BLOCKED, and the merge seat burned 8 attempts; it recurred on #2567, and one re-run cleared each), applied by merge_pr.sh and the train before their merge attempt, each instance logged with its run id so a third recurrence goes to a root-cause seat; (c) a pull request reported DIRTY is classified from git merge-tree --write-tree origin/main <head>: the conflicted files are named first, and the claimnotes repair is offered only when every conflicted file is a claim file; a content conflict returns to the owning fixer and its verdict does not carry (2026-10-21: the tick told #2569 to absorb main with the claimnotes driver while the conflict was content in roster_edit.py); (d) a head is reviewable only when no required context's latest run there has concluded failure. If the fixer has already started on (a), (b) to (d) are its second pull request.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-main-gate",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

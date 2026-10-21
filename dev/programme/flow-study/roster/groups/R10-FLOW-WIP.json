@@ -1,51 +1,52 @@
 {
- "group": "R10-FLOW-WIP",
- "lane": "IN",
- "kind": "instrument",
- "class": "instrument",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "high",
- "size": "S",
- "wave": 4,
- "files": [
-  "tools/audit/seat/pr_cap.py",
-  "tools/audit/seat/orchestrator_tick.py",
-  "tools/audit/seat/INSTRUMENTS.md"
- ],
- "hot_files": [
-  "tools/audit/seat/pr_cap.py"
- ],
- "fixerModel": "opus",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "opus",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "mandated approval under 6175172275",
- "rca": [],
- "after": [
-  "R10-FLOW-PULL"
- ],
- "carry": [
-  "Pre-study: the Lean flow pre-study, section K4.",
-  "Seam: R10-ORCH-MACHINERY's obligations ledger will own handoff-no-pr; read it when it lands rather than re-deriving orphans.",
-  "Seam with R10-ORCH-MACHINERY: when ledger.py lands, count stranded handoffs from its handoff-no-pr fold, not from bus.sh orphans."
- ],
- "architect_note": "",
- "brief": "Lane caps and the work the cap cannot see (Lean study K4). pr_cap.py's dispatch-gate counts roster groups whose resume stage is in-progress against HPO_WIP_CAP. It does not see an open pull request no roster group owns (a fly-in), nor a handoff no pull request carries (bus.sh orphans prints those). Add both to the count, and add per-lane caps derived from fields the roster already has, with no schema change: lane F is a group named R10-FLY-* or an open pull request no group owns; lane A is a group on the longest chain of not-done after edges or with coordinator.py in hot_files; lane C is kind instrument, policy, rca, record or docs; lane B is the rest. The tick prints one line, CONWIP n/cap with each lane, and a next subcommand prints the ranked dispatch list per lane (longest remaining chain first, then smallest), which the tick does not rank today. Controls: a fixture roster plus open-PR list plus orphan list gives exact lane counts; an unreadable orphan list is a refusal, never zero; each counting rule has a mutant that fails a named arm.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-wip",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-WIP",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "high",
+  "size": "S",
+  "wave": 4,
+  "files": [
+    "tools/audit/seat/pr_cap.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [
+    "tools/audit/seat/pr_cap.py"
+  ],
+  "fixerModel": "opus",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [
+    "R10-FLOW-PULL"
+  ],
+  "carry": [
+    "Pre-study: the Lean flow pre-study, section K4.",
+    "Seam: R10-ORCH-MACHINERY's obligations ledger will own handoff-no-pr; read it when it lands rather than re-deriving orphans.",
+    "Seam with R10-ORCH-MACHINERY: when ledger.py lands, count stranded handoffs from its handoff-no-pr fold, not from bus.sh orphans.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "Lane caps and the work the cap cannot see (Lean study K4). pr_cap.py's dispatch-gate counts roster groups whose resume stage is in-progress against HPO_WIP_CAP. It does not see an open pull request no roster group owns (a fly-in), nor a handoff no pull request carries (bus.sh orphans prints those). Add both to the count, and add per-lane caps derived from fields the roster already has, with no schema change: lane F is a group named R10-FLY-* or an open pull request no group owns; lane A is a group on the longest chain of not-done after edges or with coordinator.py in hot_files; lane C is kind instrument, policy, rca, record or docs; lane B is the rest. The tick prints one line, CONWIP n/cap with each lane, and a next subcommand prints the ranked dispatch list per lane (longest remaining chain first, then smallest), which the tick does not rank today. Controls: a fixture roster plus open-PR list plus orphan list gives exact lane counts; an unreadable orphan list is a refusal, never zero; each counting rule has a mutant that fails a named arm.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-wip",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

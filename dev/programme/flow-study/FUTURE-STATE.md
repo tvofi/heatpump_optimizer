@@ -378,3 +378,12 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 | after PR G | ORCH-MACHINERY (ledger, beat, page now; wiring after P2), PLAN-ARTIFACT | toil and stall reduction; unblock FLOW-BOARD |
 | normal pull | POLICY-GATE-SCOPING, POLICY-LINT-FAMILY, FLOW-TOOLKIT-MEASURE, then the other flow groups | modest effect |
 | later | REPLAY-LANE and REPLAY-SCOPED (deadline: ARCH-DOCS dispatch), MUTATION-ANCHOR, MERGE-SUBJECT-HARDEN, RCA-HEADMOVED, the two RCA records, MUTANT-SKIP (its step 1 runs now as a probe), FLOW-TOOLKIT-MODEL (deadline: round 11's P3) | earlier saves nothing, or costs CI or a FULL run |
+42. **Expedites go over the WIP cap explicitly** (standing rule 16). Revision 10 left it implicit, and the board's cap of 6 against 17 held MAIN-GATE and ANDON. The model already treated them that way, so the projection does not move. BRIEFS-FOLD leaves the model's exempt list, since it is not an expedite. The figures are unchanged: 86/91/97 h.
+43. **Self-test hygiene in every instrument brief** (standing rule 17).
+    - Per-file mutant ids in `r10_seat_selftests_mutants.py`, and `tests/throwaway_git.py` for any repository a self-test builds.
+    - The shared serial `S` numbering cost three code rounds in one day, so it goes to a root-cause seat. Under decision 0012 the countermeasure is brief text until 2026-10-31.
+44. **RATCHET-RED is done** (#2531, 17:00Z); #2575 was closed as a duplicate.
+    - The never-read-empty fetch is on main. #2575's lane-by-lane listing is not, and is reopened only if the gather step still fails.
+    - P2's carry (a) now says "keep", not "add".
+    - Main green is unconfirmed until the push runs started 17:03–17:07Z conclude.
+45. **P1 may stack on PR G's head where their files overlap.** That avoids a fourth content-conflict round; P1 merges main in once PR G lands.

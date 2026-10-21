@@ -1,50 +1,51 @@
 {
- "group": "R10-FLOW-POSTMERGE",
- "lane": "IN",
- "kind": "instrument",
- "class": "instrument",
- "issues": [],
- "fixes": [],
- "findings": [],
- "severity": "high",
- "size": "S",
- "wave": 4,
- "files": [
-  "tools/audit/seat/merge_pr.sh",
-  "tools/audit/seat/merge_train.py",
-  "tools/audit/seat/INSTRUMENTS.md"
- ],
- "hot_files": [
-  "tools/audit/seat/merge_pr.sh"
- ],
- "fixerModel": "sonnet",
- "reviewerModel": "opus",
- "model": {
-  "fixer": "sonnet",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "effort": "medium",
- "fixture": false,
- "owner_gate": "mandated approval under 6175172275",
- "rca": [],
- "after": [
-  "R10-ROSTER-OPS"
- ],
- "carry": [
-  "Pre-study: the Lean flow pre-study, section K11.",
-  "Seam with R10-ORCH-MACHINERY: once the obligations ledger exists, record a failed step as the event kind postmerge-owed through ledger.py, not as a free OWED line, which the design refuses; until then the tick's OWED grammar."
- ],
- "architect_note": "",
- "brief": "After-merge bookkeeping without an agent (Lean flow study, mechanisation). nudge.md step 12 has the orchestrator run four mechanical things after every merge: the worktree collector, one #201 comment through tools/pr/gh_comment.py with a byte-identical read-back, the roster stage, and the state docs. merge_pr.sh already runs tools/audit/worktree_gc.sh and merge_train.py runs it after each merge; nothing runs the other three. Make both merge paths finish the job: post the #201 line from a fixed template (pull request, merge sha, group, issues closed by the merge, and the words Leaves #201 open), with the body file under the state directory, since gh_comment.py refuses a shared root; let R10-ROSTER-OPS's roster-sync set the stage; and run tools/audit/seat/state_docs.py once with its push flag. A failure in any of them is printed as OWED and never undoes the merge. Controls: a dry-run fixture prints the exact comment and commands; a refused comment prints OWED and exits non-zero after the merge line; each step's deletion fails a named arm.",
- "resume": {
-  "stage": "not-started",
-  "branch": "handoff/r10-flow-postmerge",
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch a fixer once every after group is done",
-  "note": "Lean flow study 2026-10-21 (owner-adopted)"
- }
+  "group": "R10-FLOW-POSTMERGE",
+  "lane": "IN",
+  "kind": "instrument",
+  "class": "instrument",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "severity": "high",
+  "size": "S",
+  "wave": 4,
+  "files": [
+    "tools/audit/seat/merge_pr.sh",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+  ],
+  "hot_files": [
+    "tools/audit/seat/merge_pr.sh"
+  ],
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": "mandated approval under 6175172275",
+  "rca": [],
+  "after": [
+    "R10-ROSTER-OPS"
+  ],
+  "carry": [
+    "Pre-study: the Lean flow pre-study, section K11.",
+    "Seam with R10-ORCH-MACHINERY: once the obligations ledger exists, record a failed step as the event kind postmerge-owed through ledger.py, not as a free OWED line, which the design refuses; until then the tick's OWED grammar.",
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff."
+  ],
+  "architect_note": "",
+  "brief": "After-merge bookkeeping without an agent (Lean flow study, mechanisation). nudge.md step 12 has the orchestrator run four mechanical things after every merge: the worktree collector, one #201 comment through tools/pr/gh_comment.py with a byte-identical read-back, the roster stage, and the state docs. merge_pr.sh already runs tools/audit/worktree_gc.sh and merge_train.py runs it after each merge; nothing runs the other three. Make both merge paths finish the job: post the #201 line from a fixed template (pull request, merge sha, group, issues closed by the merge, and the words Leaves #201 open), with the body file under the state directory, since gh_comment.py refuses a shared root; let R10-ROSTER-OPS's roster-sync set the stage; and run tools/audit/seat/state_docs.py once with its push flag. A failure in any of them is printed as OWED and never undoes the merge. Controls: a dry-run fixture prints the exact comment and commands; a refused comment prints OWED and exits non-zero after the merge line; each step's deletion fails a named arm.",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-postmerge",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+  }
 }

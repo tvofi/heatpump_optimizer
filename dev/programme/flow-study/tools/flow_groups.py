@@ -600,3 +600,19 @@ SEAMS = {
 for _g in GROUPS:
     if _g["group"] in SEAMS:
         _g["carry"].append(SEAMS[_g["group"]])
+
+# Self-test hygiene (revision 11, from the orchestrator's live findings of 2026-10-21): every flow
+# group that builds an instrument carries it, and so do the carries on groups that add self-tests.
+HYGIENE = ("Self-test hygiene: (a) a new seat-selftest mutant in "
+           "dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example "
+           "cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull "
+           "requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a "
+           "code round to a content conflict there when main gained tick_loop mutants S31-S34. "
+           "(b) A self-test builds any git repository through tests/throwaway_git.py, never a "
+           "hand-built git init (a pusher-reap handoff was refused for exactly that in "
+           "tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the "
+           "handoff.")
+for _g in GROUPS:
+    if _g["kind"] == "instrument":
+        _g["carry"].append(HYGIENE)
+CARRIES += [("R10-CI-LAYOUT-P2", HYGIENE), ("R10-ORCH-MACHINERY", HYGIENE)]
