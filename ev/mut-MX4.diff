@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index dbd80104c..2eab15abd 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -143,7 +143,7 @@ def published(tiles: Mapping[str, Mapping[str, Any]], today: date) -> dict[str,
+         days = _within(list(tile.get("days") or []), today)
+         if not days:
+             continue
+-        mean = sum(d["sum"] / d["count"] for d in days) / len(days)
++        mean = sum(d["sum"] for d in days) / sum(d["count"] for d in days)
+         view = {k: v for k, v in tile.items() if k != "days"}
+         out[name] = cast(PriceTile, {**view, "monthly_cost_delta": round(mean, 2), "horizon_days": len(days)})
+     return out

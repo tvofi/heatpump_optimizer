@@ -1,0 +1,8 @@
+41ee4a43725dac312d95037575bc612f866af709  dev/audit/harnesses/r10_advisor_degree.py
+RESULT rotation precondition held figure real solver [67.9, 80.02, 74.03] stub [67.9, 80.02, 74.03]
+RESULT rotation cadence 30 min evenings 40 shown 40 hidden 0 no_row 0 gap (warmer + cooler) -2.29..+0.55
+RESULT rotation cadence 60 min evenings 40 shown 40 hidden 0 no_row 0 gap (warmer + cooler) -1.82..+1.22
+RESULT rotation cadence 120 min evenings 40 shown 40 hidden 0 no_row 0 gap (warmer + cooler) -2.50..+2.06
+RESULT null cadence 30 min evenings 40 shown 40 hidden 0 no_row 0 gap (warmer + cooler) +0.38..+0.38
+VERDICT rotation the card shows the row every evening at every cadence
+rc=0

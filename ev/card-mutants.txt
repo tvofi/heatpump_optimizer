@@ -1,0 +1,17 @@
+RESULT mutant=MC1 'if (!(save >= 0 && cost >= 0)) {' -> 'if (false) {' rc=1 fails=3
+      FAIL  the screenshot's pair (-140 cooler, -266 warmer) renders no money and no "more"
+      FAIL  a warmer degree that saves is out of heating's order, so not shown
+      FAIL  a degree cooler that costs more is not shown as a saving
+RESULT mutant=MC2 'if (!(save >= 0 && cost >= 0)) {' -> 'if (!(save >= 0 && cost > 0)) {' rc=1 fails=2
+      FAIL  a warmer degree that rounds to no cost is still in heating's order, so shown
+      FAIL  a degree that saves nothing either way (no heating) is no row
+RESULT mutant=MC7 'if (!(save >= 0 && cost >= 0)) {' -> 'if (!(save >= 0 && cost >= 0 && cost >= save - 1)) {' rc=1 fails=2
+      FAIL  a pair production's rotation publishes, the warmer degree a unit under the saving, is shown
+      FAIL  a warmer degree that rounds to no cost is still in heating's order, so shown
+RESULT mutant=MC8 '  if (save === 0) return null;\n' -> '' rc=1 fails=1
+      FAIL  a degree that saves nothing either way (no heating) is no row
+RESULT mutant=MC9 'if (!(save >= 0 && cost >= 0)) {' -> 'if (!(save >= 0)) {' rc=1 fails=2
+      FAIL  the screenshot's pair (-140 cooler, -266 warmer) renders no money and no "more"
+      FAIL  a warmer degree that saves is out of heating's order, so not shown
+RESULT mutant=MC10 'if (!(save >= 0 && cost >= 0)) {' -> 'if (!(cost >= 0)) {' rc=1 fails=1
+      FAIL  a degree cooler that costs more is not shown as a saving
