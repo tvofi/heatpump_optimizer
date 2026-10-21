@@ -138,41 +138,47 @@ pr_args_self_test() (
   touch "$t/s$((i + 1))/pr/x/wt/f" "$t/s$((i + 2))/pr/x/wt/f"
   arm "open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap" trap \
     "open_pr: STOPPED: line" open_pr.sh x "$code" T G
-  # The open-PR cap (pr_cap.py; tvofi, 2026-10-18): six counted open is the cap.
+  # The soft cap gates dispatch, not opening (pr_cap.py; tvofi, 2026-10-20):
+  # a twenty-strong open board is information, and --over-cap is advisory.
   prs() { # <counted> [extra json objects]: the stub's open list
     local k=0 j=""
     while [ $k -lt "$1" ]; do j="$j{\"number\":$k,\"title\":\"t\",\"author\":{\"login\":\"app/hpo-author\",\"is_bot\":true}},"; k=$((k + 1)); done
     printf '[%s%s]\n' "$j" "${2:-}" | sed 's/,]$/]/' > "$t/prs.json"
   }
-  prs 6
-  arm "open_pr: six counted open pull requests refuse at the cap" cap \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)" \
-    open_pr.sh x "$code" T G
-  arm "open_pr: the cap is checked by the script itself (the call's lines)" capcall \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6" open_pr.sh x "$code" T G
-  touch "$t/gh.fail"
-  arm "open_pr: an open list gh cannot read refuses, never passes" capreadrc \
-    "open_pr: REFUSE: open-PR cap: the open pull requests could not be read (gh exited 1" open_pr.sh x "$code" T G
-  rm -f "$t/gh.fail"
-  # passes <name> <mutant> <expected text> <args...>: opens (stops only at the
-  # absent push), printing the text; the mutant refuses at the cap instead.
+  # passes <name> <mutant> <expected text> <args...>: the run opens (stops only
+  # at the absent push), printing the text and no cap refusal; on a copy
+  # without the mutant's line the text is gone and the run did not crash (a
+  # deleted line that only tracebacks pins no behaviour).
   passes() {
     local nm=$1 mu=$2 want=$3; shift 3
-    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" && ! grep -q 'REFUSE: open-PR cap' "$t/out" \
+    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" \
+      && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
       && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
     ck "$nm" $?
-    run "$mu" open_pr.sh "$@"; grep -q 'REFUSE: open-PR cap' "$t/out"
-    ck "  mutant mut:$mu (its line deleted) refuses at the cap instead" $?
+    run "$mu" open_pr.sh "$@"; ! grep -qF -- "$want" "$t/out" && ! grep -q Traceback "$t/out"
+    ck "  mutant mut:$mu (its line deleted) no longer prints it" $?
   }
-  prs 6
-  passes "open_pr: --over-cap opens at the cap and logs its reason" overcap \
-    "open_pr: OVER-CAP: 6 open >= 6, overridden: the train is draining" \
+  prs 20
+  passes "open_pr: twenty open pull requests do not stop an open; the count is information" openinfo \
+    "open_pr: 20 open PRs; the cap gates dispatch, not opening" x "$code" T G
+  passes "open_pr: --over-cap is still accepted, and says it is advisory" overadvisory \
+    "open_pr: --over-cap is advisory: the train is draining (the cap gates dispatch, not opening)" \
     --over-cap "the train is draining" x "$code" T G
+  touch "$t/gh.fail"
+  run - open_pr.sh x "$code" T G
+  grep -qF "open_pr: open pull requests could not be read (gh exited 1" "$t/out" \
+    && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
+    && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+  ck "open_pr: an open count gh cannot read says so and still opens" $?
+  run inforead open_pr.sh x "$code" T G
+  ! grep -qF "could not be read" "$t/out" && ! grep -q Traceback "$t/out"
+  ck "  mutant mut:inforead (its line deleted) reports the unreadable board as a count" $?
+  rm -f "$t/gh.fail"
   prs 5 '{"number":90,"title":"record: rows","author":{"login":"app/hpo-author","is_bot":true}},{"number":91,"title":"bump","author":{"login":"app/dependabot","is_bot":true}}'
-  passes "open_pr: five counted open (a record: and a bot pull request beside them) opens" caprecord \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+  passes "open_pr: a record: title and another bot's pull request are not in the open count" caprecord \
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   passes "open_pr: the same board, the bot pull request uncounted" capbot \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   echo '[]' > "$t/prs.json"
   run - open_pr.sh x "$code" T G
   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
