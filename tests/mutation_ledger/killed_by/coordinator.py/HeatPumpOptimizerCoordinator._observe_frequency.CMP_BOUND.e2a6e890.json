@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency CMP_BOUND e2a6e890",
+  "killed_by": "tests/features.py",
+  "old": "                self._commanded_power() > 0.05 and not defrosting and reported >= hz_min",
+  "reason": "Both CMP_BOUND variants recorded from the same drive `--pin-killed` runs, against f639f3b0d40c2cf528a7b781efebabf4afc2f140. Before this check existed both survived every driver in play (`PIN KILLED: 0 pinned, 2 left unpinned (2 survived)`, 18 drivers, comment-only null control surviving each), so `tests/features.py` gained `the watchdog's two bounds: the floor is exclusive, the minimum inclusive`, which feeds each bound its own exact input. Applied alone in the working tree and restored: `> 0.05` -> `>= 0.05` took the suite from `ALL 4262 FEATURE CHECKS PASSED` to `1 of 4262 FEATURE CHECKS FAILED` with `floor -> [True], minimum -> [True]`; `reported >= hz_min` -> `>` took it to `1 of 4262 FEATURE CHECKS FAILED` with `floor -> [False], minimum -> [False]`. Each failure is that check, on the arm the variant flipped."
+}

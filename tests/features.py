@@ -51839,6 +51839,18 @@ R.check(
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
 )
+# The two bounds are exclusive at the floor and inclusive at the minimum on
+# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
+# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
+# exactly at the entity's minimum is in the compressor's running range. A
+# flipped bound is visible only at those two inputs, and no other driver feeds
+# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
+# drives (`pin-killed` measured it), and this check is their killer.
+R.check(
+    "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
+    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
+)
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
 #
