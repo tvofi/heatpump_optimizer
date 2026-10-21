@@ -3945,7 +3945,7 @@
    ],
    "fixes": [],
    "findings": [
-    "CI consolidation (tests.yml into an umbrella ci.yml, two pull requests)"
+    "CI consolidation (tests.yml into an umbrella ci.yml, four pull requests: PR 0 and PR G under this group; PR 1 and PR 2 split into R10-CI-LAYOUT-P1 and R10-CI-LAYOUT-P2)"
    ],
    "class": "instrument",
    "severity": "medium",
