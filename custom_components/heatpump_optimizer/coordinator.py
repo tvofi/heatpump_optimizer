@@ -10592,7 +10592,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or _freq_fold_blocked(self):
+        if False:
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
