@@ -522,7 +522,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   first-pass share from the `review/*` bus, over git only (no REST), per
   window and per stratum: reviewer kind (a probe-ref return is cloud), class,
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
-  model, size and product. `--guardrail N --p0 P` prints the binomial test the
+  model, size and product, taken `--as-of` the latest window's until (the
+  verdicts, `--tree` and the roster ref cut there). `--guardrail N --p0 P` prints the binomial test the
   review-strength guardrail would apply, report-only. When: a flow guardrail
   or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
   is its first use. Refusal: an out-of-grammar subject is its own row,
