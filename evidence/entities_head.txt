@@ -1,4 +1,3 @@
-===== daemonize pid=49872 2026-10-20T23:27:16Z argv: python3 -u tests/entities.py
 
 === Entities and platforms ===
 
@@ -1347,7 +1346,7 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   an entry's setup hands its coordinator to the entry as runtime_data
   ok   an entry's setup defers the first solve to one entry background task, which Home Assistant cancels at unload
   ok   an entry's setup registers nothing and replaces no handler
-/Users/timmalmstrom/hpo-seats/r10s3/r10-freq-defrost-review/head/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/tmp/claude-0/-home-user-heatpump-optimizer/0e191b6d-8cf7-5909-b805-f94da500f1ec/scratchpad/tmp.mtBjaoX7xn/head/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   every service is still registered after the last entry unloads
@@ -1411,28 +1410,48 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-gate_lock: waiting for the lease held by other until 2026-10-20 23:28:45.461747+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-21 11:44:41.348050+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits
   ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
 lease class: dispatched=36 (floor 30) lease=['tests/stress.py', 'tests/harness_headers.py'] slot=10 none=24 unleased_but_heavy=[]
   ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
-gate_lock: waiting for the lease held by h until 2026-10-20 23:28:46.180018+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-20 23:28:46.180018+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-20 23:28:46.180018+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-20 23:28:47.755501+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-20 23:28:48.506579+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:42.164207+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:42.164207+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:42.164207+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:43.693895+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:44.402086+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
   ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:44.919639+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:44.919639+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-21 11:44:45.549357+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 11:44:45.754368+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-10-21 11:44:45.754368+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 11:44:46.175768+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 11:44:46.175768+00:00)
+  ok   gate lease priority: priority: an urgent waiter takes before an older normal one, after its ticket rewrite
+  ok   gate lease priority: priority: a ticket rewrite keeps its priority and its arrival stamp
+  ok   gate lease priority: priority: aging promotes a normal waiter past a later urgent one, and only past the window
+  ok   gate lease priority: priority: malformed, absent and out-of-range values are 0 or clamped, never a crash
+  ok   gate lease priority: priority: a waiting tenant still refuses renew, and queues ahead after the release
+  ok   gate lease priority: priority: the heavy-slot pool orders by the same rule
+  ok   gate lease priority: concurrency control: two waiters released in one poll, exactly one holds the slot
+gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 11:42:46.646425+00:00)
+  ok   heavy-slot hold: a live holder keeps its slot past its lease, and a fifth taker is blocked
+  ok   heavy-slot hold: a slot whose named process is gone is stolen at once (null control)
+  ok   heavy-slot hold: a legacy slot with no pid is freed on expiry; a fresh one is respected
+  ok   heavy-slot hold: a taker queues behind a live past-lease holder and takes the slot when it frees
+  ok   heavy-slot hold: slot-status counts past-lease holders and unleased runs, and prunes a dead marker
   ok   the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased
   ok   the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second
   ok   a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)
   ok   run.sh's lane_stress waits for the lease and its other scripts do not
-gate_lock: waiting for the lease held by seat until 2026-10-20 23:29:04.012534+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-21 11:45:03.553922+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
-gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   a seat label never taken fails at once; a held one re-queues behind a waiter
   ok   an expired same-label take rewrites the lease
   ok   same-label return clears holding
@@ -1444,8 +1463,8 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-49872-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-49872-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-877-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-877-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -1567,7 +1586,7 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['clear_manual_plan__dup', 'debug_collect__dup', 'restore_learned_snapshot__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'assign_entity__dup', 'set_thermal_parameters__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1699,7 +1718,7 @@ gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpnn8x__rf/closures.json
+closure: updated 1 closure(s) in /tmp/tmp87c6h2yp/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1721,7 +1740,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-3cut2gon/closures.json
+closure: updated 1 closure(s) in /tmp/closure-inert-k3o4a0qw/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1794,6 +1813,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   mutation-autofix dispatches every workflow owning a required context but Governance
   ok   mutation-autofix dispatches from the push step only
   ok   codeql.yml accepts the autofix jobs' dispatch
+  ok   codeql.yml's analyze cap clears the python leg's measured worst case
   ok   nightly-ha installs the dependencies its host-side driver imports
   ok   nightly-ha installs the py-spy the A15 heartbeat stages (#1758)
   ok   nightly-ha re-asks the floor-names snapshot in the floor's own image
@@ -1898,7 +1918,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs fef8e07fb8a27c5a26a5e5eaea54d9fe45af2a34
+  DRIFT wood_coil: 1 leaves moved vs 45b68f274b47f08ef26b9c1768b524ac9e7715d1
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2180,6 +2200,9 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   and the pin reads the job's own lines, not its name (null controls)
   ok   tests.yml's record-autofix finds its own open pull request by head=<owner>:record/autofix
   ok   and the lookup pin refuses the repository-form filter (null control)
+  ok   tests.yml's automerge skips while a live merge train holds the record beat (executed, issue #2302)
+  ok   and a hold at the bound, one dated ahead of the runner's clock, an absent one (the API's own 422) and an unreadable one do not skip -- and only the unreadable ones warn (null controls)
+  ok   the beat's hold ref and the train's hold ref name the same branch
   ok   every pinned grader given a token runs its own copy under the Actions token on the pull request
   ok   and the arm fires on exactly the pathspec policy-docs restores from the base
   ok   and any edit to the arm's job, or to what reaches it, disarms it (null control)
@@ -2654,4 +2677,5 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
   ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
 
-ALL 2360 ENTITY CHECKS PASSED
+ALL 2376 ENTITY CHECKS PASSED
+rc=0
