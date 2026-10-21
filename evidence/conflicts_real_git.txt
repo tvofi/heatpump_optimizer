@@ -1,0 +1,4 @@
+RESULT claim-only ['tests/golden/claimed_drift.txt'] -> claim-file conflict in tests/golden/claimed_drift.txt: absorb main locally with the claimnotes driver
+RESULT content+claim ['tests/golden/claimed_drift.txt', 'tools/audit/seat/roster_edit.py'] -> content conflict in tests/golden/claimed_drift.txt, tools/audit/seat/roster_edit.py: back to the owning fixer; the resolution changes reviewed code, so its verdict does not carry
+RESULT clean [] -> []
+RESULT unknown None -> None

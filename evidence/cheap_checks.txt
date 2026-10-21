@@ -1,0 +1,5 @@
+(empty above = untouched)
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 57f0c9c77cfd
+STRUCTURE RATCHET PASSED
