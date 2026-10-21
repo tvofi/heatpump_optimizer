@@ -5442,7 +5442,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Lean flow study: R10-FLOW-ANDON (a pushed heartbeat ref and an off-host watcher, 20-minute bound) is a ready countermeasure candidate; run the cost test against it rather than designing a second one, and record the decision."
+    "Lean flow study: R10-FLOW-ANDON (a pushed heartbeat ref and an off-host watcher, 20-minute bound) is a ready countermeasure candidate; run the cost test against it rather than designing a second one, and record the decision.",
+    "From #2586 (item 3703aa13, #2586): the roster still briefs this in-progress group that \"Decision 0012 forbids a new policy file, lint class or rules entry until 2026-10-31\". That constraint is void under the owner's addendum (decision 0012 is revoked); the roster brief is the orchestrator's to correct, not #2586's. This is the review's non-blocking observation."
    ],
    "architect_note": "",
    "resume": {
