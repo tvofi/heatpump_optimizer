@@ -6,8 +6,8 @@ Read-only; run in a clone that has fetched the review bus and the roster branch:
     python3 review_rounds.py [--since 2026-10-10T00:00Z] [--json out.json]
 
 Source: refs/remotes/origin/review/<N> (one commit per proposed verdict, as review_baseline.py
-reads them). A pull request's size and kind come from the roster group whose resume names it
-(any roster file under dev/programme/rosters/ at origin/main, plus the round roster branch).
+reads them). A pull request's group comes from its delivery record (dev/programme/delivery/<N>.md names
+it in parentheses); size and kind from the round rosters at origin/main and the roster branch.
 """
 import datetime as dt
 import json
@@ -53,6 +53,27 @@ def pr_map(docs, pr_keys):
     return out
 
 
+GROUP = re.compile(r"\((R(?:9|10)-[A-Z0-9][A-Z0-9.-]*)\)")
+
+
+def delivery_map(docs):
+    """PR -> (group, size, kind), from the delivery record dev/programme/delivery/<N>.md, whose
+    row names the group in parentheses; size and kind from the round rosters."""
+    groups = {}
+    for d in docs:
+        for g in d.get("groups", []) if isinstance(d, dict) else []:
+            groups[g.get("group")] = (g.get("group"), g.get("size"), g.get("kind"))
+    out = {}
+    for f in git("ls-tree", "--name-only", "origin/main", "dev/programme/delivery/").split():
+        n = f.rsplit("/", 1)[1][:-3]
+        if not n.isdigit():
+            continue
+        m = GROUP.search(git("show", f"origin/main:{f}"))
+        if m:
+            out[int(n)] = groups.get(m.group(1), (m.group(1), None, None))
+    return out
+
+
 def verdicts():
     refs = git("for-each-ref", "refs/remotes/origin/review", "--format=%(refname:short)").split()
     for ref in refs:
@@ -70,8 +91,7 @@ def main(argv):
     since = None
     if "--since" in argv:
         since = dt.datetime.fromisoformat(argv[argv.index("--since") + 1].replace("Z", "+00:00"))
-    keys = (argv[argv.index("--pr-keys") + 1].split(",") if "--pr-keys" in argv else ["pr", "prs"])
-    pmap = pr_map(rosters(), keys)
+    pmap = delivery_map(rosters())
     per = defaultdict(list)
     for pr, when, v, cls in verdicts():
         if since and when < since:

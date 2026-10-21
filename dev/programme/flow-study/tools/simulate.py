@@ -17,6 +17,8 @@ Scenario switches (env):
   PRIO=0|1          dispatch PRIORITY groups first in their lane (the revision-10 CD3 order)
   RESERVE=0|1       the next critical-chain link dispatches even when its lane is at cap (CCPM capacity buffer)
   EFFX=<x>          scale every EFFECTS figure (sensitivity)
+  DESIGN=0|serial|pipe  design + design-review steps for groups at or above DTH (design-seat pre-study)
+  DTH=M|L|XL        the size threshold; DSCALE scales design hours, DFRAC the share of review blocks the design removes
   CUT=any|gap       P2's cut-over: 'gap' waits for an hour in which no critical-chain group is within 1.5 h of boarding
 """
 import json, os, sys, functools
@@ -34,6 +36,23 @@ HOLD = int(E('HOLD', '12'))
 EFF = E('EFF', '0') == '1'; PAR = E('PAR', '0') == '1'; PRIO = E('PRIO', '0') == '1'; CUT = E('CUT', 'any')
 from simulate_rules import EFFECTS, PARALLEL, TAIL, PRIORITY, CHAIN, CUTOVER, EXPEDITE, FAST
 EFFX = float(E('EFFX', '1')); RESERVE = E('RESERVE', '0') == '1'
+DESIGN = E('DESIGN', '0'); DTH = E('DTH', 'L'); DSCALE = float(E('DSCALE', '1')); DFRAC = float(E('DFRAC', '0.15'))
+REWORK_H = float(E('REWORK_H', '2.0')); REVAL_H = float(E('REVAL_H', '0.5'))
+_ORD = {'S': 0, 'M': 1, 'L': 2, 'XL': 3}
+D_HOURS = {'M': 2.0, 'L': 3.0, 'XL': 4.0}      # design seat plus design review, wall hours (mid)
+DR_HOURS = {'M': 1.0, 'L': 1.0, 'XL': 1.5}     # design review only, where a design or prototype already exists
+BLOCKS = {'S': 0.70, 'M': 0.75, 'L': 1.80, 'XL': 1.80}  # measured blocked verdicts per reviewed PR (review_rounds.py)
+def designed(n):
+    g = G.get(n, {})
+    return DESIGN != '0' and _ORD.get(g.get('size'), -1) >= _ORD[DTH]
+def has_design(n):
+    b = G.get(n, {}).get('brief') or ''
+    return any(k in b for k in ('approved design', 'prototype', '.patch'))
+def d_hours(n):
+    sz = G[n].get('size')
+    return DSCALE * (DR_HOURS if has_design(n) else D_HOURS)[sz]
+def d_gain(n):
+    return DFRAC * BLOCKS[G[n].get('size')] * REWORK_H
 PITCH = int(E('PITCH', '1'))        # hours between merge trains          # hours before any not-started group may dispatch (drain first)
 DONE = ('done', 'rca-done')
 PROC = {'instrument', 'policy', 'rca', 'record', 'docs', 'fix'}
@@ -124,8 +143,16 @@ for t in range(H + 1):
         if CAPS is None:
             if total >= 6 and L != 'F': continue
         elif wip[L] >= (KAIZEN if L == 'K' else CAPS[L]) and not (RESERVE and n in CHAIN): continue
+        dl = 0.0
+        if designed(n):
+            if DESIGN == 'pipe':
+                d0 = max([max(0, S[a]['start']) for a in edges(n) if a in S and 'start' in S[a]] or [0])
+                if t < d0 + d_hours(n): continue
+                dl = REVAL_H - d_gain(n)
+            else:
+                dl = d_hours(n) - d_gain(n)
         cut = EFFX * sum(h for e, h in EFFECTS.items() if EFF and S.get(e, {}).get('merged') is not None and e != n)
-        S[n] = {'start': t, 'ready': t + max(1.0, lead(G[n].get('size'), t) - cut), 'merged': None}
+        S[n] = {'start': t, 'ready': t + max(1.0, lead(G[n].get('size'), t) - cut + dl), 'merged': None}
         wip[L] += 1; total += 1
 
 roster = [n for n in G if not n.startswith(('FLY-', 'ADD-')) and st(G[n]) not in DONE]

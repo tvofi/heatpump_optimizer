@@ -28,3 +28,11 @@ The figures are the study's measurements at the refs named in each file. Re-take
 - The roster base is f424d993d: 19 flow groups (with the two toolkit groups) and 8 carries.
 - The model gained EFF, EFFX, PAR, PRIO, RESERVE and CUT. The revision-10 projection is `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap python3 simulate.py ../roster/shadow-r10-groups.json 300`.
 - FUTURE-STATE §12 holds the cost-of-delay ranking.
+
+**Design-seat pre-study (2026-10-21):** `design-seats/` holds the following.
+- `STUDY.md`: the report. Its answer: neutral at best for round 10, and a narrow pipelined pilot in round 11.
+- `designer.md` and `design-review.md`: the draft contracts.
+- `model-grid.txt`: the scenario grid.
+- `tools/review_rounds.py`: first-pass yield and block classes per reviewed PR.
+
+The model's design switches are in `tools/simulate.py`'s header.
