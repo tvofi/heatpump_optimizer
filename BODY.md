@@ -1,61 +1,127 @@
-A stopped pusher must not leave its work running.
+A stopped pusher must not leave its work running, and no pusher may join the tree without the same guarantee.
 
-A shell does not forward TERM/INT to a foreground child. `open_pr.sh`, `update_pr.sh` and
-`app_push.sh` each ran their push (or prepr) as a foreground child, so a stopped pusher exited and
-the subtree reparented to launchd and kept burning CPU: six survivors were swept up on 2026-10-20,
-aged 26 to 62 minutes, on a box already at load 77 on eight cores, and each kill needed a second
-pass two levels further down. The slot pool could not see them, because they hold no slot once
-their parent is gone.
+A shell does not forward TERM, INT or HUP to a foreground child. So a stopped pusher exited, and its subtree was reparented to launchd and kept burning CPU. On 2026-10-20 six survivors were swept up, aged 26 to 62 minutes, on a box at load 77 on eight cores. The previous head fixed three pushers it named. The review of `c071fa5f` found a fourth (`handoff_push.sh`) that no rule had enumerated. This head closes the class: it adds the rule that enumerates every pusher, and it treats every seam that rule returns.
 
-`tools/audit/seat/pr_args.sh` already owns the shared stop for `open_pr.sh` and `update_pr.sh`
-(`pr_trap`'s ERR report), so the reap belongs there: `pr_descendants` walks children by parent pid,
-`pr_reap` TERMs each by pid and KILLs whatever outlives a two-second grace, and `pr_signal_traps`
-(installed by `pr_trap`) ends the tree on TERM/INT/HUP before the shell exits. Bash defers a trap
-while a foreground child runs, so the three pushers now run that child asynchronously and `wait`
-on it (`pr_wait`), which a trapped signal interrupts; `app_push.sh` sources the same module and
-installs the same traps, and its own prepr call is asynchronous for the same reason. EXIT reaps
-too -- `update_pr.sh`'s lock trap and `app_push.sh`'s cleanup call `pr_reap` -- which is the
-backstop when a signal is not trapped at all: measured on this box's bash 3.2, an untrapped fatal
-signal still runs the EXIT trap. Never a pattern kill: every signal goes to a numeric pid above 1
-that the walk returned, never to a group and never to a command line.
+**The rule (the census).** `tools/audit/seat/pr_args.sh --pushers [<rev>]` defines a pusher as every tracked `tools/` script (`*.sh`, `*.py`, `*.mjs`, `*.js`) that names `app_push.sh` or `push.sh`. The test is the `git grep -lE '(^|[^A-Za-z0-9_])(app_)?push\.sh'` it runs. Every path the grep returns needs exactly one disposition in `PR_PUSHERS`:
+- `runner`: the script installs `pr_exit_trap`, and every line running `"$_push"` or `"$prepr"` runs it asynchronously.
+- `runner-py`: the script TERMs its tool rather than SIGKILLing it, and its entry calls `stop_on_signal()`.
+- `retired`: `push.sh`.
+- `mention`: the script names a pusher but runs none, and the entry gives the reason.
 
-SIGKILL stays out of scope: no trap runs, so a SIGKILLed pusher's tree survives. The self-test's
-KILL arm therefore asserts only that its lock does not go stale.
+The census prints `OPEN` and exits 1 in three cases: a returned path with no entry, an entry the grep no longer returns, or a runner that lacks either property. `pr_args.sh --self-test` runs the census on the tree, and CI runs that self-test on every governance run (`open_pr.sh` / `update_pr.sh --self-test` steps). So a new pusher cannot land undispositioned.
+
+**The mechanism is one EXIT trap.** `pr_exit_trap [<command>]` sets `trap "<command>; pr_reap" EXIT`. bash runs the EXIT trap when TERM, INT or HUP ends the shell, as well as on every other exit. The TERM/INT/HUP signal traps of `c071fa5f` (`pr_signal_traps`, `pr_signal_exit`) are deleted. They only duplicated the EXIT trap, which is why that review found their mutants survived. Each push runs asynchronously, and the shell `wait`s on it. The reason is INT: an untrapped INT waits for a foreground child, while all three signals interrupt `wait`. `pr_reap` now ignores further TERM/INT/HUP while it runs (`# mut:sigign`), so a second stop cannot end the shell before the KILL that follows the grace period (`# mut:grace`).
+
+Seams treated in this diff:
+- `handoff_push.sh`: the one the review found.
+- `remerge_main.sh`: the census also returned it. It ran `app_push.sh --recarry` in a foreground command substitution.
+- `merge_train.py`: the census also returned it. `Train._run` used `subprocess.run`, whose own handler SIGKILLs the child, and an untrapped TERM ended the train with its tool still running. `Train._run` now TERMs the tool and waits for that tool's own trap to reap the tree. `stop_on_signal()` turns TERM and HUP into `SystemExit`, so a stop unwinds through that handler.
+- `cloud_relay.sh`: the level-2 caller the review named (it runs `update_pr.sh`).
+- The previous three, `open_pr.sh`, `update_pr.sh` and `app_push.sh`, are moved onto the one mechanism. `app_push.sh` installs it once, beside `cleanup`, which is now a no-op until `$PRIV` exists.
+
+Every signal still goes to a numeric pid the walk returned: never a pattern, never a group.
+
+SIGKILL stays out of scope, because no trap runs. The KILL arm of `update_pr.sh` asserts only that the lock does not go stale.
 
 ## Head
 
-`6ff10e62b3f7b8d38fd3ecab5e23aa71a9f3553d` -- everything below was measured at that head (merge base `df6ca4bc6858f2796f694035e6f53e46e237e33b`, the tip of `origin/main` at 2026-10-21T08:40Z).
-`prepr` ran with `PREPR_SKIP_CLOSURES=1` (tvofi, 2026-10-21), so its closure derivation was skipped; the scoped gate was derived separately and is in `## Figures`.
+`b5b91be95a2dd08a1d8daab07c406c07a8509e97` is the code head, and everything below was measured there. It merges origin/main `5226fd2d` into `6945363d7f67cae739baafc7ac3f4601068a9d28`, my last commit. Origin/main's tip was read at 2026-10-21T15:40:08Z. The merge touched none of the eight files this PR changes (`git diff --quiet 6945363d7 b5b91be95 -- <the eight>` exit 0), and it needed no hand resolution. `6945363d7` itself sits on PR head `c071fa5f37abdac0da2284547b9282549eb4d607` and merges origin/main `e7c66485`. `prepr` runs with `PREPR_SKIP_CLOSURES=1` (the owner's ruling), so the scoped gate was derived separately and is in `## Figures`.
 
 ## Mutation proof
 
-Two, each made on a copy of the head's `tools/audit/seat`, `tools/pr` and `tests/throwaway_git.sh` (the self-test reads its scripts from its own directory), so the worktree stays byte-identical to the committed head.
+Every mutant was applied to the committed head and restored with `git checkout -- <file>`, and `git status --short` was empty afterwards. The runner is a scratch `mut.sh` that applies one exact-match replacement, runs the named self-test, and prints its `FAIL` lines.
 
-- The reap's kill line (`pr_kill`'s `kill -"$1" "$2"`, marked `# mut:stop`) replaced by `:`: `bash tools/audit/seat/pr_args.sh --self-test` printed `62 checks, 2 failed`, the failures being `open_pr: TERM reaps the whole descendant tree, and the pusher is gone` and `update_pr: TERM reaps the whole descendant tree, and the pusher is gone`; the unmutated copy prints `62 checks, 0 failed`.
-- The by-pid rule: `pr_reap` widened by a pattern, `PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$(pgrep -f "$REAP_DIR/unrelated-sleep" 2>/dev/null || :)` placed after `pr_descendants $$`: the self-test printed `62 checks, 2 failed`, the failures being `open_pr: the null control -- an unrelated sleeper survives` and `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start`. The survivor arms stayed green and the run printed its own tally and exit status -- a reddening, not a crash.
+- **M0, the null run:** no change to any line. `pr_args self-test: 74 checks, 0 failed`.
+- **M1 `handoff_push.sh`, `pr_exit_trap` dropped from its source line:** 4 failed.
+  - `handoff_push: TERM reaps the whole descendant tree, and the pusher is gone`
+  - `the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps`
+  - `the census on the scratch copy passes as it does on the tree`
+  - `a runner whose push runs in the foreground is refused`. This arm fails because the no-trap OPEN fires first.
+- **M2 `handoff_push.sh`, `hp_push` run in the foreground:** 2 failed, the two census arms.
+  - The census flags it as `a push runs in the foreground`. The first M2 run, before `6945363d7`, survived: the census read `2>&1` as a background `&`. The check now strips redirections, and a self-test arm pins exactly that shape.
+- **M3 `remerge_main.sh`, `pr_exit_trap` dropped:** 3 failed: `remerge_main: TERM reaps the whole descendant tree, and the pusher is gone` and the two census arms.
+- **M4 `open_pr.sh`, the first push back in the foreground:** 3 failed: `open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it` and the two census arms.
+- **M5 `cloud_relay.sh`, `pr_exit_trap` dropped:** `cloud_relay self-test: 75 checks, 1 failed`, `a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)`.
+- **M6 `app_push.sh`, `pr_exit_trap cleanup` dropped:** `app_push self-test: 139 checks, 11 failed`. The failures include `and leaves none of prepr's tree alive (R10-PUSHER-REAP) (got '3', want '0')`, and ten token-revoke and private-directory arms.
+- **M7 `merge_train.py`, `p.terminate()` turned into `p.kill()`:** `merge_train self-test: 200 checks, 1 failed`, `a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)`.
+- **M8 `merge_train.py`, `main`'s `stop_on_signal()` call deleted:** the census prints `OPEN tools/audit/seat/merge_train.py runner-py: a stop SIGKILLs or orphans its tool`.
+- **M9 `merge_train.py`, the handler's `raise SystemExit(128 + signum)` turned into `return None`:** 1 failed, the same arm as M7.
+- **Built-in mutants.** `pr_args.sh`'s self-test runs each one on copies of the scripts, and each arm passes only because its mutant shows the defect:
+  - `mut:exitreap` (`pr_exit_trap`'s trap line): the open_pr, handoff_push and remerge_main survivor arms.
+  - `mut:grace` (the KILL line): a TERM-proof child survives.
+  - `mut:sigign`: a second TERM ends the host mid-reap, and the child survives.
+  - `mut:stop` (`pr_kill`'s kill): the open_pr and update_pr survivor arms.
+  - `mut:unlock` and `mut:watch` are unchanged.
 
-Failing test first: the head's self-test arms run against the merge base's `open_pr.sh`, `update_pr.sh` and `app_push.sh` (the head's `pr_args.sh` carries the arms) printed `62 checks, 3 failed` -- `open_pr: TERM reaps the whole descendant tree, and the pusher is gone`, `update_pr: TERM reaps the whole descendant tree, and the pusher is gone` and `update_pr: after the stop the lock is free, so the next run takes it`; at the head they print `0 failed`.
+  The review found four survivors at `c071fa5f`: the signal-trap call, app_push's EXIT reap, the KILL escalation, and both EXIT backstops. Each is now either gone (the signal traps) or killed: M6, `mut:grace`, and `mut:exitreap` with M1/M3.
+
+**Failing test first.** At this head, the new arms ran against `c071fa5f`'s `handoff_push.sh` and `remerge_main.sh`, the two files copied in with `git checkout c071fa5f --`. `pr_args self-test` printed `74 checks, 5 failed`:
+- `handoff_push: TERM reaps the whole descendant tree, and the pusher is gone`
+- `remerge_main: TERM reaps the whole descendant tree, and the pusher is gone`
+- the two census arms
+- `a runner whose push runs in the foreground is refused`
+
+The new arms for `cloud_relay.sh`, `app_push.sh` and `merge_train.py` live inside those files, so their red runs are M5, M6 and M7/M9.
 
 ## Null control
 
-The unmodified scripts leave the stub's whole tree alive after TERM: the three failing arms above are that measurement (the stub records its pids, the arm counts the survivors and asserts 0, and the base scripts leave them alive with the pusher's trap never run). At the head the same arms pass. A run that succeeds (the stub exits 0) leaves nothing behind either, and a bystander sleeper started outside any pusher's tree survives both the TERM and the successful run, so the reap kills only what it started -- those are the two null-control arms, which pass at the base scripts as well.
+- **The bystander.** An unrelated sleeper, started outside any pusher's tree, survives every TERM arm and the successful-run arm. The reap goes by pid only.
+- **The merge_train arm** runs its own control: the same driver without `stop_on_signal()`. In it the train dies and all 3 pids of its tool's tree survive (`null control: without stop_on_signal the train dies and its tool's tree survives`), so the arm can see the defect it pins.
+- **The census.**
+  - On a scratch tree holding copies of every entry, the census passes. Planting `tools/audit/seat/new_pusher.sh` running `app_push.sh` makes it refuse `undispositioned`. Deleting `handoff_push.sh`'s `pr_exit_trap` makes it refuse `no pr_exit_trap`, and dropping its `&` makes it refuse `a push runs in the foreground`. These are self-test arms.
+  - An enumeration that returns nothing cannot pass. Run from a path outside the repository (`bash <(git show …)`), the grep returned nothing, and the census printed 16 `stale` OPEN lines and exited 1.
+- **No vacuous arm.** Every reap verdict first requires that the push's tree started (4 recorded pids, `treen`). Before that guard, one handoff_push arm passed with nothing to reap: a branch collision stopped the run short of its push. Now such a run fails the arm.
 
 ## Figures
 
-All commands run at `6ff10e62b` in the worktree; the script's own last line and exit code.
-- `MODE: SCOPED -- 0 script(s) run, 33 scoped out` -- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` (four changed files under `tools/`; no recorded closure names any of them)
-- `pr_args self-test: 62 checks, 0 failed` at this head, `3 failed` for the same arms against the merge base's pushers (Mutation proof) -- `bash tools/audit/seat/pr_args.sh --self-test`
-- `app_push self-test: 135 checks, 0 failed` -- `bash tools/pr/app_push.sh --self-test`
-- `STRUCTURE RATCHET PASSED` -- `python3 tests/structure.py`
-- `ALL 124 closure shrink pins PASSED` -- `python3 tests/closure.py selftest`
-- `claims hygiene: df6ca4bc6858f2796f694035e6f53e46e237e33b ok` -- `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`
-- `tmp_paths: 0 refused, 0 stale allow entries at HEAD` -- `python3 -I tools/audit/seat/tmp_paths.py --check`
-- Survivor rule, not a number: an arm counts the pids the stub recorded still alive and asserts exactly 0 after TERM; the base scripts leave them alive -- `bash tools/audit/seat/pr_args.sh --self-test`
+Measured at `b5b91be95a2dd08a1d8daab07c406c07a8509e97`. origin/main `5226fd2d11b71deddd359c328f7ec1805e22b752` was read at 2026-10-21T15:40:08Z.
+
+- **The class's seams.** Rule: `bash tools/audit/seat/pr_args.sh --pushers <rev>`, the git grep above with the dispositions in `PR_PUSHERS`. It returns 16 paths at the merge base `e7c66485`, at `c071fa5f` and at this head.
+
+  | seat | disposition | base `e7c66485` | `c071fa5f` | this head |
+  |---|---|---|---|---|
+  | `tools/audit/seat/handoff_push.sh` | runner, closed in this diff | OPEN | OPEN | ok |
+  | `tools/audit/seat/remerge_main.sh` | runner, closed in this diff | OPEN | OPEN | ok |
+  | `tools/audit/seat/merge_train.py` | runner-py, closed in this diff | OPEN | OPEN | ok |
+  | `tools/audit/seat/open_pr.sh` | runner, closed in this diff | OPEN | OPEN* | ok |
+  | `tools/audit/seat/update_pr.sh` | runner, closed in this diff | OPEN | OPEN* | ok |
+  | `tools/pr/app_push.sh` | runner, closed in this diff | OPEN | OPEN* | ok |
+  | `tools/pr/push.sh` | retired: decision 0011's retired author path, which no runner executes (the level-2 rule below returns no caller) | ok | ok | ok |
+  | 9 `mention` paths, each with its reason in `PR_PUSHERS` | mention | ok | ok | ok |
+
+  The 9 mention paths are `pr_args.sh`, `handover_prompt.py`, `ref_privacy.py`, `app_approve.sh`, `approve_held_runs.sh`, `head_note.py`, `check-wave-script.mjs`, `friction_issues.mjs` and `policy_lint.mjs`. Census exit status: 1 at the base, 1 at `c071fa5f`, 0 at this head.
+
+  \* At `c071fa5f` these three did reap, through `pr_signal_traps`. The census keys on `pr_exit_trap`, the mechanism this head replaces them with, so this reading of that commit is name-keyed. The review measured those three as reaping.
+- **Level 2: who executes a runner.** Rule: `git grep -nE '(bash|exec)[^#|;]*(handoff_push|open_pr|update_pr|remerge_main)\.sh|tool\("(remerge_main|app_push)"\)' HEAD -- 'tools/*.sh' 'tools/*.py'`. Each returned line and its disposition:
+  - `cloud_relay.sh` (update_pr): closed in this diff, with its own arm.
+  - `merge_train.py` (remerge_main, and app_push `--branch-only`): closed in this diff (runner-py).
+  - `pr_args.sh`, five lines: its self-test fixtures.
+  - `r9_rc_bus_fetchhead.sh`: a round-9 measurement harness that runs `handoff_push.sh` in a scratch fixture.
+  - `tmp_paths.py`: a self-test string.
+
+  Callers above level 2 (`train.sh` runs `merge_train.py`; `tick_loop.sh` runs `cloud_relay.sh`) stop a child that now reaps its own tree.
+- **Self-tests at this head:**
+
+  | command | result |
+  |---|---|
+  | `bash tools/audit/seat/open_pr.sh --self-test` | `delivery_row self-test: 5 checks, 0 failed`; `pr_args self-test: 74 checks, 0 failed` |
+  | `bash tools/audit/seat/update_pr.sh --self-test` | the same two lines |
+  | `bash tools/audit/seat/handoff_push.sh --self-test` | `delivery_row self-test: 5 checks, 0 failed` |
+  | `bash tools/pr/app_push.sh --self-test` | `app_push self-test: 139 checks, 0 failed` |
+  | `bash tools/audit/seat/cloud_relay.sh --self-test` | `cloud_relay self-test: 75 checks, 0 failed` |
+  | `python3 tools/audit/seat/merge_train.py --self-test` | `merge_train self-test: 200 checks, 0 failed` |
+- **The scoped gate:** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and `scope.run` names `tests/entities.py`. `PYTHONPATH=tests/hastub python tests/entities.py` (python 3.13 with `tests/requirements-ci.txt`) printed `ALL 2375 ENTITY CHECKS PASSED`.
+- **Checks before push:**
+  - `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+  - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD` printed `Architecture score: dS +0.0000 NULL`.
+  - `python3 -I tools/audit/seat/tmp_paths.py --check` printed `tmp_paths: 0 refused, 0 stale allow entries at HEAD`.
+- **Anchors still unique:** every anchor that `dev/audit/harnesses/r10_seat_selftests_mutants.py` (landed on main in this merge) plants in a file this PR changes occurs exactly once at this head. I ran its tables' `text.count(old) == 1` over the files under `tools/`, and nothing came back.
+- **Rule 3 / rule 4:** `git diff --name-only $(git merge-base origin/main HEAD)...HEAD` names no `VERSION`, manifest, `RELEASE_NOTES.md` or claim file.
 
 ## Red checks
 
-- `pr-contract`, at the previous head: three `UNROUTED` items under `## Forward-carry` and `## Friction` (a `none -- ...` line is an item, and the friction lines carried no `Carry:` marker), while this section said none. The cheaper detector is `python3 -I tools/audit/carry_audit.py check --body <body>`, which this body now passes; `tools/pr/prepr.sh` does not call it, so only `pr-contract` ran it. Standing cost of running it by hand before a push: one local command that reads the roster ref. The recurring class is open as #2428.
-- `nightly-status`: grades `main`, not this branch. The nightly `slow` lane's `loop_cpu_ratio` is over budget, and the separate `r10-replay-cap` work fixes it. This diff touches only `tools/audit/seat/` and `tools/pr/` pushers, which that lane does not read.
+- **`pr-contract` at `c071fa5f`.** `carry_audit.py` refused 3 unrouted body items: the `## Forward-carry` "none -- …" sentence and both `## Friction` lines. The body caused it, not the code, and this body is written fresh: `## Forward-carry` and `## Friction` are each a bare `none`. A cheaper detector already exists, `carry_audit.py`'s own check, which `prepr.sh` runs before the push. The previous body went out without that run's refusal being acted on. I am naming the trigger here; its analysis belongs to `root-cause.md`'s seat.
+- **`nightly-status`** grades `main`. This diff (eight `tools/` scripts) does not reach anything it reads.
 
 ## Forward-carry
 
@@ -63,5 +129,4 @@ none
 
 ## Friction
 
-- daemonize-instrument: cost: `daemonize.py` treats any `--self-test` in its argv as its own self-test, so `--log L -- bash tool --self-test` ran the launcher's self-test and silently skipped the command; put the child in `bash -c` around it. Carry: R10-ORCH-MACHINERY
-- entity-classification: unenforced: the shared `.git/info/exclude` carries a `seat/` pattern, so `git add tools/audit/seat/<new file>` refuses as ignored while tracked files still stage -- a new instrument there would silently not be added. Carry: dismissed: a per-clone exclude entry on this box, not tracked repository state, so no tree change can fix it
+none
