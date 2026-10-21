@@ -6948,7 +6948,8 @@
    "size": "S",
    "wave": 4,
    "files": [
-    "tools/audit/carry_audit.py"
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/bus.sh"
    ],
    "hot_files": [
     "tools/audit/carry_audit.py"
