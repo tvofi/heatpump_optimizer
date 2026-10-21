@@ -204,7 +204,32 @@ GROUPS = [
         ["Pre-study: the Lean flow pre-study, section K12.",
          "Until this lands the orchestrator carries verdicts with app_approve.sh --carry (#1667)."]),
     group(
-        "R10-FLOW-ROSTER-FREEZE", "instrument", "S", ["R10-ROSTER-OPS"],
+        "R10-FLOW-RELAY-HOLD", "instrument", "S", [],
+        ["tools/audit/seat/cloud_relay.sh", "tools/audit/seat/INSTRUMENTS.md"],
+        ["tools/audit/seat/cloud_relay.sh"],
+        "A hold list the relay honours, so a frozen pull request's head stays put while its handoff "
+        "branch keeps moving (Lean flow study K13a; expedite since revision 5). cloud_relay.sh's "
+        "handoff arm updates every open pull request whose handoff/<topic> tip is ahead of its head, "
+        "and has no hold or exclusion option. The round's roster pull request takes its topic from "
+        "handoff/audit-r10-roster, the branch every roster_edit.py push lands on, so the roster "
+        "freeze had to stop all roster pushes, forward-carries included; finding-propagation.md "
+        "needs a fixer's carry on that branch before its pull request merges, and fix-review.md "
+        "step 10 checks it at the body's handoff/audit-r<N>-roster sha (2026-10-21: #2567 blocked "
+        "carry-missing behind the freeze). Add a hold file under the relay's state directory: a "
+        "pull request number listed there is skipped by the handoff arm with one HELD line per pass, "
+        "naming the handoff tip it did not apply; removing the number resumes it. The orchestrator "
+        "writes and removes it; nothing else does. With a pull request held, roster pushes, "
+        "forward-carries included, continue on the handoff branch and are taken up by the next "
+        "roster pull request after the held one merges. Controls: a held pull request whose "
+        "handoff tip moved is not updated and prints HELD; an unheld one is updated as today; a "
+        "malformed hold file is a refusal for that pass, never a silent hold-all or hold-none; "
+        "mutants for each arm.",
+        ["Pre-study: the Lean flow pre-study, section K13a.",
+         "Seam with R10-ORCH-MACHINERY: the beat's handoff job honours the same hold file, and "
+         "R10-FLOW-ROSTER-FREEZE writes it automatically while a reviewer is live."],
+        fixer="sonnet", reviewer="opus"),
+    group(
+        "R10-FLOW-ROSTER-FREEZE", "instrument", "S", ["R10-ROSTER-OPS", "R10-FLOW-RELAY-HOLD"],
         ["tools/audit/seat/cloud_relay.sh", "tools/audit/carry_audit.py",
          "tools/audit/seat/INSTRUMENTS.md"],
         ["tools/audit/carry_audit.py"],
@@ -413,6 +438,10 @@ CARRIES = [
      "beatd.py runs under daemonize.py and an operating-system supervisor that restarts it (launchd on "
      "the orchestrator's Mac, a user systemd unit elsewhere); an agent only reads beatd status and the "
      "journal, and never hosts a job. "
+     "Jobs run concurrently: one job's run never delays another job's schedule, so a long handoff "
+     "update (9 min observed on 2026-10-21) never leaves the tick board stale; the tick reads "
+     "independently of the relay, as R10-TICK-RELAY-DECOUPLE (#2549) already does for tick_loop.sh. "
+     "The handoff job honours R10-FLOW-RELAY-HOLD's hold file. "
      "(1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, "
      "timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, "
      "not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the "

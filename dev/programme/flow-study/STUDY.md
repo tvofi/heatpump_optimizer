@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · guardrail baselines (method and script) · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K13a RELAY-HOLD · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · guardrail baselines (method and script) · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -365,6 +365,28 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 
 **Until this lands:** freeze roster pushes by hand while #2559 is under review (SHADOW-PLAN §3.2 Phase 1a).
 
+## K13a · R10-FLOW-RELAY-HOLD (instrument, S, Sonnet fixer, Opus reviewer): expedite since revision 5
+
+**The gap** (orchestrator, revision-4 run): the roster freeze blocked forward-carries.
+- `finding-propagation.md` needs a fixer's carry on the round's roster branch before its PR merges.
+- fix-review step 10 checks the carry at the body's `handoff/audit-r<N>-roster` sha.
+- `cloud_relay.sh`'s handoff arm updates every open PR whose `handoff/<topic>` tip is ahead of its head (topic = branch less `fix/` and `-pr`). #2559's topic is `audit-r10-roster`, the very branch `roster_edit.py` pushes to.
+- The arm has **no hold or exclusion option**. Its failure file skips only an exact `<topic> <sha>` pair, and a new push changes the sha.
+- **So every carry push moves #2559's head.** Live case: #2567, blocked `carry-missing`.
+
+**Change**
+- A hold file under the relay's state directory, listing PR numbers. The handoff arm skips a listed PR with one `HELD #N <tip>` line per pass.
+- Only the orchestrator writes it.
+- A malformed file refuses that pass. It never holds everything or nothing silently.
+
+**Effect:** the freeze becomes "the roster PR is held". Roster pushes, forward-carries included, keep landing on the handoff branch at shas the fixers cite. The held edits ride the next roster PR.
+
+**Controls:** a held PR whose tip moved is not updated and prints HELD; an unheld PR is updated as today; mutants for each arm.
+
+**Seams:**
+- R10-FLOW-ROSTER-FREEZE now builds on this: it writes the hold automatically while a reviewer is live.
+- R10-ORCH-MACHINERY's `handoff` job honours the same file.
+
 ## K14 · R10-FLOW-BODY-PATCH (instrument, S, Sonnet fixer, Opus reviewer): expedite
 
 **Gap** (orchestrator, 2026-10-21): until R10-FLOW-BODY-ONLY lands, the plan said "PATCH the body without `update_pr.sh`, or carry the verdict". No PATCH tool exists, and carrying a verdict does not repair a body that `pr-contract` or `carry_audit` refuses.
@@ -446,6 +468,8 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 - **`plan_page.py`,** sharing one `plan_model()` with `plan_table.py`.
 
 **Requirement 0 (revision 4): the beat is detached processes, never an agent loop.**
+
+**Requirement 0b (revision 5): jobs run concurrently.** A 9-minute `update_pr.sh` inside the relay pass starved the tick and left the board stale on every long update. One job's run never delays another's schedule, so the `tick` job reads independently of the `handoff` job. R10-TICK-RELAY-DECOUPLE (#2549, `merge` verdict at its head) already does this for `tick_loop.sh`. Merge it now.
 - **Evidence:** in the live run of 2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed by hand.
 - **Rule:** `beatd.py` runs under `daemonize.py` and an operating-system supervisor that restarts it: launchd (`KeepAlive`) on the orchestrator's Mac, or a user systemd unit with `Restart=always` elsewhere.
 - **Every job is a script with `--once`.** An agent reads `beatd status` and the journal. It never hosts a job, a relay pass or a tick.

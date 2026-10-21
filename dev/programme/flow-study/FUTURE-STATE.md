@@ -301,3 +301,10 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
 16. **The beat is detached processes, never an agent loop.** Agent relay and tick loops ended their turns twice in the live run (STUDY K17, requirement 0; on R10-ORCH-MACHINERY, FLOW-ANDON and FLOW-AUTOTRAIN).
 17. **Two undefined cases now have rules** (SHADOW-PLAN §3.3): an expedite whose group is not yet on the roster reviews against a pinned pack brief, never "group: none"; and an `--overlap` "not green" while every required context is pending is wait, not red.
 
+**Revision 5**
+
+18. **The freeze blocked forward-carries (right).** Exempting `append-carry` cannot work while the relay moves #2559 on every roster push. Until R10-FLOW-RELAY-HOLD (new expedite) lands, a carry-blocked PR waits, bounded: if the wait exceeds one train's CI, merge #2559 directly. With the hold, the freeze no longer blocks carries (SHADOW-PLAN §3.2; STUDY K13a).
+19. **The first two expedites were fired without rule A's wording (right).** Both are pinned to pack commit 78117030 (their specification unchanged), and their fixers receive the group line now. For those two PRs only, a missing line is a verdict note, not a block (SHADOW-PLAN §3.3).
+20. **A long relay update starves the tick (right).** That is R10-TICK-RELAY-DECOUPLE (#2549), which holds a `merge` verdict at its head: merge it now. The beat's jobs must run concurrently (STUDY K17, requirement 0b).
+21. **Live:** no train is running, and #2559 and #2549 both hold `merge` verdicts at their heads. Merge both directly now, which ends the freeze.
+

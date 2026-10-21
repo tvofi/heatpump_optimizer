@@ -2,8 +2,8 @@
 
 **Base:** live roster `origin/handoff/audit-r10-roster` at 617ce1316 when planned; the committed shadow is rebuilt at 2c76c3128 (one stage change on R10-MERGE-PR-MANDATE) (108 groups: 51 done, 20 in progress, 34 not started, 3 queued).
 
-**Shadow:** `roster/shadow-r10-groups.json`, 124 groups. It adds:
-- 16 flow groups
+**Shadow:** `roster/shadow-r10-groups.json`, 125 groups. It adds:
+- 17 flow groups
 - 6 carries folded into existing groups
 
 `node tools/policy/brief_lint.mjs roster/shadow-r10-groups.json` run from a main checkout prints `TOTAL: 0 error(s)`. Rebuild it at any newer roster ref with `python3 tools/build_shadow.py origin/handoff/audit-r10-roster`.
@@ -35,28 +35,29 @@ To verify, not caused by this plan:
 | B | other product groups | 4 |
 | C | process groups | 3 |
 | F | fly-ins (`R10-FLY-*`) | 2 |
-| **K** | the 16 flow groups: an improvement allowance on top of A–F during the drain | **2** |
+| **K** | the 17 flow groups: an improvement allowance on top of A–F during the drain | **2** |
 | expedite | line-stop items | bypasses the caps, one at a time |
 
 **Flow-group order** (each only once its `after` groups are done):
 - **Expedite, now:**
-  1. FLOW-BODY-PATCH
-  2. FLOW-MAIN-GATE (after #2570)
-  3. FLOW-YIELD-PROBE (ruling R13: explain the real-catch fall before any threshold relies on it)
-  4. FLOW-DISPATCH (expedite since revision 4: no technical dependency, and its cost recurs for every seat)
+  1. FLOW-RELAY-HOLD (since revision 5: lets forward-carries flow during any roster-PR freeze)
+  2. FLOW-BODY-PATCH
+  3. FLOW-MAIN-GATE (after #2570)
+  4. FLOW-YIELD-PROBE (ruling R13: explain the real-catch fall before any threshold relies on it)
+  5. FLOW-DISPATCH (since revision 4: no technical dependency, and its cost recurs for every seat)
 - **Then:**
-  5. FLOW-RECHAIN (applies the seat's ruling in roster PR-A)
-  6. FLOW-ROSTER-FREEZE
-  7. FLOW-BODY-ONLY
-  8. FLOW-PULL
-  9. FLOW-ANDON
-  10. FLOW-WIP
-  11. FLOW-JIDOKA
-  12. FLOW-POSTMERGE
-  13. FLOW-BOARD
-  14. FLOW-AUTOTRAIN
-  15. FLOW-MQ-PROBE
-  16. FLOW-RECORD-PITCH (conditional)
+  6. FLOW-RECHAIN (applies the seat's ruling in roster PR-A)
+  7. FLOW-ROSTER-FREEZE (after RELAY-HOLD)
+  8. FLOW-BODY-ONLY
+  9. FLOW-PULL
+  10. FLOW-ANDON
+  11. FLOW-WIP
+  12. FLOW-JIDOKA
+  13. FLOW-POSTMERGE
+  14. FLOW-BOARD
+  15. FLOW-AUTOTRAIN
+  16. FLOW-MQ-PROBE
+  17. FLOW-RECORD-PITCH (conditional)
 
 **Within lanes A–F:** the longest remaining chain first, then the smallest size.
 
@@ -112,6 +113,15 @@ To verify, not caused by this plan:
 - **The proposal's real point stands:** the clock must not burn while #2559 merely waits. Stopping it at the verdict does that.
 - **Live state at revision 4:** #2559 holds a `merge` verdict at 802b3850 (16:58Z). The clock is stopped, the freeze holds, and #2559 is first car of the next train.
 - Merging #2559 also clears `BAD-DEST` on #2529, #2547 and #2561.
+- **Forward-carries during the freeze** (revision 5).
+  - **The constraint:** `finding-propagation.md` needs a fixer's carry on the roster branch before its PR merges, and fix-review step 10 checks it at the body's `handoff/audit-r10-roster` sha. The relay moves #2559's head on every push to that branch. So until R10-FLOW-RELAY-HOLD lands, **`append-carry` cannot be exempted**: exempting it would re-stale #2559's merge verdict.
+  - **The rule: a PR blocked only on a forward-carry waits.** The wait is bounded. #2559 holds a `merge` verdict, so the freeze ends when #2559 merges, at most one train later.
+  - **If any PR has waited on a carry longer than one train's CI time (about 1 h), merge #2559 directly,** even with a train running, and accept the batch's one re-proof. One re-proof costs less than PRs held across trains.
+  - **Once RELAY-HOLD lands,** the freeze becomes "#2559 is on the relay's hold list". Roster pushes, forward-carries included, then continue on the handoff branch; #2559's head stays put; and the held edits ride the next roster PR.
+- **Live at revision 5 (≈ 17:25Z):**
+  - the train has ended: #2513 (R10-ROSTER-OPS) merged at 17:20, and the record PR at 17:23;
+  - #2559 and #2549 (R10-TICK-RELAY-DECOUPLE) hold `merge` verdicts at their heads (802b3850 and 61fd4f27).
+  - **With no train running, merge both now, directly** (nudge step 7). That ends the freeze, unblocks #2567's carry and decouples the tick from the relay.
 
 **Phase 1b: two roster PRs, one review each** (split in revision 4, agreeing with the orchestrator's default). #2559 took five rounds at a fraction of the original single burst's size, and the burst mixed one judgement-heavy change with many mechanical ones.
 
@@ -121,7 +131,7 @@ To verify, not caused by this plan:
   - It goes first: it is the critical-path lever, and lane A goes to 4 the hour it merges.
 - **Roster PR-B, the bookkeeping** (after PR-A merges; both ride the one roster branch, so they are sequential).
   - Contents:
-    - the 16 flow groups (`append-group`);
+    - the 17 flow groups (`append-group`);
     - the 6 carries;
     - the held stage changes;
     - fly-in registrations (`R10-FLY-*`);
@@ -161,6 +171,15 @@ To verify, not caused by this plan:
 4. **Carries.** A carry **to** a pending group is `BAD-DEST` until PR-B merges. Route it to the group's issue or to an existing roster group instead, or hold it until PR-B.
 5. **Merging** before registration is allowed: the delivery row is per PR, not per group. PR-B then registers the group with `stage: done` and its merge sha.
 
+**Rule A addendum: the two expedites fired before rule A existed** (revision 5). R10-FLOW-BODY-PATCH and R10-FLOW-YIELD-PROBE were dispatched without the pinned commit or the group line.
+- **Pin both to pack commit `78117030`.**
+  - YIELD-PROBE's brief and carries are byte-identical at every commit from `37a0bc4f` on.
+  - BODY-PATCH's specification is unchanged from `c5c4b54f`. Revision 4 changed only its premise sentence (the stale #2560 case) and its interim note.
+- **The orchestrator sends each fixer, now:** `Group: <ID> (registration pending: roster PR-B); brief: dev/programme/flow-study/roster/groups/<ID>.json at 78117030`.
+  - **Not yet handed off:** the fixer adds the line to `BODY.md` before handoff.
+  - **Already open:** adding the line is a body-only fix at an unchanged head, so it uses the K14 interim. That can serve as the procedure's first live run, `--dry-run` first.
+- **For these two PRs only,** a missing group line, or one reading "group: none", is a bookkeeping note in the verdict, **not a block**, provided the reviewer's own dispatch carries the pin. Every later rule-A dispatch carries the pin from the start.
+
 **Rule B: `--overlap` says "main is not green" while the latest runs of all required contexts are pending.**
 1. **That is wait, not red.**
    - Do not revert.
@@ -189,12 +208,12 @@ To verify, not caused by this plan:
 
 Lane K is the flow allowance; BODY-PATCH and MAIN-GATE dispatch inside the drain as expedites. "after" lists the edges as re-chained by the seat.
 
-day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
+day 0: 31 · day 1: 29 · day 2: 9 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
 | 0 | 11 | 0 | R10-FLOW-BODY-PATCH | K | S | instrument | not-started | — |
-| 0 | 11 | 0 | R10-FLOW-MAIN-GATE | K | S | instrument | not-started | — |
+| 0 | 11 | 0 | R10-FLOW-RELAY-HOLD | K | S | instrument | not-started | — |
 | 0 | 11 | 0 | R10-FREQ-DEFROST | A | S | defect | in-progress | R10-TRUST-RELATIVE |
 | 0 | 11 | 0 | R10-HANDOVER-REFRESH | C | S | record | in-progress | — |
 | 0 | 11 | 0 | R10-I5-DOCS | C | S | docs | in-progress | R10-I1, R10-STRUCTURE-BLIND, R10-REGISTRY-LEAK |
@@ -213,7 +232,7 @@ day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
 | 0 | 12 | 0 | R10-PLAN-ARTIFACT | C | M | fix | in-progress | — |
 | 0 | 12 | 0 | R10-RCA-ORCH-CONTINUITY | C | M | rca | in-progress | — |
 | 0 | 12 | 0 | R10-REPLAY-LANE | B | M | owner | in-progress | R10-DIAG-REPLAY |
-| 0 | 21 | 11 | R10-FLOW-DISPATCH | K | S | instrument | not-started | — |
+| 0 | 21 | 11 | R10-FLOW-MAIN-GATE | K | S | instrument | not-started | — |
 | 0 | 21 | 11 | R10-FLOW-YIELD-PROBE | K | S | study | not-started | — |
 | 0 | 21 | 12 | R10-CURRENCY | A | S | defect | not-started | — |
 | 0 | 21 | 12 | R10-INPUT-STALENESS | A | S | defect | not-started | — |
@@ -227,8 +246,8 @@ day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
 | 1 | 24 | 0 | R10-CI-LAYOUT | C | XL | instrument | in-progress | — |
 | 1 | 29 | 12 | R10-SCORES | A | L | owner | not-started | R10-ADVISOR, R10-RATIO-SITES |
 | 1 | 29 | 21 | R10-CONFIG-NOTICES | A | S | arch | not-started | — |
+| 1 | 29 | 21 | R10-FLOW-DISPATCH | K | S | instrument | not-started | — |
 | 1 | 29 | 21 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 1 | 29 | 21 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 1 | 29 | 21 | R10-LEARNER-DEFAULT | A | S | defect | not-started | — |
 | 1 | 29 | 21 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
 | 1 | 30 | 21 | R10-BRIEFS-FOLD | C | M | policy | not-started | R10-ARCHSCORE-COVERAGE, R10-D15-GRADER |
@@ -238,13 +257,13 @@ day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
 | 1 | 32 | 23 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
 | 1 | 33 | 24 | R10-CEILING-PROBE | B | M | production | not-started | R10-SETPOINT-BOOST, R10-CI-LAYOUT, R10-NIGHT-FOLDS |
 | 1 | 36 | 29 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
-| 1 | 36 | 29 | R10-FLOW-PULL | K | S | policy | not-started | — |
+| 1 | 36 | 29 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
 | 1 | 36 | 30 | R10-POLICY-FIXER-MD | C | S | policy | not-started | R10-RCA-FRICTION, R10-BRIEFS-FOLD |
 | 1 | 37 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
 | 1 | 38 | 24 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |
 | 1 | 38 | 30 | R10-DEMAND-OVERBOOK | A | M | production | queued | R10-SETPOINT-BOOST |
 | 1 | 41 | 36 | R10-FLOW-ANDON | K | S | instrument | not-started | R10-TICK-RELAY-DECOUPLE |
-| 1 | 41 | 36 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
+| 1 | 41 | 36 | R10-FLOW-PULL | K | S | policy | not-started | — |
 | 1 | 42 | 29 | R10-SENSOR-PAYLOAD | A | L | arch | not-started | R10-SCORES |
 | 1 | 43 | 36 | R10-MUTATION-ANCHOR | C | M | instrument | not-started | — |
 | 1 | 44 | 37 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
@@ -252,10 +271,11 @@ day 0: 31 · day 1: 29 · day 2: 8 · day 3: 4
 | 1 | 46 | 29 | R10-CI-LAYOUT-P1 | C | XL | instrument | not-started | R10-CI-LAYOUT |
 | 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU |
 | 1 | 46 | 41 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
-| 1 | 46 | 41 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
+| 1 | 46 | 41 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
 | 2 | 50 | 46 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
-| 2 | 52 | 46 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
+| 2 | 50 | 46 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS |
+| 2 | 55 | 50 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
 | 2 | 55 | 50 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
 | 2 | 58 | 55 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 59 | 46 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |

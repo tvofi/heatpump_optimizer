@@ -31,7 +31,8 @@
  "owner_gate": "mandated approval under 6175172275",
  "rca": [],
  "after": [
-  "R10-ROSTER-OPS"
+  "R10-ROSTER-OPS",
+  "R10-FLOW-RELAY-HOLD"
  ],
  "carry": [
   "Pre-study: the Lean flow pre-study, section K13.",

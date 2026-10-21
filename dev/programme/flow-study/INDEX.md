@@ -9,7 +9,7 @@ The owner commissioned this study. Its rulings are posted as #201 comment 631800
 | `STUDY.md` | one pre-study per flow group: anchors, budgets, seams, controls; §0 is the shared finder's harness | the fixer and reviewer seats |
 | `ORCHESTRATOR-PROMPT.md` | the final handover prompt | orchestrator |
 | `RULINGS-201.md` | the text posted on #201 (the record of R1–R9) | everyone |
-| `roster/shadow-r10-groups.json` | the live roster at 2c76c3128 (rebuilt at commit time), plus the 16 FLOW groups and 6 carries; `brief_lint` `TOTAL: 0` | orchestrator |
+| `roster/shadow-r10-groups.json` | the live roster at 2c76c3128 (rebuilt at commit time), plus the 17 FLOW groups and 6 carries; `brief_lint` `TOTAL: 0` | orchestrator |
 | `roster/groups/*.json` | each FLOW group, ready for `roster_edit.py append-group` | orchestrator |
 | `tools/` | `build_shadow.py` rebuilds the shadow roster from any roster ref; `simulate.py` and `gen_plan.py` re-run the projection; `review_baseline.py` re-measures the review-strength baseline | anyone re-deriving |
 

@@ -1,6 +1,6 @@
 {
  "_comment": [
-  "SHADOW: built from origin/handoff/audit-r10-roster at 2c76c3128bf6 plus 16 FLOW groups and 6 folded carries (Lean flow study 2026-10-21). Not the live roster.",
+  "SHADOW: built from origin/handoff/audit-r10-roster at 2c76c3128bf6 plus 17 FLOW groups and 6 folded carries (Lean flow study 2026-10-21). Not the live roster.",
   "Round-10 fix wave (Phase 3). Inputs: ISSUES.json and JUDGE.json on handoff/audit-r10-register (PR #2244, head d23205d13); CATCHUP-JUDGE.json at 33ffa7aa9; issues #2219-#2243; the orchestrator's plan (owner-reported, study, instrument and arch groups).",
   "One entry per pull request. Grouped by class first, then classes touching the same owning seam merged; a group that would span more than one owning module is split, so a class issue can sit in several groups. `fixes` names the issues a group closes because it is the deepest group holding them (wave depth); the body says Part of for the rest. Where two holders are unordered and the deeper one merges first, the orchestrator moves the closing keyword to the last merge and verifies the close.",
   "Every group holds at least one filed issue. The 22 group issues from dev/audit/rounds/round10/ROSTER-ISSUES.json (#2252-#2273) and the four class issues N-leaf-imports-solver, N-restore-race, N-order-coupling and N-solve-recompute (#2247-#2250) are wired into `issues`; no pending token remains. The roster check: no group without an issue, and no open round-10 issue without a group.",
@@ -5065,7 +5065,7 @@
     "Known seam, recorded not fixed: the hold ref is one global name while a train's liveness is per state directory, so two trains running at once share the ref and whichever ends first deletes it, unholding the other. One orchestrator runs one train at a time; a per-run ref name would need the beat to discover it, and a tip-ownership check in `hold_release` would avoid the unhold and is the option to take if concurrent trains ever become real. Until then the overlap degrades to today's behaviour (a record PR may land mid-train), never to corruption. (Orchestrator decision 2026-10-21: carried, not refused; #2519's own disposition \"dismissed: concurrent trains are not a supported state\" is not adopted.) (from #2519, R10-TRAIN-HOLD)",
     "From #2524: `tools/audit/seat/daemonize.py` runs its own self-test when `--self-test` appears anywhere in argv (`if \"--self-test\" in sys.argv[1:]`), silently skipping the wrapped command. Restrict it to `argv[1]` and pin it with a self-test arm.",
     "update_pr.sh leaves its upd-fix-<branch> worktree checked out on the branch after it exits; the merge train's recarry then parks the PR (3 instances: #2513, #2544, #2547). train --free-holders now cures clean holders; the source fix is that update_pr.sh detaches or removes its own worktree on exit.",
-    "Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the approved design's beat and ledger must own, and they land first, so build them in: (0) The beat and every job it runs are detached processes, never an agent loop: in the live run of 2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed. beatd.py runs under daemonize.py and an operating-system supervisor that restarts it (launchd on the orchestrator's Mac, a user systemd unit elsewhere); an agent only reads beatd status and the journal, and never hosts a job. (1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the previous train ends; it only launches a detached train and reads the train-stop obligation, never waits on CI). (2) The ledger gains one event kind, postmerge-owed (producer: R10-FLOW-POSTMERGE's after-merge step; closer: that step's later success or an orchestrator disposition), because the design refuses an OWED shape with no ledger kind. (3) The handoff job carries R10-FLOW-BODY-ONLY's body-only path unchanged and writes a disposition for the handoff-body ref it applies; it also does not move any pull request head while that pull request has a live reviewer in workers.json, which generalises R10-FLOW-ROSTER-FREEZE's predicate from the roster pull request to every head (fixer.md's freeze, made mechanical). (4) The seats job reads the dispatch records R10-FLOW-DISPATCH writes through bus.sh dispatch, which also gives the folded dispatch reason the round-3 review's N11-R found has no backing state. (5) Is-main-red has one owner, the classifier #2570 and R10-FLOW-MAIN-GATE share; the tick and the sweep do not grow a third. (6) The plan page: if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page, keeps the UNAVAILABLE page and the five mutation fixtures, and renders R10-FLOW-BOARD's flow section from the same model. (7) Inventory row M43 is stale: pr_cap.py gates dispatch, not opening, since #2525. Owner rulings (2026-10-21): the amendments are approved in this brief and the fix reviewer checks them against STUDY K17 at build (R12); the stranded-handoff aging defaults are 4 h to a DISPATCH line and 12 h to an owner flag (R14), built behind the switch the brief already asks for."
+    "Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the approved design's beat and ledger must own, and they land first, so build them in: (0) The beat and every job it runs are detached processes, never an agent loop: in the live run of 2026-10-21, agent-based relay and tick loops ended their turns twice and had to be re-armed. beatd.py runs under daemonize.py and an operating-system supervisor that restarts it (launchd on the orchestrator's Mac, a user systemd unit elsewhere); an agent only reads beatd status and the journal, and never hosts a job. Jobs run concurrently: one job's run never delays another job's schedule, so a long handoff update (9 min observed on 2026-10-21) never leaves the tick board stale; the tick reads independently of the relay, as R10-TICK-RELAY-DECOUPLE (#2549) already does for tick_loop.sh. The handoff job honours R10-FLOW-RELAY-HOLD's hold file. (1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the previous train ends; it only launches a detached train and reads the train-stop obligation, never waits on CI). (2) The ledger gains one event kind, postmerge-owed (producer: R10-FLOW-POSTMERGE's after-merge step; closer: that step's later success or an orchestrator disposition), because the design refuses an OWED shape with no ledger kind. (3) The handoff job carries R10-FLOW-BODY-ONLY's body-only path unchanged and writes a disposition for the handoff-body ref it applies; it also does not move any pull request head while that pull request has a live reviewer in workers.json, which generalises R10-FLOW-ROSTER-FREEZE's predicate from the roster pull request to every head (fixer.md's freeze, made mechanical). (4) The seats job reads the dispatch records R10-FLOW-DISPATCH writes through bus.sh dispatch, which also gives the folded dispatch reason the round-3 review's N11-R found has no backing state. (5) Is-main-red has one owner, the classifier #2570 and R10-FLOW-MAIN-GATE share; the tick and the sweep do not grow a third. (6) The plan page: if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page, keeps the UNAVAILABLE page and the five mutation fixtures, and renders R10-FLOW-BOARD's flow section from the same model. (7) Inventory row M43 is stale: pr_cap.py gates dispatch, not opening, since #2525. Owner rulings (2026-10-21): the amendments are approved in this brief and the fix reviewer checks them against STUDY K17 at build (R12); the stranded-handoff aging defaults are 4 h to a DISPATCH line and 12 h to an owner flag (R14), built behind the switch the brief already asks for."
    ],
    "model": {
     "fixer": "opus",
@@ -6027,6 +6027,53 @@
    }
   },
   {
+   "group": "R10-FLOW-RELAY-HOLD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Pre-study: the Lean flow pre-study, section K13a.",
+    "Seam with R10-ORCH-MACHINERY: the beat's handoff job honours the same hold file, and R10-FLOW-ROSTER-FREEZE writes it automatically while a reviewer is live."
+   ],
+   "architect_note": "",
+   "brief": "A hold list the relay honours, so a frozen pull request's head stays put while its handoff branch keeps moving (Lean flow study K13a; expedite since revision 5). cloud_relay.sh's handoff arm updates every open pull request whose handoff/<topic> tip is ahead of its head, and has no hold or exclusion option. The round's roster pull request takes its topic from handoff/audit-r10-roster, the branch every roster_edit.py push lands on, so the roster freeze had to stop all roster pushes, forward-carries included; finding-propagation.md needs a fixer's carry on that branch before its pull request merges, and fix-review.md step 10 checks it at the body's handoff/audit-r<N>-roster sha (2026-10-21: #2567 blocked carry-missing behind the freeze). Add a hold file under the relay's state directory: a pull request number listed there is skipped by the handoff arm with one HELD line per pass, naming the handoff tip it did not apply; removing the number resumes it. The orchestrator writes and removes it; nothing else does. With a pull request held, roster pushes, forward-carries included, continue on the handoff branch and are taken up by the next roster pull request after the held one merges. Controls: a held pull request whose handoff tip moved is not updated and prints HELD; an unheld one is updated as today; a malformed hold file is a refusal for that pass, never a silent hold-all or hold-none; mutants for each arm.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-flow-relay-hold",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+   }
+  },
+  {
    "group": "R10-FLOW-ROSTER-FREEZE",
    "lane": "IN",
    "kind": "instrument",
@@ -6059,7 +6106,8 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [
-    "R10-ROSTER-OPS"
+    "R10-ROSTER-OPS",
+    "R10-FLOW-RELAY-HOLD"
    ],
    "carry": [
     "Pre-study: the Lean flow pre-study, section K13.",

@@ -1,10 +1,14 @@
-# Handover prompt for the round-10 orchestrator (revision 5, after two hours of live Phase 0; 2026-10-21)
+# Handover prompt for the round-10 orchestrator (revision 6: forward-carries under the freeze, rule A for the first two expedites, tick starvation; 2026-10-21)
 
 Send everything between the two lines as it is. Revision 4 of this prompt (rulings R10–R15, the new mandate, the R10-ORCH-MACHINERY alignment) is folded in here, so nothing from it is lost if you ran Phase 0 against revision 3.
 
 ---
 
-You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/roles/orchestrator.md`, with `dev/governance/roles/nudge.md` as your turn. This revision answers your seven findings from the live run. FUTURE-STATE §11 items 11–17 say which were right and where the plan disagrees.
+You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/roles/orchestrator.md`, with `dev/governance/roles/nudge.md` as your turn. This revision answers your findings from the live run. FUTURE-STATE §11 items 11–21 say which were right and where the plan disagrees.
+
+**Do first, now.** No train is running, and #2559 and #2549 (R10-TICK-RELAY-DECOUPLE) both hold `merge` verdicts at their heads (802b3850 and 61fd4f27). **Merge both directly** (nudge step 7):
+- #2559's merge ends the roster freeze, which unblocks #2567's forward-carry.
+- #2549's merge stops a long `update_pr.sh` in the relay pass from starving the tick.
 
 **Authority.**
 - Rulings R1–R9: #201 comment [6318002897](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6318002897).
@@ -26,6 +30,8 @@ Read `$PACK/FUTURE-STATE.md` §11, then `$PACK/SHADOW-PLAN.md` §3.2 and §3.3.
 
 ## Loops are detached processes, never agent turns
 
+The tick must read independently of the relay: a 9-minute `update_pr.sh` inside a relay pass left the board stale. #2549 fixes that for `tick_loop.sh`; merge it now. R10-ORCH-MACHINERY's beat runs its jobs concurrently (STUDY K17, requirement 0b).
+
 Run `tools/audit/seat/tick_loop.sh` and `cloud_relay.sh --watch` under `tools/audit/seat/daemonize.py`, not inside an agent session. Agent-hosted loops ended their turns twice in the live run. You read their logs and boards; you do not host them. R10-ORCH-MACHINERY's beat inherits this rule (STUDY K17, requirement 0).
 
 ## Phase 0: drain, stop starting (continue)
@@ -34,7 +40,8 @@ Run `tools/audit/seat/tick_loop.sh` and `cloud_relay.sh --watch` under `tools/au
 2. **Start nothing new except:**
    - expedites;
    - size-S fly-ins;
-   - **four flow expedites:**
+   - **five flow expedites:**
+     - **R10-FLOW-RELAY-HOLD** (STUDY K13a, first: a relay hold list, so forward-carries can land while a roster PR is frozen)
      - **R10-FLOW-BODY-PATCH** (STUDY K14)
      - **R10-FLOW-MAIN-GATE** (STUDY K15; after #2570, sharing its classifier)
      - **R10-FLOW-YIELD-PROBE** (R13)
@@ -47,6 +54,13 @@ Run `tools/audit/seat/tick_loop.sh` and `cloud_relay.sh --watch` under `tools/au
    - no carry may point to a pending group.
 
    Fly-ins follow the same rule, with the brief text in the dispatch and one #201 line.
+
+   **BODY-PATCH and YIELD-PROBE were fired before rule A existed.**
+   - Pin both to pack commit `78117030`; their specifications are unchanged.
+   - Send each fixer now: `Group: <ID> (registration pending: roster PR-B); brief: dev/programme/flow-study/roster/groups/<ID>.json at 78117030`.
+   - **Not yet handed off:** the line goes into `BODY.md`.
+   - **PR already open:** adding the line is a body-only fix at an unchanged head, so it uses the K14 interim. It may be that procedure's first live run, `--dry-run` first.
+   - For these two PRs only, a missing or "group: none" line is a verdict note, not a block, provided the reviewer's dispatch carries the pin.
 4. **Reading main: rule B.** When `--overlap` says "main is not green", read the latest run of each required context (ruleset `main-protect-checks`, live):
    - if they are all pending, that is **wait**: no revert, no main-red fixer, no overlapping train, never `--allow-red`;
    - re-check next tick;
@@ -72,6 +86,10 @@ Run `tools/audit/seat/tick_loop.sh` and `cloud_relay.sh --watch` under `tools/au
   - **`merge` verdict:** the clock stops. The freeze holds until merge.
 - **Now:** #2559 holds a `merge` verdict at 802b3850 (16:58Z). The clock is stopped, and #2559 boards **as the first car of the next train**. If no train is running, merge it directly at once.
 - Its merge clears `BAD-DEST` on #2529, #2547 and #2561.
+- **Forward-carries during a freeze.** Until RELAY-HOLD lands, `append-carry` is **not** exempt: the relay would move the frozen PR's head and re-stale its merge verdict.
+  - A PR blocked only on a carry waits.
+  - If one has waited longer than one train's CI time (about 1 h), merge the frozen roster PR directly, even mid-train, and accept the batch's one re-proof.
+  - Once RELAY-HOLD lands, a freeze means "the roster PR is on the relay's hold list". Roster pushes, carries included, then continue on the handoff branch.
 
 ## Phase 1b: two roster PRs, one review each (your default split, adopted)
 
@@ -83,7 +101,7 @@ One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HP
 
 **Roster PR-B, the bookkeeping** (after PR-A merges; one roster branch, so sequential):
 - **`append-group`** for each `$PACK/roster/groups/<NAME>.json`, in this order:
-  R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH.
+  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH.
   - Give each group its actual stage and merge sha (the rule-A expedites may be done already).
 - **The 6 carries** (`$PACK/tools/flow_groups.py` `CARRIES`).
 - **The held stage changes.**
@@ -98,7 +116,7 @@ Then post one #201 comment through `gh_comment.py`, with a byte-identical read-b
 
 | flow group | waits for |
 |---|---|
-| ROSTER-FREEZE | — |
+| ROSTER-FREEZE | RELAY-HOLD |
 | BODY-ONLY | BODY-PATCH and R10-UPDATE-PR-SIGNALS; sequence it with #2567 and #2560 |
 | PULL | — |
 | ANDON | #2549 |
