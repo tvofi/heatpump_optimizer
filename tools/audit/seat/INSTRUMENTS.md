@@ -120,8 +120,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   on a head that must not move (ruling R4; `update_pr.sh` merges main on every
   run). Refusal: a live head other than the expected sha, before any mint or
   write; a body the contract refuses is never sent; `--dry-run` prints the
-  PATCH request and signs nothing. One `--once` unit: its last line is
-  `body_patch: OK|REFUSE ...`.
+  PATCH request and signs nothing; a read-back that cannot be performed in
+  three tries refuses, never reports OK. The offline contract runs the
+  caller's checkout, so it can differ from pr-contract's (the script header
+  says how). One `--once` unit: its last line is `body_patch: OK|REFUSE ...`.
 - `autofix_statuses.sh` — re-derives what `mutation-autofix` and
   `closures-autofix` answered on recent pull-request runs, from their job
   logs, with the `closures` failure heading behind each closures skip. When:
