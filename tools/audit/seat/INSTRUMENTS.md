@@ -442,7 +442,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `merge_train.required`), an unmergeable pull request and a head
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
-  every guard and touches nothing.
+  every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
+  `--mandate <comment-id>`, and refuses at launch without one.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
