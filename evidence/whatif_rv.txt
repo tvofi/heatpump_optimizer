@@ -1,0 +1,34 @@
+FLAGGED #2444 6268417953 31ce0d3e [evidence] "- I ran the PR's harness `r10_seat_selftests_mutants.py` (it is the fixer's own: the finding came from #2433's body list"
+FLAGGED #2444 6270065579 e7f9f26c [evidence] '- **The merge_pr/push-lines carry (R10-CI-LAYOUT)** is wrong in part. It says the push lines of `handoff_push.sh`, `open'
+FLAGGED #2444 6270561812 0a8e3214 [evidence] 'Roster: `handoff/audit-r10-roster` tip is 1dc0151de365911c7b635dc87d26333317731b3e (ev/roster_tip.txt), which is the SHA'
+FLAGGED #2444 6270755953 4af1db90 [evidence] '- validate-hacs 118114888472: red, `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for instal'
+FLAGGED #2452 6270204863 0d3eb0d1 [evidence] '| RD8 (stated residual witness) | -- | rc=0 (green, as stated) |'
+FLAGGED #2452 6270204863 6e2f289a [evidence] "Why it blocks this PR rather than being an older gap: the location sink and the read's attribute list predate this diff,"
+FLAGGED #2452 6270204863 dd7bd7d6 [evidence] 'The fix is small, either way: make sink.location record every member write (a Proxy set trap, or setters for pathname/se'
+FLAGGED #2452 6270204863 6437d982 [evidence] '- Forward-carry: the in-diff briefs of R10-ADVISOR, R10-SCORES and R10-UX-HEALTH carry the new terms, with the control a'
+FLAGGED #2452 6292509962 e1dc0d4b [evidence] 'Three of the sixteen before/after pairs re-derive as the body states: green at `8b3ea42c`, red at the head. Two X-pairs '
+FLAGGED #2452 6292509962 1a296331 [evidence] '`dev/programme/rosters/wave-r10-groups.json` is in this diff, and at this head the three briefs R10-ADVISOR, R10-SCORES '
+FLAGGED #2464 6282808408 9b312a34 [lead] '- **Caveat: one pull_request run against push runs.** lane_golden is now the critical lane. It ran env_drift `--all` 339'
+FLAGGED #2464 6282808408 4467599a [evidence] '- The pin reads text placement (function bodies and the `LANES` string), not the scheduler that makes lane_stress "alone'
+FLAGGED #2465 6290666488 e3ad2a83 [lead] "Non-blocking accuracy point for round 2: the body's `## Red checks` mutation answer calls `mutation_table.py --scope cha"
+FLAGGED #2465 6291407983 ed2600b8 [evidence] '- A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 °C on a °F install) is written 0.27 K lo'
+FLAGGED #2465 6291419486 ed2600b8 [evidence] '- A hand-set fractional disinfection floor on a whole-degree entity (e.g. 48.05 °C on a °F install) is written 0.27 K lo'
+FLAGGED #2469 6281845311 f0396be0 [evidence] '- `tools/audit/seat/daemonize.py:52`: "`kill` by that pid is the stop story". INSTRUMENTS.md says the same: "the printed'
+FLAGGED #2469 6281845311 f6b917e2 [under lead] "- The default `kill` is TERM, and it is worse than the body's SIGKILL case. The EXIT trap runs and kills the holder **at"
+FLAGGED #2469 6281845311 8268a1d1 [under lead] "- Probe (`ev/probe_term_kill.txt`). This is my own harness: update_pr.sh's lock lines at this head, extracted verbatim, "
+FLAGGED #2469 6281845311 14970e8e [under lead] '- The second reason ("no incident involved a kill") is true, but alone it is not the stated basis.'
+FLAGGED #2469 6281845311 5f8e7d54 [evidence] '- Or route the residual to a real destination with a correct reason.'
+FLAGGED #2471 6281178194 fe4ce583 [evidence] 'CI (ev/checks.tsv, check-runs API at this head): 23 success, 17 skipped, 1 neutral, and 2 still in_progress (closures, f'
+FLAGGED #2475 6283964707 02c1ca3a [evidence] '- R10-ROSTER-OPS added carry (ps dependency, "#2469 round 3 reviewer note"): I could not locate its source text in #2469'
+FLAGGED #2475 6284191179 02c1ca3a [evidence] '- R10-ROSTER-OPS added carry (ps dependency, "#2469 round 3 reviewer note"): I could not locate its source text in #2469'
+FLAGGED #2480 6288112470 6c58fac3 [evidence] '- The design residuals from round 1 stand and are now carried in the destination brief: the API-lag gap, the "after" cal'
+FLAGGED #2488 6293359888 751eb979 [evidence] '- **Planted depth probe (mine, `planted_refns_2488.py`):** when a directory under a ref namespace is retired file by fil'
+FLAGGED #2511 6306642111 4efe3c5d [lead] 'Non-blocking, on three measured reasons. The meter is a point sample of the whole unit (`actual_power_kw`, multiplied by'
+FLAGGED #2513 6314156311 3b97e1aa [evidence] '1. Mutation proof re-run: 19/19 plants killed by FAIL lines; 8 plants of my own, 5 killed (2 by traceback), 3 fail-close'
+FLAGGED #2514 6303788000 cc298ca3 [evidence] 'Round 1 blocked `harness: class-open tests/replay.py:377`: the invariance claim the PR exists to correct survived unchan'
+FLAGGED #2519 6305871760 e1cec2a3 [evidence] 'The check\'s world is `go({1: ...}, base="main", setup=...)` with `bot_prs` left False, so its first `gh pr merge` is the'
+FLAGGED #2525 6315585621 89465ecb [evidence] "Findings, by step: 1/3 Mutation proof and null control: (a) to (d) each reproduce the body's exact tallies at this head."
+FLAGGED #2525 6315687864 89465ecb [evidence] "Findings, by step: 1/3 Mutation proof and null control: (a) to (d) each reproduce the body's exact tallies at this head."
+FLAGGED #2544 6314170570 958a3f77 [evidence] '- The brief asks for a post-merge check that the GHSA alerts closed, which still has to be done.'
+FLAGGED #2547 6315224098 b579380b [evidence] 'Forward-carry: the body\'s "none" holds for this PR\'s own findings. The roster carries one item INTO this group (from #25'
+RESULT whatif_verdicts=58 whatif_flagged=33
