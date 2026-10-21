@@ -1,0 +1,5 @@
+check-runs at 50c4a681d0e3bee30e415a1ecc663ff5eab158f8 (commit check-runs API via pull_request_read get_check_runs, total_count 40), read 2026-10-21 after 16:37Z
+RED (completed/failure): nightly-status  -- grades main; named and answered in the body's ## Red checks; diff touches none of its inputs
+PENDING (in_progress): Analyze (python), typing, browser, fast (3.14), coverage, policy-docs, instrument-self-tests, env-matrix
+SUCCESS: pr-contract, mutation, closure-scope, briefs, delivery-status, wave-script, arch-score (x2), budget-raise-gate (x2), hassfest, validate-hacs, scope, cancel-superseded (x2), Analyze (actions), Analyze (javascript-typescript)
+NEUTRAL: CodeQL. SKIPPED: the mutation-* side lanes, nightly-*, slow, record*, recheck-gate, kernel-points, delivery-status-publish

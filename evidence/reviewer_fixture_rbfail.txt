@@ -1,0 +1,12 @@
+== mutant rb-retry-ok (line 166 '|| die "...could not be read back..."' -> '|| break'), the PR's own self-test:
+166:    [ "$attempt" -lt "$RB_TRIES" ] || break
+body_patch self-test: 51 checks, 0 failed
+== unmutated tool + reviewer fixture (every read-back fails):
+ok   REVIEWER: every read-back fails: refuse
+ok   REVIEWER: and no OK line
+body_patch self-test: 53 checks, 0 failed
+== mutant + reviewer fixture:
+166:    [ "$attempt" -lt "$RB_TRIES" ] || break
+FAIL REVIEWER: every read-back fails: refuse (got '0', want '1')
+FAIL REVIEWER: and no OK line (got '1', want '0')
+body_patch self-test: 53 checks, 2 failed

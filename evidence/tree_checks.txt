@@ -1,0 +1,10 @@
+    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+    import voluptuous as vol
+ModuleNotFoundError: No module named 'voluptuous'

@@ -1,0 +1,14 @@
+MUTANT head-eq: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL naming the reason (got '0', want '1')|FAIL no curl, no contract: refused before any write or mint (got '41', want '00')|
+MUTANT contract-call: rc=1 body_patch self-test: 51 checks, 10 failed killed-by: FAIL live head read, then the contract, then the mint, then the PATCH (#678's ordering) (got 'head=1 lint= mint=2 patch=5', want 'ordered')|FAIL policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check (got '0', want '1')|FAIL its paths are what the head changes against the base (three-dot): b.txt, not the later c.txt (got '', want 'b.txt')|
+MUTANT lint-rc: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL REFUSE: policy_lint refuses the body (got '0', want '1')|FAIL never sent, never minted (got '6', want '0')|
+MUTANT carry-rc: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL REFUSE: carry_audit refuses the body (got '0', want '1')|FAIL never sent, never minted (got '6', want '0')|
+MUTANT eq1-true: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL REFUSE: the body read back is not the body sent (got '0', want '1')|FAIL and no OK line (got '1', want '0')|
+MUTANT eq1-strip: rc=0 body_patch self-test: 51 checks, 0 failed killed-by: 
+MUTANT dry-noreturn: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL --dry-run makes no curl call at all: nothing minted (got '6', want '0')|FAIL (null control: the live body is untouched) (got '## Head|
+MUTANT checks-failopen: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds') (got '0', want '1')|FAIL (and nothing minted) (got '6', want '0')|
+MUTANT reds-dropped: rc=1 body_patch self-test: 51 checks, 1 failed killed-by: FAIL policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check (got '0', want '1')|
+MUTANT existing-wrong: rc=0 body_patch self-test: 51 checks, 0 failed killed-by: 
+MUTANT twodot: rc=0 body_patch self-test: 51 checks, 0 failed killed-by: 
+MUTANT rb-retry-ok: (this run's sed left `break "<msg>"`, a malformed mutant; re-run correctly in reviewer_fixture_rbfail.txt: SURVIVES the PR self-test, 51 checks, 0 failed)
+MUTANT revoke: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL the installation token is revoked on exit (got '0', want '1')|FAIL (the token is revoked on a refusal too) (got '0', want '1')|
+MUTANT state-open: rc=1 body_patch self-test: 51 checks, 2 failed killed-by: FAIL REFUSE: a closed pull request (got '0', want '1')|FAIL (and nothing minted) (got '6', want '0')|

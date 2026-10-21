@@ -1,0 +1,2 @@
+selftest_wiring: 39 self-testing, 39 wired, 0 unwired
+rc=0

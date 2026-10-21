@@ -1,0 +1,1 @@
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired

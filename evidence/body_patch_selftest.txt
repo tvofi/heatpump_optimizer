@@ -1,0 +1,53 @@
+ok   the head is as expected and the contract passes: the body is patched
+ok   the live body is the body file's exact bytes
+ok   one PATCH, no other write (POST 0)
+ok   and no pull request created
+ok   the last line is one OK line naming the unmoved head
+ok   the head is re-read before the write and the body read back after it
+ok   live head read, then the contract, then the mint, then the PATCH (#678's ordering)
+ok   policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check
+ok   its paths are what the head changes against the base (three-dot): b.txt, not the later c.txt
+ok   carry_audit check --body runs on the same body
+ok   the installation token is revoked on exit
+ok   the private directory is gone
+ok   no token, key or signature text in stdout or stderr
+ok   and none on any stubbed command line
+ok   --dry-run on a passing body exits 0
+ok   --dry-run makes no curl call at all: nothing minted
+ok   and prints the exact request: PATCH URL and the JSON payload
+ok   (null control: the live body is untouched)
+ok   REFUSE: the live head is not the expected sha
+ok   naming the reason
+ok   no curl, no contract: refused before any write or mint
+ok   and the body is untouched
+ok   REFUSE: the head moves between the check and the write
+ok   no PATCH was sent
+ok   REFUSE: the head is found moved on the read-back
+ok   REFUSE: a closed pull request
+ok   (and nothing minted)
+ok   REFUSE: policy_lint refuses the body
+ok   never sent, never minted
+ok   REFUSE: carry_audit refuses the body
+ok   never sent, never minted
+ok   REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds')
+ok   (and nothing minted)
+ok   REFUSE: the body read back is not the body sent
+ok   and no OK line
+ok   a completed mismatch is not retried (pre-write read plus one read-back)
+ok   REFUSE: GitHub refuses the PATCH
+ok   (the token is revoked on a refusal too)
+ok   REFUSE: a short sha
+ok   REFUSE: a non-numeric pull request
+ok   REFUSE: an empty body file
+ok   REFUSE: no App identity files (fail closed)
+ok   none of those made a call
+ok   REFUSE: the live head cannot be read
+ok   (and nothing minted)
+ok   MUTANT head check deleted: the moved-head control now MINTS (the pre-write re-read still stops the write), so the control catches it
+ok   MUTANT pre-write head check deleted: the control now WRITES
+ok   MUTANT policy_lint arm deleted: the refused body is now SENT
+ok   MUTANT carry_audit arm deleted: the refused body is now SENT
+ok   MUTANT body read-back deleted: a mangled body now reads OK
+ok   MUTANT head re-read deleted: a head moved around the write now reads OK
+body_patch self-test: 51 checks, 0 failed
+rc=0

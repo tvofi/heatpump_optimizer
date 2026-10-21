@@ -1,0 +1,22 @@
+diff --git a/tools/audit/seat/body_patch.sh b/tmp/claude-0/-home-user-heatpump-optimizer/baea53e4-7827-50c8-acdb-bc5269011876/scratchpad/rev/withfix.sh
+index 6ac377d81..9faa8f3f2 100644
+--- a/tools/audit/seat/body_patch.sh
++++ b/tmp/claude-0/-home-user-heatpump-optimizer/baea53e4-7827-50c8-acdb-bc5269011876/scratchpad/rev/withfix.sh
+@@ -254,6 +254,7 @@ case "$url" in
+       python3 "$STUB/../prjson.py" store "$STUB/live.json" "$data"
+     else
+       n=$(cat "$STUB/get-n" 2>/dev/null || echo 0); n=$((n + 1)); printf '%s' "$n" > "$STUB/get-n"
++      [ -f "$STUB/rbfail" ] && [ "$n" -ge 2 ] && exit 22
+       # move-at-<n>: the n-th token read finds the head moved (1 = before the write, 2 = after it)
+       if [ -f "$STUB/move-at-$n" ]; then
+         python3 "$STUB/../prjson.py" get "$STUB/live.json" | python3 -c 'import sys, json; d = json.load(sys.stdin); d["head"]["sha"] = sys.argv[1]; print(json.dumps(d))' "$(cat "$STUB/../moved.sha")"
+@@ -356,6 +357,9 @@ mkcase refuse; : > "$W/refuse/refuse-patch"
+ run refuse "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: GitHub refuses the PATCH"
+ st "$(calls refuse 'curl DELETE installation/token')" 1 "(the token is revoked on a refusal too)"
+ 
++mkcase rbfail; : > "$W/rbfail/rbfail"
++run rbfail "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REVIEWER: every read-back fails: refuse"
++st "$(grep -c '^body_patch: OK' "$W/rbfail/out")" 0 "REVIEWER: and no OK line"
+ # Argument and identity refusals, nothing called.
+ mkcase args
+ run args "$BP" --repo o/r 7 abc "$W/body.md"; st $? 1 "REFUSE: a short sha"
