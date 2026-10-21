@@ -1673,7 +1673,8 @@
    ],
    "carry": [
     "Patch 00 MUST ship with 01 and 02, never alone: under 00 the catch-up verifier's probe reads a NaN published outside the package going 0 to 1, so the fixer covers that case with a test (CATCHUP-JUDGE.md at 33ffa7aa9). 01 without 00 lets 17 escapes through.",
-    "Bool policy (mandate decision, recommended option): True is not a number; every coercion owner refuses bools."
+    "Bool policy (mandate decision, recommended option): True is not a number; every coercion owner refuses bools.",
+    "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
    ],
    "architect_note": null,
    "resume": {
