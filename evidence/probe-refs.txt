@@ -1,0 +1,4 @@
+probe/rev-2544-131f9c75: ev/blk.py ev/blocks.txt ev/checkruns-final.txt ev/checkruns.txt ev/ci-install.log ev/hashes.txt ev/hv.py ev/inst-setup.log ev/mut.txt ev/mut0.log ev/mut1.log ev/mut2.log ev/pypi-vulns.txt ev/ruler.txt ev/typing-install.log ev/versionlines.txt verdict.md 
+probe/rev-2513-e19a37e0: ev/cheap_checks.txt ev/check_runs.tsv ev/live_probe.txt ev/mutants_full.txt ev/mutants_selftest.txt ev/null.txt ev/own_R1.txt ev/own_R2.txt ev/own_R3.txt ev/own_R4.txt ev/own_mutants.txt ev/selftest_base.txt ev/selftest_head.txt verdict.md 
+probe/rev-2544-131f9c75 verdict-head=d4ab722b919b0b07917122bfe0479247bf3b989a ev-files-naming-it=0
+probe/rev-2513-e19a37e0 verdict-head=6b46b4f8ba93ae7574312493a03fd7e0c1d2b725 ev-files-naming-it=0
