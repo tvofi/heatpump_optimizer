@@ -7073,7 +7073,9 @@
    "fixture": false,
    "owner_gate": "mandated approval under 6319294694",
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-FLY-GH-READ-RETRY"
+   ],
    "carry": [],
    "architect_note": "",
    "brief": "P17: app_approve.sh carry condition (3): a context-only line difference introduced by main carries in *.md files, where only ' '-prefixed context lines may differ and their count must be unchanged; +/- lines byte-identical; code files strict. Fixture controls: md-context yes / py-context no / +line no. Evidence #2547 90bab078->71a577c9 INSTRUMENTS.md L166 context.",
