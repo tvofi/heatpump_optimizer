@@ -3071,6 +3071,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         built = True
     except Stop as e:
         built = e.step != "build"
+    except Exception:  # a crash is not the stop
+        built = True
     check("K15 (c): an unreadable git config is no answer and no proof: conflicts() None, build stops "
           "(null control: rc 1, git's no-such-key, is a clean read above)",
           conflicts(unread, "main", "x") is None and not built)
@@ -3081,7 +3083,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "merge-tree in that clone resolves the claim and prints MERGE-CLAIM, and without the driver it does not)",
           got[True] == got[False] and raw[True][0] == 0 and "MERGE-CLAIM: resolved" in raw[True][1]
           and raw[False][0] == 1 and "MERGE-CLAIM" not in raw[False][1])
-    got = got[True]
+    got = got[False]  # dirty_repair's own arm reads the driverless answer
     check("K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content "
           "conflict goes back to its fixer and its verdict does not carry",
           "claimnotes" in dirty_repair(got["claims"], (claim,))
