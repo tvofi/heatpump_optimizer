@@ -33,7 +33,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
   failing the contract check never reaches the remote. `--row-only`
-  (`update_pr.sh`'s) replaces prepr with the body contract only when the head
+  (`update_pr.sh`'s) replaces prepr with pr-contract's two body checks (the
+  contract, its red history read with prepr 7c's credential, and
+  `carry_audit.py check`) only when the head
   is the live head plus one commit adding exactly that PR's own open row and
   the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`

@@ -103,7 +103,8 @@
 # --row-only is update_pr.sh's push of a pull request's own delivery row onto
 # its live head (R10-ROW-ONLY-UPDATE: on a loaded box the full prepr held a
 # one-line row 30+ minutes, and `bus.sh dispatch` refuses a head without it).
-# It REPLACES prepr with step 7's body contract (`row_only_checks`) only when
+# It REPLACES prepr with pr-contract's two body checks (`row_only_checks`:
+# step 7's contract, red history included, and the carry check) only when
 # every one of these holds, each read here and failing closed:
 #   (a) HEAD has exactly one parent, the pull request's live head from the
 #       open-pull-request listing;
@@ -225,20 +226,28 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
   _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
 }
 
-# What --row-only runs in prepr's place: step 7's body contract, pr-contract's
-# own command, at the head the verdict judged and with the live title. The
-# other prepr steps read what the verdict has already pinned to the live
-# head, which passed them: one added row moves no claim file, VERSION, code
-# or closure, and (c) leaves the body the live one plus the caller's note.
-row_only_checks() { # worktree body head title -> rc of the body contract
+# What --row-only runs in prepr's place: the two body checks pr-contract runs,
+# at the head the verdict judged and with the live title -- step 7's body
+# contract (`policy_lint.mjs --pr-body`) and the carry check
+# (`carry_audit.py check`, which prepr does not run). The contract is fed the
+# credential prepr's step 7c reads (`gh_credential`: GITHUB_TOKEN, GH_TOKEN,
+# else `gh auth token`), so its red-history walk -- the ancestry reds 7c
+# answers, read from the same check runs -- reads them rather than printing
+# its UNCHECKED skip. The other prepr steps read what the verdict has already
+# pinned to the live head, which passed them: one added row moves no claim
+# file, VERSION, code or closure, and (d) leaves the body the live one plus
+# the caller's note.
+row_only_checks() { # worktree body head title -> rc 0 when both checks pass
   ( cd "$1" || exit 1
     base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main" >&2; exit 1; }
     p=$(mktemp) e=$(mktemp)
     git diff --no-renames --name-only "$base"...HEAD > "$p" && git diff --no-renames --name-only --diff-filter=a "$base"...HEAD > "$e" \
       || { rm -f "$p" "$e"; echo "the changed-path list did not derive from $base...HEAD" >&2; exit 1; }
     lint=tools/policy/policy_lint.mjs; test -f .claude/workflows/policy_lint.mjs && lint=.claude/workflows/policy_lint.mjs
-    node "$lint" --pr-body "$2" --head "$3" --title "$4" --paths-file "$p" --existing-file "$e"; rc=$?
-    rm -f "$p" "$e"; exit "$rc" )
+    tok=${GITHUB_TOKEN:-${GH_TOKEN:-}}; [ -n "$tok" ] || tok=$(gh auth token 2>/dev/null) || tok=""
+    GH_TOKEN=$tok node "$lint" --pr-body "$2" --head "$3" --title "$4" --paths-file "$p" --existing-file "$e"; rc=$?
+    rm -f "$p" "$e"; [ "$rc" = 0 ] || exit "$rc"
+    python3 -I tools/audit/carry_audit.py check --body "$2" )
 }
 
 # --- the bounded read-back (R9-RC-RECARRY-READBACK) -------------------------
@@ -439,7 +448,7 @@ push_and_open() {
   [ "$bonly" = 1 ] || [ "$skip" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
     || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
   [ "$rowonly$skip" != 11 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
-    || die "--row-only: the body contract (policy_lint.mjs --pr-body) refused $body, so NOTHING was minted, pushed or posted"
+    || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
   # clean. A dirty worktree would push a sha whose tree the body never
@@ -594,6 +603,7 @@ case "$*" in
   "api repos/o/r/pulls?head=o%3Afix%2Fstub-x&state=open")
     [ -f "$STUB/gh-fails" ] && exit 1
     if [ -f "$STUB/listing.json" ]; then cat "$STUB/listing.json"; else printf '[]'; fi ;;
+  "auth token") [ -f "$STUB/gh-store" ] && printf 'gho_GHSTORE_stub\n' ;;
   *) exit 9 ;;
 esac
 STUB
@@ -937,10 +947,16 @@ cp "$(dirname -- "$SELF")/../audit/seat/delivery_row.sh" "$W/audit/seat/"
 cat > "$W/bin/node" <<'STUB'
 #!/bin/bash
 printf 'node %s\n' "$*" >> "$STUB/log"
+printf 'node-cred GITHUB_TOKEN=%s GH_TOKEN=%s\n' "${GITHUB_TOKEN:-}" "${GH_TOKEN:-}" >> "$STUB/log"
 [ -f "$STUB/node-fails" ] && { echo "policy_lint: REFUSE stub" >&2; exit 1; }
 exit 0
 STUB
 chmod +x "$W/bin/node"
+mkdir -p "$W/tool-wt/tools/audit" && cat > "$W/tool-wt/tools/audit/carry_audit.py" <<'STUB'
+import os, sys
+open(os.environ["STUB"] + "/log", "a").write("carry_audit " + " ".join(sys.argv[1:]) + "\n")
+sys.exit(os.path.exists(os.environ["STUB"] + "/carry-fails"))
+STUB
 cp "$W/body.md" "$W/rolive.md"
 python3 "$W/tool/head_note.py" "$W/rolive.md" "\`$P1_STUB\` an earlier note." >/dev/null
 rocase() { # name [live-body-file] -> a --row-only case: one parent, the live head P1, its row added
@@ -956,6 +972,7 @@ rocase ook
 run ook --row-only o/r "$W/tool-wt" "$BR" "$W/ook/body.md"; st $? 0 "--row-only: the live head plus one commit adding only its own open row, the live body under one new note: pushed (prepr-fails set)"
 st "$(calls ook prepr)$(grep -c '^app_push: ROW-ONLY: prepr SKIPPED: HEAD 11111111 is the live head 55555555 plus one commit adding only dev/programme/delivery/7.md' "$W/ook/out")" 01 "and prepr was skipped, naming the path and why in one line"
 st "$(grep -c "^node tools/policy/policy_lint.mjs --pr-body $W/ook/body.md --head $SHA --title the title --paths-file .* --existing-file " "$W/ook/log")" 1 "the body contract ran in its place, pr-contract's command at the head, with the pull request's own title"
+st "$(grep -c "^carry_audit check --body $W/ook/body.md$" "$W/ook/log")" 1 "and the carry check pr-contract runs (carry_audit.py check), on the same body"
 st "$(grep -c '^curl PATCH repos/o/r/pulls/7$' "$W/ook/log")$(cmp -s "$W/ook/live-body" "$W/ook/body.md" && echo same)" 1same "the open pull request is re-bodied with the body file unchanged: --row-only writes no note of its own"
 rorefused() { # name want-reason -- prepr runs once, as without the flag, and passes
   rm -f "$W/$1/prepr-fails"
@@ -974,6 +991,22 @@ mkcase onone; cp "$W/body.md" "$W/onone/body.md"; rorefused onone "no open pull 
 rocase ofail; : > "$W/ofail/node-fails"
 run ofail --row-only o/r "$W/tool-wt" "$BR" "$W/ofail/body.md"; st $? 1 "--row-only: a body the contract refuses refuses, though prepr was skipped"
 st "$(calls ofail prepr)$(grep -c '^git .*push' "$W/ofail/log")$(calls ofail curl)" 000 "and nothing was minted or pushed"
+rocase ocarry; : > "$W/ocarry/carry-fails"
+run ocarry --row-only o/r "$W/tool-wt" "$BR" "$W/ocarry/body.md"; st $? 1 "--row-only: a body whose finding names no destination refuses (carry_audit.py), though the contract passed"
+st "$(calls ocarry prepr)$(grep -c '^git .*push' "$W/ocarry/log")$(calls ocarry curl)" 000 "and nothing was minted or pushed"
+# prepr step 7c reads the ancestry reds with gh_credential's token; the contract's
+# red-history walk reads the same check runs, but only from GITHUB_TOKEN/GH_TOKEN.
+rocase ocred; : > "$W/ocred/gh-store"
+(unset GITHUB_TOKEN GH_TOKEN; run ocred --row-only o/r "$W/tool-wt" "$BR" "$W/ocred/body.md"); st $? 0 "--row-only, no token in the environment, one in gh's store: pushed"
+st "$(grep -c '^node-cred GITHUB_TOKEN= GH_TOKEN=gho_GHSTORE_stub$' "$W/ocred/log")$(calls ocred 'gh auth token')" 11 "the contract was handed gh's stored token, so its red-history walk reads the ancestry reds prepr's 7c reads"
+rocase oenvcred; : > "$W/oenvcred/gh-store"
+(unset GH_TOKEN; export GITHUB_TOKEN=ghs_ENV_stub; run oenvcred --row-only o/r "$W/tool-wt" "$BR" "$W/oenvcred/body.md"); st $? 0 "--row-only, GITHUB_TOKEN set: pushed"
+st "$(grep -c '^node-cred GITHUB_TOKEN=ghs_ENV_stub GH_TOKEN=ghs_ENV_stub$' "$W/oenvcred/log")$(calls oenvcred 'gh auth token')" 10 "null control: an environment token is the one handed on, and gh's store is not read"
+rocase oclosed; printf -- '- [#7](https://github.com/o/r/pull/7) — **merged**, the title\n' > "$W/oclosed/row"
+rorefused oclosed "dev/programme/delivery/7.md is not one open row anchored on #7"
+rocase romoved; : > "$W/romoved/head-moves"; : > "$W/romoved/tip-moved"; : > "$W/romoved/prepr-fails"
+run romoved --row-only o/r "$W/tool-wt" "$BR" "$W/romoved/body.md"; st $? 1 "REFUSE: HEAD moved after the --row-only verdict judged it (the tip check agrees with the moved HEAD)"
+st "$(grep -c -- '--row-only: HEAD moved to 2222222222222222222222222222222222222222 after the verdict judged 1111111111111111111111111111111111111111' "$W/romoved/err")$(grep -c '^git .*push' "$W/romoved/log")$(calls romoved curl)" 100 "naming both shas, and nothing was minted or pushed"
 mkcase orecarry
 run orecarry --recarry --row-only o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: --recarry does not combine with --row-only"
 st "$(wc -l < "$W/orecarry/log" | tr -d ' ')" 0 "before any call"
@@ -1005,6 +1038,8 @@ reset_q; (cd "$Q/wt" && rgit merge -q --no-edit main && ensure_row . 7 "$(row_li
 st "$(qv live >/dev/null; echo $?)" 0 "real git: an up-to-date main merge (no commit) then the row skips prepr"
 reset_q; (cd "$Q/wt" && rgit commit -q --allow-empty -m empty && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
 st "$(qv live)" "parent 1 $(git -C "$Q/wt" rev-parse --short=8 HEAD~1) is not the live pull-request head $(git -C "$Q/wt" rev-parse --short=8 live)" "real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone"
+reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t | sed 's/[*][*]open[*][*]/**merged**/')" >/dev/null)
+st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row anchored on #7 that is not open runs prepr"
 reset_q; (cd "$Q/wt" && ensure_row . 7 '- row' >/dev/null)
 st "$(qv live)" "dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)" "real git: a row file that anchors nobody runs prepr"
 reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
