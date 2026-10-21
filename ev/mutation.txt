@@ -1,0 +1,24 @@
+RESULT M1 filter removed: rc=1 orchestrator_tick self-test: 168 checks, 2 failed
+    FAIL MAIN cancelled lane: concurrency-superseded: brief absent
+    FAIL MAIN cancelled lane: concurrency-superseded: superseded line iff superseded
+RESULT M2 conclusion test removed: rc=1 orchestrator_tick self-test: 168 checks, 2 failed
+    FAIL MAIN failed lane is never superseded: failure: not superseded
+    FAIL MAIN failed lane is never superseded: and no annotation read
+RESULT M3 pattern matches all: rc=1 orchestrator_tick self-test: 168 checks, 2 failed
+    FAIL MAIN cancelled lane: cancelled otherwise (null control): brief present
+    FAIL MAIN cancelled lane: cancelled otherwise (null control): superseded line iff superseded
+RESULT M4 unreadable read as superseded: rc=1 orchestrator_tick self-test: 168 checks, 2 failed
+    FAIL MAIN cancelled lane: annotations unreadable (fails closed): brief present
+    FAIL MAIN cancelled lane: annotations unreadable (fails closed): superseded line iff superseded
+RESULT M5 required exclusion removed: rc=1 orchestrator_tick self-test: 168 checks, 3 failed
+    FAIL MAIN superseded required context stays red: REQUIRED not green
+    FAIL MAIN superseded required context stays red: no superseded line
+    FAIL MAIN superseded required context stays red: annotations not read
+RESULT M6 list guard removed: rc=1 orchestrator_tick self-test: 168 checks, 1 failed
+    FAIL MAIN annotations body null: not superseded
+RESULT M7 superseded lanes not dropped from red: rc=1 orchestrator_tick self-test: 168 checks, 1 failed
+    FAIL MAIN cancelled lane: concurrency-superseded: brief absent
+RESULT M8 match->search (pattern unanchored): rc=0 orchestrator_tick self-test: 168 checks, 0 failed
+RESULT M9 dict guard removed: rc=0 orchestrator_tick self-test: 168 checks, 0 failed
+RESULT M10 ValueError -> True: rc=0 orchestrator_tick self-test: 168 checks, 0 failed
+restored identical: True

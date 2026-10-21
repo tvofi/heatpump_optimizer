@@ -1,0 +1,4 @@
+  ok   seam_cut_total 718 <= 718
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL

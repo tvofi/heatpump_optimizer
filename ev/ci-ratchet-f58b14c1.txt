@@ -1,0 +1,4 @@
+ci-ratchet	completed	failure	2026-10-21T13:12:13Z	2026-10-21T13:12:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/39598010155/job/119241639157	107308407747
+-- annotations:
+failure	Process completed with exit code 1.
+notice	"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
