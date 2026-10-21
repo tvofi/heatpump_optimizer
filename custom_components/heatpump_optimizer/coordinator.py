@@ -10560,7 +10560,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # path that stopped listening — three cycles of routine MPC
             # idle must not stand control down.
             watch_active = (
-                self._commanded_power() > 0.05 and not defrosting and reported >= hz_min
+                self._commanded_power() >= 0.05 and not defrosting and reported >= hz_min
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
