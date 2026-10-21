@@ -501,6 +501,7 @@ jobs:
           node tools/policy/policy_lint.mjs --self-test
           python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
           bash tools/pr/approve_held_runs.sh --self-test
+          python3 -I tools/pr/gate_priority.py --self-test
           python3 -I tools/pr/head_note.py --self-test
           python3 -I tools/release/stamp.py --self-test
           python3 -I tools/policy/agreement_py.py --self-test
