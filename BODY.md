@@ -15,7 +15,13 @@ Design (fixer.md step 17):
 
 ## Head
 
-`a4a2a653333cf41b73759587e0fa396a7cabaabe`. It is the merge of origin/main `1ebc737e7e187a1d45c62069ae8ab69c465db928` (measured 2026-10-21T21:28Z) into the round-2 code commit, which sits on the PR's reviewed head `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7`. The merge was clean and brought 3 files, none of them this PR's (`dev/programme/delivery/2583.md` among them). Every figure below was re-taken at `a4a2a653333cf41b73759587e0fa396a7cabaabe` unless it says otherwise.
+`6d981d0dbba91c08afbfea3d0c186b4db6e98136`. Two commits sit on the round-2 head `a4a2a653333cf41b73759587e0fa396a7cabaabe`:
+- `04696776`: the merge of origin/main `5a755f53efda` (#2529, measured 2026-10-21) into `a4a2a653`. It was clean (never a rebase) and brought 16 files, none of them this PR's.
+- `6d981d0d`: one line in `tests/closures.json`, recording `tools/audit/seat/plan_page.py` as an INERT READS entry of `tests/entities.py`. It was written by `python3 tools/pr/ci_predict.py --base origin/main --apply-inert`, which is the `closures` red that `ci_predict.py` predicted at the merge (see `## Red checks
+
+Every figure below was re-taken at `6d981d0dbba91c08afbfea3d0c186b4db6e98136` unless it says otherwise. No production line changed in round 3.
+
+Round 3 answers the relay's prepr refusal of `a4a2a653`: one predicted `closures` red (classified in `6d981d0d`), and a body whose `## Head` no longer named the head the relay measured. The fix review it answers, `origin/review/2558` (verdict at `59c5b20e`), is the same review as `probe/rev-2558-e98d4b97`. Its survivors B to E were already killed at `a4a2a653`. The reviewer's own driver, re-run unchanged at `6d981d0d`, kills every one (under `## Mutation proof`).
 
 Round 2 answers the fix review at `probe/rev-2558-e98d4b97` (blocked: mutation-survivor plus carry-missing). Production code is unchanged in this round: the diff since `59c5b20e` adds self-test arms to `plan_page.py` and `replan.py` and four rows to `dev/audit/harnesses/r10_plan_page_mutants.py`.
 
@@ -26,7 +32,7 @@ Round 2 answers the fix review at `probe/rev-2558-e98d4b97` (blocked: mutation-s
 
 ## Mutation proof
 
-Driver: `python3 dev/audit/harnesses/r10_plan_page_mutants.py`. It applies one exact one-occurrence replacement, runs `plan_page.py --self-test` (plus `replan.py --self-test` for a `replan.py` mutant and for M0), restores the file byte for byte, and refuses a file with uncommitted edits. It counts a mutant that kills only by crashing as CRASHED, never killed. At `a4a2a653333cf41b73759587e0fa396a7cabaabe` it printed `RESULT survived=0`. Each row is applied alone. Rows B to E are new this round and are modelled on the reviewer's `ev/reviewer_mutants_driver.py`, with the same anchors:
+Driver: `python3 dev/audit/harnesses/r10_plan_page_mutants.py`. It applies one exact one-occurrence replacement, runs `plan_page.py --self-test` (plus `replan.py --self-test` for a `replan.py` mutant and for M0), restores the file byte for byte, and refuses a file with uncommitted edits. It counts a mutant that kills only by crashing as CRASHED, never killed. At `6d981d0dbba91c08afbfea3d0c186b4db6e98136` it printed `RESULT survived=0`. Each row is applied alone. Rows B to E are new this round and are modelled on the reviewer's `ev/reviewer_mutants_driver.py`, with the same anchors:
 
 | mutant | replacement | rc | FAIL lines (checks that went red) |
 |---|---|---|---|
@@ -52,7 +58,7 @@ Driver: `python3 dev/audit/harnesses/r10_plan_page_mutants.py`. It applies one e
 
 Unmutated, at the same head: `plan_page self-test: 41 checks, 0 failed` and `replan.py --self-test`: `self-test: 0 failed`. So each new arm passes unmutated and fails under its own mutant.
 
-Independent cross-check: the reviewer's own driver (`ev/reviewer_mutants_driver.py` from `probe/rev-2558-e98d4b97`) was run unchanged at `a4a2a653333cf41b73759587e0fa396a7cabaabe`. M0 gave rc 0/0 (page/replan). A was killed (rc 0/1). B, C and D were killed (page rc 1). E was killed (rc 0/1).
+Independent cross-check: the reviewer's own driver (`ev/reviewer_mutants_driver.py` from `probe/rev-2558-e98d4b97`) was run unchanged at `6d981d0dbba91c08afbfea3d0c186b4db6e98136`. M0 gave rc 0/0 (page/replan). A was killed (rc 0/1). B, C and D were killed (page rc 1). E was killed (rc 0/1).
 
 `replan.py --self-test`'s own mutation harness keeps its `freshness` row: `mutation freshness: 'if have != want:' -> rc=1`.
 
@@ -66,30 +72,37 @@ Independent cross-check: the reviewer's own driver (`ev/reviewer_mutants_driver.
 
 ## Figures
 
-At `a4a2a653333cf41b73759587e0fa396a7cabaabe`, unless marked:
+At `6d981d0dbba91c08afbfea3d0c186b4db6e98136`, unless marked:
 - `plan_page self-test: 41 checks, 0 failed`: `python3 -I tools/audit/seat/plan_page.py --self-test`. That is 5 checks more than round 1's 36: B, C plus its precondition, and D's two. GitHub is never reached, because `main` runs with a fetch that fails the test if called.
 - `self-test: 0 failed`, 41 `ok` lines: `python3 tools/plan/replan.py --self-test` (and `| grep -c '^ok'`).
-- `RESULT survived=0` over 19 mutants plus M0: `python3 dev/audit/harnesses/r10_plan_page_mutants.py`.
-- `selftest_wiring: 39 self-testing, 39 wired, 0 unwired`: `python3 -I tools/audit/seat/selftest_wiring.py --check`. Round 1 printed 38, before main added one instrument.
+- `RESULT survived=0` over 18 mutants plus M0: `python3 dev/audit/harnesses/r10_plan_page_mutants.py`.
+- `selftest_wiring: 73 self-testing, 73 wired, 0 unwired`: `python3 -I tools/audit/seat/selftest_wiring.py --check`. Round 2 printed 39. The rise comes from main's own instruments, since this round adds none.
 - `STRUCTURE RATCHET PASSED`: `python3 tests/structure.py`.
 - `ALL 124 closure shrink pins PASSED`: `python3 tests/closure.py selftest`.
 - `layout self-test: ok`: `python3 tests/layout.py`.
 - `claims hygiene: origin/main ok`: `python3 tests/env_drift.py --claims-only origin/main`.
-- `CI PREDICT: no closures or fast red predicted against 1ebc737e7e18`: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`.
+- `CI PREDICT: no closures or fast red predicted against 5a755f53efda (a data-file read is not seen)`, after `6d981d0d`. Before that commit, at the merge `04696776`, the same command printed `1 predicted red(s) on closures`: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`.
 - `Architecture score: dS +0.0000 NULL`: `python3 tools/audit/archscore/score.py --diff origin/main`. No file under `custom_components/` changed.
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: FULL`, reason `tests/closure.py changes the gate itself`. That is round 1's INERT comment for `tools/plan/`, unchanged here. The rest is CI's.
-- `ALL 2382 ENTITY CHECKS PASSED`: `python3 tests/entities.py`, and `ALL 109 HARNESS HEADER CHECKS PASSED`: `python3 tests/harness_headers.py`. Both ran with `PYTHONPATH=tests/hastub` in a scratch python3.13 venv built from `tests/requirements-ci.txt` with `--require-hashes`. This container's `python3` 3.11 cannot import the hastub (`No module named 'voluptuous'`).
+- `ALL 2382 ENTITY CHECKS PASSED`: `python3 tests/entities.py`, and `ALL 109 HARNESS HEADER CHECKS PASSED`: `python3 tests/harness_headers.py`. Both ran with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci/bin/python`, the cloud seat's interpreter built from `tests/requirements-ci.txt`. This container's `python3` 3.11 cannot import the hastub (`No module named 'voluptuous'`). Same interpreter: `closure: no test file defines a symbol production also defines` (`tests/closure.py no-copies`). With `python3 -I tests/throwaway_git.py --check`: `throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`.
 - **Live page figures (round 1, at `e8810a6e`, 2026-10-21T10:45Z, roster blob `8974a63d916c`): not re-taken.** These are 108 rows, the stage counts, and 11 of 14 open PRs. They depend on the roster and on a GitHub snapshot assembled by hand that is not committed. This round changes no line `render`, `build_rows` or `swimlanes` executes, so the page these figures describe is the same function of its inputs. The roster has since grown, so the counts themselves would differ today. The reviewer could not re-derive them either.
-- `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)`, rc 0: `python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`, roster at `4cae0b9dab15`. Null control: with the self-carry written `(item B-E)` and the Friction line unrouted, the same command printed `1 unrouted, 1 bad destination(s)`, rc 1 (see `## Forward-carry` (`python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`).
+- `CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`, rc 0: `python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`, roster at `d3f27e05db34`. Null control: with the self-carry written `(item B-E)` and the Friction line unrouted, the same command printed `1 unrouted, 1 bad destination(s)`, rc 1 (see `## Forward-carry` (`python3 -I tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`).
+- `PRE-PR: 6d981d0dbba91c08afbfea3d0c186b4db6e98136`, rc 0: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`, run with `/opt/hpo/venv-ci/bin` first on `PATH` and `HPO_STATE_DIR=/opt/hpo`. Its `pr-body` line read `PR-BODY: 0 error(s) ... -- no budget leaf raised over 5a755f53e...6d981d0db`, and its `ancestry reds` line read `the body answers every red this branch pushed (closures nightly-status)`. With the ambient `python3` 3.11, that run's `self-test` and `no-copies` steps refused, because they could not parse the tree; under the seat venv they printed `309 passed, 0 failed` and ok.
 
 ## Red checks
 
-At the PR's reviewed head `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` (check-runs read at about 21:30Z), the one red is `nightly-status` (job 119485352084). Every other concluded check is green or skipped. `fast (3.14)`, `coverage` and `Analyze (python)` were still in progress. This round's head `a4a2a653333cf41b73759587e0fa396a7cabaabe` has not been pushed through CI yet.
+Read from the check-runs API on 2026-10-21 for every commit this branch pushed (`git rev-list $(git merge-base origin/main HEAD)..origin/fix/r10-plan-artifact`). The failure conclusions across them are `closures`, `nightly-status` and `pr-contract`. The PR's head `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` carries one red, `nightly-status`, and `closures` is green there (job 119499647749). This round's head `6d981d0dbba91c08afbfea3d0c186b4db6e98136` has not been through CI yet.
 
-- **`nightly-status` (job 119485352084 at `59c5b20e`): main's red, not this diff's.** It grades `main`'s scheduled `tests.yml` run 39563978649 (`NIGHTLY FAILED: mutation-nightly, slow`), head `c77f89d`, which is an ancestor of this branch's base. This diff does not change `tests.yml` or `tests/nightly_status.py`. Its one `governance.yml` step runs the page's self-test, which that reporter does not read. Owned on `main` by the orchestrator, per `defect-root-cause.md`. No cheaper detector is owed by this diff.
-- Round-1 reds, already answered and now green: `closures` at `2b1ba538` was repaired by `closures-autofix` in `43b1307`. The cheaper detector, `ci_predict.py`'s `inert_siblings`, missed it because of its 3-sibling threshold; that root cause belongs to its own seat, not this fix. `pr-contract` at `43b1307` was `BAD-DEST R10-ORCH-MACHINERY`, because the group was not yet in the head's tree roster. It is green at `59c5b20e` (jobs 119485351325 and 119485887676), after the orchestrator's main merge.
-- **`closures` at the merged head (predicted, not yet run).** Merging origin/main into `a4a2a653` and running `ci_predict.py` predicts `closures` red: `tools/audit/seat/plan_page.py` is a new file beside 6 siblings that `tests/entities.py` lists as INERT. `closures-autofix` repairs exactly this shape (`ci-autofix.md`: wait for the bot commit, do not duplicate), and the round-1 occurrence was repaired the same way in `43b1307`. No code change is made here.
-- Local, not CI: `tests/entities.py` and `tests/harness_headers.py` need the CI requirements (`voluptuous`, `aiohttp`), which this container's `python3` lacks. They were run in a scratch venv built from `tests/requirements-ci.txt` with `--require-hashes` (result under `## Figures`).
+- **`nightly-status` (job 119485352084 at `59c5b20e`, also 119220466241 at `43b1307e` and 119198245423 at `2b1ba538`): this grades main, not this diff.** The check grades `main`'s scheduled `tests.yml` run 39563978649 (`NIGHTLY FAILED: mutation-nightly, slow`) at head `c77f89d`, an ancestor of this branch's base. This diff does not change `tests.yml` or `tests/nightly_status.py`. Its one `governance.yml` step runs the page's self-test, which that reporter does not read. The orchestrator owns it on `main`, per `defect-root-cause.md`. This diff owes no cheaper detector.
+- **`closures` (job 119212886451 at `2b1ba538`): this PR's, and fixed in this round.** It went red twice, each time for the same cause: `tools/audit/seat/plan_page.py` is a new tracked file beside 6 siblings that `tests/entities.py` reads as INERT, and it was not classified.
+  - The first occurrence, at `2b1ba538`, was repaired by `closures-autofix` in `43b1307e`.
+  - It came back after the merge of `5a755f53`: `ci_predict.py --base origin/main` printed `PREDICT closures INERT READS tests/entities.py: tools/audit/seat/plan_page.py (a new file beside 6 it lists)` and `1 predicted red(s) on closures`.
+  - This round classifies the file before the push. Commit `6d981d0d` carries the entry `--apply-inert` writes (the entry CI's Linux recording would merge), and `ci_predict.py` at the head now prints `CI PREDICT: no closures or fast red predicted against 5a755f53efda`.
+  - The cheaper detector is `ci_predict.py` itself, and it did catch this one; the round-2 body chose to wait for the bot rather than apply its repair. Its `inert_siblings` threshold, which missed the round-1 case, belongs to its own seat and not to this fix.
+- **`pr-contract` (at `2b1ba538` and `43b1307e`): already answered and green since.** It was `BAD-DEST R10-ORCH-MACHINERY`, because that group was not yet in the head's tree roster. It is green at `59c5b20e` after the orchestrator merged main.
+- `main` at `5a755f53efda`: the check-runs API returned no `failure` conclusion among its 159 runs, and no `ci-ratchet` run on that commit. The ci-ratchet red the relay named (runner-speed variance, owned by R10-CI-LAYOUT) does not stand at this base. This diff does not touch `ci-ratchet`'s inputs.
+- Local, not CI: `tests/entities.py` and `tests/harness_headers.py` need the CI requirements (`voluptuous`, `aiohttp`), which this container's `python3` lacks. They were run with `/opt/hpo/venv-ci/bin/python`, which the cloud setup builds from `tests/requirements-ci.txt` (result under `## Figures`).
+
 
 ## Unpinned sites
 
@@ -103,7 +116,7 @@ n/a: no production module under `custom_components/` changed. Every predicate `p
   - It refuses a stale, violating or model-less plan with exit 1 and writes nothing, rather than writing a page of zeros. Each refusal is pinned (see `## Mutation proof`).
   - What remains for that stage: driving it from `state_docs.py`; an UNAVAILABLE page in place of no page, if the design still wants one; and the five generator-defect fixtures.
   - Precondition (the control): before building on this, that stage re-measures `python3 -I tools/audit/seat/plan_page.py --self-test` at its own merge base and expects 0 failed.
-  - Roster: the orchestrator landed this carry, and this seat did not edit the roster. It is on `origin/handoff/audit-r10-roster` at `7213e761ea5a47f6aa9bace1b03620e650b1cd3c` (`roster_edit append-carry R10-ORCH-MACHINERY`, 2026-10-21T21:35:40Z). It is still present at the tip I re-fetched, `4cae0b9dab15fa20f0f25d31724349cbe00ed0f6`. The carry entry reads "From #2558 (R10-PLAN-ARTIFACT; verdict at origin/probe/rev-2558-e98d4b97): item (3)'s premise changed. ... Also retire the out-of-tree gen.py/tpl.html. Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition." The group's `brief` text for (3) is unchanged, so the carry is what records the change.
+  - Roster: the orchestrator landed this carry, and this seat did not edit the roster. It is on `origin/handoff/audit-r10-roster` at `7213e761ea5a47f6aa9bace1b03620e650b1cd3c` (`roster_edit append-carry R10-ORCH-MACHINERY`, 2026-10-21T21:35:40Z). It is still present at the tip I re-fetched in round 3, `d3f27e05db3410fe38e10afea47866b82645e4fa` (`git grep -c 'From #2558'` on `dev/programme/rosters/wave-r10-groups.json`: 1). The carry entry reads "From #2558 (R10-PLAN-ARTIFACT; verdict at origin/probe/rev-2558-e98d4b97): item (3)'s premise changed. ... Also retire the out-of-tree gen.py/tpl.html. Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition." The group's `brief` text for (3) is unchanged, so the carry is what records the change.
   - The STUDY K17 carry at `8162c672d99d15d7cb5e11e8a6d2ba51ddc30138` agrees with it. Its item (6) reads "if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page".
 
   Carry: R10-ORCH-MACHINERY (item 3)
@@ -121,3 +134,4 @@ none
 https://claude.ai/code/session_01C68C1zSdZZ7gKc15C8NY6e
 https://claude.ai/code/session_01S25pjzsWGC2U7zMp9yJg5U
 https://claude.ai/code/session_019sdA2ZdyXWX1knTTxVxfSH
+https://claude.ai/code/session_01Hw5KwCZ8K4FPdtTjAP2S5K
