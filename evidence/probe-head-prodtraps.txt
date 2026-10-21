@@ -1,0 +1,6 @@
+RESULT parent_alive_after_5s=1 prepr=prepr.sh sig=TERM target=parent recorder_alive_after_5s=1
+/tmp/claude-0/-home-user-heatpump-optimizer/fbf0acb4-23bc-5767-9b8b-b03c986a337e/scratchpad/tmp.Dh9aMwWHNX/probe/probe.sh: line 20: 13959 Killed                  setsid bash "$P/drv.sh" > "$P/drv.out" 2>&1
+RESULT parent_alive_after_5s=0 prepr=prepr.sh sig=KILL target=parent recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=1 prepr=prepr.sh sig=INT target=pgrp recorder_alive_after_5s=1
+RESULT parent_alive_after_5s=0 prepr=prepr.sh sig=HUP target=pgrp recorder_alive_after_5s=0
+RESULT parent_alive_after_5s=0 prepr=prepr.sh sig=TERM target=pgrp recorder_alive_after_5s=0

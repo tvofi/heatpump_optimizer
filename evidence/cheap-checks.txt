@@ -1,0 +1,12 @@
+## head b18052f664039d36da73ef745a2a8423f82d2c46
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+.claude/rules/gate-scoping.md:0
+.cursor/rules/gate-scoping.mdc:0
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+tests/entities.py
+STRUCTURE RATCHET PASSED
+rc=0
+claims hygiene: 3688cf25977ca71b4406be942df9592577d9b42e ok
+version-files rc=1 (1 = none touched)
