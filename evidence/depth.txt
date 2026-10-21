@@ -1,6 +1,0 @@
-56 open group(s) of 108; 11 wave(s); critical path: R10-ADVISOR -> R10-SCORES -> R10-LIVESTATE -> R10-CONFIG-NOTICES -> R10-PARAMS-OWNER -> R10-ARCH-SHAPES -> R10-LEARNER-ETA -> R10-HEAT-METER -> R10-COP-GATE -> R10-UX-HEALTH -> R10-ARCH-DOCS (11).
-  title Fix waves; crit = the critical path
-| R10-CI-RATCHET-RED | IN | 1 | in-progress | - | opus/opus | - | main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-... |  |
-54 open group(s) of 108; 8 wave(s); critical path: R10-ADVISOR -> R10-SCORES -> R10-LIVESTATE -> R10-PARAMS-OWNER -> R10-HEAT-METER -> R10-COP-GATE -> R10-UX-HEALTH -> R10-ARCH-DOCS (8).
-  title Fix waves; crit = the critical path
-| R10-CI-RATCHET-RED | IN | 1 | in-progress | - | opus/opus | - | main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-... |  |

@@ -1,5 +1,0 @@
-## 6ce59610
-   roster:R10-UX-HEALTH.carry :: s the fallback. Re-take line numbers at your merge base.", "From PR #2572 (item 6ce59610): the Advisor's rows moved to a new act open_options (openHaLink(host,'options',null)); settings is now dispatched by t
-## 4c077302
-   roster:R10-LIVESTATE.carry :: he one owner or state why it stays (#2371 r1/r2 review).", "From PR #2572 (item 4c077302): _price_tiles and _price_tile_specs are no longer on the coordinator; the tile book lives in price_tiles.book(coordina
-exit=0
