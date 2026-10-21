@@ -43,9 +43,11 @@ https://claude.ai/code/session_01LZmVuEHqE1xysY87Gg9x1j
 
 ## Head
 
+`cc4e944b14b88330a7f29d3bc981f254986ed383` merges origin/main `f58b14c19` into the authored code head `efb0532fb9608936eb3d971a05db146984d92745` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `efb0532fb9608936eb3d971a05db146984d92745`.
 
-- Merge base: `03b49e1521a2490335922093c9177aec8f6119d9`, which was `origin/main` at 2026-10-21T11:38:45Z. `origin/main` was merged into `c2902d6c`, never rebased.
+- Merge base of the authored code head: `03b49e1521a2490335922093c9177aec8f6119d9`, which was `origin/main` at 2026-10-21T11:38:45Z. At `cc4e944b1` the merge base with `origin/main` is `f58b14c19`, and `git diff --name-only f58b14c19...cc4e944b1` names the same two files. `origin/main` was merged into `c2902d6c`, never rebased.
 - Code commits: the handover rewrite `c2902d6c`, which describes `0cc148b2f`, and this round's `eb7c8e9e` and `efb0532f`.
 - Main's merged delta (`0cc148b2f..03b49e152`) is #2526 (gate priority) plus record and autofix rows. A `grep` of the handover for `gate_lock`, `lease` and `priority` finds no statement it falsifies.
 
@@ -95,10 +97,14 @@ Handover sentence: restoring it is the `c2902d6c` state. `python3 -I tests/layou
 
 ## Red checks
 
-The handoff at `c2902d6c` was refused before the pull request opened by `prepr.sh`, inside `open_pr.sh`, on the layout guard and on pr-body. No CI check ran red.
+At head `cc4e944b14b88330a7f29d3bc981f254986ed383` one check-run is red besides `pr-contract`: `nightly-status` (check-run 119223380774). It is the only red on any commit this branch pushed. A per-commit read of `repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs` over `git rev-list f58b14c19..cc4e944b1` shows the other four commits (`c2902d6c`, `e62a9d2d`, `eb7c8e9e`, `efb0532f`) carry none.
 
-- **Layout guard.** It is the cheaper detector, it fired, and it runs in `prepr.sh` before the push. The body predictor `tools/pr/ci_predict.py`, run by `body_push.sh`, did not catch it. That is answered in Friction.
-- **pr-body.** Its one error was not about budgets. It was `## Friction line does not parse`, on the attribution footer, which sat after the last heading and so was read as a Friction line. `prepr.sh` prints only the check's last line, the budget-gate summary `no budget leaf raised`, so the cause was invisible in the refusal. This body puts the footer before `## Head`. Running the checker directly shows the real error: `node tools/policy/policy_lint.mjs --pr-body <body> --head <sha> --title <t> --paths-file <f>`.
+- **`nightly-status`: main's red, not this diff's.** Its failing line, from job 119223380774: `NIGHTLY FAILED: mutation-nightly, slow failed last night.` and `scheduled run 39563978649, 2026-10-21T07:43:20+00:00, head c77f89d, run conclusion 'failure'`. That run is a `schedule` run on `main` at `c77f89dc6`, not a commit of this branch. Both failing jobs grade code this diff does not touch:
+  - `slow` (job 119101702593): `FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1138 over its budget 0.111]` and `1 of 93 replay checks FAILED`. This is the replay-cost budget that roster group R10-REPLAY-CAP (in-progress) exists to settle; its brief opens on the same check failing in schedule run 39387919507.
+  - `mutation-nightly` (job 119101702662), step `Drive the table over the whole package`: `10 survivor(s) of 23 evaluated = 39.1% (1 triaged equivalent, raw 43.5%), cap 30.0%`, then `MUTATION TABLE BREACHED`. All ten survivor sites are under `custom_components/heatpump_optimizer/`. This diff names only `dev/programme/HANDOVER.md` and `tools/audit/seat/handover_prompt.py`, so it cannot move one. No round-10 roster group's text names `mutation-nightly` (a search of `wave-r10-groups.json` at `origin/handoff/audit-r10-roster`); this seat does not own the table and does not file for it.
+- **Why the main-state exemption did not apply.** `nightly_status.py` itself reads no file of the diff. `grep -n -i -E "handover|open\(|read_text" tests/nightly_status.py` hits only the Actions API `urlopen` (line 457) and the step-summary write (line 625). The required job also runs the base's copy under `PINNED` (`tests.yml`), so this branch's tree cannot reach it. The exemption is voided because `dev/programme/HANDOVER.md` (which the refusal prints under its canonical old spelling, `docs/HANDOVER.md`) is in `policy_lint.mjs`'s `REPORTER_INPUTS`, one set shared by both `MAIN_STATE_REPORTERS`. The path is there for `delivery-status`: `tests/delivery_status.py:125` lists it. So a touch of an input of one reporter voids the exemption for both.
+- **Cheaper detector and its standing cost.** `nightly-status` is already the cheap detector for main's nightly: it ran in seconds (12:39:59Z to 12:40:04Z) and named both failing jobs and their run. Nothing cheaper reads main's nightly. The only cheaper move is upstream of this body: keying `REPORTER_INPUTS` by reporter, so that `dev/programme/HANDOVER.md` voids only `delivery-status`. That would have spared this re-take. Its standing cost is one `policy_lint.mjs` edit under code-owner review, plus keeping one path list per reporter in step with what each reads. It is not made here: it is policy code outside this group's scope.
+- **The earlier refusals, before the pull request opened.** The handoff at `c2902d6c` was refused inside `open_pr.sh` by `prepr.sh`, on the layout guard and on pr-body. Both are answered in the earlier text and in Friction: the guard sentence is deleted, and the footer now sits before `## Head`. The `pr-contract` reds at this head (check-runs 119223379721 and 119246717761) are this body's own. The latest refused `carry_audit.py check` with `CARRY-AUDIT: 2 finding item(s): 0 routed, 2 unrouted`, because each Friction item named a file, not a destination. This body routes both (see Friction).
 
 ## Forward-carry
 
@@ -106,5 +112,7 @@ none
 
 ## Friction
 
-- `cloud-seat-env: stale`: the dispatch says the venv is on PATH, but here `python3` resolved to `/usr/local/bin/python3` (3.11). `/opt/hpo/venv-ci/bin` had to be prepended. This is already trap 52 in this file. Carry: dev/programme/HANDOVER.md
-- `handoff-gate: unenforced`: `body_push.sh`'s static predictor passed `c2902d6c`, and `prepr.sh`'s layout guard then refused it inside `open_pr.sh`. The handoff paid a full round trip for a refusal that one command gives in seconds: `python3 -I tests/layout.py --guard --base <merge-base>`. It is recorded as trap 51. Carry: dev/programme/HANDOVER.md
+- `cloud-seat-env: stale`: the dispatch says the venv is on PATH, but here `python3` resolved to `/usr/local/bin/python3` (3.11). `/opt/hpo/venv-ci/bin` had to be prepended. This is already trap 52 in this file. Carry: R10-HANDOVER-REFRESH (the trap lands in `dev/programme/HANDOVER.md` with this pull request)
+- `handoff-gate: unenforced`: `body_push.sh`'s static predictor passed `c2902d6c`, and `prepr.sh`'s layout guard then refused it inside `open_pr.sh`. The handoff paid a full round trip for a refusal that one command gives in seconds: `python3 -I tests/layout.py --guard --base <merge-base>`. It is recorded as trap 51. Carry: R10-HANDOVER-REFRESH (the trap lands in `dev/programme/HANDOVER.md` with this pull request)
+
+- `cloud-seat-env: stale`: in this body re-take's cloud seat, `bash tools/audit/seat/failure_logs.sh 2566` exits 2 with an empty head. Its first read is `gh pr view --json headRefOid`, and `gh pr view` goes through GraphQL, which the session proxy refuses (`HTTP 403: GitHub GraphQL is not available from Claude Code sessions`). The REST log download `actions/jobs/<id>/logs` then redirects to a blob host the proxy also refuses (`Forbidden`). The failing lines above were read with the GitHub MCP `get_job_logs` tool instead, plus REST `check-runs/<id>` and `actions/jobs/<id>`. Carry: dismissed: trap 52's cloud-seat family already sends a seat to REST, and a body-only re-take may not edit the trap text, so the orchestrator decides whether to fold it in
