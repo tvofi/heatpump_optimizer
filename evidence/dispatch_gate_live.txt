@@ -1,0 +1,2 @@
+dispatch: REFUSE: WIP cap: 6/6 at the cap (R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-UPDATE-PR-LOCK); finish or merge a group, or --over-cap <reason>
+rc=1

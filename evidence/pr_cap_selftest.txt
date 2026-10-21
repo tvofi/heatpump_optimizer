@@ -1,0 +1,24 @@
+roster_lib: no roster readable at origin/main; reading origin/main
+  ok   WIP is exactly resume.stage in-progress: done, not-started, queued and fixing are not work in progress
+  ok   a group with an open pull request is ONE group: the count is over group ids, and the open count is a separate rule
+  ok   null control: no in-progress group is 0 WIP, and the gate passes
+  ok   5 WIP passes and names the groups
+  ok   6 WIP refuses at the cap, naming the count, the groups and both ways past it
+  ok   7 WIP refuses too (at or over the cap, not exactly at it)
+  ok   --over-cap passes at the cap and logs its reason
+  ok   --over-cap with an empty reason refuses
+  ok   a roster it cannot read refuses, naming why: never a clean zero
+  ok   read_roster over a checkout with no roster is a refusal, not ({} , '')
+  ok   a roster file that is not JSON is a refusal, naming it
+  ok   HPO_WIP_CAP: unset is 6, '3' is 3, '0' and 'x' are invalid
+  ok   an invalid cap refuses
+  ok   the authoring App's pull requests count; a record: title and another bot do not
+  ok   null control: 20 open pull requests are information; opening is not refused
+  ok   an open count gh cannot read says so and still does not stop an open
+  ok   a gh failure is reported, never read as an empty board
+  ok   output that is not JSON is a refusal of the read
+  ok   a list at gh's limit may be truncated: refused
+  ok   null control: an empty board reads as zero
+  ok   coordinator PRs: the diff that touches it counts, an unread diff is named apart
+pr_cap self-test: 21 checks, 0 failed
+rc=0

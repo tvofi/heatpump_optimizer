@@ -1,0 +1,899 @@
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 1782d1d41..e599cb6cf 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -579,7 +579,7 @@ jobs:
+           bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
+           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
+ 
+-      - name: Show the open-PR cap refusing its own fixtures
++      - name: Show the dispatch cap refusing its own fixtures
+         if: ${{ !cancelled() }}
+         run: |
+           set -o pipefail
+diff --git a/dev/governance/roles/orchestrator.md b/dev/governance/roles/orchestrator.md
+index 694868926..9023d0453 100644
+--- a/dev/governance/roles/orchestrator.md
++++ b/dev/governance/roles/orchestrator.md
+@@ -25,8 +25,6 @@ These sections do not replace the source rules. The turn is `dev/governance/role
+ 
+ **`fixer.md` step 8: a quoted number states its rule, not just its value.**
+ 
+-Generalised:
+-
+ **Nothing is asserted that has not been measured, and the measurement is the
+ command, not the impression it left.** Before writing a claim, ask what exactly
+ ran, and what its output would have looked like had the claim been false. If you
+@@ -45,15 +43,14 @@ cannot answer the second, you have not measured — you have expected.
+ 
+ ## 2. Delegate what a seat can do; do only what only you can do
+ 
+-**Work a worker can do is dispatched, not performed.** You hold context no seat
+-has and authority no seat has — sequencing, merging, the record, the freeze,
+-stamps, and speaking to the owner. Everything else is a seat's.
++**Work a worker can do is dispatched, not performed.** You hold context and
++authority no seat has — sequencing, merging, the record, the freeze, stamps,
++and speaking to the owner. Everything else is a seat's.
+ 
+-The reason is **independence**, the same
+-principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
+-a harness they wrote is measuring themselves*. Work you perform is work you must
+-then review, and you are the one participant who cannot review it — so every task
+-you take yourself removes a check.
++The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
++with a harness they wrote is measuring themselves*. Work you perform is work you
++must then review, and you are the one participant who cannot review it, so every
++task you take yourself removes a check.
+ 
+ - A fix, an investigation, a measurement, a survey, a refutation, a root-cause
+   analysis: **dispatch it.**
+@@ -83,14 +80,13 @@ merge commit shuts an issue. **GitHub discards the negation**; only the keyword
+ and the number matter.
+ 
+ Check both surfaces, and write so the construction cannot arise: "**leaves #N
+-open**", never the negated form. The same applies to roster text, which a seat
+-will paraphrase into its own body — a third-hand path to the same outcome, and it
+-has occurred.
++open**", never the negated form. Roster text applies too: a seat will
++paraphrase it into its own body — a third-hand path, and it has occurred.
+ 
+ **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
+-filter, not as proof.** It checks **four** reference forms, and **four is not
+-all of them** — it names seven further shapes that still pass, and it is
+-line-oriented, so a keyword and a number split across a newline are invisible to it.
++filter, not as proof.** It checks **four** reference forms and names seven
++further shapes that still pass; a keyword and a number split across a newline
++are invisible to it.
+ 
+ It reads the body on **stdin** and takes the issues you *intend* to close as
+ **arguments**:
+@@ -101,10 +97,9 @@ printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
+ 
+ It misleads three ways. **Empty stdin prints `clean` and exits 0 having read
+ nothing** (a filename argument does this); **held-open stdin blocks silently**
+-and reports 143 when killed; neither looks like a failure. And the
+-declared-argument escape is **per number, not per occurrence**: declare a number
+-once and every armed keyword bound to it passes, including in a body that also
+-quotes the incident.
++and reports 143 when killed; neither looks like a failure. The declared-argument
++escape is **per number, not per occurrence**: declare it once and every armed
++keyword bound to it passes, even in a body quoting the incident.
+ 
+ **So the load-bearing check is after the merge, not before it.** Read which
+ issues the merge actually closed. No pull-request-scoped field shows it
+@@ -115,6 +110,10 @@ exactly that.
+ 
+ ## 5. Before dispatching a seat
+ 
++- **The soft cap gates only dispatching a new roster group** (tvofi,
++  2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
++  refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
++  Opening or updating a pull request for an owed handoff is never refused by it.
+ - **Establish the work is not already done or in flight.** One
+   `list_pull_requests` over the open set, and the issue's comments: a seat
+   was dispatched to fix what an open pull request fixed.
+@@ -123,7 +122,7 @@ exactly that.
+   re-measure rather than trust, and the destination its own carry must reach.
+ - **Name the null control you expect**, where one is knowable. A seat told what
+   must *not* fire returns better evidence than one told only what must.
+-- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
++- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
+ - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
+   (a relay, a delivery row) the cheapest model that does it.
+ - **Concurrent fixes sharing a concern push only after an architect note**
+@@ -201,8 +200,7 @@ the bug.**
+ 
+ An issue is what you write when you cannot act. Filing is not neutral: it enters
+ the Delivery-status table, needs a disposition, and is read by later seats as
+-established fact, with nothing gating it; one filed issue asked for a mechanism
+-already in the tree. A real finding you must not touch goes to that stage's brief (section 10).
++established fact, with nothing gating it. A real finding you must not touch goes to that stage's brief (section 10).
+ 
+ ## 9. The record, and the one living handover
+ 
+@@ -283,7 +281,7 @@ never by hand or in a branch; rule 4 binds you.
+ **An instrument the programme runs is a tracked, self-tested file; a
+ session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
+ carries, stamps, gates, watches CI or records state runs from the tree, never
+-from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
++from scratch or `~/`.
+ 
+ **Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
+ hand-rolled a tick driver, relay, sweep prompt and merge loops beside
+diff --git a/dev/programme/delivery/2525.md b/dev/programme/delivery/2525.md
+new file mode 100644
+index 000000000..74f1383b9
+--- /dev/null
++++ b/dev/programme/delivery/2525.md
+@@ -0,0 +1 @@
++- [#2525](https://github.com/tvofi/heatpump_optimizer/pull/2525) — **open**, ci: the soft cap gates group dispatch, not opening (R10-OPENPR-SILENT)
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index caa071d7e..7c6a59627 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -228,7 +228,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
+   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
+   log (firing the cloud reviewer stays with the orchestrator). It only updates an
+-  existing PR, so the open-PR soft cap is untouched (an update is not an open).
++  existing PR, which the soft cap never refuses (it gates only group dispatch).
+   A handoff already inside its PR, or with no body ref, does nothing; a failed
+   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
+   `OWED handoff-update`, and retried only when the handoff moves. An update that
+@@ -342,12 +342,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   tip of `handoff-body/<topic>` ("that is the BODY sha; pass the CODE sha" —
+   twice on 2026-10-18 that sha stopped the script silently); a missing
+   `handoff/<topic>` or `handoff-body/<topic>`; no BODY.md at the body ref — the
+-  body is the transport, not an afterthought; the open-PR soft cap (tvofi,
+-  2026-10-18): `HPO_OPEN_PR_CAP` (default 6) or more open pull requests, drafts
+-  included, `record:`-titled and non-`hpo-author` bot ones excluded, unless a
+-  leading `--over-cap "<reason>"` overrides it, which prints `OVER-CAP` with
+-  the reason; a count it cannot read refuses (`pr_cap.py`). Any later stop
+-  prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
++  body is the transport, not an afterthought. The soft cap gates only
++  dispatching a new roster group, and never refuses opening or updating a pull
++  request for an owed handoff (tvofi, 2026-10-20): a leading `--over-cap
++  "<reason>"` is still accepted and prints that it is advisory; `pr_cap.py
++  info` prints the open count as information, and a count gh cannot read says
++  so and still opens. Any later stop prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
+   refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
+   `pr_args.sh`'s.
+ - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
+@@ -377,9 +377,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   PR-comment-is-not-propagation defect. Refusal: a section whose read fails
+   prints UNREADABLE, never a silent skip; a rule the tick cannot read from
+   the tree or API it does not report. Every pass prints two level lines in
+-  PRS (tvofi, 2026-10-18): `OPEN-PR CAP: N/CAP`, counted by `pr_cap.py`'s
+-  rule and flagged at or over the cap `open_pr.sh` refuses at, and
+-  `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
++  PRS (tvofi, 2026-10-20): `WIP: N/6 (open PRs M)`, N the roster groups whose
++  `resume.stage` is `in-progress` through `pr_cap.py`'s `wip_groups` and M its
++  counted open pull requests, flagged at or over `HPO_WIP_CAP` — at the cap a
++  new group is not dispatched, while opening and merging are always allowed;
++  and `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
+   touches the coordinator, flagged over 2 or when a diff is unreadable. Also
+   level lines every pass from the approver App's newest `Fix review:` on
+   each open PR (the identity off `app_approve.sh`, the grammar `bus.sh`'s;
+@@ -425,13 +427,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   in a scratch repository, offline, each refusal arm beside a mutant that
+   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
+   null controls that pass every check. Refusal: its self-test's tally.
+-- `pr_cap.py` — the open-PR soft cap's one counting rule (tvofi, 2026-10-18):
+-  `gate` for `open_pr.sh`, imported by `orchestrator_tick.py`. A bot is a
+-  GitHub-flagged bot other than `app/hpo-author`, which authors every seat PR.
+-  When: `open_pr.sh` before it opens; the tick every pass. Refusal: at or over
+-  the cap without `--over-cap <reason>`; an empty reason; an invalid
+-  `HPO_OPEN_PR_CAP`; a list gh cannot read, that is not JSON, or that reaches
+-  gh's 200 limit.
++- `pr_cap.py` — the soft cap, on dispatch since 2026-10-20: `dispatch-gate`
++  counts the roster groups whose `resume.stage` is `in-progress` through
++  `roster_lib` at the roster ref, prints their ids and refuses at or over
++  `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` is given; `info`
++  prints the open count for `open_pr.sh` and never refuses. A group that also
++  has an open pull request is one group. Imported by `orchestrator_tick.py`
++  for its `WIP` and coordinator level lines. A bot is a GitHub-flagged bot
++  other than `app/hpo-author`, which authors every seat PR. When: before
++  dispatching a new group, and `open_pr.sh` before it opens (information
++  only); the tick every pass. Refusal: at or over the cap without
++  `--over-cap <reason>`; an empty reason; an invalid `HPO_WIP_CAP`; a roster
++  it cannot read (never a clean zero); an open list gh cannot read, that is
++  not JSON, or that reaches gh's 200 limit (reported, not gated).
+ - `proof_watch.py` — watches one named check-run at one pinned head of one
+   pull request and, once it completes `success` beside green required contexts
+   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index 21f2139e8..d1a5961cc 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -66,7 +66,8 @@
+ #     `bus.sh dispatch <pr> <new head> cloud`, and appends
+ #       OWED reviewer-fire <pr> <head40> <nonce> <utc>
+ #     to the log: firing the cloud reviewer stays with the orchestrator. It only
+-#     UPDATES an existing PR (a soft cap counts opens, and an update is not one).
++#     UPDATES an existing PR (the soft cap counts roster groups in progress at
++#     dispatch; an update neither opens a PR nor enters WIP).
+ #     A handoff already contained in its PR, or with no body ref, does nothing;
+ #     a topic whose update failed is noted in `<ledger>.handoff-failed` by
+ #     `<topic> <code-sha>` and retried only when handoff/<topic> moves, with an
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index 58e7b820a..9ac1b8f95 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -14,8 +14,12 @@
+   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
+ PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
+ PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+-# The open-PR soft cap (pr_cap.py; tvofi, 2026-10-18): --over-cap "<reason>" first overrides it.
++# The soft cap gates DISPATCH, not opening (pr_cap.py; tvofi, 2026-10-20):
++# opening is how work leaves work-in-progress. --over-cap "<reason>" is still
++# accepted so existing callers do not break; it says it is advisory and is
++# otherwise ignored. The open count below is information.
+ OVER=; OVER_SET=; if [ "${1:-}" = --over-cap ]; then [ $# -ge 2 ] || pr_refuse "--over-cap needs a reason"; OVER=$2; OVER_SET=1; shift 2; fi
++[ -z "$OVER_SET" ] || printf '%s: --over-cap is advisory: %s (the cap gates dispatch, not opening)\n' "$PR_NAME" "$OVER" >&2  # mut:overadvisory
+ pr_need_args 4 $# "open_pr.sh [--over-cap <reason>] <topic> <code-sha> <title> <group> [intended-issue...]"
+ pr_code_sha_shape "$2"
+ export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+@@ -29,8 +33,7 @@ git fetch -q origin handoff/$T handoff-body/$T
+ pr_code_in_handoff "$C" "$T"
+ git cat-file -e "$PR_BT:BODY.md" 2>/dev/null || pr_refuse "handoff-body/$T ($PR_BT) holds no BODY.md"
+ git show "$PR_BT:BODY.md" > $D/body.md
+-if [ -n "$OVER_SET" ]; then python3 -I "$SEAT/pr_cap.py" gate --repo $R --over-cap "$OVER" || exit 1  # mut:capcall
+-else python3 -I "$SEAT/pr_cap.py" gate --repo $R || exit 1; fi  # mut:capcall
++python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
+ git worktree add -q -b $BR $WT $C
+ cd $WT
+ git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index 7f49217ef..57ee1069e 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -312,7 +312,7 @@ class Tick:
+         return r.returncode, [l.strip() for l in r.stdout.splitlines()
+                               if l.strip()]
+ 
+-    def _roster_ref(self, S: str, rl) -> str:
++    def _roster_ref(self, S: str, rl, announce: bool = True) -> str:
+         """The ref this tick reads the roster at: --roster-ref, else
+         roster_lib's `default_roster_ref` (O17: the round's roster branch,
+         else main) through the tick's own git, its note printed in `S`. One
+@@ -320,7 +320,7 @@ class Tick:
+         if self.roster_ref:
+             return self.roster_ref
+         ref, note = rl.default_roster_ref(self.git)
+-        if note:
++        if note and announce:
+             self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
+         return ref
+ 
+@@ -569,7 +569,7 @@ class Tick:
+             self._files[n] = self._last_files
+         self.owner_reviews(S, prs)
+         self.body_staleness(S, prs)
+-        self.open_pr_cap(S, prs)
++        self.cap_levels(S, prs)
+         self.verdict_levels(S, prs)
+         self.relay_owed(S)
+         for head, ns in sorted(by_head.items()):
+@@ -578,22 +578,31 @@ class Tick:
+                           f"{head[:12]}: {', '.join('#' + str(x) for x in ns)}"
+                           " (duplicate CI, ambiguous red)", flag=True)
+ 
+-    def open_pr_cap(self, S: str, prs: list) -> None:
+-        """Two level lines every pass (tvofi, 2026-10-18): the open-PR soft cap
+-        open_pr.sh enforces, counted by pr_cap.py's own rule, and the counted
+-        PRs whose three-dot diff touches the coordinator, against its cap of 2.
+-        A diff one_pr could not read leaves the second count a floor: flagged."""
++    def cap_levels(self, S: str, prs: list) -> None:
++        """Two level lines every pass (tvofi, 2026-10-20, moving 2026-10-18's
++        open-PR cap to dispatch): `WIP: N/6 (open PRs M)`, N the roster's
++        `in-progress` groups through roster_lib (`pr_cap.py`'s dispatch-gate
++        count), M `pr_cap.py`'s counted open pull requests, flagged at or over
++        HPO_WIP_CAP -- at the cap a new group is not dispatched, while opening
++        and merging are always allowed; and the counted PRs whose three-dot
++        diff touches the coordinator, against its cap of 2. A diff one_pr
++        could not read leaves the second count a floor: flagged. A roster or a
++        cap it cannot read is UNREADABLE, never a clean zero."""
+         cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
+         if cap_mod is None:
+-            self.unreadable(S, "open-PR cap", "tools/audit/seat/pr_cap.py absent")
++            self.unreadable(S, "WIP cap", "tools/audit/seat/pr_cap.py absent")
+             return
+-        counted, cap = cap_mod.counted(prs), cap_mod.cap_from_env()
++        counted, cap = cap_mod.counted(prs), cap_mod.wip_cap_from_env()
+         if cap is None:
+-            self.unreadable(S, "open-PR cap", f"{cap_mod.CAP_ENV} is not a positive integer")
++            self.unreadable(S, "WIP cap", f"{cap_mod.WIP_CAP_ENV} is not a positive integer")
+         else:
+-            n = len(counted)
+-            self.line(S, f"OPEN-PR CAP: {n}/{cap}" + (" (at the cap: open_pr.sh refuses; drain first)"
+-                                                     if n >= cap else ""), flag=n >= cap)
++            rl, roster = self._roster(S, announce=False)
++            if rl is not None:
++                n = len(cap_mod.wip_groups(roster))
++                self.line(S, f"WIP: {n}/{cap} (open PRs {len(counted)})"
++                          + (" (at the cap: do not dispatch a new group; opening "
++                             "and merging are always allowed)" if n >= cap else ""),
++                          flag=n >= cap)
+         files = getattr(self, "_files", {}) or {}
+         hit, unread = cap_mod.coordinator_prs({p["number"]: files.get(p["number"]) for p in counted})
+         k, kcap = len(hit), cap_mod.COORDINATOR_CAP
+@@ -1011,9 +1020,13 @@ class Tick:
+             self.line(S, f"{seat}: STALLED? head unchanged and no new CI "
+                          f"completion since dispatch {tail}", flag=True)
+ 
+-    def _roster(self, S: str):
++    def _roster(self, S: str, announce: bool = True):
+         """The roster through roster_lib, the one schema reader; (rl, roster)
+-        or (None, None) with the UNREADABLE line already reported."""
++        or (None, None) with the UNREADABLE line already reported.
++
++        `announce=False` for a second reader in the same pass (PRS's WIP line):
++        the roster's location is PLAN's fact, printed once there, while a read
++        that fails is still reported by the section that needed it."""
+         rl = _module("roster_lib_tick", "tools/audit/seat/roster_lib.py")
+         if rl is None:
+             self.unreadable(S, "roster", "roster_lib.py not found in the tree")
+@@ -1032,7 +1045,7 @@ class Tick:
+             # tree carries both rosters (R10-TICK b).
+             # WHICH REF is roster_lib's too (O17): the round's roster
+             # branch, else main, through the tick's own git.
+-            ref = self._roster_ref(S, rl)
++            ref = self._roster_ref(S, rl, announce)
+             path = self.roster_path
+             if not path:
+                 code, o = self.git(["ls-tree", "--name-only", ref,
+@@ -1052,7 +1065,8 @@ class Tick:
+             except ValueError as e:
+                 self.unreadable(S, f"roster at {ref}:{path}", str(e)[:120])
+                 return None, None
+-            self.line(S, f"roster {ref}:{path}")
++            if announce:
++                self.line(S, f"roster {ref}:{path}")
+         return rl, roster
+ 
+     # ---------------------------------------------------------------- PLAN
+@@ -3222,13 +3236,21 @@ def self_test() -> int:
+         ])
+         total, failed = total + a, failed + f
+ 
+-        # ---- the open-PR cap and the coordinator count (tvofi, 2026-10-18) ----
++        # ---- WIP (the dispatch cap) and the coordinator count (tvofi, 2026-10-20) ----
+         coord, row = "custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/1.md"
+         app, dep = {"login": "app/hpo-author", "is_bot": True}, {"login": "app/dependabot", "is_bot": True}
++        wipfile = tmp / "wip.json"
++
++        def wip_roster(n: int) -> str:  # n in-progress groups beside a done one
++            wipfile.write_text(json.dumps({"groups": [
++                {"group": f"W{i}", "resume": {"stage": "in-progress"}}
++                for i in range(n)] + [{"group": "DONE", "resume": {"stage": "done"}}]}))
++            return str(wipfile)
+ 
+-        def cap_board(specs):  # [(n, title, author, files | None)] -> the PRS lines
++        def cap_board(specs, roster=None):  # [(n, title, author, files | None)] -> the PRS lines
+             heads = {n: f"{n:040x}" for n, *_ in specs}
+-            t = tick(prs=[{**pr_obj(n, heads[n]), "title": ti, "author": au} for n, ti, au, _ in specs])
++            t = tick(prs=[{**pr_obj(n, heads[n]), "title": ti, "author": au} for n, ti, au, _ in specs],
++                     roster=roster)
+             t.checkout = str(version)
+             base, fs = git_factory(), {heads[n]: f for n, _, _, f in specs}
+ 
+@@ -3245,24 +3267,34 @@ def self_test() -> int:
+             hits = [l for l in lines if l["text"].startswith(prefix)]
+             return hits[0] if len(hits) == 1 else {"flag": None, "text": f"{len(hits)} lines"}
+ 
+-        at = cap_board([(n, "t", app, f"{row} {coord}" if n < 3 else row) for n in range(6)])
++        at = cap_board([(n, "t", app, f"{row} {coord}" if n < 3 else row) for n in range(6)],
++                       roster=wip_roster(6))
+         below = cap_board([(n, "t", app, f"{row} {coord}" if n < 2 else row) for n in range(5)]
+-                          + [(7, "record: rows", app, coord), (8, "bump", dep, coord)])
+-        unread = cap_board([(1, "t", app, row), (2, "t", app, None)])
+-        old_cap = os.environ.get("HPO_OPEN_PR_CAP")
+-        os.environ["HPO_OPEN_PR_CAP"] = "x"
++                          + [(7, "record: rows", app, coord), (8, "bump", dep, coord)],
++                          roster=wip_roster(5))
++        unread = cap_board([(1, "t", app, row), (2, "t", app, None)], roster=wip_roster(5))
++        # A board far over the old open cap, and a roster at 5: WIP does not move.
++        board = cap_board([(n, "t", app, row) for n in range(20)], roster=wip_roster(5))
++        no_roster = cap_board([(1, "t", app, row)])
++        old_cap = os.environ.get("HPO_WIP_CAP")
++        os.environ["HPO_WIP_CAP"] = "x"
+         try:
+-            badcap = cap_board([(1, "t", app, row)])
++            badcap = cap_board([(1, "t", app, row)], roster=wip_roster(5))
+         finally:
+             if old_cap is None:
+-                os.environ.pop("HPO_OPEN_PR_CAP", None)
++                os.environ.pop("HPO_WIP_CAP", None)
+             else:
+-                os.environ["HPO_OPEN_PR_CAP"] = old_cap
+-        a, f = check("open-PR cap", [
+-            ("six counted: OPEN-PR CAP: 6/6, flagged",
+-             one(at, "OPEN-PR CAP: ")["flag"] is True and one(at, "OPEN-PR CAP: ")["text"].startswith("OPEN-PR CAP: 6/6")),
+-            ("five counted beside a record: and a bot PR: 5/6, not flagged",
+-             one(below, "OPEN-PR CAP: ") == {"flag": False, "text": "OPEN-PR CAP: 5/6"}),
++                os.environ["HPO_WIP_CAP"] = old_cap
++        a, f = check("WIP cap", [
++            ("six in-progress groups: WIP: 6/6, flagged",
++             one(at, "WIP: ")["flag"] is True and one(at, "WIP: ")["text"].startswith("WIP: 6/6 (open PRs 6)")),
++            ("five in-progress beside a record: and a bot pull request: WIP: 5/6, not flagged",
++             one(below, "WIP: ") == {"flag": False, "text": "WIP: 5/6 (open PRs 5)"}),
++            ("WIP is the roster's groups, not the open board: 20 open PRs still WIP: 5/6",
++             one(board, "WIP: ") == {"flag": False, "text": "WIP: 5/6 (open PRs 20)"}),
++            ("a roster it cannot read is UNREADABLE, never WIP: 0/6",
++             any(l["flag"] and "UNREADABLE: roster" in l["text"] for l in no_roster)
++             and not any(l["text"].startswith("WIP: ") for l in no_roster)),
+             ("three counted PRs touch the coordinator: 3/2, flagged",
+              one(at, "coordinator.py PRs: ") == {"flag": True, "text": "coordinator.py PRs: 3/2 (#0, #1, #2)"}),
+             ("two counted touch it (the record and bot ones uncounted): 2/2, not flagged",
+@@ -3270,9 +3302,9 @@ def self_test() -> int:
+             ("a diff it cannot read flags the coordinator count as a floor",
+              one(unread, "coordinator.py PRs: ")["flag"] is True
+              and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
+-            ("an invalid HPO_OPEN_PR_CAP is UNREADABLE, never a count",
+-             any(l["flag"] and "UNREADABLE: open-PR cap" in l["text"] for l in badcap)
+-             and one(badcap, "OPEN-PR CAP: ")["flag"] is None),
++            ("an invalid HPO_WIP_CAP is UNREADABLE, never a count",
++             any(l["flag"] and "UNREADABLE: WIP cap" in l["text"] for l in badcap)
++             and not any(l["text"].startswith("WIP: ") for l in badcap)),
+         ])
+         total, failed = total + a, failed + f
+ 
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index ce84ab48f..7bb8b34b7 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -138,41 +138,47 @@ pr_args_self_test() (
+   touch "$t/s$((i + 1))/pr/x/wt/f" "$t/s$((i + 2))/pr/x/wt/f"
+   arm "open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap" trap \
+     "open_pr: STOPPED: line" open_pr.sh x "$code" T G
+-  # The open-PR cap (pr_cap.py; tvofi, 2026-10-18): six counted open is the cap.
++  # The soft cap gates dispatch, not opening (pr_cap.py; tvofi, 2026-10-20):
++  # a twenty-strong open board is information, and --over-cap is advisory.
+   prs() { # <counted> [extra json objects]: the stub's open list
+     local k=0 j=""
+     while [ $k -lt "$1" ]; do j="$j{\"number\":$k,\"title\":\"t\",\"author\":{\"login\":\"app/hpo-author\",\"is_bot\":true}},"; k=$((k + 1)); done
+     printf '[%s%s]\n' "$j" "${2:-}" | sed 's/,]$/]/' > "$t/prs.json"
+   }
+-  prs 6
+-  arm "open_pr: six counted open pull requests refuse at the cap" cap \
+-    "open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)" \
+-    open_pr.sh x "$code" T G
+-  arm "open_pr: the cap is checked by the script itself (the call's lines)" capcall \
+-    "open_pr: REFUSE: open-PR cap: 6 open >= 6" open_pr.sh x "$code" T G
+-  touch "$t/gh.fail"
+-  arm "open_pr: an open list gh cannot read refuses, never passes" capreadrc \
+-    "open_pr: REFUSE: open-PR cap: the open pull requests could not be read (gh exited 1" open_pr.sh x "$code" T G
+-  rm -f "$t/gh.fail"
+-  # passes <name> <mutant> <expected text> <args...>: opens (stops only at the
+-  # absent push), printing the text; the mutant refuses at the cap instead.
++  # passes <name> <mutant> <expected text> <args...>: the run opens (stops only
++  # at the absent push), printing the text and no cap refusal; on a copy
++  # without the mutant's line the text is gone and the run did not crash (a
++  # deleted line that only tracebacks pins no behaviour).
+   passes() {
+     local nm=$1 mu=$2 want=$3; shift 3
+-    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" && ! grep -q 'REFUSE: open-PR cap' "$t/out" \
++    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" \
++      && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
+       && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+     ck "$nm" $?
+-    run "$mu" open_pr.sh "$@"; grep -q 'REFUSE: open-PR cap' "$t/out"
+-    ck "  mutant mut:$mu (its line deleted) refuses at the cap instead" $?
++    run "$mu" open_pr.sh "$@"; ! grep -qF -- "$want" "$t/out" && ! grep -q Traceback "$t/out"
++    ck "  mutant mut:$mu (its line deleted) no longer prints it" $?
+   }
+-  prs 6
+-  passes "open_pr: --over-cap opens at the cap and logs its reason" overcap \
+-    "open_pr: OVER-CAP: 6 open >= 6, overridden: the train is draining" \
++  prs 20
++  passes "open_pr: twenty open pull requests do not stop an open; the count is information" openinfo \
++    "open_pr: 20 open PRs; the cap gates dispatch, not opening" x "$code" T G
++  passes "open_pr: --over-cap is still accepted, and says it is advisory" overadvisory \
++    "open_pr: --over-cap is advisory: the train is draining (the cap gates dispatch, not opening)" \
+     --over-cap "the train is draining" x "$code" T G
++  touch "$t/gh.fail"
++  run - open_pr.sh x "$code" T G
++  grep -qF "open_pr: open pull requests could not be read (gh exited 1" "$t/out" \
++    && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
++    && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
++  ck "open_pr: an open count gh cannot read says so and still opens" $?
++  run inforead open_pr.sh x "$code" T G
++  ! grep -qF "could not be read" "$t/out" && ! grep -q Traceback "$t/out"
++  ck "  mutant mut:inforead (its line deleted) reports the unreadable board as a count" $?
++  rm -f "$t/gh.fail"
+   prs 5 '{"number":90,"title":"record: rows","author":{"login":"app/hpo-author","is_bot":true}},{"number":91,"title":"bump","author":{"login":"app/dependabot","is_bot":true}}'
+-  passes "open_pr: five counted open (a record: and a bot pull request beside them) opens" caprecord \
+-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
++  passes "open_pr: a record: title and another bot's pull request are not in the open count" caprecord \
++    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
+   passes "open_pr: the same board, the bot pull request uncounted" capbot \
+-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
++    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
+   echo '[]' > "$t/prs.json"
+   run - open_pr.sh x "$code" T G
+   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
+diff --git a/tools/audit/seat/pr_cap.py b/tools/audit/seat/pr_cap.py
+index 96b81797e..c1d9b2312 100644
+--- a/tools/audit/seat/pr_cap.py
++++ b/tools/audit/seat/pr_cap.py
+@@ -1,16 +1,29 @@
+ #!/usr/bin/env python3
+-"""The soft cap on open pull requests: one counting rule, read by open_pr.sh
+-before it opens one and by orchestrator_tick.py on every pass.
++"""The soft cap: it bounds work in progress, so it gates DISPATCH, not opening.
+ 
+-    python3 -I tools/audit/seat/pr_cap.py gate --repo OWNER/REPO [--over-cap REASON]
++    python3 -I tools/audit/seat/pr_cap.py info --repo OWNER/REPO
++    python3 -I tools/audit/seat/pr_cap.py dispatch-gate [--repo PATH]
++        [--roster-file PATH | --roster-ref GITREF [--roster-path PATH]]
++        [--over-cap REASON]
+     python3 -I tools/audit/seat/pr_cap.py --self-test
+ 
+-THE RULING (tvofi, 2026-10-18, relayed to R10-OPENPR-SILENT by the round-10
+-orchestrator): open_pr.sh refuses to open a pull request while the open ones
+-number HPO_OPEN_PR_CAP (default 6) or more, drafts included, `record:`-titled
+-and bot ones excluded; `--over-cap "<reason>"` overrides it and says so; a
+-count it cannot read is a refusal, never a pass. The tick also reports how many
+-counted pull requests touch the coordinator, against a cap of 2.
++THE RULING (tvofi, 2026-10-20, moving 2026-10-18's open-PR cap; restated
++2026-10-21). The soft cap gates only starting or dispatching a new roster
++group; opening or updating a pull request for an owed handoff is never refused
++by it. Opening is how work LEAVES work-in-progress, not how it enters. So:
++  - `dispatch-gate` refuses when HPO_WIP_CAP (default 6) roster groups have
++    `resume.stage` "in-progress". WIP is read through `roster_lib`, the one
++    schema reader, at the roster ref, and counted by group id: a group that
++    also has an open pull request is still one group, never two. A roster it
++    cannot read is a refusal, never a clean zero.
++  - `open_pr.sh` and `update_pr.sh` are never refused by the cap; `info` prints the open count as
++    information (`open_pr: N open PRs; the cap gates dispatch, not opening`).
++    A count gh cannot read says so and still opens: it is not a gate.
++    `--over-cap "<reason>"` is still accepted by open_pr.sh so existing
++    callers do not break; it says it is advisory and nothing more.
++  - `orchestrator_tick.py` prints `WIP: N/6 (open PRs M)` every pass: N from
++    `wip_groups`, M from `counted`, flagged at or over the cap. It does not
++    dispatch and does not gate; it reports.
+ 
+ WHAT "BOT" MEANS HERE, a design choice. Every pull request this repository's
+ seats open is authored by the hpo-author App (decision 0011), which GitHub
+@@ -18,25 +31,34 @@ reports as a bot. Excluding every bot would count nothing, so a bot is an author
+ GitHub flags as one other than AUTHOR_APP: the merge-main, autofix and
+ dependency bots.
+ 
+-`gate` prints one line on stderr and exits 0 to open, 1 to refuse:
+-  open_pr: REFUSE: open-PR cap: N open >= CAP; drain before opening (...)
+-  open_pr: OVER-CAP: N open >= CAP, overridden: <reason>
+-  open_pr: open-PR cap: N open < CAP
++Lines (one per call, on stderr; exit 0 to pass, 1 to refuse, 2 for usage):
++  dispatch: WIP 5/6: may dispatch a new group (G1, G2, ...)
++  dispatch: REFUSE: WIP cap: 6/6 at the cap (G1, ...); finish or merge a group,
++      or --over-cap <reason>
++  dispatch: OVER-CAP: WIP 6/6, overridden: <reason> (G1, ...)
++  open_pr: 20 open PRs; the cap gates dispatch, not opening
+ """
+ from __future__ import annotations
+ 
++import importlib.util
+ import json
+ import os
+ import subprocess
+ import sys
+ 
+-CAP_DEFAULT = 6
+-CAP_ENV = "HPO_OPEN_PR_CAP"
++#: A roster group is work in progress while `resume.stage` is exactly this.
++#: The vocabulary is the roster's own; `roster_lib.DONE_STAGES` names the
++#: stages that are finished, and a stage neither set names is not counted.
++WIP_STAGE = "in-progress"
++WIP_CAP_DEFAULT = 6
++WIP_CAP_ENV = "HPO_WIP_CAP"
++WIP_REFUSE = "dispatch: REFUSE: WIP cap: "
+ AUTHOR_APP = "app/hpo-author"
+ COORDINATOR_PATH = "custom_components/heatpump_optimizer/coordinator.py"
+ COORDINATOR_CAP = 2
+ FIELDS = "number,title,author"
+-REFUSE = "open_pr: REFUSE: open-PR cap: "
++SELF = os.path.abspath(__file__)
++_RL = None
+ 
+ 
+ def is_bot(pr: dict) -> bool:
+@@ -45,7 +67,12 @@ def is_bot(pr: dict) -> bool:
+ 
+ 
+ def counted(prs: list) -> list:
+-    """The open pull requests the cap counts, in the order given."""
++    """The open pull requests the open count reports, in the order given.
++
++    This is the tick's M and `info`'s N, not a gate: the cap counts roster
++    groups (`wip_groups`), so a record: title and another bot's pull request
++    are excluded here without being excluded from anywhere that decides.
++    """
+     out = []
+     for pr in prs:
+         if str(pr.get("title") or "").startswith("record:"): continue  # mut:caprecord
+@@ -54,11 +81,11 @@ def counted(prs: list) -> list:
+     return out
+ 
+ 
+-def cap_from_env(env=None) -> "int | None":
+-    """HPO_OPEN_PR_CAP as a positive integer, the default when unset, None when invalid."""
+-    raw = (env if env is not None else os.environ).get(CAP_ENV, "")
++def wip_cap_from_env(env=None) -> "int | None":
++    """HPO_WIP_CAP as a positive integer, the default when unset, None when invalid."""
++    raw = (env if env is not None else os.environ).get(WIP_CAP_ENV, "")
+     if raw == "":
+-        return CAP_DEFAULT
++        return WIP_CAP_DEFAULT
+     return int(raw) if raw.isdigit() and int(raw) > 0 else None
+ 
+ 
+@@ -86,19 +113,73 @@ def read_open(repo: str, gh=None) -> "tuple[list | None, str]":
+     return prs, ""
+ 
+ 
+-def gate(prs: "list | None", why: str, cap: "int | None", over_cap: "str | None") -> "tuple[int, str]":
++def open_info(prs: "list | None", why: str) -> "tuple[int, str]":
++    """(0, the one line): the open count as information. Opening is never gated."""
++    n = None if prs is None else len(counted(prs))
++    if n is None: return 0, f"open_pr: open pull requests could not be read ({why}); opening anyway, the cap gates dispatch"  # mut:inforead
++    return 0, (f"open_pr: {n} open PRs; the cap gates dispatch, "
++               "not opening")
++
++
++def _roster_lib():
++    """roster_lib beside this file, loaded by path: `python3 -I` keeps the
++    script's directory off sys.path, so an `import roster_lib` would fail."""
++    global _RL
++    if _RL is None:
++        p = os.path.join(os.path.dirname(SELF), "roster_lib.py")
++        spec = importlib.util.spec_from_file_location("roster_lib_pr_cap", p)
++        mod = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(mod)
++        _RL = mod
++    return _RL
++
++
++def wip_groups(roster: dict) -> list:
++    """The roster group ids whose `resume.stage` is `WIP_STAGE`, roster order.
++
++    Counted by group id, off the roster alone: the open-pull-request rule
++    (`counted`) is a different question and a group that also has an open
++    pull request is still one group.
++    """
++    return [gid for gid, g in _roster_lib().groups_of(roster).items()
++            if (g.get("resume") or {}).get("stage") == WIP_STAGE]
++
++
++def read_roster(repo: str = ".", roster_file: "str | None" = None,
++                roster_ref: "str | None" = None,
++                roster_path: "str | None" = None) -> "tuple[dict | None, str]":
++    """(the roster, where it was read) or (None, why it could not be read).
++
++    `roster_lib` is the one schema reader and `reader_ref` the one answer to
++    which ref; nothing here parses a roster or names a ref itself.
++    """
++    rl = _roster_lib()
++    if roster_file:
++        try:
++            return rl.load_roster_file(roster_file), roster_file
++        except (OSError, ValueError) as e:
++            return None, f"roster file {roster_file}: {str(e)[:120]}"
++    try:
++        ref = rl.reader_ref(repo, roster_ref)
++        path = rl.roster_path(repo, ref, roster_path)
++        return rl.show_roster(repo, ref, path), f"{ref}:{path}"
++    except (rl.RosterNotFound, ValueError) as e:
++        return None, str(e)[:200]
++
++
++def dispatch_gate(roster: "dict | None", why: str, cap: "int | None",
++                  over_cap: "str | None") -> "tuple[int, str]":
+     """(exit status, the one line): refuse at or above the cap, or unread."""
+     if cap is None:
+-        return 1, REFUSE + f"{CAP_ENV} is not a positive integer"
++        return 1, WIP_REFUSE + f"{WIP_CAP_ENV} is not a positive integer"
+     if over_cap is not None and not over_cap.strip():
+-        return 1, REFUSE + "--over-cap needs a reason"
+-    if prs is None:
+-        return 1, REFUSE + f"the open pull requests could not be read ({why}); a count it cannot read is no pass"
+-    n = len(counted(prs))
+-    if n < cap:
+-        return 0, f"open_pr: open-PR cap: {n} open < {cap}"
+-    if over_cap is not None: return 0, f"open_pr: OVER-CAP: {n} open >= {cap}, overridden: {over_cap.strip()}"  # mut:overcap
+-    return 1, REFUSE + f"{n} open >= {cap}; drain before opening ({CAP_ENV}, --over-cap <reason>)"  # mut:cap
++        return 1, WIP_REFUSE + "--over-cap needs a reason"
++    if roster is None: return 1, WIP_REFUSE + f"the roster could not be read ({why}); a count it cannot read is no pass"  # mut:wipunread
++    wip = wip_groups(roster)
++    n, ids = len(wip), ", ".join(wip)
++    if over_cap is not None: return 0, f"dispatch: OVER-CAP: WIP {n}/{cap}, overridden: {over_cap.strip()} ({ids})"  # mut:overcap
++    if n < cap: return 0, f"dispatch: WIP {n}/{cap}: may dispatch a new group ({ids})"
++    return 1, WIP_REFUSE + f"{n}/{cap} at the cap ({ids}); finish or merge a group, or --over-cap <reason>"  # mut:cap
+ 
+ 
+ def coordinator_prs(files_by_pr: dict) -> "tuple[list, list]":
+@@ -108,6 +189,15 @@ def coordinator_prs(files_by_pr: dict) -> "tuple[list, list]":
+     return hit, unread
+ 
+ 
++def _doc_stage() -> dict:
++    """The first named group of stages, for the self-test's rosters."""
++    return {"groups": [{"group": f"G{i}", "resume": {"stage": s}}
++                       for i, s in enumerate(("done", "in-progress", "not-started",
++                                              "queued", "fixing", "in-progress",
++                                               "in-progress", "in-progress",
++                                               "in-progress"))]}
++
++
+ def self_test() -> int:
+     total = failed = 0
+ 
+@@ -118,36 +208,100 @@ def self_test() -> int:
+             failed += 1
+         print(("  ok   " if ok else "  FAIL ") + name)
+ 
++    def roster(stages: list) -> dict:
++        return {"groups": [{"group": f"G{i}", "resume": {"stage": s}}
++                           for i, s in enumerate(stages)]}
++
++    five = roster(["in-progress"] * 5)
++
++    # ---- the WIP count is the roster's in-progress groups ------------------
++    ck("WIP is exactly resume.stage in-progress: done, not-started, queued and "
++       "fixing are not work in progress",
++       wip_groups(_doc_stage()) == ["G1", "G5", "G6", "G7", "G8"])
++    ck("a group with an open pull request is ONE group: the count is over group "
++       "ids, and the open count is a separate rule",
++       wip_groups({"groups": [{"group": "G", "resume": {
++           "stage": "in-progress", "branch": "fix/g", "pr": 7}}]}) == ["G"]
++       and len(counted([{"number": i, "title": "t", "author": {"login": AUTHOR_APP,
++                                                               "is_bot": True}}
++                        for i in range(5)])) == 5)
++    ck("null control: no in-progress group is 0 WIP, and the gate passes",
++       wip_groups(roster(["done", "not-started"])) == []
++       and dispatch_gate(roster(["done"]), "", 6, None)[0] == 0)
++
++    # ---- the dispatch gate's arms -----------------------------------------
++    rc, line = dispatch_gate(five, "", 6, None)
++    ck("5 WIP passes and names the groups",
++       rc == 0 and line == "dispatch: WIP 5/6: may dispatch a new group (G0, G1, G2, G3, G4)")
++    six = roster(["in-progress"] * 6)
++    rc, line = dispatch_gate(six, "", 6, None)
++    ck("6 WIP refuses at the cap, naming the count, the groups and both ways past it",
++       rc == 1 and line == WIP_REFUSE + "6/6 at the cap (G0, G1, G2, G3, G4, G5); "
++       "finish or merge a group, or --over-cap <reason>")
++    seven = roster(["in-progress"] * 7)
++    rc, line = dispatch_gate(seven, "", 6, None)
++    ck("7 WIP refuses too (at or over the cap, not exactly at it)",
++       rc == 1 and "7/6 at the cap" in line)
++    rc, line = dispatch_gate(six, "", 6, "a merge train is draining")
++    ck("--over-cap passes at the cap and logs its reason",
++       rc == 0 and line == "dispatch: OVER-CAP: WIP 6/6, overridden: a merge train is draining "
++       "(G0, G1, G2, G3, G4, G5)")
++    ck("--over-cap with an empty reason refuses",
++       dispatch_gate(six, "", 6, "  ")[0] == 1)
++    rc, line = dispatch_gate(None, "no roster at origin/main:dev/programme/rosters", 6, None)
++    ck("a roster it cannot read refuses, naming why: never a clean zero",
++       rc == 1 and "could not be read (no roster at origin/main" in line
++       and "no pass" in line)
++    roster_obj, why = read_roster("/nonexistent/checkout")
++    ck("read_roster over a checkout with no roster is a refusal, not ({} , '')",
++       roster_obj is None and why and dispatch_gate(roster_obj, why, 6, None)[0] == 1)
++    import tempfile
++    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
++        fh.write("{not json")
++        bad = fh.name
++    try:
++        roster_obj, why = read_roster(roster_file=bad)
++    finally:
++        os.unlink(bad)
++    ck("a roster file that is not JSON is a refusal, naming it",
++       roster_obj is None and "roster file" in why
++       and dispatch_gate(roster_obj, why, 6, None)[0] == 1)
++    ck("HPO_WIP_CAP: unset is 6, '3' is 3, '0' and 'x' are invalid",
++       [wip_cap_from_env(e) for e in ({}, {WIP_CAP_ENV: "3"}, {WIP_CAP_ENV: "0"},
++                                      {WIP_CAP_ENV: "x"})] == [6, 3, None, None])
++    ck("an invalid cap refuses",
++       dispatch_gate(five, "", None, None)[0] == 1
++       and WIP_REFUSE + f"{WIP_CAP_ENV} is not a positive integer"
++       == dispatch_gate(five, "", None, None)[1])
++
++    # ---- opening is information only --------------------------------------
+     app = {"login": AUTHOR_APP, "is_bot": True}
+     other_bot = {"login": "app/dependabot", "is_bot": True}
+     human = {"login": "tvofi", "is_bot": False}
+-    five = [{"number": i, "title": f"R10-X{i}: t", "author": app} for i in range(5)]
+     rec = {"number": 90, "title": "record: delivery rows", "author": app}
+     bot = {"number": 91, "title": "bump a pin", "author": other_bot}
+     ck("the authoring App's pull requests count; a record: title and another bot do not",
+-       len(counted(five + [rec, bot, {"number": 92, "title": "t", "author": human}])) == 6)
+-    rc, line = gate(five + [rec, bot], "", 6, None)
+-    ck("below the cap opens (5 counted, the record and bot ones excluded)",
+-       rc == 0 and line == "open_pr: open-PR cap: 5 open < 6")
+-    rc, line = gate(five + [{"number": 9, "title": "t", "author": app}], "", 6, None)
+-    ck("at the cap refuses, naming the count and both ways past it",
+-       rc == 1 and line == REFUSE + "6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)")
+-    rc, line = gate(five + [{"number": 9, "title": "t", "author": app}], "", 6, "a merge train is draining")
+-    ck("--over-cap opens at the cap and logs its reason",
+-       rc == 0 and line == "open_pr: OVER-CAP: 6 open >= 6, overridden: a merge train is draining")
+-    ck("--over-cap with an empty reason refuses", gate([], "", 6, "  ")[0] == 1)
++       len(counted([{"number": i, "title": f"R10-X{i}: t", "author": app}
++                    for i in range(5)] + [rec, bot,
++                                          {"number": 92, "title": "t",
++                                           "author": human}])) == 6)
++    twenty = [{"number": i, "title": "t", "author": app} for i in range(20)]
++    rc, line = open_info(twenty, "")
++    ck("null control: 20 open pull requests are information; opening is not refused",
++       rc == 0 and line == "open_pr: 20 open PRs; the cap gates dispatch, not opening")
++    rc, line = open_info(None, "gh exited 1: HTTP 403")
++    ck("an open count gh cannot read says so and still does not stop an open",
++       rc == 0 and "could not be read (gh exited 1" in line and "opening anyway" in line)
+     prs, why = read_open("o/r", gh=lambda a: (1, "HTTP 403: rate limit"))
+-    rc, line = gate(prs, why, 6, None)
+-    ck("a gh failure is a refusal, never a pass", rc == 1 and "could not be read (gh exited 1" in line)
++    ck("a gh failure is reported, never read as an empty board",
++       prs is None and open_info(prs, why)[0] == 0 and "could not be read" in open_info(prs, why)[1])
+     prs, why = read_open("o/r", gh=lambda a: (0, "<html>"))
+-    ck("output that is not JSON is a refusal", gate(prs, why, 6, None)[0] == 1 and "not JSON" in why)
++    ck("output that is not JSON is a refusal of the read", prs is None and "not JSON" in why)
+     prs, why = read_open("o/r", gh=lambda a: (0, json.dumps([{"number": i} for i in range(200)])))
+     ck("a list at gh's limit may be truncated: refused", prs is None and "truncated" in why)
+     prs, why = read_open("o/r", gh=lambda a: (0, "[]"))
+-    ck("null control: an empty board reads as zero and opens", prs == [] and gate(prs, why, 6, None)[0] == 0)
+-    ck("HPO_OPEN_PR_CAP: unset is 6, '3' is 3, '0' and 'x' are invalid",
+-       [cap_from_env(e) for e in ({}, {CAP_ENV: "3"}, {CAP_ENV: "0"}, {CAP_ENV: "x"})] == [6, 3, None, None])
+-    ck("an invalid cap refuses", gate([], "", None, None)[0] == 1)
++    ck("null control: an empty board reads as zero", prs == [] and open_info(prs, why)[1]
++       == "open_pr: 0 open PRs; the cap gates dispatch, not opening")
+     hit, unread = coordinator_prs({1: [COORDINATOR_PATH], 2: ["x.py"], 3: None})
+     ck("coordinator PRs: the diff that touches it counts, an unread diff is named apart",
+        hit == [1] and unread == [3])
+@@ -155,21 +309,37 @@ def self_test() -> int:
+     return 1 if failed else 0
+ 
+ 
++def _opt(argv: list, name: str) -> "str | None":
++    """The argument after `name`, or None; an absent value is the empty string."""
++    if name not in argv:
++        return None
++    i = argv.index(name)
++    return argv[i + 1] if i + 1 < len(argv) else ""
++
++
+ def main(argv: list) -> int:
+     if argv[:1] == ["--self-test"]:
+         return self_test()
+-    if argv[:1] != ["gate"] or "--repo" not in argv:
+-        print(__doc__.split("\n\n")[1], file=sys.stderr)
+-        return 2
+-    repo = argv[argv.index("--repo") + 1] if argv.index("--repo") + 1 < len(argv) else ""
+-    over = None
+-    if "--over-cap" in argv:
+-        i = argv.index("--over-cap")
+-        over = argv[i + 1] if i + 1 < len(argv) else ""
+-    prs, why = read_open(repo)
+-    rc, line = gate(prs, why, cap_from_env(), over)
+-    print(line, file=sys.stderr)
+-    return rc
++    mode = argv[:1]
++    if mode == ["info"]:
++        repo = _opt(argv, "--repo")
++        if not repo:
++            print("pr_cap.py info --repo OWNER/REPO", file=sys.stderr)
++            return 2
++        prs, why = read_open(repo)
++        print(open_info(prs, why)[1], file=sys.stderr)
++        return 0
++    if mode == ["dispatch-gate"]:
++        repo = _opt(argv, "--repo") or "."
++        roster, where = read_roster(repo, _opt(argv, "--roster-file"),
++                                    _opt(argv, "--roster-ref"),
++                                    _opt(argv, "--roster-path"))
++        rc, line = dispatch_gate(roster, where, wip_cap_from_env(),
++                                 _opt(argv, "--over-cap"))
++        print(line, file=sys.stderr)
++        return rc
++    print(__doc__.split("\n\n")[1], file=sys.stderr)
++    return 2
+ 
+ 
+ if __name__ == "__main__":
