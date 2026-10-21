@@ -1,6 +1,0 @@
-== head
-dev/programme/delivery/7.md is not one open row anchored on #7 (tests/delivery_status.py's anchored)
-rc=1
-== W11 applied
-HEAD 1966e854 is the live head 5e647262 plus one commit adding only dev/programme/delivery/7.md, one open row for #7, and the body is the live one under one new `## Head` note
-rc=0

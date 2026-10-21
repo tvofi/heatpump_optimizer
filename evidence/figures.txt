@@ -1,0 +1,4 @@
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  MODE: FULL -- every test script runs, nothing is scoped out.
+Architecture score: dS +0.0000 NULL
+STRUCTURE RATCHET PASSED

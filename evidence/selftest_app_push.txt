@@ -125,6 +125,8 @@ ok   --row-only, GITHUB_TOKEN set: pushed
 ok   null control: an environment token is the one handed on, and gh's store is not read
 ok   --row-only REFUSES the skip (oclosed): prepr runs and passes, so it pushes
 ok   ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran
+ok   --row-only REFUSES the skip (omulti): prepr runs and passes, so it pushes
+ok   ... prepr ran once, the one line names why (dev/programme/delivery/7.md is not one open row anchored on #7), and no row-only check ran
 ok   REFUSE: HEAD moved after the --row-only verdict judged it (the tip check agrees with the moved HEAD)
 ok   naming both shas, and nothing was minted or pushed
 ok   REFUSE: --recarry does not combine with --row-only
@@ -136,6 +138,7 @@ ok   real git: a rewrite of a row the live head carries runs prepr
 ok   real git: an up-to-date main merge (no commit) then the row skips prepr
 ok   real git: the row on a commit past the live head runs prepr, though the tree diff is the row alone
 ok   real git: a row anchored on #7 that is not open runs prepr
+ok   real git: a row file of two lines, the first the open row anchored on #7, runs prepr
 ok   real git: a row file that anchors nobody runs prepr
 ok   real git: a body that is not the live one under one new note runs prepr
 ok   a recarry of a body whose prose quotes `## Head` pushes
@@ -177,8 +180,5 @@ ok   naming the state the read answered
 ok   zero retries, zero settles: one read, no sleeping
 ok   and no success line
 ok   the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)
-app_push self-test: 179 checks, 0 failed
-
-real	0m31.621s
-user	0m17.267s
-sys	0m6.760s
+app_push self-test: 182 checks, 0 failed
+rc=0
