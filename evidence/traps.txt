@@ -1,0 +1,31 @@
+## trap51 citations
+dev/programme/delivery/2566.md:1:- [#2566](https://github.com/tvofi/heatpump_optimizer/pull/2566) — **open**, record: trap 51 now names the layout guard body_push's predictor skips
+rc=0
+## trap 11 cite
+.claude/hooks/session-start.sh:10:#                           is SILENT (HANDOVER trap 11), which is what makes it
+11. **A shallow checkout fails a driver on the clone, not the tree.** Graduated:
+    `entities.py` refuses a history-reading driver at depth 1 (#901).
+
+12. **A shallow clone turns "commits ahead" into fiction**; four such figures
+## updated-for
+3:updated-for: 0cc148b2f80fe224ffe2c504b29fd4f0908183df
+33:- **The record beat writes delivery rows; this file's `updated-for:` line stays
+anc-head
+anc-main
+## trap47
+tools/audit/seat/merge_pr.sh
+159:  # mergeStateStatus already encodes the ruleset's REQUIRED contexts: UNSTABLE/CLEAN =
+164:    UNSTABLE|CLEAN|HAS_HOOKS) echo "OPTIONAL-RED, proceeding (mergeState=$mss): $red" ;;
+## trap52
+Python 3.11.17
+## CORPUS_EXCLUDED sentence gone
+470:  'docs/HANDOVER.md',
+6191:  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+## trap47: merge_pr.sh, the line before 'gh pr merge': exits 'not clean' unless CLEAN|HAS_HOOKS
+gh pr merge $PR --merge --match-head-commit $S || exit 1
+## trap52: system python3
+    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+rc=0
+170:[ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }

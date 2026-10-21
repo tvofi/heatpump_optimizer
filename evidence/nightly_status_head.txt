@@ -1,0 +1,4 @@
+check-run 119479409582 (nightly-status, head c7f727478e3d4ec7dbe7a1284cd7634ce0aa7651), PINNED 5006687576713535518634a154f7de1824432219:
+NIGHTLY FAILED: mutation-nightly, slow failed last night.
+  scheduled run 39563978649, 2026-10-21T07:43:20+00:00, head c77f89d, run conclusion 'failure'
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.
