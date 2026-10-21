@@ -1,0 +1,23 @@
+  ok   null control: a healthy board is ok on all three arms
+  ok   the 10-21 shape: the blocked #2527 verdict 7.7 h at its head is STOPPED
+  ok   the 10-21 shape: a backlog older than the last opening is counted, not a stop
+  ok   the 10-21 shape: a beat that died with the train is not blamed while main is still
+  ok   a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
+  ok   the same handoff with an opening after it arrived is ok
+  ok   main moved 60 min ago, the state ref did not follow: state-beat STOPPED, the rest ok
+  ok   the state-beat age is the oldest main move the state ref has not followed
+  ok   inputs younger than their bounds are ok on every arm
+  ok   perturbation: a --verdict-h above the verdict's age reads it ok
+  ok   a verdict whose pull request merged or whose head moved is consumed
+  ok   an unread last opening is UNREADABLE, never ok
+  ok   unreadable inputs read UNREADABLE on every arm, never ok
+  ok   a state ref with main or its own commit unread is UNREADABLE
+  ok   bus.sh rc 0 with no summary line is UNREADABLE
+  ok   a stamp ahead of the clock is never aged and is named skew
+  ok   the verdict subject parser reads a blocked verdict's PR, kind and head
+  ok   a design-review subject is not a verdict
+  ok   an orphan of unknown age is named, never aged
+  ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
+  ok   the summary line counts the arms
+pulse self-test: 21 checks, 0 failed
+exit=0

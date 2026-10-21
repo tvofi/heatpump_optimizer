@@ -1,0 +1,10 @@
+PULSE opener ok no handoff waiting >= 3 h on an opener that has opened nothing since; 1 older than the last opening
+PULSE verdict STOPPED 2 verdict(s) unconsumed at their head for > 2 h, oldest #2524 blocked c071fa5f 6.3 h
+PULSE state-beat ok handoff/audit-r10-plan follows main within 45 min
+pulse: 3 arms, 1 stopped, 0 unreadable at 2026-10-21T21:12:53Z
+RESULT pulse live run 1 exit=1 wall=7.429168363 s
+PULSE opener ok no handoff waiting >= 3 h on an opener that has opened nothing since; 1 older than the last opening
+PULSE verdict STOPPED 2 verdict(s) unconsumed at their head for > 2 h, oldest #2524 blocked c071fa5f 6.3 h
+PULSE state-beat ok handoff/audit-r10-plan follows main within 45 min
+pulse: 3 arms, 1 stopped, 0 unreadable at 2026-10-21T21:13:00Z
+RESULT pulse live run 2 exit=1 wall=6.968330419 s
