@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/f702e6e0-cd5e-5e25-86dc-8bcb29ae4cf9/scratchpad/tmp.JbfENHNiQc/wt/tests/entities.py", line 47, in <module>
+    from harness import (
+    ...<9 lines>...
+    )
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/f702e6e0-cd5e-5e25-86dc-8bcb29ae4cf9/scratchpad/tmp.JbfENHNiQc/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1
