@@ -1,0 +1,28 @@
+== M1 step6 -> harness: class-open
+ dev/governance/roles/fix-review.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fix-review.md teaches "class-open" as a reason under another class: blocked <sha> harness: class-open <seam> spell it `blocked <sha> class-open: ...`
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+202 passed, 1 failed
+rc=1
+== M2 shadowed returns null
+ tools/policy/check-wave-script.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the shadow predicate fires on the #1414 spelling (negative control) it cannot fail
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+201 passed, 1 failed
+rc=1
+== M3 mutation-vacous
+ dev/governance/roles/fix-review.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fix-review.md teaches block class "mutation-vacous", and VERDICT_CLASSES carries it routed to `other`; taught: mutation-vacuous, harness, null-control, claims, version, head-moved, carry-missing, root-cause-unanswered, preflight-mismatch, class-open, conflict, other, product-tradeoff-regression, metric-gamed, architecture-unsound, root-cause-detectable, root-cause-unrecorded
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+201 passed, 1 failed
+rc=1
+== M5 detector loop deleted (M1 applied too)
+ dev/governance/roles/fix-review.md | 2 +-
+ tools/policy/check-wave-script.mjs | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+202 passed, 0 failed
+rc=0
