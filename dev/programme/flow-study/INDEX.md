@@ -75,7 +75,7 @@ The model's design switches are in `tools/simulate.py`'s header.
 - The study channel is closed.
 
 **Revision 19 (2026-10-21), final:**
-- A deferral rule tied to the mandate's end.
+- No deferral: round 11 starts from 0 open PRs and #201 alone; the programme is extended if needed.
 - The P2 cut-over checklist.
 - "The tree wins" limited to facts.
 - The plan is handed to the orchestrator.

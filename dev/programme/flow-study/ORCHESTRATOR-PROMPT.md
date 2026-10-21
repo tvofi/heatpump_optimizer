@@ -1,9 +1,9 @@
 # Adoption plan for the round-10 orchestrator: **revision 19, final** (2026-10-21)
 
-**Revision 19** answers s4's last pushback:
-- a deferral rule ties "Programme complete" to the mandate window;
-- P2's ruleset cut-over is yours to perform, with a written checklist, because your identity has admin;
-- "the tree wins" covers facts, never which approval a policy requires.
+**Revision 19** answers s4's last pushback, as the owner ruled it:
+- **Nothing is deferred to round 11.** Round 11 starts from 0 open PRs, with #201 the only open issue. If the window is too short, the programme is extended.
+- **P2's ruleset cut-over is yours** to perform, with a written checklist, because your identity has admin.
+- **"The tree wins"** covers facts, never which approval a policy requires.
 
 After this revision the plan is the orchestrator's. The pack is closed, and the amendment log on #201 continues it.
 
@@ -95,7 +95,7 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 1. **Dry read.**
    - `gh api repos/tvofi/heatpump_optimizer/rulesets/23698884 > ruleset-before.json`.
    - Confirm the 17 context names and their integration ids. Confirm P2's head has a green `gate` run, and so does a test PR after P2's merge (integration 15368 per the design).
-   - If any of this does not match, hold P2 merge-ready and log an amendment.
+   - If any of this does not match, do not merge yet. Find and fix the mismatch inside round 10 (a fly-in if it needs code), then repeat the dry read. P2 must land before completion.
 2. **Timing.** Use a pitch that satisfies the gap rule ("CI layout"): no critical-chain PR within about 1.5 h of boarding. Post the start on #201.
 3. **Merge P2** through `merge_pr.sh` in owner mode, citing the mandate.
 4. **PUT immediately.** Write the whole ruleset object from `ruleset-before.json`, with only `required_status_checks` replaced by `gate`. Never send a partial object.
@@ -121,6 +121,7 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 3. **A rule that measurably costs more than it saves may be amended.** Give the measurement in the amendment line.
 4. **A friction that recurs a third time goes to a root-cause seat** (`CLAUDE.md`, `defect-root-cause.md`). Its countermeasure is a fly-in (S only) or a roster group through a roster PR (rule 21). Fix first; file only when you cannot act (`CLAUDE.md`'s fallback chain).
 5. **The "Unchanged" list at the end of this prompt is never amended.**
+6. **New defects are never traded against the completion target.** Each one owes an in-round fix ("Programme complete" item 3); a later completion date is the cost, through the extension route.
 
 **Amendment log.** Record every deviation from or amendment to this prompt as one line on #201:
 
@@ -137,32 +138,47 @@ That log is the plan's continuation. Number the amendments from A1, and never ed
 4. The tick board.
 5. Re-take the live state (open PRs, roster stages, main's required contexts, the train lock, held seats) before acting on any line in "Where things stand", which is stale by design.
 
-**Programme complete** means all of these hold:
-1. **Groups:** every round-10 roster group is merged, or deferred to round 11 with its reason in the roster. The round-11 architect triages the deferrals. **The deferral rule** is fixed to the mandate's end, T = 2026-11-04T18:14Z:
-   - **At T − 48 h (2026-11-02T18:14Z):** no group that has not started dispatches. Every group not yet merged and not holding a merge verdict at a green head is deferred, through one roster PR, with:
-     - a roster line giving its reason (stage reached, what remains);
-     - a round-11 slot;
-     - its branch or handoff kept.
+**Programme complete** means all of these hold. Round 11 starts from this state and no other.
+1. **Every round-10 roster group is merged.** Nothing is deferred to round 11. A group that turns out wrong is re-scoped or re-cut inside round 10 (rule 21 and a roster PR), never pushed forward.
+2. **0 open pull requests.** Every open PR is merged. Close one only when it is superseded and a named merged PR carries its content, recorded on #201. Never close one to make the count. That includes record, dependabot and roster PRs. At revision 19 there were 24 open.
+3. **#201 is the only open issue.** Every other issue is closed, either:
+   - by a merged PR's closing keyword; or
+   - with a disposition a policy file allows: the judge's refutation, a duplicate of a closed issue, or `web-triage` closing a measure-first issue on its number.
 
-     In-flight seats stop at their next checkpoint and hand off. Nothing is forced to merge.
-   - **By T − 24 h:** groups holding a merge verdict at a green head board in the last trains. A verdict that goes stale after T − 48 h defers the group; it does not buy another review.
-   - **By T − 12 h:** the stamp, after a green Tests push run. That leaves margin for one stamp refusal and its repair.
-   - **The arithmetic:** 54 groups open at 0.30 groups closed per hour (the pack's measured baseline) is about 180 h, against about 330 h left in the window. The flow and design groups are on top. The rule is the backstop for the case where the future-state rate does not arrive.
-2. **Main and the stamp:** main is green on its required contexts, with a green Tests push run. The round-10 stamp is done through `tools/release/stamp.py --push --push-key`, with notes naming every merged PR.
-3. **The transition groups have landed:** the flow groups, R10-FLOW-DESIGN-POLICY and -STAGES, R10-FLOW-TOOLKIT-MEASURE and -MODEL, R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN, and the fly-ins. Any group that has not landed by the stamp gets a roster line with the reason and its round-11 slot.
-4. **CI layout:** R10-CI-LAYOUT-P1 is merged. P2 is merged with the ruleset cut over, or held merge-ready with the PUT posted.
-5. **A final #201 state comment** reports:
+   Never close one to make the count. Re-count at adoption with `gh issue list --state open`.
+
+   **The count never hides a defect.** Every new issue or defect found during round 10 owes an **in-round fix**: by a seat, a reviewer's observation carried with `Carry: <group>`, CI, a root-cause seat, or the audit tooling.
+   - Register it as a fly-in or roster group, and land the fix before completion.
+   - The zero-issue target is reached by fixing, never by not filing, not carrying, or dismissing.
+   - `Carry: dismissed:` is for a note that is not a defect, never for a defect that is inconvenient to fix now.
+   - `CLAUDE.md`'s "fix it; if you cannot, verify it; only then file" still decides **how** it is recorded. It never decides **whether** it is fixed.
+   - The extra work is what the extension route below absorbs.
+4. **No owed handoff.** Every `handoff/*` ref with content has landed through a merged PR, or is retired with its content named in a merged PR.
+5. **Main and the stamp.** Main is green on its required contexts, and the Tests push run is green. After the last merge, the round-10 stamp is done through `tools/release/stamp.py --push --push-key`, with notes naming every merged PR.
+6. **The transition has landed:** the flow groups, R10-FLOW-DESIGN-POLICY and -STAGES, R10-FLOW-TOOLKIT-MEASURE and -MODEL, R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN, R10-CI-LAYOUT-P1 and -P2 with the ruleset cut over, and every fly-in.
+7. **A final #201 state comment** reports:
    - review strength (`review_baseline.py --hours 48`);
-   - FPY for designed groups against the rest, and revalidation hours (`design-seats/tools/review_rounds.py`);
+   - FPY for designed groups against the rest, and revalidation hours;
    - main health and reverts;
    - `tools/audit/archscore/score.py --diff <round-10 fork> origin/main`, with its admissibility;
+   - the counts (0 PRs open, #201 the only issue);
    - every `Plan amendment` line.
-6. **The handover:** `dev/programme/HANDOVER.md` is refreshed for round 11, and the round-11 template (P3 ≤8 h, P4 ≤56 h) is in the plan of record.
+8. **The handover:** `dev/programme/HANDOVER.md` is refreshed for round 11, and the round-11 template (P3 ≤8 h, P4 ≤56 h) is in the plan of record.
 
-**Then stop.** Leave #201 open, and do not start round 11's P1: a new programme starts on the owner's word.
+**If the window is too short, extend the programme. Never defer.** The mandate ends at T = 2026-11-04T18:14Z.
+- **At T − 72 h (2026-11-01T18:14Z), and again at T − 24 h,** project completion from two things: the last 24 h's close rate applied to the remaining groups, PRs and issues, and the flow model.
+- **If the projection lands after T − 12 h,** post on #201 a programme-extension request giving:
+  - the projected end plus 25% margin;
+  - the remaining groups, PRs and issues;
+  - the exact mandate line for the owner to post: `MANDATE: agents may approve as tvofi, scope all, from <T> until <new end>`.
+
+  **You never post, edit or extend a mandate yourself:** only an owner comment counts, and an edited mandate is void. Work continues unchanged while the request is open.
+- **If the window lapses before an extension is posted,** code-owned approvals and merges pause, and every other piece of work continues. The stamp waits until everything has merged.
+
+**Then stop.** Leave #201 open, and do not start round 11's P1: it starts on the owner's word, from 0 open PRs and #201 alone.
 
 **Stops that are not questions.**
-- **The mandate ends before completion:** stop code-owned merges, post one line on #201, and keep every other kind of work going.
+- **The mandate ends before completion:** see "If the window is too short" above. Code-owned merges pause, all other work goes on, and nothing is deferred.
 - **A guardrail trips:** revert the flow change that caused it, if it caused it; otherwise fix forward. Log it as an amendment.
 - **A required context stays red on main for two pushes for a reason outside the round:** treat it as main-red per rule B and MAIN-GATE. It is not a question for anyone.
 
