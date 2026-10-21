@@ -6,24 +6,35 @@ Round 2: `heartbeat.sh` is registered `guarded` in `ref_privacy.py`'s `PUSHERS` 
 
 ## Head
 
-Code head: the tip of `handoff/r10-flow-andon` (a50dee030fe8164b5da015e441b2b7ac21323b02), a single-commit fix on top of 5005f02ef, which is the merge of origin/main 4b36dc730125 into round 1's 8f5807ae4 (merge, not rebase). `git merge-tree --write-tree origin/main HEAD` is clean at origin/main 4b36dc730125.
+Code head: the tip of `handoff/r10-flow-andon` (841c65da4deed8c78dd73616b56aa0661b830c3a), the merge of origin/main 5a755f53efda (#2529) into PR head 7a3fc062b4cfe43acc34dc24481dd21bc1a073ac (merge, not rebase). Figures below were taken at that head against origin/main 5a755f53efda, 2026-10-21T22:34Z. `git merge-tree --write-tree origin/main HEAD` is clean at that tip; at 7a3fc062b it exits 1 (the conflict this round resolves).
+
+## Conflict resolution
+
+One file, `dev/audit/harnesses/r10_seat_selftests_mutants.py`, two hunks, both resolved by keeping both sides:
+- The module docstring's id sentence: main says `S01..S38 each plant one production-line`, this branch said `S01..S34 and the per-file ids (tick_loop-N, heartbeat-N) each plant...`. Kept: `S01..S38 and the per-file ids (tick_loop-N, heartbeat-N) each plant one production-line`.
+- The tail of `MUTANTS`: main appended S35..S38 (#2444's forward-carry: three `handoff_push.sh` push lines and the `merge_pr.sh` merge line), this branch appended tick_loop-1, tick_loop-2, heartbeat-1..heartbeat-4. Kept main's four first, then this branch's six, each tuple byte-identical to its side.
+No other file conflicted; the rest of #2529 (governance.yml, closure.py, closures.json, INSTRUMENTS.md, cloud_relay.sh, handoff_push.sh, a new harness and two delivery rows) merged automatically.
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` (all mutants, at this head) -> `RESULT survivors=0`. New this round: heartbeat-4 deletes the `ref_privacy.py guard` call in `hb_push` and is KILLED (`heartbeat self-test: 7 checks, 1 failed`). Round 1's per-file mutants re-run at this head and are all KILLED: tick_loop-1 (heartbeat call deleted), tick_loop-2 (failure print silenced), heartbeat-1 (`-f` dropped), heartbeat-2 (stale limit x100), heartbeat-3 (NOT PUSHED print dropped). Ids are per file, with no new S number. The registry entry's own mutant is the null control below: the tree without it refuses.
+`python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` (every mutant, at 841c65da4) -> `M0: 0 seat step(s) red`, then every mutant `KILLED`, `RESULT survivors=0`, exit 0.
+- This PR's six: tick_loop-1 KILLED (heartbeat call deleted), tick_loop-2 KILLED (`tick_loop self-test: 12 checks, 1 failed`), heartbeat-1..heartbeat-4 KILLED (each `heartbeat self-test: 7 checks, 1 failed`).
+- Main's four from #2529: S35, S36, S37 KILLED (each `handoff_push self-test: 2 checks, 1 failed`), S38 KILLED (`merge_pr self-test: 16 checks, 2 failed`).
+- S01..S34, S04U and W1..W3 also KILLED.
 
 ## Null control
 
-M0 in the same harness run runs every `instrument-self-tests` seat step unmutated and reports `M0: 0 seat step(s) red`, the ref_privacy step included. For the registry, `python3 -I tools/audit/seat/ref_privacy.py --check` from a worktree at 5005f02ef (round 1's code merged with main, no registry entry) prints `REFUSE tools/audit/seat/heartbeat.sh:35: a push site in a file PUSHERS does not name` (the CI red reproduced); at this head it prints `0 refused`. The guard arm's null control is the reachable remote: with the guard in place the ref stays at the previous pass's sha.
+For the resolution keeping both sides: a scratch probe parses the `MUTANTS` id set at three revisions (`ast` over `git show <rev>:<path>`). It prints `main=35 branch=37 head=41 union=41 missing_from_head=[] extra_in_head=[]` and exits 0 at HEAD. Run with origin/main in HEAD's place (a main-side-only resolution) it lists the six andon ids missing and exits 1. Run with 7a3fc062b in HEAD's place (a branch-side-only resolution) it lists S35..S38 missing and exits 1. For the mutants, M0 in the same harness run runs every `instrument-self-tests` seat step unmutated and every step is rc=0, so each KILLED is the mutant's. Round 2's registry null control (`ref_privacy.py --check` refuses heartbeat.sh at 5005f02ef) is not affected by this merge and was not re-taken.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/ref_privacy.py --check` -> ref_privacy's own summary line, `0 refused` at this head, `1 refused` at 5005f02ef
-- `python3 -I tools/audit/seat/ref_privacy.py --self-test` -> `0 failed`
+All at 841c65da4, origin/main 5a755f53efda, 2026-10-21T22:34Z:
+- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` -> `RESULT survivors=0`, M0 `0 seat step(s) red`
 - `bash tools/audit/seat/heartbeat.sh --self-test` -> `heartbeat self-test: 7 checks, 0 failed`
 - `bash tools/audit/seat/tick_loop.sh --self-test` -> `tick_loop self-test: 12 checks, 0 failed`
+- `python3 -I tools/audit/seat/ref_privacy.py --check` -> ref_privacy's own summary line, `0 refused`
+- `python3 -I tools/audit/seat/ref_privacy.py --self-test` -> `0 failed`
 - `python3 tools/audit/seat/selftest_wiring.py --check` -> its own summary line, 0 unwired
-- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` -> `RESULT survivors=0`
 - `python3 tests/throwaway_git.py --check` -> 0 refused
 - `python3 tests/structure.py` -> STRUCTURE RATCHET PASSED; no budget raised
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` -> MODE: SCOPED, runs tests/entities.py and tests/harness_headers.py
@@ -32,13 +43,11 @@ M0 in the same harness run runs every `instrument-self-tests` seat step unmutate
 
 ## Red checks
 
-`instrument-self-tests` was red at round 1's head 8f5807ae4: the ref_privacy step refused `tools/audit/seat/heartbeat.sh:35` as a push site `PUSHERS` does not name. It is this pull request's own red, and this round fixes it. The cheaper detector already exists: `python3 -I tools/audit/seat/ref_privacy.py --check` runs in seconds with no network, and `heartbeat.sh` was a new pushing file. Its standing cost is one local command, which round 1 did not run because the fixer's step list names `scope.run` and the self-tests of the touched files, not the registry checks over `tools/audit/seat/`. The `instrument-self-tests` mutant harness's M0, which runs every step of that job, would also have caught it. This round runs both. Carry: dismissed: one-off omission, the harness M0 already covers it
+At PR head 7a3fc062b the one red check is `nightly-status`. This head has not run CI yet; it inherits that check's input unchanged. `nightly-status` grades the scheduled runs on `main`, not this diff. Its failing inputs are main's nightly lanes. This diff touches no production module, no `tests/` driver, no budget and no `tests.yml`. Its `governance.yml` hunk adds one step to `instrument-self-tests`, which no nightly job runs. The cheaper detector for main's nightly reds is the PR-time `mutation` job and the scoped gate, which already run on every pull request and were green at 7a3fc062b. Carry: dismissed: main's nightly lanes, not this diff
 
-`nightly-status` is red. It grades `main`, and this diff touches `.github/workflows/governance.yml`, which it reads. It cannot be this pull request's own red. The latest scheduled `tests.yml` run on main is 39563978649 (2026-10-21T07:43Z, head c77f89d, before this branch's commits existed), read with one `actions/workflows/tests.yml/runs?event=schedule&branch=main` list call. Two jobs failed there:
-- `slow`: `synthetic-dhw-only.json: cycle_cost`, with `loop_cpu_ratio 0.1138` over its 0.111 budget. #2548 (R10-REPLAY-CAP, merged 17:03Z, after that run) re-records that budget.
-- `mutation-nightly`: `MUTATION TABLE BREACHED`, with 39.1% of drawn mutants surviving against a 30.0% cap. All ten survivors are in `custom_components/heatpump_optimizer/` modules.
+`ci-ratchet` was skipped on this PR. Main's own red there is runner-speed variance, and R10-CI-LAYOUT owns it. It is not this diff's: this diff adds no CI job and changes no budget. Carry: R10-CI-LAYOUT
 
-Neither job's inputs are in this diff. This diff changes only `tools/audit/seat/`, one `instrument-self-tests` step in `governance.yml`, `INSTRUMENTS.md` and one harness under `dev/audit/harnesses/`. It touches no production module, no `tests/` driver, no budget and no `tests.yml`. The `governance.yml` hunk adds one step to the `instrument-self-tests` job, which neither nightly job runs. The cheaper detector for the survivor rate is the PR-time `mutation` job scoped to a diff's own production sites. It costs nothing extra, because it already runs on every pull request, and it was green here. For the `slow` cost budget no cheaper detector exists: the measurement depends on the runner class, as #2548's body records. The check turns green on the first concluded `tests.yml` run on main after #2548 if the survivor rate is also under its cap. Carry: dismissed: main's nightly lanes, not this diff
+Round 2 answered `instrument-self-tests` red at round 1's head 8f5807ae4 (an unregistered push site), and that round fixed it. It was green at 7a3fc062b, and the harness M0 above re-runs every step of that job green at this head.
 
 ## Forward-carry
 
@@ -47,4 +56,4 @@ Neither job's inputs are in this diff. This diff changes only `tools/audit/seat/
 
 ## Friction
 
-none
+The scoped scripts need the seat venv: system `python3` here lacks voluptuous, so `tests/entities.py` and `tests/harness_headers.py` ran under the seat venv.
