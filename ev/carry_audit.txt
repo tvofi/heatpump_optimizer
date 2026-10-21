@@ -1,0 +1,7 @@
+BAD-DEST body item 03bdd6ce: #2428: #2428 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2428.json
+BAD-DEST body item 9d828222: #2436: #2436 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2436.json
+BAD-DEST body item 4eeeca43: #2437: #2437 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2437.json
+BAD-DEST body item 28e01b0a: #2429: #2429 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2429.json
+BAD-DEST body item d4b5ac2e: #2438: #2438 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2438.json
+BAD-DEST body item 3ff950da: #2437: #2437 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2437.json
+CARRY-AUDIT: 12 finding item(s): 6 routed, 0 unrouted, 6 bad destination(s)

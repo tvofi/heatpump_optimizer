@@ -1,0 +1,3 @@
+  ok   ...and an undeclared ROUND_DIR or CURRENT is refused, not passed (#2268)
+202 passed, 0 failed
+rc=0
