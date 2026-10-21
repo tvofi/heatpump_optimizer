@@ -1,7 +1,0 @@
-tools/audit/briefs/orchestrator.md               318  319     4511  4513 
-tools/audit/briefs/fixer.md                      315  315     5212  5216 
-CLAUDE.md                                        208  221     3498  3590   yes
-tools/audit/briefs/fix-review.md                 140  140     2451  2451 
-dev/governance/roles/designer.md                  60   60      878   878 
-dev/governance/roles/design-review.md             53   53      778   778 
-corpus:        ~62892 tokens, cap 62892 +band 500 = 63392
