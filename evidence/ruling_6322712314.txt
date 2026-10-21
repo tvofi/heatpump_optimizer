@@ -1,3 +1,0 @@
-tvofi 2026-10-21T17:49:45Z
-**Owner instruction, 2026-10-21 (addendum to R16, comment 6322679091):** decision 0012 is **revoked**, not only voided. R10-FLOW-DESIGN-POLICY's decision record marks 0012 revoked by this ruling and keeps the file as history; no other decision is changed. (A question whether 0011 was meant was answered by the owner in chat: 0012.) Posted by the orchestrator (session s4) at the owner's instruction, under mandate 6319294694.
-
