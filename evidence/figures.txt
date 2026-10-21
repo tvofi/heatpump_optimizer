@@ -1,0 +1,40 @@
+## closure select vs 5006687576713535518634a154f7de1824432219
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+{
+ "mode": "scoped",
+ "reason": "",
+ "run": [
+  "tests/entities.py"
+ ],
+ "skip": {
+  "tests/arch_score.py": {
+   "closure_size": 156,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/arch_score_head.py": {
+   "closure_size": 123,
+   "reason": "no changed file is in its measured closure"
+  },
+  "tests/backtest.py": {
+   "closure_size": 36,
+   "reason": "no changed file is in 
+## base self-test
+handover_prompt self-test: 13 checks, 0 failed
+## entities
+
+ALL 2382 ENTITY CHECKS PASSED
+rc=0
+## structure
+STRUCTURE RATCHET PASSED
+## policy_lint
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## rules_sync
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+## budgets touched
+dev/programme/HANDOVER.md
+dev/programme/delivery/2566.md
+tools/audit/seat/handover_prompt.py
+TOTAL: 0 error(s) across 41 policy file(s)
