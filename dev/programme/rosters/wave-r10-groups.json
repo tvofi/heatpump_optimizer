@@ -5453,9 +5453,9 @@
    "carry": [],
    "architect_note": "Owns the relay invocation in tick_loop.sh only. R10-RCA-ORCH-CONTINUITY (concurrent, cloud) may add a continuity barrier elsewhere; neither rewrites the other block, and whichever merges second merges main and keeps both.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-tick-relay-decouple",
-    "commit": null,
+    "commit": "e9febe6224eaccedbdcd3ffdf3f92a84cb034e9a",
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-21",
     "note": null
