@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/const.py b/custom_components/heatpump_optimizer/const.py
+index 2211b89e9..4519fe43e 100644
+--- a/custom_components/heatpump_optimizer/const.py
++++ b/custom_components/heatpump_optimizer/const.py
+@@ -1037,7 +1037,7 @@ SOLAR_APERTURE_MIN_SAMPLES: Final = 30
+ #: gain at 50 W/m² is 0.245 kW, which one half-hour interval at the house
+ #: capacity turns into 0.012 K, under 0.02 K of residual against the
+ #: learner's 1.0 K rejection.
+-HEAT_LOSS_MAX_SOLAR_W_M2: Final = 50.0
++HEAT_LOSS_MAX_SOLAR_W_M2: Final = 1000.0
+ #: #53 — per-hour internal gains, ridge-regularised toward the constant.
+ CONF_INTERNAL_GAINS_LEARNING_ENABLED: Final = (
+     "internal_gains_learning_enabled"

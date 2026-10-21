@@ -1,76 +1,81 @@
-Fix review: blocked 829ea7c7238d62293a58bb9d9625e844ac7fd09d carry-missing: not carried to R10-BRIEFS-FOLD
+Fix review: blocked 2f47581094ad66bd76ccfa6efff92aef90036aeb vacuous-test: the refit's irradiance record (coordinator.py:9796 pending "solar") survives features.py and the whole scoped gate
 
-PR #2563, group R10-NIGHT-FOLDS, fix review (cloud reviewer seat). Head measured: 829ea7c7238d62293a58bb9d9625e844ac7fd09d (refs/pull/2563/head still points there when this was written). Merge base 3688cf25977ca71b4406be942df9592577d9b42e = origin/main. The diff to `dev/governance/roles/` between the merge base and origin/main is empty, so the contract is current. Detached worktrees: head /home/user/rev, base /home/user/base. Python is /opt/hpo/venv-ci (numpy 2.4.6, scipy 1.17.1).
+PR #2563, group R10-NIGHT-FOLDS. Fix review, round 2 by the cloud reviewer seat; the PR's round 1 block is the hpo-approver comment at 829ea7c72. Head measured: 2f47581094ad66bd76ccfa6efff92aef90036aeb. Its tree, df75d6ebc, is identical to the body's measured code head 9f0ed12e7, so the body's figures apply to this head. Merge base 57f0c9c77 = origin/main. The diff to `dev/governance/roles/` from the merge base to origin/main is empty, so the contract is current. Python is /opt/hpo/venv-ci. Worktrees: head /home/user/rev, base /home/user/base, one mutant worktree each under /home/user/mut_*.
 
 ## Blocking
 
-Step 10, the forward-carry. The body's `## Forward-carry` line 1 (`Carry: R10-BRIEFS-FOLD`) records a finding this PR produced: the D2 step-5 class barrier "must drive the learners together: the gains arm needs a converged level and a genuine gain". That finding is real and changes the later stage:
-- At this head, a gains probe driven at an unconverged level no longer measures anything. The sweep enumerator's own `probe_internal_gains` dies with `TypeError: 'NoneType' object is not iterable` (ev/enumerate.rev.out).
-- The companion's `gains.converged` arm is the control that works (1.9800; ev/r10_night_folds_learners.rev.out).
+Step 1, the mutation proof. The body says `accuracy.heat_loss_refit` "records the interval's irradiance on `AccuracySample` and refuses a sunlit pair". The refusal is tested, but the recording is not. This diff adds the recording in two places:
+- coordinator.py:9796 captures `"solar": ctx._current_state.solar_radiation` into the pending interval.
+- coordinator.py:9718 writes it to the sample as `solar_radiation=pending.get("solar")`.
 
-So the precondition must reach the stage's brief before this PR merges (`finding-propagation.md`, Enforcement). It is not there:
-- The body names `dev/programme/rosters/wave-r10-groups.json` as the destination but gives no `handoff/audit-r10-roster` SHA.
-- At roster head 31e162fd3a1207db596539b2330af1d274c36c85, R10-BRIEFS-FOLD (stage not-started) has 20 carry entries and a brief. Its brief carries only the generic "D2 step 5 tests learners under error in the other covariate" (from the group brief, which predates this PR). No carry states the converged-level / genuine-gain precondition or its control (ev/roster_R10-BRIEFS-FOLD_at_31e162fd3.json).
-- `git grep -i -E "converged level|genuine gain|drive the learners together"` over dev/programme, dev/governance and .claude/workflows finds nothing on the roster branch, on origin/main or at the head.
+I changed line 9796 to `"solar": None` (ev/mut.m6_plumb.diff):
+- `tests/features.py` reads `ALL 4289 FEATURE CHECKS PASSED`, rc=0 (ev/mut.m6_plumb.out).
+- The whole scoped gate, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=57f0c9c77 PYTHONPATH=tests/hastub bash tests/run.sh`, reads `31 TEST SCRIPT(S) PASSED; 3 SCOPED OUT AND NOT RUN`, rc=0 (ev/mut.m6_plumb.gate.out).
 
-To clear it: append the carry to R10-BRIEFS-FOLD on `handoff/audit-r10-roster` (tools/audit/seat/roster_edit.py append-carry). Write it as a precondition with its control: the gains arm runs at a converged heat-loss level with a genuine gain, and the control is `r10_night_folds_learners.py`'s `gains.converged.rel_dev` > 0.05 with `gains.unconverged.rel_dev` 0.0000. Then name the roster SHA in the body. Everything else below verified, so a re-review after the carry lands needs only step 10 plus the carry predicate.
+Under that mutant every production accuracy sample carries `solar_radiation=None`. `is_sunlit_interval(None)` reads as dark, so the drift refit admits every sunlit pair again: exactly the base behaviour #2223 closes. Every refit check (`_refit_pair`, `heat_loss_refit`) builds `AccuracySample` by hand, and so does the companion's `refit.*` arm (`r10_night_folds_learners.py` lines 114-123). So the companion's `refit.sunlit.pairs` 192 -> 0 measures the pair gate, not the production refit. `mutation` cannot see this either: the diff's ledger pins cover only CMP_BOUND, GUARD_OFF and RETURN_DEL sites, and this is a value in a dict literal. The lane was still in progress when written.
 
-## Verified (RESULT lines are mine, at base 3688cf259 and head 829ea7c72)
+To clear it, add a check that drives the coordinator's own path: prediction capture, then settle into `_accuracy_tracker` with a sunlit `_current_state.solar_radiation`. It must assert that the stored sample carries the irradiance, or that `heat_loss_refit` over the tracker's samples refuses the pair. It must fail under the mutant above and under `solar_radiation=None` at line 9718. Carry: R10-NIGHT-FOLDS
 
-Step 2, the finder's harness. I ran `dev/audit/rounds/round10/study-ident/run_q1.sh` at both ends: 20/20 `rc=0` each (ev/q1base, ev/q1head, ev/q1*.spread.txt). Every `fixed_arm_spread` in the body re-derives exactly:
-- P0 autumn 0.2691 -> 0.0147
-- P1 autumn 0.3790 -> 0.0219
-- P2 autumn 0.1405 -> 0.0074
-- P3 autumn 0.3383 -> 0.0205
-- P4 autumn 0.2383 -> 0.0101
-- P5 autumn 0.2894 -> 0.0168
-- delivery arms: P1 g0.4 0.3962 -> 0.0224, P1 g0.6 0.3925 -> 0.0218, P0 g0.4 0.2677 -> 0.0154, P0 g0.6 0.2757 -> 0.0150
-- indep: P1 0.3918 -> 0.0230, P2 0.1432 -> 0.0078, P3 0.3432 -> 0.0218, P4 0.2474 -> 0.0116, P5 0.2902 -> 0.0178
-- P1 ua_bias: fix2.00 +0.2474 -> +0.0157, learn -0.0262 -> -0.0001, learn+gains -0.0332 -> -0.0111, none -0.0900 -> -0.0038
-- P1 g0.4: fix1.00 +0.4423 -> +0.5833, against base dark1.00 +0.5946, so the body's commanded-power-confound reading holds.
+## Prior blocking items
 
-Step 3, the null control. The flat-irradiance arm reads `fixed_arm_spread` 0.0000 on P1..P5 at both ends.
+- Round 1's `carry-missing: not carried to R10-BRIEFS-FOLD` is repaired. At origin/handoff/audit-r10-roster 23ef06dc6cc719917e593174b3a12977cd054071, R10-BRIEFS-FOLD's carry list holds the D2 step-5 gains-arm precondition, written as a precondition with its control: `gains.converged.rel_dev > 0.05` with `gains.unconverged.rel_dev 0.0000`. The body's verify command prints 1. The body still names no roster SHA, only the ref. Name it in the next body push. Carry: R10-NIGHT-FOLDS
+- The pr-contract / CARRY-AUDIT refusal at baa01ed85 is repaired. Both `pr-contract` runs at this head are success. My own run, `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body BODY.md`, prints `7 routed, 0 unrouted, 0 bad destination(s)`.
+- Round 1's two non-blocking notes are repaired. const.py now reads 0.245 kW and 0.012 K, which matches my 0.2450 kW. The companion header no longer expects `gains.unconverged ~1.0`. Carry: dismissed: repaired at this head (item 4116031f)
 
-Step 14, whether the gain is earned by the mechanism:
-- Perturbation: the head with HEAT_LOSS_MAX_SOLAR_W_M2 set to 1.0 reads P1 autumn spread 0.0000 and fix2.00 +0.0026 (ev/thr1.P1.autumn.out).
-- The base's study dark arm at IDENT_DARK_W_M2=50 reads -0.0062 / +0.0011 / +0.0157, exactly the head's fix0.50 / 1.00 / 2.00 (ev/base.dark50.P1.autumn.out).
-- So the head's movement is the gate's, and the residual 0.0219 spread (against the brief's "at most 0.0001") is wholly the 50 W/m² choice. The RCA prescribes that threshold ("the irradiance gate `_fold_internal_gains` already uses"), and the residual sits within the RCA's 5 % bar: the largest delivery-1.0 |bias| at the head is 1.6 %. The body does not state this attribution; it is recorded here.
+## Verified (my RESULT lines, base 57f0c9c77 and head 2f4758109)
 
-The companion `r10_night_folds_learners.py` (copied into the base worktree) re-derives at both ends:
-- house.sunlit 8 -> 0, lower.sunlit 1 -> 0, refit.sunlit 192 -> 0
-- gains.unconverged 0.0990 -> 0.0000
-- dark arms identical (8 / 1 / 192), gains.converged 1.9800
+Step 2, the finder's harness. `run_q1.sh` ran 20/20 with rc=0 at each end (ev/q1.base, ev/q1.rev, ev/q1.*.spread.txt). Every `fixed_arm_spread` the body quotes re-derives exactly:
+- autumn P0..P5: 0.2691/0.3790/0.1405/0.3383/0.2383/0.2894 -> 0.0147/0.0219/0.0074/0.0205/0.0101/0.0168;
+- delivery arms: P1 0.6 0.3925 -> 0.0218, P1 0.4 0.3962 -> 0.0224, P0 0.6 0.2757 -> 0.0150, P0 0.4 0.2677 -> 0.0154;
+- indep P1..P5: 0.3918/0.1432/0.3432/0.2474/0.2902 -> 0.0230/0.0078/0.0218/0.0116/0.0178;
+- P1 ua_bias: fix2.00 +0.2474 -> +0.0157, learn -0.0262 -> -0.0001, learn+gains -0.0332 -> -0.0111, none -0.0900 -> -0.0038;
+- P1 g0.40: fix1.00 +0.4423 -> +0.5833, with dark1.00 +0.5946 at both ends.
 
-`r10_night_folds_alternatives.py` output is identical at both ends and matches the body's figures. `r10_vent_sun_transient.py` is identical at both ends and matches the body.
+Step 3, the null controls:
+- The flat arms read 0.0000 on P1..P5 at both ends.
+- The companion (ev/learners.*.out, rc=0 both ends) reads:
+  - house.sunlit 8 -> 0, lower.sunlit 1 -> 0, refit.sunlit 192 -> 0;
+  - dark arms 8/1/192 at both ends;
+  - gains.unconverged 0.0990 -> 0.0000, gains.converged 1.9800 at both ends.
+- The alternatives harness is identical at both ends (`cmp` rc=0), with net_of_ua_part 0.0000 and ridge0.02 1.0000/0.7143, ridge1.00 0.0500/0.0476.
+- Carry controls:
+  - vent: no-window 4/4 `false_share=0.000` at both ends; 300 W/K `nan` 0/60 at both ends; 150x4h `nan` 6/20 -> 7/20. The one arm that moves, `seed1.onoff.g1.0.ua1.0.vent150x4h`, goes from `detect_h=3.75` to `nan`, as the body says.
+  - sun transient: identical at both ends, `end_tripped=False` 6/6.
 
-Steps 1 and 14, mutants (mine). Each was applied alone to a detached worktree of the head and driven through `PYTHONPATH=tests/hastub tests/features.py`; the unmutated head reads ALL 4284 FEATURE CHECKS PASSED. All five are killed:
-- house sunlit gate -> if False: rc=1, 3 checks (sunlit takes no sample / still the aperture learner's / detector fed)
-- lower sunlit gate -> if False: rc=1, 1 check
-- refit `_refit_pair` sunlit gate -> if False: rc=1, 3 checks
-- convergence clause `or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE` deleted: rc=1, 1 check ("the hour shape waits for the heat-loss level")
-- dark gauge 50 -> 1000: rc=1, 9 checks
+Steps 1 and 14, the mutants. Each ran alone in its own head worktree through `PYTHONPATH=tests/hastub tests/features.py`. The unmutated head reads ALL 4289 PASSED (ev/mut.*.out, ev/mut.*.diff).
+- Killed:
+  - 9041 `<` -> `<=`, the body's site: 1 FAIL, "on the threshold False, one sample under False", as the body says;
+  - convergence clause deleted: 2 FAIL;
+  - house sunlit gate off: 3 FAIL;
+  - lower sunlit gate off: 1 FAIL;
+  - refit `_refit_pair` gate off: 3 FAIL;
+  - internal-gains sunlit gate off: 1 FAIL;
+  - dark gauge 50 -> 1000: 9 FAIL.
+- Survived: the pending `"solar"` capture, which is the blocking item above.
 
-Step 6, the class. The enumerator (sha1 9f7e1637…) returns an identical 13-SEAM list at both ends. Every seam is dispositioned in the body: 4 instances closed in the diff, 3 guarded, 6 not applicable. Its house and refit probes still FAIL at the head, and I confirmed the body's reason by reading the probes: `_ua_walk` is a re-implementation, and `probe_refit` builds samples with no `solar_radiation`. No class-open seam.
+Step 6, the class. My run of the base's own enumerator copy (sha1 9f7e1637…) returns 13 SEAM lines, and the head's list is identical (`diff` rc=0). Its CONTROL lines and PROBE-NULL read PASS. The probes match the body:
+- base: house 0.925, lower 0.925 gated=False, refit 0.937, gains 0.820;
+- head: lower PASS 1.000 gated=True, house and refit unchanged, and `probe_internal_gains` raises TypeError (rc=1).
 
-Steps 4 and 5. `env_drift.py --claims-only`: ok. No golden or claim file is touched. VERSION, the manifest and RELEASE_NOTES are untouched.
+Every seam is dispositioned in the body.
 
-Step 13. `git merge-tree --write-tree origin/main 829ea7c72`: rc=0 (tree fae4bfcc2), no conflict.
+Steps 4 and 5:
+- `env_drift.py --claims-only` reads ok, rc=0.
+- The three-dot diff names no VERSION, manifest, RELEASE_NOTES, golden or claim file.
 
-Structure: `tests/structure.py` passes at the head. seam_cut_total reads 718 at the base and 716 at the head; this is a lowering, earned by the guard merge and the helper moves. `score.py --diff 3688cf259` prints `dS +0.3110 IMPROVES`: duplication_copies 41->40 (two identical capacity choices became one helper) and coord_footprint 2494->2493. `_zone_capacity` returns the same values as the code it replaces (`_house_loss_terms`: upper mass in two-zone, else room).
+Step 13. `git merge-tree --write-tree origin/main 2f47581` exits 0 with tree df75d6ebc; the head already contains origin/main.
 
-Step 11, CI at this head (check-runs API, ev/check_runs.txt). Two checks are red, and the body answers both:
-- `mutation`: the log reads `MUTATION TABLE REFUSED … 13 of them added by this diff`. That matches the body's twelve sites / thirteen mutants under `## Unpinned sites`. The M09 equivalent-mutant triage holds: `1-0.98**n` never equals 0.9.
-- `nightly-status`: main's, per the role file. The diff reaches no replay-status input.
+Step 14, structure and score:
+- `structure.py` passes, with seam_cut_total 718 at the base and 716 at the head. The budget is lowered 718 -> 716, not raised.
+- `score.py --diff 57f0c9c77` prints `dS +0.3110 IMPROVES`: duplication_copies 41 -> 40, coord_footprint 2494 -> 2493.
 
-Everything else that has concluded is green, including fast (3.14), coverage, typing, browser, pr-contract (×2) and arch-score. Still in progress when written: closures and mutation-pins (1..3). This verdict does not turn on them.
+Step 11, CI at this head, from the commit's check-runs API (ev/check_runs.txt, read 19:40Z):
+- `nightly-status` is the only red. It is main's, and the body answers it.
+- `mutation` and `closures` were still in progress, so I did not re-measure the mutation table (the contract: cite CI's heavy runs). This verdict does not turn on them.
+- Everything else concluded green or skipped, including fast (3.14), coverage, typing, browser, policy-docs, env-matrix, pr-contract x2, arch-score and budget-raise-gate.
 
-Step 12: refs/pull/2563/head = 829ea7c72 when written.
+Step 12: the PR head was 2f47581094ad66bd76ccfa6efff92aef90036aeb when written.
 
-## Non-blocking (each with a destination)
+Round: second review by this seat. The body counts this as round 4 of the fix.
 
-- const.py's comment and the body say "at the shipped aperture product the modelled solar gain at 50 W/m² is 0.30 kW". That does not re-derive. Production `ThermalModel(ThermalParameters()).compute_solar_gain(50.0)` = 0.2450 kW (10 m² × 0.7 × 0.7), which over a half hour at 10 kWh/K is 0.0122 K (ev/solar50.txt). The conclusion, under 0.02 K, still holds; the quoted figure is wrong by 22 %, in the conservative direction. Fix the figure in the same push as the carry SHA. Carry: R10-NIGHT-FOLDS
-- `r10_night_folds_learners.py`'s header expects "gains.unconverged ~1.0" at the baseline; the base measures 0.0990, which the body itself reports correctly. Correct the header's expectation. Carry: R10-NIGHT-FOLDS
-
-Round: first review by this seat.
-
-bus-nonce: 4781a1280f18f8b3240d780b7dc421bf
+bus-nonce: 7e7638c43a22772a346ee4c2283f8832

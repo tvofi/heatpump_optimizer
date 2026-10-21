@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 25735d670..1828663c9 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9041,7 +9041,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+         ):
+             return
+-        if is_sunlit_interval(previous_state.solar_radiation):
++        if False:
+             return
+         if previous_time is None or dt_h <= 1e-6:
+             return
