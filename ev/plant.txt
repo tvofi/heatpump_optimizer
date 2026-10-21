@@ -1,0 +1,8 @@
+## plant P1: restore retired row
+ CLAUDE.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CLAUDE.md:119:| `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer, and two `revise` rounds go to the orchestrator |
+grep-rc=0
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## restored
+grep-rc=1

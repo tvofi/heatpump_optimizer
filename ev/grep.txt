@@ -1,0 +1,5 @@
+## grep diff range
+## grep at head
+## CLAUDE.md rows
+118:| `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
+119:| `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |

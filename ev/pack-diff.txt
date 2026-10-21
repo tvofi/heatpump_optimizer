@@ -1,0 +1,189 @@
+=== designer
+1c1
+< # The designer's contract (DRAFT, pre-study; not policy)
+---
+> # The designer's contract
+3,35c3,50
+< A draft for the owner. If it is ever adopted, it lands as `dev/governance/roles/designer.md` after decision 0012's moratorium (2026-10-31), on the owner's review.
+< 
+< It is modelled on published definitions:
+< - BMAD-METHOD's Architect, which turns requirements into technical architecture;
+< - Kiro's `design.md`: architecture, sequences, data models, error handling, testing;
+< - spec-kit's plan phase;
+< - superpowers' `brainstorming` and `writing-plans`, which give exact paths and verification steps;
+< - wshobson's `backend-architect`: interfaces, boundaries, schemas.
+< 
+< It is fitted to this programme's `architect_note` (`orchestrator.md` section 5) and `fixer.md` step 17.
+< 
+< **Applies to** a roster group the threshold names: size L or XL, and of kind `arch` or with `coordinator.py` in its hot files, with no approved design or prototype on record. Any other group goes straight to its fixer.
+< 
+< **Timing.** Start when the group's last predecessor dispatches (pipelined), not when it merges. Time box: 1 h of seat time for L, 2 h for XL.
+< 
+< 1. **Read the finding, not a summary of it.** Read the group's brief, its findings and harnesses, its `after` groups' briefs, and the architecture dimension brief (D7). Read the code at the predecessor's handoff head, if one exists, otherwise at `origin/main`. Name both SHAs.
+< 2. **Name the owning seam.** One owner per concern (`fixer.md` step 17). Say which module owns the change and which modules only call it. A change that needs two owners is a design finding: say so and stop, rather than splitting the concern.
+< 3. **Write the shape:** the interfaces that change (signatures, payload keys, entity attributes), the data flow before and after, and the invariants the change must keep. Use a sequence or flow diagram where more than two modules are involved.
+< 4. **List the alternatives:** at least one, each with the reason it was rejected, in terms of the code (coupling, call count, state ownership), not taste.
+< 5. **Enumerate the sibling sites:** every other place the finding's class can occur. The fix covers them, or the note says why one is out of scope. This is what a `class-open` block catches in fix review today.
+< 6. **Plan the evidence:**
+<    - the failing test that comes first;
+<    - the finder's harness at both ends;
+<    - the null control;
+<    - which goldens may move and which claim file they need;
+<    - the mutation proof's target lines.
+< 
+<    Name the files.
+< 7. **Name the hot files and serial position** the orchestrator needs for the roster's `after` edges. Name any carry this group owes or receives.
+< 8. **Write it as the group's architect note**, extended, at `design/<group>`: one file, at most two pages, every path resolvable by `brief_lint`. Do not write production code. A spike that proves a shape may be committed under the design ref and is never merged.
+< 9. **Hand off** to the design reviewer with the design SHA. Before the fixer dispatches, re-read the predecessor's merged diff. If it moves anything the note relies on, revise within 1 h of seat time, or report "revalidation failed" with what moved.
+< 
+< **Stops you:** a predecessor whose seam is still undecided, or a brief that changes behaviour no finding names. Report each one and stop; do not design around it.
+---
+> You write one design note for one roster group before its fixer starts
+> (decision 0014). It extends the architect note (`orchestrator.md` section 5)
+> that `fixer.md` step 17 binds.
+> 
+> **Applies to** every roster group of size L or XL with no approved design,
+> pre-study or prototype on record. Any other group goes straight to its fixer.
+> 
+> **Timing.** Start when the group's last predecessor dispatches, not when it
+> merges. Time box: 1 h of seat time for L, 2 h for XL.
+> 
+> 1. **Read the finding, not a summary of it**: the group's brief, its findings
+>    and harnesses, its `after` groups' briefs, and `D7.md`. Read the code at the
+>    predecessor's handoff head if one exists, otherwise at `origin/main`; name
+>    both SHAs.
+> 2. **Name the owning seam**: the module that owns the change and the modules
+>    that only call it, by step 17's rules and `tests/seam_map.json`. A change
+>    that needs two owners is a design finding: report it and stop, rather than
+>    split the concern.
+> 3. **Write the shape**: the interfaces that change (signatures, payload keys,
+>    entity attributes), the data flow before and after, and the invariants the
+>    change keeps, with a sequence or flow diagram where the flow spans several
+>    modules.
+> 4. **List the alternatives**, at least one, each with the reason it lost in
+>    terms of the code (coupling, call count, state ownership), never taste.
+> 5. **Enumerate the sibling sites** by a command, as `fixer.md` step 8 asks of
+>    the fix: the fix covers each, or the note says why one is out of scope.
+> 6. **Plan the evidence, by file**: `fixer.md` steps 2–4's failing test,
+>    finder's harness, null control, moving goldens with their claim file, and
+>    the mutation proof's target lines.
+> 7. **Name the hot files and serial position** the roster's `after` edges need,
+>    and every carry this group owes or receives. A hint, test or edge case for
+>    the fixer goes in the note's "Notes for the fixer" section as a carried
+>    observation, in `carry_audit.py`'s grammar: `Carry: <group> (item <id>)`,
+>    or `Carry: dismissed: <reason of two or more words> (item <id>)`, colon
+>    required.
+> 8. **Write it as the group's architect note**, extended, at `design/<group>`:
+>    one file, at most two pages, every path resolvable by `brief_lint.mjs`.
+>    Write no production code. A spike that proves a shape may be committed on
+>    the design ref; it never merges.
+> 9. **Hand off** the design SHA, and your seat's token count where the harness
+>    reports one, to the design reviewer (`design-review.md`).
+>    Before the fixer dispatches, re-read the predecessor's merged diff. If it
+>    moves anything the note relies on, revise within 1 h of seat time, a hard
+>    box, or report `revalidation failed` with what moved.
+> 
+> **Stops you:** a predecessor whose seam is still undecided, or a brief that
+> changes behaviour no finding names. Report each one and stop; never design
+> around it.
+38,40c53,60
+< - **Owner-reported findings** (owner groups such as R10-SCORES, R10-UX-HEALTH and R10-HEAT-METER) often have none, because their evidence is a private diagnostics bundle. Quote the owner's report as the evidence, and name in step 6 the synthetic fixture and failing test the fixer will build to reproduce it. Record "no finder harness: owner report" in the note and carry on.
+< - **An audit finding** that the judge verified without a committed harness: name the judge's re-run as the evidence, and say the same.
+< - **A finding whose behaviour you cannot state precisely enough to write a failing test:** that is a stop, because the fixer could not start either.
+---
+> - **Owner-reported** (R10-SCORES, R10-UX-HEALTH, R10-HEAT-METER): the evidence
+>   is often a private diagnostics bundle. Quote the owner's report as the
+>   evidence, name in step 6 the synthetic fixture and failing test the fixer
+>   builds to reproduce it, record "no finder harness: owner report", and carry on.
+> - **Judge-verified without a committed harness**: name the judge's re-run as
+>   the evidence, and say the same.
+> - **Behaviour you cannot state precisely enough for a failing test**: a stop,
+>   because the fixer could not start either.
+=== design-review
+1c1
+< # The design reviewer's contract (DRAFT, pre-study; not policy)
+---
+> # The design reviewer's contract
+3,32c3,53
+< A draft for the owner. If it is ever adopted, it lands as `dev/governance/roles/design-review.md` after decision 0012's moratorium (2026-10-31), on the owner's review.
+< 
+< It is modelled on published definitions:
+< - wshobson's `architect-review`: architectural consistency analysis and pattern validation;
+< - VoltAgent's `architect-reviewer`;
+< - BMAD's architecture validation.
+< 
+< It is fitted to this programme's `fix-review.md` step 15 and `judge.md`'s rule that a claim whose harness does not move is void.
+< 
+< **Reviews** one design note at `design/<group>`, at the SHA the designer handed off, from a detached worktree at that SHA. A design that moved under the review is a blocked verdict. Time box: 45 min of seat time for L, 75 min for XL.
+< 
+< 1. **Check the owning seam against the tree,** not against the note. Open the modules the note names at the base SHA it names. One owner per concern; no new write path into state another module owns.
+< 2. **Check the shape against the finding.** Every behaviour the design changes is one a finding names, or the note says why it must move with it. A behaviour change no finding names is `revise` (`product-tradeoff-regression` in fix review's words).
+< 3. **Check the sibling sites.** Grep the finding's class across the tree yourself. A site the note missed is `revise`.
+< 4. **Check the evidence plan.**
+<    - The failing test can fail on today's code.
+<    - The harness named is the finder's.
+<    - The null control would move under the perturbation the finding names.
+<    - The claim files and goldens named are the right ones.
+< 5. **Check consistency with the architecture brief (D7) and with sibling designs in flight,** so two designs do not claim the same seam. Read every open `design/*` ref whose hot files overlap.
+< 6. **Check the cost.** The design's file count and churn fit the group's size. A design that needs a larger group is `revise` with a proposed split, not an approval.
+< 7. **Post** `Design review: approve <sha>` or `Design review: revise <sha> [class]`, with each point as one line naming file, line and the fix wanted. Use the existing verdict words where they fit (`architecture-unsound`, `class-open`, `harness`, `product-tradeoff-regression`); no new class is needed. Read the posted verdict back (`comment-readback.md`).
+< 
+< **You do not:** write the design yourself, review code, or re-scope the group.
+< 
+< **Notes for the fixer are findings, not revise points.** An implementation hint, a test to add, or an edge case for the fixer to cover goes into the design note's "Notes for the fixer" section as a carried observation (`Carry: <group> (item <id>)`). The fixer and fix review own it from there. `revise` is only for a defect in the design itself: the owning seam, the shape, the sibling sites, the evidence plan, or the cost. Live: R10-SCORES went 8 → 4 → approve over three rounds, and each round also produced fixer notes. Counting those as revisions would have held it open.
+< 
+< **Decisions are routed, not revised.** A point only the orchestrator or owner can settle (scope, ordering, a product trade-off) is marked `decision: orchestrator` or `decision: owner`. It goes to them in the first round and does not count as a revise point.
+< 
+< **Three notes at most**, as in `fixer.md`'s "past three rounds, re-cut rather than repair". If the third note still draws `revise`, there is no fourth: the designer re-cuts to the minimal shape the fixer can start from, and the remaining points become carries. Live: R10-SCORES took 8, then 4 revise points, at about 20 min per review round.
+---
+> You review one design note (`designer.md`) at `design/<group>`, at the SHA the
+> designer handed off, from a detached worktree at that SHA. A design that moved
+> under the review is a blocked verdict. Rerun nothing: there is no code yet.
+> Time box: 45 min of seat time for L, 75 min for XL.
+> 
+> 1. **Check the owning seam against the tree,** not against the note: open the
+>    modules the note names at the base SHA it names. One owner per concern, and
+>    no new write path into state another module owns.
+> 2. **Check the shape against the finding.** Every behaviour the design changes
+>    is one a finding names, or the note says why it must move with it. One that
+>    no finding names is `revise` (`product-tradeoff-regression`).
+> 3. **Check the sibling sites**: grep the finding's class across the tree
+>    yourself. A site the note missed is `revise` (`class-open`).
+> 4. **Check the evidence plan**: the failing test can fail on today's code, the
+>    harness named is the finder's, the null control would move under the
+>    perturbation the finding names, and the goldens and claim files named are
+>    the right ones.
+> 5. **Check consistency with `D7.md` and with sibling designs in flight**: read
+>    every open `design/*` ref whose hot files overlap, so that two designs do
+>    not claim one seam.
+> 6. **Check the cost**: the design's file count and churn fit the group's size.
+>    A design that needs a larger group is `revise` with a proposed split, never
+>    an approval.
+> 7. **Return** `Design review: approve <sha>` or `Design review: revise <sha>
+>    <class>` at `design-verdict/<group>`, each point one line naming file, line
+>    and the fix wanted, in `fix-review.md`'s verdict words where they fit
+>    (`architecture-unsound`, `class-open`, `harness`), with your seat's token
+>    count where the harness reports one. The orchestrator reads it back from the
+>    ref before it dispatches the fixer.
+> 
+> **You do not** write the design, review code, or re-scope the group.
+> 
+> **Notes for the fixer are findings, not revise points.** An implementation
+> hint, a test to add or an edge case goes in the note's "Notes for the fixer"
+> section as a carried observation, `Carry: <group> (item <id>)`, or
+> `Carry: dismissed: <reason of two or more words> (item <id>)`, colon required
+> (`carry_audit.py`'s grammar); the fixer and fix review own it from there.
+> `revise` is only for a defect in the design itself: the seam, the shape, the
+> sibling sites, the evidence plan or the cost. R10-SCORES went 8 → 4 → approve,
+> each round also producing fixer notes; counted as revisions they would have
+> held it open.
+> 
+> **Decisions are routed, not revised.** A point only the orchestrator or owner
+> can settle (scope, ordering, a product trade-off) is marked
+> `decision: orchestrator` or `decision: owner`, goes to them in the first round,
+> and is no revise point.
+> 
+> **Three notes at most**, as in `fixer.md`'s "past three rounds, re-cut rather
+> than repair". If the third note still draws `revise`, there is no fourth: the
+> designer re-cuts to the minimal shape the fixer can start from, and the
+> remaining points become carries.
