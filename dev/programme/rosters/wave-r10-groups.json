@@ -5440,7 +5440,9 @@
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Lean flow study: R10-FLOW-ANDON (a pushed heartbeat ref and an off-host watcher, 20-minute bound) is a ready countermeasure candidate; run the cost test against it rather than designing a second one, and record the decision."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
