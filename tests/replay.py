@@ -346,16 +346,20 @@ COST_DETECTION = 2.0
 #: 1.5-1.9x faster than those at the ruler (84.05 ms) whose loop CPU in
 #: absolute time fell (9.36 ms) -- the runner, not loop work, over the cap.
 #: ``dev/audit/harnesses/r10_replay_loopnorm.py --series`` derives the series
-#: by ruler era. Not loop work: the same five main commits, from the first
-#: post-#2339 row's to the tip, interleaved three rounds on one box, read
-#: medians 0.0837-0.0918 with no trend and the tip lowest but one. Recorded
-#: from the CI series, which is the runner the cap gates: the six post-#2339
-#: slow lanes read 0.0868-0.1138, the largest on the fast class, and a run's
-#: memory arm reads the same figure within 5.0 % of its clean run. The cap is
-#: that largest row plus that 5.0 %, 0.1138 x 1.05 = 0.120: every row, and
-#: every memory-arm reading (top 0.1162), inside (0.060, 0.120], and the
-#: lowest reading doubled, 2 x 0.0852 = 0.170, over it. A raise from 0.111
-#: (CLAUDE.md rule 2); re-centre down once the residual class factor goes.
+#: by ruler era. Ruler speed alone does not predict the figure, though: an
+#: idle 4-core Linux box whose ruler is slower than either CI class (172-190
+#: ms) read 0.1089-0.1236, above both CI red rows. The figure moves with the
+#: box, by 1.50x over the 44 readings of the current loop code in four
+#: environments -- CI at loop_ref_ms 128-161 and at 79-84, a loaded M1 and
+#: that idle box, clean and memory arms -- 0.0823-0.1236. No commit from the
+#: first post-#2339 row's to the tip moved it (interleaved, one box: medians
+#: 0.0837-0.0918, no trend). Recorded at the CENTRE of that spread, the
+#: ``cpu_ratio`` rule below: sqrt(2) x the geometric midpoint of 0.0823 and
+#: 0.1236 is 0.143, each edge 13-15 % inside (floor 0.0715), the lowest
+#: reading doubled 15 % over. Left out in turn, each environment falls inside
+#: the cap the other three centre on (0.138-0.145), where 0.111 and 0.120,
+#: each sized on fewer boxes, failed the next box. A raise (CLAUDE.md rule 2): a 2x band holds a
+#: spread under 2x and no more, so a box beyond it needs a paired reference.
 #: ``cpu_ratio`` re-recorded down the same way (#2205): #2142's solve memo
 #: cut the cycle to 0.656x (R10-RCA-2205's interleaved medians), so all 36
 #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
@@ -364,7 +368,7 @@ COST_DETECTION = 2.0
 #: Re-centre at the next timed week, not on one run.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.120},
+                                "loop_cpu_ratio": 0.143},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
