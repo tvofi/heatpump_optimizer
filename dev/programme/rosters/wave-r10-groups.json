@@ -4059,7 +4059,7 @@
    "resume": {
     "stage": "done",
     "branch": "handoff/r10-openpr-silent",
-    "commit": "7ab3030bbfff",
+    "commit": "dbea71db76f1eea499c41df9c10678695f56bb0b",
     "last_step": null,
     "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it",
     "note": "delivered by PR #2422; follow-up #2525 (soft cap gates dispatch only) is open under this group"
