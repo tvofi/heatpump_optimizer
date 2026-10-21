@@ -1,0 +1,4 @@
+== R1: merge_train self-test: 214 checks, 0 failed
+== R2: orchestrator_tick self-test: 178 checks, 0 failed
+== R3: merge_train self-test: 214 checks, 0 failed
+== R4: merge_train self-test: 214 checks, 0 failed
