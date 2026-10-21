@@ -30,6 +30,24 @@ Time box: 45 min of seat time for L, 75 min for XL.
    count where the harness reports one. The orchestrator reads it back from the
    ref before it dispatches the fixer.
 
-**You do not** write the design, review code, or re-scope the group. After two
-`revise` rounds the group goes to the orchestrator for a decision, not a third
-round.
+**You do not** write the design, review code, or re-scope the group.
+
+**Notes for the fixer are findings, not revise points.** An implementation
+hint, a test to add or an edge case goes in the note's "Notes for the fixer"
+section as a carried observation, `Carry: <group> (item <id>)`, or
+`Carry: dismissed: <reason of two or more words> (item <id>)`, colon required
+(`carry_audit.py`'s grammar); the fixer and fix review own it from there.
+`revise` is only for a defect in the design itself: the seam, the shape, the
+sibling sites, the evidence plan or the cost. R10-SCORES went 8 → 4 → approve,
+each round also producing fixer notes; counted as revisions they would have
+held it open.
+
+**Decisions are routed, not revised.** A point only the orchestrator or owner
+can settle (scope, ordering, a product trade-off) is marked
+`decision: orchestrator` or `decision: owner`, goes to them in the first round,
+and is no revise point.
+
+**Three notes at most**, as in `fixer.md`'s "past three rounds, re-cut rather
+than repair". If the third note still draws `revise`, there is no fourth: the
+designer re-cuts to the minimal shape the fixer can start from, and the
+remaining points become carries.
