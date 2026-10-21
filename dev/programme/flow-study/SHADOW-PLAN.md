@@ -2,8 +2,8 @@
 
 **Base:** live roster `origin/handoff/audit-r10-roster` at 617ce1316 when planned; the committed shadow is rebuilt at 2c76c3128 (one stage change on R10-MERGE-PR-MANDATE) (108 groups: 51 done, 20 in progress, 34 not started, 3 queued).
 
-**Shadow:** `roster/shadow-r10-groups.json`, 120 groups. It adds:
-- 12 flow groups
+**Shadow:** `roster/shadow-r10-groups.json`, 123 groups. It adds:
+- 15 flow groups
 - 6 carries folded into existing groups
 
 `node tools/policy/brief_lint.mjs roster/shadow-r10-groups.json` run from a main checkout prints `TOTAL: 0 error(s)`. Rebuild it at any newer roster ref with `python3 tools/build_shadow.py origin/handoff/audit-r10-roster`.
@@ -35,22 +35,27 @@ To verify, not caused by this plan:
 | B | other product groups | 4 |
 | C | process groups | 3 |
 | F | fly-ins (`R10-FLY-*`) | 2 |
-| **K** | the 12 flow groups: an improvement allowance on top of A–F during the drain | **2** |
+| **K** | the 15 flow groups: an improvement allowance on top of A–F during the drain | **2** |
 | expedite | line-stop items | bypasses the caps, one at a time |
 
 **Flow-group order** (each only once its `after` groups are done):
-1. FLOW-RECHAIN: applies the seat's ruling in the roster burst
-2. FLOW-ROSTER-FREEZE
-3. FLOW-BODY-ONLY
-4. FLOW-PULL
-5. FLOW-ANDON
-6. FLOW-WIP
-7. FLOW-JIDOKA
-8. FLOW-POSTMERGE
-9. FLOW-BOARD
-10. FLOW-AUTOTRAIN
-11. FLOW-MQ-PROBE
-12. FLOW-RECORD-PITCH (conditional)
+- **Expedite, now:**
+  1. FLOW-BODY-PATCH
+  2. FLOW-MAIN-GATE (after #2570)
+- **Then:**
+  3. FLOW-RECHAIN (applies the seat's ruling in the roster burst)
+  4. FLOW-ROSTER-FREEZE
+  5. FLOW-BODY-ONLY
+  6. FLOW-PULL
+  7. FLOW-ANDON
+  8. FLOW-WIP
+  9. FLOW-JIDOKA
+  10. FLOW-POSTMERGE
+  11. FLOW-BOARD
+  12. FLOW-AUTOTRAIN
+  13. FLOW-DISPATCH
+  14. FLOW-MQ-PROBE
+  15. FLOW-RECORD-PITCH (conditional)
 
 **Within lanes A–F:** the longest remaining chain first, then the smallest size.
 
@@ -76,24 +81,35 @@ To verify, not caused by this plan:
 ### 3.2 The phases (revised 2026-10-21 after the orchestrator's evidence)
 
 **Phase 0: drain, stop starting (now until about 12 h from now).**
-- Dispatch nothing not yet started, except an expedite or a size-S fly-in.
+- Dispatch nothing not yet started, except an expedite or a size-S fly-in. **Two flow groups are expedite, because they repair the line:**
+  - **R10-FLOW-BODY-PATCH:** no tool can fix a refused body at an unchanged head today.
+  - **R10-FLOW-MAIN-GATE:** the train's gate reads pending checks as "revert main". Until it merges, read main by hand: latest run per required context only.
 - Load a train each pitch with `--bot-prs`. Carry moved verdicts with `app_approve.sh --carry` instead of re-reviewing.
 - Blocked heads go back to their fixer in the same turn. Reviewers take the unreviewed heads, oldest first, posting verdicts once the head's required checks have concluded.
 - **R4 is not yet true in the tool.** `update_pr.sh` merges main on every run, so until R10-FLOW-BODY-ONLY lands:
   - run `update_pr.sh` only when the code tip moved, or the PR is DIRTY or conflicted;
-  - apply a body-only fix by re-running the body contract and PATCHing the body through the App, without `update_pr.sh`. Where that is not possible, carry the verdict (#1667) rather than re-reviewing.
-- **The pitch** is "on the hour, or when the previous train ends, whichever is later". The model shows a 2-h pitch costs about 2 h of round time, so a train that outlasts the hour is not a crisis. Measure CI time per train and set the pitch from that.
+  - apply a body-only fix with the K14 interim (`app_push.sh` from a clean worktree at the PR's exact head, `--dry-run` first, head sha checked unchanged after), until BODY-PATCH lands. Carrying a verdict does not repair a refused body. First case: #2560's 111→113 figure.
+- **The pitch** is "on the hour, or when the previous train ends, whichever is later".
+  - **A train boards only heads that are verdicted and green at load time**, proved together in one batch (`train.sh` always runs `batch`). It never waits for a slow head: that head boards the next pitch.
+  - The pitch is dominated by one batch CI run, measured at about 57 min (13:47Z → #2544 merged around 14:44Z, held by `closures`, `graders-head-copy` and `fast (3.14)`). That is expected: one proof per pitch, not one per PR.
+  - The model shows a 2-h pitch costs about 2 h of round time.
 
-**Phase 1a: merge #2559 first, with a roster freeze.**
-- From now until #2559 merges, **no `roster_edit.py --push` at all**: not a stage, not a carry.
-- Re-review #2559 once, at its frozen head, then merge it.
-- That also clears the `BAD-DEST` carries blocking #2529, #2547 and #2561, whose destinations exist only on the handoff roster. Their next pr-contract run passes once those groups are on main.
-- If a roster fact must be recorded meanwhile, write it on #201 (volatile state) and apply it in Phase 1b.
+**Phase 1a: merge #2559 first, under a bounded roster freeze.**
+- The freeze runs **from #2559's review dispatch until #2559 merges**, not before. Before the review starts, roster pushes are still allowed.
+- **#2559 boards the next train as its first car.** It does not merge concurrently with a running train: a foreign merge forces the batch to re-prove, which costs one CI run (about 57 min measured).
+- **What the freeze costs**, about 1 h of review, up to 1 h to the next pitch and about 1 h of train CI, so about 3 h of lag on:
+  - set-stage for the merged groups (seven today);
+  - fly-in registration;
+  - carries.
+- The stale stages keep the dispatch gate's in-progress count high (19 of 6 today). That costs nothing during the Phase-0 drain, which dispatches nothing new anyway.
+- It also clears `BAD-DEST` on #2529, #2547 and #2561 at their next pr-contract run.
+- **Bound:** if the freeze passes 4 h (a second blocked review, say), lift it, push the held edits, and re-request one review. Do not hold bookkeeping hostage to a slipping PR.
+- Note held roster facts on #201 meanwhile.
 
 **Phase 1b: one burst on a fresh roster PR (as soon as #2559 and #2513 have merged).**
 In one sitting, through `roster_edit.py`'s lint gate:
 - the seat's 8 drops, 3 required and 4 recommended edges, and the HEAT-METER ← THERMAL-POWER-OPTION edge (`set-after`), with the note and brief text from the decision file;
-- the 12 flow groups (`append-group`);
+- the 15 flow groups (`append-group`; BODY-PATCH and MAIN-GATE may already be in flight as expedites: register them with their actual stage);
 - the 6 carries (`append-carry`);
 - the set-resume notes;
 - the stage changes held back during Phase 1a.
@@ -135,12 +151,14 @@ Raise lane A to 4 in the same hour.
 
 ## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`)
 
-Lane K is the flow allowance. "after" lists the edges as re-chained by the seat.
+Lane K is the flow allowance; BODY-PATCH and MAIN-GATE dispatch inside the drain as expedites. "after" lists the edges as re-chained by the seat.
 
-day 0: 29 · day 1: 28 · day 2: 7 · day 3: 4
+day 0: 31 · day 1: 28 · day 2: 8 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
+| 0 | 11 | 0 | R10-FLOW-BODY-PATCH | K | S | instrument | not-started | — |
+| 0 | 11 | 0 | R10-FLOW-MAIN-GATE | K | S | instrument | not-started | — |
 | 0 | 11 | 0 | R10-FREQ-DEFROST | A | S | defect | in-progress | R10-TRUST-RELATIVE |
 | 0 | 11 | 0 | R10-HANDOVER-REFRESH | C | S | record | in-progress | — |
 | 0 | 11 | 0 | R10-I5-DOCS | C | S | docs | in-progress | R10-I1, R10-STRUCTURE-BLIND, R10-REGISTRY-LEAK |
@@ -173,7 +191,7 @@ day 0: 29 · day 1: 28 · day 2: 7 · day 3: 4
 | 1 | 24 | 0 | R10-CI-LAYOUT | C | XL | instrument | in-progress | — |
 | 1 | 29 | 12 | R10-SCORES | A | L | owner | not-started | R10-ADVISOR, R10-RATIO-SITES |
 | 1 | 29 | 21 | R10-CONFIG-NOTICES | A | S | arch | not-started | — |
-| 1 | 29 | 21 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS |
+| 1 | 29 | 21 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
 | 1 | 29 | 21 | R10-FLOW-PULL | K | S | policy | not-started | — |
 | 1 | 29 | 21 | R10-LEARNER-DEFAULT | A | S | defect | not-started | — |
 | 1 | 29 | 21 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
@@ -199,9 +217,10 @@ day 0: 29 · day 1: 28 · day 2: 7 · day 3: 4
 | 1 | 46 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU |
 | 1 | 46 | 41 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
 | 2 | 48 | 41 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
-| 2 | 52 | 46 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
+| 2 | 50 | 46 | R10-FLOW-DISPATCH | K | S | instrument | not-started | R10-FLOW-BODY-ONLY |
+| 2 | 53 | 48 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P1 |
 | 2 | 55 | 46 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS |
-| 2 | 55 | 52 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
+| 2 | 56 | 53 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P1, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 59 | 46 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
 | 2 | 59 | 46 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
 | 2 | 71 | 59 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |

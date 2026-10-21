@@ -195,6 +195,9 @@ Round 11 is where the 100-h takt is met: P1–P3 in ≤ 24 h, as round 10 nearly
 | group | what | why (round time) | after | owner gate |
 |---|---|---|---|---|
 | **R10-FLOW-RECHAIN** | apply the decision seat's ruling: 8 drops, 3 required and 4 recommended edges, plus HEAT-METER ← THERMAL-POWER-OPTION (STUDY K7) | chain depth 11 → 8; the biggest single lever | R10-ROSTER-OPS (`set-after`) | ruling R6 |
+| **R10-FLOW-BODY-PATCH** | PATCH a PR body at an unchanged head, after the body contract | no tool could repair a refused body without moving the head (#2560) | — (expedite) | mandate |
+| **R10-FLOW-MAIN-GATE** | the train's main-green gate: latest run per required context; pending is wait | it logged "revert main" on pending checks and owed record reds | #2570 (shared classifier; expedite) | mandate |
+| **R10-FLOW-DISPATCH** | one call per cloud seat: brief to a ref, one fire line | a payload and two pasted trigger bodies per seat | BODY-ONLY | mandate; standing triggers are an owner action |
 | **R10-FLOW-ROSTER-FREEZE** | the relay leaves an open roster PR's head alone while it is under review; `carry_audit` also resolves destinations on the round's handoff roster | #2559 lost 5 reviewer rounds; `BAD-DEST` blocked #2529 #2547 #2561 | R10-ROSTER-OPS | mandate (`carry_audit.py` code-owned) |
 | **R10-FLOW-BODY-ONLY** | `update_pr.sh` absorbs main only on DIRTY or conflict; a body-only mode PATCHes the body without moving the head; the relay propagates body-only moves | R4 was not true in the tool: 5 clean heads moved on 2026-10-21 | R10-UPDATE-PR-SIGNALS | mandate |
 | **R10-FLOW-PULL** | nudge.md: pull, lanes, classes of service, pitch, frozen heads, verdict after CI, carry predicate before any re-review. orchestrator.md §5: the seam chain rule and the scope freeze | lead time and scope | — | policy (tvofi, mandate) |
@@ -234,17 +237,17 @@ Mandate 6175172275 covers the code-owned and policy PRs until **2026-10-28T18:14
 
 ---
 
-## 9. Quality guardrails (must not move)
+## 9. Quality guardrails (revised: scoped, with baselines; STUDY "Guardrail baselines")
 
-- the red rate of push runs on `main`
-- post-merge reverts
-- issues reopened
-- mutation kills on added lines
-- blocked verdicts per PR in the **real-catch** classes (`harness`/`class-open`, `vacuous`)
+| guardrail | measure | baseline at adoption | stop-and-tell trigger |
+|---|---|---|---|
+| Main health | a **required** context (ruleset `main-protect-checks`, read live) whose **latest** run on a `main` push concluded failure. Pending is not red; `record*`, `nightly-status`, `delivery-status` and other non-required contexts (`ci-ratchet` today) are excluded | record the count at adoption | a required context red on two consecutive `main` pushes after a flow change merged |
+| Reverts | revert commits on `main` | 0 | any revert of a flow-change merge |
+| Reopened issues | issues reopened after closing | record at adoption | any reopened issue closed by a merge after adoption |
+| Review strength | real-catch blocks per reviewed PR, rolling 48 h | **0.15/PR** (47 PRs, 48 h before 14:50Z 10-21) | with at least 20 PRs reviewed in the window, the rate falls below **0.07/PR**, half the baseline |
+| Review evidence | every `merge` verdict names its mutation-proof result and the finder's harness at both ends | present in every verdict today | any merge verdict without both |
 
-A fall in the real-catch rate after FLOW-PULL or the K5 carry means review got weaker, not the work better: stop and re-examine. Every group carries the finder's harness at both ends and a null control (STUDY §0).
-
----
+The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption. That fall is a fact to watch, not the plan's doing. A non-required context that stays red (`ci-ratchet`: 11 `main` pushes since 11:34Z) is owed work, not a guardrail trip: #2531 (R10-CI-RATCHET-RED, `merge` verdict at its head) appears to be its fix and should board the next train.
 
 ## 10. Risks
 
@@ -261,4 +264,18 @@ A fall in the real-catch rate after FLOW-PULL or the K5 carry means review got w
 2. **R4 was not true in the tool.** `update_pr.sh` merges main on every run and has no body-only mode, so body fixes moved five clean heads. New group: **R10-FLOW-BODY-ONLY** (STUDY K12).
 3. **The roster PR is a moving head.** Every roster edit moves it, and `carry_audit` cannot see the handoff roster. #2559 lost five reviewer rounds, and three PRs were `BAD-DEST`-blocked. The Phase-1 burst now runs **after #2559 merges, on a new roster PR, under a manual roster freeze**. New group: **R10-FLOW-ROSTER-FREEZE** (STUDY K13).
 4. **The pitch is "on the hour, or when the previous train ends, whichever is later"**, not a strict hour. A 2-h pitch costs about 2 h in the model. Set the pitch from measured train CI time.
+5. **No body-PATCH tool existed** for the R4 interim. New expedite group **R10-FLOW-BODY-PATCH**, with an interim `app_push.sh`-at-head procedure (STUDY K14).
+6. **The train's main-green gate read pending checks and owed record reds as "revert main".** New expedite group **R10-FLOW-MAIN-GATE**, sharing #2570's classifier (STUDY K15).
+7. **The guardrails were not usable as written.** They are now scoped to required contexts, with baselines. Real-catch blocks per PR were already 0.15 (from 0.52) before adoption (§9).
+8. **The roster freeze is now priced and bounded.** It runs from #2559's review dispatch to its merge. #2559 boards the next train as its first car rather than merging concurrently: a merge during a batch's CI forces a re-proof, about 57 minutes measured. The freeze lifts if it passes 4 h (SHADOW-PLAN §3.2).
+9. **Cloud dispatch costs a payload plus two pasted bodies per seat.** New group **R10-FLOW-DISPATCH** for the repo half; standing per-role triggers are the owner's harness action (STUDY K16).
+10. **R10-ORCH-MACHINERY is now briefed to absorb the flow groups** (STUDY K17):
+    - two beat jobs, `heartbeat` and `pitch`;
+    - one ledger kind, `postmerge-owed`;
+    - the `handoff` job carries the body-only path and a freeze for every head with a live reviewer;
+    - dispatch is recorded through `bus.sh dispatch` and `workers.json`;
+    - one is-main-red classifier;
+    - one plan model shared with #2558.
+
+    Each flow group that lands first is written as a job script or function the beat can host unchanged.
 

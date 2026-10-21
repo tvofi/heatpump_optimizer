@@ -1,0 +1,47 @@
+{
+ "group": "R10-FLOW-BODY-PATCH",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "high",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/seat/INSTRUMENTS.md",
+  "tools/pr/app_push.sh"
+ ],
+ "hot_files": [
+  "tools/pr/app_push.sh"
+ ],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [],
+ "carry": [
+  "Interim, until this lands: app_push.sh run from a clean worktree checked out at the pull request's exact head, with the corrected body and no new commit, should push nothing and PATCH the body (read from the code, not run): try it once with --dry-run, then live on #2560, and confirm the head sha unchanged.",
+  "Pre-study: the Lean flow pre-study, section K14."
+ ],
+ "architect_note": "",
+ "brief": "Repair a pull request's body without moving its head (Lean flow study K14; expedite, it repairs the line). Ruling R4 forbids moving a clean head, and update_pr.sh merges main on every run, but no tool PATCHes a body alone: app_push.sh mints, pushes, then PATCHes, and has no body-only flag. Bodies that pr-contract or carry_audit refuse therefore stay red or get a head move (2026-10-21: #2560's 111 to 113 figure). Add one seat instrument that takes a pull request number, the expected head sha and a body file; refuses unless the live head equals the expected sha; runs the body contract offline at that head (the policy_lint.mjs --pr-body arm prepr runs, and carry_audit.py check --body); PATCHes the body as the hpo-author App through the same mint app_push.sh uses, factored out rather than copied; reads the body back byte-identical; and re-reads the head to show it did not move. pr-contract re-runs on the edited event. Controls: a fixture where the head moved refuses before any write; a body the contract refuses is never sent; a dry-run prints the exact request; mutants for the head check, the contract arm and the read-back.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-body-patch",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

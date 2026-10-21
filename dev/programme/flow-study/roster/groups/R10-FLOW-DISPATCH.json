@@ -1,0 +1,50 @@
+{
+ "group": "R10-FLOW-DISPATCH",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "severity": "medium",
+ "size": "S",
+ "wave": 4,
+ "files": [
+  "tools/audit/seat/cloud_dispatch.py",
+  "tools/audit/seat/INSTRUMENTS.md"
+ ],
+ "hot_files": [
+  "tools/audit/seat/cloud_dispatch.py"
+ ],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "mandated approval under 6175172275",
+ "rca": [],
+ "after": [
+  "R10-FLOW-BODY-ONLY"
+ ],
+ "carry": [
+  "Owner action, outside the repo: create one standing trigger per seat role that reads a brief ref named in its fire text.",
+  "Pre-study: the Lean flow pre-study, section K16.",
+  "Seam with R10-ORCH-MACHINERY: dispatch through bus.sh dispatch so the ledger's reviewer-fire close is written, and add the seat to workers.json, which the seats job reads."
+ ],
+ "architect_note": "",
+ "brief": "One call per cloud seat (Lean flow study K16). Today each cloud seat costs a rendered payload plus two trigger bodies pasted whole, and the renderer needs environment, model and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and model, derive the rest from the roster and the seat environment it already knows, write the rendered brief to a ref the seat fetches, and print the one short line the trigger needs (the ref name), so a standing trigger per role can be fired with that line alone. Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; the group builds the repo half. Controls: a fixture dispatch renders the same payload as today's three-step path, byte for byte; a host path still refuses; the printed line round-trips to the brief.",
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-flow-dispatch",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once every after group is done",
+  "note": "Lean flow study 2026-10-21 (owner-adopted)"
+ }
+}

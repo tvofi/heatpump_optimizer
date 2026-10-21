@@ -98,7 +98,65 @@ GROUPS = [
         ["Pre-study: the Lean flow pre-study, section K11."],
         fixer="sonnet", reviewer="opus"),
     group(
-        "R10-FLOW-BODY-ONLY", "instrument", "S", ["R10-UPDATE-PR-SIGNALS"],
+        "R10-FLOW-BODY-PATCH", "instrument", "S", [],
+        ["tools/audit/seat/INSTRUMENTS.md", "tools/pr/app_push.sh"],
+        ["tools/pr/app_push.sh"],
+        "Repair a pull request's body without moving its head (Lean flow study K14; expedite, it "
+        "repairs the line). Ruling R4 forbids moving a clean head, and update_pr.sh merges main on "
+        "every run, but no tool PATCHes a body alone: app_push.sh mints, pushes, then PATCHes, and "
+        "has no body-only flag. Bodies that pr-contract or carry_audit refuse therefore stay red or "
+        "get a head move (2026-10-21: #2560's 111 to 113 figure). Add one seat instrument that "
+        "takes a pull request number, the expected head sha and a body file; refuses unless the "
+        "live head equals the expected sha; runs the body contract offline at that head (the "
+        "policy_lint.mjs --pr-body arm prepr runs, and carry_audit.py check --body); PATCHes the "
+        "body as the hpo-author App through the same mint app_push.sh uses, factored out rather "
+        "than copied; reads the body back byte-identical; and re-reads the head to show it did not "
+        "move. pr-contract re-runs on the edited event. Controls: a fixture where the head moved "
+        "refuses before any write; a body the contract refuses is never sent; a dry-run prints the "
+        "exact request; mutants for the head check, the contract arm and the read-back.",
+        ["Interim, until this lands: app_push.sh run from a clean worktree checked out at the pull "
+         "request's exact head, with the corrected body and no new commit, should push nothing and "
+         "PATCH the body (read from the code, not run): try it once with --dry-run, then live on "
+         "#2560, and confirm the head sha unchanged.",
+         "Pre-study: the Lean flow pre-study, section K14."],
+        fixer="sonnet", reviewer="opus"),
+    group(
+        "R10-FLOW-MAIN-GATE", "instrument", "S", [],
+        ["tools/audit/seat/merge_train.py", "tools/audit/seat/INSTRUMENTS.md"],
+        ["tools/audit/seat/merge_train.py"],
+        "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it "
+        "misleads the operator today). At main e7c66485 on 2026-10-21, 30 checks had concluded and "
+        "7 were in flight; the only failures were record and record-autofix, red because the "
+        "record beat was owed; yet the --overlap gate logged that main is not green and should be "
+        "reverted. Judge main on the latest run of each context only; a queued or in-progress run "
+        "is wait, never red; count only the contexts the ruleset main-protect-checks requires, "
+        "read live, never record, record-autofix, nightly-status or delivery-status. One owner for "
+        "'is main red': share the classifier the open #2570 gives the tick's MAIN section rather "
+        "than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait "
+        "or green, not red; a failed required context reads red; an unreadable ruleset is a "
+        "refusal, never green; mutants for each arm.",
+        ["Sequence after #2570 (the tick's MAIN-section fix) and share its classifier.",
+         "Pre-study: the Lean flow pre-study, section K15."]),
+    group(
+        "R10-FLOW-DISPATCH", "instrument", "S", ["R10-FLOW-BODY-ONLY"],
+        ["tools/audit/seat/cloud_dispatch.py", "tools/audit/seat/INSTRUMENTS.md"],
+        ["tools/audit/seat/cloud_dispatch.py"],
+        "One call per cloud seat (Lean flow study K16). Today each cloud seat costs a rendered "
+        "payload plus two trigger bodies pasted whole, and the renderer needs environment, model "
+        "and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and "
+        "model, derive the rest from the roster and the seat environment it already knows, write "
+        "the rendered brief to a ref the seat fetches, and print the one short line the trigger "
+        "needs (the ref name), so a standing trigger per role can be fired with that line alone. "
+        "Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; "
+        "the group builds the repo half. Controls: a fixture dispatch renders the same payload as "
+        "today's three-step path, byte for byte; a host path still refuses; the printed line "
+        "round-trips to the brief.",
+        ["Owner action, outside the repo: create one standing trigger per seat role that reads a "
+         "brief ref named in its fire text.",
+         "Pre-study: the Lean flow pre-study, section K16."],
+        fixer="sonnet", reviewer="opus", severity="medium"),
+    group(
+        "R10-FLOW-BODY-ONLY", "instrument", "S", ["R10-UPDATE-PR-SIGNALS", "R10-FLOW-BODY-PATCH"],
         ["tools/audit/seat/update_pr.sh", "tools/audit/seat/cloud_relay.sh",
          "tools/audit/seat/pr_args.sh", "tools/audit/seat/INSTRUMENTS.md"],
         ["tools/audit/seat/update_pr.sh"],
@@ -110,9 +168,8 @@ GROUPS = [
         "pull request is DIRTY or git merge-tree --write-tree origin/main HEAD reports a conflict; "
         "(b) a body-only mode, taken when the code sha argument is the dash and the pull request "
         "head already contains the handoff tip: no worktree commit, no delivery-row commit when the "
-        "row exists, the body contract (prepr's pr-body step and carry_audit.py check) run at the "
-        "unchanged head, then app_push.sh's body PATCH with nothing pushed, and the script refuses "
-        "if the head moved; (c) cloud_relay.sh's handoff arm, which today skips any topic whose "
+        "row exists, and the body handed to R10-FLOW-BODY-PATCH's instrument, which runs the body "
+        "contract at the unchanged head and PATCHes without a push; (c) cloud_relay.sh's handoff arm, which today skips any topic whose "
         "code tip the head already contains and so never propagates a body-only move, calls the "
         "body-only mode when the handoff-body tip changed. pr-contract re-runs on the edited event, "
         "so the body is re-gated without a push. Controls: with main ahead and a clean merge-tree, "
@@ -325,8 +382,29 @@ CARRIES = [
      "and nudge step 9 in the same pull request, or state why not. Pre-study: "
      "the Lean flow pre-study, section K5."),
     ("R10-ORCH-MACHINERY",
-     "Lean study K8: the supervised beat's journal should advance the heartbeat/orchestrator ref "
-     "that R10-FLOW-ANDON introduces, so the watchdog reads one liveness signal, not two."),
+     "Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the "
+     "approved design's beat and ledger must own, and they land first, so build them in: "
+     "(1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's job script; interval 300 s, "
+     "timeout 60 s; its ref message carries beatd status, so a timed-out job alerts the owner, "
+     "not only a dead host) and pitch (R10-FLOW-AUTOTRAIN's job script; on the hour or when the "
+     "previous train ends; it only launches a detached train and reads the train-stop "
+     "obligation, never waits on CI). (2) The ledger gains one event kind, postmerge-owed "
+     "(producer: R10-FLOW-POSTMERGE's after-merge step; closer: that step's later success or an "
+     "orchestrator disposition), because the design refuses an OWED shape with no ledger kind. "
+     "(3) The handoff job carries R10-FLOW-BODY-ONLY's body-only path unchanged and writes a "
+     "disposition for the handoff-body ref it applies; it also does not move any pull request "
+     "head while that pull request has a live reviewer in workers.json, which generalises "
+     "R10-FLOW-ROSTER-FREEZE's predicate from the roster pull request to every head (fixer.md's "
+     "freeze, made mechanical). (4) The seats job reads the dispatch records R10-FLOW-DISPATCH "
+     "writes through bus.sh dispatch, which also gives the folded dispatch reason the round-3 "
+     "review's N11-R found has no backing state. (5) Is-main-red has one owner, the classifier "
+     "#2570 and R10-FLOW-MAIN-GATE share; the tick and the sweep do not grow a third. (6) The "
+     "plan page: if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from "
+     "its code rather than building a second page, keeps the UNAVAILABLE page and the five "
+     "mutation fixtures, and renders R10-FLOW-BOARD's flow section from the same model. "
+     "(7) Inventory row M43 is stale: pr_cap.py gates dispatch, not opening, since #2525. "
+     "Owner decisions this needs: the two job rows and the ledger kind amend an approved design."),
+
     ("R10-CI-LAYOUT-P2",
      "Lean flow study K9: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, the "
      "umbrella's one required check must report on merge_group as well as on the pull-request "
@@ -336,3 +414,20 @@ CARRIES = [
      "step's train-hold arm, and leave room for the pitch bound R10-FLOW-RECORD-PITCH adds "
      "after this pull request merges."),
 ]
+
+# Seams with R10-ORCH-MACHINERY's approved design (STUDY K17): each flow group that builds
+# something the design's beat or ledger will own says how it moves there.
+SEAMS = {
+    "R10-FLOW-ANDON": "Seam with R10-ORCH-MACHINERY: write the heartbeat as a standalone job script with --once, called by tick_loop.sh now and registered as the beat's heartbeat job later; do not entrench it in tick_loop.sh, which the design retires.",
+    "R10-FLOW-AUTOTRAIN": "Seam with R10-ORCH-MACHINERY: write the pitch as a standalone job script with --once (the design's job table has no train job); the beat hosts it as the pitch job; read the ledger's train-stop obligation when it exists.",
+    "R10-FLOW-POSTMERGE": "Seam with R10-ORCH-MACHINERY: once the obligations ledger exists, record a failed step as the event kind postmerge-owed through ledger.py, not as a free OWED line, which the design refuses; until then the tick's OWED grammar.",
+    "R10-FLOW-BODY-ONLY": "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists.",
+    "R10-FLOW-ROSTER-FREEZE": "Seam with R10-ORCH-MACHINERY: read a live reviewer from the design's workers.json when it exists (else the review worktree heuristic); the beat's handoff job generalises this freeze to every head.",
+    "R10-FLOW-DISPATCH": "Seam with R10-ORCH-MACHINERY: dispatch through bus.sh dispatch so the ledger's reviewer-fire close is written, and add the seat to workers.json, which the seats job reads.",
+    "R10-FLOW-WIP": "Seam with R10-ORCH-MACHINERY: when ledger.py lands, count stranded handoffs from its handoff-no-pr fold, not from bus.sh orphans.",
+    "R10-FLOW-BOARD": "Seam with R10-ORCH-MACHINERY part (3) and R10-PLAN-ARTIFACT: one plan model; the flow board is a section of that page, not a third page.",
+    "R10-FLOW-MAIN-GATE": "Seam with R10-ORCH-MACHINERY: the beat's tick and the sweep read this classifier; no third is-main-red rule."
+}
+for _g in GROUPS:
+    if _g["group"] in SEAMS:
+        _g["carry"].append(SEAMS[_g["group"]])

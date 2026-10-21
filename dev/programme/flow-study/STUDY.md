@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH · K17 ORCH-MACHINERY alignment · guardrail baselines · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -364,6 +364,118 @@ Each failure prints `OWED post-merge <step>: <why>` and the script exits non-zer
 - Mutants for both arms.
 
 **Until this lands:** freeze roster pushes by hand while #2559 is under review (SHADOW-PLAN §3.2 Phase 1a).
+
+## K14 · R10-FLOW-BODY-PATCH (instrument, S, Sonnet fixer, Opus reviewer): expedite
+
+**Gap** (orchestrator, 2026-10-21): until R10-FLOW-BODY-ONLY lands, the plan said "PATCH the body without `update_pr.sh`, or carry the verdict". No PATCH tool exists, and carrying a verdict does not repair a body that `pr-contract` or `carry_audit` refuses. The open case is #2560's 111→113 figure.
+
+**Facts**
+- `app_push.sh` (flags `--dry-run`, `--recarry`, `--branch-only`) runs prepr, then checks that HEAD equals the branch tip and the tree is clean, then the ref-privacy guard, then mints the App token, pushes, and PATCHes the body of an open PR with a read-back.
+- A run from a clean worktree at the PR's exact head, with a corrected body, pushes nothing new and still PATCHes. That is **read from the code, not run**.
+- `pr-contract.yml` re-runs on `edited` and reads the body from the API.
+
+**Interim, today:**
+1. Check out a clean worktree at the PR's exact head.
+2. Write the corrected body.
+3. Run `tools/pr/app_push.sh … --dry-run`, then the same command live.
+4. Confirm the head sha is unchanged and the body read back is identical.
+5. If the head moves, stop and report it: the inference was wrong.
+
+**Change**
+- A seat instrument taking `<pr> <expected-head-sha> <body-file>`:
+  1. refuse unless the live head equals the expected sha;
+  2. run the body contract offline (prepr's `policy_lint.mjs --pr-body … --head <sha>` arm and `carry_audit.py check --body`);
+  3. PATCH as hpo-author, through `app_push.sh`'s mint, factored out rather than copied;
+  4. read the body back byte-identical;
+  5. re-read the head.
+- Wire its self-test into `governance.yml`'s instrument-self-tests job; `selftest_wiring.py` requires that for a new seat file.
+
+**Controls**
+- A moved head refuses before any write.
+- A refused body is never sent.
+- `--dry-run` prints the request.
+- Mutants for the head check, the contract arm and the read-back.
+
+## K15 · R10-FLOW-MAIN-GATE (instrument, S, Opus): expedite
+
+**Observed** (orchestrator, main `e7c66485`): 30 checks concluded and 7 in flight. The only failures were `record` and `record-autofix`, red because the record beat was owed. Yet the `--overlap` gate logged "main is not green, revert it first". Acting on it would have been wrong.
+
+**Change**
+- Judge main on the **latest run of each context**.
+- Queued or in-progress runs mean **wait**, never red.
+- Count only the contexts the ruleset `main-protect-checks` requires, read live (nudge step 4). Never count `record`, `record-autofix`, `nightly-status` or `delivery-status`.
+- An unreadable ruleset is a refusal, never green.
+- **One owner for "is main red":** the open #2570 fixes the same misreading in the tick's MAIN section (it "judged every non-green latest lane red"). Share its classifier; do not write a second. Sequence after #2570.
+
+**Controls:** the e7c66485 shape reads wait or green; a failed required context reads red; mutants for each arm.
+
+## K16 · R10-FLOW-DISPATCH (instrument, S, Sonnet fixer, Opus reviewer), plus an owner action
+
+**Observed:** each cloud seat costs a rendered payload plus two trigger bodies pasted whole. The renderer needs environment, model and repo flags, and refuses host paths.
+
+**Repo half (this group):** `cloud_dispatch.py` takes role, group and model. It derives the rest from the roster and its known seat environment, writes the rendered brief to a ref the seat fetches, and prints one short line, the ref name.
+
+**Owner half, outside the repo:** one standing trigger per seat role, whose prompt fetches the brief ref named in its fire text. A dispatch is then one fire call carrying one line. Whether the trigger tool can take a file is the harness's call, not the designer's.
+
+**Controls:** byte-identical payload against today's path; a host path still refuses; the printed line round-trips to the brief.
+
+## K17 · Alignment with R10-ORCH-MACHINERY's approved design (carry on that group; seam notes on nine flow groups)
+
+**The design**, read at `handoff/orch-machinery` 09174d94e (DESIGN.md) with review round 3 at 0bd5d12f0 (APPROVE), has three parts:
+- **`beatd.py`,** a supervised beat. Its tracked job table `beatd.jobs.json` has **seven jobs**: `tick` 300/900 s, `relay-probe`, `handoff` 120/3600 s, `state-docs`, `sync`, `plan-page`, `seats`.
+  - It writes a local journal (`PASS … outcome=` lines, plus a 60-s `RUNNING` line) and `beatd status`.
+  - It retires the three hand-launched daemons in one switch: `tick_loop.sh` (M01), the `state_docs.py` beat (M06) and the `wt_sync.sh` loop (M29).
+  - It specifies **no train job, no owner alerting and no off-host liveness signal**.
+- **`ledger.py`.** Its kinds are `handoff-no-pr`, `handoff-update`, `probe-ref`, `stage-mismatch`, `absorb-edge-missing`, `record-owed`, `reviewer-fire`, `verdict-unposted` and `train-stop`.
+  - `open_pr.sh` and `update_pr.sh` write dispositions when they apply a handoff.
+  - **An OWED shape with no ledger kind is refused.**
+- **`plan_page.py`,** sharing one `plan_model()` with `plan_table.py`.
+
+**Collisions, and how this plan resolves them:**
+
+| flow group | collides with | resolution (seam note on the group; binding carry on R10-ORCH-MACHINERY) |
+|---|---|---|
+| FLOW-ANDON | `tick_loop.sh` is retired by the beat; the design has no off-host signal | heartbeat as a standalone `--once` job script. The beat gains a `heartbeat` job (300/60 s) whose ref message carries `beatd status`, so a timed-out job alerts too, not only a dead host |
+| FLOW-AUTOTRAIN | no train job in the design | pitch as a standalone `--once` job script. The beat gains a `pitch` job that only launches a detached train and reads the `train-stop` obligation |
+| FLOW-POSTMERGE | free OWED lines are refused by the ledger | new event kind `postmerge-owed`: producer the after-merge step, closer its later success or an orchestrator disposition |
+| FLOW-BODY-ONLY | the relay handoff arm becomes the `handoff` job | the body-only path is a callable function. The job writes a disposition for the `handoff-body` ref it applies |
+| FLOW-ROSTER-FREEZE | the design has no freeze state; it has `workers.json` seat liveness | the predicate reads a live reviewer from `workers.json`. The `handoff` job **generalises it to every head**, making `fixer.md`'s freeze mechanical |
+| FLOW-DISPATCH | M12 `bus.sh dispatch`, the `reviewer-fire` close, `workers.json` | dispatch through `bus.sh dispatch` and add the seat to `workers.json`. This also supplies the dispatch-reason state review N11-R found missing |
+| FLOW-WIP | `handoff-no-pr` lives in the ledger fold | count stranded handoffs from the fold once `ledger.py` lands |
+| FLOW-MAIN-GATE | the design has no is-main-red rule | one classifier (#2570's) for the train, the tick and the sweep |
+| FLOW-BOARD | part (3) and R10-PLAN-ARTIFACT (#2558) both build the plan page | one model. If #2558 merges first, part (3) extracts `plan_model()` from it and keeps the UNAVAILABLE page and the five mutation fixtures; the flow board is a section of that page |
+
+**Also:** inventory row M43 is stale. `pr_cap.py` has gated dispatch, not opening, since #2525.
+
+**Owner decisions this needs:** the two job rows and the ledger kind amend an approved design; so does part (3)'s scope cut.
+
+**Sequencing:** R10-ORCH-MACHINERY stays after R10-ROSTER-OPS and R10-CI-LAYOUT (design B5: each instrument lands with its wiring). The flow groups that land earlier are written as job scripts and functions so that the beat hosts them unchanged.
+
+## Guardrail baselines (for FUTURE-STATE §9), measured 2026-10-21 14:50Z from the `review/*` bus refs
+
+**Real-catch classes:**
+- harness
+- class-open
+- test-vacuous / vacuous-test / vacuous-check
+- mutation-vacuous / mutant-survives / mutation-survivor / mutation-untriaged / mutation
+- architecture-unsound
+- metric-gamed
+- defect
+- product-tradeoff-regression
+- policy-regression
+- figures-false
+
+Every other blocked class is bookkeeping.
+
+| window | reviewed PRs | real-catch blocks per PR | bookkeeping blocks per PR |
+|---|---|---|---|
+| round-10 study window (10-15 12:37Z → 10-21 11:00Z) | 112 | 0.52 | 0.58 |
+| last 48 h before adoption | 47 | **0.15** | 0.64 |
+| since 13:00Z 10-21 (the orchestrator's sample) | 11 | 0.36 | 0.45 |
+
+The real-catch rate fell from 0.52 to 0.15 **before any flow change merged**. A guardrail on "a fall" therefore needs the pre-change baseline (0.15/PR over 47 PRs), a minimum sample and a defined trigger (FUTURE-STATE §9). Otherwise it fires on noise, or on a fall that predates the plan.
+
+**Enumerator:** for each `review/<pr>` ref, take the commit subjects (`verdict: #N Fix review: merge|blocked <40hex> <class>: …`) by committer time in the window. Count PRs, merges, and blocked subjects by class.
 
 ## Fly-in intake (no group: operating rule, carried by K3)
 
