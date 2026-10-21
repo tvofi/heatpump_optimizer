@@ -508,7 +508,7 @@ claims_line() { # rc 0 holds, 1 refused
 # all, sets PREPR_RECORD_CLOSURES=1 and records here anyway. Linux is
 # unchanged: every decision the step made before this predicate stands.
 closures_records_here() { # rc 0 record scoped closures on this machine, 1 leave them to CI
-  [ -n "${PREPR_RECORD_CLOSURES:-}" ] && return 0
+  [ "${PREPR_RECORD_CLOSURES:-}" = 1 ] && return 0
   case "$(uname -s 2>/dev/null)" in Linux*) return 0 ;; esac
   return 1
 }
@@ -552,19 +552,14 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         rp=$(recorder_python) || { echo "$rp"; r=1; }
       fi
       if [ "$r" -ne 1 ] && [ -n "$rp" ]; then
-        # THE RECORDER DIES WITH THIS SHELL. A stopped prepr used to leave
+        # THE RECORDER DIES WITH THE PREPR. A stopped prepr used to leave
         # derive_closures.sh reparented to launchd and running to completion
         # -- two such orphans ran 20 and 38 minutes on 2026-10-20, and they
         # fed the box's load. `set -m` gives the recorder its own process
-        # group, the TERM/INT traps reap that group, and the watchdog reaps it
-        # when the prepr itself is gone: `$$` stays the top-level prepr even
-        # inside this command substitution, so a TERM to the prepr alone --
-        # which never reaches the substitution's own trap -- still ends the
-        # closure work instead of orphaning it.
-        reap_recorder() { [ -n "${rpid:-}" ] && kill -TERM -- "-$rpid" 2>/dev/null
-                          [ -n "${wpid:-}" ] && kill "$wpid" 2>/dev/null; return 0; }
-        trap 'reap_recorder; exit 143' TERM
-        trap 'reap_recorder; exit 130' INT
+        # group, and the watchdog reaps that group once the prepr is gone:
+        # `$$` stays the top-level prepr inside this function's job, and
+        # `closures_step` keeps the prepr's own signal traps prompt, so a KILL,
+        # a TERM to the prepr alone and a signal to its group all end it.
         set -m
         GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
           --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1 &
@@ -573,7 +568,6 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
           kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
         wait "$rpid"
         kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
-        trap - TERM INT
         set +m
       fi
       if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
@@ -592,6 +586,21 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   esac
   rm -rf "$cw"; return "$r"
 }
+
+# Step 6b runs `closures_line` as a job the prepr `wait`s on, never inside
+# `$(...)`: a trapped signal ends that `wait` at once, where the prepr would
+# defer its own TERM trap until a command substitution's recorder finished --
+# 20 minutes and more. The line is read back from a file once the job ends.
+closures_step() { # merge base; sets CLOSURES_LINE, returns closures_line's rc
+  local out r
+  out=$(mktemp)
+  closures_line "$1" > "$out" & wait "$!"; r=$?
+  CLOSURES_LINE=$(cat "$out"); rm -f "$out"; return "$r"
+}
+
+# The signals bash does not already turn into an exit do so, so the EXIT trap
+# runs on them (step 1b's slot release) and a `wait` they interrupt ends here.
+exit_on_signals() { trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP; }
 
 # Step 7's body check, and the path list the `## Approval` gate is keyed on.
 # Same argument as `figures_check` above: the step calls these, so `--self-test`
@@ -2114,6 +2123,8 @@ PY
   st "$CL_RC" 0 "6b's opt-in records off Linux for a lane that needs a first-green head"
   closures_run cl under darwin 1
   st "$CL_RC" 1 "and the opt-in still refuses a closure its recording does not cover (null control)"
+  closures_run cl ok darwin 0
+  st "$CL_RC" 3 "and PREPR_RECORD_CLOSURES=0 is no opt-in: the recordings stay CI's"
   closures_run cl under linux ""
   st "$CL_RC" 1 "6b on Linux still records and still refuses an uncovered closure (null control)"
   closures_run fl under linux ""
@@ -2127,12 +2138,13 @@ PY
   # THE RECORDER DIES WITH THE PREPR (tvofi, 2026-10-20). A stopped prepr left
   # derive_closures.sh reparented to launchd and running to completion -- two
   # such orphans ran 20 and 38 minutes, and they fed the box's load. The
-  # driver is a separate bash so its `$$` is the prepr the watchdog polls, and
-  # the TERM goes to the driver ALONE: a signal to the prepr never reaches the
-  # command substitution's own trap, which is exactly the case that leaked.
-  # The sleeper stands for the recorder; its pid is its own and its group's.
+  # driver is the prepr as step 6b runs it: a bash of its own, so its `$$` is
+  # the pid the watchdog polls, with the prepr's signal traps installed and
+  # the step's own `closures_step` call. It leads its own process group, so the
+  # group arm signals the prepr's group and nothing of this self-test. The
+  # sleeper stands for the recorder; under the step it leads its own group.
   PREPR_ABS=$(cd "$(dirname "$PREPR_PATH")" && pwd)/$(basename "$PREPR_PATH")
-  SP="$CLM/sleeper.pid"; : > "$SP"
+  SP="$CLM/sleeper.pid"
   cat > "$CLM/sleeper.sh" <<EOF
 #!/bin/bash
 echo "\$\$" > "$SP"
@@ -2143,22 +2155,33 @@ EOF
 #!/bin/bash
 cd "$CLM/r" || exit 9
 eval "\$(awk '/^rc=0\$/{exit} {print}' '$PREPR_ABS')"
-uname() { printf 'Linux\n'; }
-PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1 closures_line fork >/dev/null 2>&1
+exit_on_signals
+export PREPR_RECORD="$CLM/sleeper.sh" PREPR_RECORD_CLOSURES=1
+closures_step fork
 EOF
   chmod +x "$CLM/drv.sh"
   ( cd "$CLM/r" && git checkout -q cl ) >/dev/null 2>&1
-  bash "$CLM/drv.sh" & drvpid=$!
-  for i in $(seq 1 1200); do [ -s "$SP" ] && break; sleep 0.1; done
-  spid=$(cat "$SP" 2>/dev/null)
-  st "$([ -n "$spid" ] && echo started || echo none)" started "the reap arm's recorder starts under the step"
-  kill -TERM "$drvpid" 2>/dev/null; wait "$drvpid" 2>/dev/null
-  survived=1
-  if [ -n "$spid" ]; then
-    for i in $(seq 1 100); do if kill -0 "$spid" 2>/dev/null; then sleep 0.1; else survived=0; break; fi; done
-    [ "$survived" -eq 0 ] || kill -TERM "$spid" 2>/dev/null
-  fi
-  st "$survived" 0 "a TERM to the prepr leaves no recorder running behind it (the orphan this closes)"
+  reap_arm() { # signal, prepr|group; sets REAP to "<prepr>:<recorder>" alive 5 s after the signal
+    local dpid spid i
+    : > "$SP"
+    ( set -m; bash "$CLM/drv.sh" </dev/null >/dev/null 2>&1 & echo "$!" > "$CLM/drv.pid" )
+    dpid=$(cat "$CLM/drv.pid")
+    for i in $(seq 1 1200); do [ -s "$SP" ] && break; sleep 0.1; done
+    spid=$(cat "$SP" 2>/dev/null)
+    if [ -z "$spid" ]; then REAP=unstarted; kill -KILL -- -"$dpid" 2>/dev/null; return; fi
+    if [ "$2" = group ]; then kill -"$1" -- -"$dpid"; else kill -"$1" "$dpid"; fi
+    for i in $(seq 1 50); do
+      kill -0 "$dpid" 2>/dev/null || kill -0 "$spid" 2>/dev/null || break; sleep 0.1
+    done
+    REAP="$(kill -0 "$dpid" 2>/dev/null && echo alive || echo gone):$(kill -0 "$spid" 2>/dev/null && echo alive || echo gone)"
+    kill -KILL -- -"$spid" "$spid" -"$dpid" "$dpid" 2>/dev/null
+  }
+  reap_arm KILL prepr
+  st "$REAP" gone:gone "a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes)"
+  reap_arm TERM prepr
+  st "$REAP" gone:gone "a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes"
+  reap_arm TERM group
+  st "$REAP" gone:gone "a TERM to the prepr's process group ends it and its recorder"
   # R1 (the round-9 merge-path pre-study): the whole recordable scoped set
   # reaches the recorder as ONE --scripts-from lane run -- a serial --single
   # per script pays the SUM of the recordings where the lane run pays a lane
@@ -2680,7 +2703,7 @@ else
     # into an exit do so, so a seat's Ctrl-C frees its slot now, not at expiry.
     # `rc=$?` then `exit $rc` keeps the run's own status though the trap runs.
     trap "rc=\$?; python3 tests/gate_lock.py slot-release --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
-    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+    exit_on_signals
   else
     say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
     # R10-GATE-PRIORITY: a run that proceeds unleased is COUNTED in
@@ -2689,7 +2712,7 @@ else
     # a crashed run's marker is pruned once its pid is gone.
     python3 tests/gate_lock.py slot-unleased --label "$SLOT_LABEL" --pid $$ >/dev/null 2>&1
     trap "rc=\$?; python3 tests/gate_lock.py slot-leased --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
-    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+    exit_on_signals
   fi
   rm -f "$slot_stderr"
 fi
@@ -2919,7 +2942,7 @@ step "claims hygiene" $? "$CLAIMS_LINE"
 if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
 else
-  CLOSURES_LINE=$(closures_line "$BASE")
+  closures_step "$BASE"
   case $? in
     3) say skip "closures" "$CLOSURES_LINE" ;;
     0) step "closures" 0 "$CLOSURES_LINE" ;;
