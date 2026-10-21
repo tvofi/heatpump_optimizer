@@ -732,6 +732,8 @@ def self_test() -> int:
               and "the destination is done" in out, out)
         check("the dry run says the human disposition is left alone",
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
+        check("the dry run plans no append of an item the destination holds",
+              "carry R9-HELD +=" not in out, out)
         check("an issue destination is neither appended nor refused (it keeps "
               "its own record)", "#77" not in out, out)
         check("a commit the checkout does not hold is RECORD-INVALID, printed "
