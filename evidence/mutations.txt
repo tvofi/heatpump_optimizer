@@ -1,4 +1,4 @@
-== (a) main pr_cap
+== (a) main's pr_cap.py
   FAIL open_pr: twenty open pull requests do not stop an open; the count is information
   FAIL open_pr: --over-cap is still accepted, and says it is advisory
   FAIL open_pr: an open count gh cannot read says so and still opens
@@ -6,24 +6,35 @@
   FAIL open_pr: the same board, the bot pull request uncounted
   FAIL null control: open_pr with the code sha passes every check, and its failed push names its log
 pr_args self-test: 54 checks, 6 failed
-== (b) n<=cap
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== (b) n<cap -> n<=cap
   FAIL 6 WIP refuses at the cap, naming the count, the groups and both ways past it
 pr_cap self-test: 21 checks, 1 failed
-== (d) unread->zero
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== (c) tick n=len(prs)
+  FAIL WIP cap: five in-progress beside a record: and a bot pull request: WIP: 5/6, not flagged
+  FAIL WIP cap: WIP is the roster's groups, not the open board: 20 open PRs still WIP: 5/6
+orchestrator_tick self-test: 152 checks, 2 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== (d) unreadable roster -> zero
   FAIL a roster it cannot read refuses, naming why: never a clean zero
   FAIL read_roster over a checkout with no roster is a refusal, not ({} , '')
   FAIL a roster file that is not JSON is a refusal, naming it
 pr_cap self-test: 21 checks, 3 failed
-== mine: overcap line deleted
-  FAIL --over-cap passes at the cap and logs its reason
-pr_cap self-test: 21 checks, 1 failed
-== mine: WIP_STAGE=fixing
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== own: WIP_STAGE=fixing
   FAIL WIP is exactly resume.stage in-progress: done, not-started, queued and fixing are not work in progress
   FAIL a group with an open pull request is ONE group: the count is over group ids, and the open count is a separate rule
   FAIL 5 WIP passes and names the groups
   FAIL 6 WIP refuses at the cap, naming the count, the groups and both ways past it
   FAIL 7 WIP refuses too (at or over the cap, not exactly at it)
   FAIL --over-cap passes at the cap and logs its reason
-== mine: empty-reason arm deleted
+pr_cap self-test: 21 checks, 6 failed
+ 1 file changed, 1 deletion(-)
+== own: overcap line deleted
+  FAIL --over-cap passes at the cap and logs its reason
+pr_cap self-test: 21 checks, 1 failed
+ 1 file changed, 2 deletions(-)
+== own: empty-reason arm deleted
   FAIL --over-cap with an empty reason refuses
 pr_cap self-test: 21 checks, 1 failed

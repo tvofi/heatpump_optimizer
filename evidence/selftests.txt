@@ -1,0 +1,6 @@
+roster_lib: no roster readable at origin/main; reading origin/main
+pr_cap self-test: 21 checks, 0 failed
+pr_args self-test: 54 checks, 0 failed
+orchestrator_tick self-test: 152 checks, 0 failed
+Refuse a self-testing seat instrument that no CI step runs.
+selftest_wiring: 37 self-testing, 37 wired, 0 unwired
