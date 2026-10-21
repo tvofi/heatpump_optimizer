@@ -4461,9 +4461,9 @@
    ],
    "brief": "main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-LAYOUT planning seat, PLAN.md). It blocks stamps, which need a green Tests push run. Find which merges grew the critical path and the script count, then pay by optimisation (move or merge jobs, drop duplicate script runs) before any raise; a raise only if unpayable, with ## Raise justification and Payments tried. Control: ci-ratchet green on the fix head and on main after merge; a planted extra script run turns it red.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-ci-ratchet-red",
-    "commit": null,
+    "commit": "d7121f32b934f3d083938f5a6ebe27192e68c264",
     "last_step": null,
     "next_step": "fixer",
     "note": "Reopened 2026-10-20: ci-ratchet failed on every push to main from 4e5801eb (14:17Z) through e4d47457, twelve consecutive runs. .github/workflows/tests.yml fetches the artifacts list with '> window.json || true' and then json.load's it, so a failed or truncated API response becomes an empty file and a JSONDecodeError ten seconds later; reproduced locally, rc 1 and 0 bytes on one attempt in three. PR 0's payments (#2464, 71f0bb69f) did not cover this path. Fixer on handoff/r10-ci-ratchet-red; the retry and never-read-empty rule belong in tests/ci_ratchet.py."
