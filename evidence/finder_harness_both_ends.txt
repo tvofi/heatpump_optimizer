@@ -1,0 +1,25 @@
+== base round 1
+run[0] loop_cpu=20.40ms ref_ms=84.7 loop_ref_ms=182.0 old=0.2410 new=0.1121
+RESULT local new=min0.1121_max0.1121_factor1.000 median0.1121
+RESULT local old=min0.2410_max0.2410_factor1.000 median0.2410
+== wt round 1
+run[0] loop_cpu=21.30ms ref_ms=78.7 loop_ref_ms=182.0 old=0.2707 new=0.1170
+RESULT local new=min0.1170_max0.1170_factor1.000 median0.1170
+RESULT local old=min0.2707_max0.2707_factor1.000 median0.2707
+== base round 2
+run[0] loop_cpu=19.53ms ref_ms=76.4 loop_ref_ms=179.3 old=0.2556 new=0.1089
+RESULT local new=min0.1089_max0.1089_factor1.000 median0.1089
+RESULT local old=min0.2556_max0.2556_factor1.000 median0.2556
+== wt round 2
+run[0] loop_cpu=19.53ms ref_ms=83.1 loop_ref_ms=176.1 old=0.2349 new=0.1109
+RESULT local new=min0.1109_max0.1109_factor1.000 median0.1109
+RESULT local old=min0.2349_max0.2349_factor1.000 median0.2349
+== base round 3
+run[0] loop_cpu=19.71ms ref_ms=78.7 loop_ref_ms=176.3 old=0.2505 new=0.1118
+RESULT local new=min0.1118_max0.1118_factor1.000 median0.1118
+RESULT local old=min0.2505_max0.2505_factor1.000 median0.2505
+== wt round 3
+run[0] loop_cpu=20.88ms ref_ms=79.4 loop_ref_ms=173.2 old=0.2630 new=0.1206
+RESULT local new=min0.1206_max0.1206_factor1.000 median0.1206
+RESULT local old=min0.2630_max0.2630_factor1.000 median0.2630
+DONE

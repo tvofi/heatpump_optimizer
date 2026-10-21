@@ -1,0 +1,13 @@
+run[0] loop_cpu=22.26ms ref_ms=87.5 loop_ref_ms=190.1 old=0.2545 new=0.1171
+run[1] loop_cpu=20.50ms ref_ms=79.5 loop_ref_ms=174.5 old=0.2579 new=0.1175
+run[2] loop_cpu=20.31ms ref_ms=93.5 loop_ref_ms=183.3 old=0.2172 new=0.1108
+run[3] loop_cpu=19.75ms ref_ms=75.1 loop_ref_ms=180.6 old=0.2631 new=0.1094
+run[4] loop_cpu=21.24ms ref_ms=81.8 loop_ref_ms=179.4 old=0.2597 new=0.1184
+run[5] loop_cpu=20.53ms ref_ms=78.2 loop_ref_ms=178.1 old=0.2626 new=0.1153
+run[6] loop_cpu=20.31ms ref_ms=79.6 loop_ref_ms=172.7 old=0.2551 new=0.1176
+run[7] loop_cpu=20.01ms ref_ms=79.7 loop_ref_ms=173.3 old=0.2511 new=0.1155
+RESULT local new=min0.1094_max0.1184_factor1.082 median0.1163
+RESULT local old=min0.2172_max0.2631_factor1.211 median0.2565
+ 11:19:09 up 9 min,  0 user,  load average: 0.88, 0.85, 0.48
+4
+DONE3
