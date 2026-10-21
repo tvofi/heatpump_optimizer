@@ -1,0 +1,3 @@
+RESULT all_tracked_pages=1365 sized_img_compared=10 mismatches=0
+RESULT published_pages=9 sized_img_compared=10 mismatches=0
+RESULT sized_img_tags_any_quote_all_tracked=10

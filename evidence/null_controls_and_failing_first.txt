@@ -1,0 +1,21 @@
+== null controls at base 289426c1fddef7efdb9278f0455cad8533b93ac6
+RESULT null_stale=0 count
+RESULT banner_mismatch=0 count
+RESULT img_dim_mismatch=0
+RESULT stale_W3=3 count
+RESULT stale_total=27 count
+== doc_claims: head's tests/doc_claims.py on base tree
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [README.md:396: 'Enter thermal values directly (expert)' but the button reads 'Enter thermal values directly'; docs/configuration.md: 'Add integration -> Heat Pump Optimizer' but the picker shows 'Heat Pump Cost Optimizer'; docs/configuration.md:43: 'Enter thermal values directly (expert)' but the button reads 'Enter thermal values directly'; docs/configuration.md:164: 'Enter thermal values directly (expert)' but the button reads 'Enter thermal values directly'; docs/setup.md:70: 'Enter thermal values directly (expert)' but the button reads 'Enter thermal values directly']
+  FAIL the sample shows the placeholder, not a literal version  [["banner sample shows 'v6.6.8', a literal the next stamp falsifies"]]
+  FAIL a literal version planted in the sample is refused (null control)
+  FAIL no comment or docstring states a whole-registry count that differs from it  [['__init__.py:80 states 12, registered 13', '__init__.py:263 states 12, registered 13', '__init__.py:363 states 12, registered 13', '__init__.py:363 states 11, registered 13']]
+  FAIL every declared width and height equals the PNG header  [docs/index.html: img/card/plan-why-light.png declares 1056x616, file is 1056x792]
+5 of 183 checks FAILED
+== doc_claims at head a85e97a7325fc48767ba5abb1ec4c6fb92506939
+
+ALL 183 checks PASSED
+rc=0

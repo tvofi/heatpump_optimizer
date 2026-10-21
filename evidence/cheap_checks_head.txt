@@ -1,0 +1,27 @@
+== tests/structure.py
+STRUCTURE RATCHET PASSED
+rc=0
+== tests/entities.py
+ALL 2375 ENTITY CHECKS PASSED
+rc=0
+== tests/closure.py selftest
+ALL 124 closure shrink pins PASSED
+rc=0
+== tests/env_drift.py --claims-only origin/main
+claims hygiene: origin/main ok
+rc=0
+== tests/deployment_shape.py
+ALL DEPLOYMENT SHAPE CHECKS PASSED
+rc=0
+== tests/validate.py
+NO ISSUES
+rc=0
+== tests/harness_headers.py
+ALL 109 HARNESS HEADER CHECKS PASSED
+rc=0
+== closure select --diff merge-base
+  MODE: FULL -- every test script runs, nothing is scoped out.
+== node tests/md_tables.mjs
+RESULT doc_misrendered_lines=0 count
+== rules_sync --check
+RULES-SYNC ok: every generated rule is the generated form of its source

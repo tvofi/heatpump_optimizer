@@ -1,0 +1,28 @@
+== README.md reverted to merge base
+  FAIL the three setup-flow diagrams are identical
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [README.md:396: 'Enter thermal values directly (
+2 of 183 checks FAILED
+== docs/configuration.md reverted to merge base
+  FAIL the three setup-flow diagrams are identical
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [docs/configuration.md: 'Add integration -> Heat
+2 of 183 checks FAILED
+== docs/setup.md reverted to merge base
+  FAIL the three setup-flow diagrams are identical
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every 'Add integration' name and menu-button label in the docs is what the UI shows  [docs/setup.md:70: 'Enter thermal values directl
+2 of 183 checks FAILED
+== docs/dashboard-card.md reverted to merge base
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL the sample shows the placeholder, not a literal version  [["banner sample shows 'v6.6.8', a literal the next stamp falsifies"]]
+  FAIL a literal version planted in the sample is refused (null control)
+2 of 183 checks FAILED
+== custom_components/heatpump_optimizer/__init__.py reverted to merge base
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL no comment or docstring states a whole-registry count that differs from it  [['__init__.py:80 states 12, registered 13', '__init__.py
+1 of 183 checks FAILED
+== docs/index.html reverted to merge base
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL every declared width and height equals the PNG header  [docs/index.html: img/card/plan-why-light.png declares 1056x616, file is 1056x
+1 of 183 checks FAILED

@@ -1,0 +1,99 @@
+=== base 289426c1fddef7efdb9278f0455cad8533b93ac6 (checkout, python Python 3.14.7)
+--- ui_labels.py
+RESULT mismatches=5 count
+--- service_count_comments.py
+RESULT registered_actions=13 count
+RESULT async_register_calls=13 count
+RESULT stated_counts=5 count
+RESULT stale_count_statements=4 count
+--- card_banner.py
+RESULT banner_mismatch=1 count
+--- web_claims.py
+RESULT claims extracted=63 checked=63 false=1 stale=0 unverifiable=0
+RESULT img_dim_mismatch=1
+--- sweep_i5.py
+STALE F1 README.md:396 | HIT README.md:396 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/configuration.md:23 | HIT docs/configuration.md:23 rule=A doc='Heat Pump Optimizer' ui='Heat Pump Cost Optimizer'
+STALE F1 docs/configuration.md:43 | HIT docs/configuration.md:43 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/configuration.md:164 | HIT docs/configuration.md:164 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F1 docs/setup.md:70 | HIT docs/setup.md:70 rule=B doc='Enter thermal values directly (expert)' ui='Enter thermal values directly'
+STALE F2 docs/dashboard-card.md:banner | doc_banner=v6.6.8 card_after_stamp=v7.0.2
+STALE F3 custom_components/heatpump_optimizer/coordinator.py:2058 | MISSING  custom_components/heatpump_optimizer/coordinator.py:2058 `money_currency`
+STALE F3 custom_components/heatpump_optimizer/inputs.py:361 | MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MIN_TEMP`
+STALE F3 custom_components/heatpump_optimizer/inputs.py:361 | MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MAX_TEMP`
+STALE F3 custom_components/heatpump_optimizer/optimizer.py:3522 | MISSING  custom_components/heatpump_optimizer/optimizer.py:3522 `manual_plan_released`
+STALE F3 custom_components/heatpump_optimizer/plan_step.py:1 | MISSING  custom_components/heatpump_optimizer/plan_step.py:1 `FORECAST_STEP_MINUTES`
+STALE F3 custom_components/heatpump_optimizer/replay_doc.py:86 | MISSING  custom_components/heatpump_optimizer/replay_doc.py:86 `TibberSensorElPrice`
+STALE F4 custom_components/heatpump_optimizer/__init__.py:80+ | custom_components/heatpump_optimizer/__init__.py:80+ states 'twelve services' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:263+ | custom_components/heatpump_optimizer/__init__.py:263+ states 'twelve services' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:363+ | custom_components/heatpump_optimizer/__init__.py:363+ states 'twelve handlers' -> 12 vs registered 13: STALE
+STALE F4 custom_components/heatpump_optimizer/__init__.py:363+ | custom_components/heatpump_optimizer/__init__.py:363+ states 'eleven ``hass.services.async_register`` calls' -> 11 vs registered 13: STALE
+STALE F5 dev/governance/dimensions/D7.md:13 | count dev/governance/dimensions/D7.md:13 states 24, derived 18, stale=true, checkCounts_flagged=false
+STALE F5 dev/governance/dimensions/D7.md:17 | key dev/governance/dimensions/D7.md:17 names cut_* as a live metric; in budgets: false
+STALE F5 dev/governance/dimensions/D7.md:18 | key dev/governance/dimensions/D7.md:18 names cross_seam_edges as a live metric; in budgets: false
+STALE F5 tests/structure.py:414 | key tests/structure.py:414 names cross_seam_edges as a live metric; in budgets: false
+STALE W1 docs/dashboard-card.md:828 | v6.6.8 hist=False
+STALE W2 dev/governance/dimensions/D7.md:18 | cross_seam_edges
+STALE W2 tests/structure.py:414 | cross_seam_edges
+STALE W2 tests/structure.py:2606 | cut_views
+STALE W3 dev/governance/dimensions/D9.md:15 | 51 scenarios live=54 hist=False
+STALE W3 tests/stress.py:4805 | fifty-one scenarios live=54 hist=False
+RESULT stale_F1=5 count
+RESULT stale_F2=1 count
+RESULT stale_F3=6 count
+RESULT stale_F4=4 count
+RESULT stale_F5=4 count
+RESULT stale_W1=1 count
+RESULT stale_W2=3 count
+RESULT stale_W3=2 count
+RESULT seams_wide=35 seams_census_refused=2 count
+RESULT stale_total=26 count
+--- stale_structure_refs.mjs (run from tree copy)
+RESULT derived_budget_metrics=18 count
+RESULT lint_missed_stale_counts=1 count
+RESULT retired_key_claims=3 count
+RESULT claims_that_hold=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.77
+RESULT swapins=na
+=== head a85e97a7325fc48767ba5abb1ec4c6fb92506939 (checkout, python Python 3.14.7)
+--- ui_labels.py
+RESULT mismatches=0 count
+--- service_count_comments.py
+RESULT registered_actions=13 count
+RESULT async_register_calls=13 count
+RESULT stated_counts=1 count
+RESULT stale_count_statements=0 count
+--- card_banner.py
+AttributeError: 'NoneType' object has no attribute 'group'
+--- web_claims.py
+RESULT claims extracted=63 checked=63 false=0 stale=0 unverifiable=0
+RESULT img_dim_mismatch=0
+--- sweep_i5.py
+STALE F3 custom_components/heatpump_optimizer/coordinator.py:2058 | MISSING  custom_components/heatpump_optimizer/coordinator.py:2058 `money_currency`
+STALE F3 custom_components/heatpump_optimizer/inputs.py:361 | MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MIN_TEMP`
+STALE F3 custom_components/heatpump_optimizer/inputs.py:361 | MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MAX_TEMP`
+STALE F3 custom_components/heatpump_optimizer/optimizer.py:3522 | MISSING  custom_components/heatpump_optimizer/optimizer.py:3522 `manual_plan_released`
+STALE F3 custom_components/heatpump_optimizer/plan_step.py:1 | MISSING  custom_components/heatpump_optimizer/plan_step.py:1 `FORECAST_STEP_MINUTES`
+STALE F3 custom_components/heatpump_optimizer/replay_doc.py:86 | MISSING  custom_components/heatpump_optimizer/replay_doc.py:86 `TibberSensorElPrice`
+STALE F5 dev/governance/dimensions/D7.md:13 | count dev/governance/dimensions/D7.md:13 states 24, derived 18, stale=true, checkCounts_flagged=false
+STALE F5 dev/governance/dimensions/D7.md:17 | key dev/governance/dimensions/D7.md:17 names cut_* as a live metric; in budgets: false
+STALE F5 dev/governance/dimensions/D7.md:18 | key dev/governance/dimensions/D7.md:18 names cross_seam_edges as a live metric; in budgets: false
+STALE W2 dev/governance/dimensions/D7.md:18 | cross_seam_edges
+STALE W2 tests/structure.py:2607 | cut_views
+STALE W3 dev/governance/dimensions/D9.md:15 | 51 scenarios live=54 hist=False
+RESULT stale_F3=6 count
+RESULT stale_F5=3 count
+RESULT stale_W1=0 count
+RESULT stale_W2=2 count
+RESULT stale_W3=1 count
+RESULT seams_wide=32 seams_census_refused=2 count
+RESULT stale_total=12 count
+--- stale_structure_refs.mjs (run from tree copy)
+RESULT derived_budget_metrics=18 count
+RESULT lint_missed_stale_counts=1 count
+RESULT retired_key_claims=2 count
+RESULT claims_that_hold=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.81
+RESULT swapins=na
