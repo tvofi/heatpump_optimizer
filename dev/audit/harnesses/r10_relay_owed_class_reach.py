@@ -12,7 +12,9 @@ production `relay_owed`, unmodified, and the harness counts the OWED lines it
 still prints per writer. A writer whose row keys on its PR number is cleared
 by that POSTED and prints 0: that is the null control, in the same run.
 
-    python3 dev/audit/harnesses/r10_relay_owed_class_reach.py [tick.py] [cloud_relay.sh]
+    python3 -I dev/audit/harnesses/r10_relay_owed_class_reach.py [tick.py] [cloud_relay.sh]
+
+Run from the repository root; the default paths are relative to it.
 
 RESULT writers=<n> kinds_on_kind_token=<n> uncleared_lines=<n> pr_keyed_writers=<n> pr_keyed_lines=<n>
 """
@@ -25,9 +27,8 @@ import tempfile
 import types
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-TICK = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "tools/audit/seat/orchestrator_tick.py"
-RELAY = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "tools/audit/seat/cloud_relay.sh"
+TICK = Path(sys.argv[1] if len(sys.argv) > 1 else "tools/audit/seat/orchestrator_tick.py")
+RELAY = Path(sys.argv[2] if len(sys.argv) > 2 else "tools/audit/seat/cloud_relay.sh")
 LEVEL = ("probe-ref", "handoff-no-pr")  # written on every pass until disposed
 UTC = "2026-10-21T01:00:00Z"
 WRITER = re.compile(r"""logline OWED "([^"]+)"|\bowed ("[^;|&]+)|printf 'OWED ([^']+)' ([^>]+)>>""")
