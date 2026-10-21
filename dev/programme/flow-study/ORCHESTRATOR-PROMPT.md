@@ -22,6 +22,8 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 
 ## Where things stand
 
+*As of revision 8 (about 17:40Z). Re-read the live state before acting on any line here. At revision 10 (about 16:27Z by the PR list), these were open as drafts: roster PR-A #2576, DISPATCH #2577, BODY-PATCH #2578, and RATCHET-RED #2531 (ready) with #2575.*
+
 - **#2559 merged at 17:36Z and #2549 at 17:40Z. The roster freeze is over,** and the tick no longer waits on the relay.
 - **#2567's forward-carry can land now.**
 - #2513 (R10-ROSTER-OPS) merged at 17:20Z, so **Phase 1b's roster PR-A can start** (below).
