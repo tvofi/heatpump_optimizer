@@ -41,6 +41,8 @@ Plants:
   M13_off_main_accepted       a commit off origin/main is a valid record.
   M14_ambiguous_accepted      an ambiguous prefix is a valid record.
   M15_record_invalid_silent   a RECORD-INVALID finding is not printed.
+  M16_open_head_on_main       an open group's handoff head must be on
+                              origin/main too, so a live handoff is invalid.
 """
 import subprocess
 import sys
@@ -105,6 +107,9 @@ PLANTS = {
     "M15_record_invalid_silent": [
         (SRC, "            print(f\"roster_sync: RECORD-INVALID {gid} {why}\")",
               "            pass  # M15")],
+    "M16_open_head_on_main": [
+        (SRC, "        if len(commits) == 1 and not roster_lib.is_open(g):",
+              "        if len(commits) == 1:  # M16")],
 }
 
 

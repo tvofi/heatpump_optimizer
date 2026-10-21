@@ -40,8 +40,9 @@ decides the shorter group's stage.
 
 RECORD-INVALID is the design's commit predicate (6.4, item 3): every
 `resume.commit` is resolved by prefix (`git rev-parse --disambiguate`) in the
-checkout, and only a unique commit that is an ancestor of `origin/main` is
-valid; an unresolvable, ambiguous or off-main record is printed as
+checkout and must name one commit, and a done group's must be an ancestor of
+`origin/main` (an open group's records its handoff head, which is not yet);
+an unresolvable, ambiguous or off-main record is printed as
 `RECORD-INVALID <group> <why>`. It is a finding about the record, not a
 refusal of the pass, so it never stops the derived writes.
 
@@ -308,9 +309,9 @@ def commit_verdict(prefix: str, commits: list[str],
 
 
 def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
-    """(group, why) for every `resume.commit` that is not one commit on
-    origin/main. The length test is gone: a unique 12-hex prefix on main is
-    a valid record, which is the design's correction (B3)."""
+    """(group, why) for every `resume.commit` that is not one commit, or,
+    on a done group, not one on origin/main. The length test is gone: a
+    unique 12-hex prefix on main is a valid record (the design's B3)."""
     out = []
     for g in roster.get("groups", []):
         sha = (g.get("resume") or {}).get("commit")
@@ -331,8 +332,8 @@ def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
                 input="\n".join(objs) + "\n", capture_output=True, text=True)
             commits = [ln.split()[0] for ln in types.stdout.splitlines()
                        if ln.split()[1:2] == ["commit"]]
-        on_main = None
-        if len(commits) == 1:
+        on_main = True  # an open group records its handoff head: resolve only
+        if len(commits) == 1 and not roster_lib.is_open(g):
             rc = subprocess.run(["git", "-C", checkout, "merge-base",
                                  "--is-ancestor", commits[0], "origin/main"],
                                 capture_output=True).returncode
@@ -849,10 +850,13 @@ def self_test() -> int:
         side = git("commit-tree", tree, "-p", main_sha, "-m", "off main",
                    cwd=str(drv))
         rec = {"groups": [
-            {"group": "C-FULL", "resume": {"commit": main_sha}},
-            {"group": "C-SHORT", "resume": {"commit": main_sha[:12]}},
+            {"group": "C-FULL", "resume": {"stage": "done", "commit": main_sha}},
+            {"group": "C-SHORT", "resume": {"stage": "done",
+                                            "commit": main_sha[:12]}},
             {"group": "C-NONE", "resume": {"commit": "c35302773738"}},
-            {"group": "C-OFF", "resume": {"commit": side[:12]}},
+            {"group": "C-OFF", "resume": {"stage": "done", "commit": side[:12]}},
+            {"group": "C-OPEN", "resume": {"stage": "in-progress",
+                                           "commit": side[:12]}},
             {"group": "C-UPPER", "resume": {"commit": "ABCDEF123456"}},
             {"group": "C-NULL", "resume": {"commit": None}},
         ]}
@@ -863,8 +867,10 @@ def self_test() -> int:
               "C-SHORT" not in bad, bad)
         check("an unresolvable prefix is RECORD-INVALID",
               "does not resolve" in bad.get("C-NONE", ""), bad)
-        check("a unique commit off origin/main is RECORD-INVALID",
+        check("a done group's commit off origin/main is RECORD-INVALID",
               "not an ancestor of origin/main" in bad.get("C-OFF", ""), bad)
+        check("an open group's handoff head off origin/main is valid",
+              "C-OPEN" not in bad, bad)
         check("a value outside the sha grammar is RECORD-INVALID",
               "C-UPPER" in bad and "C-NULL" not in bad, bad)
         check("an ambiguous prefix is RECORD-INVALID",
