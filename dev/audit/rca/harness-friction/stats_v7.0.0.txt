@@ -1,110 +1,211 @@
-GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N from" subject after /commits/<sha>/pulls answered []
-STATS: 129 merged pull request(s) in v7.0.0..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
-STATS COVERAGE: 67 of 129 merged pull request(s) in the window carried a parsable verdict; 62 carried none (#2414 #2413 #2412 #2407 #2402 #2398 #2392 #2388 #2387 #2385 +52 more); the histogram's verdict denominator is 67, not the window's merge count
-STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 57 of 59 (#2414 #2413 #2412 #2407 #2402 #2398 #2392 #2388 #2387 #2385 +47 more); roster 3 of 13 (#2380 #2377 #2356); (untyped) 2 of 42 (#2352 #2348); chore 0 of 2; closures 0 of 1; fix 0 of 6; policy 0 of 1; rca 0 of 2; readme 0 of 1; test 0 of 2
-STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 126; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
-STATS ROUNDS: over the 67 merged pull request(s) carrying a parsable verdict, first-verdict yield 39/67 = 0.582 (the first verdict was `merge`), one-round yield 31/67 = 0.463 (merged on that one verdict, no later parsable one). Of the 59 parsable verdict(s) after a pull request's first, by the verdict before each: 10 re-verified a head that moved after a `merge` (10 PR(s), the "head-moved (rework)" row), 47 repaired after a `blocked`, 2 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+GAP: 0 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
+STATS: 234 merged pull request(s) in v7.0.0..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
+STATS COVERAGE: 116 of 234 merged pull request(s) in the window carried a parsable verdict; 118 carried none (#2541 #2540 #2539 #2538 #2537 #2536 #2535 #2533 #2532 #2530 +108 more); the histogram's verdict denominator is 116, not the window's merge count
+STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 112 of 116 (#2541 #2540 #2539 #2538 #2537 #2536 #2535 #2533 #2532 #2530 +102 more); (untyped) 3 of 68 (#2423 #2352 #2348); roster 3 of 17 (#2380 #2377 #2356); chore 0 of 3; ci 0 of 2; closures 0 of 1; deps 0 of 1; docs 0 of 2; fix 0 of 13; plan 0 of 1; policy 0 of 2; rca 0 of 2; readme 0 of 1; stamp 0 of 1; stress 0 of 1; test 0 of 2; tools 0 of 1
+STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 243; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
+STATS ROUNDS: over the 116 merged pull request(s) carrying a parsable verdict, first-verdict yield 57/116 = 0.491 (the first verdict was `merge`), one-round yield 45/116 = 0.388 (merged on that one verdict, no later parsable one). Of the 127 parsable verdict(s) after a pull request's first, by the verdict before each: 17 re-verified a head that moved after a `merge` (17 PR(s), the "head-moved (rework)" row), 101 repaired after a `blocked`, 9 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
 
 verdict class (PRs / entries):
-    67 / 79    merge   <- at or over threshold
-    13 / 21    harness   <- at or over threshold
-     4 / 5     class-open   <- at or over threshold
-     3 / 3     mutation-vacuous   <- at or over threshold
+   115 / 141   merge   <- at or over threshold
+    15 / 23    harness   <- at or over threshold
+    12 / 15    carry-missing   <- at or over threshold
+     5 / 7     root-cause-unanswered   <- at or over threshold
+     5 / 7     class-open   <- at or over threshold
+     5 / 6     mutation-vacuous   <- at or over threshold
+     3 / 3     ci-red   <- at or over threshold
+     3 / 3     other   <- at or over threshold
      2 / 2     test-vacuous
+     1 / 2     contract
+     1 / 1     comment-claim
+     1 / 1     head-moved
+     1 / 1     claim-false
+     1 / 1     control-failed
+     1 / 1     body-figures-stale
+     1 / 1     figure
+     1 / 1     dispatch-mismatch
+     1 / 1     mutation-survivor
+     1 / 1     body-head-unnamed
+     1 / 1     carry-unsound
+     1 / 1     vacuous-test
+     1 / 1     architecture-unsound
+     1 / 1     regression
+     1 / 1     red-at-head
+     1 / 1     carry-stale
+     1 / 1     claims
+     1 / 1     null-control-false
+     1 / 1     mutation
+     1 / 1     tests-red
+     1 / 1     mutation-untriaged
+     1 / 1     conflict
      1 / 1     vacuous-check
      1 / 1     defect
      1 / 1     product-tradeoff-regression
      1 / 1     root-cause-detectable
      1 / 1     mutant-survives
      1 / 1     metric-gamed
-     1 / 1     carry-missing
-     1 / 1     root-cause-unanswered
      1 / 1     figures-false
      1 / 1     policy-regression
      1 / 1     preflight-mismatch
-     1 / 1     other
      1 / 1     body-stale
      1 / 1     closures-red
      1 / 1     figure-unverified
      1 / 1     row-format
-     3 / 3     mutation (family)   <- at or over threshold
-CENSUS	verdict class	67	79	merge
-CENSUS	verdict class	13	21	harness
-CENSUS	verdict class	4	5	class-open
-CENSUS	verdict class	3	3	mutation-vacuous
+     7 / 8     mutation (family)   <- at or over threshold
+CENSUS	verdict class	115	141	merge
+CENSUS	verdict class	15	23	harness
+CENSUS	verdict class	12	15	carry-missing
+CENSUS	verdict class	5	7	root-cause-unanswered
+CENSUS	verdict class	5	7	class-open
+CENSUS	verdict class	5	6	mutation-vacuous
+CENSUS	verdict class	3	3	ci-red
+CENSUS	verdict class	3	3	other
 CENSUS	verdict class	2	2	test-vacuous
+CENSUS	verdict class	1	2	contract
+CENSUS	verdict class	1	1	comment-claim
+CENSUS	verdict class	1	1	head-moved
+CENSUS	verdict class	1	1	claim-false
+CENSUS	verdict class	1	1	control-failed
+CENSUS	verdict class	1	1	body-figures-stale
+CENSUS	verdict class	1	1	figure
+CENSUS	verdict class	1	1	dispatch-mismatch
+CENSUS	verdict class	1	1	mutation-survivor
+CENSUS	verdict class	1	1	body-head-unnamed
+CENSUS	verdict class	1	1	carry-unsound
+CENSUS	verdict class	1	1	vacuous-test
+CENSUS	verdict class	1	1	architecture-unsound
+CENSUS	verdict class	1	1	regression
+CENSUS	verdict class	1	1	red-at-head
+CENSUS	verdict class	1	1	carry-stale
+CENSUS	verdict class	1	1	claims
+CENSUS	verdict class	1	1	null-control-false
+CENSUS	verdict class	1	1	mutation
+CENSUS	verdict class	1	1	tests-red
+CENSUS	verdict class	1	1	mutation-untriaged
+CENSUS	verdict class	1	1	conflict
 CENSUS	verdict class	1	1	vacuous-check
 CENSUS	verdict class	1	1	defect
 CENSUS	verdict class	1	1	product-tradeoff-regression
 CENSUS	verdict class	1	1	root-cause-detectable
 CENSUS	verdict class	1	1	mutant-survives
 CENSUS	verdict class	1	1	metric-gamed
-CENSUS	verdict class	1	1	carry-missing
-CENSUS	verdict class	1	1	root-cause-unanswered
 CENSUS	verdict class	1	1	figures-false
 CENSUS	verdict class	1	1	policy-regression
 CENSUS	verdict class	1	1	preflight-mismatch
-CENSUS	verdict class	1	1	other
 CENSUS	verdict class	1	1	body-stale
 CENSUS	verdict class	1	1	closures-red
 CENSUS	verdict class	1	1	figure-unverified
 CENSUS	verdict class	1	1	row-format
-CENSUS	verdict family	3	3	mutation (family)
+CENSUS	verdict family	7	8	mutation (family)
 
 rework (PRs / entries):
-    10 / 10    head-moved (rework)   <- at or over threshold
-CENSUS	rework	10	10	head-moved (rework)
+    17 / 17    head-moved (rework)   <- at or over threshold
+CENSUS	rework	17	17	head-moved (rework)
 
 friction rule id (PRs / entries):
-    11 / 11    tools/audit/briefs/fixer.md   <- at or over threshold
-     3 / 3     .claude/rules/gate-scoping.md   <- at or over threshold
+    19 / 22    tools/audit/briefs/fixer.md   <- at or over threshold
+     4 / 4     .claude/rules/gate-scoping.md   <- at or over threshold
+     3 / 4     .claude/rules/finding-propagation.md   <- at or over threshold
+     3 / 4     .claude/rules/ci-autofix.md   <- at or over threshold
+     2 / 2     fixer-brief
+     2 / 2     .claude/rules/defect-root-cause.md
+     2 / 2     fixer-step-18
      2 / 2     prepr.sh
+     1 / 2     carry_audit.py
      1 / 2     R10-ARCHSCORE-COVERAGE-p3-r4
+     1 / 1     brief-timeout-frame
+     1 / 1     codeql-extraction-quiet
+     1 / 1     roster
+     1 / 1     budget
+     1 / 1     r10-pr-cap
+     1 / 1     plan-target
+     1 / 1     .claude/rules/brief-citations.md
+     1 / 1     null-control
+     1 / 1     tools/audit/seat/r10_deeplink_mutants.py
+     1 / 1     R8-P3
+     1 / 1     tests/throwaway_git.py
+     1 / 1     fixer-handoff
+     1 / 1     body_push.sh
+     1 / 1     hpo-main-checkout-guard
+     1 / 1     tests/harness_headers.py
+     1 / 1     .claude/rules/claim-files.md
+     1 / 1     tools/audit/briefs/fix-review.md
+     1 / 1     fixer-step-5
+     1 / 1     golden-claims
+     1 / 1     R10-ARCHSCORE-COVERAGE-p5
+     1 / 1     brief
+     1 / 1     merge-train-bot-tip
      1 / 1     container-toolchain
      1 / 1     r10-brief
-     1 / 1     .claude/rules/finding-propagation.md
-     1 / 1     .claude/rules/ci-autofix.md
-     1 / 1     .claude/rules/defect-root-cause.md
      1 / 1     budgets-D15
      1 / 1     tools/audit/briefs/orchestrator.md
      1 / 1     card_browser
      1 / 1     .claude/rules/delivery-status-tracking.md
-     1 / 1     fixer-step-18
      1 / 1     archscore-planted
      1 / 1     l2-harness
      1 / 1     policy-caps-canon-path
      1 / 1     fixer
-CENSUS	friction rule id	11	11	tools/audit/briefs/fixer.md
-CENSUS	friction rule id	3	3	.claude/rules/gate-scoping.md
+CENSUS	friction rule id	19	22	tools/audit/briefs/fixer.md
+CENSUS	friction rule id	4	4	.claude/rules/gate-scoping.md
+CENSUS	friction rule id	3	4	.claude/rules/finding-propagation.md
+CENSUS	friction rule id	3	4	.claude/rules/ci-autofix.md
+CENSUS	friction rule id	2	2	fixer-brief
+CENSUS	friction rule id	2	2	.claude/rules/defect-root-cause.md
+CENSUS	friction rule id	2	2	fixer-step-18
 CENSUS	friction rule id	2	2	prepr.sh
+CENSUS	friction rule id	1	2	carry_audit.py
 CENSUS	friction rule id	1	2	R10-ARCHSCORE-COVERAGE-p3-r4
+CENSUS	friction rule id	1	1	brief-timeout-frame
+CENSUS	friction rule id	1	1	codeql-extraction-quiet
+CENSUS	friction rule id	1	1	roster
+CENSUS	friction rule id	1	1	budget
+CENSUS	friction rule id	1	1	r10-pr-cap
+CENSUS	friction rule id	1	1	plan-target
+CENSUS	friction rule id	1	1	.claude/rules/brief-citations.md
+CENSUS	friction rule id	1	1	null-control
+CENSUS	friction rule id	1	1	tools/audit/seat/r10_deeplink_mutants.py
+CENSUS	friction rule id	1	1	R8-P3
+CENSUS	friction rule id	1	1	tests/throwaway_git.py
+CENSUS	friction rule id	1	1	fixer-handoff
+CENSUS	friction rule id	1	1	body_push.sh
+CENSUS	friction rule id	1	1	hpo-main-checkout-guard
+CENSUS	friction rule id	1	1	tests/harness_headers.py
+CENSUS	friction rule id	1	1	.claude/rules/claim-files.md
+CENSUS	friction rule id	1	1	tools/audit/briefs/fix-review.md
+CENSUS	friction rule id	1	1	fixer-step-5
+CENSUS	friction rule id	1	1	golden-claims
+CENSUS	friction rule id	1	1	R10-ARCHSCORE-COVERAGE-p5
+CENSUS	friction rule id	1	1	brief
+CENSUS	friction rule id	1	1	merge-train-bot-tip
 CENSUS	friction rule id	1	1	container-toolchain
 CENSUS	friction rule id	1	1	r10-brief
-CENSUS	friction rule id	1	1	.claude/rules/finding-propagation.md
-CENSUS	friction rule id	1	1	.claude/rules/ci-autofix.md
-CENSUS	friction rule id	1	1	.claude/rules/defect-root-cause.md
 CENSUS	friction rule id	1	1	budgets-D15
 CENSUS	friction rule id	1	1	tools/audit/briefs/orchestrator.md
 CENSUS	friction rule id	1	1	card_browser
 CENSUS	friction rule id	1	1	.claude/rules/delivery-status-tracking.md
-CENSUS	friction rule id	1	1	fixer-step-18
 CENSUS	friction rule id	1	1	archscore-planted
 CENSUS	friction rule id	1	1	l2-harness
 CENSUS	friction rule id	1	1	policy-caps-canon-path
 CENSUS	friction rule id	1	1	fixer
 
-CENSUS: 41 key(s)
+CENSUS: 88 key(s)
 
 threshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.
 
 (window)
-  INFO    [stats] (window): not opened: verdict class "merge" at 67 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a `merge` is counted on the "head-moved (rework)" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.
-  INFO    [stats] (window): would open "[policy] recurring friction: harness" -- verdict class at 13 in this window, threshold 3. Counted as DISTINCT pull requests (21 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: class-open" -- verdict class at 4 in this window, threshold 3. Counted as DISTINCT pull requests (5 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: mutation-vacuous" -- verdict class at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: head-moved (rework)" -- rework at 10 in this window, threshold 3. Counted as DISTINCT pull requests (10 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: tools/audit/briefs/fixer.md" -- friction rule id at 11 in this window, threshold 3. Counted as DISTINCT pull requests (11 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/gate-scoping.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
-  INFO    [stats] (window): would open "[policy] recurring friction: mutation (family)" -- verdict family at 3 in this window, threshold 3. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (3 entries in all); it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): not opened: verdict class "merge" at 115 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a `merge` is counted on the "head-moved (rework)" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.
+  INFO    [stats] (window): would open "[policy] recurring friction: harness" -- verdict class at 15 in this window, threshold 3. Counted as DISTINCT pull requests (23 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: carry-missing" -- verdict class at 12 in this window, threshold 3. Counted as DISTINCT pull requests (15 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: root-cause-unanswered" -- verdict class at 5 in this window, threshold 3. Counted as DISTINCT pull requests (7 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: mutation-vacuous" -- verdict class at 5 in this window, threshold 3. Counted as DISTINCT pull requests (6 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: class-open" -- verdict class at 5 in this window, threshold 3. Counted as DISTINCT pull requests (7 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: ci-red" -- verdict class at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: other" -- verdict class at 3 in this window, threshold 3. Counted as DISTINCT pull requests (3 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: head-moved (rework)" -- rework at 17 in this window, threshold 3. Counted as DISTINCT pull requests (17 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: tools/audit/briefs/fixer.md" -- friction rule id at 19 in this window, threshold 3. Counted as DISTINCT pull requests (22 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/gate-scoping.md" -- friction rule id at 4 in this window, threshold 3. Counted as DISTINCT pull requests (4 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/finding-propagation.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (4 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: .claude/rules/ci-autofix.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (4 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
+  INFO    [stats] (window): would open "[policy] recurring friction: mutation (family)" -- verdict family at 7 in this window, threshold 3. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (8 entries in all); it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.
 
-WOULD OPEN: 7 issue(s)
+WOULD OPEN: 13 issue(s)
+rc=0 secs=434

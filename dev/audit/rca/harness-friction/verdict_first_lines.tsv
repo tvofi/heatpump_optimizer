@@ -107,6 +107,9 @@
 2366	2026-10-18T02:12:06Z	Fix review: blocked ec773d944b749865f4f0a343c8f0a67e33d35e5c harness: class-open binary-content: added_lines skips any file holding a NUL byte in its first 8000 bytes at either end, so a new host path in a binary or NUL-bearing file (a .gz evidence log, a UTF-16 capture) is never judged, and WHAT IT DOES NOT CATCH does not name it
 2366	2026-10-18T03:37:37Z	Fix review: blocked e98c0dcd654a6cbd838ccfea54b8e303c5886303 harness: class-open tracked-path-names: the content arm judges what a file holds but never its name, so a diff adding a file under a dash-mangled home (the -Users-<name>- shape #2310 began with, and this host's own) passes, and WHAT IT DOES NOT CATCH does not name it
 2366	2026-10-18T04:54:47Z	Fix review: merge 60308ef8ff6e0a7e6ec5792f203e32ca7c653721
+2368	2026-10-18T18:25:19Z	Fix review: blocked c3a25d2ae337d82a8401dcfc1ab0f0f7e34aa38b ci-red: fast (3.14) is red at this head on tests/optimality.py's ftol check (60.96 vs 60.96, -0.00% against a 2.5% bound); the ruling's step 2 (the kernel matrix and the ftol re-derivation) and step 4 (each re-planned scenario's solver work stated against the baseline) are still listed as pending in the body, and kernel-points has never run on this branch
+2368	2026-10-18T21:45:07Z	Fix review: merge 86258e159d6e18b41aa0edafc79c6b8921d5c4dc
+2368	2026-10-19T06:24:58Z	Fix review: merge 91a3f77c9f968341a578d46277c0ff0e08c20dcc
 2371	2026-10-18T03:13:20Z	Fix review: blocked 8d76a9edf1ec3356ba7d8e55601e8e8c17553977 metric-gamed: closures INERT READS: the solver-closure census is a harness (fixer.md 18) placed in tools/audit/seat/ only so harness_headers' inert read cannot see it; ci-autofix.md has the bot merge INERT READS from CI recordings
 2371	2026-10-18T04:21:01Z	Fix review: blocked ecdcc466d343421f091bcc9b5b159149bfaf36eb carry-missing: not carried to R10-LIVESTATE (accuracy.utc_shift second UTC owner; 0 occurrences in the roster at origin/main 9a1ce39c3 or handoff/audit-r10-roster)
 2371	2026-10-18T04:23:30Z	Fix review: merge ecdcc466d343421f091bcc9b5b159149bfaf36eb
@@ -115,14 +118,126 @@
 2375	2026-10-18T09:16:41Z	Fix review: merge 417ec846221f9a0c99fcbebaa5c835daf9473ba7
 2376	2026-10-18T05:26:27Z	Fix review: blocked 06f1009511bf2be615dbf9ec65421a5b0f3892c1 mutant-survives: deleting the import-edge arm's pairs.add in under_scoped (ci_predict.py:187-188) leaves prepr --self-test at 277 passed, 0 failed
 2376	2026-10-18T06:31:05Z	Fix review: merge 45bd0ee0173837d38c12bc1fcb3578b6aa1dea99
+2379	2026-10-18T08:08:06Z	Fix review: blocked aac8c5e80fdfe574597f7fad17f11a418ff3596f mutation-untriaged: 3 added sites survive every driver after mutation-autofix (climate.py:140 GUARD_OFF, entity.py:140 GUARD_OFF, sensor.py:2808 CMP_BOUND); mutation is red at 7e79b6762 and the body triages none of them
+2379	2026-10-18T09:57:01Z	Fix review: merge 6f6aa4e48d6871cf5cb926c9ac53a521468ae58a
+2379	2026-10-18T18:05:30Z	Fix review: merge f4e168719d12f071bbc7771944e9430147a223db
 2384	2026-10-18T15:28:00Z	Fix review: merge faf04b0ef3d83d21e2388e000e442da78c97637a
 2386	2026-10-18T09:55:01Z	Fix review: merge 834990ca265eb7dbb24165d7148159cb09ce8728
+2390	2026-10-18T16:21:07Z	Fix review: blocked 5f6d8fbd7141a01c9e30afae5b6d8a28f7368088 mutation: audit-find.js's cut-off arm is unpinned -- replyField reading unparseable text as an empty collection fails no check (197/0), so a finder report whose findings come back cut off reads as a seat with no findings, the exact (e)/(h) claim the body makes
+2390	2026-10-18T20:41:13Z	Fix review: merge aad55ffb4de4a12db5ac222160333bc4fda36050
+2391	2026-10-18T19:19:14Z	Fix review: blocked 3aba8f1eb2865de9d00edb9321185f387e4322f2 vacuous-test: zeroing the coordinator feed's sun regressor fails no check in tests/features.py, but it moves the finder's harness P1 fix2.00 from 0.006/0.009/0.013 to 0.095/0.106/0.114
+2391	2026-10-19T05:59:06Z	Fix review: blocked 4c1352f05aa6797e06a7af5fdc456039756f2bcc architecture-unsound: departs from the R10-VENT-DETECTOR architect note (Shape: a detector input independent of the replay residual), and no roster edit-brief amends it (handoff/audit-r10-roster 95d31034f)
+2391	2026-10-19T06:22:08Z	Fix review: merge 4c1352f05aa6797e06a7af5fdc456039756f2bcc
 2393	2026-10-18T17:45:27Z	Fix review: merge c75b52e2d651ea8d20c4b8ce3993d25b0297a122
+2394	2026-10-18T18:02:21Z	Fix review: merge 7bda397d1226e798a14e17c5367697de95e77e9d
 2396	2026-10-18T15:25:53Z	Fix review: blocked 6ffc3708d763dfcafb9faf5baf0de9b5cb541327 conflict: .github/CODEOWNERS and .github/workflows/codeql.yml conflict with origin/main 55dc8d9c2 (#2405); also harness: class-open governance.yml, hassfest.yml, validate.yml
 2396	2026-10-18T17:18:30Z	Fix review: merge 860ca72cb48e90e56f8f50663be7bf63a135daaa
 2397	2026-10-18T12:59:29Z	Fix review: merge 6f42b729a8e6546733e4ab83d3b569692fcc7b31
+2399	2026-10-18T19:06:26Z	Fix review: blocked acf14d8f2267718203d9dc1b313bc8c3e9f0bc8d carry-missing: not carried to R10-BRIEFS-FOLD
+2399	2026-10-18T21:37:26Z	Fix review: merge 5c2bfcb1ebb683fe0576e7dccf71ab67ddaddc39
+2399	2026-10-19T03:13:19Z	Fix review: merge 705a9b851d314f860f3fa29e0e092231d5c878ad
 2400	2026-10-18T12:38:18Z	Fix review: blocked 3b4c0fabfc12640e97f96fa581c0923dc4e27e2f vacuous-check: delivery_row self-test "adding only that row" survives `git add -A` (M7); class-open: handoff_push.sh keeps its own write_row and row commit, contradicting INSTRUMENTS.md "the one writer"
 2400	2026-10-18T14:45:27Z	Fix review: merge ca96324704b7fb88d18f7a474510a97ec6345433
+2401	2026-10-18T13:28:53Z	Fix review: blocked c75609c3a172cae8497086606abe25d7b84a6c08 tests-red: fast's tests/arch_score.py fails "null: a callback handed to a package function" (got 1, want 0), because the P18 fold C16b roots a callback a package function only returns; pr-contract also refuses `Closes #2259`
+2401	2026-10-18T15:02:36Z	Fix review: merge da688f50971bd31043383aeffca623d3b713c86b
+2401	2026-10-18T16:43:15Z	Fix review: merge da688f50971bd31043383aeffca623d3b713c86b
+2401	2026-10-18T18:45:41Z	Fix review: merge 311e9de3e0c6d5bd0aa2139caf16b7707bf232f6
 2403	2026-10-18T16:20:52Z	Fix review: merge f7025a5c60d673044b0da85daf21a1fd9ff3fb02
+2404	2026-10-18T14:36:28Z	Fix review: blocked 5cf5786b95dd5a559a43de7eae68d6c12519c667 other: carry_audit's item-ref routing over-fires: a quoted refusal ("item <id>") plus any Carry: in the same item routes the finding
+2404	2026-10-18T15:26:42Z	Fix review: blocked 354c84a963cb04cb68141cb394c0c4415a85b250 mutation-vacuous: each half of the item-ref guard survives alone; the self-test kills only the two reverted together (M12)
+2404	2026-10-18T17:44:52Z	Fix review: blocked 312f319238841bf545df92ba98777c93bbc5fde4 mutation-vacuous: the segment's two boundaries (cut at the next Carry:, cut at the line end) each survive alone; 43 checks pass while a planted body misroutes
+2404	2026-10-18T20:56:35Z	Fix review: blocked 03f1681a3e684854b5b934020ec5d44612b2ffd2 root-cause-unanswered: wave-script went red, unanswered (and delivery-status; pr-contract 117779459209 refuses the body; both reds are main's, so the repair is a body edit only)
+2404	2026-10-19T02:07:27Z	Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 carry-missing: not carried to R10-TICK-DRIVERS (merged as #2390 at a96f4be4a, 2026-10-19 01:46 UTC, without the orchestrator_tick carry sweep; Forward-carry "none")
+2404	2026-10-19T02:53:07Z	Fix review: blocked b419463b18a2a7da70c77b23e912769e4af6afe8 root-cause-unanswered: pr-contract went red, unanswered (117865632672: carry_audit BAD-DEST, R10-OPENPR-SILENT is not a group of the tree's roster; it exists only on handoff/audit-r10-roster)
+2404	2026-10-19T05:56:41Z	Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 root-cause-unanswered: pr-contract went red at b419463b1 (117865632672, BAD-DEST R10-OPENPR-SILENT), unanswered; the body says no run on b419463b1 was red
+2404	2026-10-19T06:13:36Z	Fix review: blocked 519bb4db971b5d49736fcacdd57d57bff8f6c630 carry-unsound: Forward-carry item 1 routes to R10-OPENPR-SILENT, which is done (#2422 merged 7ab3030b and delivered the tick carry sweep); carry_audit.py at this head refuses it BAD-DEST against handoff/audit-r10-roster
+2404	2026-10-19T06:22:32Z	Fix review: merge 519bb4db971b5d49736fcacdd57d57bff8f6c630
 2405	2026-10-18T13:29:50Z	Fix review: blocked fbba2ccb58a74111c4cfb139639533238835cd66 harness: class-open rename source paths: the scope job's `git diff --name-only` detects renames, so a .py/.js/action.yml renamed to an inert suffix drops off the list and that leg skips
 2405	2026-10-18T14:41:09Z	Fix review: merge 4a4dee5c0525606ec628856b7f5f8b29a0a26234
+2406	2026-10-18T13:31:44Z	Fix review: blocked a7d97f55b44182545c5b5b199dfd1151113123de other: level-0-rename-hole: lane_skip Level 0 reads closure.changed_files, a rename-detecting name-only diff, so a source file renamed onto a delivery row reads as a record-only diff and browser, coverage and typing skip
+2406	2026-10-18T14:59:33Z	Fix review: blocked 89d2b94654bf54b49d879e08caced815a75ea5f5 class-open: the JS twin of the changed-file list still detects renames: card_rig.mjs threeDotFiles (read by card_drift.mjs's claim gate) and card_browser.mjs gridScope, and RENAME_SITES skips *.mjs
+2406	2026-10-18T15:25:39Z	Fix review: blocked af391637b4446a6ad2cf283c0fda80dd0d3da7de class-open: the merged head fails its own census on main's tools/pr/codeql_scope.py:88 docstring (closure selftest 1 of 124 FAILED), and stamp.py merge_is_record_class, the twin of the policy_lint site fixed here, still detects renames
+2406	2026-10-18T16:13:54Z	Fix review: blocked b965c4ab9a19b9470b88c5800580945b9507a388 mutation-vacuous: policy_lint's stamp-copy arm reads its own file for the mergeRecordClass command, so its needle at policy_lint.mjs:4400 matches itself; dropping --no-renames from policy_lint.mjs:2332 leaves policy_lint rc 0
+2406	2026-10-18T18:32:39Z	Fix review: blocked d1becac2b30830c9fb20bda298056cc8577fb793 red-at-head: tests/entities.py fails 2 graders-head-copy checks at the head (fast (3.14)), and the one-literal _PT_JOB_CANON fix the body names does not clear them; with it applied, 2 other checks fail because the harness executes the step in a planted repo that has no tests/closure.py
+2406	2026-10-18T21:42:36Z	Fix review: blocked 2d9f2000967579f577940a0eb4842d0a76867aec root-cause-unanswered: wave-script went red, unanswered
+2406	2026-10-19T02:34:33Z	Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: not carried to the post-merge state-docs beat restart: its only destination is R10-TICK-DRIVERS.carry, and that group is resume.stage done (merged as #2390, a96f4be4a), which finding-propagation.md says is not a destination
+2406	2026-10-19T02:53:31Z	Fix review: blocked 22803f99bd8be29012a668ef22140dd12ae3aa5e carry-missing: the body still names done R10-TICK-DRIVERS as the beat-restart destination: a spliced stale second ## Forward-carry (after a broken "## Friction`." heading) contradicts the R10-STAMP one, and carry_audit refuses it BAD-DEST
+2406	2026-10-19T03:10:50Z	Fix review: merge 22803f99bd8be29012a668ef22140dd12ae3aa5e
+2408	2026-10-18T17:52:26Z	Fix review: blocked e3a6f0729dbb5053bd92a5fb8168b3e74edbaa65 null-control-false: finding-propagation drops .claude/workflows/wave-*-groups.json, still a live roster home
+2408	2026-10-18T21:39:59Z	Fix review: merge 928a672753558ca6f88f45f806d9aa9b04440c36
+2408	2026-10-19T03:00:01Z	Fix review: merge 21e87f79c0baca0a1afce61703ad54d8d0467849
+2411	2026-10-18T14:38:23Z	Fix review: blocked b7a34f98aa6013a542e21d28a76bc5159fe7e14f claims: tests/optimality.py retires the one|summer_negative|shoulder cert claim, CI fast (3.14) measures ladder +10.55 % at this head; also carry-missing to O13 and the residual's cause misstated
+2411	2026-10-18T17:04:45Z	Fix review: merge 3b6e599df04ece95e9615addb19c86d9339328a3
+2411	2026-10-19T01:05:54Z	Fix review: blocked b9f72cb10e8f12798f0111189dedc607d3393acd carry-missing: not carried to the mutation instrument's owner (the entities.py --anchor vacuous-kill finding is in no brief, roster or carry file)
+2411	2026-10-19T01:44:50Z	Fix review: merge b9f72cb10e8f12798f0111189dedc607d3393acd
+2415	2026-10-18T18:02:33Z	Fix review: blocked 9951f224a9e652fb7323784e05d86b4b35f16e55 carry-missing: not carried to R10-ARCHSCORE-COVERAGE (#2259 item 2, #2373): the card_dead_definitions census registration and the ledger strike owed at #2373's merge are in this PR's body and RCA §5.3 only; the group's roster brief and carry on origin/main name neither
+2415	2026-10-19T06:35:54Z	Fix review: merge bd8011e9231944317162ffbde7824ffcad89ff2e
+2416	2026-10-18T18:16:17Z	Fix review: merge c5bc2f147b431d586e8a3996196a250ad981de50
+2417	2026-10-18T18:22:50Z	Fix review: blocked c83ae12acc074a16af424879b09b151d07726e52 carry-stale: R10-TICK-DRIVERS gains the codeql_scope -> closure.changed_between delegation carry that #2406's round-4 review (6252146172) and #2406's own body say is done in #2406 and must be dropped; #2406's head d1becac2b already delegates, so the carry dispatches finished work
+2417	2026-10-19T03:18:31Z	Fix review: merge 954a7b20ffb30279adb8f57c650b3d1455c68c63
+2419	2026-10-19T02:32:01Z	Fix review: merge cf687605d2678912b80d7e4c909b2471f32a680b
+2420	2026-10-19T00:51:18Z	Fix review: merge 328813ad5fb2055a07a4867c33f7cfc96d961168
+2421	2026-10-19T03:06:24Z	Fix review: blocked 1e6e79caa3b2a9f438e055cda1df52dd77eac930 harness: replay-fails-open: r10_train_raise_hold_replay.py, the body's live control, prints "0 raise(s), HOLDS" for #2368 (a real raise) when its gh/git reads fail, contradicting its docstring's "a read that fails prints the train's own Stop"
+2421	2026-10-19T03:59:01Z	Fix review: merge e9c0092e27e91e4b1d23178fc75774e5798dcc22
+2422	2026-10-19T03:52:34Z	Fix review: blocked 01e08685f4e454e17dc16c467a5e5e3c7ad8be5f regression: the automatic merge of origin/main dd27e7c1b (#2406 O17 removed roster_lib.DEFAULT_ROSTER_REF) breaks fold 7; orchestrator_tick.py --self-test crashes with AttributeError at carry_sweep line 1782, so the body's "142 checks, 0 failed" is false at this head
+2422	2026-10-19T05:26:08Z	Fix review: merge c12b0562da080854e16e52448b7cdb4f1f242883
+2424	2026-10-18T23:32:19Z	Fix review: blocked 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed ci-red: instrument-self-tests is red at this head because of this PR — tests/throwaway_git.py --check refuses the raw `git init` the new self-test adds at tools/policy/agreement.mjs:441 (passes at base 89e33859); `## Red checks` does not name it and pr-contract refuses
+2424	2026-10-18T23:54:44Z	Fix review: merge 8baf5eac34e3e9fa3c447f47ec898a6e588efab3
+2433	2026-10-19T06:33:27Z	Fix review: merge 45bb861b75728e7924944741b41a68c8fb5e9f5c
+2435	2026-10-19T08:47:51Z	Fix review: blocked 536080c084c3ea201db13860c29bcca577fac5db carry-missing: pr-contract (jobs 117965471342, 117968141018) refuses the body, carry_audit UNROUTED body item 6ff2bcdb (## Forward-carry): the dominated-rate-limit finding is "none." plus prose naming the orchestrator, not a Carry: to a stage; the fix itself measured sound
+2435	2026-10-19T09:55:21Z	Fix review: merge 536080c084c3ea201db13860c29bcca577fac5db
+2441	2026-10-19T10:11:50Z	Fix review: blocked 733ac35089522bac79c89fe7d28c4860d9f0c0a6 carry-missing: not carried to R10-BRIEFS-FOLD
+2441	2026-10-19T11:39:27Z	Fix review: merge 83e212a1b4823c3e1d9144bde1424a4906302af3
+2442	2026-10-19T08:27:02Z	Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af carry-missing: the body's ## Forward-carry item and both ## Friction items name no destination, so carry_audit.py (pr-contract's last step) refuses it: CARRY-AUDIT 3 unrouted
+2442	2026-10-19T08:33:23Z	Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af body-head-unnamed: ## Head names bef08da49, not this head b9f201f, and pr-contract run 117962608686 (started 08:28:44Z, after the body edit) refuses it with PR-BODY: 4 error(s); the same run also wants arch-score, env-matrix and validate-hacs named under ## Red checks
+2442	2026-10-19T08:50:22Z	Fix review: merge b9f201f90efbb39422319426a7839c036b7b46af
+2444	2026-10-19T13:30:28Z	Fix review: blocked b891dfa048a9e52bb782dd058415e286cf8efaf5 mutation-survivor: selftest_wiring.py report()'s `return 1 if unwired else 0` -> `return 0` leaves its --self-test green, so the keep-closed check can stop refusing an unwired file with every check green
+2444	2026-10-19T14:40:09Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: not carried to R10-CI-LAYOUT or R10-BRIEFS-FOLD; three of the body's four Forward-carry and Friction lines are not in handoff/audit-r10-roster at 5472ac0d6, and the body names no roster SHA
+2444	2026-10-19T14:48:32Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: the four #2444 carries at roster ebf81fc1d state no control, and the merge_pr/push-lines carry to R10-CI-LAYOUT is half refuted: deleting open_pr.sh's and update_pr.sh's app_push line reddens their self-tests
+2444	2026-10-19T15:11:44Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a root-cause-unanswered: arch-score went red, unanswered
+2444	2026-10-19T15:21:01Z	Fix review: merge 8be64a110fa4e741889920c4eff2b6b4cb99cf3a
+2445	2026-10-19T15:18:36Z	Fix review: merge 40c4e1194dfd23371403f874e9a8a1abd45da162
+2447	2026-10-19T13:22:09Z	Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-POLICY-FIXER-MD
+2447	2026-10-19T13:34:52Z	Fix review: blocked 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a carry-missing: not carried to R10-CI-LAYOUT (the ## Red checks carry: ref_privacy --check in prepr)
+2447	2026-10-19T13:43:24Z	Fix review: merge 411bb47a0bfc17a689b4fdc1133ada9beb1c0b7a
+2448	2026-10-19T12:32:29Z	Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, carry_audit.py refuses 3 unrouted body items (## Forward-carry "none" line and both ## Friction lines end `Carry: <file path>`, not GROUP|#issue|O<n>|dismissed); ## Red checks says none
+2448	2026-10-19T12:38:56Z	Fix review: blocked 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1 contract: pr-contract red at this head, carry_audit.py refuses 3 unrouted body items (## Forward-carry "none" line and both ## Friction lines end `Carry: <file path>`, not GROUP|#issue|O<n>|dismissed); ## Red checks says none
+2448	2026-10-19T13:19:46Z	Fix review: merge 4c9dc5d92fade9e622fa56a86fd07e8ca98d60b1
+2452	2026-10-19T14:55:04Z	Fix review: blocked a01006c1b46bc5acd3f2c7d8ebe1232c5f4ee2a3 harness: class-open location.pathname/search setters and a head meta refresh pass the census inside a driven handler, outside the stated residual and its carries
+2452	2026-10-20T13:54:06Z	Fix review: merge 2a579f5794bef0d817a077ad1603859c070c9931
+2455	2026-10-19T17:54:31Z	Fix review: blocked d1ad4de812df6c3a97bfeb84d37ec11c7ff0095d dispatch-mismatch: PR #2455 at this head is a record-only delivery-row PR and contains no tools/release/stamp.py change to review
+2456	2026-10-19T19:02:44Z	Fix review: merge 8f3e72f46da197b64a923c73054c450c8ccf699d
+2456	2026-10-19T19:03:11Z	Fix review: merge 8f3e72f46da197b64a923c73054c450c8ccf699d
+2462	2026-10-19T22:50:19Z	Fix review: merge 103b2097a38f972d1cb048c9ffbedcf6b1ba6d61
+2462	2026-10-19T23:08:36Z	Fix review: merge 103b2097a38f972d1cb048c9ffbedcf6b1ba6d61
+2463	2026-10-19T23:21:52Z	Fix review: merge a3f7c328d826430776c61b036551a21c3c08bfe2
+2463	2026-10-20T00:29:26Z	Fix review: merge 8864a760ee0fa0ec7bdfbffa77bf04d4826f89c2
+2464	2026-10-19T23:20:26Z	Fix review: blocked 4d1730bd10c9f53cf83928051b7d43414fd9fe36 control-failed: fast (3.14) ended 53.13 min after its FULL run's creation, past the body's own 52.8 min bar; and mutant M7 (the reused-row ledger filter deleted) survives every check
+2464	2026-10-20T03:42:28Z	Fix review: merge 07db35124d69251ad755baffc61460e833e67d88
+2465	2026-10-20T01:21:36Z	Fix review: blocked afabd5b6a6e2da5bb42eaad5f6697837491c5556 carry-missing: not carried to R10-CEILING-PROBE (the idle-absorbs-compressor control and the set-point-to-draw gain identification are routed there by Carry: lines but absent from its brief on origin/main and on handoff/audit-r10-roster)
+2465	2026-10-20T12:18:32Z	Fix review: blocked 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687 head-moved: measured 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687, head is 294bf66ffb463faf842f6a0f43c119b27005b558
+2465	2026-10-20T12:59:15Z	Fix review: merge 294bf66ffb463faf842f6a0f43c119b27005b558
+2465	2026-10-20T12:59:51Z	Fix review: merge 294bf66ffb463faf842f6a0f43c119b27005b558
+2467	2026-10-19T23:59:04Z	Fix review: blocked d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd figure: body says the 17 new groups are 7 done, 5 in-progress, 1 not-started, 3 queued (16); the roster has 6 in-progress (R10-ROSTER-OPS, R10-RCA-NIGHTLY-PYSPY, R10-MERGE-PR-MANDATE, R10-FOLLOWER-DEBOUNCE, R10-SETPOINT-BOOST, R10-SAVINGS-NEGATIVE)
+2467	2026-10-20T00:17:15Z	Fix review: merge d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd
+2467	2026-10-20T00:17:23Z	Fix review: merge d4f8914e6772d5fd3c68eb5a002244f87ff9f8cd
+2469	2026-10-20T02:22:25Z	Fix review: blocked 2351c1c7bb6d71e455a7fd164f42f67091491d0f claim-false: the residual's Carry dismissal rests on a group kill, but daemonize.py's documented stop is kill <pid>, and a TERM of a daemonized update_pr.sh frees the branch lock at once while its push runs on in the worktree
+2469	2026-10-20T05:50:50Z	Fix review: blocked 67ee6adfd712786da12241bf59bb5b78030c2d80 ci-red: pr-contract is red on both of this head's runs (carry_audit BAD-DEST x3: R10-UPDATE-PR-SIGNALS was not on main yet); the code verifies clean, and a head that merges origin/main at or after 1e30f876 routes 3/3
+2469	2026-10-20T07:06:33Z	Fix review: merge 42bee4bde021e9934e85cba43a34be6c99c05f30
+2471	2026-10-20T01:28:33Z	Fix review: blocked 84326c5ca1ec93168480f5a0e091bebeef753349 body-figures-stale: #2471's body describes the #2467 roster diff (17 new groups, 72 to 89, 8 stage changes, 38 carries), not this head's diff
+2471	2026-10-20T01:41:58Z	Fix review: merge 3451d97273f75ad114a00f92e355647f427e7c53
+2471	2026-10-20T01:42:26Z	Fix review: merge 3451d97273f75ad114a00f92e355647f427e7c53
+2475	2026-10-20T05:16:56Z	Fix review: merge ca8791070cd475c98e3705583d707edca39abe11
+2475	2026-10-20T05:35:15Z	Fix review: merge ca8791070cd475c98e3705583d707edca39abe11
+2479	2026-10-20T07:31:47Z	Fix review: merge 202cb8874ef72b82d9db49a6ecd77f28ad22838a
+2480	2026-10-20T09:43:39Z	Fix review: merge 312913795abd5f2865384afdc0f1f9c9659bd466
+2485	2026-10-20T13:11:48Z	Fix review: blocked 22ed5ed703125446b70f18eac07dc75b5592a53a root-cause-unanswered: pr-contract went red at this head on the body's unrouted `## Forward-carry`, and the body neither names nor answers it
+2485	2026-10-20T13:51:50Z	Fix review: merge 478cc27efd03d59d97899cff0d67f2e912ce7918
+2486	2026-10-20T13:30:41Z	Fix review: merge f851f243976a2a5e67b9813de47ae32b9b7814cd
+2487	2026-10-20T13:55:38Z	Fix review: merge 1a9b90965c31c6fd0093f623ec623e319fd6d3be
+2488	2026-10-20T14:34:30Z	Fix review: merge 916431aefd47a8953cb5b84a990c993a77c371e3
+2511	2026-10-21T02:39:51Z	Fix review: merge 3449af66fe527a9681f4308d732a236bc9f2fbd7
+2514	2026-10-20T23:06:50Z	Fix review: merge aea79fa6b388ca546f69fdcac5ec0a006aac05dd
+2516	2026-10-20T22:43:50Z	Fix review: blocked 55b7473304495bb7b5c0d07fcdeff93171566341 comment-claim: the added comments say all three cancellations fired while uploading results; the 30:19 run was cancelled 11:16 into query evaluation
+2516	2026-10-20T23:52:57Z	Fix review: merge 33704404d201f3ce78443e4f3636a9beeff3324e
+2517	2026-10-20T21:31:47Z	Fix review: merge e8b0c871c7287f08a63dc63c82e0b59a877a0857

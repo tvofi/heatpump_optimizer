@@ -4110,13 +4110,13 @@
     "R10-RCA-HARNESS-FRICTION": {
       "class": null,
       "level": "instance-or-process",
-      "subject": "#2331 harness (13 PRs), #2353 class-open (4 PRs) and #2409 mutation-vacuous (3 PRs) in v7.0.0..origin/main: a contract step defining a block class does not teach its word, so one obligation keys under several (step 6 taught `harness: class-open`, #1414; step 1 taught none, 4 more PRs under synonyms); #2410 is policy_lint.mjs's family arm, another cause",
+      "subject": "#2331 harness (15 PRs), #2353 class-open (5 PRs) and #2409 mutation-vacuous (5 PRs) in v7.0.0..origin/main (df6ca4bc): a contract step defining a block class does not teach its word, so one obligation keys under several (step 6 taught `harness: class-open`, #1414; step 1 taught none, 7 more PRs under synonyms); #2410 is policy_lint.mjs's family arm, another cause",
       "trigger": "recurring friction (harness key filed in 4 of 5 release windows: #1881, #2004, #2034, #2136, #2331)",
       "date": "2026-10-18",
       "status": "done",
       "parts_missing": [],
       "process_state": "(c) reviewers followed fix-review.md's examples and check-wave-script.mjs's example arm passed them, its unit the first class word only",
-      "countermeasure": "fix-review.md steps 1 and 6 teach `mutation-vacuous:` and `class-open:` (policy, this PR); check-wave-script.mjs arm refusing a taught word in the reason position held as detector.patch until #2390 merges (shown failing at main, passing at the head); fixer.md step-8 alignment and free-text sub-keying refused by the cost test",
+      "countermeasure": "fix-review.md steps 1 and 6 teach `mutation-vacuous:` and `class-open:` (policy, this PR); check-wave-script.mjs refuses a taught word in an example's reason position (shown failing at main, passing at the head); a presence arm, fixer.md step-8 alignment and free-text sub-keying refused by the cost test",
       "landed": null,
       "in_tree_home": "dev/audit/rca/R10-RCA-HARNESS-FRICTION.md",
       "doc": [

@@ -2,9 +2,9 @@
 
 Usage: python3 rounds.py <dir>, where <dir> holds one <PR>.tsv per merged pull
 request of the window: created_at TAB first line, for every issue comment and
-review (gh api repos/tvofi/heatpump_optimizer/issues/<PR>/comments and
-.../pulls/<PR>/reviews, --jq ".[]|[.created_at,(.body|split(\"
-\")[0])]|@tsv").
+review (gh api --paginate repos/tvofi/heatpump_optimizer/issues/<PR>/comments
+and .../pulls/<PR>/reviews, --jq ".[]|[.created_at,(.body|split(\"
+\")[0])]|@tsv", submitted_at for a review, which has no created_at).
 Prints PR, time, class, reason first word, key (harness: class-open folded onto
 class-open), and minutes to the next verdict on the same PR; then SUM lines.
 """
