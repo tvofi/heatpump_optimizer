@@ -1,0 +1,8 @@
+rc=1
+  FAIL #2223: the refit's dark gauge is the tree's, inclusive at the threshold  [50 -> (0.0, 6.0), 50.5 -> (0.0, 6.0)]
+  FAIL #2223: a sunlit window offers the refit no pair at all  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None}]
+  FAIL #2223: a half-sunny window folds only its dark half  [{'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None} against {'scale': 1.16, 'band_percent': 10, 'pairs': 192, 'settled_days': 4.0, 'required_days': 3.0, 'settled_since': None}]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+3 of 4289 FEATURE CHECKS FAILED
