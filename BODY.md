@@ -106,6 +106,3 @@ none
 ## Friction
 
 - CLAUDE.md: unclear: the brief says carry_audit lives at `tools/audit/seat/carry_audit.py`, but it is `tools/audit/carry_audit.py`. The dispatch said the toolchain is on PATH, but `python3` here is 3.11 with no `voluptuous`, and `/opt/hpo/venv-ci/bin` is not on PATH. Carry: dismissed: path corrected in place, venv found under /opt/hpo
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-https://claude.ai/code/session_01FXNmLRhk282t8pfqscFz4Y
