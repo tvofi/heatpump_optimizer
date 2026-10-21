@@ -23,8 +23,10 @@ TREE=${1:?usage: r10_roster_push_race.sh <tree> [shared|separate|solo]}
 MODE=${2:-shared}
 LINT_S=${LINT_S:-3}
 PY=${PYTHON:-python3}
+# run from the repository root: the throwaway-repository helper is sourced
+# from there, as dev/audit/harnesses/r10_field_coverage_paths.sh does
 # shellcheck source=tests/throwaway_git.sh
-. "$(cd "$(dirname "$0")/../../.." && pwd)/tests/throwaway_git.sh"
+. tests/throwaway_git.sh
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 race() {
