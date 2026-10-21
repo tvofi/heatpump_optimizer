@@ -1,6 +1,5 @@
 The roster's `resume.stage` is a human claim and nothing compared it with the
-repository: twelve complete handoffs sat unopened for up to 96 h while the
-roster recorded stale stages. `roster_sync.py` is that comparison, run every
+repository, so a group whose pull request merged stayed `in-progress`. `roster_sync.py` is that comparison, run every
 pass by `state_docs.py beat --apply`. Part of #2496.
 
 It derives only what a read measures: a group whose pull request is MERGED is
@@ -17,8 +16,7 @@ Branch matching is the design's B13 rule (`handoff/orch-machinery` 09174d94,
 6.4): the topic is the basename of `resume.branch` (else the lowercased group
 id), and a pull request's head matches when its name, minus a `handoff-body/`,
 `handoff/` or `fix/` prefix and a trailing `-pr`, equals the topic or starts
-with `<topic>-`. An exact-name rule finds 2 of the live roster's 48 merged
-groups; this rule finds 47.
+with `<topic>-`.
 
 The write path is one. `roster_edit.commit_roster()` is `main()`'s own tail,
 extracted and called by both, so the dump, the round-trip no-op rule and the
@@ -27,11 +25,34 @@ behaviour are unchanged. A dry run is the default. `beat --apply` runs the
 step before its memo check, because a pull request can open or merge without
 moving a ref the beat watches.
 
+This round (the opener's refusal): prepr's layout guard refused three fixture
+lines seeding the retired `.claude/workflows/brief_lint.mjs`. They now seed
+`tools/policy/brief_lint.mjs` -- `roster_edit.BRIEF_LINT_NEW` in
+`roster_sync.py` and `state_docs.py`, the literal in the harness, which also
+runs against the base tree (whose `roster_edit.py` carries the same
+old-then-new fallback, so seeding the new path works at both ends).
+`roster_sync.py` is now registered in `tools/audit/seat/INSTRUMENTS.md`, and
+the `state_docs.py` entry names `beat --apply`. `roster_sync.py`'s `SHA_RE` is
+now `roster_edit.SHA_RE`: the agreement lane refused the regex
+`\A[0-9a-f]{7,40}\Z` written in both files and unregistered, and the alias
+removes the second copy rather than registering a pair.
+
+Composition with #2513 (R10-ROSTER-OPS, `roster_edit.py` set-after and
+drop-carry): both touch `roster_edit.py` and `INSTRUMENTS.md`, in disjoint
+hunks. This diff extracts `commit_roster()` from `main()`'s tail; #2513 adds
+ops above it and dispatch arms in `main()`, and appends to the `roster_edit.py`
+entry where this one adds a separate `roster_sync.py` entry after
+`roster_lib.py`'s. Neither order needs a resolution: see `## Figures`.
+
 ## Head
 
-a6d8a78ef832228a702070bc86c307319babcdcc.
-Live figures below were taken at roster ref `origin/handoff/audit-r10-roster`
-96f38ff88830 and `origin/main` efc0e67332d0, 2026-10-20T18:37Z.
+66bd5b4c80a0b2cb0ee164be456f8d7ea519b4a3, merge base and `origin/main`
+0cc148b2f80fe224ffe2c504b29fd4f0908183df at 2026-10-21T08:57Z. It merges
+`origin/main` into the previous handoff tip a6d8a78ef (no conflict) and adds
+three commits: the moved-path fix, the INSTRUMENTS.md registration, and
+`roster_sync.py` taking `roster_edit.SHA_RE` instead of a second spelling of
+the same grammar (prepr's agreement lane refused it). Every
+figure below was taken at this head.
 
 ## Mutation proof
 
@@ -49,14 +70,21 @@ restores the file. Every plant is red with a named check, never a crash:
 | a second parser used | `M5_second_parser` | 1 | 2 | `carry_audit's parser is used: a quoted marker in a code span routes nothing` |
 | `--apply` absent yet bytes written | `M6_dry_run_writes` | 1 | 1 | `dry run creates no roster branch (no --apply writes nothing)` |
 
+The moved-path fix's own proof is the layout guard read at both ends:
+`python3 -I tests/layout.py --guard --base 0cc148b2f80f` printed `layout:
+GUARD: 3 refusal(s)` at the merge of main (32fcfae00, the three
+`new-reference: ... cites retired path .claude/workflows/brief_lint.mjs`
+lines) and `GUARD: 0 refusal(s)` at the head. The SHA_RE alias likewise:
+`python3 -I tools/policy/agreement_py.py --out ag.json && node
+tools/policy/agreement.mjs --py-json ag.json` printed `UNREGISTERED
+"\\A[0-9a-f]{7,40}\\Z" in tools/audit/seat/roster_edit.py,
+tools/audit/seat/roster_sync.py` and `RESULT ... unregistered=1` at
+34466347c, and `unregistered=0`, `AGREEMENT ok` at the head.
+
 ## Null control
 
-- A dry run writes nothing: `roster_sync.py` against the live roster prints
-  `dry run: 6 stage change(s), 8 carry append(s) would be written` and the
-  roster branch's tip is unchanged before and after the run.
-- A read with no pull requests derives nothing: the same command with an
-  empty `--pr-state` prints `no derived change on handoff/audit-r10-roster;
-  nothing written`.
+- With no plant the mutant driver's self-test run is green: `--null` prints
+  `rc=0 fails=0`.
 - A no-op pass reproduces the roster's bytes exactly: the self-test's second
   `--apply` returns 0, moves no tip and compares the bytes.
 - A refused push is recoverable: the self-test rejects a push with a
@@ -67,72 +95,100 @@ restores the file. Every plant is red with a named check, never a crash:
   there) and `head_stage=done` with `head_apply_rc=0`; a plain beat at the
   head still leaves `in-progress`, and the deferred group reads `deferred`
   at both ends.
+- The layout guard's null control is the pre-fix commit above: the same
+  command, three refusals.
 
 ## Figures
 
-`none` below is only for a claim this body does not make.
-
-- `python3 tools/audit/seat/roster_sync.py --self-test` -> 34 checks, 0 failed;
-  the whole run 4.9 s wall at load1 33.4 (`uptime`), 2.0 s user.
+- `python3 tools/audit/seat/roster_sync.py --self-test` -> `roster_sync
+  self-test: 34 checks, 0 failed`.
+- `python3 tools/audit/seat/roster_edit.py --self-test` -> `64 checks, 0
+  failed`; `python3 tools/audit/seat/state_docs.py --self-test` -> `all checks
+  passed`.
+- `python3 tools/audit/seat/r10_roster_sync_mutants.py` -> the table above, rc 0.
 - `python3 dev/audit/harnesses/r10_roster_sync_base.py` -> `RESULT
   base_apply_rc=2 head_apply_rc=0`, `base_stage=in-progress head_stage=done`,
   `head_noapply_stage=in-progress`, `base_deferred=deferred
-  head_deferred=deferred`, `control=PASS`; 20.0 s wall at load1 134.1.
-- `python3 -I tools/audit/seat/roster_sync.py --checkout .` -> `6 stage
-  change(s), 8 carry append(s)` over the live roster: four `not-started`/
-  `in-progress` rows become `done` (`R10-SENSOR-PAYLOAD` #2379,
-  `R10-DEEPLINK-HANDLERS` #2452, `R10-HANDOFF-ARCHIVE` #2488,
-  `R10-DEPENDABOT-AIOHTTP` #2487) and two `in-progress` rows record their open
-  number (`R10-SAV-REASONS` #2511, `R10-ROSTER-OPS` #2513). 15.5 s wall at
-  load1 117.2; the roster tip is byte-identical before and after.
-- The same command with an empty `--pr-state`: `no derived change ... nothing
-  written` (the null control for that count).
-- `python3 -I tools/audit/seat/roster_edit.py --self-test` -> 64 checks, 0
-  failed; `python3 -I tools/audit/seat/state_docs.py --self-test` -> all
-  checks passed. These are the pre-existing write path and the new beat arm.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check` -> `38 self-testing,
-  38 wired, 0 unwired`.
-- `python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`, 1:41 wall at
-  load1 188.4.
-- `python3 tests/harness_headers.py` (under the exclusive gate lease) -> 109
-  checks, 14 failed: two are this diff's depth seam, repaired in 026b7250d and
-  re-checked by the same scan (`inline_scan` rc 0); eleven are
-  `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` killed at its own
-  900 s wall limit (rc 124, so each RESULT printed None) and one is that
-  harness's D9 neighbour `h7_memory_gate.py`'s `inject2x` probe -- files this
-  diff does not touch, run at load1 111-133.
-- `python3 tests/entities.py` was started and left to CI: 46 min wall and
-  5:53 CPU at load1 60-190 without completing, against its own 324.8 s
-  recording (`tests/closures.json`). The one arm in it that reads a changed
-  file -- `tools/audit/seat/state_docs.py --self-test passes, beat arms
-  included` -- is `run_self_test()`, run directly here and green.
+  head_deferred=deferred`, `control=PASS`.
+- Moved paths, rule `python3 tools/audit/seat/moved_paths.py` over the three
+  files the guard refused -> `0 hit(s) in 3 file(s)`. Over every file the
+  three-dot diff names, the remaining hits are on lines this diff does not add
+  (the guard keys on added lines and prints 0), each an existing
+  old-then-new `test -f` fallback in `governance.yml`, a recorded path list in
+  `tests/closures.json`, or `roster_edit.py`'s own `BRIEF_LINT_OLD` fallback
+  and its pre-existing self-test fixtures, which are main's and #2513's file.
+- Composition with #2513: a detached worktree at this head, `git merge
+  origin/fix/r10-roster-ops` (716a34f28) -> `Auto-merging
+  tools/audit/seat/roster_edit.py`, no conflict; on the merged tree
+  `roster_edit self-test: 94 checks, 0 failed`, `roster_sync self-test: 34
+  checks, 0 failed`, `state_docs self-test: all checks passed`.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check` -> `38
+  self-testing, 38 wired, 0 unwired`.
+- `python3 -I tools/audit/seat/tmp_paths.py --check` -> `0 refused`.
+- Gate scope: `python3 tests/closure.py select --diff 0cc148b2f80f` -> `MODE:
+  SCOPED -- 2 script(s) run, 31 scoped out`, 8 changed files; RUN
+  `tests/entities.py`, `tests/harness_headers.py`.
+- `run_always` lines: `tests/env_drift.py --claims-only` -> `claims hygiene:
+  ... ok`; `tests/closure.py selftest` -> `ALL 124 closure shrink pins
+  PASSED`; `tests/layout.py` -> `layout self-test: ok`.
+- `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` (same
+  venv) -> `ALL 2363 ENTITY CHECKS PASSED`, rc 0, 407 s wall. The 46 indented
+  `FAIL` lines in its output are the nested probes' planted negatives
+  (`a3:roster` against a one-entity fixture, `sensor.x` with a NaN), which the
+  enclosing checks expect; the summary line is the result.
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` (3.13 venv from
+  `tests/requirements-ci.txt`) -> `ALL 109 HARNESS HEADER CHECKS PASSED`,
+  rc 0, 151 s wall.
+- `python3 tests/structure.py` -> `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff 0cc148b2f80f` ->
+  `Architecture score: dS +0.0000 NULL`.
+- Not re-taken: the previous body's live-roster dry run (`roster_sync.py
+  --checkout .` over `origin/handoff/audit-r10-roster`) and the 2-versus-47
+  branch-matching count both read `gh pr list`, and `gh` is unauthenticated
+  in this seat (`gh auth status`: `Failed to log in to github.com using
+  token`). They are removed from this body rather than carried stale.
 
 ## Red checks
 
+- The orchestrator's opener, refused by prepr's layout guard (`new-reference`
+  on `dev/audit/harnesses/r10_roster_sync_base.py`, and on `roster_sync.py` and
+  `state_docs.py`). Answered: the cheaper detector exists and is the same
+  command, `python3 -I tests/layout.py --guard --base <merge-base>`, about a
+  second; no step a fixer runs before handoff invoked it, and `body_push.sh`'s
+  static predictor passes the refused tree (measured in `## Forward-carry`,
+  carried there).
 - `harness_headers` at cbc38425f, `every inlined walk matches the canonical
   helper and no depth root remains`: the new harness computed its root with
   `Path(__file__).resolve().parents[3]`. Answered: the cheaper detector is the
-  same check's child, `python3 -c "import sys; sys.path.insert(0,'tests');
-  import harness_headers; raise SystemExit(harness_headers.inline_scan())"`,
-  which runs in about a second where the enclosing 109-harness run took 9-15
-  minutes; it prints rc 0 at this head. The repair is the canonical
-  `repo_root()` inlined verbatim, not a suppression.
+  same check's `inline_scan()`, about a second; the repair is the canonical
+  `repo_root()` inlined verbatim (026b7250d), not a suppression.
+- `nightly-status` is main's, not this branch's: the replay
+  `loop_cpu_ratio` budget. Carry: R10-REPLAY-CAP
 
 ## Forward-carry
 
+- `body_push.sh`'s static predictor (`tools/pr/ci_predict.py`) does not run
+  the layout guard, so a handoff whose diff adds a retired path passes it and
+  is refused only at the orchestrator's prepr: at 32fcfae00, where the guard
+  printed 3 refusals, `ci_predict.py --base origin/main` printed `CI PREDICT:
+  no closures or fast red predicted` with rc 0. Carry: R10-ORCH-MACHINERY
 - `ref_privacy.py --check` enforces nothing on a macOS seat: its site scan
-  keys on `\b`, and the host's `git grep -E '\bpush\b'` matches no line while
-  `[[:<:]]push[[:>:]]` matches 1529 (`git grep -n -I -E` over `tools
-  .claude/workflows .github/workflows` at HEAD). Reproduced on main's own
-  checkout, so it is not this branch. Carry: R10-POLICY-GATE-SCOPING
+  keys on `\b`, which the host's `git grep -E` does not honour (recorded by
+  the previous round on main's own checkout). Carry: R10-POLICY-GATE-SCOPING
 
 ## Friction
 
+- cloud_dispatch: stale: the cloud fixer payload
+  (`tools/audit/seat/cloud_dispatch.py`'s setup line) states that "the toolchain (venv python, node, gh) is on PATH"; in this
+  seat `python3` was the system 3.11 without `voluptuous` (so
+  `tests/entities.py` died on a 3.12 f-string and `harness_headers.py` on the
+  import), and `gh` was unauthenticated. A venv was built from
+  `tests/requirements-ci.txt` under 3.13 for the gate runs. The payload's
+  brief also names `tools/audit/seat/prepr.sh`, which does not exist; prepr
+  is `tools/pr/prepr.sh`. Carry: R10-ORCH-MACHINERY
 - ref_privacy: unenforced: the host's `git grep -E '\b'` finds no word
-  boundary (0 lines where `[[:<:]]` finds 1529), so `--check` refuses 16
-  registered pushers as holding no push site and a local #2310 guard is
-  green-on-nothing on every macOS seat; the same refusal prints on main's
-  checkout. Carry: R10-POLICY-GATE-SCOPING
+  boundary on a macOS seat, so `--check` is green-on-nothing there (see
+  Forward-carry). Carry: R10-POLICY-GATE-SCOPING
 
 ## Approval
 
@@ -141,4 +197,4 @@ Behaviour change: `state_docs.py beat` gains `--apply`, which each pass runs
 `resume.commit`, `resume.pr` and a destination group's `carry` through
 `roster_edit.py`'s lint gate; the default (no `--apply`) is unchanged, and the
 new one-shot form is a dry run unless `--apply` is given. Rollback: revert this
-commit; nothing reads `resume.pr` and no other behaviour moved.
+merge; nothing reads `resume.pr` and no other behaviour moved.
