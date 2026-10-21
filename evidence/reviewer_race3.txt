@@ -1,9 +1,0 @@
-RUN A rc=0 reported_on_origin=NO edit_on_origin=no
-RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
-RUN C rc=0 reported_on_origin=yes edit_on_origin=yes
-RESULT tree=5d433771a mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=2
-RUN A rc=0 reported_on_origin=yes edit_on_origin=yes
-RUN B rc=0 reported_on_origin=yes edit_on_origin=yes
-RUN C rc=0 reported_on_origin=yes edit_on_origin=yes
-RESULT tree=5ffbaaaeb mode=shared kind=diffgroup A_rc=0 B_rc=0 commits=3
-  note| roster_edit: lost a race: origin/handoff/roster moved 6a305a4f3aaf -> 2c8754531d91 under this edit; re-applying append-carry R9-A on the new tip (attempt 2 of 3
