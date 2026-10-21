@@ -7074,6 +7074,50 @@
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    }
+  },
+  {
+   "group": "R10-FLY-DEPGRAPH-STALE",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tests/requirements-typing.txt",
+    "tests/requirements-ci.txt"
+   ],
+   "hot_files": [
+    "tests/requirements-ci.txt"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694 (.github/ changes are code-owned)",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Owner question 2026-10-21: 27 open Dependabot alerts (aiohttp x16, Pillow/pillow x9, uv x1, certifi x1; manifests tests/requirements-typing.txt and tests/requirements-ci.txt). origin/main already pins the patched versions: aiohttp 3.14.5 (first patched 3.14.4, bumped by #2487 on 2026-10-20), pillow 13.0.0, uv 0.13.4, certifi 2026.10.19. The alerts stay open because the dependency graph is stale: the SBOM (GET dependency-graph/sbom) still reports aiohttp 3.14.3, pillow 12.3.0, uv 0.12.5, certifi 2026.7.22, and the dynamic 'Dependency Graph' workflow (id 346019373) last ran on 2026-10-03 at 2622b31c, while the 'Dependabot Updates' run of 2026-10-21T01:14Z opened 20 new alerts from that stale graph. Owed: (1) the cause: why manifest-touching pushes to main stopped triggering the graph update after 2026-10-03 (for example merges pushed by the hpo-author App or the deploy key, the hash-locked '\\' continuation format, or a settings change), established with evidence, not guessed; (2) a fix that makes the graph re-ingest on every manifest change to main, plus a one-time re-ingest now; (3) verification: the SBOM shows the pinned versions and every one of the 27 alerts closes itself as fixed. Never dismiss an alert by hand. (4) A guard so a stale graph is caught: compare the SBOM versions against the main pins (in nightly or a seat instrument), with a fixture that goes red on a mismatch and a null control that stays green when they match. Spare the API: one SBOM read and one alerts list per run. Files: the guard's instrument plus whatever (1) shows; .github/ changes are code-owned, so cite mandate 6319294694.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-depgraph-stale",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
