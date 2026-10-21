@@ -9,10 +9,11 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34, and
-each per-file id (<file>-<n>), plant one production-line mutant in one
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34,
+and each per-file id (<file>-<n>), plant one production-line mutant in one
 file -- outside that file's self-test function -- and run only the step
-that names the file: a killed mutant reddens the step, and the same step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+that names the file: a killed mutant reddens the step, and the same step on
+the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
