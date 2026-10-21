@@ -5349,6 +5349,49 @@
     "note": null
    },
    "brief": "dev/programme/HANDOVER.md was measured 2026-10-21 by the tick as updated-for a commit 2072 commits behind origin/main. Rewrite it in place as the current durable state of round 10 under writing-for-agents.md: decisions and the measurement behind them, corrections to the record, traps, owed work; volatile state stays on #201 and nothing goes in both. The updated-for line names a commit reachable from the branch head, and tests/entities.py must pass. Chronology that is no longer state moves out rather than staying inline. Re-derive every figure at the merge base; carry none from the old text. Control: the policy budgets for the file do not grow (policy_lint.mjs --budgets)."
+  },
+  {
+   "group": "R10-RCA-ORCH-CONTINUITY",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "M",
+   "wave": 2,
+   "files": [
+    "tools/audit/seat/tick_loop.sh",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/sweep_template.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-orch-continuity",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud RCA seat dispatched 2026-10-21",
+    "note": null
+   },
+   "brief": "Root cause for the recurring class: when an orchestrator session or its host stops, the programme stops silently. Instances: 2026-10-18 three cloud handoffs missed while the tick reported only changed refs; 2026-10-20 a session crash killed every loop and lost the ledger from 07:10Z to 13:20Z; 2026-10-21 a host restart killed the merge train, tick loop, state beat and wt_sync, leaving nine handoffs with no pull request (oldest 110 h), a blocked verdict unrouted for 8 h, ten merges unrecorded and the session ledger silent for 16 h, while the tick board had grown to 4.5 MB from replayed relay lines. Owed per root-cause.md: the named cause, the process state a-d with evidence, the class search, the cost test with numbers, and a countermeasure or recorded refusal. Three or more instances make this an audit class that owes a barrier (defect-root-cause.md). Scope it apart from R10-RCA-HANDOFF-SLIP (the orphaned-handoff record) and R10-TICK-OWED-LEVEL (the replay reader fix): cite them, do not redo them. Decision 0012 forbids a new policy file, lint class or rules entry until 2026-10-31; a countermeasure that is an instrument lands under tools/audit/seat with a self-test demonstrated failing on the defect and passing once fixed."
   }
  ]
 }
