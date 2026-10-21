@@ -1,9 +1,0 @@
-PROBE M0 KILL prepr prepr=gone recorder=gone lane=gone grandchild=gone
-PROBE M0 TERM prepr prepr=gone recorder=gone lane=gone grandchild=gone
-PROBE M0 TERM group prepr=gone recorder=gone lane=gone grandchild=gone
-PROBE M7 KILL prepr prepr=gone recorder=gone lane=alive grandchild=alive
-PROBE M7 TERM prepr prepr=gone recorder=gone lane=alive grandchild=alive
-PROBE M7 TERM group prepr=gone recorder=gone lane=alive grandchild=alive
-PROBE M9 KILL prepr prepr=gone recorder=gone lane=gone grandchild=gone
-PROBE M9 TERM prepr prepr=alive recorder=alive lane=alive grandchild=alive
-PROBE M9 TERM group prepr=alive recorder=alive lane=alive grandchild=alive

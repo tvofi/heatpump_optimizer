@@ -1,4 +1,3 @@
-GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
   ok   a body with missing-section is refused
   ok   a body with no-figures is refused
   ok   a body with empty-section is refused

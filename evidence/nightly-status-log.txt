@@ -1,6 +1,5 @@
-nightly-status job 119521063745 at 10f85c3ee7065d31230e292d7438e105efb9ff57 (PINNED 5a755f53e), log tail:
+job 119521063745 (nightly-status at head 10f85c3ee7065d31230e292d7438e105efb9ff57), via GitHub MCP get_job_logs:
 NIGHTLY FAILED: mutation-nightly, slow failed last night.
   scheduled run 39563978649, 2026-10-21T07:43:20+00:00, head c77f89d, run conclusion 'failure'
   (run 39681119764 is still in flight; this verdict is the last CONCLUDED one)
-  failing jobs: mutation-nightly 119101702662, slow 119101702593
 This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.

@@ -1,0 +1,6 @@
+== origin/main (5a755f53efda8c099af7d6a98fb0b22828a0593c) carry-201.json lines citing 2528: 0
+== origin/handoff/audit-r10-roster (5ffe2a933d61a1add9826b67c54fda51b8ac9360) carry-201.json lines citing 2528: 0
+roster R10-PREPR-CAP group: stage in-progress, no text citing #2528 (see grep):
+grep rc=1
+diff touches carries/rosters:
+(none above = none)
