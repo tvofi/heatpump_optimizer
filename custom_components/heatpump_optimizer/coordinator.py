@@ -287,11 +287,11 @@ from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
-    FREQ_SOURCE_NUMBER,
     FREQ_WRITE_EPSILON_HZ,
     FREQ_WRITE_MIN_INTERVAL_S,
     FrequencyMap,
     FrequencyWatchdog,
+    defrost_interval,
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp
@@ -1000,16 +1000,16 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
 
 
 def _freq_fold_blocked(coord: Any) -> bool:
-    """Cooling, distorted draw or a pinned unusable power reading.
+    """The COP gate, a defrost, cooling or a pinned unusable power reading.
 
-    The map is a kW-per-Hz curve for the compressor, so it asks the same
-    question :func:`_cop_fold_blocked` does about the draw -- through the
-    same property, so the two can never drift apart -- plus its own two.
-    #781 records why a bad fold matters here specifically: the map is keyed
-    by decile only, so it is inherited when the user later switches to
-    control.
+    The map is a kW-per-Hz curve for the compressor, so it asks
+    :func:`_cop_fold_blocked` itself -- immersion and distorted draw, never a
+    copy of either -- and :func:`defrost_interval`, the one defrost predicate
+    its watchdog asks too (D7-s2-01), plus its own two. #781 records why a
+    bad fold matters here: the map is keyed by decile only, so it is
+    inherited when the user later switches to control.
     """
-    if coord._pump_signals.electric_heat.compressor_draw_distorted:
+    if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
         return True
     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
         return True
@@ -10530,15 +10530,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _observe_frequency(self, now: datetime) -> None:
         """One cycle of #61: watchdog first, then the kW-per-Hz fold.
 
-        The learning fold skips immersion intervals (#11 owns resistive
-        draw — folding it would teach the map that some frequency draws
-        the element's kilowatts), but the watchdog never skips: divergence
+        The learning fold skips every interval :func:`_freq_fold_blocked`
+        refuses -- immersion (#11 owns resistive draw) and a defrost among
+        them. The watchdog rests only through a defrost: divergence
         evidence is about the write path, not about what the meter reads.
         """
         ctx = getattr(self, "_ctx", self)
-        configured = ctx._config.freq_control_mode
         if (
-            configured != FREQ_MODE_CONTROL
+            ctx._config.freq_control_mode != FREQ_MODE_CONTROL
             or not ctx._config.compressor_freq_entity
         ) and self._freq_fallback:
             # The user switched back to observe — or removed the entity
@@ -10551,10 +10550,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
             self._spawn(self._async_save_thermal_learning())
-        reported, hz_min, hz_max, source = self._freq_entity_reading()
+        reported, hz_min, hz_max, _source = self._freq_entity_reading()
         if reported is None:
             return
-        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+        if self._freq_mode() == FREQ_MODE_CONTROL:
             # Divergence is only meaningful while the plan is actually
             # asking for the compressor AND the reading is in its running
             # range: an idle pump reading 0 Hz overnight, or one pausing
@@ -10563,6 +10562,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # idle must not stand control down.
             watch_active = (
                 self._commanded_power() > 0.05 and reported >= hz_min
+                and not defrost_interval(self._pump_signals.defrosting)
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
@@ -10592,7 +10592,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
+        if self._measured_power is None or _freq_fold_blocked(self):
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
