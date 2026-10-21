@@ -1,5 +1,23 @@
-(empty above = untouched)
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
-selftest_wiring: 38 self-testing, 38 wired, 0 unwired
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 57f0c9c77cfd
+$ structure
 STRUCTURE RATCHET PASSED
+$ throwaway_git --check
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+$ selftest_wiring
+selftest_wiring: 38 self-testing, 38 wired, 0 unwired
+$ tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 57f0c9c77cfd
+$ closure select
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  changed files (8), measured against the recorded closures in tests/closures.json:
+tests/entities.py
+$ entities
+ALL 2382 ENTITY CHECKS PASSED
+$ archscore
+Architecture score: dS +0.0000 NULL
+$ harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+$ ref_privacy
+ref_privacy --check at HEAD: 19 file(s) with a push site, 9 guarded, 574 line(s) added since 57f0c9c77cfd judged, 0 refused
+ModuleNotFoundError: No module named 'voluptuous'
+ALL 109 HARNESS HEADER CHECKS PASSED
