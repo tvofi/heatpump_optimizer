@@ -38,7 +38,7 @@ MUTANTS = [
     ("render-host-off", "    m = HOME.search(json.dumps(payload))", "    m = None"),
     ("privacy-off", "    if why:\n        raise Refusal(f\"the dispatch ref", "    if False:\n        raise Refusal(f\"the dispatch ref"),
     ("head-ignored", 'head or _git(repo_dir, "rev-parse", f"{HEAD_REF}', '_git(repo_dir, "rev-parse", f"{HEAD_REF}'),
-    ("prompt-wrong", '"PROMPT.md": payload["job_config"]', '"PROMPT.md": "" or payload["job_config"]'),
+    ("prompt-wrong", '"PROMPT.md": payload["job_config"]', '"PROMPT.md": "" and payload["job_config"]'),
     ("roster-repo-ignored", 'repo=roster.get("repo") or known["repo"]', 'repo=known["repo"]'),
     ("roster-ref-main", "roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)",
      "roster_ref = roster_ref or roster_lib.MAIN_REF"),
