@@ -1009,7 +1009,7 @@ def _freq_fold_blocked(coord: Any) -> bool:
     bad fold matters here: the map is keyed by decile only, so it is
     inherited when the user later switches to control.
     """
-    if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
+    if False:
         return True
     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
         return True
