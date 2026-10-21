@@ -18,13 +18,21 @@ Alternatives considered (fixer step 17):
 - Starting the relay with no wait at all. Rejected: every pass would report `running`, even for a relay that takes a second, and the banner would no longer say whether the relay passed. The bounded wait keeps the old report for the common fast pass.
 - Killing a relay that outlives the bound. Rejected by the brief: an `update_pr.sh` must never be killed mid-push.
 
+This body was rewritten whole at `f64fe75ef1a122100496785885b696ad887c272e` after the fix review blocked at `09ad7e4f750bfee78b18221d68eae0580fef3d3a` (carry-missing, body only). The code is unchanged: the diff `ab41f4a0f..f64fe75ef` outside merges from `origin/main` is only this PR's own row, `dev/programme/delivery/2549.md`.
+
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_01EPHAkAQjbcBBgY6Lom8V9a
+https://claude.ai/code/session_01ATUD37rdu82o46u2EGiepr
 
 ## Head
 
-`ab41f4a0f63a4c9bd6b7c58a1a0173ca064dbd4e`, cut from `origin/main` 0cc148b2f80fe224ffe2c504b29fd4f0908183df (the base this seat was given, and `origin/main`'s tip when the branch was cut). Two commits: the fix (99b176491) and the harness arms (ab41f4a0f). Everything below was measured at this head.
+`f64fe75ef1a122100496785885b696ad887c272e` merges origin/main `265d3bf1a` (an automatic merge by the orchestrator's script, with no conflict and no resolution inside the code; it brings in main's own commits only) into this PR's previous head.
+
+`09ad7e4f750bfee78b18221d68eae0580fef3d3a` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2549.md`. The authored code head is `ab41f4a0f63a4c9bd6b7c58a1a0173ca064dbd4e`.
+
+`b7eefa5d23b1b0b0165d958ab08d815a2f65aff7` merges origin/main `6961f0663` into the authored code head `ab41f4a0f63a4c9bd6b7c58a1a0173ca064dbd4e` (an automatic merge by the orchestrator's script; no resolution inside the code).
+
+`ab41f4a0f63a4c9bd6b7c58a1a0173ca064dbd4e`, cut from `origin/main` 0cc148b2f80fe224ffe2c504b29fd4f0908183df (the base this seat was given, and `origin/main`'s tip when the branch was cut). Two commits: the fix (99b176491) and the harness arms (ab41f4a0f). Everything below was measured at this head, and the fix review re-measured mutation proof, null control and merge at `09ad7e4f7` with the same results.
 
 ## Mutation proof
 
@@ -57,6 +65,7 @@ The same five shapes were first run by hand from a scratch copy of the script. T
   - `python3 tests/harness_headers.py` cannot run green in this container. `seat_venv.sh` failed with `No download found for request: cpython-3.14.7-linux-x86_64-gnu`, and the container's python is 3.11 without numpy. A scratch 3.11 venv with voluptuous gave `72 of 109 HARNESS HEADER CHECKS FAILED` at head, and the same 72 at `origin/main` 0cc148b2f. The diff of the 109 per-check ok/FAIL lines between base and head is empty. So this diff adds no harness-header failure, and CI's run is the proof.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `node tools/policy/policy_lint.mjs --budgets`: rc 0. The aggregate lines (always-loaded ~3410, corpus ~61152) are the same at base and head, because `INSTRUMENTS.md` is outside the policy corpus.
+- `python3 -I tools/audit/carry_audit.py check --body body.md` on this body: `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted`, rc 0.
 - Seams (fixer step 8). Rule: `git grep -n -e 'cloud_relay.sh" pass' -e '\$relay" pass' -e 'cloud_relay.sh pass' -- tools .github`. It enumerates every site that names a relay pass. It returned 6 at head:
   - `tools/audit/seat/tick_loop.sh:60`, the one site that runs a relay pass beside other work: closed in this diff (it was the serial call in `tick_pass` at the base).
   - `tools/audit/seat/tick_loop.sh:7` (header) and `:100` (a self-test arm's name): describe, do not run.
@@ -69,12 +78,13 @@ none: every production line the diff adds is pinned by the self-test arms, and e
 
 ## Red checks
 
-none
+- `pr-contract`, red at `09ad7e4f7` and `f64fe75ef` (jobs 119179639837, 119179813053, 119186948984, 119187308764). Cause: this PR's own body, not its code. `tools/audit/carry_audit.py check` reported `2 finding item(s): 0 routed, 2 unrouted`: `## Forward-carry` read `none: <reason>`, which `NONE_ITEM` does not accept (only a bare `none` or `n/a: <reason>`), and the `## Friction` item named a file path after `Carry:` instead of a group, issue, O-brief or `dismissed: <reason>`. This rewrite fixes both. The cheaper detector exists and is in the tree: `python3 -I tools/audit/carry_audit.py check --body <body.md>`, the same check pr-contract runs, takes about one second and reads no network. Its standing cost is that one command per body before the push, and that is the countermeasure taken here: it was run on this body until it printed `0 unrouted` (Figures). No new check is built, because the detector already exists and only had not been run before the first push.
+- `nightly-status` grades `main`, and this diff touches none of its inputs, so pr-contract owes it no answer here.
 
 ## Forward-carry
 
-none: the change is local to `tick_loop.sh`'s driver. R10-TICK-OWED-LEVEL and R10-RCA-ORCH-CONTINUITY are cited, not reopened, and no later stage's brief changes.
+n/a: the change is local to `tick_loop.sh`'s driver. R10-TICK-OWED-LEVEL and R10-RCA-ORCH-CONTINUITY are cited, not reopened, and no later stage's brief changes.
 
 ## Friction
 
-- seat_venv: cost: `seat_venv.sh` cannot build `venv-ci` in a cloud container whose uv proxy has no cpython-3.14.7 download, so `tests/harness_headers.py` cannot run green locally. Carry: tools/audit/seat/cloud-setup.sh
+- seat_venv: cost: `seat_venv.sh` cannot build `venv-ci` in a cloud container whose uv proxy has no cpython-3.14.7 download, so `tests/harness_headers.py` cannot run green locally. No live group of `wave-r10-groups.json` owns the cloud seat environment, and `tools/audit/seat/cloud-setup.sh` is config the owner applies, not a seat's to change. Carry: dismissed: environment-only gap with no tree change owed; CI runs the check, and the base-vs-head diff of its 109 lines was empty
