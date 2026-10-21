@@ -232,8 +232,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
   `OWED handoff-update`, and retried only when the handoff moves. An update that
-  exits 75 is `update_pr.sh`'s BUSY (another run holds the branch's
-  `upd-<branch>.lock`, typically the orchestrator's own update of that PR): it is
+  exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
+  `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
   not recorded, and the next pass retries it. Every
   `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
   appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
@@ -348,7 +348,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   "<reason>"` is still accepted and prints that it is advisory; `pr_cap.py
   info` prints the open count as information, and a count gh cannot read says
   so and still opens. Any later stop prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
-  refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
+  refused push names its log. It holds the branch's `upd-<branch>.lock` from
+  before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
+  (75) and cannot detach the worktree under the PR's row (#2547-#2549).
+  `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
 - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
   that measures the whole board — train liveness, stale queue entries, log/rc
@@ -422,8 +425,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   ahead of the clock, an unreadable transcript, or a line naming the marker
   that is not JSON each print OWED, never OK. `--self-test` drives both arms.
 - `pr_args.sh` — sourced by `open_pr.sh` and `update_pr.sh`: their argument
-  checks and the ERR trap that reports every other stop, so neither stops
-  silently. When: never by hand; `--self-test` drives both scripts end to end
+  checks, the ERR trap that reports every other stop, so neither stops
+  silently, and `pr_branch_lock`, the per-branch lock both take. When: never by hand; `--self-test` drives both scripts end to end
   in a scratch repository, offline, each refusal arm beside a mutant that
   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
   null controls that pass every check. Refusal: its self-test's tally.
@@ -663,8 +666,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   ancestor of `origin/handoff/<topic>` (the topic `HANDOFF_TOPIC`, else the
   branch less `fix/`, then less `-pr`), naming a `handoff-body/<topic>` tip as
   the BODY sha; a missing `handoff/<topic>`; no body file. The body is a file
-  here, so a missing body ref is no refusal. Any later stop prints
-  `update_pr: STOPPED: ...`, and a refused push names its log.
+  here, so a missing body ref is no refusal. It detaches another instrument's
+  clean worktree on the branch only when origin has that worktree's HEAD; one
+  holding commits origin lacks (a PR's unpushed row) is refused, naming it.
+  Any later stop prints `update_pr: STOPPED: ...`, and a refused push names its log.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is
