@@ -4055,7 +4055,7 @@
     "commit": "7ab3030bbfff",
     "last_step": null,
     "next_step": "PR #2422 is open on fix/r10-openpr-silent-pr; review and merge it",
-    "note": "delivered by PR #2422"
+    "note": "delivered by PR #2422; follow-up #2525 (soft cap gates dispatch only) is open under this group"
    }
   },
   {
