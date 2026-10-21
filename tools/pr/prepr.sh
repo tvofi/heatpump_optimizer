@@ -561,8 +561,7 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
         # inside this command substitution, so a TERM to the prepr alone --
         # which never reaches the substitution's own trap -- still ends the
         # closure work instead of orphaning it.
-        reap_recorder() { [ -n "${rpid:-}" ] && kill -TERM -- "-$rpid" 2>/dev/null
-                          [ -n "${wpid:-}" ] && kill "$wpid" 2>/dev/null; return 0; }
+        reap_recorder() { return 0; }
         trap 'reap_recorder; exit 143' TERM
         trap 'reap_recorder; exit 130' INT
         set -m
@@ -570,7 +569,7 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
           --scripts-from "$cw/record.txt" --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1 &
         rpid=$!
         ( while kill -0 "$$" 2>/dev/null; do sleep 1; done
-          kill -TERM -- -"$rpid" 2>/dev/null ) & wpid=$!
+          : ) & wpid=$!
         wait "$rpid"
         kill "$wpid" 2>/dev/null; wait "$wpid" 2>/dev/null
         trap - TERM INT
