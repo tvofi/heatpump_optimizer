@@ -43,7 +43,9 @@ an over-approximation at worst, the direction `_fold_inert_reads` keeps.
 What it cannot see, said so the quiet line is not over-read: a data file a
 script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
 and a closure whose recording a merge from `main` alone moves. Those stay
-`closures`'s, and `ci-autofix.md` says who repairs them.
+`closures`'s, and `ci-autofix.md` says who repairs them. What it does see it
+names the repair for, per arm, on a `CI PREDICT:` line: before a PR exists no
+bot runs, so a predicted red is the fixer's (R10-HANDOFF-PREPR-BOUNCE M3).
 """
 from __future__ import annotations
 
@@ -132,7 +134,7 @@ def top_imports(src: str, path: str, tracked: set[str]) -> set[str]:
 
 
 def under_scoped(root, base, changed, tracked, closures, inert_reads, closure,
-                 pairs=None):
+                 pairs=None, scripts=None):
     """New import edges from a file a closure lists to a file it does not.
 
     Only edges this diff ADDS: an edge already present at the base and still
@@ -189,6 +191,8 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure,
                         pairs.add((script, b))
                 elif b not in listed:
                     kind = "UNDER-SCOPED"
+                    if scripts is not None:
+                        scripts.add(script)
                 else:
                     continue
                 scripts, froms = hits.setdefault((kind, b), (set(), set()))
@@ -298,8 +302,8 @@ def unpinned(base):
                     for k, s in m.added_keys(added)]
 
 
-def predict(root: Path, base_ref: str, pairs: set | None = None
-            ) -> tuple[int, list[tuple[str, str]], str]:
+def predict(root: Path, base_ref: str, pairs: set | None = None,
+            scripts: set | None = None) -> tuple[int, list[tuple[str, str]], str]:
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
@@ -314,7 +318,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None
     preds += orphans(changed, closure)
     preds += no_recording(root, base, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
-                          closure, pairs)
+                          closure, pairs, scripts)
     preds += inert_siblings(changed, inert_reads, closure, pairs)
     preds += unpinned(base)
     seen, out = set(), []
@@ -344,6 +348,32 @@ def apply_inert(root: Path, pairs: set) -> list[tuple[str, str]]:
     return added
 
 
+def repairs(root: Path, preds, scripts: set) -> list[str]:
+    """The repair line for each refusing closures/fast arm, before the handoff.
+
+    Before a PR exists no bot runs, so the arm's repair is the fixer's
+    (dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md, countermeasure M3): a closure
+    is re-recorded with `--single` per script, whose cost is what CI's last
+    recording of it took (one took five times that on a Darwin seat, the RCA's
+    section 1), and a file in no closure is classified in the same diff.
+    """
+    out = []
+    if scripts:
+        rec = json.loads((root / "tests" / "closures.json").read_text()).get("recorded", {})
+        secs = sum(float(rec.get(s, {}).get("seconds") or 0) for s in scripts)
+        many = len(scripts) > 3
+        out.append(f"an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: "
+                   f"{'; '.join(f'tests/derive_closures.sh --single {s}' for s in sorted(scripts))} "
+                   f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
+                   + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
+                      if many else ""))
+    if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
+        out.append("an UNCLASSIFIED file is classified in the diff (CLAUDE.md): one a test script reads joins "
+                   "that script's closure through tests/derive_closures.sh --single <script>; one no script "
+                   "reads goes on INERT in tests/closure.py")
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--base", default="origin/main")
@@ -352,13 +382,15 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
     pairs: set[tuple[str, str]] = set()
-    rc, preds, base = predict(root, args.base, pairs)
+    scripts: set[str] = set()
+    rc, preds, base = predict(root, args.base, pairs, scripts)
     if args.apply_inert and rc != 2:
         added = apply_inert(root, pairs)
         for script, f in added:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
-            rc, preds, base = predict(root, args.base)
+            scripts = set()
+            rc, preds, base = predict(root, args.base, None, scripts)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
@@ -380,12 +412,14 @@ def main(argv: list[str] | None = None) -> int:
               "the entry CI's Linux recording would merge, before the push, "
               "where the bot's repair after it costs a red closures run and a "
               "commit on the reviewed head")
+    for line in repairs(root, preds, scripts):
+        print(f"CI PREDICT: {line}")
     if jobs:
         reds = sum(1 for j, _ in preds if j != "mutation")
         who = ("`--apply-inert` repairs them" if inert == reds else
-               f"`--apply-inert` repairs the {inert} INERT READS, the rest "
-               f"is ci-autofix.md's" if inert else
-               "who repairs which is ci-autofix.md's")
+               f"`--apply-inert` repairs the {inert} INERT READS, the lines "
+               f"above the rest" if inert else
+               "the lines above name each arm's repair")
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
