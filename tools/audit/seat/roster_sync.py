@@ -587,9 +587,11 @@ def self_test() -> int:
     n = [0]
 
     def check(name: str, ok, got="") -> None:
+        # Printed as it fails, so a later crash cannot swallow a named red.
         n[0] += 1
         if not ok:
             fails.append(f"{name} (got: {got})")
+            print("FAIL", fails[-1], flush=True)
 
     def git(*args, cwd=None, env=None, input_text=None) -> str:
         return run(["git", *args], cwd=cwd, input_text=input_text).strip()
@@ -911,8 +913,6 @@ def self_test() -> int:
           bool(seen), sorted(seen))
 
     print(f"roster_sync self-test: {n[0]} checks, {len(fails)} failed")
-    for f in fails:
-        print("FAIL", f)
     return 1 if fails else 0
 
 
