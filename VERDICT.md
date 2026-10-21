@@ -1,47 +1,31 @@
-Fix review: merge eda11668ae28b26d1efcb841e8e60431dec97590
+Fix review: merge 31ce1c0cbb552095177d3ef733f88d9515b65d7c
 
-bus-nonce: 45db6e377505caa99814f8b5419601d0
+bus-nonce: 798cdc485ee4e4b8d556162234ddef10
 
-Round: second review of #2525 (this head repairs a returned round). Measured head: eda11668ae28b26d1efcb841e8e60431dec97590, still the PR head when this was written. Detached worktree at that head. `dev/governance/roles/` is identical between the merge base and origin/main, so this review ran under the current contract.
+Round: third review of #2525 (the second returned merge at eda11668; this head adds one merge of origin/main). Measured head: 31ce1c0cbb552095177d3ef733f88d9515b65d7c, still the PR head when this was written (refs/pull/2525/head and fix/r10-wip-cap). I worked in a detached worktree at that head. dev/governance/roles/ does not differ between the merge base and origin/main, so this review ran under the current contract. The prior verdict (probe/rev-2525-45db6e37) was read as one argument, and every figure below was re-taken at this head.
 
-RESULT head=eda11668ae28b26d1efcb841e8e60431dec97590 code_head=5d477d6e9d3b in_head=yes: every PR file but the delivery row is blob-identical to the code head
-RESULT merge_tree=clean tree=e302cb15840f exit=0 (ev/merge_tree.txt)
-RESULT pr_cap_selftest="21 checks, 0 failed" pr_args_selftest="54 checks, 0 failed" tick_selftest="152 checks, 0 failed" selftest_wiring="37 self-testing, 37 wired, 0 unwired"
-RESULT dispatch_gate_live: refuses at 6/6 at origin/main and names six in-progress groups, rc=1 (ev/dispatch_gate_live.txt)
-RESULT structure=PASSED layout_guard="0 refusal(s)" policy_lint="TOTAL: 0 error(s); FIXTURE ok" rules_sync=ok orchestrator.md lines 319->317
-RESULT mutation (a) main's pr_cap.py: pr_args "54 checks, 6 failed", the six open-path arms the body names: KILLED
+RESULT head=31ce1c0cbb552095177d3ef733f88d9515b65d7c base=origin/main 03b49e152 merge_tree=clean tree=7317cf669035 exit=0 (ev/merge_tree.txt)
+RESULT main_merge_delta: the head tree equals git merge-tree eda11668 03b49e15, so this is an automatic merge with no resolution delta. All 9 PR files are blob-identical to eda11668 (ev/pr_files_vs_prior_head.txt). The merge brought in only main's dev/programme/delivery rows 2526/2543/2546/2550-2552 and 22 mutation-ledger killed_by JSONs. The fix and its self-tests read none of these (the tick's self-tests use faked delivery paths).
+RESULT pr_cap_selftest="21 checks, 0 failed" pr_args_selftest="54 checks, 0 failed" tick_selftest="152 checks, 0 failed" selftest_wiring="37 self-testing, 37 wired, 0 unwired" (ev/selftests.txt)
+RESULT dispatch_gate_live: rc=1, "REFUSE: WIP cap: 6/6 at the cap" naming six in-progress groups, at origin/main (ev/dispatch_gate_live.txt)
+RESULT structure=PASSED layout_guard="0 refusal(s) against 03b49e1521a2" policy_lint="TOTAL: 0 error(s) across 41 policy file(s); FIXTURE ok" rules_sync=ok orchestrator.md=317 lines
+RESULT mutation (a) main's pr_cap.py: pr_args "54 checks, 6 failed", the six arms the body names: KILLED
 RESULT mutation (b) n<cap -> n<=cap: pr_cap "21 checks, 1 failed": KILLED
 RESULT mutation (c) tick n=len(prs): tick "152 checks, 2 failed", the two arms the body names: KILLED
-RESULT mutation (d) unreadable roster -> zero: pr_cap "21 checks, 3 failed": KILLED
-RESULT own mutants: overcap line deleted KILLED(1); WIP_STAGE=fixing KILLED(6); empty-reason arm deleted KILLED(1); open_info rc=1 KILLED(1); open_pr.sh info call made gating KILLED(6+)
-RESULT committed harness dev/audit/harnesses/r10_seat_selftests_mutants.py M0 S15: "M0: 0 seat step(s) red", S15 pr_cap.py KILLED, "RESULT survivors=0"
-RESULT ci at head: 49 check runs, all completed; every one is success or skipped except nightly-status (failure) (ev/check_runs.tsv)
+RESULT mutation (d) unreadable roster treated as an empty roster: pr_cap "21 checks, 3 failed", the three arms the body names: KILLED
+RESULT own mutants: WIP_STAGE=fixing KILLED(6); mut:overcap line deleted KILLED(1); empty-reason arm deleted KILLED(1) (ev/mutations.txt)
+RESULT ci at head: 46 check runs, all completed: 29 success, 16 skipped, 1 failure (nightly-status) (ev/check_runs.tsv)
 
 Findings, by step:
-1/3 Mutation proof and null control: (a) to (d) re-run and each reproduces the body's exact tallies. The null controls are present and pass: 0 WIP passes; 20 open PRs is information only, rc 0; an unreadable roster is a refusal, and the tick prints no WIP line for it.
-2/9 Harness: the finding is the owner's ruling (tvofi 2026-10-20/21), with no numeric finder harness, so the mutants and self-test arms are the measurement. I also ran the committed seat-self-test mutant harness (S15 on pr_cap.py, M0 across every seat step).
-4/5 None of the claim files, goldens, VERSION, the manifest or RELEASE_NOTES is in the diff.
-6 Class: the body names no enumeration rule. I used my own: every reference to pr_cap or an open-PR or soft cap across the tree. It returns open_pr.sh and orchestrator_tick.py (both in the diff), cloud_relay.sh and update_pr.sh (neither calls the cap; both are covered in the body or its docs), and tools/plan/replan.py:53,713. replan.py's check #4 bounds groups in flight against `slots` when a wave opens. That is dispatch, which the ruling allows, and it never refuses opening or updating a PR, so it is outside the class. Only its comment still says "open-PR cap": stale wording, not blocking.
-7 The body's ## Head names 5d477d6e as the code head and describes eda11668 as that head plus a main merge plus the delivery row. Verified blob-by-blob.
-8 Every figure the body quotes re-derives at this head (tallies above). The live dispatch-gate refusal matches the body.
-10 Forward-carry: "none". The change binds the orchestrator's §5 directly, so no later stage's brief needs a carry.
-11 Red checks: nightly-status is red. Its inputs, tests/nightly_status.py and .github/workflows/tests.yml, are untouched by the diff (ev/nightly_status_scope.txt), so it grades main and the body names it. The previous head's policy-docs, env-matrix and pr-contract reds are named, with a cheaper detector and its cost. All three are green at this head, and so are closures (under-approximation), fast, coverage, instrument-self-tests and mutation.
-13 merge-tree against origin/main 43f79c08 is clean, exit 0.
-14 No budget or recorded metric moves. orchestrator.md drops two lines by cutting prose. I checked each cut against the tree:
-  - "merge_train.py" is still named at lines 256 and 288.
-  - The "filed issue asked for a mechanism already in the tree" example is in CLAUDE.md:179.
-  - "one push credential / yours alone" is in decision 0013 ("The orchestrator still holds the credential").
-  No obligation is lost.
-15 Architecture: the WIP count goes through roster_lib (the one schema reader, reader_ref and show_roster) and is counted by group id, and the tick reuses pr_cap's wip_groups. Nothing is re-parsed and there is no new ref logic. No breach.
+1/3 Mutation proof and null control: (a) to (d) each reproduce the body's exact tallies at this head. For (d) I planted `roster = {}` on the refusal line instead of the body's `{"groups": []}`; the same three arms failed. The null-control arms are present and pass: 0 WIP passes, 20 open PRs is information only, and an unreadable roster refuses.
+2/9 Harness: the finding is the owner's ruling and has no numeric finder harness, so the mutants and self-test arms are the measurement. I built none.
+4/5 The diff touches no claim file, golden, budget, VERSION, manifest or RELEASE_NOTES.
+6 Class: the body names no enumeration rule, so I used my own: grep for pr_cap, open-PR cap and soft cap over tools/, .github/, .claude/ and tests/ (ev/class_enum.txt). It returns the five seat files and governance.yml, all in the diff, plus tools/plan/replan.py. replan.py bounds groups in flight at wave open. That is dispatch, which the ruling allows, and it never refuses opening a PR, so it is outside the class. This agrees with the prior review.
+7 The body's ## Head names 31ce1c0cbb552095177d3ef733f88d9515b65d7c and describes it as an automatic merge of origin/main 03b49e152 onto the previous head. Verified above.
+8 Every figure in the body re-derives at this head. Not re-derived by me: the ci_predict.py and closure.py select outputs. CI's closures and mutation runs at this head are green.
+10 Forward-carry: "none". The change binds orchestrator.md §5 directly. The roster group R10-OPENPR-SILENT is stage done, with a note naming #2525 as its follow-up, and its listed carry (the carry_audit sweep) is not this PR's.
+11 Red checks: nightly-status is red. Its inputs (tests/nightly_status.py, .github/workflows/tests.yml) are untouched by the diff, so it grades main, and the body names it. The previous head's policy-docs, env-matrix and pr-contract reds are named with a cheaper detector. policy-docs, env-matrix, pr-contract, closures, fast, coverage, coverage-ratchet, mutation and CodeQL are all green at this head.
+13 merge-tree against origin/main 03b49e15 is clean, exit 0; nothing conflicts.
+14/15 The main merge moves no number. The PR's own instruments are unchanged from the prior review: no budget moves, and orchestrator.md was paid down by cutting prose. Architecture: the WIP count reuses roster_lib through pr_cap.wip_groups, with no breach.
 
-Policy wording against the ruling ("the soft cap of 6 gates only starting or dispatching a new roster group; opening or updating a pull request for an owed handoff is never refused by it"):
-- orchestrator.md §5: "The soft cap gates only dispatching a new roster group ... Opening or updating a pull request for an owed handoff is never refused by it." Matches.
-- INSTRUMENTS.md open_pr.sh entry: "gates only dispatching a new roster group, and never refuses opening or updating a pull request for an owed handoff". Matches.
-- INSTRUMENTS.md cloud_relay.sh entry: "which the soft cap never refuses (it gates only group dispatch)". Matches in meaning.
-- INSTRUMENTS.md pr_cap.py entry: "on dispatch ... `info` ... never refuses". Matches in meaning.
-- pr_cap.py docstring: the ruling verbatim.
-The INSTRUMENTS cloud_relay and pr_cap entries are paraphrases, not the same words, but nothing in them departs from the ruling.
-
-Not verified here: the body's own `ci_predict.py` and `closure.py select` outputs. I relied on CI's closure-scope and closures runs, both green at this head.
-
-Approval still owed, not by this verdict: orchestrator.md is policy and pr_cap.py, open_pr.sh and orchestrator_tick.py are code-owned paths, so the PR needs tvofi's approving review at this head.
+Approval still owed, not by this verdict: orchestrator.md is policy, and pr_cap.py, open_pr.sh and orchestrator_tick.py are code-owned paths, so tvofi's approving review at this head is still required.
