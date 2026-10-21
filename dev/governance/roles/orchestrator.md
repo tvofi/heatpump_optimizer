@@ -110,10 +110,10 @@ exactly that.
 
 ## 5. Before dispatching a seat
 
-- **Do not dispatch a new group while work in progress is at the cap** (tvofi,
+- **The soft cap gates only dispatching a new roster group** (tvofi,
   2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
   refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
-  Opening and merging are always allowed: opening is how work leaves WIP.
+  Opening or updating a pull request for an owed handoff is never refused by it.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.

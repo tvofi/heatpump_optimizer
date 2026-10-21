@@ -7,15 +7,16 @@
         [--over-cap REASON]
     python3 -I tools/audit/seat/pr_cap.py --self-test
 
-THE RULING (tvofi, 2026-10-20, moving 2026-10-18's open-PR cap). The cap
-bounds work in progress, and opening a pull request is how work LEAVES
-work-in-progress, not how it enters. So:
+THE RULING (tvofi, 2026-10-20, moving 2026-10-18's open-PR cap; restated
+2026-10-21). The soft cap gates only starting or dispatching a new roster
+group; opening or updating a pull request for an owed handoff is never refused
+by it. Opening is how work LEAVES work-in-progress, not how it enters. So:
   - `dispatch-gate` refuses when HPO_WIP_CAP (default 6) roster groups have
     `resume.stage` "in-progress". WIP is read through `roster_lib`, the one
     schema reader, at the roster ref, and counted by group id: a group that
     also has an open pull request is still one group, never two. A roster it
     cannot read is a refusal, never a clean zero.
-  - `open_pr.sh` is never refused by the cap; `info` prints the open count as
+  - `open_pr.sh` and `update_pr.sh` are never refused by the cap; `info` prints the open count as
     information (`open_pr: N open PRs; the cap gates dispatch, not opening`).
     A count gh cannot read says so and still opens: it is not a gate.
     `--over-cap "<reason>"` is still accepted by open_pr.sh so existing
