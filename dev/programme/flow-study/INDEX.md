@@ -36,3 +36,9 @@ The figures are the study's measurements at the refs named in each file. Re-take
 - `tools/review_rounds.py`: first-pass yield and block classes per reviewed PR.
 
 The model's design switches are in `tools/simulate.py`'s header.
+
+**Revision 12 (2026-10-21):**
+- The design seats are adopted (`RULINGS-201-3.md` is the text to post on #201).
+- The prompt opens with an adoption plan.
+- The roster has 21 flow groups and 23 carries.
+- The projection adds `DESIGN=pipe DTH=L`.

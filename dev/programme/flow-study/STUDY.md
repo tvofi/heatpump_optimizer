@@ -1,6 +1,6 @@
 # Lean flow pre-study: one section per FLOW group
 
-Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K13a RELAY-HOLD · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · K18 TOOLKIT (the study's tools on main) · guardrail baselines (method and script) · fly-in intake.
+Sections: §0 shared harness · K1 BOARD · K2 JIDOKA · K3 PULL · K4 WIP · K5 (carry on POLICY-FIXER-MD) · K6 RECORD-PITCH (conditional) · K7 RECHAIN · K8 ANDON · K9 MQ-PROBE · K10 AUTOTRAIN · K11 POSTMERGE · K12 BODY-ONLY · K13 ROSTER-FREEZE · K13a RELAY-HOLD · K14 BODY-PATCH · K15 MAIN-GATE · K16 DISPATCH (expedite) · K17 ORCH-MACHINERY alignment (with the detached-process rule) · K18 TOOLKIT (the study's tools on main) · K19 DESIGN-POLICY and DESIGN-STAGES · guardrail baselines (method and script) · fly-in intake.
 
 This is for the fixer and reviewer seats that build the round-10 flow groups. Every anchor was read at `origin/main` 22615537a (2026-10-21) and the live roster at `origin/handoff/audit-r10-roster` 8afd645da. **Re-derive every figure at your own merge base** (`fixer.md` step 3): a line number here is a pointer, not a citation.
 
@@ -537,6 +537,28 @@ The live run found three more misreadings, all of the same kind. Each now has it
 - One perturbation per rule moves the figure where the study says it does, for example dropping the chain reservation at `EFFX=2` moves 75 to 77 h.
 
 **Budget:** the structural ratchet applies. Pay by moving the study's code in, not by adding beside it.
+
+---
+
+## K19 · R10-FLOW-DESIGN-POLICY (policy, M) and R10-FLOW-DESIGN-STAGES (instrument, M); revision 12
+
+**Sources:** `design-seats/STUDY.md`, and the drafts `design-seats/designer.md` and `design-review.md`. The drafts are modelled on BMAD's Architect, Kiro's `design.md`, spec-kit's plan phase, superpowers' `brainstorming` and `writing-plans`, and the wshobson and VoltAgent architect-review agents, then fitted to `orchestrator.md` section 5's architect note and `fixer.md` step 17.
+
+**Anchors on main:**
+- `POLICY_GLOBS` matches `dev/governance/roles/*.md` (`tools/policy/policy_lint.mjs:258`).
+- `orchestrator.md` section 5: the architect note, found on 32 of 108 round-10 groups.
+- `fixer.md` step 17 (lines 221–245).
+- `fix-review.md` step 15 (lines 133–134).
+- Decision 0012 (`dev/governance/decisions/0012-process-diet-and-round-cadence.md:60–62`).
+- `VERDICT_CLASSES` (`.claude/workflows/web-fix-wave.js:175`). It gains no class: the design reviewer reuses `architecture-unsound`, `class-open`, `harness` and `product-tradeoff-regression`.
+
+**Budgets:**
+- Two new role files raise the policy corpus cap, and `policy_budgets.json` needs a row each. Pay first: point to `COMMON.md` and `fixer.md` rather than restating them.
+- Each new instrument's self-test follows standing rule 17. The bus refs reuse `bus.sh`'s push path.
+
+**Controls:**
+- DESIGN-POLICY: `policy_lint --budgets` passes, and `rules_sync.mjs --check` passes (roles are not rules, so there should be no `.mdc` drift).
+- DESIGN-STAGES: a fixer dispatch for an eligible group with no approval is refused; with an approval it proceeds; for an exempt group it proceeds.
 
 ---
 

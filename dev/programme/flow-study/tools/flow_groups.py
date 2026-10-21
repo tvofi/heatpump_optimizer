@@ -491,6 +491,59 @@ GROUPS = [
         fixer="sonnet", reviewer="opus", severity="medium"),
 ]
 
+# Revision 12 (owner ruling 2026-10-21: decision 0012's moratorium is void; design seats adopted).
+DESIGN_ELIGIBLE = ["R10-SCORES", "R10-LIVESTATE", "R10-SENSOR-PAYLOAD", "R10-HEAT-METER",
+                   "R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-ARCH-DOCS"]
+DESIGN_EXEMPT = ["R10-PARAMS-OWNER", "R10-ARCH-SHAPES", "R10-ORCH-MACHINERY", "R10-CI-LAYOUT-P1",
+                 "R10-CI-LAYOUT-P2"]
+GROUPS += [
+    group(
+        "R10-FLOW-DESIGN-POLICY", "policy", "M", [],
+        ["dev/governance/roles/orchestrator.md", "dev/governance/roles/fixer.md",
+         "dev/governance/roles/fix-review.md", "CLAUDE.md", "dev/governance/decisions/"],
+        [],
+        "Land the two design seats in the policy corpus (owner ruling, 2026-10-21: decision 0012's "
+        "moratorium is void; L/XL groups gain a pipelined design and design review). (1) Two role "
+        "contracts under dev/governance/roles/, the designer's and the design reviewer's, from the "
+        "Lean flow study's drafts (design-seats directory on the study branch, at the pack commit "
+        "the dispatch names); keep them to the drafts' scope and shorten where COMMON.md or "
+        "fixer.md already says it. (2) orchestrator.md: for an L or XL group with no approved "
+        "design, pre-study or prototype, dispatch the designer when the group's last predecessor "
+        "dispatches, the design reviewer at the design's head, and the fixer only after "
+        "'Design review: approve'; the approved design note is the group's architect note. "
+        "(3) fixer.md step 17: follow the approved design note; a departure is raised, not made. "
+        "(4) fix-review.md step 15: judge the diff against the approved design note. (5) CLAUDE.md "
+        "names both contracts in its role table. (6) A decision record under "
+        "dev/governance/decisions/ states the owner's ruling voiding 0012's moratorium and the "
+        "rationale (fewer future architecture-dimension findings), and 0012 points to it. The "
+        "corpus caps in policy_budgets.json rise by what the new files cost: record the payments "
+        "tried in the body's Raise justification; the owner's ruling is the authority, and the "
+        "owner's approving review merges it (code-owned paths).",
+        ["Until this merges, designer and design-reviewer seats run on the drafts pinned at the "
+         "pack commit (the same rule as a group not yet on the roster).",
+         "Pre-study: the Lean flow pre-study, section K19, and the design-seat study."],
+        fixer="opus", reviewer="opus", owner_gate="policy: owner's approving review",
+        severity="high"),
+    group(
+        "R10-FLOW-DESIGN-STAGES", "instrument", "M", [],
+        ["tools/audit/seat/roster_edit.py", "tools/audit/seat/bus.sh",
+         "tools/audit/seat/cloud_dispatch.py", "tools/audit/seat/orchestrator_tick.py",
+         "tools/audit/seat/INSTRUMENTS.md"],
+        [],
+        "Mechanise the two design steps (owner ruling, 2026-10-21). (1) Roster stages design and "
+        "design-review, accepted by roster_edit.py set-stage and shown by the tick board. (2) Bus "
+        "refs design/<group-topic> for the design note and design-verdict/<group-topic> for the "
+        "reviewer's verdict, written through bus.sh like review/<N> and verdict/<N>. (3) Dispatch "
+        "templates for the designer and the design reviewer that name the contract and pin the "
+        "base SHA, and refuse a fixer dispatch for an eligible group with no approved design "
+        "verdict. (4) A tick line listing designs owed: an eligible group whose last predecessor "
+        "has dispatched and that has no design ref. Until this lands, the orchestrator runs the "
+        "steps by hand on the same ref names.",
+        ["Merge after R10-FLOW-DESIGN-POLICY (the templates cite its contracts); build beside it.",
+         "Pre-study: the Lean flow pre-study, section K19."],
+        fixer="sonnet", reviewer="opus", severity="medium"),
+]
+
 # Carries folded into existing groups: (group, text).
 CARRIES = [
     ("R10-RCA-HEADMOVED",
@@ -574,6 +627,21 @@ CARRIES = [
      "machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table "
      "as data the tree holds (each self-test asserts the code matches it), so the diagram is "
      "checked against the tree, not against the design."),
+    *[(g, "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design "
+     "review before its fixer: the designer starts when the group's last predecessor dispatches, "
+     "the design reviewer approves at the design's head, and the fixer dispatches only after "
+     "'Design review: approve'; the approved note becomes the group's architect note. Contracts: "
+     "the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY "
+     "merges, the study's pinned drafts until then.") for g in DESIGN_ELIGIBLE],
+    *[(g, "Design step (owner ruling 2026-10-21): not needed; this group already has an approved "
+     "design, pre-study or prototype, which serves as its design note.") for g in DESIGN_EXEMPT],
+    ("R10-UPDATE-PR-SIGNALS",
+     "Revision 12 (orchestrator, 2026-10-21): a stale upd-fix-r10-ci-layout-g.lock held dead pids "
+     "and stalled the relay's handoff arm on PR G for over 30 minutes, and an orphaned "
+     "update_pr.sh self-test spun 8.6 h at about 67% CPU. This group owns prevention: a lock "
+     "records its owner's pid and start time and is broken, with a logged line, when that pid is "
+     "dead or was reused; every self-test runs under a timeout in its own process group, reaped on "
+     "exit. R10-FLOW-ANDON owns detection."),
     ("R10-CI-LAYOUT-P2",
      "Lean flow study K9: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, the "
      "umbrella's one required check must report on merge_group as well as on the pull-request "
@@ -605,7 +673,9 @@ for _g in GROUPS:
 # group that builds an instrument carries it, and so do the carries on groups that add self-tests.
 HYGIENE = ("Self-test hygiene: (a) a new seat-selftest mutant in "
            "dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example "
-           "cloud_relay-1), never a new S number (the P6 convention); on 2026-10-21 three pull "
+           "cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of "
+           "the instrument it tests, never appended at the file's end, so parallel additions touch "
+           "different hunks; on 2026-10-21 three pull "
            "requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a "
            "code round to a content conflict there when main gained tick_loop mutants S31-S34. "
            "(b) A self-test builds any git repository through tests/throwaway_git.py, never a "
@@ -616,3 +686,30 @@ for _g in GROUPS:
     if _g["kind"] == "instrument":
         _g["carry"].append(HYGIENE)
 CARRIES += [("R10-CI-LAYOUT-P2", HYGIENE), ("R10-ORCH-MACHINERY", HYGIENE)]
+
+# Revision 12 carries on flow groups (the orchestrator's pushback of 2026-10-21).
+REV12 = {
+    "R10-FLOW-ANDON": ("Revision 12: detection for the stall R10-UPDATE-PR-SIGNALS prevents: alarm when a handoff "
+     "tip has been ahead of its pull request's head for more than 20 minutes, when a lock's "
+     "owner pid is dead, and when any seat self-test process is older than 1 h."),
+    "R10-FLOW-DISPATCH": ("Revision 12 (orchestrator, 2026-10-21): (1) the reviewer prompt requires every observation in "
+     "the first verdict to carry 'Carry: <group>' or 'Carry: dismissed <reason>', so pre-flight's "
+     "carry gate never parks a merge verdict on an unmarked note (it parked #2576, #2567 and "
+     "#2571, each a fresh Opus re-verdict); (2) refuse a reviewer at a head that shares a hot "
+     "file (pr_args.sh, update_pr.sh, cloud_relay.sh, orchestrator_tick.py, "
+     "r10_seat_selftests_mutants.py) with an open pull request that holds an unboarded merge "
+     "verdict: that one boards first, and this one is reviewed after absorbing it, so a paid "
+     "verdict is never killed by a content conflict (#2567 went DIRTY after its 16:21Z verdict)."),
+    "R10-FLOW-JIDOKA": ("Revision 12 (orchestrator, 2026-10-21): the carry gate accepts a disposition the "
+     "orchestrator adds after the verdict, 'Carry: dismissed <reason>' or 'Carry: <group>', "
+     "posted under the orchestrator identity, keyed to the verdict's head SHA, and read back "
+     "(comment-readback.md), without a new review. If the group that owns #2571's carry_audit "
+     "fix is still open, this carry goes there instead: one owner for the gate."),
+    "R10-FLOW-WIP": ("Revision 12: the tick's cap line names its exceptions: at the cap, new lane dispatches "
+     "hold, while expedites (standing rule 16) and the next critical-chain link (rule 15) go "
+     "over it; list the pending expedites on the same line. A fly-in lands the one-line change "
+     "now; this group keeps it when it rebuilds the count."),
+}
+for _g in GROUPS:
+    if _g["group"] in REV12:
+        _g["carry"].append(REV12[_g["group"]])

@@ -1,4 +1,10 @@
-# Handover prompt for the round-10 orchestrator: **revision 11** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 12** (2026-10-21)
+
+**Revision 12** folds in two things:
+- **The owner's ruling** that decision 0012's moratorium is void. L/XL groups gain a pipelined design step and design-review step, run by two new seats, unless they already have an approved design, pre-study or prototype.
+- **s4's four points on revision 11:** the carry gate, hot-file verdict loss, the stale lock and orphan, and the tick's cap line.
+
+The adoption plan below says what to do, in order. FUTURE-STATE §11 items 46–53 hold the reasons, and `design-seats/STUDY.md` the study behind the seats.
 
 **Revision 11** answers s4's four points on revision 10:
 - standing rule 16 states that expedites go over the WIP cap;
@@ -20,11 +26,72 @@ You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/r
 - Rulings R1–R9: #201 comment [6318002897](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6318002897).
 - Rulings R10–R15: comment [6319292851](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319292851).
 - **Mandate [6319294694](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319294694)** (scope all, 2026-10-21T16:00Z → 2026-11-04T18:14Z). Cite it.
+- **The owner's ruling of 2026-10-21:** the moratorium is void, and the design seats are adopted. The text to post is `RULINGS-201-3.md` in this pack. Once it is posted, cite its comment id.
 - Never edit those comments.
 
 Where this message and nudge.md disagree, follow this message only on what R1–R15 name.
 
 **The pack** is `dev/programme/flow-study/` on that branch. Pin the commit you brief from, `PACK_SHA`. FUTURE-STATE §11 items 22–27 record what revision 7 changed. SHADOW-PLAN §3.3 holds rules A–E and the expedite waves.
+
+## Adoption plan (revision 12): do these in order
+
+1. **Hot files first: protect the verdicts already paid for** (standing rule 18).
+   - **`pr_args.sh` and `update_pr.sh`:** #2567 holds a merge verdict from 16:21Z but went DIRTY. Repair it per rule 5 and re-verdict it. Board it before #2524 (UPDATE-PR-SIGNALS) is reviewed; #2524 is reviewed after absorbing it.
+   - **`r10_seat_selftests_mutants.py`:** #2529 (PR G, gates P1), then #2580 (RELAY-HOLD), then #2578 (BODY-PATCH). Whichever holds a merge verdict first boards first. The others are reviewed after absorbing it.
+   - **`cloud_relay.sh`:** #2547 (TICK-OWED-LEVEL, ready) before #2580.
+2. **Dispatch R10-FLOW-DESIGN-POLICY now,** over the cap (rule 16). It is policy, so it merges on the owner's approving review. It lands:
+   - the two contracts and the dispatch order in `orchestrator.md`;
+   - the design-note clauses in `fixer.md` step 17 and `fix-review.md` step 15;
+   - the role table rows in `CLAUDE.md`;
+   - the decision record voiding 0012's moratorium;
+   - the corpus-cap raise, with its Raise justification.
+3. **Start the first design now.** R10-SCORES's last predecessor (R10-ADVISOR) has dispatched, so its designer dispatches now. Until step 2 merges, it runs on the draft pinned at PACK_SHA: `dev/programme/flow-study/design-seats/designer.md`, and `design-review.md` for its reviewer. This is the same rule as a group not yet on the roster (rule A). The full schedule is in the "Design seats" section below.
+4. **Register fly-in R10-FLY-CAP-LINE (S).** The tick's "at the cap: do not dispatch" line should name its exceptions: expedites (rule 16) and the next chain link (rule 15). Until it lands, treat that line as holding lane dispatches only.
+5. **Tell reviewers about carry markers.** Every reviewer dispatch from now on carries rule 19's instruction. When a merge verdict is parked on an unmarked note, the orchestrator may post `Carry: dismissed <reason>` itself, but **only once JIDOKA's carry lands**. Until then, it parks as today. Ask for the re-verdict as a markers-only re-read, not a full review.
+6. **Roster PR-B** now carries:
+   - 21 flow groups, adding R10-FLOW-DESIGN-POLICY and R10-FLOW-DESIGN-STAGES;
+   - 23 carries, adding the design carry on the 7 eligible groups, the exemption note on the 5 exempt ones, and UPDATE-PR-SIGNALS's lock and reaper carry.
+
+   The flow groups' own revision-12 carries are in their group files at PACK_SHA. Use those files.
+7. **Everything in revisions 9–11 stands,** except where this revision changes it.
+
+## Design seats (owner ruling 2026-10-21)
+
+**Eligible: 7 groups,** each designed when its last predecessor dispatches. These are the model's hours from adoption at mid settings.
+
+| group | size | design starts | fixer dispatches |
+|---|---|---|---|
+| R10-SCORES | L | now (ADVISOR is in flight) | h12 |
+| R10-LIVESTATE | XL | when SCORES dispatches | h29 |
+| R10-SENSOR-PAYLOAD | L | when SCORES dispatches | h29 |
+| R10-HEAT-METER | XL | when its last predecessor dispatches | h57 |
+| R10-CONFIGFLOW-PAGES | L | when HEAT-METER dispatches | h68 |
+| R10-UX-HEALTH | L | when its last predecessor dispatches | h72 |
+| R10-ARCH-DOCS | L | when UX-HEALTH dispatches | h79 |
+
+**Exempt: 5 groups.** Their approved design, pre-study or prototype is their design note.
+- R10-PARAMS-OWNER (ARCH2 prototype patch).
+- R10-ARCH-SHAPES (prototype at 1d1974df4).
+- R10-ORCH-MACHINERY (approved design 09174d94e).
+- R10-CI-LAYOUT-P1 and R10-CI-LAYOUT-P2 (approved design 1371a0a6 / afc00bfe).
+
+If you judge a prototype not approved, say so on #201 and run the design review only.
+
+**Mechanics until R10-FLOW-DESIGN-STAGES lands:**
+1. The designer pushes its note to `design/<group-topic>` and hands off its SHA.
+2. The design reviewer pushes `Design review: approve|revise <sha>` to `design-verdict/<group-topic>`.
+3. Read the verdict back before acting on it.
+4. Record the design SHA and verdict in the group's `resume.note`.
+5. Dispatch the fixer only after an approval, with the approved note as the group's architect note.
+
+Designer and design-reviewer seats open no pull request, so they do not count against the WIP cap. They are Opus seats.
+
+**The revalidation box is the crux.** At fixer dispatch, the designer re-reads the predecessor's merged diff and revises within 1 h of seat time, or reports "revalidation failed".
+- At 1 h, the model keeps the round at 86 h (91–92 h at today's slip).
+- At 2 h, it costs 5–6 h.
+- A failed revalidation goes to you: re-run the design review on the revised note, or dispatch the fixer with the stale design named in the brief. Never let it run open-ended.
+
+**Measure it:** run `design-seats/tools/review_rounds.py` at each #201 state comment. Report first-pass yield and design-class blocks (`architecture-unsound`, `class-open`, `product-tradeoff-regression`) on designed groups against the rest, plus revalidation hours. The owner's rationale is fewer future architecture-dimension findings, so record each designed group's id for the next round's D7 attribution.
 
 ## Where things stand
 
@@ -81,16 +148,29 @@ Where this message and nudge.md disagree, follow this message only on what R1–
     - the five flow expedites (RELAY-HOLD, BODY-PATCH, MAIN-GATE, YIELD-PROBE, DISPATCH);
     - FLOW-ANDON;
     - R10-CI-LAYOUT-P1 and P2's units (the owner's ask);
-    - the next critical-chain link (rule 15).
+    - the next critical-chain link (rule 15);
+    - R10-FLOW-DESIGN-POLICY (revision 12).
+
+    The tick board's "at the cap: do not dispatch" line does not yet name these exceptions; R10-FLY-CAP-LINE fixes it. Read the line as "hold lane dispatches".
 
     A rework round on a group already dispatched (PR G round 2) is not a new dispatch. Everything else waits for the drain.
 
     If `pr_cap.py` has no per-group override, set `HPO_WIP_CAP` to the board's count plus one **for that one dispatch command only**. Never persist it, and log each one in a line on #201. At most two expedite reviews run at once, as before. When roster PR-A merges, the persistent cap becomes 13 (A4 B4 C3 F2), with lane K's 2 on top.
 17. **Self-test hygiene.** Every pack brief for an instrument group now carries both points; they come from today's live findings.
-    - **(a)** A new seat-selftest mutant in `dev/audit/harnesses/r10_seat_selftests_mutants.py` takes a per-file id (`cloud_relay-1`), never a new `S` number (the P6 convention).
+    - **(a)** A new seat-selftest mutant in `dev/audit/harnesses/r10_seat_selftests_mutants.py` takes a per-file id (`cloud_relay-1`), never a new `S` number (the P6 convention). It goes inside the block of the instrument it tests, never appended at the file's end.
     - **(b)** A self-test builds git repositories only through `tests/throwaway_git.py`, never a hand-built `git init`, and runs `python3 tests/throwaway_git.py --check` before the handoff.
 
     Point (a) cost a code round each to RELAY-HOLD, YIELD-PROBE and PR G in one day. That is the third instance, so by CLAUDE.md it goes to a root-cause seat (`root-cause.md`), not an issue. The countermeasure available now is brief text, because decision 0012's moratorium bars a new check until 2026-10-31. The seat records whether a check is worth building after that.
+18. **A paid verdict is never killed by a hot-file conflict.** The hot files are `tools/audit/seat/pr_args.sh`, `update_pr.sh`, `cloud_relay.sh`, `orchestrator_tick.py` and `dev/audit/harnesses/r10_seat_selftests_mutants.py`.
+    - Before dispatching a reviewer, list the PR's changed files (`git diff --name-only $(git merge-base origin/main <head>) <head>`). If an open PR that shares a hot file holds an unboarded merge verdict, board that one first: at the next pitch, or directly through `merge_pr.sh` (rule C). Review this one after it absorbs main.
+    - Live on 2026-10-21: #2567 lost its verdict to #2560 and #2548 in `pr_args.sh`, and RELAY-HOLD, YIELD-PROBE and PR G each lost a code round in the mutants file.
+    - R10-FLOW-DISPATCH's carry makes this mechanical.
+19. **Every observation in a first verdict carries a disposition:** `Carry: <group>` or `Carry: dismissed <reason>`. Pre-flight's carry gate parks a merge verdict on an unmarked note: #2576, #2567 and #2571 were parked, each costing a fresh Opus re-verdict (about 8k tokens of dispatch plus a review).
+    - Put this sentence in every reviewer dispatch until R10-FLOW-DISPATCH's prompt carries it.
+    - R10-FLOW-JIDOKA's carry lets the orchestrator add the disposition afterwards, without a new review.
+20. **Locks and orphans.** R10-UPDATE-PR-SIGNALS owns prevention: a lock held by a dead pid is broken with a logged line, and every self-test runs under a timeout in its own process group. R10-FLOW-ANDON owns detection: a handoff tip ahead of its PR for more than 20 min, a dead lock owner, or a self-test older than 1 h.
+    - Until both land, check `upd-*.lock` owners with `kill -0` before waiting on a stalled handoff.
+    - Live: a stale lock held PR G at `7752acbf` for over 30 min, and an orphaned self-test spun for 8.6 h.
 
 ## Expedites: one wave at a time, by dependency, so reviewers are not spread
 
@@ -183,11 +263,11 @@ One Opus reviewer checks it edge by edge. When it merges, raise lane A to 4 (`HP
 
 **Roster PR-B, the bookkeeping** (after PR-A merges):
 - **`append-group`** for each `roster/groups/<NAME>.json`, in this order:
-  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL.
+  R10-FLOW-RELAY-HOLD, R10-FLOW-BODY-PATCH, R10-FLOW-MAIN-GATE, R10-FLOW-YIELD-PROBE, R10-FLOW-DISPATCH, R10-FLOW-RECHAIN, R10-FLOW-ROSTER-FREEZE, R10-FLOW-BODY-ONLY, R10-FLOW-PULL, R10-FLOW-ANDON, R10-FLOW-WIP, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-BOARD, R10-FLOW-AUTOTRAIN, R10-FLOW-MQ-PROBE, R10-FLOW-RECORD-PITCH, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL, R10-FLOW-DESIGN-POLICY, R10-FLOW-DESIGN-STAGES.
   - Give each its actual stage and merge sha.
   - **MQ-PROBE and RECORD-PITCH now wait on R10-CI-LAYOUT-P2** (revision 10). Use their files at this revision's commit.
   - **MAIN-GATE's file is size M with the widened brief at this revision.** Use the file at this revision's commit.
-- **The 10 carries** (`tools/flow_groups.py` `CARRIES`). Revision 11 adds the self-test hygiene carry on R10-CI-LAYOUT-P2 and R10-ORCH-MACHINERY. Revision 10 added the owner's shape-docs carry on R10-ARCH-DOCS and its table carry on R10-ORCH-MACHINERY.
+- **The 23 carries** (`tools/flow_groups.py` `CARRIES`). Revision 12 adds the design carry on 7 groups, the exemption note on 5, and UPDATE-PR-SIGNALS's lock and reaper carry. Revision 11 added the self-test hygiene carry on R10-CI-LAYOUT-P2 and R10-ORCH-MACHINERY. Revision 10 added the owner's shape-docs carry on R10-ARCH-DOCS and its table carry on R10-ORCH-MACHINERY.
 - **Revision 10's edges:** R10-ARCH-DOCS ← R10-ORCH-MACHINERY, R10-CI-LAYOUT-P2 and R10-FLOW-TOOLKIT-MODEL (`set-after`; 0 depth).
 - **Held stage changes and fly-in registrations.**
 - **Two notes:** whether #2528's remaining work overlaps #2526, and whether R10-ORCH-MACHINERY part (3) duplicates #2558.
@@ -209,6 +289,7 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 | AUTOTRAIN | PULL |
 | TOOLKIT-MEASURE | — (the study's tools on main; its critical-path instrument serves P1's body) |
 | TOOLKIT-MODEL | ORCH-MACHINERY and TOOLKIT-MEASURE; due before round 11's P3 |
+| DESIGN-STAGES | — (merges after DESIGN-POLICY; until then, the hand mechanics in "Design seats") |
 
 - Each follows `fixer.md` in full.
 - Seam notes make them job scripts or functions R10-ORCH-MACHINERY's beat hosts unchanged, detached.
@@ -241,7 +322,7 @@ PR-B is mechanically reviewable: each group must equal its pack file, `brief_lin
 - No `VERSION` or notes edits outside `stamp.py`.
 - No `--allow-red`.
 - "Leaves #201 open".
-- Decision 0012's moratorium, to 2026-10-31.
+- Decision 0012's moratorium is **void** (owner, 2026-10-21). R10-FLOW-DESIGN-POLICY records it.
 
 The model's figure is about 86 h from adoption if the enablers land on their leads, and 91–97 h if in-progress groups keep taking two to three times their lead (FUTURE-STATE §12). Report what you measure.
 

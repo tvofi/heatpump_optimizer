@@ -157,6 +157,11 @@ To verify, not caused by this plan:
 - FLOW-MQ-PROBE and FLOW-RECORD-PITCH wait for R10-CI-LAYOUT-P2, so the probe measures the layout that would be adopted, whose single `gate` reports on `merge_group`.
 - You decide adoption when the probe reports. FLOW-RECORD-PITCH is then built or closed.
 
+**Design seats (revision 12, owner ruling).**
+- The seven eligible L/XL groups get a pipelined design and design review, started when each group's last predecessor dispatches.
+- R10-FLOW-DESIGN-POLICY lands the contracts, dispatched now. SCORES's design starts now on the pinned drafts.
+- Detail is in the prompt's "Adoption plan" and "Design seats" sections, and FUTURE-STATE items 46–53.
+
 **CI layout and the other non-production groups (revision 10).**
 - P1 builds now, beside PR G #2529. P2's units build beside P1, and P2 merges about 6 h after PR 1, in a gap between critical-chain groups, followed by the owner's ruleset PUT.
 - The open non-production groups take reviewers in CD3 order. Groups that save nothing by landing early go later.
@@ -229,11 +234,11 @@ Then it merges with `--match-head-commit`. The train approves the same way (`--a
 | no re-chain | ≈ 109 h |
 | today's process (live roster only) | ≈ 207 h |
 
-## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`; revision 10)
+## 4. Projected schedule (model output: `tools/simulate.py`, rendered by `tools/gen_plan.py`; revision 12)
 
-Run: `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap python3 simulate.py ../roster/shadow-r10-groups.json 300`, then `python3 gen_plan.py`. The roster base is f424d993d. Lane K is the flow allowance; the expedite waves dispatch inside the drain. "after" lists the edges as re-chained by the seat. FUTURE-STATE §12 explains the CD3 order, the parallel CI-layout edges and the chain reservation.
+Run: `EFF=1 PAR=1 PRIO=1 RESERVE=1 CUT=gap DESIGN=pipe DTH=L python3 simulate.py ../roster/shadow-r10-groups.json 300`, then `python3 gen_plan.py`. The roster base is f424d993d. Lane K is the flow allowance; the expedite waves dispatch inside the drain. "after" lists the edges as re-chained by the seat. FUTURE-STATE §12 explains the CD3 order, the parallel CI-layout edges and the chain reservation. The seven design-eligible L/XL groups carry a pipelined design step at mid settings (FUTURE-STATE item 47).
 
-day 0: 29 · day 1: 32 · day 2: 8 · day 3: 4
+day 0: 29 · day 1: 33 · day 2: 9 · day 3: 4
 
 | day | merge h | start h | group | lane | size | kind | stage now | after (as re-chained) |
 |---|---|---|---|---|---|---|---|---|
@@ -278,32 +283,34 @@ day 0: 29 · day 1: 32 · day 2: 8 · day 3: 4
 | 1 | 30 | 21 | R10-SAV-COMFORT | B | M | owner | not-started | R10-SAV-BASELINE |
 | 1 | 31 | 22 | R10-CARD-VOICE | B | M | feature | not-started | R10-DEEPLINK-HANDLERS |
 | 1 | 31 | 22 | R10-COP-PARTLOAD | B | M | production | queued | R10-SETPOINT-BOOST |
-| 1 | 34 | 28 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
-| 1 | 34 | 29 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
+| 1 | 34 | 29 | R10-FLOW-JIDOKA | K | S | instrument | not-started | R10-PREPR-CAP |
+| 1 | 35 | 28 | R10-FLOW-DESIGN-POLICY | K | M | policy | not-started | — |
 | 1 | 35 | 30 | R10-POLICY-GATE-SCOPING | C | S | policy | not-started | R10-TICK-DRIVERS |
 | 1 | 36 | 11 | R10-CI-LAYOUT-P2 | C | XL | instrument | not-started | R10-CI-LAYOUT-P1 |
 | 1 | 36 | 29 | R10-LEARNER-ETA | A | M | study | not-started | — |
 | 1 | 38 | 30 | R10-DEMAND-OVERBOOK | A | M | production | queued | R10-SETPOINT-BOOST |
-| 1 | 38 | 34 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 1 | 38 | 34 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
+| 1 | 38 | 34 | R10-FLOW-BOARD | K | S | instrument | not-started | R10-PLAN-ARTIFACT |
+| 1 | 39 | 35 | R10-FLOW-RECHAIN | K | S | instrument | not-started | R10-ROSTER-OPS |
 | 1 | 39 | 35 | R10-POLICY-LINT-FAMILY | C | S | instrument | not-started | — |
 | 1 | 40 | 36 | R10-MERGE-SUBJECT-HARDEN | C | S | instrument | not-started | — |
 | 1 | 41 | 29 | R10-ORCH-MACHINERY | C | L | instrument | not-started | R10-ROSTER-OPS, R10-CI-LAYOUT |
 | 1 | 41 | 29 | R10-SENSOR-PAYLOAD | A | L | arch | not-started | R10-SCORES |
 | 1 | 42 | 36 | R10-THERMAL-POWER-OPTION | A | M | production | not-started | — |
-| 1 | 42 | 38 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
-| 1 | 42 | 38 | R10-FLOW-PULL | K | S | policy | not-started | — |
+| 1 | 42 | 38 | R10-FLOW-ROSTER-FREEZE | K | S | instrument | not-started | R10-ROSTER-OPS, R10-FLOW-RELAY-HOLD |
+| 1 | 42 | 39 | R10-FLOW-BODY-ONLY | K | S | instrument | not-started | R10-UPDATE-PR-SIGNALS, R10-FLOW-BODY-PATCH |
 | 1 | 44 | 39 | R10-MUTATION-ANCHOR | C | M | instrument | not-started | — |
 | 1 | 45 | 29 | R10-LIVESTATE | A | XL | arch | not-started | R10-SCORES, R10-PUMP-MODEL, R10-LOOP-CPU, R10-LOOP-CPU |
 | 1 | 45 | 40 | R10-MUTANT-SKIP | C | M | instrument | not-started | — |
 | 1 | 45 | 42 | R10-FLOW-POSTMERGE | K | S | instrument | not-started | R10-ROSTER-OPS |
-| 1 | 45 | 42 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
+| 1 | 45 | 42 | R10-FLOW-PULL | K | S | policy | not-started | — |
+| 1 | 47 | 45 | R10-FLOW-WIP | K | S | instrument | not-started | R10-FLOW-PULL |
 | 2 | 49 | 45 | R10-FLOW-AUTOTRAIN | K | M | instrument | not-started | R10-FLOW-PULL, R10-TICK-RELAY-DECOUPLE |
-| 2 | 49 | 45 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P2 |
-| 2 | 51 | 49 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P2, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
+| 2 | 51 | 47 | R10-FLOW-MQ-PROBE | K | M | study | not-started | R10-CI-LAYOUT-P2 |
 | 2 | 53 | 45 | R10-ARCH-SHAPES | A | L | arch | not-started | R10-SENSOR-PAYLOAD, R10-FREQ-DEFROST, R10-LIVESTATE, R10-INPUT-STALENESS, R10-LIVESTATE, R10-INPUT-STALENESS |
 | 2 | 53 | 49 | R10-FLOW-TOOLKIT-MEASURE | K | M | instrument | not-started | — |
+| 2 | 53 | 51 | R10-FLOW-RECORD-PITCH | K | S | instrument | not-started | R10-CI-LAYOUT-P2, R10-FLOW-PULL, R10-FLOW-MQ-PROBE |
 | 2 | 57 | 45 | R10-PARAMS-OWNER | A | XL | arch | not-started | R10-ARCHSCORE-COVERAGE, R10-SERVICES-GUARD, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR, R10-LIVESTATE, R10-NIGHT-FOLDS, R10-RATIO-ANCHOR |
+| 2 | 57 | 53 | R10-FLOW-DESIGN-STAGES | K | M | instrument | not-started | — |
 | 2 | 57 | 53 | R10-FLOW-TOOLKIT-MODEL | K | M | instrument | not-started | R10-ORCH-MACHINERY, R10-FLOW-TOOLKIT-MEASURE |
 | 2 | 68 | 57 | R10-HEAT-METER | A | XL | owner | not-started | R10-LEARNER-ETA, R10-INPUT-STALENESS, R10-UX-SETUP, R10-RATIO-ANCHOR, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION, R10-PARAMS-OWNER, R10-ARCH-SHAPES, R10-THERMAL-POWER-OPTION |
 | 3 | 72 | 68 | R10-COP-GATE | A | M | study | not-started | R10-HEAT-METER, R10-SENSOR-PAYLOAD |

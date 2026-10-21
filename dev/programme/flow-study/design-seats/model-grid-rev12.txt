@@ -1,0 +1,20 @@
+INPROG=1.0 base: 86
+  pipe L+ REVAL=0.5 DFRAC=0.05: 86
+  pipe L+ REVAL=0.5 DFRAC=0.15: 86
+  pipe L+ REVAL=0.5 DFRAC=0.35: 81
+  pipe L+ REVAL=1 DFRAC=0.05: 89
+  pipe L+ REVAL=1 DFRAC=0.15: 86
+  pipe L+ REVAL=1 DFRAC=0.35: 86
+  pipe L+ REVAL=2 DFRAC=0.05: 94
+  pipe L+ REVAL=2 DFRAC=0.15: 91
+  pipe L+ REVAL=2 DFRAC=0.35: 89
+INPROG=2.0 base: 91
+  pipe L+ REVAL=0.5 DFRAC=0.05: 92
+  pipe L+ REVAL=0.5 DFRAC=0.15: 91
+  pipe L+ REVAL=0.5 DFRAC=0.35: 87
+  pipe L+ REVAL=1 DFRAC=0.05: 95
+  pipe L+ REVAL=1 DFRAC=0.15: 92
+  pipe L+ REVAL=1 DFRAC=0.35: 90
+  pipe L+ REVAL=2 DFRAC=0.05: 100
+  pipe L+ REVAL=2 DFRAC=0.15: 97
+  pipe L+ REVAL=2 DFRAC=0.35: 95

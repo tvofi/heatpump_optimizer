@@ -1,5 +1,7 @@
 # Pre-study: designer/architect and design-review seats (2026-10-21)
 
+> **Adopted by owner ruling the same day** (R16–R19, `../RULINGS-201-3.md`). The owner adopted the seats in round 10 rather than piloting them in round 11 as section 8 recommends. The rationale is the long-run reduction in architecture-dimension findings. The adopted form is section 8's narrow, pipelined variant, extended to every L/XL group without an approved design or prototype: 7 eligible, 5 exempt. Revision 12 of the orchestrator prompt carries it. The kill and keep criteria in section 8 become the monitoring in the prompt's "Design seats" section.
+
 The owner asked whether two new seats should be added to the working process: a designer/architect and a design/architecture reviewer. Under the proposal, roster groups above a size threshold gain two steps, design and design review, before the fixer starts. This pre-study:
 - grounds both roles in published, widely used role definitions;
 - measures the programme's own review history;

@@ -387,3 +387,21 @@ The real-catch rate had already fallen from 0.52 to 0.15 per PR before adoption.
     - P2's carry (a) now says "keep", not "add".
     - Main green is unconfirmed until the push runs started 17:03–17:07Z conclude.
 45. **P1 may stack on PR G's head where their files overlap.** That avoids a fourth content-conflict round; P1 merges main in once PR G lands.
+46. **The owner voided decision 0012's moratorium and adopted the design seats** (rulings R16–R19, `RULINGS-201-3.md`). This overrides the study's recommendation to pilot in round 11. The owner's rationale is fewer future architecture-dimension findings, a benefit the in-round model does not credit.
+47. **Scope.**
+    - **Seven L/XL groups are eligible:** SCORES, LIVESTATE, SENSOR-PAYLOAD, HEAT-METER, CONFIGFLOW-PAGES, UX-HEALTH, ARCH-DOCS.
+    - **Five are exempt**, because they already have an approved design, pre-study or prototype: PARAMS-OWNER, ARCH-SHAPES, ORCH-MACHINERY, CI-LAYOUT-P1, CI-LAYOUT-P2.
+    - **Model** (pipelined, mid settings; `design-seats/model-grid-rev12.txt`):
+      - with a 1-h revalidation box: 86 h, unchanged (91–92 h at 2× slip);
+      - with a 2-h revalidation: 91–94 h;
+      - in the optimistic case (design removes 35% of blocks): 81 h.
+    - The 1-h box is therefore a hard rule.
+48. **The contracts land before they are first needed.** R10-FLOW-DESIGN-POLICY dispatches now, over the cap. SCORES's design starts now on the drafts pinned at PACK_SHA. R10-FLOW-DESIGN-STAGES mechanises the roster stages, bus refs, dispatch templates and the tick's designs-owed line; until then the steps run by hand on the same ref names.
+49. **A paid verdict is never killed by a hot-file conflict** (standing rule 18).
+    - Open PRs collided at revision 12: #2524 and #2567 on `pr_args.sh` and `update_pr.sh`; #2529, #2578 and #2580 on the mutants file; #2547 and #2580 on `cloud_relay.sh`.
+    - Board the verdicted one first, and review the others after they absorb it.
+    - R10-FLOW-DISPATCH makes this mechanical, and mutants go inside their instrument's block.
+50. **Carry markers in the first verdict** (rule 19). R10-FLOW-JIDOKA's carry lets the orchestrator add `Carry: dismissed <reason>` without a new review (or #2571's owning group, if it is still open).
+51. **Locks and orphans** (rule 20): UPDATE-PR-SIGNALS prevents (dead-pid lock break, self-test timeout and reap), and ANDON detects.
+52. **The tick's cap line** gets fly-in R10-FLY-CAP-LINE, and FLOW-WIP keeps the change.
+53. **Tokens.** Modelled at about +4% programme-wide at the L threshold. Measure it from seat reports if the seats give token counts; the tree records none.

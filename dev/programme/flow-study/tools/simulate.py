@@ -38,16 +38,16 @@ from simulate_rules import EFFECTS, PARALLEL, TAIL, PRIORITY, CHAIN, CUTOVER, EX
 EFFX = float(E('EFFX', '1')); RESERVE = E('RESERVE', '0') == '1'
 DESIGN = E('DESIGN', '0'); DTH = E('DTH', 'L'); DSCALE = float(E('DSCALE', '1')); DFRAC = float(E('DFRAC', '0.15'))
 REWORK_H = float(E('REWORK_H', '2.0')); REVAL_H = float(E('REVAL_H', '0.5'))
+from flow_groups import DESIGN_EXEMPT
 _ORD = {'S': 0, 'M': 1, 'L': 2, 'XL': 3}
 D_HOURS = {'M': 2.0, 'L': 3.0, 'XL': 4.0}      # design seat plus design review, wall hours (mid)
 DR_HOURS = {'M': 1.0, 'L': 1.0, 'XL': 1.5}     # design review only, where a design or prototype already exists
 BLOCKS = {'S': 0.70, 'M': 0.75, 'L': 1.80, 'XL': 1.80}  # measured blocked verdicts per reviewed PR (review_rounds.py)
 def designed(n):
     g = G.get(n, {})
-    return DESIGN != '0' and _ORD.get(g.get('size'), -1) >= _ORD[DTH]
+    return (DESIGN != '0' and _ORD.get(g.get('size'), -1) >= _ORD[DTH] and n not in DESIGN_EXEMPT)
 def has_design(n):
-    b = G.get(n, {}).get('brief') or ''
-    return any(k in b for k in ('approved design', 'prototype', '.patch'))
+    return False  # revision 12: a group with an approved design, pre-study or prototype is exempt
 def d_hours(n):
     sz = G[n].get('size')
     return DSCALE * (DR_HOURS if has_design(n) else D_HOURS)[sz]
