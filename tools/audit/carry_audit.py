@@ -29,10 +29,10 @@ starts an item without a bullet. A FINDING item:
            anywhere; else, outside a section holding the block (a heading
            naming a block, or any heading of a `blocked` verdict), one under a
            NOTE_HEADING (residual, owed, instrument findings ...) or led by LEAD.
-  evidence a verdict's `## Evidence` section: NONBLOCK is not read there
-           ("does not block" says what a check does to the merge); an item led
-           by LEAD, under a lead, or saying DEFERRED (for a later, follow-up,
-           advisory, residual ...) is a finding.
+  evidence a verdict's `## Evidence` section: an item led by LEAD, under a
+           lead, saying DEFERRED (for a later, follow-up, residual ...), or
+           saying NONBLOCK outside a sentence that calls its check not a
+           required one ("not a required context and does not block").
   both     a paragraph that is finding-shaped and ends in `:` is a lead: its
            bullets are the items, it is not one. The bus trailer, `RESULT`
            lines and the attribution line never are.
@@ -94,10 +94,13 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
 # Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
 TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
-# A verdict's `## Evidence` section: there "does not block" says what a check
-# does to the merge, so NONBLOCK is not read; a defect handed on still is a
-# finding: an item opening with LEAD, under a lead, or saying DEFERRED.
+# A verdict's `## Evidence` section. NONBLOCK is read there too (a nit or a
+# defect left in place says "not blocking" under any heading), except in a
+# sentence saying its check is not a required one: a check's state, not a note.
+# An item opening with LEAD, under a lead, or saying DEFERRED is a finding.
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
+NOT_REQUIRED = re.compile(r"not (?:a )?required (?:context|check)", re.I)
+SENTENCE = re.compile(r"(?<=[.;!?])\s+")
 DEFERRED = re.compile(r"\bdeferred\b|follow-?up|(?:for|to|in|until) (?:a |the )?later\b|not owed here"
                       r"|out of scope|not fixed here|known[- ]open|distinct finding|residual|caveat|observation"
                       r"|advisory|\bminor\b|secondary note|owed to the record|still (?:has|have|needs?) to", re.I)
@@ -191,7 +194,8 @@ def items(text: str, verdict: bool) -> list[dict]:
         if TRAILER.match(first) or VERDICT.match(first):
             pass
         elif verdict and EVIDENCE_HEADING.match(sec):
-            why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t)
+            claims = " ".join(x for x in SENTENCE.split(t) if not NOT_REQUIRED.search(x))
+            why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t) or NONBLOCK.search(claims)
                    else "under lead" if inherited else "")
         elif verdict:
             # The block is owed in this pull request, so a section that holds it
@@ -868,15 +872,29 @@ def _self_test() -> int:
     # A verdict's `## Evidence` (r10-verdict-item-barrier): what a check does
     # to the merge is no finding there; a defect handed on still is.
     item_grammar += [
-        ("under a verdict's Evidence heading a check that does not block is no finding", head,
-         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"), []),
+        ("under the Evidence heading a check that is not a required context and does not block is no finding",
+         head, verdict_of("merge", "## Evidence\n\n- composed-proof is queued, but it is not a required context "
+                          "and does not block the PR (tests.yml:2775).\n"), []),
+        ("... `not required check` reads too", head,
+         verdict_of("merge", "## Evidence\n\n- composed-proof is not required check and does not block.\n"), []),
+        ("under the Evidence heading a check that does not block, not said to be unrequired, is a note", head,
+         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"),
+         [("evidence", U)]),
+        ("the carve-out is its sentence's: a nit after it is a finding (#2441's shape)", head,
+         verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check and does not block. One nit, "
+                    "not blocking: the usage string still lists the arm names by hand.\n"), [("evidence", U)]),
+        ("a defect left in place, not blocking, under the Evidence heading is a finding (#2465's shape)", head,
+         verdict_of("merge", "## Evidence\n\n- A hand-set fractional floor is written 0.27 K low and the check "
+                    "re-raises the issue; the selector cannot produce it, so it is not blocking.\n"),
+         [("evidence", U)]),
         ("the Evidence heading reads in any case and with words after it", head,
-         verdict_of("merge", "## EVIDENCE (not findings)\n\n- nightly-status is red, not blocking.\n"), []),
+         verdict_of("merge", "## EVIDENCE (not findings)\n\n- nightly-status: not a required check, not blocking.\n"),
+         []),
         ("a heading that only mentions evidence is not the Evidence heading", head,
-         verdict_of("merge", "## Notes on evidence\n\n- nightly-status is red, not blocking.\n"),
+         verdict_of("merge", "## Notes on evidence\n\n- nightly-status: not a required check, not blocking.\n"),
          [("non-blocking", U)]),
         ("a heading whose first word only starts `evidence` is not the Evidence heading", head,
-         verdict_of("merge", "## Evidenced claims\n\n- nightly-status is red, not blocking.\n"),
+         verdict_of("merge", "## Evidenced claims\n\n- nightly-status: not a required check, not blocking.\n"),
          [("non-blocking", U)]),
         ("a deferral under the Evidence heading is a finding", head,
          verdict_of("merge", "## Evidence\n\n- M4 survives, not blocking, noted for a later tightening.\n"),
