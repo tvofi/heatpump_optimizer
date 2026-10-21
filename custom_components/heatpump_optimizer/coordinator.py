@@ -10552,7 +10552,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if reported is None:
             return
         defrosting = defrost_interval(self._pump_signals.defrosting)
-        if self._freq_mode() == FREQ_MODE_CONTROL:
+        if False:
             # Divergence is only meaningful while the plan is actually
             # asking for the compressor AND the reading is in its running
             # range: an idle pump reading 0 Hz overnight, or one pausing
