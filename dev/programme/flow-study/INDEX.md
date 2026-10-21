@@ -47,3 +47,9 @@ The model's design switches are in `tools/simulate.py`'s header.
 - The architect/planner pre-study: `architect-planner/STUDY.md` and the draft contracts `architect-planner/architect-planner.md`.
 - Two round-10 groups prepare the seat for round 11.
 - The roster has 23 flow groups; its base is 23ef06dc6.
+
+**Revision 14 (2026-10-21):**
+- Standing rules 21–23 (roster edits wait, red checks, review-ref retries).
+- A designer cloud role through R10-FLOW-DESIGN-STAGES.
+- The designer's owner-report note.
+- R16–R19 cited as comment 6322679091.

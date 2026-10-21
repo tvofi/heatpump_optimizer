@@ -1,4 +1,14 @@
-# Adoption plan for the round-10 orchestrator: **revision 13** (2026-10-21)
+# Adoption plan for the round-10 orchestrator: **revision 14** (2026-10-21)
+
+**Revision 14** answers s4's six points on revision 13:
+- roster edits wait while a roster PR is under review (rule 21);
+- the designer gets its own cloud role, through R10-FLOW-DESIGN-STAGES;
+- an owner-reported finding without a harness is a note for the designer, not a stop;
+- `## Red checks` answers ancestry reds, and open_pr.sh stops leaving half-opened PRs (rule 22);
+- the relay retries a non-fast-forward review ref (rule 23, fly-in R10-FLY-RELAY-REVIEW-FF);
+- R16–R19 is cited by its real comment id.
+
+Nothing else in revision 13 changes.
 
 **Revision 13** adds the owner's architect/planner seat for round 11 (adoption plan step 8; FUTURE-STATE items 54–58). Nothing else in revision 12 changes.
 
@@ -28,7 +38,7 @@ You are the round-10 orchestrator. Your contract is unchanged: `dev/governance/r
 - Rulings R1–R9: #201 comment [6318002897](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6318002897).
 - Rulings R10–R15: comment [6319292851](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319292851).
 - **Mandate [6319294694](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6319294694)** (scope all, 2026-10-21T16:00Z → 2026-11-04T18:14Z). Cite it.
-- **The owner's ruling of 2026-10-21:** the moratorium is void, and the design seats are adopted. The text to post is `RULINGS-201-3.md` in this pack. Once it is posted, cite its comment id.
+- **Rulings R16–R19** (the moratorium is void; the design seats are adopted): #201 comment [6322679091](https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6322679091), posted by the owner. Revision 12's paste text called it posted before it was; this is the real id.
 - Never edit those comments.
 
 Where this message and nudge.md disagree, follow this message only on what R1–R15 name.
@@ -50,12 +60,15 @@ Where this message and nudge.md disagree, follow this message only on what R1–
 3. **Start the first design now.** R10-SCORES's last predecessor (R10-ADVISOR) has dispatched, so its designer dispatches now. Until step 2 merges, it runs on the draft pinned at PACK_SHA: `dev/programme/flow-study/design-seats/designer.md`, and `design-review.md` for its reviewer. This is the same rule as a group not yet on the roster (rule A). The full schedule is in the "Design seats" section below.
 4. **Register fly-in R10-FLY-CAP-LINE (S).** The tick's "at the cap: do not dispatch" line should name its exceptions: expedites (rule 16) and the next chain link (rule 15). Until it lands, treat that line as holding lane dispatches only.
 5. **Tell reviewers about carry markers.** Every reviewer dispatch from now on carries rule 19's instruction. When a merge verdict is parked on an unmarked note, the orchestrator may post `Carry: dismissed <reason>` itself, but **only once JIDOKA's carry lands**. Until then, it parks as today. Ask for the re-verdict as a markers-only re-read, not a full review.
-6. **Roster PR-B** now carries:
+6. **Roster PR-B starts only after roster PR-A (#2576) has merged.** `handoff/audit-r10-roster` is PR-A's own branch, so every edit pushed to it moves PR-A's head and voids its verdict. Two carry appends already moved it from `df70cb6b` to `fe1365f0` and cost an extra Opus delta review. Merge PR-A as soon as its delta verdict posts (rule C), then open PR-B from the branch's new head. Until then, queue every roster edit (rule 21). PR-B then carries:
    - 23 flow groups, adding R10-FLOW-DESIGN-POLICY and R10-FLOW-DESIGN-STAGES (revision 12) and R10-FLOW-ARCH-PLANNER and R10-FLOW-AUDIT-PLAN (revision 13);
    - 23 carries, adding the design carry on the 7 eligible groups, the exemption note on the 5 exempt ones, and UPDATE-PR-SIGNALS's lock and reaper carry.
 
    The flow groups' own revision-12 carries are in their group files at PACK_SHA. Use those files.
-7. **Everything in revisions 9–11 stands,** except where this revision changes it.
+7. **Fix #2582 and register the relay fly-in** (revision 14).
+   - **#2582:** open_pr.sh left it half-opened as a draft with no delivery row, because prepr's ancestry-reds rule refused its body. Add `nightly-status` to its `## Red checks` through the body-only path (K14 interim, rule 3's exception), then let the delivery row generate. Rule 22 covers the next one.
+   - **R10-FLY-RELAY-REVIEW-FF (S):** when a `review/<N>` push is refused as non-fast-forward, the relay fetches the ref, re-applies the same verdict commit on the fresh tip and pushes. It never forces. If the fresh tip already carries the same verdict for the same head, it skips. It logs either case. The fix touches `cloud_relay.sh`, a hot file, so it is reviewed after #2547 and #2580 (rule 18).
+7b. **Everything in revisions 9–11 stands,** except where this revision changes it.
 8. **Prepare round 11's architect/planner** (revision 13, owner).
    - **R10-FLOW-ARCH-PLANNER (policy):** dispatch it once R10-FLOW-DESIGN-POLICY has merged, since both edit `orchestrator.md` and `CLAUDE.md`. It lands:
      - the architect/planner and plan-review contracts;
@@ -97,6 +110,10 @@ If you judge a prototype not approved, say so on #201 and run the design review 
 5. Dispatch the fixer only after an approval, with the approved note as the group's architect note.
 
 Designer and design-reviewer seats open no pull request, so they do not count against the WIP cap. They are Opus seats.
+
+`cloud_dispatch.py` has no designer role yet (R10-FLOW-DESIGN-STAGES adds `designer` and `design-reviewer`). Until then, dispatch the probe role, with the brief overriding its "send no code to any ref" for exactly `design/<group-topic>` (designer) or `design-verdict/<group-topic>` (reviewer).
+
+**An owner-reported finding without a finder harness is a note, not a stop.** This applies to SCORES, UX-HEALTH and HEAT-METER, whose evidence is the owner's private diagnostics bundle. The designer quotes the owner's report, names the synthetic fixture and failing test the fixer will build, and carries on; the draft at PACK_SHA now says so. The R10-SCORES designer reported this blocker and designed the rest, which was right.
 
 **The revalidation box is the crux.** At fixer dispatch, the designer re-reads the predecessor's merged diff and revises within 1 h of seat time, or reports "revalidation failed".
 - At 1 h, the model keeps the round at 86 h (91–92 h at today's slip).
@@ -183,6 +200,12 @@ Designer and design-reviewer seats open no pull request, so they do not count ag
 20. **Locks and orphans.** R10-UPDATE-PR-SIGNALS owns prevention: a lock held by a dead pid is broken with a logged line, and every self-test runs under a timeout in its own process group. R10-FLOW-ANDON owns detection: a handoff tip ahead of its PR for more than 20 min, a dead lock owner, or a self-test older than 1 h.
     - Until both land, check `upd-*.lock` owners with `kill -0` before waiting on a stalled handoff.
     - Live: a stale lock held PR G at `7752acbf` for over 30 min, and an orphaned self-test spun for 8.6 h.
+21. **No roster edit lands on a roster branch while its PR holds a merge verdict.** Queue it: the carry, stage or note goes into the next roster PR. If a carry-blocked fix PR has waited longer than one train's CI (about 1 h), merge the verdicted roster PR directly (rule C) instead of appending to it. Once R10-FLOW-RELAY-HOLD lands, the roster PR sits on the hold list, and this is enforced.
+22. **A PR body answers every ancestry red in `## Red checks`.** prepr's ancestry-reds rule refuses a body that leaves out a check that is red on main's ancestry. Today that check is `nightly-status`, until the first scheduled run after #2548's re-record is green.
+    - Write one line per red check: the check, the run, and why it is not this PR's.
+    - Every PR that touches `.github/workflows/governance.yml` hits this, as #2582 did. So do the CI-layout PRs.
+    - R10-FLOW-BODY-PATCH's carry makes open_pr.sh run the body contract before creating the PR, so a refusal no longer leaves a half-opened draft.
+23. **A refused `review/<pr>` push is not a refused verdict.** A non-fast-forward refusal from a stale tip (live: #2580) leaves the verdict valid. Until R10-FLY-RELAY-REVIEW-FF lands, confirm it by hand through the bus (`bus.sh` on a freshly fetched ref, never a force-push), then read it back (rule 14).
 
 ## Expedites: one wave at a time, by dependency, so reviewers are not spread
 

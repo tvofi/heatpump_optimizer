@@ -537,8 +537,13 @@ GROUPS += [
         "templates for the designer and the design reviewer that name the contract and pin the "
         "base SHA, and refuse a fixer dispatch for an eligible group with no approved design "
         "verdict. (4) A tick line listing designs owed: an eligible group whose last predecessor "
-        "has dispatched and that has no design ref. Until this lands, the orchestrator runs the "
-        "steps by hand on the same ref names.",
+        "has dispatched and that has no design ref. (5) Two cloud roles in cloud_dispatch.py "
+        "beside reviewer, fixer and probe: designer, which may push only to design/<group-topic> "
+        "and opens no pull request, and design-reviewer, which may push only to "
+        "design-verdict/<group-topic>; each role's text says so itself, so no brief has to "
+        "override the probe role's 'send no code to any ref' (revision 14, observed on the "
+        "R10-SCORES designer). Until this lands, the orchestrator runs the steps by hand on the "
+        "same ref names, dispatching the probe role with that override.",
         ["Merge after R10-FLOW-DESIGN-POLICY (the templates cite its contracts); build beside it.",
          "Pre-study: the Lean flow pre-study, section K19."],
         fixer="sonnet", reviewer="opus", severity="medium"),
@@ -765,3 +770,16 @@ REV12 = {
 for _g in GROUPS:
     if _g["group"] in REV12:
         _g["carry"].append(REV12[_g["group"]])
+
+# Revision 14 carries on flow groups (the orchestrator's pushback on revision 13).
+REV14 = {
+    "R10-FLOW-BODY-PATCH": ("Revision 14 (orchestrator, 2026-10-21): open_pr.sh refused #2582 "
+        "after creating it, so a draft with no delivery row was left behind; prepr's ancestry-reds "
+        "rule refused the body because its Red checks section did not name nightly-status. Run "
+        "the body contract, ancestry reds included, before the pull request is created, so a "
+        "refusal leaves nothing half-opened; if #2578 already holds a merge verdict, this lands "
+        "as a follow-up pull request, not on #2578."),
+}
+for _g in GROUPS:
+    if _g["group"] in REV14:
+        _g["carry"].append(REV14[_g["group"]])

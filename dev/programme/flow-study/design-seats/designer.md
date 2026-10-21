@@ -32,4 +32,9 @@ It is fitted to this programme's `architect_note` (`orchestrator.md` section 5) 
 8. **Write it as the group's architect note**, extended, at `design/<group>`: one file, at most two pages, every path resolvable by `brief_lint`. Do not write production code. A spike that proves a shape may be committed under the design ref and is never merged.
 9. **Hand off** to the design reviewer with the design SHA. Before the fixer dispatches, re-read the predecessor's merged diff. If it moves anything the note relies on, revise within 1 h of seat time, or report "revalidation failed" with what moved.
 
-**Blocks you:** a finding without a harness, a predecessor whose seam is still undecided, or a brief that changes behaviour no finding names. Report each one; do not design around it.
+**Stops you:** a predecessor whose seam is still undecided, or a brief that changes behaviour no finding names. Report each one and stop; do not design around it.
+
+**A note, not a stop:** a finding with no finder harness.
+- **Owner-reported findings** (owner groups such as R10-SCORES, R10-UX-HEALTH and R10-HEAT-METER) often have none, because their evidence is a private diagnostics bundle. Quote the owner's report as the evidence, and name in step 6 the synthetic fixture and failing test the fixer will build to reproduce it. Record "no finder harness: owner report" in the note and carry on.
+- **An audit finding** that the judge verified without a committed harness: name the judge's re-run as the evidence, and say the same.
+- **A finding whose behaviour you cannot state precisely enough to write a failing test:** that is a stop, because the fixer could not start either.
