@@ -1424,6 +1424,8 @@
    "dev/governance/dimensions/D8.md",
    "dev/governance/dimensions/D9.md",
    "dev/governance/roles/COMMON.md",
+   "dev/governance/roles/design-review.md",
+   "dev/governance/roles/designer.md",
    "dev/governance/roles/fix-review.md",
    "dev/governance/roles/fixer.md",
    "dev/governance/roles/judge.md",
