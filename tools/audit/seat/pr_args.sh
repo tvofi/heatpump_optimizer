@@ -459,7 +459,7 @@ STUB
   ck "the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps" $?
   census() { # <extra file> <its text> [<entry> [<sed script applied to it; default: its pr_exit_trap line goes>]]
     local c=$t/census-tree f r
-    rm -rf "$c"; mkdir -p "$c"; git -C "$c" init -q
+    rm -rf "$c"; throwaway_git_init "$c" -q
     r=$(cd "$src/../../.." && pwd)
     for f in $(printf '%s\n' "$PR_PUSHERS" | awk '{ print $1 }'); do
       mkdir -p "$c/$(dirname "$f")"; cp "$r/$f" "$c/$f"
