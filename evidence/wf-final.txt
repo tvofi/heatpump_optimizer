@@ -1,0 +1,8 @@
+RESULT PASS fresh hold (60 s old) skips the beat: status='skip-train-hold' warned=False (want 'skip-train-hold'/False)
+RESULT PASS hold at the bound (3660 s old) is stale: the beat proceeds: status='refused' warned=False (want 'refused'/False)
+RESULT PASS a hold dated ahead of the runner clock is unknowable, never young: status='refused' warned=False (want 'refused'/False)
+RESULT PASS absent ref as the API reports it (422) is silent: status='refused' warned=False (want 'refused'/False)
+RESULT PASS 404 is the other silent absence: status='refused' warned=False (want 'refused'/False)
+RESULT PASS 500 is unreadable: warns and proceeds: status='refused' warned=True (want 'refused'/True)
+RESULT PASS 200 with an unparseable body warns and proceeds: status='refused' warned=True (want 'refused'/True)
+WF HARNESS: 7 checks, 0 failed

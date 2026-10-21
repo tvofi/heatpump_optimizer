@@ -1,0 +1,24 @@
+===== daemonize pid=23392 2026-10-20T19:43:16Z argv: python3 -u /Users/timmalmstrom/hpo-seats/r10s3/r10-train-hold-review2/scratch/mutants_sweep.py
+=== M1-no-start-publish: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 2 failed
+  FAIL the hold is refreshed once per queue item, so one long item cannot age it stale
+  FAIL a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it
+=== M2-release-only-in-finally: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 1 failed
+  FAIL a real train holds the record beat before its first merge and releases it before the closing line (issue #2302)
+=== M3-arming-widened-to-real: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 1 failed
+  FAIL a bare wait-ci publishes no hold: only a train or batch arms the ref
+=== M4-no-per-item-refresh: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 2 failed
+  FAIL the hold is refreshed once per queue item, so one long item cannot age it stale
+  FAIL a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it
+=== M5-no-is_sha-guard: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 1 failed
+  FAIL an unreadable hold commit does not stop the train: logged, no ref, no delete
+=== M6-no-wait_ci-refresh: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 1 failed
+  FAIL a CI wait that outlives one poll refreshes the hold mid-wait, so the bound can be shorter than a wait
+=== M7-no-recarry-refresh: occurrences=1
+rc=1 summary=merge_train self-test: 197 checks, 1 failed
+  FAIL a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it

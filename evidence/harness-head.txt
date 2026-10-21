@@ -1,0 +1,13 @@
+RESULT PASS hold publish: API commit -> POST refs create -> PATCH refresh, payloads the endpoints take: commits=2 creates=1 patches=1 create={'ref': 'refs/heads/train-hold', 'sha': 'ffffffffffffffffffffffffffffffffffffffff'} patch={'sha': 'ffffffffffffffffffffffffffffffffffffffff', 'force': True}
+RESULT PASS release deletes the ref once (idempotent second call is a no-op): deletes=1
+RESULT PASS no hold write for a batch/ rehearsal base: hold calls=0
+RESULT PASS no hold write for a bare wait-ci shape (armed False): hold calls=0
+RESULT PASS fail-open on commit refused rc=1: no ref written, a distinguishable NOT held line: create=0 logs=['NOT held: the hold commit was refused (rc=1: boom)']
+RESULT PASS fail-open on commit unreadable (no sha): no ref written, a distinguishable NOT held line: create=0 logs=['NOT held: the hold commit was refused (rc=0: warning: something)']
+RESULT PASS a sha trailing a warning line is still read: create=1
+RESULT PASS a refused create falls back to PATCH (a stale ref a crashed train left): held=True patches=1
+RESULT PASS wait_ci refreshes before EVERY sleep (one PATCH per poll, incl. the last): return=['TIMEOUT'] sleeps=5 patches=5
+RESULT PASS the simulated refresh gap is one poll (240 s), 15x under HOLD_MAX_AGE_S=3600: poll=240 bound/240=3600//240
+RESULT PASS recarry refresh is taken before remerge_main when main is not contained: held=bbbbbbbb patches=1 remerge_idx=8 refresh_idx=[6]
+RESULT PASS recarry refresh is skipped when the head contains main: held=aaaaaaaa patches=0 remerge_idx=None refresh_idx=[]
+HARNESS RESULT: 12 checks, 0 failed
