@@ -68,6 +68,7 @@
     "dev/programme/carries/carry-*.json",
     "dev/programme/rosters/*.json",
     "dev/programme/round9/**",
+    "dev/programme/round10/**",
     "dev/programme/register/*.md"
    ]
   },
