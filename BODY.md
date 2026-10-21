@@ -1,108 +1,132 @@
-The merge train's pre-flight (`queue_pre_flight.findings_gate`, which runs `carry_audit.audit`) parked three `Fix review: merge` verdicts. In each, `carry_audit.items()` read evidence or notes as finding items with no `Carry:`: #2513 item 3b97e1aa (issue comment 6314156311), #2544 item aeeb9432 (6314170570) and #2547 item b579380b (6315224098). This change adds a barrier at the source, in two parts (owner-approved 2026-10-21: "do that").
+The merge train's pre-flight (`queue_pre_flight.findings_gate`, which runs `carry_audit.audit`) parked three `Fix review: merge` verdicts. In each, `carry_audit.items()` read evidence as finding items with no `Carry:`: #2513 item 3b97e1aa (issue comment 6314156311), #2544 item aeeb9432 (6314170570) and #2547 item b579380b (6315224098). This change adds a barrier at the source, in two parts (owner-approved 2026-10-21: "do that").
 
-**Lands after #2556.** #2556 (head 1beed40bf, `fix/r10-cloud-rev-head-ev`) edits the same reviewer prompt. This branch merges #2556's head and does not rebase onto it. Merge #2556 first, then this PR. Its diff against #2556 is the four files below.
+1. **The prompt.** `tools/audit/seat/cloud_dispatch.py` now tells the reviewer to put a blocked verdict's block under `## Block`, and each finding the PR does not settle in its own bullet under `## Findings` with its own `Carry:`. Everything else goes under `## Evidence`. `fix-review.md` is unchanged: it defers the verdict's shape to the dispatch prompt ("in the exact shape your dispatch prompt gives"), so no policy file or role contract changes.
+2. **The classification.** In `tools/audit/carry_audit.py`, an item under a verdict's `## Evidence` heading is a finding when it opens with `LEAD`, sits under a lead, says a `DEFERRED` word anywhere, or says a `NONBLOCK` word outside the one carve-out.
 
-1. **The prompt.** In `tools/audit/seat/cloud_dispatch.py`, the reviewer prompt now separates findings from evidence. A blocked verdict's block goes under `## Block`. Each finding the PR does not settle goes in its own bullet under `## Findings`, ending in its own `Carry:`. Everything else goes under `## Evidence`. The prompt also lists the words that still make an evidence item a finding.
-   `fix-review.md` is unchanged. It defers the verdict's shape to the dispatch prompt ("in the exact shape your dispatch prompt gives"), so this changes no policy file and no role contract. `finding-propagation.md` still holds as written: every non-blocking note or residual still needs a `Carry:`.
-2. **The classification.** In `tools/audit/carry_audit.py`, an item under a verdict's `## Evidence` heading is a finding only if it hands something on. The evidence requirement is not weakened.
-   **How a finding under the heading is still caught.** An item there is a finding when any of these holds:
-   - it opens with `LEAD`;
-   - it sits under a lead;
-   - it says `DEFERRED` anywhere (`follow-up`, `for/to/in/until a later`, `out of scope`, `not fixed here`, `known-open`, `distinct finding`, `residual`, `caveat`, `observation`, `still has/have/needs to`);
-   - it says `NONBLOCK` (non-blocking, not blocking, deferred, minor, advisory, ...).
+**The carve-out, narrowed in round 2.** Round 1's review blocked on the carve-out's scope. It dropped every *sentence* matching `NOT_REQUIRED` before reading `NONBLOCK`, so a nit or defect sharing a sentence with "not a required check" passed. Now `NOT_REQUIRED` matches only the check's own clause: `not (a) required context|check`, optionally followed by a block-state phrase (`does not block`, `is not blocking`, `not blocking`, `non-blocking`). That phrase may be joined to the clause only by `,`, `and` or `it`, and it may not lead a `:`. Only that match is removed (`claims = NOT_REQUIRED.sub(" ", t)`) before `NONBLOCK` reads the rest of the item. The `SENTENCE` splitter is gone. The prompt now says the same: "evidence only in the clause saying it is not a required check and does not block, never in the rest of its sentence". The round-1 wording ("only in a sentence saying it is not a required check") made the sentence the exempt unit.
 
-   There is one exception. NONBLOCK is not read inside a single **sentence** that calls its check not a required one (`NOT_REQUIRED`: "not (a) required context|check"). Such a sentence states a check's state, not a note.
-   That one sentence-scoped carve-out is the whole relaxation. Everything else under the heading is read at least as strictly as on main, and the `DEFERRED` words make it stricter.
-   The heading is read only in a verdict. `RESULT` lines stay trailers, as on main.
-
-Alternatives tried, and why each lost:
-- **Exempting `NONBLOCK` under `## Evidence` entirely.** Under the what-if below, that freed a nit (#2441: "One nit, not blocking") and a defect left in place (#2465: "written 0.27 K low ... so it is not blocking"). That is smuggling, so it was refused.
-- **Applying the evidence rule to `RESULT`/`Evidence:` lines everywhere.** Over the 84-PR sweep this added 6 distinct refusals on real verdicts (#2465, #2469, #2479, #2516). Every one was a false positive ("a run 0.2 s later", a quoted residual), so it was reverted.
-- **Bare `later`.** It fires on times like "0.2 s later", so it was narrowed to the prepositional deferral.
+Alternatives, and why each lost:
+- **Exempt a `NOT_REQUIRED` sentence only when every `NONBLOCK` hit in it is a block-state phrase** (the review's second option). This keeps the sentence splitter and a second pass over the hits. It is also wider: "The floor is written 0.27 K low (not a required check) and is not blocking." has only block-state hits, so it would pass. Removing the clause catches it with one regex and no splitter.
+- **Exempt `NONBLOCK` under `## Evidence` entirely.** This frees #2441's nit and #2465's defect, so it was refused in round 1. The self-test rows for both still stand.
+- **Allow `;`, `so` or `)` as joiners.** Each of these frees one of the review's attack sentences, or its `semicolon` case, which is already a finding. Left out.
 
 ## Head
 
-821507dca0f1e238cb832d265946b4590504d6f2. It is cut from origin/main 289426c1f (`git merge-base origin/main HEAD`), and #2556's head 1beed40bf is merged in. Every figure below was taken at this head unless it names the merge base, 289426c1f.
+`795b8befd25a9dd542c982124d9c2277bb2e5de0`, pushed to `handoff/r10-verdict-item-barrier`. It is the PR head `90788b1e5ea8ce015e7ae6c432d308d7a5aab476` plus two commits:
+- `50c452947`: carry_audit's carve-out, the self-test rows, the harness arm and the mutants;
+- `795b8befd`: the prompt wording and its self-test row.
+
+Merge base: `5d433771aa88bbfd49b8868a9b53ea1241ab85a3` (`git merge-base origin/main HEAD`). Every figure below was taken at `795b8befd` unless it names another revision. "Base" means 5d433771a, and "round 1" means 90788b1e5.
+
+origin/main has since moved to `e7c664856` (read 2026-10-21T15:01Z). The delta touches two hashed lock files and a delivery row, none of them in this diff. `git merge-tree --write-tree origin/main HEAD` exits 0 with tree `13ab941b0`, so the branch was not merged.
 
 ## Mutation proof
 
-- **M-A**: delete the evidence branch of `items()` (the `elif verdict and EVIDENCE_HEADING.match(sec):` arm and its body, 4 lines).
-  `python3 -I tools/audit/carry_audit.py --self-test` then prints `182 checks, 30 failed`. The failing checks include:
-  - `under the Evidence heading a check that is not a required context and does not block is no finding`
-  - `the carve-out is its sentence's: a nit after it is a finding (#2441's shape)`
-  - `a defect left in place, not blocking, under the Evidence heading is a finding (#2465's shape)`
-  - `a deferral under the Evidence heading is a finding`
-  - `a `;` ends a sentence: a nit after a not-required check's clause is a finding`
-  - 22 more, including one `DEFERRED reads <w>` check per word.
+Each mutant was applied to a clean worktree at the head, then `python3 -I tools/audit/carry_audit.py --self-test` (or cloud_dispatch's) was run, and the file was restored.
+- **Failing first.** The self-test rows were added before the fix, at round 1's classification: `carry_audit self-test: 188 checks, 5 failed`. The failing rows:
+  - `a nit beside a not-required check's clause is a finding`
+  - `a minor defect beside ...`
+  - `a defect beside ...`
+  - `a parenthetical defect beside ...`
+  - `a colon-led nit beside ...`
 
-  Under M-A, the replay `python3 dev/audit/harnesses/r10_verdict_item_barrier.py` prints `v2544_reshaped=1 v2544_planted=2`, the merge-base figures. Restored with `git checkout`.
-- **M-B**: delete the new prompt sentences in `cloud_dispatch.py`.
-  `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` then prints `31 checks, 1 failed`, and the failing check is `the reviewer is told to separate findings, each with its own Carry:, from evidence`. Restored.
-- **Every predicate alone.** `python3 dev/audit/harnesses/r10_carry_parser_mutants.py` enumerates the parser's sites from its AST and kills each mutant by itself. This PR adds the new sites to it: 6 `I-ev-*` arms, `I-ev-split`, `P-sentence-semi`, `P-notreq-a`, `P-ev-word`, and the generated `V-NOT_REQUIRED-*`, `V-DEFERRED-*` and `V-EVIDENCE_HEADING` alternatives.
-  - At the head: `RESULT sites=168 unmapped=0 mutants=224 survived=0`.
-  - At the merge base: `sites=152 unmapped=0 mutants=190 survived=0`.
-  - In an intermediate state, six `DEFERRED` words that duplicated `NONBLOCK` survived as equivalents. They were removed from `DEFERRED` rather than recorded as equivalent.
-- **Failing first.** The self-test rows were written before the fix. In that first draft of the rows, at 289426c1f's classification, the self-test printed `173 checks, 23 failed`. The rows as they stand now fail under M-A (the head's rows with the classification arm removed), at 30 of 182.
+  The null-control row (`, and it is not blocking` is freed) passed.
+- **M-C**: the claims line reverted to round 1's sentence carve-out. `189 checks, 5 failed`, the same five rows.
+- **M-D**: the clause tail of `NOT_REQUIRED` deleted, so only the bare phrase is freed. `189 checks, 5 failed`:
+  - `under the Evidence heading a check that is not a required context and does not block is no finding`
+  - `` ... `not required check` reads too ``
+  - `the Evidence heading reads in any case and with words after it`
+  - `` the check's clause frees `, and it is not blocking` (null control) ``
+  - `` ... and `, non-blocking` ``
+- **M-E**: the `(?!\s*:)` lookahead deleted. `189 checks, 1 failed`: `a colon-led nit beside a not-required check's clause is a finding`.
+- **M-A**: the whole `## Evidence` arm of `items()` deleted (4 lines). `189 checks, 37 failed`. Under M-A the replay prints `v2544_reshaped=1 v2544_planted=2 v2544_attack=2`, the base's figures.
+- **M-B**: every new prompt sentence in `cloud_dispatch.py` deleted. `cloud_dispatch self-test: 32 checks, 2 failed`:
+  - `the reviewer is told to separate findings, each with its own Carry:, from evidence`
+  - `the reviewer is told the not-required carve-out is the check's clause, never its sentence`
+- **M-B'**: only the carve-out sentence reverted to round 1's wording. `32 checks, 1 failed`, the second of those two.
+- **Every predicate alone.** `python3 dev/audit/harnesses/r10_carry_parser_mutants.py` gives `RESULT sites=166 unmapped=0 mutants=232 survived=0`, with `M0 failed=0` (base: `sites=152 unmapped=0 mutants=190 survived=0`). It now carries:
+  - the open form as its own mutant, `I-ev-sentence` (round 1's sentence carve-out): killed, failed=5;
+  - `I-ev-carve` and `I-ev-claims` (no carve-out): killed;
+  - one mutant per piece of the clause: `P-notreq-a`, `-clause`, `-comma`, `-and`, `-it`, `-colon`, all killed;
+  - the generated `V-NOT_REQUIRED-*` alternatives (`context`, `check`, `does not block`, `is not blocking`, `not blocking`, `non-?blocking`), all killed.
+
+  Round 1's `I-ev-split` and `P-sentence-semi` were removed with `SENTENCE`.
 
 ## Unpinned sites
 
-n/a: every site the diff adds is pinned by `r10_carry_parser_mutants.py` (unmapped=0, survived=0 above). `mutation-autofix` has nothing to pin.
+n/a: `r10_carry_parser_mutants.py` pins every site the diff adds in `carry_audit.py` (unmapped=0, survived=0 above). `cloud_dispatch.py`'s new prompt text is pinned by the M-B and M-B' rows.
 
 ## Null control
 
-- **The planted control.** The `planted` form of each replay adds one `## Evidence` bullet that states a defect and defers it ("The stale-head guard misses a deleted ref; deferred to a later round."). It is refused for all three verdicts: `v2513_planted=1 v2544_planted=1 v2547_planted=1`.
-- **The real smuggle shapes.** #2441's nit and #2465's defect are self-test rows, and both are read as findings under `## Evidence`.
-- **Posted verdicts are untouched.** `carry_audit.py pr 2513`, `pr 2544` and `pr 2547` print the same refusal at the merge base and at the head (`1 finding item(s): 0 routed, 1 unrouted`). This is the finder's instrument, and it reads flat at both ends because the fix rightly leaves posted, old-format verdicts alone. The replay harness is the companion that moves (fixer.md step 3).
+- **The check's own clause is still freed.** `python3 dev/audit/harnesses/r10_verdict_item_barrier.py` prints `v2544_reshaped=0`: #2544's "it is not a required context and does not block the PR" reads as evidence at the head, as at round 1. The `--whatif` sweep flags #2544 aeeb9432 at the base and not at the head.
+- **The fix adds no false positives.** Over the real corpus, the `--whatif` FLAGGED set at the head is identical to round 1's (`comm` of the id sets: empty both ways). No live verdict sentence relied on the wider carve-out.
+- **The planted control** (a deferred defect under `## Evidence`) is refused for all three verdicts: `v*_planted=1`.
 
 ## Figures
 
-Instrument: `python3 dev/audit/harnesses/r10_verdict_item_barrier.py --fetch`. It replays the three posted verdict comments verbatim; `--fetch` re-reads them read-only and prints `fetch_<pr>=identical`. Each verdict runs in four forms (the harness header defines them), and each form prints the count of finding items not routed.
+- **Replay, both ends and round 1.** Instrument: `python3 dev/audit/harnesses/r10_verdict_item_barrier.py --fetch`. It prints `fetch_2513/2544/2547=identical` against the live comments. The harness header defines the forms. The new `attack` form adds one Evidence bullet whose defect shares its sentence with a not-required check ("composed-proof is not a required check, and the stale-head guard misses a deleted ref, not blocking."). Head and round 1 were run with this file; the base was run with this harness copied into a base worktree.
 
-| form | head (2513 / 2544 / 2547) | base 289426c1f |
-|---|---|---|
-| verbatim | 1 / 1 / 1 | 1 / 1 / 1 |
-| evidence | 1 / 1 / 1 | 1 / 1 / 1 |
-| reshaped | 0 / 0 / 0 | 0 / **1** / 0 |
-| planted | 1 / 1 / 1 | 1 / **2** / 1 |
+  | form (2513 / 2544 / 2547) | head 795b8befd | round 1 90788b1e5 | base 5d433771a |
+  |---|---|---|---|
+  | verbatim | 1 / 1 / 1 | 1 / 1 / 1 | 1 / 1 / 1 |
+  | evidence | 1 / 1 / 1 | 1 / 1 / 1 | 1 / 1 / 1 |
+  | reshaped | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 1 / 0 |
+  | planted | 1 / 1 / 1 | 1 / 1 / 1 | 1 / 2 / 1 |
+  | attack | 1 / 1 / 1 | **0 / 0 / 0** | 1 / 2 / 1 |
 
-- **What the rows show.** At the base, #2544's CI paragraph ("`composed-proof` is still queued, but it is not a required context and does not block the PR") is refused under any heading. At the head, the `evidence` form (text moved under `## Evidence`, unedited) still refuses each verdict, on the item that hands something on:
-  - #2513: "noted for a later tightening";
-  - #2547: "advisory";
-  - #2544: a post-merge check that "still has to be done". The base never flagged this one.
-- **Real-corpus sweep, both ends.** `python3 -I tools/audit/carry_audit.py sweep --prs <84 PRs> --from-dir DIR`. The corpus is the last 80 merged PRs by update time plus #2513, #2544, #2547 and #2556: 84 PRs, 59 `Fix review:` verdicts.
-  - Base and head both print `CARRY-AUDIT: 131 finding item(s): 85 routed, 42 unrouted, 4 bad destination(s)`. The UNROUTED/BAD-DEST line sets are identical (`diff` returns 0).
-  - Null control for "changes nothing that is not under the new heading": an earlier draft, which extended the rule to `RESULT` lines, moved this sweep to 138/49.
-- **Adversarial what-if.** `python3 dev/audit/harnesses/r10_verdict_item_barrier.py --whatif DIR`, over the same corpus, renames every heading of every verdict `## Evidence`.
-  - Base: `whatif_flagged=18`. Head: `whatif_flagged=32`.
-  - The one item flagged at the base and not at the head is #2544's aeeb9432 (`diff` of the FLAGGED id sets). The head's extra 14 come from the added `DEFERRED` words.
-  - In a real verdict, much of what they catch sits under `## Block` (for example, #2452's and #2469's block text). Under the new format that text is not read as notes.
-- **Cheap checks at the head** (run with `PYTHONPATH=tests/hastub`):
+  The attack row reads 0 only at round 1: the open class, now closed.
+- **The review's attack, re-run.** The four same-sentence attack sentences from the review's class_attack.py (on the bus ref verdict/2571 at 378816bc, under evidence/) are self-test rows. Each is a finding at the head, as above. Its `semicolon` and `abbrev e.g. split` cases were already findings.
+- **Corpus.** The last 80 merged PRs by update time over REST, plus #2513, #2544, #2547 and #2556: 83 distinct PRs, fetched 2026-10-21T14:43:11Z with `gh api --paginate --slurp repos/tvofi/heatpump_optimizer/issues/<N>/comments?per_page=100` and `pulls/<N>` bodies. It is a live corpus, so these counts describe that fetch only.
+  - `python3 -I tools/audit/carry_audit.py sweep --prs <83> --from-dir DIR` prints `CARRY-AUDIT: 124 finding item(s): 83 routed, 38 unrouted, 3 bad destination(s)` at the head, round 1 and the base. The sorted UNROUTED/BAD lines hash identically: sha1 `b4c16a2a…` at all three.
+  - `python3 dev/audit/harnesses/r10_verdict_item_barrier.py --whatif DIR` gives `whatif_verdicts=58`, and `whatif_flagged=33` at the head, 33 at round 1 and 17 at the base. `comm` of the FLAGGED ids:
+    - head vs round 1: empty both ways;
+    - flagged at the base and not at the head: only `#2544 6314170570 aeeb9432`.
+- **The finder's instrument.** `python3 -I tools/audit/carry_audit.py pr N` prints the same line at the head and the base (read 2026-10-21T15:01Z):
+  - #2513: `2 finding item(s): 2 routed, 0 unrouted`;
+  - #2544: `1 ... 1 routed, 0 unrouted`;
+  - #2547: `1 ... 0 routed, 1 unrouted`.
+
+  It reads flat at both ends because posted verdicts are old-format text the fix rightly leaves alone. The replay above is the companion that moves.
+- **The generator, run** (fixer.md step 10). `python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer --head <40×a> --pr 7 --nonce n0nce --env-id e --model m --repo o/r`. `grep -c` on the rendered prompt:
+
+  | revision | `never in the rest of its sentence` | `evidence only in a sentence saying` | `## Evidence` |
+  |---|---|---|---|
+  | head | 1 | 0 | 1 |
+  | round 1 | 0 | 1 | 1 |
+  | base | 0 | 0 | 0 |
+- **The class, enumerated** (fixer.md step 8). Two rules enumerate the seams.
+  - **Seams in the parser.** Every point in `items()` where a `NONBLOCK`/`DEFERRED` read sees less than the item's text: `awk '/^def items/,/^def carry_segments/' tools/audit/carry_audit.py | grep -nE "NONBLOCK\.search\(|NOT_REQUIRED\.|DEFERRED\.search\("`. It returns five lines:
+    - `claims = NOT_REQUIRED.sub(" ", t)` and the `NONBLOCK.search(claims)` read: closed in this diff (the only subtraction);
+    - `DEFERRED.search(t)` beside it: reads the whole item;
+    - `BLOCK_HEADING ... NONBLOCK.search(sec)` and `note_sec = NONBLOCK.search(sec)`: they read the heading, not the item, and are unchanged from main;
+    - `NONBLOCK.search(t)` in the other verdict arm: reads the whole item.
+
+    The AST census in `r10_carry_parser_mutants.py` (`sites()`: 166 sites, 0 unmapped, 0 survived) covers the rest.
+  - **Generators that teach the carve-out.** `git grep -nE "not (a )?required (check|context)" -- .claude tools dev/governance` returns:
+    - `tools/audit/carry_audit.py`: its docstring, now "outside the clause", and its self-test rows;
+    - `tools/audit/seat/cloud_dispatch.py`: closed in this diff;
+    - `dev/governance/config/cfr_exclusions.json`: two hits in a citation about the `record` job, unrelated to verdicts.
+- **Cheap checks at the head** (`PYTHONPATH=tests/hastub`):
   - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`
   - `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused`
-  - `python3 tools/audit/archscore/score.py --diff 289426c1f`: `Architecture score: dS +0.0000 NULL`
-  - `python3 tests/closure.py select --diff 289426c1f`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and it runs `tests/entities.py`
-  - run_always: `env_drift.py --claims-only`: `claims hygiene: ... ok`; `closure.py selftest`: `ALL 124 closure shrink pins PASSED`; `layout.py`: `layout self-test: ok`
-  - `harness_headers.py` and `entities.py` under `/opt/hpo/venv-ci` (3.14.7): `ALL 109 HARNESS HEADER CHECKS PASSED`, `ALL 2375 ENTITY CHECKS PASSED`
-- **The generator, run** (fixer.md step 10). `python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer --head <40-hex> --pr 7 --nonce n0nce --env-id e --model m --repo o/r`. At the head, the rendered message contains `## Findings`, `## Evidence`, `## Block` and "not a required check". At 289426c1f it contains none of them. `grep -c` for each of `## Evidence`, `## Findings`, `## Block` and `not a required check` gives 1 at the head and 0 at the base.
-- **The class, enumerated** (fixer.md step 8). The seam is every path by which a verdict item becomes "not a finding" in `items()`. `r10_carry_parser_mutants.py`'s `sites()` enumerates them from the AST: 168 sites, 0 unmapped. Their dispositions:
-  - the new `## Evidence` arm: closed in this diff;
-  - `TRAILER` (attribution, `bus:`, `Evidence:`, `RESULT`): unchanged, already exempt on main. Extending the evidence rule to it was measured as 6 false positives and 0 true ones over the corpus;
-  - `block_sec` (a block heading): unchanged; the block is owed in this PR;
-  - the lead paragraph: unchanged; its bullets carry.
-
-  The other reviewer-prompt generators were found with `git grep -l "Fix review: merge" .claude tools`:
-  - `.claude/workflows/web-fix-wave.js` (code-owned; its verdicts reach the same pre-flight): not changed here, see Forward-carry;
-  - `web-decomp-stage.js` and the retired `audit-wave.js` and `audit-fix.js`: not changed.
+  - `python3 tools/audit/archscore/score.py --diff 5d433771a`: `Architecture score: dS +0.0000 NULL`
+  - `python3 tests/closure.py select --diff 5d433771a`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and `scope.run` names `tests/entities.py`
+  - `/opt/hpo/venv-ci/bin/python tests/entities.py` (3.14.7): `ALL 2375 ENTITY CHECKS PASSED`
+  - run_always:
+    - `/opt/hpo/venv-ci/bin/python tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`
+    - `python3 tests/env_drift.py --claims-only 5d433771a`: `claims hygiene: 5d433771a ok`
+    - `python3 tests/closure.py selftest`: `ALL 124 closure shrink pins PASSED`
+    - `python3 tests/layout.py`: `layout self-test: ok`
+  - `git diff --stat 5d433771a...HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md tests/golden` is empty.
 
 ## Red checks
 
-none
+- `nightly-status` (red on 90788b1e5). It grades the last concluded scheduled run of `tests.yml` on main (`tests.yml` header: "Reads the last CONCLUDED scheduled run of this workflow"), not this diff. The diff touches `tools/audit/carry_audit.py`, `tools/audit/seat/cloud_dispatch.py`, two `dev/audit/harnesses/` files, its delivery row and `tests/closures.json`, none of which that run reads. The cheaper detector already exists: the check itself, on main. This PR owes nothing for it.
 
 ## Forward-carry
 
-- `.claude/workflows/web-fix-wave.js` (code-owned) is the local reviewer prompt. It still asks only for RESULT lines after the first line, so a local-seat verdict can still be parked on a check that does not block. The pre-flight fails closed: it parks, it never passes an unrouted finding. Adding the same three-section format there is the owner's call on a code-owned file. Carry: dismissed: fail-closed park only, owner's code-owned prompt
-- The three posted verdicts stay parked under the head (`carry_audit.py pr N` is unchanged). Each needs a reviewer re-post in the new format, or a `Carry: <dest> (item <id>)` that routes it: #2513 3b97e1aa, #2544 aeeb9432, #2547 b579380b. This is the orchestrator's next step on those PRs, not a defect. Carry: dismissed: orchestrator routing step, three named items
+n/a: no finding here changes how a later stage must work; the code-owned local prompt `.claude/workflows/web-fix-wave.js` still asks only for RESULT lines and the pre-flight parks such a verdict (fail-closed), as round 1 recorded
 
 ## Friction
 
-- CLAUDE.md: unclear: the brief says carry_audit lives at `tools/audit/seat/carry_audit.py`, but it is `tools/audit/carry_audit.py`. The dispatch said the toolchain is on PATH, but `python3` here is 3.11 with no `voluptuous`, and `/opt/hpo/venv-ci/bin` is not on PATH. Carry: dismissed: path corrected in place, venv found under /opt/hpo
+none
