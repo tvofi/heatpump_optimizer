@@ -6978,6 +6978,54 @@
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    }
+  },
+  {
+   "group": "R10-FLY-ORPHANS-REWRITTEN",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/bus.sh"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6319294694",
+   "rca": [],
+   "after": [
+    "R10-TICK-OWED-LEVEL",
+    "R10-FLOW-RELAY-HOLD",
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "bus.sh orphans treats a handoff whose patch is already on main (git apply --reverse --check passes on origin/main, forward apply fails) as landed-rewritten/superseded, not stranded. bus.sh content_superseded's M arm requires a byte-identical blob and misses a file that moved on. Evidence: r10-earlycutoff-coverage listed 121.8 h stranded though #2397 merged it (P14). Fold: cloud_relay.sh classifies handoff-no-pr from its own rules; it uses bus.sh orphans' classifier instead (32 of 37 handoff-no-pr refs were noise: 20 body duplicates, 12 already in main); evidence 5 merged handoffs (PRs 2513/2465/2485/2519/2525) reported OWED until archived 22:33.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-orphans-rewritten",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+   }
   }
  ]
 }
