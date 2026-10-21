@@ -1,0 +1,12 @@
+## VERSION/manifest/notes
+(empty = untouched)
+## claims
+(empty = no claim files)
+claims hygiene: 6961f06637964001a2ed544e495ea0312eeefa37 ok
+## closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+## structure
+
+STRUCTURE RATCHET PASSED
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 6961f0663796
