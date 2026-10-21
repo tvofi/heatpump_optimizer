@@ -4025,9 +4025,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-ci-layout-g",
-    "commit": null,
+    "commit": "5a755f53efda8c099af7d6a98fb0b22828a0593c",
     "last_step": null,
     "next_step": "PR 0 merged (#2464); PR G dispatched as handoff/r10-ci-layout-g, then PR 1, then PR 2",
     "note": null
