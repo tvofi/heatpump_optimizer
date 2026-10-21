@@ -305,7 +305,8 @@ def _group_checks(check) -> None:
             git(work, "push", "-q", "-f", str(origin), "main")
             git(work, "fetch", "-q", str(origin), "+main:refs/remotes/origin/main")
         grp = {"group": "R10-X", "brief": "Fix the thing in tools/x.py.\n", "resume": {"branch": "handoff/r10-x"}}
-        land([grp, {"group": "R10-BAD", "brief": "cd " + users + "someone/work"}])
+        bad = {"group": "R10-BAD", "brief": "cd " + users + "someone/work"}
+        land([grp, bad])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -342,7 +343,7 @@ def _group_checks(check) -> None:
               and git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
               == git(work, "rev-parse", "FETCH_HEAD").strip())
         first = git(work, "rev-parse", "FETCH_HEAD").strip()
-        land([{**grp, "brief": "Changed.\n"}])
+        land([{**grp, "brief": "Changed.\n"}, bad])
         dispatch()
         git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
         check("a changed brief fast-forwards the ref",
