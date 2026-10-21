@@ -1,0 +1,24 @@
+base r1: run[0] loop_cpu=19.23ms ref_ms=62.6 loop_ref_ms=181.8 old=0.3074 new=0.1058
+base r1: run[1] loop_cpu=18.23ms ref_ms=52.8 loop_ref_ms=157.2 old=0.3452 new=0.1160
+base r1: RESULT local new=min0.1058_max0.1160_factor1.096 median0.1109
+base r1: RESULT local old=min0.3074_max0.3452_factor1.123 median0.3263
+head r1: run[0] loop_cpu=19.54ms ref_ms=48.6 loop_ref_ms=140.6 old=0.4022 new=0.1390
+head r1: run[1] loop_cpu=17.43ms ref_ms=52.8 loop_ref_ms=170.6 old=0.3302 new=0.1022
+head r1: RESULT local new=min0.1022_max0.1390_factor1.360 median0.1206
+head r1: RESULT local old=min0.3302_max0.4022_factor1.218 median0.3662
+base r2: run[0] loop_cpu=19.55ms ref_ms=54.5 loop_ref_ms=159.9 old=0.3589 new=0.1223
+base r2: run[1] loop_cpu=16.89ms ref_ms=75.8 loop_ref_ms=140.6 old=0.2229 new=0.1201
+base r2: RESULT local new=min0.1201_max0.1223_factor1.018 median0.1212
+base r2: RESULT local old=min0.2229_max0.3589_factor1.610 median0.2909
+head r2: run[0] loop_cpu=18.77ms ref_ms=54.9 loop_ref_ms=137.5 old=0.3419 new=0.1365
+head r2: run[1] loop_cpu=18.26ms ref_ms=49.8 loop_ref_ms=145.0 old=0.3666 new=0.1259
+head r2: RESULT local new=min0.1259_max0.1365_factor1.084 median0.1312
+head r2: RESULT local old=min0.3419_max0.3666_factor1.072 median0.3542
+base r3: run[0] loop_cpu=17.45ms ref_ms=49.8 loop_ref_ms=150.4 old=0.3504 new=0.1160
+base r3: run[1] loop_cpu=18.19ms ref_ms=49.9 loop_ref_ms=156.5 old=0.3642 new=0.1162
+base r3: RESULT local new=min0.1160_max0.1162_factor1.002 median0.1161
+base r3: RESULT local old=min0.3504_max0.3642_factor1.039 median0.3573
+head r3: run[0] loop_cpu=19.09ms ref_ms=52.0 loop_ref_ms=164.6 old=0.3671 new=0.1160
+head r3: run[1] loop_cpu=17.54ms ref_ms=56.2 loop_ref_ms=147.0 old=0.3124 new=0.1193
+head r3: RESULT local new=min0.1160_max0.1193_factor1.028 median0.1177
+head r3: RESULT local old=min0.3124_max0.3671_factor1.175 median0.3398

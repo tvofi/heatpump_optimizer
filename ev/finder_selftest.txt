@@ -1,0 +1,10 @@
++ cd /tmp/claude-0/-home-user-heatpump-optimizer/43ad3a60-04a6-5bca-bdc6-ada98075f595/scratchpad/head
++ /tmp/claude-0/-home-user-heatpump-optimizer/43ad3a60-04a6-5bca-bdc6-ada98075f595/scratchpad/venv/bin/python dev/audit/harnesses/r10_replay_loopnorm.py --self-test
+  ok: pre: the field is the old figure
+  ok: pre: loop CPU is the field times ref_ms
+  ok: post: the field is the new figure
+  ok: post: loop CPU is the new field times loop_ref_ms
+  ok: post: the old figure is derived
+  ok: the era key is the ruler time, not a date
+  ok: the spreads separate
+RESULT self_test checks=7 failed=0
