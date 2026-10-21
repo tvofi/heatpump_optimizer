@@ -1,0 +1,3 @@
+RESULT finder-install head rc=0 aiohttp=3.14.5
+RESULT finder-install base rc=0 aiohttp=3.14.4
+RESULT finder-install planted-wrong-aiohttp-hashes rc=1 DO NOT MATCH THE HASHES

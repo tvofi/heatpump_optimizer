@@ -1,0 +1,5 @@
+RESULT pypi-hashes tests/requirements-ci.txt aiohttp 3.14.5 161 161 True
+RESULT pypi-hashes tests/requirements-typing.txt aiohttp 3.14.5 161 161 True
+RESULT pypi-hashes tests/requirements-typing.txt certifi 2026.10.19 2 2 True
+RESULT pypi-hashes tests/requirements-typing.txt pillow 13.0.0 83 83 True
+RESULT pypi-hashes tests/requirements-typing.txt uv 0.13.4 19 19 True
