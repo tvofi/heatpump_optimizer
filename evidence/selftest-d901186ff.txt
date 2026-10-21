@@ -1,0 +1,70 @@
+  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+  ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+  ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+  ok   no group writes no empty parentheses
+  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+delivery_row self-test: 5 checks, 0 failed
+  ok   open_pr: three arguments refuse, naming the count
+  ok     mutant mut:arity (its line deleted) fails that arm
+  ok   open_pr: an abbreviated code sha refuses as not 40-hex
+  ok     mutant mut:hex (its line deleted) fails that arm
+  ok   open_pr: a 40-hex sha that names no commit refuses as unresolved
+  ok     mutant mut:resolve (its line deleted) fails that arm
+  ok   open_pr: the body sha in the code slot refuses, naming it the BODY sha
+  ok     mutant mut:body (its line deleted) fails that arm
+  ok   open_pr: a non-ancestor refuses, saying it is not the body tip
+  ok     mutant mut:ancestor (its line deleted) fails that arm
+  ok   open_pr: a topic with no handoff/<topic> refuses, naming the ref
+  ok     mutant mut:noref (its line deleted) fails that arm
+  ok   open_pr: a topic with no handoff-body/<topic> refuses, naming the ref
+  ok     mutant mut:nobody (its line deleted) fails that arm
+  ok   open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap
+  ok     mutant mut:trap (its line deleted) fails that arm
+  ok   open_pr: six counted open pull requests refuse at the cap
+  ok     mutant mut:cap (its line deleted) fails that arm
+  ok   open_pr: the cap is checked by the script itself (the call's lines)
+  ok     mutant mut:capcall (its line deleted) fails that arm
+  ok   open_pr: an open list gh cannot read refuses, never passes
+  ok     mutant mut:capreadrc (its line deleted) fails that arm
+  ok   open_pr: --over-cap opens at the cap and logs its reason
+  ok     mutant mut:overcap (its line deleted) refuses at the cap instead
+  ok   open_pr: five counted open (a record: and a bot pull request beside them) opens
+  ok     mutant mut:caprecord (its line deleted) refuses at the cap instead
+  ok   open_pr: the same board, the bot pull request uncounted
+  ok     mutant mut:capbot (its line deleted) refuses at the cap instead
+  ok   null control: open_pr with the code sha passes every check, and its failed push names its log
+  ok   update_pr: two arguments refuse, naming the count
+  ok     mutant mut:arity (its line deleted) fails that arm
+  ok   update_pr: an abbreviated code sha refuses as not 40-hex
+  ok     mutant mut:hex (its line deleted) fails that arm
+  ok   update_pr: the body sha in the code slot refuses, naming it the BODY sha
+  ok     mutant mut:body (its line deleted) fails that arm
+  ok   update_pr: a non-ancestor refuses, saying it is not the body tip
+  ok     mutant mut:ancestor (its line deleted) fails that arm
+  ok   update_pr: a branch whose topic has no handoff/<topic> refuses, naming the ref
+  ok     mutant mut:noref (its line deleted) fails that arm
+  ok   update_pr: branch fix/x-pr, with no handoff/x-pr on origin, is checked against handoff/x
+  ok     mutant mut:prtopic (its line deleted) fails that arm
+  ok   update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap
+  ok     mutant mut:trap (its line deleted) fails that arm
+  ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
+  ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
+  ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
+  ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+  ok   update_pr: the lock holder has exited by the time a run returns
+  ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+  ok   update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+  ok     mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+  ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+  ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
+  ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
+  ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
+  ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+  ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
+  ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
+  ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
+  ok   null control: update_pr with code sha '4985447' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 62 checks, 0 failed
+rc=0

@@ -1,3 +1,0 @@
-ref_privacy: REFUSE tools/audit/seat/pr_args.sh:353: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
-ref_privacy --check at HEAD: 19 file(s) with a push site, 9 guarded, 113 line(s) added since 289426c1fdde judged, 1 refused
-rc=1
