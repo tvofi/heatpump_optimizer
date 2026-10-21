@@ -1,0 +1,9 @@
+== plant tools/audit/seat/roster_sync.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+== plant tools/audit/seat/roster_edit.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+== plant tools/audit/carry_audit.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py

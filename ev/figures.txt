@@ -1,0 +1,24 @@
+== base harness
+RESULT base_apply_rc=2 head_apply_rc=0
+RESULT base_stage=in-progress head_stage=done
+RESULT head_noapply_stage=in-progress
+RESULT base_deferred=deferred head_deferred=deferred
+RESULT control=PASS
+== selftest_wiring
+selftest_wiring: 39 self-testing, 39 wired, 0 unwired
+== tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 295c874e8ef1
+== layout guard
+layout: GUARD: 0 refusal(s) against 1ebc737e7e18
+== structure
+STRUCTURE RATCHET PASSED
+== claims
+claims hygiene: origin/main ok
+== closure selftest
+ALL 124 closure shrink pins PASSED
+== archscore
+Architecture score: dS +0.0000 NULL
+== version files (empty = untouched)
+== live-roster invalid_commits
+records= 62 short= 6 invalid= 0 []
+at ae0f167c9: records= 60 short= 6 invalid= 0

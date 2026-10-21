@@ -1,0 +1,31 @@
+roster ref origin/handoff/audit-r10-roster = 4ece7ca854d695360d53471aaa8e6fb6569fce45
+R10-ORCH-MACHINERY: stage=not-started carry=24 citing#2554=1
+    From #2554 (item 4ddebe42): ci_predict.py does not run the layout guard. Control: a layout-violating fixture must make ci_predict predict red.
+R10-POLICY-GATE-SCOPING: stage=not-started carry=2 citing#2554=1
+    From #2554 (item 4ddebe42): ref_privacy --check ignores \b on a macOS seat (BSD grep). Control: a fixture that must match only at a word boundary gives the same verdict o
+R10-REPLAY-CAP: stage=done carry=0 citing#2554=0
+R10-REPLAY-LANE: stage=in-progress carry=6 citing#2554=1
+    From #2554 (item 57bf9e90, #2554): `nightly-status` grades `main` (the replay `loop_cpu_ratio` budget), not this branch. The body routed it to R10-REPLAY-CAP, which is do
+== whole-roster search (every group's carry and brief fields)
+'b1ecb708': []
+'4c5f0868': []
+'ABSORB-EDGE': []
+'GATE-READY': []
+'gate coverage': ['R10-ROSTER-OPS']
+'pinned at handoff': []
+'brief pinned': []
+'cloud_dispatch': ['R10-FLOW-DESIGN-STAGES', 'R10-FLOW-DISPATCH']
+4ece7ca85 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+c9905c607 roster_edit append-carry R10-FLY-GH-READ-RETRY (tools/audit/seat/roster_edit.py)
+6e97f6649 roster_edit append-carry R10-POLICY-FIXER-MD (tools/audit/seat/roster_edit.py)
+33b8e9aa6 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+e2bb0e7ac roster_edit set-after R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+810c38684 roster_edit append-group X (tools/audit/seat/roster_edit.py)
+fd88d6218 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+cb5a00e1a roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+== R10-ORCH-MACHINERY carry entries mentioning absorb/mandate/owner_gate/brief/6.4
+1 Lost-ask class, found 2026-10-20: fold (e) of #1955 was added by tvofi as an issue comment on 2026-10-04, written into the R9-SW-6 brief, and then dropped when #2006 implemented only (a)-(d) and closed the issue. The ask survived nowhere: not in the round-10 r
+8 From #2524: `tools/audit/seat/daemonize.py` runs its own self-test when `--self-test` appears anywhere in argv (`if "--self-test" in sys.argv[1:]`), silently skipping the wrapped command. Restrict it to `argv[1]` and pin it with a self-test arm.
+12 From #2545 (item 3985dac8): the brief's ledger-extension controls, which are the ecaf178c content-covered close with a positive case and a null case, and the section 5.6 exit-code red case (143 passes).
+13 Lean flow study alignment (STUDY K17), binding on the build. The flow groups add work the approved design's beat and ledger must own, and they land first, so build them in: (0) The beat and every job it runs are detached processes, never an agent loop: in the 
+16 From #2572 (friction, gate-scoping): the cloud seat's non-login shell has no numpy until /etc/profile.d/hpo-toolchain.sh is sourced, although the payload says the toolchain is on PATH. Fix tools/audit/seat/cloud-setup.sh's profile note, or source the profile i

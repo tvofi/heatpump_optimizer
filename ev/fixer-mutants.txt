@@ -1,0 +1,51 @@
+RESULT mutant=NULL_no_plant rc=0 fails=0
+RESULT mutant=M1_deferred_overwritten rc=1 fails=2
+    FAIL the dry run says the human disposition is left alone (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL a deferred stage is never overwritten (got: {'stage': 'done', 'branch': 'handoff/r9-defer', 'commit': 'cccccccccccccccccccccccccccccccccccccccc'})
+RESULT mutant=M2_open_not_in_progress rc=1 fails=3
+    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL open PR: stage in-progress with its number (got: {'stage': 'queued', 'branch': 'handoff/r9-open'})
+    FAIL a sibling's open PR decides the sibling and never reopens the shorter topic's done group (got: ({'stage': 'done', 'branch': 'handoff/r9-sib', 'commit': 'ffffffffffffffffffffffffffffffffffffffff'}
+RESULT mutant=M3_merged_without_commit rc=1 fails=3
+    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL merged PR: stage done at its merge commit (got: {'stage': 'done', 'branch': 'handoff/r9-live'})
+    FAIL a head matching only through the <topic>- arm decides its group (got: {'stage': 'done', 'branch': 'handoff/r9-arm'})
+RESULT mutant=M4_carry_to_done_appended rc=1 fails=2
+    FAIL the dry run refuses the done destination (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL a Carry: to a done group is refused, not appended (got: ['a real finding for a done group. Carry: R9-OVER'])
+RESULT mutant=M5_second_parser rc=1 fails=2
+    FAIL the merged body's Carry item lands in the destination (got: ['the widget parser drops a unit. Carry: R9-DEST', 'a quoted example `Carry: R9-DEST` in a code span routes nothing.'])
+    FAIL carry_audit's parser is used: a quoted marker in a code span routes nothing (a second parser would append it) (got: ['the widget parser drops a unit. Carry: R9-DEST', 'a quoted example `Carry: R9
+RESULT mutant=M6_dry_run_writes rc=1 fails=1
+    FAIL dry run creates no roster branch (no --apply writes nothing) (got: refs/heads/handoff/audit-r9-roster
+RESULT mutant=M7_exact_match_only rc=1 fails=4
+    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL merged PR: stage done at its merge commit (got: {'stage': 'not-started', 'branch': 'handoff/r9-live'})
+    FAIL a head matching only through the <topic>- arm decides its group (got: {'stage': 'not-started', 'branch': 'handoff/r9-arm'})
+    FAIL and the retried roster carries the derived stage (got: )
+RESULT mutant=M8_sibling_decides rc=1 fails=2
+    FAIL a sibling's open PR decides the sibling and never reopens the shorter topic's done group (got: ({'stage': 'in-progress', 'branch': 'handoff/r9-sib', 'commit': 'fffffffffffffffffffffffffffffffffff
+    FAIL a sibling's merge moves only the sibling to done (got: ({'stage': 'done', 'branch': 'handoff/r9-pair', 'commit': '2222222222222222222222222222222222222222'}, {'stage': 'done', 'branch': 'handoff/
+RESULT mutant=M9_carry_dedupe_dropped rc=1 fails=3
+    FAIL the dry run plans no append of an item the destination holds (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL apply rc 0 (got: ('CRASH Refuse: R9-HELD already carries that entry', "roster_sync: pull requests: 10 read offline from --pr-state\nroster_sync: RECORD-INVALID R9-DONE bbbbbbbbbbbbbbbbbbbbbbbbbbb
+    FAIL apply pushes once (got: refs/heads/main)
+RESULT mutant=M10_issue_dest_appended rc=1 fails=1
+    FAIL an issue destination is neither appended nor refused (it keeps its own record) (got: roster_sync: pull requests: 10 read offline from --pr-state
+RESULT mutant=M11_rc_path_no_reset rc=1 fails=1
+    FAIL and the refused pass leaves no local commit (the rc path's reset) (got: 3d4c7ba roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
+RESULT mutant=M12_length_test rc=1 fails=4
+    FAIL a unique 12-hex prefix on origin/main is valid (no length test) (got: {'C-SHORT': "'fad36295729c' is not 7-40 lowercase hex", 'C-NONE': "'c35302773738' is not 7-40 lowercase hex", 'C-OFF': "'c250
+    FAIL an unresolvable prefix is RECORD-INVALID (got: {'C-SHORT': "'fad36295729c' is not 7-40 lowercase hex", 'C-NONE': "'c35302773738' is not 7-40 lowercase hex", 'C-OFF': "'c250773dfcfe' is not 7-40 l
+    FAIL a done group's commit off origin/main is RECORD-INVALID (got: {'C-SHORT': "'fad36295729c' is not 7-40 lowercase hex", 'C-NONE': "'c35302773738' is not 7-40 lowercase hex", 'C-OFF': "'c250773dfcfe
+    FAIL an open group's handoff head off origin/main is valid (got: {'C-SHORT': "'fad36295729c' is not 7-40 lowercase hex", 'C-NONE': "'c35302773738' is not 7-40 lowercase hex", 'C-OFF': "'c250773dfcfe' 
+RESULT mutant=M13_off_main_accepted rc=1 fails=1
+    FAIL a done group's commit off origin/main is RECORD-INVALID (got: {'C-NONE': 'c35302773738 does not resolve to a commit', 'C-UPPER': "'ABCDEF123456' is not 7-40 lowercase hex"})
+RESULT mutant=M14_ambiguous_accepted rc=1 fails=1
+    FAIL an ambiguous prefix is RECORD-INVALID (got: )
+RESULT mutant=M15_record_invalid_silent rc=1 fails=1
+    FAIL a commit the checkout does not hold is RECORD-INVALID, printed and not a refusal (got: roster_sync: pull requests: 10 read offline from --pr-state
+RESULT mutant=M16_open_head_on_main rc=1 fails=1
+    FAIL an open group's handoff head off origin/main is valid (got: {'C-NONE': 'c35302773738 does not resolve to a commit', 'C-OFF': 'b5b512727d87 is not an ancestor of origin/main', 'C-OPEN': 'b5b512727
+restored
+rc=0
