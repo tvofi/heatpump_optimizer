@@ -2,7 +2,9 @@
 """R10-FLOW-DISPATCH: each predicate of cloud_dispatch.py's group path dies alone.
 
 Written by the R10-FLOW-DISPATCH fixer, round 2, after the round-1 review found
-two survivors (head-ignored, privacy-off) that 42 green checks hid. Each
+two survivors (head-ignored, privacy-off) that 42 green checks hid; round 3
+added the four the round-2 review found (explicit-roster-ref-ignored,
+cli-head-dropped, cli-roster-ref-dropped, fetch-skipped). Each
 mutant is a one-occurrence replacement in tools/audit/seat/cloud_dispatch.py;
 it is applied alone, `cloud_dispatch.py --self-test` run, and the file
 restored byte for byte. The drive refuses a dirty file and aborts on a
@@ -58,6 +60,11 @@ MUTANTS = [
      "roster_ref = roster_ref or roster_lib.MAIN_REF"),
     ("head-from-roster-ref", 'f"{HEAD_REF}^{{commit}}"', 'f"{roster_ref}^{{commit}}"'),
     ("reviewer-head-off", 'if role == "reviewer" and not head:', "if False:"),
+    ("explicit-roster-ref-ignored", "roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)",
+     "roster_ref = roster_lib.reader_ref(repo_dir, None)"),
+    ("cli-head-dropped", 'head=args.head or ""', 'head=""'),
+    ("cli-roster-ref-dropped", "roster_ref=args.roster_ref,", "roster_ref=None,"),
+    ("fetch-skipped", '        _git(repo_dir, "fetch", "-q", "origin", f"refs/heads/{ref}")', "        pass"),
 ]
 SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")
 
