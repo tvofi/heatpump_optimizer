@@ -6,7 +6,7 @@
         --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
         --window L=2026-10-19T14:50Z..2026-10-21T14:50Z \\
         [--by kind|class|prior-merge|origin|size|product|fixer[+...] ...] \\
-        [--roster REF:PATH] [--guardrail N --p0 P]
+        [--roster REF:PATH] [--as-of T] [--guardrail N --p0 P]
 
 R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
 REST call, so no rate limit and no 403. `--fetch` first fetches
@@ -41,6 +41,13 @@ with no group. size, product: the PR's diff, `--tree`'s first-parent merge of
 it when there is one, else its last verdict's head against its merge base
 with `--tree`, delivery rows excluded; product means it touches
 `custom_components/` or `blueprints/`. `a+b` crosses two strata.
+
+AS OF (`--as-of T`, default the latest window's until). The four fact strata
+are taken as of T, so a verdict, merge or roster edit after T moves none of
+them: the last verdict is the last one before T, and `--tree` and the roster
+REF are each resolved to their last first-parent commit dated at or before
+T (both printed). Every figure is then a function of the bus, the two refs
+and T, not of a tip's position when it is run.
 first-pass m/n: of the PRs whose FIRST bus verdict falls in the window, the
 m whose first verdict is `merge`.
 
@@ -138,20 +145,33 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
     return out, outside
 
 
-def pr_facts(repo: Path, tree: str, roster: str | None, verdicts: list[dict]) -> dict[int, dict]:
-    """origin, fixer, size and product per PR (the strata needing more than the bus)."""
+def as_of(repo: Path, ref: str, t: datetime) -> str:
+    """`ref`'s last first-parent commit dated at or before `t`; refuses when it has none."""
+    sha = git(repo, "rev-list", "-1", "--first-parent", f"--before={t.isoformat()}", ref).strip()
+    if not sha:
+        raise SystemExit(f"review_strength: {ref} has no commit at or before {t:%Y-%m-%dT%H:%MZ}")
+    return sha
+
+
+def pr_facts(repo: Path, tree: str, roster: str | None, verdicts: list[dict],
+             until: datetime) -> dict[int, dict]:
+    """origin, fixer, size and product per PR (the strata needing more than the bus), as of `until`."""
     groups = {}
+    tree = as_of(repo, tree, until)
+    ref = ""
     if roster:
         ref, path = roster.split(":", 1)
+        ref = as_of(repo, ref, until)
         for g in json.loads(git(repo, "show", f"{ref}:{path}"))["groups"]:
             groups[g["group"]] = g
+    print(f"facts as of {until:%Y-%m-%dT%H:%MZ}: tree {tree[:12]} roster {ref[:12] or '-'}")
     merges = {}
     for line in git(repo, "log", "--first-parent", "--format=%H%x09%P%x09%s", tree).splitlines():
         sha, parents, subj = line.split("\t", 2)
         m = MERGE_RE.match(subj)
         if m and len(parents.split()) == 2 and int(m[1]) not in merges:
             merges[int(m[1])] = (sha, parents.split()[1], m[2])
-    last = {v["pr"]: v["head"] for v in verdicts}
+    last = {v["pr"]: v["head"] for v in verdicts if v["t"] < until}
     facts = {}
     for pr, head in last.items():
         row = git(repo, "show", f"{tree}:dev/programme/delivery/{pr}.md", check=False)
@@ -250,6 +270,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--by", action="append", default=[], metavar="S[+S...]",
                     help="one of " + ", ".join(STRATA) + "; joined with + to cross them")
     ap.add_argument("--roster", metavar="REF:PATH")
+    ap.add_argument("--as-of", metavar="T", help="the time the fact strata are taken at; default the latest window's until")
     ap.add_argument("--guardrail", type=int, metavar="N")
     ap.add_argument("--p0", type=float, metavar="P", help="the baseline incidence; required with --guardrail")
     ap.add_argument("--real-extra", default="", metavar="W[,W...]",
@@ -274,12 +295,13 @@ def main(argv: list[str]) -> int:
     verdicts, outside = load(repo, a.remote, REAL_CATCH | extra)
     if extra:
         print(f"REAL = the study's list + {', '.join(sorted(extra))}")
-    facts = pr_facts(repo, a.tree, a.roster, verdicts) if FACT_STRATA & used else {}
     wins = []
     for w in a.window:
         name, span = w.split("=", 1)
         f, u = span.split("..", 1)
         wins.append((name, when(f), when(u)))
+    t = when(a.as_of) if a.as_of else max(u for _, _, u in wins)
+    facts = pr_facts(repo, a.tree, a.roster, verdicts, t) if FACT_STRATA & used else {}
     print(f"verdicts on the bus: {len(verdicts)}; outside the grammar: {len(outside)}")
     for s in outside:
         print(f"  outside: {s[:100]}")
@@ -381,6 +403,55 @@ def self_test() -> int:
               guardrail(vlist, c, 3, 0.5).endswith("incidence 2/3; P(X<=2|3,0.5) = 0.875 -> ok (report-only)"))
         check("guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020)",
               guardrail(vlist, b, 2, 0.99).endswith("= 0.020 -> would-trip (report-only)"))
+
+        # pr_facts: a roster, delivery rows, a merged PR (5) and an unmerged one (6).
+        def mk(parent: str | None, files: dict[str, str], msg: str, t: str) -> str:
+            ix = {"GIT_INDEX_FILE": str(R / ".git" / "fixture-index")}
+            g("read-tree", *([parent.split()[0]] if parent else ["--empty"]), e=ix)
+            for path, text in files.items():
+                (R / "blob").write_text(text)
+                g("update-index", "--add", "--cacheinfo", f"100644,{g('hash-object', '-w', str(R / 'blob'))},{path}", e=ix)
+            return g("commit-tree", g("write-tree", e=ix), *(x for q in (parent or "").split() for x in ("-p", q)),
+                     "-m", msg, e={**ix, "GIT_COMMITTER_DATE": t, "GIT_AUTHOR_DATE": t})
+
+        lines = lambda n: "".join(f"{i}\n" for i in range(n))
+        grp = lambda name, issues, fixer: dict(group=name, issues=issues, model=dict(fixer=fixer))
+        r1 = mk(None, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet")]))},
+                "roster", "2026-10-01T00:00:00Z")
+        r2 = mk(r1, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet")]))},
+                "roster: R1-FIND loses its issues", "2026-10-05T12:00:00Z")
+        g("update-ref", "refs/remotes/origin/roster", r2)
+        m0 = g("rev-parse", "main")
+        m1 = mk(m0, {"dev/programme/delivery/6.md": "| 6 | R1-GRP |\n"}, "row 6", "2026-10-01T12:00:00Z")
+        c1 = mk(m1, {"custom_components/x.py": lines(20)}, "pr 5 first", "2026-10-02T01:00:00Z")
+        c2 = mk(c1, {"custom_components/x.py": lines(160)}, "pr 5 second", "2026-10-02T03:00:00Z")
+        m2 = mk(f"{m1} {c2}", {"custom_components/x.py": lines(160)},
+                "Merge pull request #5 from tvofi/fix/r1-find", "2026-10-03T00:00:00Z")
+        m3 = mk(m2, {"dev/programme/delivery/5.md": "| 5 | R1-FIND |\n"}, "row 5", "2026-10-03T01:00:00Z")
+        g("update-ref", "refs/heads/main", m3)
+        d1 = mk(m1, {"docs/y.md": lines(20)}, "pr 6 first", "2026-10-02T01:00:00Z")
+        d2 = mk(d1, {"custom_components/z.py": lines(5)}, "pr 6 second", "2026-10-05T00:00:00Z")
+        verdict(rv(5), f"verdict: #5 Fix review: merge {c1}", N[9], "2026-10-02T02:00:00Z")
+        verdict(rv(6), f"verdict: #6 Fix review: blocked {d1} harness: x", N[9], "2026-10-02T02:00:00Z")
+        verdict(rv(6), f"verdict: #6 Fix review: merge {d2}", N[9], "2026-10-05T01:00:00Z")
+        fv = load(R, "origin")[0]
+        f4 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-04T00:00Z"))
+        f6 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-06T00:00Z"))
+        fb = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-02T12:00Z"))
+        check("origin: a group listing issues is finding, one listing none is group",
+              (f4[5]["origin"], f4[6]["origin"]) == ("finding", "group"))
+        check("fixer: the joined group's model.fixer, opus for 5 and sonnet for 6",
+              (f4[5]["fixer"], f4[6]["fixer"]) == ("opus", "sonnet"))
+        check("size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)",
+              (f4[5]["size"], f4[6]["size"]) == ("M<600", "S<150"))
+        check("product: 5 touches custom_components/, 6 only docs/",
+              (f4[5]["product"], f4[6]["product"]) == (True, False))
+        check("as of: a verdict after T moves no fact (6's later head is product, read only after it)",
+              f6[6]["product"] is True and f4[6]["product"] is False)
+        check("as of: the roster is read at T (R1-FIND loses its issues after 10-05T12)",
+              f6[5]["origin"] == "group")
+        check("as of: --tree is read at T (before the merge, 5 reads its verdict head and no row)",
+              (fb[5]["size"], fb[5]["origin"]) == ("S<150", "none"))
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

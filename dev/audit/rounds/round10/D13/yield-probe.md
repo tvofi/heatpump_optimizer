@@ -8,10 +8,17 @@ This file is a measurement record. Every figure in it was taken over git from
 the `review/*`, `verdict/*` and `probe/*` refs and the `archive/probe/*` tags,
 using the tool and windows below. No REST call was made.
 
-Measured 2026-10-21T15:24Z. `origin/main` was at `e7c664856776`, and the roster
-was `origin/fix/audit-r10-roster` at `802b38503eb5`. Every window is closed
-(it ends at or before 15:15Z). The bus is append-only, so a re-run gives the
-same counts unless `prune_refs.py` removes a ref first.
+First measured 2026-10-21T15:24Z; the fact strata (origin, size, product,
+fixer) were re-taken 2026-10-21T21:00Z under the tool's as-of rule. The bus
+counts are cut by window: every window ends at or before 15:15Z, and a
+verdict counts by its committer time. The fact strata are cut at `--as-of`,
+which defaults to the latest window's until (15:15Z): the last verdict before
+it, and `origin/main` and the roster ref each resolved to their last
+first-parent commit at or before it. The tool prints both: `tree
+e7c664856776 roster 2c76c3128bf6` (`origin/handoff/audit-r10-roster`). The
+reviewer kind still reads the probe refs, archive tags and `verdict/*`
+copies present at the fetch, so a ref pruned without its archive tag would
+move a verdict from cloud to local.
 
 ## The instrument and its rule
 
@@ -42,7 +49,7 @@ python3 tools/audit/seat/review_strength.py --fetch \
   --window P1=2026-10-15T12:37Z..2026-10-18T08:00Z --window P2=2026-10-18T08:00Z..2026-10-19T14:50Z \
   --window L1=2026-10-19T14:50Z..2026-10-21T13:00Z --window S=2026-10-21T13:00Z..2026-10-21T15:15Z \
   --by kind --by prior-merge --by origin --by size --by product --by fixer --by class --by kind+origin \
-  --roster origin/fix/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
+  --roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json
 ```
 
 What each window covers:
@@ -70,8 +77,9 @@ What each window covers:
 The study's 47 / 0.15 reproduces only as the 48 h ending between 14:45Z and
 15:00Z on 10-21 (a 15-minute sweep of the end time). The same 48 h ending at
 11:00Z, the study window's own end, holds 35 PRs and 0.06 (2). The 0.15 window
-therefore includes the 13:00Z sample, and 5 of its 7 real blocks are the
-sample's. The fall ran in two steps: from 0.90 to 0.36 at P1 → P2, then from
+therefore includes the start of the 13:00Z sample: with L ending at 14:50Z
+(47 PRs, 7 real), 4 of its 7 real blocks are the sample's (`--window
+L13=2026-10-21T13:00Z..2026-10-21T14:50Z`). The fall ran in two steps: from 0.90 to 0.36 at P1 → P2, then from
 0.36 to 0.08 at P2 → L1.
 
 ## Each candidate, stratified, with its null control
@@ -127,7 +135,8 @@ across P2, L1 and S. The deep trough is L1's local seats, at 0 real blocks in
 - the next session's seats, named `reviewer`.
 
 **The reviewer's model is not recorded per verdict.** The ledger records it
-for 18 verdicts (10 Opus, 8 Sonnet) and ends at 10-20T13:34Z. `nudge.md`'s
+for 18 verdicts (10 Opus, 8 Sonnet; read by hand from the ledger, no tree
+instrument re-derives it) and ends at 10-20T13:34Z. `nudge.md`'s
 rule (a dead Opus seat is replaced on grok-4.7-high) leaves no trace on the
 bus. A model stratum could only be taken from the roster's planned
 `reviewerModel` (Opus for every group), which measures the plan, not the seat.
@@ -206,7 +215,9 @@ The extension moves only the windows where the words occur.
 One class per subject did not hide many catches. Of the bookkeeping-blocked
 subjects, the ones that name a real class after `also` number 0 of 8 in P1,
 1 of 31 in P2 (#2396: `conflict: … also harness: class-open`), 0 of 20 in L1
-and 0 of 5 in S.
+and 0 of 5 in S. These four counts came from a one-off regex over the
+subjects that is not in the tree, so no instrument re-derives them; they
+support no figure above.
 
 ## The explanation
 
