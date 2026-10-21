@@ -24,66 +24,44 @@ KILL arm therefore asserts only that its lock does not go stale.
 
 ## Head
 
-`9719443b11887558f2ef918de5cff646683967c1` -- everything below was measured at that head.
-`prepr` ran with `PREPR_SKIP_CLOSURES=1` (owner ruling in force), so its closure derivation was
-skipped; the scoped gate was derived separately and is in `## Figures`.
+`6ff10e62b3f7b8d38fd3ecab5e23aa71a9f3553d` -- everything below was measured at that head (merge base `df6ca4bc6858f2796f694035e6f53e46e237e33b`, the tip of `origin/main` at 2026-10-21T08:40Z).
+`prepr` ran with `PREPR_SKIP_CLOSURES=1` (tvofi, 2026-10-21), so its closure derivation was skipped; the scoped gate was derived separately and is in `## Figures`.
 
 ## Mutation proof
 
-Two, each on the committed head and restored byte-identical afterwards (`git checkout --`, sha1
-`57d9cdb4419e93c93397ad9be596dda696645533` compared before and after).
+Two, each made on a copy of the head's `tools/audit/seat`, `tools/pr` and `tests/throwaway_git.sh` (the self-test reads its scripts from its own directory), so the worktree stays byte-identical to the committed head.
 
-- The reap's kill line (`pr_kill`'s `kill -"$1" "$2"`, marked `# mut:stop`): with it deleted the
-  self-test's survivor arms record the tree alive after TERM --
-  `mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives` passes
-  for both `open_pr.sh` and `update_pr.sh`, against
-  `open_pr: TERM reaps the whole descendant tree, and the pusher is gone` and
-  `update_pr: TERM reaps the whole descendant tree, and the pusher is gone` on the unmutated tree.
-  The checks that go red are the two survivor arms (the mutant arm's own assertion is the survivor
-  count being non-zero).
-- The by-pid rule: with `pr_reap` widened by a pattern --
-  `PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$(pgrep -f "$REAP_DIR/unrelated-sleep" 2>/dev/null || :)` --
-  the self-test printed `62 checks, 2 failed`, the failures being
-  `open_pr: the null control -- an unrelated sleeper survives` and
-  `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not
-  start`. The survivor arms stayed green and the run printed its own tally and exit status -- a
-  reddening, not a crash.
+- The reap's kill line (`pr_kill`'s `kill -"$1" "$2"`, marked `# mut:stop`) replaced by `:`: `bash tools/audit/seat/pr_args.sh --self-test` printed `62 checks, 2 failed`, the failures being `open_pr: TERM reaps the whole descendant tree, and the pusher is gone` and `update_pr: TERM reaps the whole descendant tree, and the pusher is gone`; the unmutated copy prints `62 checks, 0 failed`.
+- The by-pid rule: `pr_reap` widened by a pattern, `PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$(pgrep -f "$REAP_DIR/unrelated-sleep" 2>/dev/null || :)` placed after `pr_descendants $$`: the self-test printed `62 checks, 2 failed`, the failures being `open_pr: the null control -- an unrelated sleeper survives` and `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start`. The survivor arms stayed green and the run printed its own tally and exit status -- a reddening, not a crash.
 
-Failing test first: the same arms against the unmodified production scripts at base `e2a4745`
-printed `62 checks, 3 failed` -- `open_pr: TERM reaps the whole descendant tree`,
-`update_pr: TERM reaps the whole descendant tree` and
-`update_pr: after the stop the lock is free, so the next run takes it`; at the head they print
-`0 failed`.
+Failing test first: the head's self-test arms run against the merge base's `open_pr.sh`, `update_pr.sh` and `app_push.sh` (the head's `pr_args.sh` carries the arms) printed `62 checks, 3 failed` -- `open_pr: TERM reaps the whole descendant tree, and the pusher is gone`, `update_pr: TERM reaps the whole descendant tree, and the pusher is gone` and `update_pr: after the stop the lock is free, so the next run takes it`; at the head they print `0 failed`.
 
 ## Null control
 
-The unmodified tree leaves the stub's whole tree alive after TERM: all four pids the stub recorded
-(itself, a parent sleeper and the two levels below it) were alive a second after the signal, and
-the pusher's trap had not run. At the head the same four are gone. A run that succeeds (the stub
-exits 0) leaves nothing behind either, and a bystander sleeper started outside any pusher's tree
-survives both the TERM and the successful run, so the reap kills only what it started -- those are
-the two null-control arms above, and both pass at base as well.
+The unmodified scripts leave the stub's whole tree alive after TERM: the three failing arms above are that measurement (the stub records its pids, the arm counts the survivors and asserts 0, and the base scripts leave them alive with the pusher's trap never run). At the head the same arms pass. A run that succeeds (the stub exits 0) leaves nothing behind either, and a bystander sleeper started outside any pusher's tree survives both the TERM and the successful run, so the reap kills only what it started -- those are the two null-control arms, which pass at the base scripts as well.
 
 ## Figures
 
+All commands run at `6ff10e62b` in the worktree; the script's own last line and exit code.
 - `MODE: SCOPED -- 0 script(s) run, 33 scoped out` -- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` (four changed files under `tools/`; no recorded closure names any of them)
-- `pr_args self-test: 62 checks, 0 failed` at this head; `3 failed` for the same arms at base -- `bash tools/audit/seat/pr_args.sh --self-test`
+- `pr_args self-test: 62 checks, 0 failed` at this head, `3 failed` for the same arms against the merge base's pushers (Mutation proof) -- `bash tools/audit/seat/pr_args.sh --self-test`
 - `app_push self-test: 135 checks, 0 failed` -- `bash tools/pr/app_push.sh --self-test`
 - `STRUCTURE RATCHET PASSED` -- `python3 tests/structure.py`
 - `ALL 124 closure shrink pins PASSED` -- `python3 tests/closure.py selftest`
-- `claims hygiene: e2a47458f3a985c253995eeb699cac012e743bc9 ok` -- `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`
+- `claims hygiene: df6ca4bc6858f2796f694035e6f53e46e237e33b ok` -- `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`
 - `tmp_paths: 0 refused, 0 stale allow entries at HEAD` -- `python3 -I tools/audit/seat/tmp_paths.py --check`
-- Survivor rule, not a number: an arm counts the pids the stub recorded still alive and asserts exactly 0 after TERM; the base tree leaves all of them alive -- `bash tools/audit/seat/pr_args.sh --self-test`
+- Survivor rule, not a number: an arm counts the pids the stub recorded still alive and asserts exactly 0 after TERM; the base scripts leave them alive -- `bash tools/audit/seat/pr_args.sh --self-test`
 
 ## Red checks
 
-none
+- `pr-contract`, at the previous head: three `UNROUTED` items under `## Forward-carry` and `## Friction` (a `none -- ...` line is an item, and the friction lines carried no `Carry:` marker), while this section said none. The cheaper detector is `python3 -I tools/audit/carry_audit.py check --body <body>`, which this body now passes; `tools/pr/prepr.sh` does not call it, so only `pr-contract` ran it. Standing cost of running it by hand before a push: one local command that reads the roster ref. The recurring class is open as #2428.
+- `nightly-status`: grades `main`, not this branch. The nightly `slow` lane's `loop_cpu_ratio` is over budget, and the separate `r10-replay-cap` work fixes it. This diff touches only `tools/audit/seat/` and `tools/pr/` pushers, which that lane does not read.
 
 ## Forward-carry
 
-none -- no finding here changes how a later stage must work.
+none
 
 ## Friction
 
-- daemonize-instrument: cost: `daemonize.py` treats any `--self-test` in its argv as its own self-test, so `--log L -- bash tool --self-test` ran the launcher's self-test and silently skipped the command; put the child in `bash -c` around it
-- entity-classification: unenforced: the shared `.git/info/exclude` carries a `seat/` pattern, so `git add tools/audit/seat/<new file>` refuses as ignored while tracked files still stage -- a new instrument there would silently not be added
+- daemonize-instrument: cost: `daemonize.py` treats any `--self-test` in its argv as its own self-test, so `--log L -- bash tool --self-test` ran the launcher's self-test and silently skipped the command; put the child in `bash -c` around it. Carry: R10-ORCH-MACHINERY
+- entity-classification: unenforced: the shared `.git/info/exclude` carries a `seat/` pattern, so `git add tools/audit/seat/<new file>` refuses as ignored while tracked files still stage -- a new instrument there would silently not be added. Carry: dismissed: a per-clone exclude entry on this box, not tracked repository state, so no tree change can fix it
