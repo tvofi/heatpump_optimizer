@@ -1,0 +1,13 @@
+diff --git a/tests/nightly_status.py b/tests/nightly_status.py
+index 260808149..a5a48dfff 100644
+--- a/tests/nightly_status.py
++++ b/tests/nightly_status.py
+@@ -160,7 +160,7 @@ MAX_AGE_NIGHTS = 2
+ # `tests/entities.py` pins the period against the workflow's own `cron:`.
+ SCHEDULE_PERIOD = dt.timedelta(days=1)
+ SCHEDULE_LATENCY = dt.timedelta(hours=1)
+-NEW_WINDOW = SCHEDULE_PERIOD + SCHEDULE_LATENCY
++NEW_WINDOW = 2 * SCHEDULE_PERIOD
+ 
+ # GitHub's word for a workflow whose schedule may fire. Every other `state`
+ # (`disabled_inactivity`, `disabled_manually`, `disabled_fork`, `deleted`) is a

@@ -1,0 +1,16 @@
+== base fef4a1351
+RESULT young-9h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT edge-24.9h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT edge-25.0h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT late-26h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT late-72h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT disabled-9h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+RESULT norecord-9h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The cron is daily, so this is the schedule not firing -- GitHub disables schedules on rep
+== wt 48e8c29b7
+RESULT young-9h state=NEW exit=0 inactivity_claim=False :: NIGHTLY NEW: the workflow is active and GitHub registered it 9.0 h ago (2026-10-22T08:05:56+00:00); no scheduled run exists yet, and none is owed before its fir
+RESULT edge-24.9h state=NEW exit=0 inactivity_claim=False :: NIGHTLY NEW: the workflow is active and GitHub registered it 24.9 h ago (2026-10-22T08:05:56+00:00); no scheduled run exists yet, and none is owed before its fi
+RESULT edge-25.0h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   GitHub reports the workflow 'active', registered 25.0 h ago (2026-10-22T08:05:56+00:00), 
+RESULT late-26h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   GitHub reports the workflow 'active', registered 26.0 h ago (2026-10-22T08:05:56+00:00), 
+RESULT late-72h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   GitHub reports the workflow 'active', registered 72.0 h ago (2026-10-22T08:05:56+00:00), 
+RESULT disabled-9h state=ABSENT exit=1 inactivity_claim=True :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   GitHub reports the workflow's state as 'disabled_inactivity': its schedule does not fire.
+RESULT norecord-9h state=ABSENT exit=1 inactivity_claim=False :: NIGHTLY ABSENT: no scheduled run of the workflow was found at all. |   The workflow's own record was not read, so neither its state nor its age is known; no run

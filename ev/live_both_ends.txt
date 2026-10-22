@@ -1,0 +1,17 @@
+== base
+NIGHTLY ABSENT: no scheduled run of the workflow was found at all.
+  The cron is daily, so this is the schedule not firing -- GitHub disables schedules on repositories with no recent activity -- and not a pass.
+
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+
+A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+    gh workflow run nightly.yml --ref main
+and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+rc=1
+== wt
+NIGHTLY NEW: the workflow is active and GitHub registered it 14.7 h ago (2026-10-22T08:05:56+00:00); no scheduled run exists yet, and none is owed before its first cron slot.
+  This turns ABSENT at 25 h -- one cron period plus an hour of schedule latency -- if no run has appeared by then. It is not a pass: nothing has run.
+
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+rc=0

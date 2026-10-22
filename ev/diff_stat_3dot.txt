@@ -1,0 +1,5 @@
+ dev/programme/delivery/2627.md |   1 +
+ tests/entities.py              |  89 ++++++++++++++++++++++++++-
+ tests/nightly_status.py        | 133 +++++++++++++++++++++++++++++++++--------
+ 3 files changed, 197 insertions(+), 26 deletions(-)
+merge-base fef4a1351db3e8e328d714e84299284c6876eecb origin/main fef4a1351db3e8e328d714e84299284c6876eecb head 48e8c29b7ffe23df442d563b7ae81d81e7475d4e
