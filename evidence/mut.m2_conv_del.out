@@ -1,7 +1,0 @@
-rc=1
-  FAIL #2223: the hour shape waits for the heat-loss level  [profile [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.8940000000000015, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3] after 8 heat-loss samples]
-  FAIL #2223: a heat-loss level exactly on the confidence threshold has converged  [on the threshold True, one sample under True]
-  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-  ok   a pump command that FAILED is not remembered as done
-2 of 4289 FEATURE CHECKS FAILED

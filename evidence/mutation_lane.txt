@@ -1,0 +1,7 @@
+mutation job 119517668864 at d48018b80be11a2029e8492590a1a9e4b3a2eae9 (from the job log):
+  baseline tests/env_drift.py: rc=0 failed=0; baseline tests/features.py: rc=0 failed=0; baseline tests/entities.py: rc=0 failed=0
+  null control accuracy.py:49 NULL_COMMENT survived every driver
+  PIN RE-VERIFICATION: 6 reproduced, 0 not reproduced, 0 not re-verified
+  0 survivor(s) of 6 evaluated = 0.0%, cap 20.0%
+  MUTATION TABLE PASSED
+nightly-status job 119517670006: NIGHTLY FAILED: mutation-nightly, slow failed last night. scheduled run 39563978649 (main, head c77f89d). "This check is NOT one of the required contexts on main-protect"
