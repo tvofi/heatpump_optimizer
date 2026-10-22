@@ -59604,9 +59604,26 @@ R.check(
 # Null control, exact: that scalar-valued solve ships the same plan bit for
 # bit -- the fusion is value-neutral, because a batched row is the scalar
 # objective (the batched simulation's contract, #97).
+import contextlib as _r10s_ctx  # noqa: E402
+from unittest import mock as _r10s_mock  # noqa: E402
+
+from profiles import house as _r10s_house, prices as _r10s_prices  # noqa: E402
+from profiles import weather as _r10s_weather  # noqa: E402
+from heatpump_optimizer import optimizer as _r10s_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _r10s_Opt,
+    OptimizationConfig as _r10s_Cfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _r10s_Model,
+    ThermalParameters as _r10s_Params,
+    ThermalState as _r10s_State,
+)
+
+
 def _r10s_scalar_valued_run(objective, fused, x0, bounds, args, maxiter):
     """The pre-fusion run: ``f`` from the scalar, the gradient from the batch."""
-    return _f21_optmod._scoped_minimize(
+    return _r10s_optmod._scoped_minimize(
         objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
         jac=lambda x, *a: fused(x, *a)[1],
         options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
@@ -59615,25 +59632,25 @@ def _r10s_scalar_valued_run(objective, fused, x0, bounds, args, maxiter):
 
 def _r10s_solve(run=None):
     """A two-zone, level-clamped space solve; every L-BFGS-B run metered."""
-    cfg = _f21_house(two_zone=True, dhw=False)
-    params = _f21_Params.from_config(cfg)
+    cfg = _r10s_house(two_zone=True, dhw=False)
+    params = _r10s_Params.from_config(cfg)
     params.dhw_enabled = False
-    opt = _f21_Opt(_f21_Model(params), _f21_Cfg(
+    opt = _r10s_Opt(_r10s_Model(params), _r10s_Cfg(
         horizon_hours=24, time_step_minutes=15,
         target_temp=cfg["target_temperature"],
         min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
         clamp_planned_levels=True,
     ))
     t0 = datetime(2026, 1, 15, 0, 0)
-    out, wind, rain, sun = _f21_weather("winter_cold", t0)
-    state = _f21_State(
+    out, wind, rain, sun = _r10s_weather("winter_cold", t0)
+    state = _r10s_State(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, slab_temperature=22.0,
         outdoor_temperature=float(out[0]),
     )
     runs, live = [], []
-    real_sm = _f21_optmod._scoped_minimize
-    real_traj = _f21_Model.simulate_trajectory
+    real_sm = _r10s_optmod._scoped_minimize
+    real_traj = _r10s_Model.simulate_trajectory
 
     def traj(self, *a, **k):
         for rec in live:
@@ -59653,12 +59670,12 @@ def _r10s_solve(run=None):
         finally:
             live.remove(rec)
 
-    with _f21_mock.patch.object(_f21_optmod, "_scoped_minimize", sm), \
-            _f21_mock.patch.object(_f21_Model, "simulate_trajectory", traj), \
-            (_f21_mock.patch.object(_f21_optmod, "_lbfgsb_run", run, create=True)
-             if run is not None else _g341ctx.nullcontext()):
+    with _r10s_mock.patch.object(_r10s_optmod, "_scoped_minimize", sm), \
+            _r10s_mock.patch.object(_r10s_Model, "simulate_trajectory", traj), \
+            (_r10s_mock.patch.object(_r10s_optmod, "_lbfgsb_run", run, create=True)
+             if run is not None else _r10s_ctx.nullcontext()):
         res = opt.optimize(inputs=solve_inputs(
-            initial_state=state, prices=_f21_prices("winter_typical", t0),
+            initial_state=state, prices=_r10s_prices("winter_typical", t0),
             outdoor_temps=out, wind_speeds=wind, precipitation=rain,
             solar_radiation=sun, start_time=t0,
         ))
