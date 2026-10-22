@@ -653,6 +653,14 @@ INERT_EXCEPT = (
     # R9-WEB-3: the same arm opens the stylesheet the built pages link, to refuse
     # a third-party @import or url() in it; the route docs/index.html took.
     "docs/site/docs.css",
+    # R10-ARCH-DOCS-FIRST: the coffee-button arm opens the README button's SVG
+    # to compare its light and dark colours with docs.css's tokens, and the
+    # doc-wiring arm opens the round-10 roster to resolve the target markers
+    # (only when a marker is present). Same route as the stylesheet above: the
+    # docs/ and dev/programme/ prefixes stay INERT, the two files move to
+    # doc_claims.py's recorded closure.
+    "docs/img/brand/coffee.svg",
+    "dev/programme/rosters/wave-r10-groups.json",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
