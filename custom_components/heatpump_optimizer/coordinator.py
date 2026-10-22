@@ -924,6 +924,36 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     return heat_kw
 
 
+def _replay_step(
+    model: ThermalModel,
+    state: ThermalState,
+    power: float,
+    outdoor: float,
+    weather: tuple[float, float],
+    dt_h: float,
+    hour_of_day: float,
+    measured_heat_kw: float | None,
+) -> ThermalState:
+    """The interval replay's model step: the worker's job, shipped by name (P10)."""
+    wind_speed, precipitation = weather
+    return model.simulate_step(
+        state,
+        power,
+        outdoor,
+        wind_speed=wind_speed,
+        precipitation=precipitation,
+        solar_radiation=state.solar_radiation,
+        dt_hours=dt_h,
+        # #53: the replay must predict with the learned per-hour profile,
+        # or its residuals never re-centre and the gains learner becomes
+        # an open-loop integrator converging to α/ridge times the true
+        # correction. None-profile (flag off, nothing learned) makes this
+        # byte-inert.
+        hour_of_day=hour_of_day,
+        measured_heat_kw=measured_heat_kw,
+    )
+
+
 async def _replay_interval(
     coord: Any,
     previous_state: Any,
@@ -942,25 +972,15 @@ async def _replay_interval(
     :func:`_interval_measured_heat_kw`, rather than twice, and ``label`` keeps
     the debug line a failed simulation leaves naming its learner -- the only
     thing the two copies ever differed in besides a comment. The inputs are
-    read here, on the loop; the step runs in the process worker (P10).
+    read here, on the loop; :func:`_replay_step` runs in the process worker.
     """
     try:
-        wind_speed, precipitation = coord._current_weather()
-        return await _await_off_loop(coord.hass, functools.partial(
-            coord._thermal_model.simulate_step,
-            previous_state, previous_power, outdoor,
-            wind_speed=wind_speed,
-            precipitation=precipitation,
-            solar_radiation=previous_state.solar_radiation,
-            dt_hours=dt_h,
-            # #53: the replay must predict with the learned per-hour profile,
-            # or its residuals never re-centre and the gains learner becomes
-            # an open-loop integrator converging to α/ridge times the true
-            # correction. None-profile (flag off, nothing learned) makes this
-            # byte-inert.
-            hour_of_day=previous_time.hour + previous_time.minute / 60.0,
-            measured_heat_kw=_interval_measured_heat_kw(coord),
-        ))
+        return await _await_off_loop(
+            coord.hass, _replay_step, coord._thermal_model, previous_state,
+            previous_power, outdoor, coord._current_weather(), dt_h,
+            previous_time.hour + previous_time.minute / 60.0,
+            _interval_measured_heat_kw(coord),
+        )
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
         return None
@@ -1601,10 +1621,10 @@ def _recovery_off_loop(
     house = replace(live)
 
     async def estimate(target_temp: float) -> float:
-        return await _await_off_loop(
+        return float(await _await_off_loop(
             hass, away_mode.estimate_recovery_hours,
             model, house, target_temp, house.outdoor_temperature,
-        )
+        ))
 
     return estimate
 

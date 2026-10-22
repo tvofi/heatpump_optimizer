@@ -95,7 +95,6 @@ import argparse
 import asyncio
 import contextlib
 import dataclasses
-import functools
 import importlib
 import io
 import json
@@ -1325,8 +1324,8 @@ def kernel_routes(arm: str, hours: float) -> dict:
 
     def callers() -> set[str]:
         # Every package frame below the kernel: the parent's frames stay on
-        # this stack through the in-process worker, so a job handed over as
-        # a ``partial`` still names the function that handed it.
+        # this stack through the in-process worker, so a job shipped by name
+        # (``_replay_step``) still names the function that handed it over.
         out, f = set(), sys._getframe(2)
         while f is not None:
             fn = f.f_code.co_filename.replace("\\", "/")
@@ -1336,9 +1335,6 @@ def kernel_routes(arm: str, hours: float) -> dict:
         return out
 
     def counted(real):
-        # Named as the kernel: a bound method pickles by name, so a job the
-        # tree hands the worker as one (``_replay_interval``) still unpickles.
-        @functools.wraps(real)
         def wrap(*a, **k):
             if not getattr(tl, "inside", 0):
                 route = ("worker" if getattr(tl, "worker", 0)
