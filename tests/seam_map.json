@@ -155,7 +155,6 @@
   "_price_model": "fetch",
   "_price_prior": "fetch",
   "_price_series": "fetch",
-  "_price_tile_specs": "fetch",
   "_pv_config": "core",
   "_pv_export_price": "fetch",
   "_pv_forecast": "core",
