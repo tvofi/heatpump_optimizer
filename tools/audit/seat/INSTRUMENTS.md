@@ -32,7 +32,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the `hpo-author` App, with the body's contract check before the push. When:
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
-  failing the contract check never reaches the remote.
+  failing the contract check never reaches the remote. `--row-only`
+  (`update_pr.sh`'s) replaces prepr with pr-contract's two body checks (the
+  contract, its red history read with prepr 7c's credential, and
+  `carry_audit.py check`) only when the head
+  is the live head plus one commit adding exactly that PR's own open row and
+  the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -278,6 +283,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+  `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
+  (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
+  push line replaced by `true` reddens it (#2444).
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -287,7 +295,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--mandate <comment-id>` and reads that #201 mandate live; `--ready` marks a
   draft ready. Refusal: a verdict or head mismatch stops the merge before the
   merge API call; a draft without `--ready`, or owner mode with no mandate in
-  force, refuses before anything posts.
+  force, refuses before anything posts. `--self-test` also drives the whole
+  script offline over a scratch clone and a fake `gh`, so the `gh pr merge …
+  --match-head-commit` line is pinned: replaced by `exit 0` it records no
+  merge and the null control reddens (#2444).
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through
@@ -550,6 +561,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   A no-op edit reproduces the roster's bytes exactly and reports `no change`
   instead of an empty commit — the round-trip the self-test pins, because a
   dump that misses the file's formatting rewrites all 7503 lines on any edit.
+  The edit is committed in a detached worktree and pushed as
+  `<sha>:refs/heads/<branch>`, never by a local branch name another run of
+  the same `--checkout` can reset. A push lost to a rival re-applies the op
+  on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
+  `--worktree` whose HEAD is on no origin ref is not reused.
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup), and the one owner of WHICH
   roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`
@@ -570,7 +586,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `origin/main` -- a finding, never a refusal. When:
   every `state_docs.py beat --apply` pass runs it; run it alone to see what a
   pass would write. Dry run by default; `--apply` writes through
-  `roster_edit.commit_roster()`, the one write path and lint gate. Refusals: an
+  `roster_edit.write_roster()`, the one write path, lint gate and push-race retry. Refusals: an
   unreadable pull-request read (never "no mismatches"), a `Carry:` to a done
   group, `--apply` with `--roster-file`; a human disposition (`deferred`,
   `refused` and every stage outside `DERIVABLE_STAGES`) is never rewritten,
@@ -582,13 +598,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
-- `selftest_wiring.py` — refuses a self-testing file under
-  `tools/audit/seat/` that no workflow `run:` line, comments removed, invokes
-  with its self-test (`--check`, `--self-test`). Runs first among the seat
-  steps of `instrument-self-tests`. When: adding a seat instrument with a
-  `--self-test`; add its step in the same pull request. Refusal: each unwired
-  file by path; a mention in a comment, a step name or a `--check` call does
-  not wire it.
+- `selftest_wiring.py` — refuses a self-testing file under `tools/` (widened
+  from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:`
+  line, comments removed, invokes with its self-test (`--check`,
+  `--self-test`). Runs first among the seat steps of
+  `instrument-self-tests`. When: adding a tool with a `--self-test`; add its
+  step in the same pull request. Refusal: each unwired file by path; a
+  mention in a comment, a step name or a `--check` call does not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
   pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,
@@ -684,7 +700,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
   origin/main (merge), adds the PR's own delivery row when the head lacks
   it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
-  `hpo-author`. When: updating a PR after review prep or a main merge.
+  `hpo-author`. With code sha `-` it asks `app_push.sh --row-only`, so a push
+  that only adds the row takes the body contract instead of the full prepr,
+  and prints app_push's `ROW-ONLY:` line naming which ran and why.
+  When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
   silently; no open PR at the branch stops before any push. Up front, each an
   `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a

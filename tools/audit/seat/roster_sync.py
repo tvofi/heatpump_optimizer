@@ -48,7 +48,7 @@ refusal of the pass, so it never stops the derived writes.
 
 THE WRITE PATH is `roster_edit.py`'s, not a second one: its ops, its
 load-validate-dump (`dump`) and its lint gate, through the one
-`commit_roster()` both callers use. A dry run is the default; `--apply`
+`write_roster()` both callers use, push race included. A dry run is the default; `--apply`
 writes. `--roster-file` is a read-only source: a file has no branch to push,
 so `--apply` with it is refused.
 
@@ -490,12 +490,10 @@ def sync(a) -> int:
         if not made:
             parent = Path(tempfile.mkdtemp(prefix="hpo-roster-sync-"))
             made = str(parent / "wt")
-        try:
-            roster_edit.prepare_worktree(a.checkout, ref, branch, made)
-            rel = roster_lib.roster_path(made, None, a.roster_path)
-            roster = json.loads((Path(made) / rel).read_text(encoding="utf-8"))
-            # Re-derive on the bytes this write path is about to replace, so
-            # the edit is computed from the file it lands in, never an older read.
+        def edit(roster) -> bool:
+            # Re-derive on the bytes this write path is about to replace --
+            # on every attempt of a push race -- so the edit is computed from
+            # the file it lands in, never an older read.
             changes, _, transitions = derive(roster, prs)
             projected = copy.deepcopy(roster)
             apply_plan(projected, changes, [])
@@ -503,13 +501,15 @@ def sync(a) -> int:
             if not changes and not appends:
                 print(f"roster_sync: {branch} already carries these; "
                       "nothing written")
-                return 0
+                return False
             apply_plan(roster, changes, appends)
+            return True
+
+        try:
             try:
-                rc = roster_edit.commit_roster(
-                    a.checkout, made, rel, roster, msg, True, branch,
-                    a.lint_cwd, label=(f"roster_sync ({len(changes)} stage, "
-                                       f"{len(appends)} carry)"))
+                rc = roster_edit.write_roster(
+                    a.checkout, ref, branch, made, a.roster_path, msg, True,
+                    a.lint_cwd, "roster_sync", edit)
             except roster_edit.Refuse as e:  # the write path's own refusal
                 _reset(made, base)
                 raise Refuse(str(e))
@@ -835,14 +835,15 @@ def self_test() -> int:
 
         # THE LINT GATE is in the path: a refused roster is never pushed.
         bare2, drv2, _ = build(root / "two", LINT_BAD)
-        rc, out, err = calls(drv2, state, "--apply")
+        wt2 = root / "wt-two"
+        rc, out, err = calls(drv2, state, "--apply", "--worktree", str(wt2))
         check("the lint gate refuses the push rc 3", rc == 3, (rc, out, err))
         check("and the branch did not land", branch not in branches(bare2),
               branches(bare2))
         check("and the refused pass leaves no local commit (the rc path's reset)",
-              git("-C", str(drv2), "rev-parse", f"refs/heads/{branch}")
+              git("-C", str(wt2), "rev-parse", "HEAD")
               == git("-C", str(bare2), "rev-parse", "refs/heads/main"),
-              git("-C", str(drv2), "log", "--oneline", "-3", branch))
+              git("-C", str(wt2), "log", "--oneline", "-3"))
 
         # RECORD-INVALID (design 6.4, item 3): resolution by prefix, not length.
         main_sha = git("-C", str(drv), "rev-parse", "origin/main")
@@ -871,32 +872,59 @@ def self_test() -> int:
               "not an ancestor of origin/main" in bad.get("C-OFF", ""), bad)
         check("an open group's handoff head off origin/main is valid",
               "C-OPEN" not in bad, bad)
-        check("a value outside the sha grammar is RECORD-INVALID",
-              "C-UPPER" in bad and "C-NULL" not in bad, bad)
+        check("a value outside the sha grammar is RECORD-INVALID, by the grammar",
+              "lowercase hex" in bad.get("C-UPPER", "")
+              and "C-NULL" not in bad, bad)
         check("an ambiguous prefix is RECORD-INVALID",
               "ambiguous" in (commit_verdict("abcdef1", ["a" * 40, "b" * 40],
                                              None) or ""))
         check("an unreadable ancestry is RECORD-INVALID, never valid",
               commit_verdict("abcdef1", ["a" * 40], None) is not None)
+        # The call sites, not the pure verdict: a prefix resolving only to a
+        # blob is no commit, and a checkout with no origin/main (rc 128) reads
+        # as unreadable ancestry, never as a valid done record.
+        blob = git("hash-object", "-w", "--stdin", cwd=str(drv),
+                   input_text="a blob, not a commit\n")
+        bad = dict(invalid_commits(str(drv), {"groups": [
+            {"group": "C-BLOB", "resume": {"stage": "done",
+                                           "commit": blob[:12]}}]}))
+        check("a prefix resolving only to a blob does not resolve to a commit",
+              "does not resolve" in bad.get("C-BLOB", ""), bad)
+        lone = root / "no-origin"
+        throwaway_git_init(lone, "-q")
+        git("-C", str(lone), "commit", "-q", "--allow-empty", "-m", "x")
+        head = git("-C", str(lone), "rev-parse", "HEAD")
+        bad = dict(invalid_commits(str(lone), {"groups": [
+            {"group": "C-NOMAIN", "resume": {"stage": "done", "commit": head}}]}))
+        check("a checkout with no origin/main reads the ancestry as unreadable",
+              "unreadable" in bad.get("C-NOMAIN", ""), bad)
+        # Groups sharing one topic share its pull requests: neither is the
+        # first group's alone.
+        twin = PR(77, MERGED, "fix/r9-twin", "f" * 40, "")
+        got = matches({"groups": [
+            {"group": "T-ONE", "resume": {"branch": "fix/r9-twin"}},
+            {"group": "T-TWO", "resume": {"branch": "handoff/r9-twin"}}]}, [twin])
+        check("groups sharing one topic share its pull requests",
+              got.get("T-ONE") == [twin] and got.get("T-TWO") == [twin], got)
 
         # A REFUSED PUSH is recoverable: the pass's local commit is dropped, so
-        # the next pass is not blocked by "unpushed commits would be lost".
+        # the next pass in the same --worktree is not refused for an unpushed
+        # edit (roster_edit.prepare_worktree's guard).
         bare3, drv3, _ = build(root / "three", LINT_OK)
         hook = bare3 / "hooks" / "pre-receive"
         hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
         hook.chmod(0o755)
-        rc, out, err = calls(drv3, state, "--apply")
+        wt3 = root / "wt-three"
+        rc, out, err = calls(drv3, state, "--apply", "--worktree", str(wt3))
         check("a refused push returns non-zero", rc != 0, (rc, err))
         check("and the branch did not land", branch not in branches(bare3),
               branches(bare3))
-        check("and no unpushed commit is left on the local branch "
+        check("and no unpushed commit is left in the worktree "
               "(it is back at the base it was cut from)",
-              git("-C", str(drv3), "rev-parse", f"refs/heads/{branch}")
+              git("-C", str(wt3), "rev-parse", "HEAD")
               == git("-C", str(bare3), "rev-parse", "refs/heads/main"))
-        check("the next pass's worktree check does not refuse an unpushed "
-              "branch", branch not in branches(bare3))
         hook.unlink()
-        rc, out, err = calls(drv3, state, "--apply")
+        rc, out, err = calls(drv3, state, "--apply", "--worktree", str(wt3))
         check("the retry lands once the refusal is cleared", rc == 0, (rc, err))
         check("and the retried roster carries the derived stage",
               roster_lib.groups_of(roster_at(bare3, branch))["R9-LIVE"]
