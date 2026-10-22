@@ -1,0 +1,8 @@
+# tests/harness_headers.py at head
+
+ALL 109 HARNESS HEADER CHECKS PASSED
+rc=0
+# strace-free check: does harness_headers.py glob dev/audit/harnesses?
+6:harnesses that issue named and compares each EXPECTED RESULT to the printed
+7:RESULT. Playwright and stress harnesses are not run here.
+79:    # 30-of-145 red on round 4 alone): finder harnesses are FROZEN EVIDENCE
