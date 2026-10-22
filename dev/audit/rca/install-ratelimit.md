@@ -229,3 +229,6 @@ kind instrument, size S, priority high: it sits on every merge), carrying M0, M1
 and M2 in one pull request (`.github/workflows/governance.yml`,
 `tools/policy/policy_lint.mjs`), and M3 or the cadence alternative as a separate
 owner decision before any code. Code-owned paths: the owner reviews.
+Until the orchestrator registers it, the carry is held by R10-CI-LAYOUT-P2, the
+only live group that already lists `governance.yml`; that group's brief should
+also correct HANDOVER item 44's "shared App quota" to the `GITHUB_TOKEN` bucket.
