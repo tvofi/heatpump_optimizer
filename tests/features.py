@@ -17484,8 +17484,9 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-# D4-04 (#168): the notice prices the shortfall in the instance's currency,
-# not in the SEK the placeholder used to be named after.
+# D4-04 (#168): the notice prices the shortfall in the coordinator's currency
+# (here, with no feed, the instance's), not in the SEK the placeholder used to
+# be named after.
 _eur_hass = _FakeHass(dict(_METER))
 _eur_hass.config.currency = "EUR"
 _eur_cop = _Coord(
@@ -20556,6 +20557,26 @@ R.check(
     "and a SEK feed in SEK",
     _d14s3_codes == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
     str(_d14s3_codes),
+)
+# R10-CURRENCY: the COP notice prices its shortfall from the same feed, so
+# it carries the feed's code too; the SEK feed is again the null control.
+_d14s3_cop = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_h = _r9p8_hass("SEK", _d14s3_unit)
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _d14s3_h, _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._measured_cop.cop = 2.4
+    _d14s3_c._raise_cop_issue(3.0)
+    _d14s3_cop[_d14s3_unit] = [
+        _i[2]["translation_placeholders"]["currency"]
+        for _i in getattr(_d14s3_h, "issues", []) if _i[1] == "cop_degradation"
+    ]
+R.check(
+    "R10-CURRENCY: the COP notice prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_cop == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_cop),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
