@@ -1,6 +1,8 @@
 # 0012 — Process diet: a moratorium on new process, a rotation cadence, and D14's stop rule
 
-Status: recorded 2026-09-24 from the round-8 convergence design and the
+Status: Revoked 2026-10-21 (owner addendum 6322712314); kept as history.
+Revoked by decision `0014-design-seats-and-the-end-of-0012s-moratorium.md`.
+Recorded 2026-09-24 from the round-8 convergence design and the
 owner's inputs in the round-8 audit thread, including the end date confirmed
 2026-09-24. Source: the design handed over 2026-09-23
 (`handoff/round8/design-rotation-and-D14.md` at commit
@@ -126,9 +128,13 @@ required together; any one failing resets the count.
 The panel shape under move 1 — one verifier per dimension, landed in `#1505` — is
 superseded by the three-verifier panel in `tools/audit/briefs/verifier.md` (two
 refutes with executed numbers kill at panel), from tvofi's round-9 ask of
-2026-09-25, in `#1627`. The rest of this record stands: the moratorium (`#1627`
-edits existing policy files and adds none), the cadence, the one enforcement
-point and D14's stop rule.
+2026-09-25, in `#1627`.
+
+## Revoked (2026-10-21)
+
+The owner revoked this whole record (ruling R16 and its addendum, #201
+comment 6322712314): nothing above binds a seat, and the file is kept as
+history only. Decision 0014 records the ruling.
 
 ## Approval
 

@@ -9,7 +9,7 @@ CLASS, not the code: ``corr(loop_cpu_ratio, ref_ms) = -0.94``, and it read
 (``tests/replay.py``'s ``reference_loop``) instead. This harness reports both
 halves of the evidence:
 
-  --series   fetch the tests.yml slow lane's clean cost lines from GitHub (the
+  --series   fetch the slow lane's clean cost lines from GitHub (tests.yml, then nightly.yml; the
              scheduled runs, and dispatches on main -- a feature branch's
              dispatch is not the series a cap gates) and
              print, split by ruler era: the BLAS-ruler figure's spread on the
@@ -68,7 +68,7 @@ def _gh(*args: str) -> str:
 
 
 def nightly_rows() -> list[dict]:
-    """One row per timed tests.yml slow lane's clean cost line, on main.
+    """One row per timed slow lane's clean cost line (tests.yml, then nightly.yml), on main.
 
     ``loop_ref_ms`` is what separates the two ruler eras: #2339 changed the
     figure normalised into ``loop_cpu_ratio`` from the BLAS solve to this
@@ -82,8 +82,12 @@ def nightly_rows() -> list[dict]:
     """
     rows, fails, no_job, no_logs, off_main = [], 0, 0, 0, 0
     first_fail = ""
-    for ev in ("schedule", "workflow_dispatch"):
-        ids = _gh("run", "list", "--repo", REPO, "--workflow", "tests.yml",
+    # The slow lane moved to nightly.yml (R10-CI-LAYOUT PR 1); both files are
+    # read, older runs from tests.yml and newer from nightly.yml, so the
+    # series stays continuous across the move.
+    for wf, ev in (("tests.yml", "schedule"), ("tests.yml", "workflow_dispatch"),
+                   ("nightly.yml", "schedule"), ("nightly.yml", "workflow_dispatch")):
+        ids = _gh("run", "list", "--repo", REPO, "--workflow", wf,
                   "--event", ev, "--limit", "60",
                   "--json", "databaseId,createdAt,headBranch",
                   "--jq", r'.[]|select(.createdAt>="2026-10-01")|'

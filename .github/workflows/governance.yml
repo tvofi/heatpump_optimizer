@@ -480,6 +480,17 @@ jobs:
           grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
           python3 -I tools/audit/seat/selftest_wiring.py --check
 
+      # The body-only PATCH (R10-FLOW-BODY-PATCH): a moved head refuses before
+      # any write, a body the contract refuses is never sent, --dry-run prints
+      # the request, and a mutant of each of the head, contract and read-back
+      # arms is caught -- over stubbed gh, curl, openssl and node: no network.
+      - name: Show the body PATCH refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
+          grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
       # a step here or it reddens that check; four that the carry's weaker
@@ -603,6 +614,13 @@ jobs:
           python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
 
+      - name: Show the plan page refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"
+          grep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"
+
       - name: Show the PR argument builder refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -677,6 +695,13 @@ jobs:
           python3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"
           grep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"
 
+      - name: Show the roster-sync reconciler refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"
+          grep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"
+
       - name: Show the twin-run reader refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -704,6 +729,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
           grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
+
+      - name: Show the heartbeat andon refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
+          grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}

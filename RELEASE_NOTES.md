@@ -1,4 +1,39 @@
+## v7.0.4
+
+**Round-10 docs stamp: the architecture, CI shape and development shape at programme end.** This is the stamp the owner asked for right after the docs delivery merges.
+
+User-visible changes:
+
+- Documentation: `docs/architecture.md` shows how the pieces fit, with the four-region diagram, and adds the shape at programme end. A new `dev/README.md` gives developers the `dev/` layout, the work order, the CI job graph and the orchestration machinery, with mermaid figures. `README.md` points developers to it (R10-ARCH-DOCS-FIRST, #2609).
+- A Buy Me a Coffee button sits at the top of `README.md` and in the footer of every documentation page, and it follows the site theme (#2609).
+
+Engineering and audit programme (round 10):
+
+- Roster: registrations, carries and queued operations (#2603, #2608), including the rate-limit RCA, record API budget and nightly heartbeat respawn groups.
+- Delivery record: delivery-status rows recorded by the record autofix job (#2607).
+
 # Heat Pump Cost Optimizer — Release Notes
+
+## v7.0.3
+
+**Round-10 interim stamp: flow, orchestration and CI instruments.** This stamp closes the window since v7.0.2 so that the record job walks a short range again; the large majority of the merges below are engineering-programme work, and the few user-visible changes come first.
+
+User-visible changes:
+
+- Pump learning: a defrost interval never teaches the frequency map (#2527); the heat-loss learners net the solar term out of the replay, so solar-aperture error is absorbed (#2563).
+- Savings: metered energy is booked under the cause that drew it (#2511); the replay documentation names the ruler factor range, not one end of it (#2514).
+- Advisor and card: Advisor owner items and deep-link conversion (#2572); deep-link handlers (#2452).
+- Documentation: statements that drifted from the code are corrected (#2521).
+- Dependencies: aiohttp 3.14.4 in both locks, three advisories (#2487); aiohttp, certifi, pillow and uv bumped and re-locked (#2544).
+
+Engineering and audit programme (round 10):
+
+- CI: the nightly lanes leave `tests.yml` (R10-CI-LAYOUT PR 1, #2585); every self-testing instrument is wired and the restore list is derived (#2529); the ratchet window fetch refuses rather than reading empty (#2531); the codeql analyze cap is raised to 45 (#2516); the replay loop-cpu ratio is re-recorded for the CI runner class (#2548); the gate lease queue serves critical-path groups first (#2526); the soft cap gates group dispatch, not opening (#2525).
+- Flow study: the body-only patch instrument (#2578); the dispatch group (#2577); the andon group (#2582); design seats and design review contracts (#2586); the plan artifact is built only by tracked instruments (#2558); the plan optimizer keeps the earliest CI attempt (#2517).
+- Orchestration tooling: roster sync derives resume state from pull requests (#2554); roster-edit gains set-after and drop-carry ops (#2513); the roster push race is closed (#2569); a row-only `update_pr.sh` push takes the body contract (#2567); `open_pr.sh` holds the branch lock (#2560); the tick keeps owed handoffs as a level file (#2547) and decouples the relay from its board (#2549); the tick no longer judges stale main reds (#2570); the merge-train pre-flight verdict-item barrier (#2571); the train prices its hold by refresh gap (#2519); `merge_pr.sh` owner mode reads the mandate through the budget gate (#2555); the cloud dispatch reviewer prompt names the head-in-evidence requirement (#2556); prepr prints the body error (#2591); the record body answers the main-state reporters (#2486); the handoff archive move (#2488).
+- Policy and root-cause records: the orchestrator contract pays its token cap (#2595); RCA records for the orphaned-handoff class (#2545), harness friction (#2561) and orchestrator continuity (#2557); the handover refresh (#2566); a pip bump supersedes #2534.
+- Roster: registrations, carries and queued operations (#2559, #2576, #2588, #2598, #2600, #2601).
+- Record and bot merges: the generated delivery-row and autofix pull requests (#2484, #2489, #2490, #2491, #2510, #2512, #2515, #2518, #2520, #2522, #2523, #2530, #2532, #2533, #2535, #2536, #2537, #2538, #2539, #2540, #2541, #2542, #2543, #2546, #2550, #2551, #2552, #2553, #2562, #2564, #2565, #2568, #2573, #2574, #2581, #2583, #2587, #2590, #2592, #2594, #2596, #2599, #2602, #2604).
 
 ## v7.0.2
 
