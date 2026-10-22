@@ -1,0 +1,63 @@
+RESULT mutant='M0 null' rc=0 summary=[('206', '0')] fails=0
+RESULT mutant='M1 no retry' rc=1 summary=[('206', '15')] fails=15
+    FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+    FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+    FAIL after one settle of 5 s (got '0', want '1')
+    FAIL and the settle is printed, never implied (got '0', want '1')
+RESULT mutant='M2 retry other statuses' rc=1 summary=[('206', '9')] fails=9
+    FAIL REFUSE: a 404 on the pull-request read (got '0', want '1')
+    FAIL after exactly 1 call: no retry masks a refusal (got '3', want '1')
+    FAIL and no settle (got '1', want '0')
+    FAIL naming the error gh gave (got '0', want '1')
+RESULT mutant='M4 retry every 403' rc=1 summary=[('206', '2')] fails=2
+    FAIL REFUSE: a permission 403 on the files read (got '0', want '1')
+    FAIL after exactly 1 call (got '2', want '1')
+RESULT mutant='M5 no transport' rc=1 summary=[('206', '5')] fails=5
+    FAIL a transport error on the comments read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+    FAIL after exactly 4 calls (got '2', want '4')
+    FAIL settling 5/15/45 s between them (got 'sleep 5 ', want 'sleep 5 sleep 15 sleep 45 ')
+RESULT mutant='M6 flat backoff' rc=1 summary=[('206', '1')] fails=1
+    FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 5 sleep 5 ', want 'sleep 5 sleep 15 sleep 45 ')
+RESULT mutant='M7 last error dropped' rc=1 summary=[('206', '2')] fails=2
+    FAIL naming the error gh gave (got '0', want '1')
+    FAIL naming the last error (got '0', want '1')
+RESULT mutant='M8 budget off by one' rc=1 summary=[('206', '5')] fails=5
+    FAIL three transient failures and an answer on the fourth read, the budget's last, are approved (got '1', want '0')
+    FAIL with exactly 4 calls to that read (got '3', want '4')
+    FAIL after exactly 4 calls (got '3', want '4')
+    FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 15 ', want 'sleep 5 sleep 15 sleep 45 ')
+RESULT mutant='R1 budget +1' rc=0 summary=[('206', '0')] fails=0
+RESULT mutant='R2 429 not transient' rc=1 summary=[('206', '2')] fails=2
+    FAIL a 429 on the CODEOWNERS read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+RESULT mutant='R3 5xx not transient' rc=1 summary=[('206', '9')] fails=9
+    FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+    FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+    FAIL after one settle of 5 s (got '0', want '1')
+    FAIL and the settle is printed, never implied (got '0', want '1')
+RESULT mutant='R4 CODEOWNERS bypasses gh_read' rc=1 summary=[('206', '2')] fails=2
+    FAIL a 429 on the CODEOWNERS read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+RESULT mutant='R5 files bypasses gh_read' rc=1 summary=[('206', '2')] fails=2
+    FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+RESULT mutant='R6 comments bypasses gh_read' rc=1 summary=[('206', '4')] fails=4
+    FAIL a transport error on the comments read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+    FAIL three transient failures and an answer on the fourth read, the budget's last, are approved (got '1', want '0')
+    FAIL with exactly 4 calls to that read (got '1', want '4')
+RESULT mutant='R7 check_pr bypasses gh_read' rc=1 summary=[('206', '8')] fails=8
+    FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+    FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+    FAIL after one settle of 5 s (got '0', want '1')
+    FAIL and the settle is printed, never implied (got '0', want '1')
+RESULT mutant='R8 no sleep' rc=1 summary=[('206', '2')] fails=2
+    FAIL after one settle of 5 s (got '0', want '1')
+    FAIL settling 5/15/45 s between them (got '', want 'sleep 5 sleep 15 sleep 45 ')
+RESULT mutant='R9 transport grep anchors dropped (any stderr transient)' rc=1 summary=[('206', '1')] fails=1
+    FAIL and it was asked for at ref=main (got '4', want '1')
+RESULT mutant='R10 secondary match dropped' rc=1 summary=[('206', '2')] fails=2
+    FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
+    FAIL with exactly 2 calls to that read (got '1', want '2')
+clean
