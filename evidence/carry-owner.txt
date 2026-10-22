@@ -1,6 +1,8 @@
-== origin/main (5a755f53efda8c099af7d6a98fb0b22828a0593c) carry-201.json lines citing 2528: 0
-== origin/handoff/audit-r10-roster (5ffe2a933d61a1add9826b67c54fda51b8ac9360) carry-201.json lines citing 2528: 0
-roster R10-PREPR-CAP group: stage in-progress, no text citing #2528 (see grep):
-grep rc=1
-diff touches carries/rosters:
-(none above = none)
+roster 5ffe2a933 key #2528: carry-201=0 JIDOKA=0
+roster 5ffe2a933 key #2582: carry-201=0 JIDOKA=1
+roster 743463c61 key #2528: carry-201=0 JIDOKA=1
+roster 743463c61 key #2582: carry-201=0 JIDOKA=1
+roster 306a96d5f key #2528: carry-201=0 JIDOKA=1
+roster 306a96d5f key #2582: carry-201=0 JIDOKA=1
+2ce054264 on roster ref
+JIDOKA groups on main roster: 0

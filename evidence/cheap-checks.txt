@@ -1,70 +1,24 @@
 
 RULES-SYNC ok: every generated rule is the generated form of its source
 rc=0
-########## scoped gate ##########
   MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-  changed files (5), measured against the recorded closures in tests/closures.json:
-      .claude/rules/gate-scoping.md
-      .cursor/rules/gate-scoping.mdc
-      dev/governance/rules/gate-scoping.md
-      dev/programme/delivery/2528.md
-      tools/pr/prepr.sh
-
-      RUN   tests/entities.py
-
-      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
-      SKIP  tests/arch_score_head.py  (closure: 123 files, no changed file is in its measured closure)
-      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
-      SKIP  tests/block_duty.py  (closure: 89 files, no changed file is in its measured closure)
-      SKIP  tests/boost_drift_replay.py  (closure: 87 files, no changed file is in its measured closure)
-      SKIP  tests/card.mjs  (closure: 93 files, no changed file is in its measured closure)
-      SKIP  tests/card_drift.mjs  (closure: 96 files, no changed file is in its measured closure)
-      SKIP  tests/config_flow_steps.py  (closure: 125 files, no changed file is in its measured closure)
-      SKIP  tests/debug_collect.py  (closure: 98 files, no changed file is in its measured closure)
-      SKIP  tests/deployment_shape.py  (closure: 121 files, no changed file is in its measured closure)
-      SKIP  tests/doc_claims.py  (closure: 167 files, no changed file is in its measured closure)
-      SKIP  tests/edge.py  (closure: 34 files, no changed file is in its measured closure)
-      SKIP  tests/env_drift.py  (closure: 191 files, no changed file is in its measured closure)
-      SKIP  tests/features.py  (closure: 139 files, no changed file is in its measured closure)
-      SKIP  tests/finite_boundary.py  (closure: 114 files, no changed file is in its measured closure)
-      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
-      SKIP  tests/golden.py  (closure: 193 files, no changed file is in its measured closure)
-      SKIP  tests/guard_pins.py  (closure: 65 files, no changed file is in its measured closure)
-      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
-      SKIP  tests/harness_headers.py  (closure: 391 files, no changed file is in its measured closure)
-      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
-      SKIP  tests/manual_plan.py  (closure: 105 files, no changed file is in its measured closure)
-      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
-      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
-      SKIP  tests/optimality.py  (closure: 36 files, no changed file is in its measured closure)
-      SKIP  tests/plan_view.py  (closure: 85 files, no changed file is in its measured closure)
-      SKIP  tests/solar_alignment.py  (closure: 86 files, no changed file is in its measured closure)
-      SKIP  tests/stress.py  (closure: 40 files, no changed file is in its measured closure)
-      SKIP  tests/structure.py  (closure: 83 files, no changed file is in its measured closure)
-      SKIP  tests/typing_ruler.py  (closure: 83 files, no changed file is in its measured closure)
-      SKIP  tests/validate.py  (closure: 34 files, no changed file is in its measured closure)
-      SKIP  tests/wood_advisor.py  (closure: 89 files, no changed file is in its measured closure)
-
-  A skipped script is a claim that no changed file is in its measured
   closure. The claim is re-checked by the FULL unscoped suite that runs
-  on every push to main, so a wrong closure turns main red within one
   gate. Set GATE_SCOPE=full to run everything here and now.
-rc=0
-scope.run:
-tests/entities.py
-
 ALL 2382 ENTITY CHECKS PASSED
-rc=0
-claims hygiene: 5a755f53efda8c099af7d6a98fb0b22828a0593c ok
-rc=0
+claims hygiene: 93e6a63d2855651448a2b8f677b392feddc03c99 ok
 ALL 124 closure shrink pins PASSED
-rc=0
 layout self-test: ok
-rc=0
 ALL 109 HARNESS HEADER CHECKS PASSED
-rc=0
 STRUCTURE RATCHET PASSED
-rc=0
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
 Architecture score: dS +0.0000 NULL
-rc=0
 564:        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+sibling rule:
+18
+release-rc=0
+nightly-filter-rc=1
+.claude/rules/gate-scoping.md
+.cursor/rules/gate-scoping.mdc
+dev/governance/rules/gate-scoping.md
+dev/programme/delivery/2528.md
+tools/pr/prepr.sh

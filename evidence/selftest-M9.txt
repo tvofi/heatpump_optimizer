@@ -335,4 +335,3 @@ AssertionError: queue-base
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
 321 passed, 2 failed
-rc=2
