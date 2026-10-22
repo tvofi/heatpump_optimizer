@@ -223,7 +223,7 @@ if [ "$selftest" = 1 ]; then
       [ "$pf" = 0 ] && [ "$live" -gt 0 ] && early=early
       [ "$pf" = 0 ] && [ "$live" = 0 ] && ! kill -0 "$lp" 2>/dev/null && break
       sleep 0.05; k=$((k + 1))
-    done
+    done 2>/dev/null  # the shell reports the launcher's signal death here
     { wait "$lp"; } 2>/dev/null; tlive
     for p in $(cat "$st/pids"); do kill -KILL "$p" 2>/dev/null; done
     pf=$([ -f "$st/state/train.pid" ] && echo present || echo removed)
