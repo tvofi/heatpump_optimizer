@@ -1,0 +1,7 @@
+## base 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab
+selftest_wiring: 76 self-testing, 76 wired, 0 unwired
+ls: cannot access 'tools/audit/seat/body_patch.sh': No such file or directory
+app_push self-test: 182 checks, 0 failed
+RESULT enforcement_surface_files=137 count
+RESULT uncovered_files=0 count
+RESULT enforcement_surface_files=137 count

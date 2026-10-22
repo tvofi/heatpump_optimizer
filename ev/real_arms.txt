@@ -1,0 +1,4 @@
+policy_lint hello rc=1
+CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
+rc=1
+carry none rc=0
