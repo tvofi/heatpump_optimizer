@@ -1,0 +1,79 @@
+
+=== Entities and platforms ===
+
+-- Platform registration
+  ok   PLATFORMS and PLATFORM_LIST agree
+  FAIL every member of the test stub's Platform exists in Home Assistant's own  [invented by the stub: [<EntityPlatforms.AI_TASK: 'ai_task'>, <EntityPlatforms.INFRARED: 'infrared'>, <EntityPlatforms.RADIO_FREQUENCY: 'radio_frequency'>]]
+  ok   every entry of PLATFORMS is a real Home Assistant platform
+  ok   every entry of PLATFORM_LIST is a real Home Assistant platform
+  ok   diagnostics.py exists
+  ok   diagnostics is NOT forwarded as a platform
+  ok   the binary_sensor platform is registered
+  ok   the binary_sensor module exists and sets up entries
+  ok   the button platform is registered
+  ok   the button module exists and sets up entries
+  ok   the sensor platform declares PARALLEL_UPDATES = 0
+  ok   the binary_sensor platform declares PARALLEL_UPDATES = 0
+  ok   the button platform declares PARALLEL_UPDATES = 0
+  ok   the climate platform declares PARALLEL_UPDATES = 1
+  ok   the switch platform declares PARALLEL_UPDATES = 1
+  ok   the datetime platform declares PARALLEL_UPDATES = 1
+
+-- Sensors
+  ok   all sensors are constructible
+  ok   the README's sensors count is right
+  ok   the README's binary sensors count is right
+  ok   the README's binary sensors table lists every one of them
+  ok   the README's buttons count is right
+  ok   the README's buttons table lists every one of them
+  ok   the README's wood_cheaper notes name the billed-price gate
+  ok   the README's options-page count matches _OPTION_PAGES
+  ok   the README names every options page by its real menu label
+  ok   the Modbus pre-fill page labels every suggested key as its own page does
+  ok   the README does not list Enable away mode as an options-page field
+  ok   the Quick start prose step numbers agree with the diagram's
+  ok   the diagram's 'how do you want to' step pairs with the prose's 'how to describe' step (#1535 label-wording gap)
+  ok   every Quick start prose heading number is used exactly once
+  ok   the configuration reference names every shipped options field
+Traceback (most recent call last):
+  File "/home/user/heatpump_optimizer/tests/entities.py", line 886, in <module>
+    _hra_ent = _hra_headroom_entity(_hra_extra)
+  File "/home/user/heatpump_optimizer/tests/entities.py", line 874, in _hra_headroom_entity
+    coord = _hra_coord(hass, FakeEntry(data=cfg))
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 2694, in __init__
+    self._init_dhw_learning(hass, entry)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 2922, in _init_dhw_learning
+    self._dhw_learner = DhwProfileLearner(
+                        ~~~~~~~~~~~~~~~~~^
+        hass,
+        ^^^^^
+    ...<6 lines>...
+        external_heat_active=lambda: bool(self._external_heat_active),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/dhw_learning.py", line 109, in __init__
+    self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+                                                            ~~~~~~~~~~~~~~~~~^
+        hass,
+        ^^^^^
+        DHW_PROFILE_STORE_VERSION,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        f"{DOMAIN}_{entry_id}_dhw_profile",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/store.py", line 675, in __init__
+    super().__init__(hass, version, key, *args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/helpers/storage.py", line 281, in __init__
+    self._manager = get_internal_store_manager(hass)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/helpers/storage.py", line 96, in get_internal_store_manager
+    manager = _StoreManager(hass)
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/helpers/storage.py", line 113, in __init__
+    self._storage_path: Path = Path(hass.config.config_dir).joinpath(STORAGE_DIR)
+                                    ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FakeConfig' object has no attribute 'config_dir'
+rc=1

@@ -1,0 +1,152 @@
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 23, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1898, in _hb_spin
+  ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/tmp/tmpvqdi2qx_/py-spy', 'dump', '--nonblocking', '--pid', '945']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 23, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/tmp/tmpvqdi2qx_/py-spy', 'dump', '--nonblocking', '--pid', '945']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 23, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/tmp/tmpvqdi2qx_/py-spy', 'dump', '--nonblocking', '--pid', '945']' timed out after 5.0 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 5309.3 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+RESULT never-answers(real 5s cut): pass=False calls=3 elapsed=17.9s detail='a 600 ms spin read as 5309.3 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 24, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     some_other (x.py:1)
+  ..   hb:positive_control| stall >= 257 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 24, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     some_other (x.py:1)
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 24, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1898, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     some_other (x.py:1)
+  FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+RESULT answers-without-spin: pass=False calls=3 elapsed=4.4s detail='a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 25, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=1:
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 25, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1898, in _hb_spin
+  ..   hb:positive_control| py-spy rc=1:
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 25, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=1:
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+RESULT rc1-only: pass=False calls=3 elapsed=4.4s detail='a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+  ..   hb:positive_control| stall >= 264 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 26, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/tmp/tmpmqbjddd7/py-spy', 'dump', '--nonblocking', '--pid', '945']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 26, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/tmp/tmpmqbjddd7/py-spy', 'dump', '--nonblocking', '--pid', '945']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 259 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 26, in <module>
+  ..   hb:positive_control|   File "/tmp/tmp.QeL5QOhEsy/ev/null_ctrl_driver.py", line 18, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/heatpump_optimizer/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ok   hb:positive_control  [a 600 ms spin read as 601.2 ms; dump names the spin: True; py-spy rc=0 names it: True; try 3 of 3 (at most 3)]
+RESULT hang-hang-spin: pass=True calls=3 elapsed=13.4s detail='a 600 ms spin read as 601.2 ms; dump names the spin: True; py-spy rc=0 names it: True; try 3 of 3 (at most 3)'
+rc=0
