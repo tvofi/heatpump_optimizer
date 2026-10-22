@@ -227,8 +227,12 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       && git show "$bs:BODY.md" > "$body" 2>/dev/null || { echo "cloud_relay: no BODY.md at handoff-body/$topic" >&2; rm -rf "$bd"; continue; }
     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
     echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"
-    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 &
-    wait $! || urc=$?
+    # The update is the reap's lead (pr_args.sh's PR_REAP_LEAD): a stopped relay TERMs it alone,
+    # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+    urc=0
+    if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss >&2 &
+    else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2 & fi
+    PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
     if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
@@ -487,6 +491,18 @@ self_test() {
     { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
   chk "a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)" 0 test "$tn $live" = "3 0"
   for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done
+  # ... and the update stops first, as the reap's lead: its child G stands for update_pr.sh's
+  # lock holder and marks a TERM it gets; the update, TERMed, waits 0.5 s, writes "early" when
+  # G was TERMed beside it, then ends G -- so a lock is freed only after the push it guards.
+  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "%s/marks" & g=$!; echo $g >> "%s/tpids"\ntrap '"'"'sleep 0.5; grep -q G "%s/marks" && echo early >> "%s/marks"; kill $g; wait $g; exit 143'"'"' TERM\nwait\n' \
+    "$t" "$t" "$t" "$t" "$t" > "$t/lead.sh"; chmod +x "$t/lead.sh"
+  rm -f "$t/state/cloud-handoff-failed"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+  HPO_RELAY_UPDATE=$t/lead.sh bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+  k=0; while [ "$(wc -l < "$t/tpids")" -lt 2 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+  tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -TERM "$rp"; wait "$rp"
+  live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); kill -KILL "$p" 2>/dev/null; done
+  chk "a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does" \
+    0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }

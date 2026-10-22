@@ -194,7 +194,65 @@ if [ "$selftest" = 1 ]; then
     *"|--min-runs|1|") : ;;
     *) die "self-test: a bare launch passed flags it was not given: $flags" ;;
   esac
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag)"
+  # 9. a stopped train ends its whole tree (R10-PUSHER-REAP): TERM or HUP to the pid
+  #    in train.pid reaches the merge_train.py child, the tree under it is reaped,
+  #    and the pidfile goes only once that tree is gone -- a pidfile removed while
+  #    the train still runs lets a second train start on the same state dir. The
+  #    child is a stub running a two-level tree (5 pids, the review's harness);
+  #    the seat venv's python3 is the ambient one. "early": the pidfile was gone
+  #    while a pid of the tree was still alive.
+  for sig in TERM HUP; do
+    st=$(mktemp -d)
+    mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+    ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+    printf '#!/bin/bash\necho $$ >> "%s/pids"\nbash -c '"'"'sleep 30; :'"'"' & echo $! >> "%s/pids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/pids" & echo $! >> "%s/pids"\nwait\n' \
+      "$st" "$st" "$st" "$st" > "$st/tree.sh"
+    printf 'import os, subprocess\nopen("%s", "a").write("%%d\\n" %% os.getpid())\nsubprocess.Popen(["bash", "%s"]).wait()\n' \
+      "$st/pids" "$st/tree.sh" > "$st/C/tools/audit/seat/merge_train.py"
+    : > "$st/queue.json"; : > "$st/pids"
+    HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --checkout "$st/C" >/dev/null 2>&1 &
+    lp=$!; k=0
+    while [ "$(wc -l < "$st/pids")" -lt 5 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$st/pids" | tr -d ' '); held=$(cat "$st/state/train.pid" 2>/dev/null)
+    tlive() { live=0; for p in $(cat "$st/pids"); do
+      kill -0 "$p" 2>/dev/null && [ "$(ps -o stat= -p "$p" | cut -c1)" != Z ] && live=$((live + 1)); done; }
+    kill -"$sig" "$held" 2>/dev/null; early=none; k=0
+    while [ $k -lt 100 ]; do
+      [ -f "$st/state/train.pid" ] && pf=1 || pf=0
+      tlive
+      [ "$pf" = 0 ] && [ "$live" -gt 0 ] && early=early
+      [ "$pf" = 0 ] && [ "$live" = 0 ] && ! kill -0 "$lp" 2>/dev/null && break
+      sleep 0.05; k=$((k + 1))
+    done 2>/dev/null  # the shell reports the launcher's signal death here
+    { wait "$lp"; } 2>/dev/null; tlive
+    for p in $(cat "$st/pids"); do kill -KILL "$p" 2>/dev/null; done
+    pf=$([ -f "$st/state/train.pid" ] && echo present || echo removed)
+    rm -rf "$st"
+    [ "$tn $held $live $pf $early" = "5 $lp 0 removed none" ] \
+      || die "self-test: $sig to the train (pid $held, launcher $lp) left $live of $tn pids of its tree alive (pidfile $pf, $early)"
+  done
+  # 10. merge_train.py stops first, as the reap's lead: its own stop TERMs the tool it
+  #     runs and releases the train's hold, which a TERM to the whole tree at once
+  #     would cut short. The stub's child G marks a TERM it gets; the stub, TERMed,
+  #     waits 0.5 s, writes "early" when G was TERMed beside it, then ends G.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+  ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+  printf 'import os, signal, subprocess, sys, time\nopen("%s/pids", "a").write("%%d\\n" %% os.getpid())\ng = subprocess.Popen(["bash", "-c", "trap \\"echo G >> %s/marks; exit 0\\" TERM; while :; do sleep 0.1; done"])\nopen("%s/pids", "a").write("%%d\\n" %% g.pid)\ndef stop(*_):\n    time.sleep(0.5)\n    if "G" in open("%s/marks").read(): open("%s/marks", "a").write("early\\n")\n    g.terminate(); g.wait(); sys.exit(143)\nsignal.signal(signal.SIGTERM, stop)\nwhile True: time.sleep(0.1)\n' \
+    "$st" "$st" "$st" "$st" "$st" > "$st/C/tools/audit/seat/merge_train.py"
+  : > "$st/queue.json"; : > "$st/pids"; : > "$st/marks"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --checkout "$st/C" >/dev/null 2>&1 &
+  lp=$!; k=0
+  while [ "$(wc -l < "$st/pids")" -lt 2 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+  kill -TERM "$(cat "$st/state/train.pid" 2>/dev/null)" 2>/dev/null
+  { wait "$lp"; } 2>/dev/null
+  tlive
+  for p in $(cat "$st/pids"); do kill -KILL "$p" 2>/dev/null; done
+  marks=$(tr '\n' ' ' < "$st/marks"); pf=$([ -f "$st/state/train.pid" ] && echo present || echo removed)
+  rm -rf "$st"
+  [ "$live $marks$pf" = "0 G removed" ] \
+    || die "self-test: a TERMed train did not stop merge_train.py first (alive $live, marks '$marks', pidfile $pf)"
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree, merge_train.py first)"
   exit 0
 fi
 
@@ -212,7 +270,15 @@ if [ -f "$pidfile" ]; then
   echo "train.sh: stale pidfile ($held), taking over" >&2
 fi
 echo $$ > "$pidfile"
-trap 'rm -f "$pidfile"' EXIT
+# A stopped train ends its whole tree, and frees the state dir only after
+# (R10-PUSHER-REAP): pr_args.sh's EXIT trap runs when TERM, INT or HUP end this
+# shell, TERMs merge_train.py first as the lead -- its own stop TERMs the tool it
+# runs and releases the train's hold -- then reaps whatever is left, and only
+# then removes the pidfile. A bare `rm` trap removed it at once, while the
+# child, which no signal reached, went on pushing.
+. "$(dirname -- "$0")/pr_args.sh"
+PR_AFTER_REAP='rm -f "$pidfile"'
+pr_exit_trap
 
 # The pinned seat interpreter first: the checks merge_train drives through
 # prepr and no-copies need the repo's 3.14, not an ambient 3.11. There is no
@@ -239,7 +305,7 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
 (
   cd "$checkout" || exit 2
   # shellcheck disable=SC2086 # minruns is a plain integer
-  python3 -u tools/audit/seat/merge_train.py batch "$queue" \
+  exec python3 -u tools/audit/seat/merge_train.py batch "$queue" \
     --repo "$repo" \
     --state-dir "$state" \
     --min-runs "$minruns" \
@@ -248,8 +314,11 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
     ${overlap:+--overlap} \
     ${mandate:+--mandate "$mandate"} \
     ${opts[@]+"${opts[@]}"}
-) >> "$log" 2>&1
-rc=$?
+) >> "$log" 2>&1 &
+# Asynchronous, then `wait`: a stop signal interrupts the wait, where it would
+# wait behind a foreground child. The exec makes this pid merge_train.py itself.
+PR_REAP_LEAD=$!
+rc=0; wait "$PR_REAP_LEAD" || rc=$?
 echo "TRAIN_RC=$rc end=$(date -u +%FT%TZ)" >> "$log"
 echo "$rc" > "$state/rc"
 exit "$rc"
