@@ -803,12 +803,12 @@ _EVAL_MEMO_MAX_ENTRIES = 512
 
 
 def _memoized_value_and_gradient(
-    batch_objective: Callable[..., Any] | None,
+    batch_objective: Callable[..., Any],
     bounds: list[tuple[float, float]],
     fd_eps: float,
     memo: dict[bytes, Any] | None,
-) -> Callable[..., Any] | None:
-    """The fused L-BFGS-B ``fun`` with its answers remembered, or ``None``.
+) -> Callable[..., Any]:
+    """The fused L-BFGS-B ``fun``, its answers remembered in ``memo`` if given.
 
     Serves one ``_multi_start_minimize`` call, where the batched objective,
     the bounds and ``fd_eps`` are fixed and the objective is pure in ``x``:
@@ -842,8 +842,6 @@ def _memoized_value_and_gradient(
     back than that: 2 of the #1935 replay's channel-arm 11,311. Evicted
     is the least recently used entry.
     """
-    if batch_objective is None:
-        return None
     plain = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
     if memo is None:
         return plain
