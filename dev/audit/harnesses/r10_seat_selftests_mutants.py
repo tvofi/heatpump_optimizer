@@ -52,6 +52,11 @@ ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
 
+# cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
+_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
+_FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
+
 # name, file, old (exactly once in the file), new
 MUTANTS = [
     ("S01", "ci-watch.sh", '[ -n "$RS" ] && REQ=$(gh api', '[ -n "$RS" ] || REQ=$(gh api'),
@@ -161,6 +166,29 @@ MUTANTS = [
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
+    ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-2", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),
+    ("cloud_relay-3", "cloud_relay.sh", "*[!0-9]*|0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'",
+     "0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'"),
+    ("cloud_relay-4", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if grep -qF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
+    ("cloud_relay-6", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'level_set'),
+    ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
+    # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
+    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
+    ("cloud_relay-10", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'logline OWED "handoff-hold-malformed $(hold_file)"; level_set'),
+    ("cloud_relay-11", "cloud_relay.sh",
+     'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
+     'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
