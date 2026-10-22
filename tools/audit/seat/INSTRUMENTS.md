@@ -155,7 +155,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   repository come from the roster at `--roster-ref` (default the round's roster
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
-  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`;
+  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
   it renders through the same `render` (the payload is the flag path's byte
   for byte), publishes PAYLOAD.json and PROMPT.md on origin as
   `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
