@@ -27,6 +27,7 @@ M = [
  ("M13 button: index footer arm off", DC, "    if not (foot and _COFFEE_A.search(foot.group(0))):\n        out.append(\"docs/index.html", "    if False:\n        out.append(\"docs/index.html"),
  ("M14 button: built footer arm off", DC, "        if not (foot and _COFFEE_A.search(foot.group(0))):\n            out.append(f\"{page}", "        if False:\n            out.append(f\"{page}"),
  ("M15 button: SVG token compare off", DC, "if not want or not got or got.group(1).strip().lower() != want.lower():", "if False:"),
+ ("M16 (a) the shared path-token predicate never matches", "tests/layout.py", "    return bool(PATH_TOKEN.fullmatch(tok)) and tok.split(\"/\")[0] in tops", "    return False"),
  ("P1 production: button gone from build_docs.mjs footer", "tools/site/build_docs.mjs", "<a class=\"bmc\" href=\"https://buymeacoffee.com/rpgshcwb2tp\">", "<a class=\"bmc\" href=\"#\">"),
  ("P2 production: button gone from docs/index.html footer", "docs/index.html", "<a class=\"bmc\" href=\"https://buymeacoffee.com/rpgshcwb2tp\">", "<a class=\"bmc\" href=\"#\">"),
  ("P3 production: button gone from README top", "README.md", "[coffee]: https://buymeacoffee.com/rpgshcwb2tp\n", ""),

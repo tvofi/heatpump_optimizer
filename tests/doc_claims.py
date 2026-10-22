@@ -3024,7 +3024,6 @@ ROSTER = ROOT / "dev" / "programme" / "rosters" / "wave-r10-groups.json"
 _MARKER = re.compile(r"\[(target|retired-by): (R10-[A-Z0-9-]+(?:, R10-[A-Z0-9-]+)*)(; owner step)?\]")
 _MARKER_ANY = re.compile(r"\[(?:target|retired-by)\b[^\]\n]*\]?")
 _FENCE = re.compile(r"^```([^\n]*)\n(.*?)^```", re.M | re.S)
-_PATH_TOKEN = re.compile(r"[\w.-]+(?:/[\w.-]+)+/?")
 _DIAGRAMS = ("flowchart", "graph", "sequenceDiagram")
 _SHAPES = (("([", "])"), ("[(", ")]"), ("((", "))"), ("{{", "}}"), ("[[", "]]"), ("[", "]"), ("(", ")"), ("{", "}"))
 _HEX = re.compile(r"(?:fill|stroke|color|background)[\w-]*\s*:\s*#[0-9a-fA-F]{3,8}\b|^\s*(?:style|classDef|linkStyle)\b.*#[0-9a-fA-F]{3,8}\b", re.M)
@@ -3125,6 +3124,8 @@ def _sequence_findings(name: str, body: list[str]) -> list[str]:
 def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs: dict[str, str] | None = None
                         ) -> tuple[list[str], list[str]]:
     """(findings, notes) for the marked documents. `roster` is called only when a marker is present (N1)."""
+    from layout import repo_path
+
     out: list[str] = []
     notes: list[str] = []
     dirs = {p[:i + 1] for p in tree for i in range(len(p)) if p[i] == "/"}
@@ -3146,8 +3147,7 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
             for span in re.findall(r"`([^`\n]+)`", unit):
                 for tok in span.split():
                     tok = re.sub(r":\d+(?:-\d+)?$", "", tok)
-                    if (not _PATH_TOKEN.fullmatch(tok) or tok.split("/")[0] not in tops
-                            or re.search(r"[<>*{}$]", span)):
+                    if not repo_path(tok, tops) or re.search(r"[<>*{}$]", span):
                         continue
                     if tok not in tree and tok.rstrip("/") + "/" not in dirs and not marked:
                         out.append(f"{name}: `{tok}` is not in the tree and carries no marker")

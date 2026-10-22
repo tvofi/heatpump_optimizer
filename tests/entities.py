@@ -36,7 +36,7 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from layout import canon as _layout_canon, locate as _layout_locate
+from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
 from throwaway_git import throwaway_git_env, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
@@ -30545,8 +30545,7 @@ def _sp_path_literal(v):
     """True when a string is a repository-path-shaped literal -- the same shape
     `_sp_literals` collects, so the census below and the reader agree on what
     counts as a path."""
-    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
-            and v.split("/")[0] in _SP_TOPS)
+    return isinstance(v, str) and _layout_repo_path(v, _SP_TOPS)
 
 
 def _sp_attr_bound(src):
