@@ -108,8 +108,8 @@ Same queue file; no head is re-merged with main. In order:
                  that decision at the merge, so admission is only the early
                  refusal, not the verdict;
   2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
-                 (git's text merge in place of every .gitattributes driver, which
-                 GitHub never runs), P_0 = origin/main; a head that does not merge
+                 (git's text merge in place of every merge driver the clone
+                 configures, which GitHub never runs: `text_merge`), P_0 = origin/main; a head that does not merge
                  cleanly goes serial, which covers every pairwise conflict;
   3. prove    -- B: two or more entries push P_n to batch/<tag>-<n> as the App
                  (`app_push.sh --branch-only`), dispatch DISPATCH on it, and wait
@@ -264,6 +264,94 @@ def tool(name: str) -> str:
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
 GREEN = ("success", "skipped", "neutral")
+# THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15): the one
+# owner of "is this head red" for the train, merge_pr.sh and the orchestrator
+# tick (its MAIN and PRS sections import these; no third rule). At main
+# e7c66485 on 2026-10-21, checks in flight plus owed record reds made the
+# --overlap gate log "main is not green ... revert it first".
+#: Contexts that grade the record beat or the nightly lane, never a merge: a
+#: ruleset that listed one would still not make a head red.
+NOT_GATING = ("record", "record-autofix", "nightly-status", "delivery-status")
+#: A check-run's workflow run, read from its details_url (K15 (b)).
+RUN_URL = re.compile(r"/actions/runs/(\d+)(?:/|$)")
+
+
+def latest_runs(runs) -> dict:
+    """The check runs keyed by name, the latest started winning."""
+    return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+
+
+def run_state(cr: dict) -> str:
+    """'pending' while not completed (wait, never red); else 'green' for a
+    GREEN conclusion and 'red' for any other, one GitHub adds later included."""
+    if cr.get("status") != "completed":
+        return "pending"
+    return "green" if (cr.get("conclusion") or "") in GREEN else "red"
+
+
+def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
+    """(state, pending, red) over the required contexts less NOT_GATING, each
+    on its latest run: 'red' when any concluded non-green, else 'wait' while
+    any is pending or has no run yet, else 'green'. `required` None (a ruleset
+    that could not be read) raises ValueError: a refusal, never green. A head
+    is reviewable (K15 (d)) exactly when `red` is empty."""
+    if required is None:
+        raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
+    names = [n for n in required if n not in NOT_GATING]
+    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending")
+    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red")
+    return ("red" if red else "wait" if pending else "green"), pending, red
+
+
+def stale(cr: dict, run_status: str) -> bool:
+    """K15 (b): a check-run still queued or in progress while its workflow run
+    has completed is stale, not pending: nothing will conclude it (#2559's
+    budget-raise-gate check-run 119308796140 held the merge BLOCKED)."""
+    return cr.get("status") in ("queued", "in_progress") and run_status == "completed"
+
+
+def text_merge(run) -> "list[str] | None":
+    """`-c` arguments putting git's own text merge in place of every merge
+    driver this clone's config defines, since GitHub runs none: a merge here
+    is then the one GitHub makes. None when the config could not be read
+    (rc 1 is git's "no such key", so no driver). Only a configured driver can
+    run; an attribute naming none already falls back to the text merge."""
+    code, o = run(["git", "config", "--get-regexp", r"^merge\..+\.driver$"])
+    if code not in (0, 1):
+        return None
+    names = sorted({k[len("merge."):-len(".driver")] for k in (x.split(" ", 1)[0] for x in o.splitlines()) if k})
+    return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+
+
+def conflicts(run, base: str, head: str) -> "list[str] | None":
+    """K15 (c): the paths `git merge-tree --write-tree base head` leaves
+    conflicted under GitHub's merge (`text_merge`), [] for a clean merge;
+    None when git could not answer (an unknown commit also exits 1, with no
+    tree line). A claim file the local claimnotes driver would resolve is
+    therefore listed: GitHub reports that head DIRTY, and the driver is its
+    repair, not a reason to read it clean (it also printed `MERGE-CLAIM:` to
+    stderr, which a stdout+stderr runner read as merge-tree output)."""
+    drivers = text_merge(run)
+    if drivers is None:
+        return None
+    code, o = run(["git", *drivers, "merge-tree", "--write-tree", "--name-only", "--no-messages", base, head])
+    lines = [x.strip() for x in o.splitlines() if x.strip()]
+    if code not in (0, 1) or not lines or not is_sha(lines[0]) or (code == 1) != (len(lines) > 1):
+        return None
+    return lines[1:]
+
+
+def dirty_repair(files: list[str], claim_files) -> str:
+    """The repair a DIRTY head is owed, its conflicted files named first: the
+    claimnotes driver only when every one is a claim file; anything else is a
+    content conflict, back to the owning fixer, and its verdict does not carry
+    (the tick sent #2569 to the driver over a conflict in roster_edit.py)."""
+    if files and all(f in claim_files for f in files):
+        return f"claim-file conflict in {', '.join(files)}: absorb main locally with the claimnotes driver"
+    return (f"content conflict in {', '.join(files) or '(unnamed)'}: back to the owning fixer; "
+            "the resolution changes reviewed code, so its verdict does not carry")
+
+
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
@@ -681,14 +769,6 @@ class Train:
         except ValueError:
             return None
 
-    @staticmethod
-    def _by_name(runs: "list[dict]") -> dict:
-        """The runs keyed by name, the latest started winning (wait_ci's order)."""
-        last: dict[str, dict] = {}
-        for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
-            last[c["name"]] = c
-        return last
-
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -715,10 +795,11 @@ class Train:
         what = beat or f"CI at {h[:8]}"
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
-            last = self._by_name(runs or ())
-            if only is not None and runs is not None and all(
-                    last.get(n, {}).get("status") == "completed" for n in only):
-                return sorted(n for n in only if last[n]["conclusion"] not in GREEN)
+            last = latest_runs(runs or ())
+            if only is not None and runs is not None:
+                _, pending, red = classify(last, only)
+                if not pending:
+                    return red
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
@@ -1251,6 +1332,7 @@ class Train:
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
+        self.unstale(h)
         said = "(no output)"
         for k in range(1, self.merge_tries + 1):
             self.sleep(30)
@@ -1417,13 +1499,15 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def required(self) -> list[str]:
+    def required(self, pr_head: bool = False) -> list[str]:
+        """The ruleset's required contexts, read live; less PR_ONLY unless
+        <pr_head> (a pull request's head carries those; main and a proof never)."""
         code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
                               f'.[] | select(.name == "{RULESET}") | .id'])
         code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
                              '.rules[] | select(.type == "required_status_checks")'
                              ' | .parameters.required_status_checks[].context'])
-        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(PR_ONLY))
+        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
         if code or code2 or not rid.strip().isdigit() or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
@@ -1478,12 +1562,12 @@ class Train:
     def build(self, base: str, entries: list[dict]) -> tuple[list[dict], list[str], list[dict]]:
         """Proof commits over <base>: P_i is the merge GitHub will make of P_(i-1)
         and entry i's head -- git's own text merge in place of every driver
-        main's .gitattributes names, since GitHub runs none. An entry that does
+        the clone configures (`text_merge`), since GitHub runs none. An entry that does
         not merge cleanly onto the entries before it is returned to go serial,
         which covers every pairwise conflict and the three-way ones besides."""
-        attrs = self.run(["git", "show", f"{base}:.gitattributes"])[1]
-        drivers = [x for n in sorted(set(re.findall(r"\bmerge=([\w-]+)", attrs)))
-                   for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+        drivers = text_merge(self.run)
+        if drivers is None:
+            raise Stop("build", "git config could not be read: no proof is built under an unknown merge driver")
         kept, proofs, conflicted, last = [], [], [], base
         for a in entries:
             code, o = self.run(["git", *drivers, "merge-tree", "--write-tree", last, a["head"]])
@@ -1599,17 +1683,49 @@ class Train:
         # R9-ADMIT-REQ: under --overlap the read is ONE pass, non-blocking --
         # the loop below would hold every batch through main's push-run window
         # (40-60 min measured) before admission, the wait the flag exists to
-        # drop. The not-green names are logged and the batch starts.
+        # drop. The state is logged and the batch starts: a context still in
+        # flight is a wait, never red, and only RED carries `why` (K15).
         if self.overlap:
-            last = self._by_name(self._check_runs(tip) or ())
-            red = sorted(n for n in req if last.get(n, {}).get("conclusion") not in GREEN)
-            if red:
-                self.log(f"OVERLAP: {self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; "
+            runs = self._check_runs(tip)
+            state, pending, red = classify(latest_runs(runs or ()), req)
+            if runs is None:
+                self.log(f"OVERLAP: {self.base} at {tip[:12]}: check runs unreadable; --overlap does not wait")
+            elif state == "red":
+                self.log(f"OVERLAP: {self.base} at {tip[:12]} is RED ({', '.join(red)}) {why}; "
                          "--overlap logs it and does not wait")
+            elif state == "wait":
+                self.log(f"OVERLAP: {self.base} at {tip[:12]} is still running ({', '.join(pending)}): "
+                         "a wait, not red; --overlap does not wait")
             return
         red = self.wait_ci(tip, only=req)
         if red:
             raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
+
+    def unstale(self, h: str) -> None:
+        """K15 (b), before a merge attempt: each check-run at <h> queued or in
+        progress over a workflow run that has completed is re-run, each run
+        once, logged with its run id (two recurrences on
+        2026-10-21, #2559 and #2567: a third goes to a root-cause seat), then
+        re-read until it concludes; still red or unconcluded is a stop. An
+        unreadable run is left pending: GitHub's own merge refusal follows."""
+        reran: dict[str, str] = {}
+        for name, c in latest_runs(self._check_runs(h) or ()).items():
+            m = RUN_URL.search(c.get("details_url") or "")
+            if run_state(c) != "pending" or not m:
+                continue
+            code, st = self.run(["gh", "api", f"repos/{self.repo}/actions/runs/{m.group(1)}", "--jq", ".status"])
+            if code or not stale(c, st.strip()):
+                continue
+            if m.group(1) not in reran.values():
+                code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
+                self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
+                         f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
+            reran[name] = m.group(1)
+        if reran:
+            red = self.wait_ci(h, only=sorted(reran), beat=f"stale re-run at {h[:8]}")
+            if red:
+                raise Stop("ci", f"red at the head after the stale re-run of run(s) "
+                           f"{', '.join(sorted(set(reran.values())))}: {', '.join(red)}")
 
     def is_merged(self, pr: int) -> bool:
         """Whether GitHub already reports <pr> MERGED -- the post-merge test for
@@ -1870,6 +1986,13 @@ def _self_test() -> int:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
+            if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
+                world.get("on_rerun", lambda: None)()
+                return 0, ""
+            wf = re.search(r"/actions/runs/(\d+)\b", a)
+            if argv[:2] == ["gh", "api"] and wf:  # a workflow run's status
+                st = world.get("wf_runs", {}).get(wf.group(1))
+                return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "check-runs" in a:
                 # `pending_reads`: the first N reads report in_progress, so a
                 # wait that outlives one poll can be driven without a clock.
@@ -2776,9 +2899,196 @@ def _self_test() -> int:
           sleep=lambda s: None, polls=2).wait_ci(H0)
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
+    _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _state_self_test(check, go, merged, throwaway_git_init) -> None:
+    """THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15)."""
+    import contextlib
+    import io
+
+    def cr(name, status="completed", conclusion="success", started="1", cid=1, url=""):
+        return {"name": name, "status": status, "started_at": started, "id": cid, "details_url": url,
+                "conclusion": conclusion if status == "completed" else None}
+
+    req = ["fast", "mutation", "typing", "record"]
+    e7 = latest_runs([cr("fast"), cr("mutation", "in_progress"), cr("typing", "queued"),
+                      cr("record", conclusion="failure"), cr("record-autofix", conclusion="failure")])
+    check("K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- "
+          "reads wait, never red, even with record listed as required",
+          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+    check("K15 (a): every required context green reads green; a non-required red is not counted",
+          classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
+                   req) == ("green", [], []))
+    check("K15 (a): a failed required context reads red while another is still in flight",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
+                   req) == ("red", ["mutation"], ["fast"]))
+    check("K15 (a): judged on the latest run of each context -- a re-run that went green clears the red",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
+                                cr("typing")]), req)[0] == "green")
+    check("K15 (a): a required context with no run yet is wait, never green",
+          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+    try:
+        classify(e7, None)
+        refused = False
+    except ValueError:
+        refused = True
+    check("K15 (a): an unreadable ruleset is a refusal, never green", refused)
+    # The --overlap main gate on the e7c66485 shape: logged as a wait, with
+    # no "not green" and no revert; a failed required context is still RED.
+    for runs, want in (([cr("fast", "in_progress"), cr("record", conclusion="failure")], "wait"),
+                       ([cr("fast", conclusion="failure")], "red")):
+        lines: list[str] = []
+        body = "\n".join(json.dumps(c) for c in runs)
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (0, body),
+                  sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+                  base="batch/x").main_green("a" * 40, ["fast", "record"], "after #7's unproved merge: revert it first")
+        said = " ".join(lines)
+        check(f"K15 (a): the --overlap gate logs main {want.upper()} for "
+              f"{'pending plus a record red' if want == 'wait' else 'a failed required context'}",
+              said.startswith("OVERLAP: ") and ("revert" in said) == (want == "red")
+              and ("still running" in said) == (want == "wait") and ("is RED" in said) == (want == "red"))
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (1, "HTTP 502"),
+              sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+              base="batch/x").main_green("a" * 40, ["fast", "record"], "revert it first")
+    check("K15 (a): unreadable check runs log the --overlap gate as unreadable, never as a wait on every "
+          "context (null control: the readable arms above)",
+          len(lines) == 1 and "check runs unreadable" in lines[0] and "still running" not in lines[0])
+    # (b) a stale check-run: in progress over a completed workflow run.
+    url = "https://github.com/o/r/actions/runs/119308796140/job/5"
+    stale_cr = cr("budget-raise-gate", "in_progress", cid=7, url=url)
+    check("K15 (b): stale only while its run has completed (null control: a run still in progress)",
+          stale(stale_cr, "completed") and not stale(stale_cr, "in_progress")
+          and not stale(cr("budget-raise-gate"), "completed"))
+
+    def stale_world(run_status: str, clears: bool) -> dict:
+        w = {"runs": [cr("fast"), stale_cr], "wf_runs": {"119308796140": run_status}}
+        if clears:
+            w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, cr("budget-raise-gate", started="2")])
+        return w
+
+    rc, lines, calls = go(stale_world("completed", True))
+    reruns = [i for i, c in enumerate(calls) if c[-1].endswith("/actions/runs/119308796140/rerun")]
+    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+    check("K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged "
+          "with its run id",
+          rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
+          and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
+    stale2 = cr("closures", "in_progress", cid=8, url=url)
+    w = {"runs": [cr("fast"), stale_cr, stale2], "wf_runs": {"119308796140": "completed"}}
+    w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, stale2, cr("budget-raise-gate", started="2"),
+                                           cr("closures", started="2")])
+    rc, lines, calls = go(w)
+    check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
+          rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
+          and sum(ln.startswith("STALE ") for ln in lines) == 1)
+    rc, lines, calls = go(stale_world("in_progress", False))
+    check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
+          rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
+    rc, lines, calls = go(stale_world("completed", False))
+    check("K15 (b): a re-run that leaves it unconcluded stops the merge, and never re-runs twice",
+          rc == 1 and not merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    # (d) the `classify` CLI a reviewer dispatch asks: a pull request's head
+    # is judged on every required context, PR_ONLY included; --main drops them.
+    def cli(runs, ruleset="fast\npr-contract\n", *flags) -> "tuple[int, str]":
+        def fake_run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "check-runs" in a:
+                return 0, "\n".join(json.dumps(c) for c in runs)
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if ruleset else (1, "HTTP 404")
+            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+        saved, buf = Train._run, io.StringIO()
+        Train._run = staticmethod(fake_run)
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["classify", "a" * 40, *flags])
+        finally:
+            Train._run = saved
+        return rc, buf.getvalue()
+
+    red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
+    check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
+          "(rc 1); the same runs read as main's tip drop PR_ONLY and are GREEN (rc 0)",
+          cli(red_pc)[0] == 1 and cli(red_pc)[1].startswith("RED ")
+          and cli(red_pc, "fast\npr-contract\n", "--main")[0] == 0)
+    check("K15 (d): a head still in flight is WAIT (rc 3) and reviewable; an unreadable ruleset refuses (rc 2)",
+          cli([cr("fast", "in_progress"), cr("pr-contract")])[0] == 3 and cli(red_pc, "")[0] == 2)
+    # (c) a DIRTY head, from git merge-tree against a throwaway repository:
+    # once bare, once with the claimnotes driver installed as claim-files.md
+    # tells every clone to, which resolves a notes-only claim conflict and
+    # says so on stderr. The claim notes are comment lines, which it unions.
+    claim = "tests/golden/claimed_drift.txt"
+    got, raw = {}, {}
+    for driver in (False, True):
+        with tempfile.TemporaryDirectory() as d:
+            env = throwaway_git_init(d, "-q", "-b", "main")
+
+            def rg(argv, cwd=d):
+                r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
+                return r.returncode, r.stdout + r.stderr  # the tick's Tick.git shape
+
+            def commit(files: dict, msg: str) -> None:
+                for f, text in files.items():
+                    (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                    (Path(d) / f).write_text(text)
+                rg(["git", "add", "-A"])
+                rg(["git", "commit", "-qm", msg])
+
+            if driver:
+                rg(["git", "config", "merge.claimnotes.driver",
+                    f"{sys.executable} {ROOT / 'tests/env_drift.py'} --merge-claim-file %O %A %B %L %P"])
+            commit({claim: "# claims-for: 1\n", "roster_edit.py": "0\n", ".gitattributes": f"{claim} merge=claimnotes\n"},
+                   "base")
+            for br, files in (("claims", {claim: "# claims-for: 1\n# c\n"}),
+                              ("content", {claim: "# claims-for: 1\n# c\n", "roster_edit.py": "c\n"})):
+                rg(["git", "checkout", "-qb", br, "main"])
+                commit(files, br)
+            rg(["git", "checkout", "-q", "main"])
+            commit({claim: "# claims-for: 1\n# m\n", "roster_edit.py": "m\n"}, "main")
+            got[driver] = {br: conflicts(rg, "main", br) for br in ("claims", "content", "main", "nope")}
+            raw[driver] = rg(["git", "merge-tree", "--write-tree", "--name-only", "--no-messages", "main", "claims"])
+    def shaped(code: int, out: str):
+        return lambda argv: (1, "") if argv[1] == "config" else (code, out)
+
+    check("K15 (c): an exit code that disagrees with the lines is no answer: a clean exit with a second "
+          "line (a driver's stderr) and a conflict exit with none are None (null control: each agreeing shape)",
+          conflicts(shaped(0, f"{'a' * 40}\nMERGE-CLAIM: resolved {claim}\n"), "main", "x") is None
+          and conflicts(shaped(1, f"{'a' * 40}\n"), "main", "x") is None
+          and conflicts(shaped(0, f"{'a' * 40}\n"), "main", "x") == []
+          and conflicts(shaped(1, f"{'a' * 40}\n{claim}\n"), "main", "x") == [claim])
+    unread = lambda argv, cwd=ROOT, stdin=None: (128, "fatal: bad config") if "config" in argv else (0, "a" * 40)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=unread, sleep=lambda s: None, log=lambda s: None,
+                  polls=1).build("a" * 40, [{"pr": 1, "head": "b" * 40}])
+        built = True
+    except Stop as e:
+        built = e.step != "build"
+    except Exception:  # a crash is not the stop
+        built = True
+    check("K15 (c): an unreadable git config is no answer and no proof: conflicts() None, build stops "
+          "(null control: rc 1, git's no-such-key, is a clean read above)",
+          conflicts(unread, "main", "x") is None and not built)
+    check("K15 (c): merge-tree names the conflicted files; a clean merge is [] and an unknown head None",
+          got[False] == {"claims": [claim], "content": ["roster_edit.py", claim], "main": [], "nope": None})
+    check("K15 (c): with the claimnotes driver installed the answer is GitHub's, which runs none: a claim-only "
+          "head lists its claim file and a content conflict lists no stderr line (null control: the bare "
+          "merge-tree in that clone resolves the claim and prints MERGE-CLAIM, and without the driver it does not)",
+          got[True] == got[False] and raw[True][0] == 0 and "MERGE-CLAIM: resolved" in raw[True][1]
+          and raw[False][0] == 1 and "MERGE-CLAIM" not in raw[False][1])
+    got = got[False]  # dirty_repair's own arm reads the driverless answer
+    check("K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content "
+          "conflict goes back to its fixer and its verdict does not carry",
+          "claimnotes" in dirty_repair(got["claims"], (claim,))
+          and "claimnotes" not in dirty_repair(got["content"], (claim,))
+          and "does not carry" in dirty_repair(got["content"], (claim,)))
 
 
 def _batch_self_test(check) -> None:
@@ -3291,7 +3601,7 @@ def _batch_self_test(check) -> None:
     check("--overlap starts the batch while main's fresh push run is still in progress: the "
           "pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
-          and any(ln.startswith("OVERLAP: ") and "is not green" in ln and "before admission" in ln
+          and any(ln.startswith("OVERLAP: ") and "is still running" in ln and "a wait, not red" in ln
                   for ln in w["lines"]))
 
     w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {"b.txt": "B\n"}, 3: {"a.txt": "A\n"}}, base="main",
@@ -3461,6 +3771,15 @@ def _parser() -> argparse.ArgumentParser:
                         "Default: recarry one, wait, merge, next.")
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
+    # K15: the classifier for a caller outside the train -- merge_pr.sh's
+    # stale sweep, and a reviewer dispatch's reviewable-head check (d).
+    u = sub.add_parser("unstale", parents=[common], help="re-run each stale check-run's workflow run once")
+    u.add_argument("sha")
+    c = sub.add_parser("classify", parents=[common],
+                       help="GREEN (rc 0), RED (rc 1), WAIT (rc 3) over the required contexts; "
+                            "unreadable rc 2; a head is reviewable unless RED")
+    c.add_argument("sha")
+    c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     return p
 
 
@@ -3480,6 +3799,21 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd in ("unstale", "classify"):
+        t = Train(a.repo, Path("."), None, "", (), a.min_runs)
+        try:
+            if a.cmd == "unstale":
+                t.unstale(a.sha)
+                return 0
+            runs = t._check_runs(a.sha)
+            if runs is None:
+                raise Stop("ci", f"the check runs at {a.sha[:12]} could not be read")
+            state, pending, red = classify(latest_runs(runs), t.required(pr_head=not a.main))
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 1 if a.cmd == "unstale" else 2
+        print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+        return {"green": 0, "red": 1, "wait": 3}[state]
     queue = json.loads(Path(a.queue).read_text())
     ignore = tuple(a.ignore_red) if a.ignore_red else ("nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
