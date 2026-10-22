@@ -28,4 +28,4 @@ Body figures not reproduced (non-blocking, body-only; no stage changes):
 Carry: none -- the three notes above are this PR body's own wording; they change no later stage.
 Carry: R10-POLICY-LINT-FAMILY -- unchanged from the body's own carry (root cause of the semantic-merge red); no new finding added by this review.
 
-Evidence: /Users/timmalmstrom/hpo-seats/r10s4/rev2595-ev (HEAD.txt, policy_lint.txt, obligations.md, check-runs.tsv, body.md)
+Evidence: ~/hpo-seats/r10s4/rev2595-ev (HEAD.txt, policy_lint.txt, obligations.md, check-runs.tsv, body.md)
