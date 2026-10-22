@@ -2110,9 +2110,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: optimizer.py (position 4 of 4; before you: R10-LEAF-IMPORTS, R10-SAV-REASONS; next: none). Owning seam in this group: the minimiser driver and the objective evaluation. Shape: seeds and tolerance in the driver; one fused objective call. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-solver",
-    "commit": null,
+    "commit": "008ad15bbba4df3dc6cb3afaee4ef7120557739d",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
