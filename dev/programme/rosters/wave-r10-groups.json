@@ -8331,6 +8331,44 @@
     "branch": null
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The cloud seat's non-login shell lacks the toolchain the payload says is on PATH; fix the profile note or source the profile (three instances in the carries). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-FLY-YIELD-GUARD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "XS",
+   "issues": [
+    2505
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/rounds/round10/D13/yield-probe.md"
+   ],
+   "carry": [
+    "From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.",
+    "From #2579's round-6 review (review/2579 f7a6bdf0c), the R10-FLOW-YIELD-PROBE measurement: two corrected points bind the yield-probe guardrail that this group owns (item b8b28b28).\n(1) P(X <= 4 | n=30, p=0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer first-pass merges, not 3.\n(2) Any ALPHA the guardrail adopts must be checked at P = 0.0526 (k = 2 of 20) for the 20-PR arm.\nRe-derive both figures from dev/audit/rounds/round10/D13/yield-probe.md at this group's merge base before adopting them. The control is the one already carried: a planted defect of each class trips the guardrail, and a null window does not."
+   ],
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration) left by R10-FLOW-YIELD-PROBE; re-derive the two figures in the second carry at your merge base first. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   }
  ]
 }
