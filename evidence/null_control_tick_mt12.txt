@@ -1,9 +1,0 @@
-  FAIL K15 (c) DIRTY real git, claim files only, driver installed: one DIRTY line naming the classification
-  FAIL K15 (c) DIRTY real git, content and claim, driver installed: one DIRTY line naming the classification
-  FAIL K15 (c) DIRTY real git, content and claim, driver installed: no MERGE-CLAIM line read as a file
-orchestrator_tick self-test: 186 checks, 3 failed
-RESULT mt12-applied conflicts(m,claims) -> None ; dirty_repair -> None
-RESULT mt12-applied conflicts(m,content) -> ['tools/audit/seat/roster_edit.py', 'MERGE-CLAIM: resolved tests/golden/claimed_drift.txt'] ; dirty_repair -> 'content conflict in tools/audit/seat/roster_edit.py, MERGE-CLAIM: resolved tests/golden/claimed_drift.txt: back to the owning fixer; the resolution changes reviewed code, so its verdict does not carry'
-RESULT mt12-applied conflicts(m,m) -> [] ; dirty_repair -> None
-RESULT mt12-applied conflicts(m,nope) -> None ; dirty_repair -> None
-control bare merge-tree m claims: rc=0 stdout='ee899aa47c9126be6e4ee3bb55f1e068c070fcdb\n' stderr='MERGE-CLAIM: resolved tests/golden/claimed_drift.txt\n'

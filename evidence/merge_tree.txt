@@ -1,3 +1,148 @@
-$ git merge-tree --write-tree origin/main bf10abe62926bc8d93be779ae859a985e5365aa6  (origin/main=57f0c9c77cfd5958e0a2443e158bea8326bedae2)
-f11fc668460c33af6324ab6914e64eceae60b3f0
-rc=0
+cd020cc972865fc8e1d86f2398fa8301e0bf6787
+exit=0
+b787c7d45951243a05b6522437b60a01288f0dfd
+## origin/main now 8a4c438e7d9a6e2c492a1733d658d96b7b1eedcf
+8a4c438e7 Merge pull request #2578 from tvofi/fix/r10-flow-body-patch
+01cf1398a Merge pull request #2598 from tvofi/fix/audit-r10-roster-8
+fa9a8fd4e Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+c61659318 Merge pull request #2596 from tvofi/record/autofix
+fae523a14 Merge pull request #2585 from tvofi/fix/r10-ci-layout-p1
+1787ffd08 Merge pull request #2591 from tvofi/fix/r10-fly-budget-leaf
+b980e2fa0 Merge pull request #2577 from tvofi/fix/r10-flow-dispatch
+35dd39650 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster-8
+332981305 Merge commit '4da10dbae84c7915488ce9fcd29240fc14750eb0' into fix/audit-r10-roster-8
+4da10dbae roster_edit append-carry R10-FLOW-BODY-ONLY (tools/audit/seat/roster_edit.py)
+e9588044c roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+55cfbc6f9 roster_edit append-carry R10-TRAIN-OVERLAP-GRADE (tools/audit/seat/roster_edit.py)
+c20159efd roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
+ccd5f0611 Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+e5d5c5084 roster_edit drop-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+ac7935610 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+5f216b37f Merge remote-tracking branch 'origin/main' into HEAD
+0c563c12e record: the delivery row for #2598
+1730aa8e8 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster-8
+562015181 roster_edit append-carry R10-FLY-GH-READ-RETRY (tools/audit/seat/roster_edit.py)
+2e38c61d3 roster_edit append-carry R10-FLOW-BOARD (tools/audit/seat/roster_edit.py)
+c9853c7d3 roster_edit append-carry R10-TRAIN-OVERLAP-GRADE (tools/audit/seat/roster_edit.py)
+cb355bef4 roster_edit append-group X (tools/audit/seat/roster_edit.py)
+ece9672d5 roster_edit set-stage R10-FLOW-DESIGN-POLICY (tools/audit/seat/roster_edit.py)
+a08874b71 roster_edit wire-issue R10-RCA-FRICTION-RESIDUE (tools/audit/seat/roster_edit.py)
+c618b8435 Merge remote-tracking branch 'origin/main' into fix/r10-ci-layout-p1
+4e2a631e9 roster_edit append-group X (tools/audit/seat/roster_edit.py)
+111c031b6 Merge remote-tracking branch 'origin/main' into fix/r10-fly-budget-leaf
+731a11491 Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+71410dbaf roster_edit set-stage R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+dbe9eb8b0 roster_edit unwire-issue R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+318381b2b roster_edit unwire-issue R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+2d81bb351 roster_edit unwire-issue R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+636325253 roster_edit unwire-issue R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+3677df894 roster_edit unwire-issue R10-RCA-FRICTION (tools/audit/seat/roster_edit.py)
+b65a4bdbf roster_edit append-group X (tools/audit/seat/roster_edit.py)
+adf16f826 roster_edit edit-brief R10-SCORES (tools/audit/seat/roster_edit.py)
+bd28ade47 Merge remote-tracking branch 'origin/main' into fix/r10-ci-layout-p1
+751826952 Merge remote-tracking branch 'origin/main' into fix/r10-fly-budget-leaf
+283348fe4 Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+e6e3cd849 Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+55adb13a1 ci: record delivery rows
+b90c9cefd ci: record delivery rows
+830541fe7 Merge remote-tracking branch 'origin/main' into fix/r10-fly-budget-leaf
+d1bc4b59c Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+115bf041d Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+c5a968de3 Merge remote-tracking branch 'origin/main' into fix/r10-fly-budget-leaf
+aef2c3e2e Merge commit 'cfdd9c26cd388d242fafdaaa6f5e8761f8fbe65e' into fix/r10-fly-budget-leaf
+e817bb123 Merge remote-tracking branch 'origin/main' into fix/r10-ci-layout-p1
+b138c5f3a Merge commit '188c5728b00a8cb746b1ff31b35c0030b3842eb1' into fix/r10-ci-layout-p1
+9720cda1e Merge commit '9dcdfe948c13a44aed6b700e91862d071112da11' into fix/r10-flow-dispatch
+94ef8a7d7 Merge commit 'dcb7f980bddc8caed8dfbd9bf033b125fc30d7e8' into fix/r10-flow-body-patch
+cfdd9c26c prepr: pin body_refusal's precedence with a both-grounds row per pair
+9dcdfe948 docs(seat): INSTRUMENTS.md names the flags the --group path refuses
+53ae6a8ca Merge remote-tracking branch 'origin/main' into HEAD
+e96aaeff2 fix(seat): the --group CLI refuses every flag it does not forward
+188c5728b tools/pr: ci_predict counts only INERT siblings as evidence of a glob
+fe6080b3e Merge remote-tracking branch 'origin/main' into HEAD
+dcb7f980b Merge origin/main (93e6a63d2) into fix/r10-flow-body-patch
+adc94f5eb Merge remote-tracking branch 'origin/main' into fix/r10-ci-layout-p1
+1060a1f03 Merge commit 'd2154512250c0b78d59356c168892767a1de37cb' into fix/r10-flow-dispatch
+d21545122 test(seat): a missing reviewer ref fails the CLI check by name, not by a crash
+ae9be31f8 test(seat): the --group CLI's --group and --model pass-through is pinned too
+ecff263a6 test(seat): the --group CLI's --role, --pr and --nonce pass-through is pinned
+973a07983 Merge remote-tracking branch 'origin/main' into fixwork
+400e15d27 record: the delivery row for #2591
+47e03696d Merge remote-tracking branch 'origin/main' into fix/r10-fly-budget-leaf
+c3d66bca3 fix(R10-FLY-BUDGET-LEAF): prepr prints the body error, not only its count
+997dadc90 Merge commit '11c9209a5b0429e18bc00a5f01b367762d4332ed' into fix/r10-flow-dispatch
+11c9209a5 closures: the inert-read entry ci_predict names for tests/entities.py
+9dc32da66 cloud_dispatch: the second clone is --no-local, which a local clone's object copy would defeat
+2f7137eed cloud_dispatch: the second-clone check clones main alone, so the dispatch tip is not local
+70f1d19c3 cloud_dispatch: pin the explicit roster ref, the --group CLI pass-through and the second-clone fetch
+ceb97d244 Merge remote-tracking branch 'origin/main' into fix-r3
+e93de8667 ci: merge main
+69a429cfa Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+e3799cfe7 Merge commit '742ed664b56b540b1a420fbd8a7b460ae016147b' into fix/r10-flow-dispatch
+36ca386d6 Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+742ed664b r10_flow_dispatch_mutants: find the root with the canonical repo_root walk (harness_headers' inline scan)
+98d10b5cc closures: the r10_flow_dispatch mutant drive is an inert read of harness_headers.py (ci_predict --apply-inert)
+9262b508a INSTRUMENTS: the group path's roster and head sources; the mutant drive
+cd5f355ae cloud_dispatch: roster from the round's roster branch, head from main; pin the PR head and the _publish privacy guard
+345cbbc36 Merge remote-tracking branch 'origin/main' into work/r10-flow-dispatch
+48cc0918a Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+0644c36d4 record: the delivery row for #2585
+f2d28782d Merge commit '2bd0e21b13d3c29795a5f2cba59f14ccf7ff2105' into fix/r10-ci-layout-p1
+2bd0e21b1 Merge remote-tracking branch 'origin/fix/r10-ci-layout-p1' into fix/r10-ci-layout-p1
+bbe90b2dd ci: re-record closures
+e4294cde5 tools/audit/seat: register nightly.yml's pushes in ref_privacy's PUSHERS
+31cf04268 Merge remote-tracking branch 'origin/main' into fix/r10-ci-layout-p1
+1b4fae9df dev/audit: R10-CI-LAYOUT PR 1's C1 census reads the design's grep from its archived ref
+eb804069e Merge remote-tracking branch 'origin/main' into p1/r10-ci-layout-p1
+abf4f40b7 ci: R10-CI-LAYOUT PR 1 -- the nightly lanes leave tests.yml; W1 drops C1
+3f22a805c Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+7d10b7fdf Merge commit '1554a032ffa9c1d268dd7a83d31e568602ff561f' into fix/r10-flow-body-patch
+1554a032f Merge origin/main into fix/r10-flow-body-patch
+ab80640b8 seat: body_patch.sh read-back success is a flag only an ok read sets
+50c4a681d record: the delivery row for #2578
+ce1a78d28 Merge remote-tracking branch 'origin/main' into fix/r10-flow-body-patch
+6684dee65 record: the delivery row for #2577
+1fa46dcd9 Merge remote-tracking branch 'origin/main' into fix/r10-flow-dispatch
+18e7a7c61 seat: body_patch.sh self-test builds its scratch repository through throwaway_git
+d45f4b49b cloud_dispatch: land both roster groups in the second fixture so the host-path control is real
+1fd20815b cloud_dispatch: one-call group path (role, group, model) publishing a dispatch ref
+314be574b seat: body_patch.sh repairs a pull request's body without moving its head
+ tools/pr/merge_main_bot.py                         |   20 +-
+ tools/pr/prepr.sh                                  |   60 +-
+ 54 files changed, 3175 insertions(+), 2199 deletions(-)
+## merge-tree, local drivers installed
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (13 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (816 entries)
+  re-run the gate that owns this file before pushing
+40e474928d296c81623dad87f3dd2d76f2882d7a
+100644 0e804373e24582839b197ea9d2655668953d35fb 1	dev/audit/harnesses/r10_seat_selftests_mutants.py
+100644 8c7ec5d794b50bf9339dd2582300f69dcc0a3ae3 2	dev/audit/harnesses/r10_seat_selftests_mutants.py
+100644 66af11c0c6dd797fdd4db42611ae4d37b82fb6f6 3	dev/audit/harnesses/r10_seat_selftests_mutants.py
+
+Auto-merging dev/audit/harnesses/r10_seat_selftests_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_seat_selftests_mutants.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/merge_train.py
+Auto-merging tools/audit/seat/orchestrator_tick.py
+exit=1
+## merge-tree, no driver (GitHub's merge)
+82baffecf2f3ec695a3fd035a19201bf3e66d20d
+dev/audit/harnesses/r10_seat_selftests_mutants.py
+tests/closures.json
+
+Auto-merging dev/audit/harnesses/r10_seat_selftests_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_seat_selftests_mutants.py
+Auto-merging tests/closures.json
+CONFLICT (content): Merge conflict in tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/merge_train.py
+exit=1
+## roles changed on main since merge base
+## files both sides touch
+dev/audit/harnesses/r10_seat_selftests_mutants.py
+tests/closures.json
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/merge_train.py
+tools/audit/seat/orchestrator_tick.py

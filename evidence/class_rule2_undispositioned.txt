@@ -1,7 +1,0 @@
-HEAD:tools/audit/seat/orchestrator_tick.py:792:                "git merge-tree reads it clean against origin/main: re-read "
-HEAD:tools/audit/seat/orchestrator_tick.py:794:                "git merge-tree could not answer: name the conflicted files "
-HEAD:tools/audit/seat/orchestrator_tick.py:3164:        # PRS (c): DIRTY names the conflicted files from git merge-tree first;
-HEAD:tools/audit/seat/orchestrator_tick.py:3171:                ("merge-tree unreadable", 128, "fatal: bad object", "could not answer")):
-HEAD:tools/audit/seat/orchestrator_tick.py:3173:            t._git.h.insert(0, (("merge-tree", "--write-tree", "origin/main", H1), rc_mt, out))
-HEAD:tools/policy/fixtures/wave-1b-931dffe.json:16: "fork_note": "v6.3.11 + #381; both halves were cut from it. STALE AS A FORK FOR EVERY PURPOSE: main has since taken #382, #383, #389, #390, #391, #392, #393, #385, and the #387 fix (#388). Groups with a resum
-HEAD:tools/pr/preflight.sh:173:#    (b) The repair is `git merge origin/main`, and fixer.md step 6 then

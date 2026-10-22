@@ -1,10 +1,10 @@
-== mainx 
+## base (d09c3072bdb0749dd42edf9b2c7af96c9a5cbd16) no --pending
 END
-== mainx --pending mutation typing closures
+## base --pending mutation typing closures
 OVERLAP: batch/replay at e7c664856776 is not green (closures, mutation, typing) after #N's unproved merge: revert it first; --overlap logs it and does not wait
 END
-== headx 
+## head (5e8af9350b35a1232317b62b17dc8aae5aff1ebf) no --pending
 END
-== headx --pending mutation typing closures
+## head --pending mutation typing closures
 OVERLAP: batch/replay at e7c664856776 is still running (closures, mutation, typing): a wait, not red; --overlap does not wait
 END

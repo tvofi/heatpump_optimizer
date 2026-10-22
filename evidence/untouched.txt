@@ -1,6 +1,0 @@
-VERSION/manifest/notes diff vs merge-base:
-(empty above = untouched)
-claim files:
-(empty = untouched)
-budgets:
-(empty = none)
