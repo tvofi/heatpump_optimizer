@@ -4,7 +4,9 @@
     python3 dev/audit/harnesses/ci_script_seconds.py 2026-10-04 \\
         tests/boost_drift_replay.py tests/features.py tests/stress.py
 
-One row per Tests run with event `push` on `main` created at or after SINCE:
+One row per Tests run (workflow `CI`, job `tests / fast (3.14)`, once the layout
+cut-over landed; `Tests` before it, so the series stays continuous) with event
+`push` on `main` created at or after SINCE:
 created time, head SHA, and each script's seconds from run.sh's closing
 timing table (`   1152s  python3 tests/x.py`), or `none` when the log has no
 such row (the script did not exist or did not run). A run whose jobs or log
@@ -22,6 +24,19 @@ import subprocess
 import sys
 
 REPO = "tvofi/heatpump_optimizer"
+WORKFLOWS = ("Tests", "CI")        # the push runs of `Tests` end at the cut-over, `CI`'s begin
+
+
+def is_fast(job_name: str) -> bool:
+    """`fast (3.14)` before the cut-over, `tests / fast (3.14)` after."""
+    return job_name.split(" / ", 1)[-1].startswith("fast")
+
+
+def selftest() -> int:
+    got = [is_fast(n) for n in ("fast (3.14)", "tests / fast (3.14)", "tests / browser", "gate")]
+    want = [True, True, False, False]
+    print(f"SELFTEST is_fast got={got} want={want} {'ok' if got == want else 'FAIL'}")
+    return 0 if got == want else 1
 
 
 def gh(*args: str) -> str:
@@ -30,11 +45,13 @@ def gh(*args: str) -> str:
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--selftest"]:
+        return selftest()
     since, scripts = sys.argv[1], sys.argv[2:]
     # Filtered here, not by `--event push`: that server-side filter answered
     # with runs weeks old (2026-10-07), which read as zero rows.
-    runs = [r for r in json.loads(gh(
-        "run", "list", "-w", "Tests", "--branch", "main", "--limit", "200",
+    runs = [r for w in WORKFLOWS for r in json.loads(gh(
+        "run", "list", "-w", w, "--branch", "main", "--limit", "200",
         "--json", "databaseId,headSha,createdAt,event")) if r["event"] == "push"]
     rows = failed = 0
     for run in sorted(runs, key=lambda r: r["createdAt"]):
@@ -44,7 +61,7 @@ def main() -> int:
         try:
             jobs = json.loads(gh("run", "view", str(run["databaseId"]),
                                  "--json", "jobs"))["jobs"]
-            fast = next(j for j in jobs if j["name"].startswith("fast"))
+            fast = next(j for j in jobs if is_fast(j["name"]))
             log = gh("run", "view", "--job", str(fast["databaseId"]), "--log")
         except (subprocess.CalledProcessError, StopIteration):
             failed += 1

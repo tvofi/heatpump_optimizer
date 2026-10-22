@@ -5,7 +5,9 @@
 #
 #   tools/audit/seat/ci_predict_replay.sh <scratch-dir> <pr>...
 #
-# One row per commit that carries a `closures` or `mutation` check run:
+# One row per commit that carries a `closures` or `mutation` check run (named
+# `tests / closures` and `tests / mutation` since the layout cut-over, bare
+# before it; both are read, and the predictor prints the prefixed names):
 #   pr sha closures:<ci>/<predicted> mutation:<ci>/<predicted>
 # where <ci> is the check run's conclusion and <predicted> the number of
 # PREDICT lines for that job. A green CI job beside a non-zero prediction is a
@@ -32,15 +34,15 @@ for pr in "$@"; do
   for sha in $(gh api "repos/$repo/pulls/$pr/commits" --paginate -q '.[].sha'); do
     runs=$(gh api "repos/$repo/commits/$sha/check-runs?per_page=100" --paginate \
       -q '.check_runs[]|[.name,(.conclusion // "pending")]|@tsv' 2>/dev/null) || { fails=$((fails+1)); continue; }
-    cl=$(printf '%s\n' "$runs" | awk -F'\t' '$1=="closures"{print $2}' | sort -u | paste -sd+ -)
-    mu=$(printf '%s\n' "$runs" | awk -F'\t' '$1=="mutation"{print $2}' | sort -u | paste -sd+ -)
+    cl=$(printf '%s\n' "$runs" | awk -F'\t' '$1=="closures"||$1=="tests / closures"{print $2}' | sort -u | paste -sd+ -)
+    mu=$(printf '%s\n' "$runs" | awk -F'\t' '$1=="mutation"||$1=="tests / mutation"{print $2}' | sort -u | paste -sd+ -)
     [ -n "$cl$mu" ] || continue
     wt="$scratch/wt-$sha"
     [ -d "$wt" ] || git -C "$here" worktree add -q --detach "$wt" "$sha" 2>/dev/null || { fails=$((fails+1)); continue; }
     out=$(cd "$wt" && python3 "$here/tools/pr/ci_predict.py" --base "$base" 2>&1)
-    pc=$(printf '%s\n' "$out" | grep -c '^PREDICT closures')
-    pm=$(printf '%s\n' "$out" | grep -c '^PREDICT mutation')
-    pf=$(printf '%s\n' "$out" | grep -c '^PREDICT fast')
+    pc=$(printf '%s\n' "$out" | grep -c '^PREDICT tests / closures')
+    pm=$(printf '%s\n' "$out" | grep -c '^PREDICT tests / mutation')
+    pf=$(printf '%s\n' "$out" | grep -c '^PREDICT tests / fast')
     printf '%s\t%s\tclosures:%s/%s\tmutation:%s/%s\tfast-unclassified:%s\n' \
       "$pr" "${sha:0:10}" "${cl:-none}" "$pc" "${mu:-none}" "$pm" "$pf"
     printf '%s\n' "$out" > "$scratch/predict-${sha:0:10}.txt"

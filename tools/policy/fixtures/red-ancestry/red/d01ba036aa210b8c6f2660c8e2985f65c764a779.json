@@ -12,7 +12,7 @@
       "conclusion": "success"
     },
     {
-      "name": "pr-contract",
+      "name": "pr-contract / pr-contract",
       "status": "completed",
       "conclusion": "failure"
     }

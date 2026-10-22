@@ -267,6 +267,18 @@ MUTANTS = [
     ("sweep_driver-1", "sweep_driver.py", "if n > 1 and not self.chain:", "if n > 1 and self.chain:"),
     ("sweep_driver-2", "sweep_driver.py", "if status in (403, 429):\n            reset", "if status in (429,):\n            reset"),
     ("sweep_driver-3", "sweep_driver.py", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.20", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.0"),
+    # r10-ci-layout-p2-u9d: the harness and CI readers. failure_logs' unit-prefix join, the
+    # merge_throughput series join, and (steps owed by the coordinator) the predictor's carry
+    # arm and the local alert read.
+    ("failure_logs-1", "failure_logs.sh", "sed 's# / #-#g' | ", ""),
+    ("merge_throughput-1", "tools/audit/merge_throughput.py", "            rows += json.load(fh)\n",
+     "            rows = json.load(fh)\n"),
+    ("ci_predict-1", "tools/pr/ci_predict.py", 'for r in res["rows"] if r["status"] != "routed"]',
+     'for r in res["rows"] if False]'),
+    ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
+    ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
+     "        if False:\n            return 3,"),
+    ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
