@@ -1,0 +1,15 @@
+diff --git a/tests/nightly_status.py b/tests/nightly_status.py
+index 260808149..fe0c259ae 100644
+--- a/tests/nightly_status.py
++++ b/tests/nightly_status.py
+@@ -664,9 +664,7 @@ def collect(repo: str, workflow: str, token: str | None,
+             concluded, in_flight = pick_runs(
+                 [*more, *(r for r in (concluded, in_flight) if r is not None)])
+     jobs = _jobs(repo, concluded["id"], token) if concluded else []
+-    record = (_get(f"{API}/repos/{repo}/actions/workflows/{workflow}", token)
+-              if run_id is None and concluded is None and in_flight is None
+-              else None)
++    record = None
+     return concluded, in_flight, jobs, record
+ 
+ 
