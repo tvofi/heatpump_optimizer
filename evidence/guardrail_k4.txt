@@ -1,3 +1,0 @@
-k=3: GUARDRAIL last 30 PRs (first verdict 10-01T00:00Z..10-02T05:00Z): incidence 3/30; P(X<=3|30,0.28) = 0.017 -> would-trip (report-only)
-k=4: GUARDRAIL last 30 PRs (first verdict 10-01T00:00Z..10-02T05:00Z): incidence 4/30; P(X<=4|30,0.28) = 0.050 -> would-trip (report-only)
-k=5: GUARDRAIL last 30 PRs (first verdict 10-01T00:00Z..10-02T05:00Z): incidence 5/30; P(X<=5|30,0.28) = 0.116 -> ok (report-only)

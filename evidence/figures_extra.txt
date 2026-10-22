@@ -1,5 +1,0 @@
-verdicts on the bus: 395; outside the grammar: 0
-## all
-  all                      A      PRs 112 verdicts 257 real 58 (0.52/PR) book 65 (0.58/PR) incidence 36/112 (0.32) first-pass 43/112
-  all                      L35    PRs 35 verdicts 67 real 2 (0.06/PR) book 27 (0.77/PR) incidence 2/35 (0.06) first-pass 13/32
-  all                      L13    PRs 11 verdicts 16 real 4 (0.36/PR) book 5 (0.45/PR) incidence 3/11 (0.27) first-pass 3/8

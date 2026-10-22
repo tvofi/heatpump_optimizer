@@ -1,32 +1,22 @@
-M = [
- ("H1 GROUP_RE inner '-' dropped", r'[A-Z0-9][A-Z0-9-]*[A-Z0-9]', r'[A-Z0-9][A-Z0-9]*[A-Z0-9]'),
- ("H2 MERGE_RE lazy owner made greedy", r'from \S+?/(\S+)', r'from \S+/(\S+)'),
- ("H3 size counts additions only", '''lines += (int(a) if a != "-" else 0) + (int(d) if d != "-" else 0)''', '''lines += (int(a) if a != "-" else 0)'''),
- ("H4 PRs counted by head", 'o["prs"].add(v["pr"])', 'o["prs"].add(v["head"])'),
- ("H5 author time for committer time", '%H%x09%cI%x09%s", r)', '%H%x09%aI%x09%s", r)'),
- ("H6 last group in delivery row", 'g = GROUP_RE.search(row)', 'g = ([*GROUP_RE.finditer(row)] or [None])[-1]'),
- ("H7 first confirmation wins", 'confirmed[m[2]] = m[1]', 'confirmed.setdefault(m[2], m[1])'),
- ("H8 size at first-reviewed head", 'last = {v["pr"]: v["head"] for v in verdicts if v["t"] < until}', 'last = {v["pr"]: v["head"] for v in reversed(verdicts) if v["t"] < until}'),
- ("H9 tests/ counted as product", '("custom_components/", "blueprints/")', '("custom_components/", "blueprints/", "tests/")'),
- ("H10 cloud anywhere in id", 'rid.startswith("cloud")', '"cloud" in rid'),
- ("H13 VERDICT_RE class allows colon", r'(?: ([^\s:]+):)?', r'(?: ([^\s]+):)?'),
- ("H16a S cut 150->200", 'lines < 150', 'lines < 200'),
- ("H16b S cut 150->100", 'lines < 150', 'lines < 100'),
- ("H16c L cut 600->800", 'lines < 600 else', 'lines < 800 else'),
- ("H16d L cut 600->500", 'lines < 600 else', 'lines < 500 else'),
- ("H17 guardrail tie by -pr", 'key=lambda p: (first[p], p))', 'key=lambda p: (first[p], -p))'),
- ("H18 ALPHA 0.05->0.06", 'ALPHA = 0.05', 'ALPHA = 0.06'),
- ("H19 binom exponent off by one", '(1 - p) ** (n - i)', '(1 - p) ** (n - i + 0 * 1) * (1 - p) ** 0 if i else (1 - p) ** (n - i)'),
- ("H24 REAL_CATCH gains carry-missing", '"figures-false"})', '"figures-false", "carry-missing"})'),
- ("H25 REAL_CATCH gains head-moved", '"figures-false"})', '"figures-false", "head-moved"})'),
- ("H26 delivery prefix +digit", 'f.startswith("dev/programme/delivery/")', 'f.startswith(("dev/programme/delivery/1", "dev/programme/delivery/2"))'),
- ("H27 first-pass counts blocked", 'o["first"].append(v["kind"] == "merge")', 'o["first"].append(v["kind"] != "blocked")'),
- ("H28 prior-merge any verdict", 'v["prior_merge"] = v["pr"] in merged', 'v["prior_merge"] = v["pr"] in merged or v["pr"] in {x["pr"] for x in out if x["t"] < v["t"] and x["kind"] == "merge"}'),
- ("H29 rid strip", 'rid = confirmed.get(sha, "")', 'rid = confirmed.get(sha, "").lower()'),
- ("H30 roster as_of skipped", 'ref = as_of(repo, ref, until)', 'ref = ref'),
- ("H31 tree as_of skipped", 'tree = as_of(repo, tree, until)', 'tree = git(repo, "rev-parse", tree).strip()'),
- ("H32 guardrail first by last verdict", 'first[v["pr"]] = min(first.get(v["pr"], v["t"]), v["t"])', 'first[v["pr"]] = v["t"]'),
- ("H33 window upper inclusive", 'if a <= v["t"] < b:', 'if a <= v["t"] <= b:'),
- ("H34 fixer model reviewer key", '.get("fixer") or "none"', '.get("fixer") or (grp or {}).get("fixer") or "none"'),
- ("H35 origin ignores fixes", 'grp.get("issues") or grp.get("findings") or grp.get("fixes")', 'grp.get("issues") or grp.get("findings")'),
-]
+# Hand mutants of tools/audit/seat/review_strength.py, each one textual edit (old, new), outside the sweep's classes.
+M = {
+ "X1": ('for r in refs(repo, f"refs/remotes/{remote}/probe/") + refs(repo, "refs/tags/archive/probe/"):',
+        'for r in refs(repo, f"refs/remotes/{remote}/probe/"):'),            # archived probe tags dropped (BinOp arm)
+ "X2": ('(int(m[1]), nonce[:8]) in probes', '(int(m[1]), nonce[-8:]) in probes'),  # probe suffix from the nonce's tail
+ "X3": ('if a <= v["t"] < b:', 'if a < v["t"] <= b:'),                       # window half-open on the other side (two nodes)
+ "X4": ('max(u for _, _, u in wins)', 'wins[-1][2]'),                         # as-of = last window, not latest
+ "X5": ('git(repo, "log", "--format=%H%x09%cI%x09%s", r)', 'git(repo, "log", "--first-parent", "--format=%H%x09%cI%x09%s", r)'),  # inserted arg
+ "X6": ('if not f.startswith("dev/programme/delivery/"):', 'if not f.startswith(("dev/programme/delivery/", "tests/")):'),  # size ignores tests/
+ "X7": ('confirmed[m[2]] = m[1]', 'confirmed[m[1]] = m[2]'),                  # swap names
+ "X8": (r'(?: ([^\s:]+):)?")', r'(?: (\S+?):)?")'),                           # class word charset replaced
+ "X9": ('o["real" if v["real"] else "book"] += 1', 'o["book" if v["real"] else "real"] += 1'),  # swapped literals
+ "X10": ('.astimezone(timezone.utc)', ''),                                    # UTC normalisation dropped
+ "X11": ('groups[g["group"]] = g', 'groups.setdefault(g["group"], g)'),        # first group entry wins
+ "X12": ('g = GROUP_RE.search(row)', 'g = ([*GROUP_RE.finditer(row)] or [None])[-1]'),  # last group named in the row
+ "X13": ('rid.startswith("cloud")', '"cloud" in rid'),                         # widened cloud predicate
+ "X14": ('"finding" if (grp.get("issues")', '"group" if (grp.get("issues")'),   # unrelated literal
+ "X15": ('fixer=((grp or {}).get("model") or {}).get("fixer") or "none"', 'fixer=((grp or {}).get("model") or {}).get("reviewer") or "none"'),
+ "X16": ('out.sort(key=lambda v: v["t"])', 'out.sort(key=lambda v: (v["t"], -v["pr"]))'),  # tie order
+ "X17": ('merges[int(m[1])] = (sha, parents.split()[1], m[2])', 'merges[int(m[1])] = (sha, parents.split()[-1], m[2])'),  # equivalent on 2 parents
+ "X18": ('last = {v["pr"]: v["head"] for v in verdicts if v["t"] < until}', 'last = {v["pr"]: v["head"] for v in verdicts if v["t"] < until and v["kind"] == "blocked"}'),
+}

@@ -1,3 +1,3 @@
-ok: guardrail: a real block after until is not caught (17 first at 09:30, blocked 11:00; until 09:40)
+ok: group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)
 ok: main prints the bus line once and each outside subject cut at 100
-review_strength self-test: 96 checks, 0 failed
+review_strength self-test: 87 checks, 0 failed
