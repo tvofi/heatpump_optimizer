@@ -20,7 +20,7 @@ the integration from planning.
 
 ## Initial setup
 
-**Settings → Devices & services → Add integration → Heat Pump Optimizer.**
+**Settings → Devices & services → Add integration → Heat Pump Cost Optimizer.**
 
 The flow is not a straight line. After the two required screens, a menu asks
 how far to go now, and after the temperatures a second branch chooses how the
@@ -40,7 +40,7 @@ flowchart TD
     T --> C{"5 · How do you want to<br/>describe your building?"}
     C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    C -- "Enter thermal values<br/>directly" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
     F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
     H --> I
@@ -161,7 +161,7 @@ on, and a fresh install should not be given a two-zone model it did not ask
 for. If your house does have two independently modelled floors, turn it on
 afterwards on **Advanced settings → Thermal model (expert)**.
 
-**Enter thermal values directly (expert)** is for someone holding a real energy
+**Enter thermal values directly** is for someone holding a real energy
 declaration. It asks the model's own numbers:
 
 | Setting | Default | Range | What it means |
@@ -397,7 +397,7 @@ warmth.
 | Compressor replacement cost | 0 | 0–100 000, 100 steps | What a compressor swap costs including labour, in your price currency. Divided by the rated starts below it prices each realised start. 0 keeps the start counter pure observation. |
 | Compressor rated starts | 100 000 | 1 000–1 000 000 | What the manufacturer rates the compressor for. |
 | Let realised wear tune the cycling cost | off | on/off | Makes the wear price a floor under the cycling cost above. The only insight feature that changes plans. |
-| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — one degree lower, one higher, power capped at 75 %, in rotation. Off by default because each tile is a full extra solve. |
+| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — the comfort schedule one degree lower, one higher, power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile is a full extra solve. |
 
 ### Grid peak tariff
 

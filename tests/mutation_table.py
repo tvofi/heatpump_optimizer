@@ -487,7 +487,7 @@ def gate_ref(scope: str, base: str) -> str | None:
     if env:
         return env
     if scope == "full":
-        # The nightly's comparison ref (tests.yml resolves HEAD^1 for it).
+        # The nightly's comparison ref (nightly.yml resolves HEAD^1 for it).
         return "HEAD^1"
     sha = subprocess.run(
         ["git", "merge-base", base, "HEAD"], cwd=ROOT,
@@ -2960,7 +2960,7 @@ def pool_seconds(path: str | None) -> dict[str, float]:
     """The last pool cost the nightly measured per driver, or {} (fail-soft).
 
     `path` is the prior run's persisted measurement, which the workflow restores
-    from the `actions/cache` entry the last nightly saved (tests.yml's
+    from the `actions/cache` entry the last nightly saved (nightly.yml's
     "Restore the prior pool measurement" step). Absent, unreadable or malformed
     reads as NO measurement, so the bound falls back to the committed solo
     recording -- today's behaviour, and never a smaller bound than the lane

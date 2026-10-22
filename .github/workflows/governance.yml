@@ -459,12 +459,12 @@ jobs:
           python3 -I tools/audit/seat/orchestrator_tick.py --self-test | tee "$RUNNER_TEMP/ot-self-test.txt"
           grep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"
 
-      # Every self-testing seat instrument (R10-SEAT-SELFTESTS-CI). The check
-      # refuses a file under tools/audit/seat/ whose text carries a
-      # `--self-test` entry point while no workflow run line, comments
-      # removed, names it with its self-test -- so the next instrument added
-      # there without a step reddens this job on its own pull request, where
-      # the scoped gate (tools/audit/ is INERT) would select nothing. Each
+      # Every self-testing tool (R10-SEAT-SELFTESTS-CI, widened by #2444's
+      # forward-carry). The check refuses a file under tools/ whose text
+      # carries a `--self-test` entry point while no workflow run line,
+      # comments removed, names it with its self-test -- so the next tool
+      # added there without a step reddens this job on its own pull request,
+      # where the scoped gate (tools/ is INERT) would select nothing. Each
       # step after it was measured offline under offline_spy.py: no socket,
       # no gh/curl/wget/ssh/scp/nc call, no git call reaching a URL remote.
       # The push and merge drivers (handoff_push, open_pr, update_pr,
@@ -479,6 +479,36 @@ jobs:
           python3 -I tools/audit/seat/selftest_wiring.py --self-test | tee "$RUNNER_TEMP/sw-self-test.txt"
           grep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"
           python3 -I tools/audit/seat/selftest_wiring.py --check
+
+      # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
+      # wiring check above counts every tools/ file now, so each of these has
+      # a step here or it reddens that check; four that the carry's weaker
+      # substring rule called wired were named only in a comment, as a
+      # variable's value, or with a non-self-test flag (`--install`,
+      # `--report`, `--hooks`). One step: each is offline over its own
+      # fixtures or over this checkout, and a refusal names the program.
+      - name: Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/archscore/gate.py --self-test
+          python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/merge_throughput.py --self-test
+          bash tools/audit/worktree_gc.sh --self-test
+          python3 -I tools/coverage/partition.py --self-test
+          python3 -I tools/merge/ledger_merge.py --self-test
+          python3 -I tools/plan/replan.py --self-test
+          node tools/policy/policy_lint.mjs --self-test
+          python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
+          bash tools/pr/approve_held_runs.sh --self-test
+          python3 -I tools/pr/gate_priority.py --self-test
+          python3 -I tools/pr/head_note.py --self-test
+          python3 -I tools/release/stamp.py --self-test
+          python3 -I tools/policy/agreement_py.py --self-test
+          # The wave-script restore list is derived, never carried: every .py
+          # file the agreement reader loads must be restored from the base,
+          # or a head whose readers agree still reads divergent (#2423).
+          python3 -I tools/policy/agreement_py.py --restore
 
       - name: Show the CI watcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -529,12 +559,13 @@ jobs:
           python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
           grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
 
-      - name: Show the handoff push (its self-test is delivery_row.sh's) refusing its own fixtures
+      - name: Show the handoff push and its row writer refusing their own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
+          grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
 
       - name: Show the handover prompt refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -572,6 +603,13 @@ jobs:
           python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
 
+      - name: Show the plan page refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"
+          grep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"
+
       - name: Show the PR argument builder refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -579,7 +617,7 @@ jobs:
           bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
 
-      - name: Show the open-PR cap refusing its own fixtures
+      - name: Show the dispatch cap refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
@@ -599,6 +637,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
           grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
+
+      - name: Show the programme pulse refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/pulse.py --self-test | tee "$RUNNER_TEMP/pulse-self-test.txt"
+          grep -Eq '^pulse self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pulse-self-test.txt"
 
       - name: Show the record-row generator refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -621,12 +666,30 @@ jobs:
           python3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"
           grep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"
 
+      # The mutation sweep costs one roster_edit self-test (~a minute) per
+      # plant, so CI runs only the preconditions every plant rests on: its
+      # anchor still occurs exactly once in the target's live text, and its
+      # mutant parses -- the rot that silently turns a plant into a no-op.
+      - name: Show the roster-ops mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+          grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"
           grep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"
+
+      - name: Show the roster-sync reconciler refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"
+          grep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"
 
       - name: Show the twin-run reader refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -655,6 +718,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
           grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
+
+      - name: Show the heartbeat andon refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
+          grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -880,6 +950,11 @@ jobs:
           # Each program at its path before and after the reorganisation (R9-RO-2):
           # the diff lists what PINNED holds of them, skipping the half it lacks,
           # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          # The `tests/` and `tools/` entries this reader needs are DERIVED from
+          # its import closure, never carried:
+          # `python3 -I tools/policy/agreement_py.py --restore` names any
+          # closure file this list misses (the #2423 `divergent=2`), and the
+          # agreement lane below refuses to answer while one is missing.
           git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
@@ -888,14 +963,20 @@ jobs:
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tests/coverage_ratchet.py' \
+            'tests/delivery_status.py' \
             'tests/entities.py' \
             'tests/gate_lock.py' \
             'tests/issue996_count.py' \
             'tests/nightly_ha.py' \
             'tests/replay.py' \
             'tests/structure.py' \
+            'tests/throwaway_git.py' \
             'tools/audit/round4/D11/d11lib.py' \
             'tools/audit/round4/D11/governance_cost.py' \
+            'tools/audit/seat/merge_train.py' \
+            'tools/audit/seat/queue_pre_flight.py' \
+            'tools/audit/seat/ref_privacy.py' \
+            'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
@@ -903,6 +984,7 @@ jobs:
             'tools/pr/*.sh' \
             'tools/seat/*.sh' \
             'tools/coverage/*.sh' \
+            'tools/release/stamp.py' \
             'dev/audit/*.sh' \
             'tools/policy/record-predicate' \
             'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
@@ -922,7 +1004,10 @@ jobs:
       # registered. The base's copy once the base carries the program (the
       # restore above); the pull request that lands it skips the lane, below. The tests
       # and audit scripts its Python readers load are restored from the base
-      # above too, so a pull request cannot change a reader it is graded by.
+      # above too, so a pull request cannot change a reader it is graded by;
+      # the restored `agreement_py.py` refuses to answer while that list
+      # misses a file it loads (its restore precondition, #2423), so the list
+      # is derived and checked here rather than carried by hand.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
