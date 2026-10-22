@@ -3527,6 +3527,7 @@
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_leaf_solver_closure.py",
+   "dev/audit/harnesses/r10_literal_respelled_replant.py",
    "dev/audit/harnesses/r10_main_gate_replay.py",
    "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
    "dev/audit/harnesses/r10_mermaid_parse.mjs",
