@@ -7682,7 +7682,7 @@
    "architect_note": "",
    "brief": "Root-cause record for the recurring 'API rate limit exceeded for installation' reds on required checks (2026-10-22 06:27Z, 08:40Z, 09:44Z). Records only: dev/audit/rca/install-ratelimit.md plus the offline harness dev/audit/harnesses/record_api_calls.sh. Code is at handoff/r10-rca-install-ratelimit 0a8c4523a.",
    "resume": {
-    "stage": "in-review",
+    "stage": "in-progress",
     "branch": "handoff/r10-rca-install-ratelimit",
     "commit": null,
     "last_step": null,
