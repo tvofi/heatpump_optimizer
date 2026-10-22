@@ -9,13 +9,17 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34 each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). A mutant added
 since takes a per-file id (`cloud_relay-1`), never a new S number, so two
 branches adding mutants to different files never conflict. S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
+carry's own mutant (`true`, and `exit 0` for the merge), and the step's
+offline self-test must redden.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
@@ -109,6 +113,16 @@ MUTANTS = [
     ("S34", "tick_loop.sh",
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # #2444's fourth forward-carry: the push and merge lines their own
+    # self-tests did not reach. Each mutant is the carry's, verbatim.
+    ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
+     "true  # mut:push-update"),
+    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+     "true  # mut:push-open"),
+    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+    ("S38", "merge_pr.sh",
+     "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+     "exit 0  # mut:merge"),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
     ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
@@ -119,22 +133,31 @@ MUTANTS = [
      'if grep -qF "$pr" <<< "$held_prs"; then'),
     ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
     ("cloud_relay-6", "cloud_relay.sh",
-     'held_prs=$(hold_list) || { logline OWED "handoff-hold-malformed $(hold_file)"; return 2; }',
-     'held_prs=$(hold_list) || { return 2; }'),
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'level_set'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
     # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
     ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
     ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
+    ("cloud_relay-10", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'logline OWED "handoff-hold-malformed $(hold_file)"; level_set'),
+    ("cloud_relay-11", "cloud_relay.sh",
+     'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
+     'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
+# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
+# the mutant drops the delivery_row dispatch, so that tally is never printed.
 WRAPPERS = [
     ("S08", "handoff_push.sh",
-     '[ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test',
-     '[ "${1:-}" = --self-test ] && exit 0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
+     'r=0; :'),
     ("S12", "open_pr.sh",
      'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
      'exit $r; }'),
