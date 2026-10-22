@@ -1,0 +1,19 @@
+X1 KILLED rc=1 FAIL: cloud: an archive/probe tag marks the verdict cloud (11)
+X2 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 96
+X3 KILLED rc=1 FAIL: window: [from, until) excludes a verdict at until (PR 2's block at 04:00)
+X4 KILLED rc=1 FAIL: main: the facts default to the LATEST until of any window, not the last named's (A, 10-05)
+X5 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X6 KILLED rc=1 FAIL: size: delivery rows are excluded at their '/', other dev/programme/ files count (16: 150, M<600)
+X7 KILLED rc=1 FAIL: bus-confirmed cloud-* id marks the verdict cloud
+X8 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X9 KILLED rc=1 FAIL: window L: [from, until) excludes E's verdicts
+X10 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X11 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X12 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X13 KILLED rc=1 FAIL: cloud: no decoy marks 17 (id clou9-xcloud, a mid-line confirmation, dev-/-old/archive-other probe names, a ref outside verdict/ and probe/)
+X14 KILLED rc=1 FAIL: origin: a group listing issues is finding, one listing none is group
+X15 KILLED rc=1 FAIL: fixer: the joined group's model.fixer, opus for 5 and sonnet for 6
+X16 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X17 SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 0
+X18 KILLED rc=1 facts as of 2026-10-02T12:00Z: tree 3dd469fc09a0 roster cd191f558fd3
+source restored identical
