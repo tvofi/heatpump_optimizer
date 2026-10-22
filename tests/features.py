@@ -59582,6 +59582,134 @@ R.check(
     f"(arm, row) that moved: {_f25_tbad[:4]} of {len(_f25_tbad)}",
 )
 
+# -- R10-SOLVER: N-solve-recompute -- a batch-served run makes no scalar call --
+# Round 10, R10-SOLVER (D9-s1-01, Part of #2250). L-BFGS-B asks for the value
+# and the gradient at every point it visits. The multi-start's own runs take
+# both from one batch (R9 D9-s1-02); the two runs that move a start -- the
+# two-zone half-price continuation and the relaxed duty-cycle candidate --
+# took the value from the scalar objective twice per gradient (once as
+# ``fun``, once as the difference's base), two scalar horizons a batch row
+# replaces. Every run is now the driver's one ``_lbfgsb_run``.
+#
+# THE PROPERTY IS PER RUN, NOT PER SITE: every ``_scoped_minimize`` call a
+# solve makes with a supplied jac is metered for scalar trajectory
+# simulations made while it runs, and every one must read zero. That reaches
+# a third such site the day one is written, where a check keyed on the two
+# fixed here would not. The census asserts its own preconditions -- one solve
+# that runs the continuation, the relaxed candidate and the multi-start's
+# own runs, each seen at least once -- so a solve that stopped reaching a
+# kind refuses instead of passing on an empty population. Positive control:
+# the same solve with ``_lbfgsb_run`` taking ``f`` from the scalar objective
+# reads nonzero, so the meter sees a scalar evaluation when one is made.
+# Null control, exact: that scalar-valued solve ships the same plan bit for
+# bit -- the fusion is value-neutral, because a batched row is the scalar
+# objective (the batched simulation's contract, #97).
+def _r10s_scalar_valued_run(objective, fused, x0, bounds, args, maxiter):
+    """The pre-fusion run: ``f`` from the scalar, the gradient from the batch."""
+    return _f21_optmod._scoped_minimize(
+        objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+        jac=lambda x, *a: fused(x, *a)[1],
+        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+    )
+
+
+def _r10s_solve(run=None):
+    """A two-zone, level-clamped space solve; every L-BFGS-B run metered."""
+    cfg = _f21_house(two_zone=True, dhw=False)
+    params = _f21_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _f21_Opt(_f21_Model(params), _f21_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+        clamp_planned_levels=True,
+    ))
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _f21_weather("winter_cold", t0)
+    state = _f21_State(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(out[0]),
+    )
+    runs, live = [], []
+    real_sm = _f21_optmod._scoped_minimize
+    real_traj = _f21_Model.simulate_trajectory
+
+    def traj(self, *a, **k):
+        for rec in live:
+            rec["scalar"] += 1
+        return real_traj(self, *a, **k)
+
+    def sm(fun, x0, *a, **kw):
+        rec = {
+            "jac": kw.get("jac") is not None, "scalar": 0,
+            "kind": ("continuation" if opt._floor_l1_scale != 1.0
+                     else "relaxed" if opt._levels_relaxed else "multi-start"),
+        }
+        runs.append(rec)
+        live.append(rec)
+        try:
+            return real_sm(fun, x0, *a, **kw)
+        finally:
+            live.remove(rec)
+
+    with _f21_mock.patch.object(_f21_optmod, "_scoped_minimize", sm), \
+            _f21_mock.patch.object(_f21_Model, "simulate_trajectory", traj), \
+            (_f21_mock.patch.object(_f21_optmod, "_lbfgsb_run", run, create=True)
+             if run is not None else _g341ctx.nullcontext()):
+        res = opt.optimize(inputs=solve_inputs(
+            initial_state=state, prices=_f21_prices("winter_typical", t0),
+            outdoor_temps=out, wind_speeds=wind, precipitation=rain,
+            solar_radiation=sun, start_time=t0,
+        ))
+    return runs, np.asarray(res.power_schedule, dtype=float)
+
+
+_r10s_runs, _r10s_plan = _r10s_solve()
+_r10s_ref_runs, _r10s_ref_plan = _r10s_solve(_r10s_scalar_valued_run)
+
+
+def _r10s_census(runs):
+    """Per run kind: (supplied-jac runs, scalar simulations inside them)."""
+    out = {}
+    for rec in runs:
+        if rec["jac"]:
+            n, s = out.get(rec["kind"], (0, 0))
+            out[rec["kind"]] = (n + 1, s + rec["scalar"])
+    return out
+
+
+_r10s_got = _r10s_census(_r10s_runs)
+_r10s_ref = _r10s_census(_r10s_ref_runs)
+print(f"RESULT r10_solver_runs fused={_r10s_got} scalar_valued={_r10s_ref}")
+R.check(
+    "R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the "
+    "continuation, the relaxed candidate and the multi-start's own runs on "
+    "the batched jac",
+    all(_r10s_got.get(k, (0, 0))[0] > 0
+        for k in ("continuation", "relaxed", "multi-start")),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the "
+    "scalar trajectory -- the value rides in the gradient's batch",
+    all(s == 0 for _, s in _r10s_got.values()),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the "
+    "same runs is seen by the meter",
+    _r10s_ref.get("continuation", (0, 0))[1] > 0
+    and _r10s_ref.get("relaxed", (0, 0))[1] > 0,
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_ref}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the "
+    "scalar-valued runs ship, bit for bit",
+    np.array_equal(_r10s_plan, _r10s_ref_plan),
+    f"max |dP| {float(np.max(np.abs(_r10s_plan - _r10s_ref_plan))):.3e} kW",
+)
+
 # -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
 # D7-s2-01: the candidate was rolled one explicit-Euler step per sample, so on a
 # noise-free, parameter-exact continuous house read every 30 min the fit was
