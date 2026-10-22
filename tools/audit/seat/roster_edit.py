@@ -41,7 +41,8 @@ PUSH_ATTEMPTS times; then it refuses with rc 2, saying nothing of the edit
 reached origin. Never a force push. A refused push with origin unmoved is no
 race and refuses at once. An existing worktree with uncommitted changes, or
 whose HEAD is on no origin ref (an unpushed edit), is refused,
-never clobbered.
+never clobbered. `write_roster()` is that path, and `roster_sync.py` writes
+through it too.
 
 WHICH ROSTER is `roster_lib.roster_path`'s answer, never a path of this
 file's: the newest `dev/programme/rosters/wave-r<N>-groups.json` in the
@@ -485,6 +486,79 @@ def dump(roster) -> str:
     return json.dumps(roster, indent=1)
 
 
+def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
+                 lint_cwd, label, edit) -> int:
+    """THE write path: worktree, edit, dump, commit, lint-gate, push -- shared
+    by every caller, so `main()` and `roster_sync.py` cannot drift apart in
+    formatting, the no-op rule, the gate or the push race.
+
+    `edit(roster)` applies the caller's ops to the roster loaded at the base
+    and returns whether there is anything to write; it is re-run on every
+    attempt of a push race, so the edit lands on the tip it is pushed onto.
+    Returns 0 or 3 (the lint gate refused); a failed git command, or a race
+    lost PUSH_ATTEMPTS times, raises Refuse, which each caller prints.
+
+    The round-trip rule: a write that reproduces the roster's own bytes
+    commits and pushes nothing and is still a success, so a re-run of an op
+    -- or a sync pass with nothing to derive -- is idempotent.
+    """
+    discard = None
+    for attempt in range(1, PUSH_ATTEMPTS + 1):
+        base_sha = prepare_worktree(checkout, ref, branch, worktree, discard)
+        try:
+            rel = roster_lib.roster_path(str(worktree), None, roster_path)
+        except roster_lib.RosterNotFound as e:
+            raise Refuse(str(e))
+        path = Path(worktree) / rel
+        print(f"roster: {rel} on {branch}")
+        roster = json.loads(path.read_text(encoding="utf-8"))
+        if not edit(roster):
+            return 0
+        path.write_text(dump(roster), encoding="utf-8")
+        if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
+            print(f"no change: {label} wrote the roster's own bytes "
+                  "(byte-identical); nothing to commit or push")
+            return 0
+        run(["git", "-C", str(worktree), "commit", "-q", "-am", msg])
+        head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
+        refspec = f"{head}:refs/heads/{branch}"
+        ok, detail = lint_gate(checkout, lint_cwd, path)
+        if not ok:
+            print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
+                  f"the commit is local at {head[:12]} in {worktree} "
+                  "(detached); nothing pushed", file=sys.stderr)
+            return 3
+        print("lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout")
+        if not push:
+            print(f"ready: {branch} at {head} (no --push): "
+                  f"git -C {worktree} push origin {refspec}")
+            return 0
+        r = subprocess.run(["git", "-C", str(worktree), "push", "-q",
+                            "origin", refspec],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print(f"pushed {branch} at {head}")
+            return 0
+        why = (r.stderr or r.stdout).strip()[:400]
+        fetch_origin(checkout)
+        tip = subprocess.run(
+            ["git", "-C", str(checkout), "rev-parse", "--verify",
+             "--quiet", f"origin/{branch}"],
+            capture_output=True, text=True).stdout.strip()
+        if not tip or tip == base_sha:
+            raise Refuse(f"push of {head[:12]} to {branch} failed with "
+                         f"origin unmoved (no race); nothing of this edit "
+                         f"reached origin: {why}")
+        print(f"roster_edit: lost a race: origin/{branch} moved "
+              f"{base_sha[:12]} -> {tip[:12]} under this edit; "
+              f"re-applying {label} on the new tip "
+              f"(attempt {attempt + 1} of {PUSH_ATTEMPTS})",
+              file=sys.stderr)
+        discard = head
+    raise Refuse(f"lost the race for {branch} {PUSH_ATTEMPTS} times; "
+                 "nothing of this edit reached origin")
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -552,69 +626,11 @@ def main(argv=None) -> int:
         why = ref_privacy.refusal(branch, (("the message", msg),))
         if why:
             raise Refuse(f"{why} would publish this host (#2310); nothing written")
-        discard = None
-        for attempt in range(1, PUSH_ATTEMPTS + 1):
-            base_sha = prepare_worktree(a.checkout, ref, branch, a.worktree,
-                                        discard)
-            try:
-                rel = roster_lib.roster_path(str(a.worktree), None,
-                                             a.roster_path)
-            except roster_lib.RosterNotFound as e:
-                raise Refuse(str(e))
-            path = Path(a.worktree) / rel
-            print(f"roster: {rel} on {branch}")
-            roster = json.loads(path.read_text(encoding="utf-8"))
-            apply_op(roster, a.op, a.group, value, a.field, a.at_sha,
-                     a.match)
-            path.write_text(dump(roster), encoding="utf-8")
-            if not run(["git", "-C", str(a.worktree),
-                        "status", "--porcelain"]).strip():
-                # A no-op edit reproduces the roster's own bytes (the
-                # round-trip rule): nothing to commit, nothing to push, still
-                # a success -- re-running an op is idempotent.
-                print(f"no change: {a.op} {a.group} wrote the roster's own "
-                      "bytes (byte-identical); nothing to commit or push")
-                return 0
-            run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
-            head = run(["git", "-C", str(a.worktree), "rev-parse",
-                        "HEAD"]).strip()
-            refspec = f"{head}:refs/heads/{branch}"
-            ok, detail = lint_gate(a.checkout, a.lint_cwd, path)
-            if not ok:
-                print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
-                      f"the commit is local at {head[:12]} in {a.worktree} "
-                      "(detached); nothing pushed", file=sys.stderr)
-                return 3
-            print("lint gate: TOTAL: 0 error(s) from a fresh origin/main "
-                  "checkout")
-            if not a.push:
-                print(f"ready: {branch} at {head} (no --push): "
-                      f"git -C {a.worktree} push origin {refspec}")
-                return 0
-            r = subprocess.run(["git", "-C", str(a.worktree), "push", "-q",
-                                "origin", refspec],
-                               capture_output=True, text=True)
-            if r.returncode == 0:
-                print(f"pushed {branch} at {head}")
-                return 0
-            why = (r.stderr or r.stdout).strip()[:400]
-            fetch_origin(a.checkout)
-            tip = subprocess.run(
-                ["git", "-C", str(a.checkout), "rev-parse", "--verify",
-                 "--quiet", f"origin/{branch}"],
-                capture_output=True, text=True).stdout.strip()
-            if not tip or tip == base_sha:
-                raise Refuse(f"push of {head[:12]} to {branch} failed with "
-                             f"origin unmoved (no race); nothing of this edit "
-                             f"reached origin: {why}")
-            print(f"roster_edit: lost a race: origin/{branch} moved "
-                  f"{base_sha[:12]} -> {tip[:12]} under this edit; "
-                  f"re-applying {a.op} {a.group} on the new tip "
-                  f"(attempt {attempt + 1} of {PUSH_ATTEMPTS})",
-                  file=sys.stderr)
-            discard = head
-        raise Refuse(f"lost the race for {branch} {PUSH_ATTEMPTS} times; "
-                     "nothing of this edit reached origin")
+        def edit(roster) -> bool:
+            apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match)
+            return True
+        return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
+                            msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
     except Refuse as e:
         print(f"roster_edit: REFUSED: {e}", file=sys.stderr)
         return 2

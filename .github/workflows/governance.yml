@@ -614,6 +614,13 @@ jobs:
           python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
 
+      - name: Show the plan page refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"
+          grep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"
+
       - name: Show the PR argument builder refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -688,6 +695,13 @@ jobs:
           python3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"
           grep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"
 
+      - name: Show the roster-sync reconciler refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"
+          grep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"
+
       - name: Show the twin-run reader refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -715,6 +729,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
           grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
+
+      - name: Show the heartbeat andon refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
+          grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
