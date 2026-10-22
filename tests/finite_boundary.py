@@ -90,6 +90,7 @@ from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer import coordinator as _coord_mod  # noqa: E402
 from heatpump_optimizer import store as _store  # noqa: E402
+from heatpump_optimizer import price_tiles as _price_tiles_mod  # noqa: E402
 from heatpump_optimizer.store import QuarantiningStore, _sanitize  # noqa: E402
 from homeassistant.util import dt as _dt_util  # noqa: E402
 from homeassistant.helpers import storage as _storage  # noqa: E402
@@ -1089,6 +1090,12 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
                            "candidate_kw": 13.8, "feasible": True, "comfort_shortfall_c": 0.0,
                            "worst_margin_kw": 2.5, "cost_delta_sek_month": -30.0}
     coord._fuse_advisor_at = t0
+    # Two days, so a probe on one day's cell has a neighbour to leave alone.
+    _price_tiles_mod.book(coord).update({"target_plus_1": {
+        "overrides": {"target_temp": 22.0, "comfort_temp_day": 22.0},
+        "days": [{"day": "2025-12-31", "sum": 61.5, "count": 3},
+                 {"day": "2026-01-01", "sum": 40.0, "count": 2}],
+        "min_room_temperature": 20.4, "computed_at": t0.isoformat()}})
     if enrich is not None:
         enrich(coord, t0)
     coord._snapshot_ring.take(t0, coord._learner_snapshot_payloads(), coord._accuracy.summary(), True)
