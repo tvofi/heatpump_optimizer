@@ -1,8 +1,10 @@
-Roster for round 10, tenth landing (after #2600). It appends two carries to the roster: one from #2600's merge verdict and one recording orchestrator decision O-1. Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, eleventh landing (after #2601). It appends one carry to `R10-ARCH-DOCS-FIRST`, recording an owner request. Part of #201. It closes nothing by keyword and leaves #201 open.
+
+The op's source is the owner's request (tvofi, 2026-10-22), verbatim: "For the docs PRs, I want a buymeacoffee button added to the top of the repo README and at the bottom of the web page, leading to buymeacoffee.com/rpgshcwb2tp".
 
 ## Head
 
-The authored code head is `e511768ec75add5847883bebe6a1fb674f827247`, the tip of `handoff/audit-r10-roster`. Its merge base with `origin/main` `0b162da1adb73367eddcae1623cf5688422ad9a7` (the #2600 merge) is `b93ece169acfa8c97b469bbb18df06267aa14f6f`, the roster as #2600 landed it. The diff against that base is one file, `dev/programme/rosters/wave-r10-groups.json`, 4 insertions and 2 deletions over two commits, each pushed by `roster_edit.py --push` after its lint gate printed `TOTAL: 0 error(s)`.
+The authored code head is `838178f8aa78b71b693e989799ea5e254f09a581`, the tip of `handoff/audit-r10-roster`. Its merge base with `origin/main` `c1e1967bcb75ebb59402696392c11c101358c5b5` (the #2601 merge) is `e511768ec75add5847883bebe6a1fb674f827247`, the roster as #2601 landed it. The diff against that base is one file, `dev/programme/rosters/wave-r10-groups.json`, 2 insertions and 1 deletion in one commit, pushed by `roster_edit.py --push` after its lint gate printed `TOTAL: 0 error(s)`.
 
 ## Mutation proof
 
@@ -10,20 +12,17 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-`git diff --exit-code 0b162da1adb73367eddcae1623cf5688422ad9a7 b93ece169acfa8c97b469bbb18df06267aa14f6f -- dev/programme/rosters/wave-r10-groups.json` has rc 0: the roster on main equals the merge base, so nothing main wrote is overwritten. The `removed` list below is empty.
+`git diff --exit-code c1e1967bcb75ebb59402696392c11c101358c5b5 e511768ec75add5847883bebe6a1fb674f827247 -- dev/programme/rosters/wave-r10-groups.json` has rc 0: the roster on main equals the merge base, so nothing main wrote is overwritten. The `removed` list below is empty.
 
 ## Figures
 
-The two ops, both `append-carry`:
+The one op, `838178f8a` `append-carry` `R10-ARCH-DOCS-FIRST` with the text of the owner request above, extended with its delivery terms: a Buy Me a Coffee button linking `https://buymeacoffee.com/rpgshcwb2tp` at the top of `README.md` and in the footer of the docs site, rendered from in-tree assets in the tree's visual language with no hotlinked third-party image or script; any check reading the README head or the site footer is updated in the same PR; `R10-ARCH-DOCS` verifies both placements and the link target. The group goes from 3 to 4 carries. The stored text is the file's content (read back and compared byte for byte).
 
-- `ece26d837` `R10-ORCH-MACHINERY`: source review/2600 (#2600's merge verdict). Its finding is that the writer and verifier group names in the group's earlier carry go out of date after the replan: R10-ARCH-DOCS-FIRST now writes and draws the machinery, and R10-ARCH-DOCS verifies it. The group goes from 31 to 32 carries.
-- `e511768ec` `R10-ARCH-DOCS-FIRST`: source orchestrator decision O-1 on the design note `design/r10-arch-docs-first` at `16954f0c`. `tools/site/build_docs.mjs` is in the group's scope for the one token-map read from `docs/site/docs.css` into the mermaid theme. `roster_edit` has no files op, so the decision is a carry; an overlap check reading only `files` must treat that file as touched by this group. The group goes from 2 to 3 carries.
-
-Measured with `B=origin/main`, `H=e511768ec`, `R=dev/programme/rosters/wave-r10-groups.json`: `jq -n --slurpfile b <(git show $B:$R) --slurpfile h <(git show $H:$R) '($b[0].groups|map({(.group):.})|add) as $B|($h[0].groups|map({(.group):.})|add) as $H|{nb:($B|length),nh:($H|length),removed:[$B|keys[]|select($H[.]==null)],new:[$H|keys[]|select($B[.]==null)],changed:[$H|keys[]|select($B[.]!=null and $B[.]!=$H[.])]}'` prints 148 and 148 groups, none removed, none new, changed `R10-ARCH-DOCS-FIRST` and `R10-ORCH-MACHINERY`. `node tools/policy/brief_lint.mjs` on the roster at `H` prints `TOTAL: 0 error(s) across 1 file(s)`.
+Measured with `B=origin/main`, `H=838178f8a`, `R=dev/programme/rosters/wave-r10-groups.json`: `jq -n --slurpfile b <(git show $B:$R) --slurpfile h <(git show $H:$R) '($b[0].groups|map({(.group):.})|add) as $B|($h[0].groups|map({(.group):.})|add) as $H|{nb:($B|length),nh:($H|length),removed:[$B|keys[]|select($H[.]==null)],new:[$H|keys[]|select($B[.]==null)],changed:[$H|keys[]|select($B[.]!=null and $B[.]!=$H[.])]}'` prints 148 and 148 groups, none removed, none new, changed `R10-ARCH-DOCS-FIRST`. `node tools/policy/brief_lint.mjs` on the roster at `H` prints `TOTAL: 0 error(s) across 1 file(s)`.
 
 ## Red checks
 
-Read 2026-10-22 from `repos/tvofi/heatpump_optimizer/commits/0b162da1adb73367eddcae1623cf5688422ad9a7/check-runs` (main's tip): no run is `failure`, `cancelled` or `timed_out`. Checks at this PR's own head are read by CI; this diff changes only the roster and one delivery row.
+Read 2026-10-22 from `repos/tvofi/heatpump_optimizer/commits/c1e1967bcb75ebb59402696392c11c101358c5b5/check-runs` (main's tip): no run is `failure`, `cancelled` or `timed_out`. Checks at this PR's own head are read by CI; this diff changes only the roster and one delivery row.
 
 ## Forward-carry
 
