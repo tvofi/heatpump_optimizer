@@ -3506,6 +3506,7 @@
    "dev/audit/harnesses/r10_advisor_degree.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
+   "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
    "dev/audit/harnesses/r10_carry_sweep_rows.py",
    "dev/audit/harnesses/r10_ci_layout_p0_fast_offsets.py",
