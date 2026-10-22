@@ -10,7 +10,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
-   the test is vacuous and the PR is blocked.
+   the test is vacuous: `blocked <sha> mutation-vacuous: <mutant>`.
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
    SHA and at the PR head, printing your own `RESULT` lines. A fixer who
    measures with a harness they wrote is measuring themselves. One flat by
@@ -26,13 +26,13 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    **And open the class: a harness's configurations are its parameters, not its
    population.** Run the enumeration rule the body names and compare its output with
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
-   is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
+   is `blocked <sha> class-open: <seam>`. A body whose issue states more than one
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
+   if you had to build your own definition to check it, write that in the verdict.
 9. **When the finding has no committed harness, that is itself a finding**
    (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
@@ -46,8 +46,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     its control as a precondition (`finding-propagation.md`). One only
     in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
-    trigger). Read the PR's own checks — `get_check_runs`, or
-    the commit's own `check-runs` API — not the body's account, and never a
+    trigger). Read the PR's own checks (`get_check_runs`, or
+    the commit's `check-runs` API), not the body's account, and never a
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
@@ -131,10 +131,10 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     body lists and hunt one it missed: one that truly improves the code is
     `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
-    from the architect note, is `blocked <sha> architecture-unsound: <how>`.
+    from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
-Return a verdict with your RESULT lines, in the exact shape your dispatch
-prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
+Return a verdict with your RESULT lines, in your dispatch prompt's exact
+shape: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
