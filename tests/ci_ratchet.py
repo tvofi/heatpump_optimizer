@@ -686,7 +686,10 @@ def self_test() -> int:
                      ("has no completed tests job", {**ci_run(4, "2026-10-22T00:00:00Z", None),
                                                      "jobs": [{"name": "gate", "completed_at": "2026-10-22T01:00:00Z"},
                                                               {"name": "tests / fast (3.14)", "completed_at": None}]})):
-        msg = refused(lambda r=r: run_minutes(r))
+        try:
+            msg = refused(lambda r=r: run_minutes(r))
+        except Exception as exc:  # a crash reddens this check by name, never the whole self-test
+            msg = f"crashed: {type(exc).__name__}"
         ck(f"a CI push run that {label} refuses (its wall is unknown, never its run's)",
            "fail closed" in msg, msg or "no refusal")
     with tempfile.TemporaryDirectory() as td:
