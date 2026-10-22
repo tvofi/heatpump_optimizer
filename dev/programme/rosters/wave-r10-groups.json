@@ -3372,14 +3372,14 @@
     "R10-REPLAY-LANE",
     "R10-REPLAY-SCOPED",
     "R10-TRAIN-HOLD",
-    "R10-DEEPLINK-HANDLERS"
+    "R10-DEEPLINK-HANDLERS",
+    "R10-ARCH-DOCS-FIRST"
    ],
    "carry": [
-    "Owner (2026-10-21): next to the CI shape, document and draw the orchestration machinery's shape, as built at this stage's merge base. In the developer onboarding, beside the CI shape: (a) the components: the beat and its jobs, the obligations ledger and its event kinds, the review and verdict bus refs, the relay's handoff arm, the merge train and its pitch, dispatch records, the heartbeat and its watcher, the hold list, the roster branch, the plan page and the flow toolkit; which run detached (daemonize.py) and which are seats; (b) one handoff's path: handoff, pull request, reviewable head, review, verdict read back, train, merge, record, stamp, with the ledger obligation each step opens or closes; (c) where a person or an agent decides and where a script does. Draw (a) and (b) as mermaid diagrams in the same visual language as the CI diagrams, and check every box and arrow against the tree: the job and event-kind tables R10-ORCH-MACHINERY lands, read at the merge base, never the design ref alone. The approved design is handoff/orch-machinery 09174d94e; the Lean flow study's ORCHESTRATOR-PROMPT names the rules the shape must show.",
-    "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
+    "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base."
    ],
    "architect_note": "",
-   "brief": "R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Two deliverables: (1) docs/architecture.md, the architecture clearly, graphically and in words; (2) developer README/onboarding covering the agentic coding process, its requirements, and the CI shape. Every claim is checked against the tree at the stage's merge base. Diagrams render on GitHub (mermaid) or are committed SVGs generated in-tree, taking their visual language from what origin/main defines at that base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, never hand-copied, light and dark. Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66). Also fold finding P40 (committed card figures not compared to the card) and the harnesses README (O9). Issue #2395. Part of #201.",
+   "brief": "R10-ARCH-DOCS is the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Its scope was changed by the owner (tvofi, 2026-10-22): the documentation and visualisation are now written early by R10-ARCH-DOCS-FIRST against the protected final shape at programme end. This stage verifies, adjusts and wiring-tests those docs and figures.\n\nAt this stage's merge base, after every listed after-group has merged:\n\n1. Verification:\n   - Check every claim, figure, table, and diagram box and arrow in docs/architecture.md and the developer onboarding (CI shape, orchestration machinery, one handoff's path) against the tree.\n   - Resolve every target marker R10-ARCH-DOCS-FIRST left. Each named group has landed, so the marker becomes a plain statement of the tree, or is corrected where the landed shape differs from the planned one.\n2. Adjustments: correct the text and regenerate the diagrams wherever the landed shape departs from the target. Each departure is named in the body with the group that caused it.\n3. Wiring test: a tree instrument that resolves every path, instrument, workflow job, event kind and diagram node the docs name, at HEAD. Use brief_lint.mjs or a small checker in the suite's gate.\n   - It goes red on a fixture that renames or removes a named element.\n   - It stays green on a null control.\n   - No unresolved target marker may survive on main.\n\nAlso fold finding P40 (committed card figures not compared to the card), as a check of the committed figures against what they depict.\n\nDiagrams keep the visual language origin/main defines at the base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, light and dark.\n\nIssue #2395. Part of #201.",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-arch-docs",
@@ -5101,7 +5101,9 @@
     "From #2554 (item 4c5f0868, #2554) Friction: cloud_dispatch: stale: the payload says \"the toolchain (venv python, node, gh) is on PATH\". In this seat python3 was the system 3.11 without voluptuous, and `gh auth status` printed `Failed to log in to github.com using token (GH_TOKEN)`. The reviewer built a 3.13 venv from tests/requirements-ci.txt for the gate runs.",
     "Tick diagnosis (2026-10-22, mandate 6329234399): bus() in orchestrator_tick.py (about l.304) discards stderr, so \"bus.sh orphans unavailable (exit 1, no summary line)\" loses bus.sh's die message. It happened twice, at 00:19Z and 00:25Z, and the cause is unrecoverable. Fix shape: append the first stderr line to the unavailable finding, and retry once on rc 1 with no summary. Control: a stub bus.sh that dies with a message, whose message must appear on the board.",
     "From the #2584 fix review (comment 6325163760, round-2 verdict review/2584): the beat, the sweep, record_row.py (failed_required, not_green), ci-watch.sh and proof_watch.py read merge_train.classify, or `merge_train.py classify <sha>` from shell; no third red rule is written. Control, a precondition of the build: the e7c66485 replay (dev/audit/harnesses/r10_main_gate_replay.py, landed by #2584) is run through each reader with `--pending mutation typing closures`, where it must read a wait (\"is still running ...: a wait, not red\"), and with no `--pending`, the null control, which must print only END.",
-    "- The body's Forward-carry and Friction lines route \"list `body_patch.sh` as a hosted one-shot (args pr, sha, body; success = exit 0 and a last `body_patch: OK` line)\" to R10-ORCH-MACHINERY. Round 3 also carried this as a finding. That group's brief and its 29 carries on handoff/audit-r10-roster at 5620151813e03a5916c375554dd57c977f6d8097 still contain no `body_patch` (ev/roster_carries.txt). K17 item (3) covers the body-only path only indirectly, through R10-FLOW-BODY-ONLY. The line is owed to the group's roster carry with its control (the `--self-test` and the `body_patch: OK|REFUSE` last-line contract) before this PR merges. This is the orchestrator's roster write, not a change to the PR. Carry: R10-ORCH-MACHINERY"
+    "- The body's Forward-carry and Friction lines route \"list `body_patch.sh` as a hosted one-shot (args pr, sha, body; success = exit 0 and a last `body_patch: OK` line)\" to R10-ORCH-MACHINERY. Round 3 also carried this as a finding. That group's brief and its 29 carries on handoff/audit-r10-roster at 5620151813e03a5916c375554dd57c977f6d8097 still contain no `body_patch` (ev/roster_carries.txt). K17 item (3) covers the body-only path only indirectly, through R10-FLOW-BODY-ONLY. The line is owed to the group's roster carry with its control (the `--self-test` and the `body_patch: OK|REFUSE` last-line contract) before this PR merges. This is the orchestrator's roster write, not a change to the PR. Carry: R10-ORCH-MACHINERY",
+    "- R10-ORCH-MACHINERY still has to receive this PR's `ROSTER-APPEND R10-ORCH-MACHINERY` text as one new `carry` entry, landed by the orchestrator with roster_edit.py. The text says the beat's handoff job reads `<state>/cloud-handoff-hold` only through `cloud_relay.sh held <pr>`: rc 0 skip, rc 1 proceed, rc 2 refuse the whole pass. It gives a control, a null control, a malformed control and a mutant. The group is live (`not-started`) on origin/main, at this head and on origin/handoff/audit-r10-roster e5d5c508. Its brief plus carry still holds 0 matches for `cloud_relay\\.sh held|cloud-handoff-hold|malformed`, which is the body's own null control (ev/carry-audit.txt). Carry: R10-ORCH-MACHINERY",
+    "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)"
    ],
    "model": {
     "fixer": "opus",
@@ -5612,9 +5614,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-ci-layout-p1",
-    "commit": null,
+    "commit": "fae523a14",
     "last_step": null,
     "next_step": "dispatch a fixer once R10-CI-LAYOUT (PR G #2529) is done",
     "note": null
@@ -6415,7 +6417,8 @@
    "carry": [
     "Pre-study: the Lean flow pre-study, section K13.",
     "Seam with R10-ORCH-MACHINERY: read a live reviewer from the design's workers.json when it exists (else the review worktree heuristic); the beat's handoff job generalises this freeze to every head.",
-    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22)."
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22).",
+    "- R10-FLOW-ROSTER-FREEZE still has to receive this PR's `ROSTER-APPEND R10-FLOW-ROSTER-FREEZE` text as one new `carry` entry. It sets the precondition for the hold-file grammar: plain PR-number lines only, remove only your own line, read back only through `cloud_relay.sh held`. One malformed line refuses the whole handoff arm (rc 2, `OWED <utc> handoff-hold-malformed <file> -` in <log>.level). The control is the self-test's nine malformed variants, which I confirmed at cloud_relay.sh:498 at this head. The null control is `a well-formed hold file owes no refusal`. The group is live (`not-started`) on origin/main, so CI's in-tree carry_audit now accepts it. Its brief plus carry still holds 0 matches. Carry: R10-FLOW-ROSTER-FREEZE"
    ],
    "architect_note": "",
    "brief": "The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). Every roster_edit.py push lands on handoff/audit-r10-roster and the relay carries it into the open roster pull request, so a review of that pull request comes back head-moved or body-stale: #2559 lost five reviewer rounds that way on 2026-10-21. And carry_audit.py check resolves carry destinations against main's roster only, so a carry to a group that exists only on the handoff roster fails as a bad destination until the roster pull request merges: #2529, #2547 and #2561 were blocked by it. Change: (a) the relay does not move an open roster pull request's head while a review of it is in flight (a review worktree or an undisposed review dispatch for that number), the freeze fixer.md already gives a fix head; roster edits accumulate on the handoff ref and land between reviews; (b) carry_audit.py also reads the round's handoff roster ref (roster_lib.round_ref) as a destination source, naming which ref resolved each carry, so a destination on the handoff roster passes and one on neither still fails. carry_audit.py is code-owned: tvofi's review under the mandate. Controls: a fixture carry to a handoff-only group passes and names the handoff ref; a carry to a group on neither fails; the relay fixture with a review in flight leaves the roster head unchanged and moves it once the review posts; mutants for both arms.",
@@ -7484,7 +7487,10 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Non-blocking: R10-RCA-FRICTION goes to stage done at 3976515a, still holding its two `carry` entries: the #2452 card.mjs/deep-link census cost friction, and the #2479 \"red-check answer is written per PR, with no cross-run count\" disposition item. Neither is dispositioned in dev/audit/rca/R10-RCA-HARNESS-FRICTION.md at origin/main (no #2479, no census cost, no cross-run count). Neither is moved to R10-RCA-FRICTION-RESIDUE either: each text appears once in the head roster, on the done group only. The second item is in the same class as RESIDUE's root-cause-unanswered key #2437. The RESIDUE seat should take both and give each a disposition or a recorded refusal. Precondition: re-scrape the bodies' `## Red checks` answers at its own merge base before it counts anything. (from #2598 verdict, bus 15d0bf56)",
+    "Non-blocking: R10-RCA-FRICTION-RESIDUE's `issues` holds seven numbers (2428, 2429, 2436, 2437, 2438, 2593, 2597), but its brief scopes \"the five recurring-friction keys\" and names neither #2593 (key body-stale) nor #2597 (key harness). #2597 is a recurrence of the key #2331 that R10-RCA-FRICTION closed, so it tests whether #2561's countermeasure held. A seat reading the brief alone would leave both unmeasured. The RESIDUE seat owes both keys a cause, a process state, a cost test and a countermeasure or a refusal. For #2597 it measures whether the post-#2561 harness blocks are the class-open spelling #2561 taught or a new cause. Control: #2561's `rounds.py --stats` re-run at RESIDUE's merge base. (from #2598 verdict, bus 15d0bf56)"
+   ],
    "architect_note": "",
    "brief": "Root-cause record for the five recurring-friction keys that #2561's record (R10-RCA-HARNESS-FRICTION) left unmeasured: carry-missing #2428 (12/15), other #2436 (3/3; literal `other:` verdicts #2294, #2404, #2406), root-cause-unanswered #2437 (7 blocks, 4 checks, none on 3 or more PRs), and the PR-body friction rule ids ci-autofix #2429 and finding-propagation #2438, which the verdict enumeration does not read. Per root-cause.md, each key owes a named cause, a process state, a cost test, and a countermeasure or a recorded refusal. Re-measure at its merge base with `blocked_rounds.tsv` / `rounds.py --stats`, not from #2561's numbers. Source: PR #2561's body, the Ownership-after-this-merge item.",
    "resume": {
@@ -7583,6 +7589,58 @@
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted."
+   }
+  },
+  {
+   "group": "R10-ARCH-DOCS-FIRST",
+   "lane": "DOCS",
+   "kind": "feature",
+   "issues": [
+    2395
+   ],
+   "fixes": [
+    2395
+   ],
+   "findings": [
+    "#2395"
+   ],
+   "class": "docs",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "files": [
+    "docs/architecture.md",
+    "README.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Owner (2026-10-21): next to the CI shape, document and draw the orchestration machinery's shape, as built at this stage's merge base. In the developer onboarding, beside the CI shape: (a) the components: the beat and its jobs, the obligations ledger and its event kinds, the review and verdict bus refs, the relay's handoff arm, the merge train and its pitch, dispatch records, the heartbeat and its watcher, the hold list, the roster branch, the plan page and the flow toolkit; which run detached (daemonize.py) and which are seats; (b) one handoff's path: handoff, pull request, reviewable head, review, verdict read back, train, merge, record, stamp, with the ledger obligation each step opens or closes; (c) where a person or an agent decides and where a script does. Draw (a) and (b) as mermaid diagrams in the same visual language as the CI diagrams, and check every box and arrow against the tree: the job and event-kind tables R10-ORCH-MACHINERY lands, read at the merge base, never the design ref alone. The approved design is handoff/orch-machinery 09174d94e; the Lean flow study's ORCHESTRATOR-PROMPT names the rules the shape must show.",
+    "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then.",
+    "Orchestrator decision O-1 on design note 16954f0c (2026-10-22): tools/site/build_docs.mjs is in this group's scope for the one token-map read from docs/site/docs.css into the mermaid theme. Its roster files list could not be extended (roster_edit has no files op), so this carry records it. A merge-train or dispatch overlap check reading only `files` must treat tools/site/build_docs.mjs as touched by this group."
+   ],
+   "architect_note": "",
+   "brief": "R10-ARCH-DOCS-FIRST, rescheduled to ASAP by the owner (tvofi, 2026-10-22) as the FIRST delivery of round 10's architecture, CI-shape and development-shape documentation and visualisation. R10-ARCH-DOCS stays the round's last stage, rescoped to verify, adjust and wiring-test what this group lands.\n\nWhat it writes:\n- docs/architecture.md: the architecture, in words and diagrams.\n- The developer README/onboarding: the agentic coding process, its requirements, the CI shape, and the orchestration machinery's shape, as the carries below specify.\n\nBoth deliverables describe the PROTECTED FINAL SHAPE AT PROGRAMME END: the shape the tree will hold once every open round-10 group has merged. That shape is the documented target. Derive it at this group's merge base:\n- Study the remaining plan and roster. That is every group in dev/programme/rosters/wave-r10-groups.json whose resume.stage is not done: its brief, after-edges, carries and architect note. It also covers the approved design refs those name, for example handoff/orch-machinery 09174d94e, R10-CI-LAYOUT-P2's target layout, R10-ROUND-PLAYBOOK, and the flow groups. The plan page is the other input.\n- Describe what is already on origin/main from the tree.\n- Describe everything not yet landed from the plan.\n- Mark each element not yet on main with a target marker that names the group which lands it, in one grammar R10-ARCH-DOCS can resolve mechanically.\n- Where two roster briefs disagree about the final shape, do not pick one silently. Route a carry to the owning group (finding-propagation.md) and draw the shape the owning group's brief states.\n\nDiagrams:\n- Format: mermaid that renders on GitHub, or committed SVGs generated in-tree.\n- Visual language: take it from origin/main at the merge base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens). Read it from the tree, never hand-copied, in light and dark.\n- Coverage: draw the CI shape, the orchestration machinery and one handoff's path.\n\nAlso:\n- Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66).\n- Fold the harnesses README (O9).\n- Issue #2395. Part of #201.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-arch-docs-first",
+    "commit": null,
+    "last_step": null,
+    "next_step": "design, then design review, then fixer (owner ASAP 2026-10-22)",
+    "note": null
    }
   }
  ]
