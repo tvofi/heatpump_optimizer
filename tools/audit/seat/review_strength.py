@@ -85,13 +85,13 @@ REAL_CATCH = frozenset({
     "defect", "product-tradeoff-regression", "policy-regression",
     "figures-false"})
 VERDICT_RE = re.compile(
-    r"^verdict: #(\d+) Fix review: (merge|blocked) ([0-9a-f]{40})(?: ([^\s:]+):)?")
-PREFIX_RE = re.compile(r"^verdict: #(\d+) Fix review:")
+    r"verdict: #(\d+) Fix review: (merge|blocked) ([0-9a-f]{40})(?: ([^\s:]+):)?")
+PREFIX_RE = re.compile(r"verdict: #(\d+) Fix review:")
 NONCE_RE = re.compile(r"^bus-nonce:\s*([0-9a-f]{32})", re.M)
 PROBE_RE = re.compile(r"rev-(\d+)-([0-9a-f]{8})$")
 CONFIRMED_RE = re.compile(r"^bus-confirmed:\s*(\S+) \(review/\d+ at ([0-9a-f]{40})\)", re.M)
 GROUP_RE = re.compile(r"\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b")
-MERGE_RE = re.compile(r"^Merge pull request #(\d+) from \S+?/(\S+)")
+MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
 ALPHA = 0.05
 STRATA = ("kind", "class", "prior-merge", "origin", "size", "product", "fixer")
 FACT_STRATA = {"origin", "fixer", "size", "product"}
@@ -119,10 +119,8 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
             probes.add((int(m[1]), m[2]))
     confirmed = {}
     for r in refs(repo, f"refs/remotes/{remote}/verdict/"):
-        for body in git(repo, "log", "--format=%B%x00", r).split("\0"):
-            m = CONFIRMED_RE.search(body)
-            if m:
-                confirmed[m[2]] = m[1]
+        for m in CONFIRMED_RE.finditer(git(repo, "log", "--format=%B", r)):
+            confirmed[m[2]] = m[1]
     seen, out, outside = set(), [], []
     for r in refs(repo, f"refs/remotes/{remote}/review/"):
         for line in git(repo, "log", "--format=%H%x09%cI%x09%s", r).splitlines():
@@ -194,8 +192,8 @@ def pr_facts(repo: Path, tree: str, roster: str | None, verdicts: list[dict],
         lines, files = 0, []
         for ln in git(repo, "diff", "--numstat", mb, head, check=False).splitlines() if mb else []:
             a, d, f = ln.split("\t", 2)
+            files.append(f)
             if not f.startswith("dev/programme/delivery/"):
-                files.append(f)
                 lines += (int(a) if a != "-" else 0) + (int(d) if d != "-" else 0)
         facts[pr] = dict(
             origin="none" if grp is None else "finding" if (grp.get("issues") or grp.get("findings") or grp.get("fixes")) else "group",
@@ -266,7 +264,7 @@ def guardrail(verdicts: list[dict], until: datetime, n: int, p0: float) -> str:
             f"incidence {k}/{n}; P(X<={k}|{n},{p0}) = {cdf:.3f} -> {'would-trip' if cdf < ALPHA else 'ok'} (report-only)")
 
 
-def main(argv: list[str]) -> int:
+def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--repo", default=str(ROOT))
     ap.add_argument("--remote", default="origin")
@@ -282,14 +280,15 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--real-extra", default="", metavar="W[,W...]",
                     help="class words counted REAL beside REAL_CATCH (a sensitivity run)")
     ap.add_argument("--self-test", action="store_true")
+    return ap
+
+
+def main(argv: list[str]) -> int:
+    ap = parser()
     a = ap.parse_args(argv)
     if a.self_test:
         return self_test()
     repo = Path(a.repo)
-    if a.fetch:
-        rm = a.remote
-        git(repo, "fetch", "-q", "--tags", rm, *(f"+refs/heads/{f}/*:refs/remotes/{rm}/{f}/*"
-                                                for f in ("review", "verdict", "probe")))
     if not a.window:
         ap.error("at least one --window NAME=FROM..UNTIL")
     used = {s for by in a.by for s in by.split("+")}
@@ -297,6 +296,11 @@ def main(argv: list[str]) -> int:
         ap.error(f"unknown stratum {sorted(used - set(STRATA))}; one of {', '.join(STRATA)}")
     if {"origin", "fixer"} & used and not a.roster:
         ap.error("--by origin|fixer needs --roster REF:PATH")
+    if a.guardrail and a.p0 is None:
+        ap.error("--guardrail needs --p0")
+    if a.fetch:
+        git(repo, "fetch", "-q", "--tags", a.remote, *(f"+refs/heads/{f}/*:refs/remotes/{a.remote}/{f}/*"
+                                                      for f in ("review", "verdict", "probe")))
     extra = frozenset(w for w in a.real_extra.split(",") if w)
     verdicts, outside = load(repo, a.remote, REAL_CATCH | extra)
     if extra:
@@ -319,8 +323,6 @@ def main(argv: list[str]) -> int:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
                 print(f"  {k:24} {name:6} {fmt(o)}")
     if a.guardrail:
-        if a.p0 is None:
-            ap.error("--guardrail needs --p0")
         print(guardrail(verdicts, wins[-1][2], a.guardrail, a.p0))
     return 0
 
@@ -345,8 +347,8 @@ def self_test() -> int:
         N = {i: f"{i:x}" * 32 for i in range(1, 10)}
         H = "a" * 40
 
-        def verdict(ref: str, subj: str, nonce: str, t: str) -> str:
-            (R / "VERDICT.md").write_text(f"{subj.split(' ', 2)[2]}\n\nbus-nonce: {nonce}\n")
+        def verdict(ref: str, subj: str, nonce: str, t: str, pre: str = "") -> str:
+            (R / "VERDICT.md").write_text(f"{subj.split(' ', 2)[2]}\n\n{pre}bus-nonce: {nonce}\n")
             g("add", "VERDICT.md")
             par = g("rev-parse", "-q", "--verify", ref) if subprocess.run(
                 ["git", "-C", d, "rev-parse", "-q", "--verify", ref], capture_output=True).returncode == 0 else None
@@ -406,7 +408,7 @@ def self_test() -> int:
         check("window: [from, until) excludes a verdict at until (PR 2's block at 04:00)",
               tally(vlist, a, when("2026-10-01T04:00Z"), lambda v: "all")["all"]["verdicts"] == 3)
         check("guardrail: 3 PRs < N=5 is insufficient, never a trip",
-              "insufficient" in guardrail(vlist, c, 5, 0.18))
+              guardrail(vlist, c, 5, 0.18) == "GUARDRAIL insufficient: 3 reviewed PRs < N=5")
         check("guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875)",
               guardrail(vlist, c, 3, 0.5).endswith("incidence 2/3; P(X<=2|3,0.5) = 0.875 -> ok (report-only)"))
         check("guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020)",
@@ -604,8 +606,111 @@ def self_test() -> int:
         check("REAL_CATCH is the study record's real-catch list, word for word",
               listed is not None and set(re.findall(r"`([^`]+)`", listed[1])) == set(REAL_CATCH))
         _self_test_main(R, d, m9, r2, RP, check)
+        d0 = parser().parse_args([])
+        check("defaults: --repo is the checkout the tool runs from, --tree origin/main, --remote origin",
+              (d0.repo, d0.tree, d0.remote) == (str(ROOT), "origin/main", "origin"))
+        check("first-pass: a PR whose first verdict precedes the window is no first pass in it (6's merge alone)",
+              tally(fv, when("2026-10-05T00:30Z"), when("2026-10-05T01:30Z"), lambda v: "all")["all"]["first"] == [])
+        check("defaults: --remote is the option's name", parser().parse_args(["--remote", "up"]).remote == "up")
+        check("tally: a verdict outside the window keys no row (10-05T03:30..04:30 holds 12's merge alone)",
+              set(tally(fv, when("2026-10-05T03:30Z"), when("2026-10-05T04:30Z"),
+                        lambda v: stratum("class", v, {}))) == {"(merge)"})
+        _self_test_seams(R, g, mk, verdict, lines, m1, RP, r2, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, check) -> None:
+    """PRs 16-18: the literal, regex, ref-scope and merge-walk seams the mutation sweep found unpinned."""
+    rv = lambda pr: f"refs/remotes/origin/review/{pr}"
+    N16, N17 = "09abcdef" * 4, "90fedcba" * 4
+    # PR 16: 147 lines plus one each in files a prefix cut would wrongly read: the delivery
+    # exclusion and the product prefixes all hold at their trailing '/' (150 lines, M<600, not product).
+    h16 = mk(m1, {"docs/s16.md": lines(147), "dev/programme/delivery.md": lines(1),
+                  "custom_components.md": lines(1), "blueprints.md": lines(1)}, "pr 16", "2026-10-05T01:00:00Z")
+    # Its VERDICT.md quotes another nonce mid-line before its own; its nonce holds a 0 and a 9.
+    s16 = verdict(rv(16), f"verdict: #16 Fix review: merge {h16}", N16, "2026-10-05T09:00:00Z",
+                  pre=f"quoting bus-nonce: {'1' * 32}\n")
+    g("update-ref", f"refs/remotes/origin/probe/rev-16-{N16[:8]}", s16)
+    # PR 17: local; every decoy below names it but sits outside the shape or scope the tool reads.
+    h17 = mk(m1, {"docs/s17b.md": lines(5)}, "pr 17", "2026-10-05T01:00:00Z")
+    s17 = verdict(rv(17), f"verdict: #17 Fix review: merge {h17}", N17, "2026-10-05T09:30:00Z")
+    verdict(rv(17), f"verdict: #17 Fix review: blocked {h17} harness: after", N17, "2026-10-05T11:00:00Z")
+    vs = g("commit-tree", g("write-tree"), "-m",
+           f"verdict: #17\n\nbus-confirmed: clou9-xcloud (review/17 at {s17})\n"
+           f"quoted bus-confirmed: cloud-17 (review/17 at {s17})")
+    g("update-ref", "refs/remotes/origin/verdict/17", vs)
+    for decoy in (f"refs/remotes/origin/probe/dev-17-{N17[:8]}", f"refs/remotes/origin/probe/rev-17-{N17[:8]}-old",
+                  f"refs/tags/archive/other/rev-17-{N17[:8]}"):
+        g("update-ref", decoy, s17)
+    # Review-ref commits outside the grammar's start: a prefixed subject is no verdict and not outside;
+    # one that opens with the prefix but matches the shape only later is outside, printed cut at 100.
+    g("update-ref", rv(19), mk(None, {}, f"re: verdict: #19 Fix review: merge {'c' * 40}", "2026-10-05T09:40:00Z"))
+    long = f"verdict: #19 Fix review: PASS, see verdict: #19 Fix review: merge {'d' * 40} for the {'x' * 20}"
+    g("update-ref", rv(119), mk(None, {}, long, "2026-10-05T09:41:00Z"))
+    g("update-ref", rv(219), mk(None, {}, "verdict: #19 Fix reviewer: no verdict", "2026-10-05T09:42:00Z"))
+    # PR 18: merged into main under a subject holding a tab (700 lines, L>=600).
+    h18 = mk(m1, {"docs/s18.md": lines(700)}, "pr 18", "2026-10-05T01:00:00Z")
+    s18 = verdict(rv(18), f"verdict: #18 Fix review: merge {h18}", "18" * 16, "2026-10-05T09:45:00Z")
+    # A remote ref outside review/, verdict/ and probe/: a verdict-shaped subject for 18, a cloud
+    # confirmation for 18's merge, and a probe-shaped name for 17.
+    g("update-ref", f"refs/remotes/origin/elsewhere/rev-17-{N17[:8]}",
+      g("commit-tree", g("write-tree"), "-m",
+        f"verdict: #18 Fix review: blocked {'b' * 40} harness: x\n\nbus-confirmed: cloud-18 (review/18 at {s18})"))
+    tip = g("rev-parse", "main")
+    # main: rows naming groups whose letters hold a 0 and a 9 at every position the group regex
+    # reads; a merge of 17 reached only through a side branch; 18's merge; and a two-parent commit
+    # whose subject names 16's merge after a prefix.
+    m10 = mk(tip, {"dev/programme/delivery/16.md": "| 16 | R1-0909 |\n",
+                   "dev/programme/delivery/17.md": "| 17 | R1-9090 |\n"}, "rows 16 17", "2026-10-05T09:50:00Z")
+    side1 = mk(m1, {"docs/s17.md": lines(700)}, "side", "2026-10-05T01:00:00Z")
+    side = mk(f"{m1} {side1}", {"docs/s17.md": lines(700)}, "Merge pull request #17 from tvofi/fix/side",
+              "2026-10-05T02:00:00Z")
+    m11 = mk(f"{m10} {side}", {"docs/s17.md": lines(700)}, "Merge branch 'side'", "2026-10-05T10:00:00Z")
+    m12 = mk(f"{m11} {h18}", {"docs/s18.md": lines(700)}, "Merge pull request #18 from tvofi/fix/r18\tx",
+             "2026-10-05T10:10:00Z")
+    y16 = mk(m1, {"docs/y16.md": lines(700)}, "y16", "2026-10-05T01:00:00Z")
+    m13 = mk(f"{m12} {y16}", {"docs/y16.md": lines(700)}, 'Revert "Merge pull request #16 from tvofi/x"',
+             "2026-10-05T10:20:00Z")
+    g("update-ref", "refs/heads/main", m13)
+    grp = lambda name, fixer: dict(group=name, issues=["i"], model=dict(fixer=fixer))
+    old = json.loads(g("show", f"{r2}:{RP}"))["groups"]
+    r3 = mk(r2, {RP: json.dumps(dict(groups=[*old, grp("R1-0909", "g0"), grp("R1-9090", "g9")]))},
+            "roster: digit groups", "2026-10-05T13:00:00Z")
+    g("update-ref", "refs/remotes/origin/roster", r3)
+    vl, outside = load(R, "origin")
+    with contextlib.redirect_stdout(io.StringIO()):
+        f = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", vl, when("2026-10-06T00:00Z"))
+    kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18) and v["kind"] == "merge"}
+    check("size: delivery rows are excluded at their '/', other dev/programme/ files count (16: 150, M<600)",
+          f[16]["size"] == "M<600")
+    check("product: custom_components.md and blueprints.md are not under the product prefixes (16)",
+          f[16]["product"] is False)
+    check("cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)",
+          kind[16] == "cloud")
+    check("cloud: no decoy marks 17 (id clou9-xcloud, a mid-line confirmation, dev-/-old/archive-other "
+          "probe names, a ref outside verdict/ and probe/)", kind[17] == "local")
+    check("only review/ and verdict/ refs are read: the ref outside them adds no verdict for 18 and no cloud id",
+          [v["kind"] for v in vl if v["pr"] == 18] == ["merge"] and kind[18] == "local")
+    check("a subject that only CONTAINS the grammar is no verdict and not outside (19)",
+          all(v["pr"] != 19 for v in vl) and not any(o.startswith("re:") for o in outside))
+    check("outside: the prefix 'Fix review:' exactly, and the shape matched from the start (19 twice)",
+          sorted(outside) == sorted([long, "verdict: #4 Fix review: PASS\tmerge " + "a" * 40]))
+    check("merge walk: first-parent only; 17's side-branch merge is not its merge (17: 5 lines, S<150)",
+          f[17]["size"] == "S<150")
+    check("merge subject: a tab inside it leaves the parents field whole (18 merged: 700, L>=600)",
+          f[18]["size"] == "L>=600")
+    check("merge subject: a two-parent commit naming a PR merge after a prefix is no merge (16 stays M<600)",
+          f[16]["size"] == "M<600")
+    check("group regex: 0 and 9 at every position (16 R1-0909 fixer g0, 17 R1-9090 fixer g9)",
+          (f[16]["fixer"], f[17]["fixer"]) == ("g0", "g9"))
+    check("guardrail: a real block after until is not caught (17 first at 09:30, blocked 11:00; until 09:40)",
+          "incidence 0/1;" in guardrail(vl, when("2026-10-05T09:40Z"), 1, 0.5))
+    text = io.StringIO()
+    with contextlib.redirect_stdout(text):
+        main(["--repo", str(R), "--tree", "main", "--window", "A=2026-10-05T00:00Z..2026-10-06T00:00Z"])
+    check("main prints the bus line once and each outside subject cut at 100",
+          text.getvalue().count("verdicts on the bus:") == 1 and f"  outside: {long[:100]}\n" in text.getvalue())
 
 
 def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) -> None:
@@ -729,24 +834,41 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     run(*wins, "--by", "nope+aa+zz+mm+bb+kk")
     check("main names the unknown strata sorted",
           "unknown stratum ['aa', 'bb', 'kk', 'mm', 'nope', 'zz']" in err.getvalue())
-    # --fetch reads the remote's refs/heads/review/* into refs/remotes/<remote>/review/*.
+    run(*wins, "--by", "nope+origin")
+    check("main: an unknown stratum is refused before a missing --roster", "unknown stratum ['nope']" in err.getvalue())
+    run(*wins, "--by", "origin", "--guardrail", "3")
+    check("main: a missing --roster is refused before a missing --p0", "needs --roster" in err.getvalue())
+    # --fetch reads the remote's refs/heads/{review,probe,verdict}/* into refs/remotes/<remote>/*/*, by
+    # its own refspecs (the remote carries no configured fetch refspec), forced, with every tag.
     from throwaway_git import throwaway_git_env
     env = throwaway_git_env()
-    g = lambda *x: subprocess.run(["git", "-C", d, *x], capture_output=True, text=True, check=True,
-                                  env=env).stdout.strip()
-    g("remote", "add", "origin", d)
+    g = lambda *x, at=d: subprocess.run(["git", "-C", at, *x], capture_output=True, text=True, check=True,
+                                        env=env).stdout.strip()
+    up = os.path.join(d, ".git", "upstream.git")
+    g("init", "-q", "--bare", up)
+    g("config", "remote.origin.url", up)
     s13, s12 = g("rev-parse", "refs/remotes/origin/review/13"), g("rev-parse", "refs/remotes/origin/review/12")
-    g("update-ref", "refs/heads/review/15", s13)
+    s5, nonce = g("rev-parse", "refs/remotes/origin/review/5"), NONCE_RE.search(g("show", f"{s13}:VERDICT.md"))[1]
+    vc = g("commit-tree", g("rev-parse", f"{s12}^{{tree}}"), "-m",
+           f"verdict: #12\n\nbus-confirmed: cloud-12 (review/12 at {s12})")
+    g("push", "-q", up, f"{s13}:refs/heads/review/15", f"{s12}:refs/heads/review/12",
+      f"{s13}:refs/heads/probe/rev-13-{nonce[:8]}", f"{vc}:refs/heads/verdict/12")
+    # The tag names a commit only the remote holds, so no history fetched carries it: only --tags brings it.
+    only = g("commit-tree", g("hash-object", "-t", "tree", "-w", os.devnull, at=up), "-m", "remote only", at=up)
+    g("update-ref", f"refs/tags/archive/probe/rev-5-{NONCE_RE.search(g('show', f'{s5}:VERDICT.md'))[1][:8]}",
+      only, at=up)
     g("update-ref", "-d", "refs/remotes/origin/review/13")
-    nonce = NONCE_RE.search(g("show", f"{s13}:VERDICT.md"))[1]
-    g("update-ref", f"refs/heads/probe/rev-13-{nonce[:8]}", s13)
-    g("update-ref", "refs/heads/verdict/12", g("commit-tree", g("rev-parse", f"{s12}^{{tree}}"), "-m",
-                                               f"verdict: #12\n\nbus-confirmed: cloud-12 (review/12 at {s12})"))
+    # review/12 locally points at 13's verdict, which its remote tip does not descend from: only a forced
+    # fetch moves it back.
+    g("update-ref", "refs/remotes/origin/review/12", s13)
+    check("main --fetch refuses a missing window, and --guardrail without --p0, before it fetches",
+          run("--fetch")[0] == 2 and run(*wins, "--fetch", "--guardrail", "3")[0] == 2
+          and not g("for-each-ref", "refs/remotes/origin/review/15"))
     before = run(*wins, "--by", "kind")[1]
     after = run(*wins, "--by", "kind", "--fetch")[1]
-    check("main --fetch reads the remote's review, probe and verdict refs (13 back, and 12 and 13 now cloud)",
+    check("main --fetch reads the remote's review, probe and verdict refs and its tags (13 back; 12, 13 and 5 now cloud)",
           "verdicts on the bus: 17;" in before and "verdicts on the bus: 18;" in after
-          and "  cloud                    L      PRs 3 " in before and "  cloud                    L      PRs 5 " in after)
+          and "  cloud                    L      PRs 3 " in before and "  cloud                    L      PRs 6 " in after)
 
 
 if __name__ == "__main__":
