@@ -97,6 +97,9 @@
 # The workflow files that hold the jobs whose status contexts the ruleset
 # requires. The whole directory: every file here is a workflow on `main`.
 /.github/workflows/                       @tvofi
+# The composite actions those workflows call (R10-CI-LAYOUT PR 1): a step
+# moved into one runs inside the calling job, so it is the same surface.
+/.github/actions/                         @tvofi
 # The hooks that run in every seat's session, and the wiring that gives a
 # session its hooks. `always-fails.sh` is a deliberately unwired control; the
 # whole directory is the surface.

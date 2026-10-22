@@ -157,6 +157,10 @@ MUTANTS = [
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
+    ("body_patch-1", "body_patch.sh",
+     '[ "$rbok" = 1 ] || die "#$pr could not be read back',
+     '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
