@@ -1,3 +1,0 @@
-0a1,2
-> -HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (tick_loop-N, heartbeat-N) each plant one production-line
-> +HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (cloud_relay-N, tick_loop-N, heartbeat-N) each plant one production-line
