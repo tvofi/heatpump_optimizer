@@ -1579,6 +1579,9 @@
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/ci/gate.py",
+   "tools/ci/ghapi.py",
+   "tools/ci/prelude.py",
    "tools/coverage/coverage_tree.sh",
    "tools/merge/ledger_merge.py",
    "tools/policy/agreement.mjs",
@@ -4313,7 +4316,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 41.8
+   "seconds": 84.3
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -4413,7 +4416,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 87.7
+   "seconds": 219.6
   },
   "tests/plan_view.py": {
    "rc": 0,
@@ -4433,7 +4436,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 44.1
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
