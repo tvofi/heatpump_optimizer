@@ -6,7 +6,8 @@ two survivors (head-ignored, privacy-off) that 42 green checks hid; round 3
 added the four the round-2 review found (explicit-roster-ref-ignored,
 cli-head-dropped, cli-roster-ref-dropped, fetch-skipped); round 4 added
 the three the round-3 review found (cli-role-fixed, cli-pr-dropped,
-cli-nonce-dropped). Each
+cli-nonce-dropped) and the rest of the --group call's inputs (cli-group-fixed,
+cli-model-fixed, cli-overlay-dropped). Each
 mutant is a one-occurrence replacement in tools/audit/seat/cloud_dispatch.py;
 it is applied alone, `cloud_dispatch.py --self-test` run, and the file
 restored byte for byte. The drive refuses a dirty file and aborts on a
@@ -70,6 +71,9 @@ MUTANTS = [
     ("cli-role-fixed", "print(dispatch_group(args.role,", 'print(dispatch_group("fixer",'),
     ("cli-pr-dropped", 'head=args.head or "", pr=args.pr,', 'head=args.head or "", pr="",'),
     ("cli-nonce-dropped", "nonce=args.nonce, overlay=args.overlay))", 'nonce="", overlay=args.overlay))'),
+    ("cli-group-fixed", "print(dispatch_group(args.role, args.group,", 'print(dispatch_group(args.role, "R10-X",'),
+    ("cli-model-fixed", "args.group, args.model, roster_ref", 'args.group, "m-1", roster_ref'),
+    ("cli-overlay-dropped", "nonce=args.nonce, overlay=args.overlay))", "nonce=args.nonce, overlay=None))"),
 ]
 SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")
 
