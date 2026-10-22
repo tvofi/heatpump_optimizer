@@ -20538,6 +20538,25 @@ R.check(
     any("SEK" in _l for _l in _n_view["lines"]),
     str(_n_view["lines"][:2]),
 )
+# D14-s3-01: the feed denominates the plan's money (#1657), so the narrative
+# names the code every other money surface publishes -- not the instance's
+# label. A SEK feed on the same SEK instance is the null control.
+_d14s3_codes = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass("SEK", _d14s3_unit), _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._optimization_result = _r6
+    _d14s3_codes[_d14s3_unit] = sorted(
+        {_c for _l in _d14s3_c._narrative_view()["lines"]
+         for _c in _re6.findall(r"\b(EUR|SEK)\b", _l)}
+    )
+R.check(
+    "D14-s3-01: the narrative prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_codes == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_codes),
+)
 
 # --- #52 the diagnosis -----------------------------------------------------------
 _dmodel = ThermalModel(ThermalParameters())
