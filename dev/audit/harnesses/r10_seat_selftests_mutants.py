@@ -161,6 +161,15 @@ MUTANTS = [
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # r10-ci-layout P2a U9c: the ruleset cut-over instrument lives in tools/ci/,
+    # so its file is named from the repository root. -1 skips the read-back's
+    # second half, -2 its first, -3 the staged-hash precondition.
+    ("ruleset_cutover-1", "tools/ci/ruleset_cutover.py",
+     "    if without_checks(after) != without_checks(six(rollback)):", "    if False:"),
+    ("ruleset_cutover-2", "tools/ci/ruleset_cutover.py",
+     "    if put != want or contexts(after) != NEW_CHECKS:", "    if False:"),
+    ("ruleset_cutover-3", "tools/ci/ruleset_cutover.py",
+     'out.append(("staged-hash", a == b,', 'out.append(("staged-hash", True,'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),

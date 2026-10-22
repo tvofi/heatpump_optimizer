@@ -511,10 +511,6 @@ GATE_FILES = (
     # run.sh changes what they run. It cannot be a measured closure of
     # itself, so it is a gate file -- the same argument as closure.py.
     "tests/lane_skip.py",
-    # R10-CI-LAYOUT-P2a U0b: the sweep and its self-test, which the gate's own
-    # self-test runs. U0a's `tools/ci/` prefix replaces these two lines.
-    "tools/ci/sweep.py",
-    "tools/ci/sweep_selftest.py",
 )
 
 
