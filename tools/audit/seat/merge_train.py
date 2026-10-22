@@ -331,9 +331,7 @@ def conflicts(run, base: str, head: str) -> "list[str] | None":
     therefore listed: GitHub reports that head DIRTY, and the driver is its
     repair, not a reason to read it clean (it also printed `MERGE-CLAIM:` to
     stderr, which a stdout+stderr runner read as merge-tree output)."""
-    drivers = text_merge(run)
-    if drivers is None:
-        return None
+    drivers = []
     code, o = run(["git", *drivers, "merge-tree", "--write-tree", "--name-only", "--no-messages", base, head])
     lines = [x.strip() for x in o.splitlines() if x.strip()]
     if code not in (0, 1) or not lines or not is_sha(lines[0]) or (code == 1) != (len(lines) > 1):
