@@ -155,6 +155,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   alert, not the log; an unreadable ruleset alerts BLIND once rather than
   silently skipping the ABSENT arm. `--self-test` grades every arm offline on
   the recorded defect shape; `CI_WATCH_ONCE=1` runs a single cycle.
+- `ci_critpath.py` — one workflow run's critical path from its job and step
+  timestamps (each job's queue, duration and longest step), its `needs:` read
+  from the run's own head, and a counterfactual holding every queue and
+  duration fixed: `--drop-edge NEED:JOB`, `--delete-job JOB`, `--charge
+  JOB=SECONDS` (the bare cost, stated by the caller). `--workflow F --last N`
+  prints median and p90 over the last N runs. The CI design archive's phase-2
+  method generalised (tag `archive/probe/design-ci-rev4`), and
+  `dev/audit/harnesses/r10_critpath_archive_parity.py` holds it to that
+  method's V1 numbers run for run. When: a job-graph change states the wall
+  it buys before it is built. Refusal: an edge the workflow does not have, a
+  needs cycle, or a run past `--max-reads` API reads; jobs and needs are
+  cached per run id and head, so a re-run reads only `--last`'s run list.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
   CI-run pinning): it builds `venv-ci` and `venv-ha` under `/opt/hpo` and
   writes the toolchain profile. When: tvofi pastes it into Project settings; a
@@ -319,6 +331,14 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-Actions check prints NO-JOB, an unserved log prints NO-LOG and exits 1
   with the count over readable logs beside the unread one; no error-marker
   match falls back to the log's tail, never a silent zero.
+- `flow_metrics.py` — a round's flow over one window, from git alone:
+  roster groups added and closed per hour (`--roster REF:PATH`, `--prefix`),
+  records' share of main's PR merges (`--record-prefix`), first-pass yield of
+  the merged fix PRs on the bus, main absorbs per fix branch, merge-to-merge
+  re-reviews of an unchanged PR diff (patch-id), and the share of hours with
+  a merge. When: a flow guardrail or a round's close reads throughput.
+  Refusal: a re-review whose heads git does not hold prints `unresolved`,
+  never counted; no round constant in code.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
@@ -617,8 +637,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   hand-edit the resume. Refusal: over-budget output refuses with `--out`
   unwritten — archive before regenerating.
 - `review_strength.py` — real-catch blocks per reviewed PR, incidence and
-  first-pass share from the `review/*` bus, over git only (no REST), per
-  window and per stratum: reviewer kind (a probe-ref return is cloud), class,
+  first-pass share from the `review/*` bus and its `archive/review/*` tags,
+  over git only (no REST), per window and per stratum: reviewer kind (a
+  probe-ref return is cloud), class, the class the wave routes (`route`, the
+  vocabulary read from web-fix-wave.js's VERDICT_CLASSES, never copied),
   re-review after a merge verdict, and with `--roster` the PR's origin, fixer
   model, size and product, taken `--as-of` the latest window's until (the
   verdicts, `--tree` and the roster ref cut there). When: a flow guardrail

@@ -166,6 +166,12 @@ MUTANTS = [
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # R10-FLOW-TOOLKIT-MEASURE: the path walk, the per-run cache, the absorb count, the record split.
+    ("ci_critpath-1", "ci_critpath.py", "n = max(live, key=lambda x: ends[x])", "n = min(live, key=lambda x: ends[x])"),
+    ("ci_critpath-2", "ci_critpath.py", "        if f.exists():\n", "        if False:\n"),
+    ("flow_metrics-1", "flow_metrics.py", "n += any(p in mainline for p in line.split())", "n += 0"),
+    ("flow_metrics-2", "flow_metrics.py", 'fixes = [m for m in ms if not m["branch"].startswith(record)]',
+     "fixes = list(ms)"),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
     ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
