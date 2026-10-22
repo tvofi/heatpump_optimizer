@@ -52,6 +52,10 @@ Architecture score: dS +0.0000 NULL.
 
 ## Forward-carry
 
+none
+
+Both items below are settled in this diff, so nothing is carried:
+
 - R10-FEEDS carry (callers of `_get_current_price` / `_current_spot_price` must handle `None`): this diff touches no such call site. Nothing to carry.
 - The stale "In the instance currency" comment in `_raise_cop_issue`, which round 1 carried to this decision, is closed in this diff. Nothing left to carry.
 
