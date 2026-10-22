@@ -150,7 +150,7 @@ DISPOSED = {
     "pr_facts @ a, d, f = ln.split('\\t', 2): 2 -> 3":
         'equivalent: `git diff --numstat` quotes any path holding a tab, so a line holds exactly two tabs',
     "GROUP_RE @ GROUP_RE = re.compile('\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-...: '\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\\\\b' -> '\\\\b(R\\\\d+-[A-Z0-9[A-Z0-9-]*[A-Z0-9])\\\\b'":
-        "equivalent on the bus's inputs (all 150 roster groups and every delivery row's group token hold two or more "
+        "equivalent on the bus's inputs (every roster group and every delivery row's group token holds two or more "
         "characters after the dash); separated by a one-character group such as R1-X, which the tool reads as no group "
         "and the mutant as R1-X",
     'pr_facts @ grp = groups.get(g[1]) if g else None: 1 -> 0':
