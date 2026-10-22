@@ -1,5 +1,0 @@
-plan_page: refused, nothing written: 1 violation(s)
-  freshness: plan.json is stale: built from roster blob 8506d7a97f16, but main:dev/programme/rosters/wave-r9-groups.json is now ba6c83b416a0; re-run tools/plan/replan.py --out <plan.json>
-wrote /tmp/tmplwrx7mhu/page.html: 7 groups, closure 2026-01-05T22:16:00Z
-plan_page self-test: 36 checks, 0 failed
-rc=0

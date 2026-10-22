@@ -1,8 +1,0 @@
-ok   self-test fails when stamp-cadence is deleted
-  mutation ci-formula: 'ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)' -> rc=1
-ok   self-test fails when ci-formula is deleted
-  mutation freshness: 'if have != want:' -> rc=1
-ok   self-test fails when freshness is deleted
-  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
-ok   self-test fails when gate-cancellation is deleted
-self-test: 0 failed
