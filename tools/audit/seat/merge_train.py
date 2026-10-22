@@ -79,8 +79,12 @@ later pull request would be graded against a `main` the refused one never joined
      recarry worktrees a run made are removed before its closing line.
 
 It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
-<reason>` (exit 1). Every GitHub write is the orchestrator's: run this only
-from the orchestrator's machine and identity (decisions 0011, 0013).
+<reason>` (exit 1). A real run publishes `TRAIN HOLD refs/heads/train-hold`
+before anything merges and releases it just before the closing line: CI
+cannot see this process's pidfile, and tests.yml's record beat auto-merges
+record pull requests otherwise, moving main mid-train (#2291/#2295/#2299,
+2026-10-15; issue #2302). Every GitHub write is the orchestrator's: run this
+only from the orchestrator's machine and identity (decisions 0011, 0013).
 Replaces the session-local train3.py / mergewhen.sh / waitci.sh of round 9;
 the stale-base guard mergewhen.sh carried is subsumed by step 4, which refuses
 any head that does not contain the `main` it merges into.
@@ -276,6 +280,20 @@ HEARTBEAT_SECONDS = 240
 # costs one full CI wait at the new head (~40 min), so three bound a busy
 # main's entry to about two hours before it stops as before.
 MAIN_MOVED_TRIES = 3
+# THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
+# process's pidfile, and the record beat in tests.yml auto-merges record pull
+# requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
+# on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
+# publishes this ref while it is live and deletes it at its closing line; the
+# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
+# an older one as stale, so a crashed train cannot block records forever. The
+# ref points at a commit created at publication, whose committer date is the
+# age the beat reads; it is refreshed at the start of every queue item, before
+# every recarry, and before every sleep inside wait_ci, so the age is the last
+# REFRESH's, not the run's, and the beat's bound prices that gap -- one phase
+# (a recarry or a poll), never a whole CI wait and never a whole batch. A
+# `batch/` rehearsal publishes nothing: it merges nothing into main.
+HOLD_REF = "refs/heads/train-hold"
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -472,6 +490,8 @@ class Train:
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
+        self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
+        self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -686,7 +706,10 @@ class Train:
         silence). The beat is time-based -- computed from the wait's start
         against the poll clock -- never poll-based, so a poll cadence slower
         or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
-        value, gate or wait duration changes."""
+        value, gate or wait duration changes. One write rides the loop: while
+        the wait goes on, the train-hold ref is refreshed before each sleep
+        (`hold_refresh`), so a wait that runs to its `polls` ceiling still
+        keeps the record beat held; a wait that settles writes nothing."""
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
@@ -715,6 +738,11 @@ class Train:
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
             # t+305s (tvofi, 2026-10-14) -- a beat never waits on a poll.
+            # Before the wait the hold is refreshed (R10-TRAIN-HOLD): a wait is
+            # the longest silence a train has, so the beat's bound prices the
+            # refresh gap, not a whole wait. Returning above (CI settled) costs
+            # no write.
+            self.hold_refresh()
             self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
 
@@ -1059,6 +1087,7 @@ class Train:
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
         if not self.contains_main(h):
+            self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
             if not wt.exists():
@@ -1114,6 +1143,7 @@ class Train:
         return h
 
     def one(self, item: dict, req: "list[str] | None" = None) -> None:
+        self.hold_refresh()  # per item: a long item must not age the hold stale
         req = req if req is not None else self.required()
         self.serial(item, self.recarry(item), None, req)
 
@@ -1262,24 +1292,90 @@ class Train:
                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
         self.made_wts = []
 
+    def hold_refresh(self) -> None:
+        """Publish, or refresh, the record-beat hold ref (R10-TRAIN-HOLD).
+
+        The ref points at a commit made NOW, through the API and never a
+        `git push`: its committer date is the publication time the record
+        beat reads as the hold's age, and creating the ref through the API
+        starts no push-triggered run. A failure is logged and the train runs
+        on -- the pre-fix behaviour -- because the hold guards a bookkeeping
+        beat, and stopping a merge train for it is the worse failure."""
+        if not (self.real and self.hold_armed):
+            return
+        tip = self.out("git", "rev-parse", "origin/main")
+        tree = self.out("git", "rev-parse", tip + "^{tree}") if is_sha(tip) else ""
+        if not (is_sha(tip) and is_sha(tree)):
+            self.held = False
+            self.log(f"NOT held: origin/main is unreadable ({tip[:40]!r}); the record beat is not held")
+            return
+        code, said = self.run(
+            ["gh", "api", "--method", "POST", f"repos/{self.repo}/git/commits",
+             "--input", "-", "--jq", ".sha"],
+            stdin=json.dumps({"message": f"train hold pid={os.getpid()}",
+                              "tree": tree, "parents": [tip]}))
+        sha = next((w for w in said.split() if is_sha(w)), "")  # not said.strip(): a gh warning may trail it
+        if code or not is_sha(sha):
+            self.held = False
+            self.log(f"NOT held: the hold commit was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        # A hold this run owns is a PATCH; the first one is a create, and a
+        # stale ref a crashed train left is taken over by the PATCH fallback.
+        method = "PATCH" if self.held else "POST"
+        ref_url = (f"repos/{self.repo}/git/refs/heads/train-hold" if method == "PATCH"
+                   else f"repos/{self.repo}/git/refs")
+        payload = {"sha": sha, "force": True} if method == "PATCH" else {"ref": HOLD_REF, "sha": sha}
+        code, said = self.run(["gh", "api", "--method", method, ref_url, "--input", "-"],
+                              stdin=json.dumps(payload))
+        if code and method == "POST":
+            code, said = self.run(
+                ["gh", "api", "--method", "PATCH", f"repos/{self.repo}/git/refs/heads/train-hold",
+                 "--input", "-"], stdin=json.dumps({"sha": sha, "force": True}))
+        if code:
+            self.held = False
+            self.log(f"NOT held: the hold ref was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        self.held = True
+        self.log(f"TRAIN HOLD {HOLD_REF} {sha[:8]}: the record beat waits")
+
+    def hold_release(self) -> None:
+        """Delete the hold ref at the closing line, so the record beat resumes.
+
+        Idempotent: every closing path calls it, the last one finding the ref
+        already gone. A refused delete is logged with the expiry that bounds
+        the damage, never raised -- the train's merges have already landed."""
+        if not self.held:
+            return
+        self.held = False
+        code, said = self.run(["gh", "api", "--method", "DELETE",
+                               f"repos/{self.repo}/git/refs/heads/train-hold"])
+        self.log("TRAIN HOLD released" if not code else
+                 f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
+                 "it expires at the beat's own bound, or delete it by hand")
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
             try:
                 self.one(item)
             except Stop as s:
                 self.release_worktrees()  # before the closing line, which stays last
+                self.hold_release()
                 self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.release_worktrees()
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1545,6 +1641,7 @@ class Train:
             return self._batch(queue, tag)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _batch(self, queue: list[dict], tag: str) -> int:
         # The banner is the FIRST output, before any blocking call: a
@@ -1554,6 +1651,8 @@ class Train:
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})"
                  f"{' --overlap' if self.overlap else ''}{' --skip-bad' if self.skip_bad else ''}")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         self.skipped: list[dict] = []
         try:
@@ -1685,6 +1784,7 @@ class Train:
                                   f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
+            self.hold_release()
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
@@ -1697,6 +1797,7 @@ class Train:
                      f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
         if self.skip_bad:
             self.skip_report(len(queue))
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1733,6 +1834,17 @@ def _self_test() -> int:
                     return world.get("bot_find", (0, "0"))
                 world.setdefault("bot_guarded", []).append(argv[argv.index("--head") + 1])
                 return world.get("bot_guard", (0, "AUTOMERGE OK #9"))
+            # THE RECORD-BEAT HOLD (issue #2302): the commit the hold ref points
+            # at, and the ref create/update. `hold_sha` empty (the default) is
+            # the API refusing, which the train must survive.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a:
+                world.setdefault("hold_commits", []).append(json.loads(stdin or "{}"))
+                return world.get("hold_commit", (0, world.get("hold_sha", "")))
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                world.setdefault("hold_refs", []).append(argv)
+                if "/git/refs/heads/train-hold" in a:  # PATCH or DELETE an existing ref
+                    return world.get("hold_update", (0, "{}"))
+                return world.get("hold_create", (0, "{}"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
@@ -1759,11 +1871,21 @@ def _self_test() -> int:
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+                # `pending_reads`: the first N reads report in_progress, so a
+                # wait that outlives one poll can be driven without a clock.
+                reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                runs = world.get("runs", [])
+                if reads <= world.get("pending_reads", 0):
+                    runs = [dict(c, status="in_progress") for c in runs]
+                return 0, "\n".join(json.dumps(c) for c in runs)
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
                 return 0, f"{'github-actions[bot]' if subj else 'tvofi'}\t{subj or 'fix: x'}"
+            if argv[:3] == ["git", "rev-parse", "origin/main"]:  # the hold's parent
+                return 0, world.get("main_tip", "d" * 40)
+            if argv[:2] == ["git", "rev-parse"] and argv[2].endswith("^{tree}"):
+                return 0, world.get("main_tree", "e" * 40)
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
             if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
@@ -1824,21 +1946,34 @@ def _self_test() -> int:
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
     def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1,
-           wrap=None, approval_carry: bool = False, **opts) -> tuple[int, list[str], list[list[str]]]:
+           wrap=None, approval_carry: bool = False, base: str = "main",
+           **opts) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         lines: list[str] = []
+        timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
         if wrap:
             run = wrap(run)
+        base_run = run
+
+        def run_traced(argv, cwd=ROOT, stdin=None):
+            timeline.append(("call", " ".join(argv)))
+            return base_run(argv, cwd=cwd, stdin=stdin)
+
+        def logline(s: str) -> None:
+            lines.append(s)
+            timeline.append(("log", s))
+
         with tempfile.TemporaryDirectory() as d:
-            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
-                       sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3,
-                       approval_carry=approval_carry, **opts).train(q or [dict(item)])
+            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
+                       run=run_traced, sleep=lambda s: None, log=logline, polls=2, merge_tries=3,
+                       approval_carry=approval_carry, base=base, **opts).train(q or [dict(item)])
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
                 world[key] = f.read_text() if f.exists() else ""
+        world["timeline"] = timeline
         return rc, lines, calls
 
     def merged(calls) -> bool:
@@ -1874,7 +2009,11 @@ def _self_test() -> int:
     # still beats exactly on time.
     hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
     def hung_run(argv, cwd=ROOT, stdin=None):
-        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+        # The pair wraps the whole conditional: `return 0, X if c else (0, "")`
+        # made a non-check-runs call answer `(0, (0, ""))`, a tuple where the
+        # trainer reads a string (found by the R10-TRAIN-HOLD session/arming
+        # mutant, which is the only reader to reach it).
+        return (0, "\n".join(json.dumps(c) for c in hang)) if "check-runs" in " ".join(argv) else (0, "")
     ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
     lines: list[str] = []
     with tempfile.TemporaryDirectory() as d:
@@ -2557,6 +2696,86 @@ def _self_test() -> int:
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
     check("every script the train runs resolves through TOOLS, none by a bare path"
           + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
+    # THE RECORD-BEAT HOLD (issue #2302). A record pull request that auto-merges
+    # mid-train moves main under it (#2291/#2295/#2299, 2026-10-15, stopped or
+    # re-carried #2284/#2290); CI cannot see the train's local pidfile, so the
+    # train publishes refs/heads/train-hold while it is live. These read the
+    # call/log timeline: the commit and ref create must precede the first merge,
+    # and the delete must close the train before its closing line.
+    def hold_idx(world: dict, kind: str) -> list[int]:
+        stop = {"create": "/git/refs --input -", "update": "/git/refs/heads/train-hold",
+                "delete": "/git/refs/heads/train-hold", "commit": "/git/commits"}
+        return [i for i, (k, v) in enumerate(world["timeline"])
+                if k == "call" and "gh api" in v and stop[kind] in v
+                and (kind == "delete") == ("--method DELETE" in v)]
+
+    def tl_idx(world: dict, kind: str, text: str) -> list[int]:
+        return [i for i, (k, v) in enumerate(world["timeline"]) if k == kind and v == text]
+
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w)
+    creates, commits = hold_idx(w, "create"), hold_idx(w, "commit")
+    deletes = hold_idx(w, "delete")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    done = tl_idx(w, "log", "TRAIN DONE")
+    check("a real train holds the record beat before its first merge and releases it "
+          "before the closing line (issue #2302)",
+          bool(rc == 0 and commits and creates and deletes and merges and done)
+          and commits[0] < creates[0] < merges[0] < deletes[0] < done[0]
+          and "TRAIN HOLD refs/heads/train-hold" in " ".join(lines)
+          and "TRAIN HOLD released" in lines)
+    w = {"hold_sha": "f" * 40,
+         "runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]}
+    rc, lines, calls = go(w)
+    deletes = hold_idx(w, "delete")
+    stopped = [i for i, (k, v) in enumerate(w["timeline"])
+               if k == "log" and v.startswith("TRAIN STOPPED")]
+    check("a train stopped mid-queue still releases the hold before its closing line "
+          "(a stopped train must not block the record beat)",
+          bool(rc == 1 and deletes and stopped) and deletes[-1] < stopped[-1])
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)], base="batch/rehearsal")
+    check("a batch/ rehearsal publishes no hold (null control: it merges nothing into main)",
+          rc == 0 and not any(k == "call" and "/git/refs" in v for k, v in w["timeline"]))
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)])
+    creates, updates = hold_idx(w, "create"), hold_idx(w, "update")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    check("the hold is refreshed once per queue item, so one long item cannot age it stale",
+          rc == 0 and len(creates) == 1 and len(updates) == 2 and len(merges) >= 2
+          and merges[0] < updates[1] < merges[1] and max(creates + updates) < hold_idx(w, "delete")[0])
+    w = {}  # the API refuses the hold commit: the train must still merge
+    rc, lines, calls = go(w)
+    check("an unreadable hold commit does not stop the train: logged, no ref, no delete",
+          rc == 0 and merged(calls) and not any(k == "call" and "/git/refs" in v
+                                                for k, v in w["timeline"])
+          and any(ln.startswith("NOT held:") for ln in lines))
+    # A WAIT IS THE LONGEST SILENCE (review F1). One CI wait runs to 24 polls
+    # of HEARTBEAT_SECONDS, and a --batch proof and a main_green wait are the
+    # same loop, so the ref is refreshed from the loop itself: the bound then
+    # prices the refresh gap, not a whole wait.
+    w = {"hold_sha": "f" * 40, "pending_reads": 1}
+    rc, lines, calls = go(w)  # polls=2: read 1 in progress, read 2 green
+    reads = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and "check-runs" in v]
+    check("a CI wait that outlives one poll refreshes the hold mid-wait, so the bound "
+          "can be shorter than a wait",
+          rc == 0 and merged(calls) and len(reads) >= 2
+          and any(reads[0] < u < reads[1] for u in hold_idx(w, "update")))
+    # A recarry takes 5-15 min inside app_push's prepr, and --overlap runs one
+    # per serial entry BEFORE any wait: a refresh only per item or per wait
+    # would let the up-front loop age the ref stale.
+    w = {"hold_sha": "f" * 40, "contains": [False]}
+    rc, lines, calls = go(w)
+    check("a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it",
+          rc == 0 and merged(calls) and len(hold_idx(w, "update")) == 2)
+    # `wait-ci` is a bare CI watch, not a train: it has no closing line to
+    # release a ref, so it must never publish one.
+    w = {"hold_sha": "f" * 40, "runs": green, "pending_reads": 1}
+    run0, calls0 = fake(w)
+    Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run0,
+          sleep=lambda s: None, polls=2).wait_ci(H0)
+    check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
+          not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
@@ -2638,7 +2857,16 @@ def _batch_self_test(check) -> None:
 
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
+            w.setdefault("calls", []).append(argv)  # the hold's order on the primary path
             a = " ".join(argv)
+            # THE RECORD-BEAT HOLD on the batch arm: `batch` defaults to
+            # `--base main`, so this world can prove the ref is published
+            # before anything merges. `hold_sha` empty (the default) is the API
+            # refusing, which the batch must survive like the serial train.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a and "/commits/" not in a:
+                return 0, w.get("hold_sha", "")
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                return 0, "{}"
             if "record_row.py" in a:  # --bot-prs: an open record PR #9 whose guard passes
                 w.setdefault("bot_calls", []).append(argv)
                 return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
@@ -2817,6 +3045,24 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    # THE HOLD ON THE PRIMARY PATH (re-review M8/M10). `batch` defaults to
+    # `--base main`, its start publish is the only hold write before a D merge
+    # (no wait sleeps, no proof), and nothing else in this suite asked whether
+    # the batch armed the ref: deleting the arming and/or the start publish
+    # left the suite green. These read the stub's own call order.
+    w = go({1: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.__setitem__("hold_sha", "f" * 40))
+    _calls = w["calls"]
+    _commits = [i for i, c in enumerate(_calls)
+                if c[:2] == ["gh", "api"] and "/git/commits" in " ".join(c)]
+    _refs = [i for i, c in enumerate(_calls)
+             if c[:2] == ["gh", "api"] and "git/refs" in " ".join(c)]
+    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+    check("a real-base batch publishes the record-beat hold before it merges anything "
+          "(the primary path is armed, not only the serial one)",
+          w["rc"] == 0 and list(w["merged"]) == [1]
+          and bool(_commits) and bool(_refs) and bool(_merges)
+          and _commits[0] < _refs[0] < _merges[0])
     _bg, brev, bman, _brev_revoke = policy_fixture_builders()
     bnow = datetime.datetime.now(datetime.timezone.utc)
     w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")

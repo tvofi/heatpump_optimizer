@@ -480,9 +480,9 @@ def self_test() -> int:
         def clock(self):
             return self.now[0]
 
-        def watcher(self, dry=False, budget_h=1.0, out=None):
+        def watcher(self, dry=False, budget_h=1.0, out=None, mode="app", mandate=""):
             return Watcher(repo=REPO, pr=PR, sha=SHA, check=CHECK, poll=1.0,
-                           budget_h=budget_h, dry=dry, mode="app",
+                           budget_h=budget_h, dry=dry, mode=mode, mandate=mandate,
                            state=self.root / "state",
                            merge_script=self.merge, approve_script=self.approve,
                            run=self.run, sleep=self.sleep, clock=self.clock,
@@ -516,6 +516,18 @@ def self_test() -> int:
     st(f.merge_calls,
        [["bash", str(f.merge), str(PR), SHA, str(os.path.realpath(f.evidence)), "app"]],
        "(a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode")
+    # (a3) owner mode hands merge_pr.sh the mandate id it reads live; launched
+    # without one, the watch refuses before it polls. The app arm above is the
+    # null: no --mandate reaches merge_pr.sh there.
+    f3 = Fixture(); cases.append(f3); f3.set_verdict()
+    try:
+        f3.watcher(out=[], mode="owner", mandate="6175172275").watch()
+    except Abort as e:
+        st(f"unexpected abort: {e}", "no abort", "(a3) the owner arm merges without aborting")
+    st([c[-3:] for c in f3.merge_calls], [["owner", "--mandate", "6175172275"]],
+       "(a3) owner mode passes --mandate <id> to merge_pr.sh")
+    st(main(["--pr", str(PR), "--head", SHA, "--check", CHECK, "--mode", "owner"]), 2,
+       "(a3) --mode owner without --mandate refuses at launch")
     merge_lines = [ln for ln in out if ln.startswith("PROOF-WATCH MERGE")]
     st(len(merge_lines), 1, "(a2) exactly one merge line")
     st(all(k in merge_lines[0] for k in (f"pr=#{PR}", f"head={SHA}", f"check={CHECK}",

@@ -315,6 +315,8 @@ GUARDED = "guarded"
 PUSHERS = {
     "tools/audit/seat/wt_sync.sh": (GUARDED, "the #2310 instrument: a slug from slug(), both pushes guarded"),
     "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument, message composed from it"),
+    "tools/audit/seat/heartbeat.sh": (GUARDED, "the constant ref heartbeat/orchestrator, message from --message; "
+                                      "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/bus.sh": (GUARDED, "_post's ref from family and number, message from the caller; "
                                 "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/state_docs.py": (GUARDED, "message from --message or the regenerated names; "
@@ -334,6 +336,8 @@ PUSHERS = {
     ".github/workflows/tests.yml": ("republishes", "on a runner, constant-message bot commits onto the "
                                     "pull request's own branch, record/autofix or main (nightly kills)"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
+    "tools/audit/seat/pr_args.sh": ("fixture", "its self-test's stub app_push.sh pushes the branch it is given "
+                                    "into a scratch origin repository; the file pushes nothing else"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
                                                 "temp bare repository"),
     ".github/workflows/release.yml": ("shape-checked", "`gh release create` makes the tag on origin, and the "

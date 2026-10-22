@@ -894,7 +894,7 @@
             "data_description": {
               "confidence_margins_enabled": "En plan som lovar 19,0 °C tolv timmar framåt vilar på en tolvtimmarsprognos, och optimeraren vet ur sin egen historik hur fel de brukar bli. Med detta på höjs komfortgolvet med exakt det förväntade felet — begränsat till 0,8 °C och krympande mot noll när träffsäkerheten förbättras — så djupa prisridande svalningar tas bara där modellen förtjänat förtroendet.",
               "price_risk_lambda": "Bortom den publicerade horisonten uppskattas priserna från din inlärda dygnsprofil. Detta lägger ett påslag på gissningarna i proportion till hur fel de brukat vara, så planen slutar behandla en gissad billig natt som säker. 0 litar på gissningarna rakt av, som tidigare.",
-              "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid."
+              "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — komfortschemat en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning, var och en som medel över 30 dagar. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid."
             }
           }
         }
