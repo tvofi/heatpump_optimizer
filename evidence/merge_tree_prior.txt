@@ -1,0 +1,10 @@
+## merge-tree origin/main 36ca386d6 (the prior blocked head)
+dev/audit/harnesses/r10_seat_selftests_mutants.py
+
+Auto-merging .github/workflows/governance.yml
+CONFLICT (content): Merge conflict in .github/workflows/governance.yml
+Auto-merging dev/audit/harnesses/r10_seat_selftests_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_seat_selftests_mutants.py
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/pr/app_push.sh
+rc=1

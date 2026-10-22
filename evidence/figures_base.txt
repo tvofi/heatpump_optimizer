@@ -1,0 +1,11 @@
+## codeowners_gap base
+RESULT enforcement_surface_files=134 count
+RESULT covered_by_an_owner=50 count
+RESULT pinned_by_base_restore=84 count
+RESULT of_which_no_pr_job_runs=67 count
+RESULT uncovered_files=0 count
+RESULT enforcement_surface_files=134 count
+RESULT covered_by_an_owner=50 count
+RESULT pinned_by_base_restore=84 count
+RESULT of_which_no_pr_job_runs=67 count
+RESULT uncovered_files=0 count
