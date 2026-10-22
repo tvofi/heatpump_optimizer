@@ -168,7 +168,7 @@ because it would look like a pass, so it is said twice and never in passing.
 every push to `main`, and why keying on the mode line is the only safe reading.
 What that leaves for here is the second job.
 
-`closures` runs beside the gate on `main` and on the nightly: it re-derives
+`closures` runs beside the gate on `main`: it re-derives
 every closure from real instrumented runs and fails if `tests/closures.json`
 misses anything a run actually touched (`closure.py check`). A closure that
 lists *more* than a run touched only costs time and is reported rather than
@@ -441,7 +441,7 @@ here rather than only explaining an exclusion: `card_browser.mjs` and
 `nightly_ha.py` are real tests that this gate must never run — Chromium and
 Docker are not available to it — and neither may gate a pull request; see "Note
 on browser checks" below for where the first one runs instead.
-`replay.py` runs in the nightly `slow` job instead.
+`replay.py` runs in the nightly `slow` job instead (`.github/workflows/nightly.yml`).
 `derive_closures.sh` is not excluded because it was never in scope: the loop
 globs `tests/*.py tests/*.mjs`, so a `.sh` is not a candidate for wiring.
 
