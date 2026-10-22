@@ -19,10 +19,6 @@ The away-recovery estimate ran a model kernel on the event loop. `away.estimate_
 - R10-LIVESTATE is `not-started` in the roster (`resume.stage`), and its `after` list names this group. So the hunks are no concurrent conflict surface. Its brief owes a carry, given under `## Forward-carry`.
 - The orchestrator decides whether the after-edge stands as is.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-https://claude.ai/code/session_019gPVfQ8QSjYSP3HbNGBguE
-
 ## Head
 
 `1b4fbc55bd9038385f7938595f70933b1e48e055`.
