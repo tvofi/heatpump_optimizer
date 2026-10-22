@@ -212,8 +212,12 @@ def inert_siblings(changed, inert_reads, closure, pairs=None):
     `dev/audit/harnesses/`) opens every file added there; its committed
     `inert_reads` lists them one by one, so a new sibling it does not list is
     CI's `INERT READS UNDER-APPROXIMATED`. Keyed on directory and suffix: three
-    listed siblings of the same suffix, so the two files `entities.py` names
-    one by one in `tools/audit/seat/` are not mistaken for a glob.
+    listed siblings of the same suffix, so the one file `entities.py` names
+    in `tools/audit/seat/` is not mistaken for a glob. A sibling counts only
+    while it is INERT: a glob files nothing else under `inert_reads`, and an
+    entry whose file later left the list stays listed -- `entities.py`'s five
+    in `tools/audit/seat/` (R10-CI-LAYOUT-P1: CI's FULL closures run was green
+    at e93de866 with `orchestrator_tick.py` changed and unlisted).
     """
     preds = []
     for f in sorted(changed):
@@ -223,7 +227,8 @@ def inert_siblings(changed, inert_reads, closure, pairs=None):
         for script, files in inert_reads.items():
             if f in files:
                 continue
-            sib = [g for g in files if str(Path(g).parent) == d and Path(g).suffix == suf]
+            sib = [g for g in files if str(Path(g).parent) == d and Path(g).suffix == suf
+                   and closure.is_inert(g)]
             if len(sib) >= 3:
                 preds.append(("closures", f"INERT READS {script}: {f} "
                               f"(a new file beside {len(sib)} it lists)"))

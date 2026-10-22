@@ -45,6 +45,7 @@ from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
 from .draw_range import RUNNING_FLOOR_KW
+from .price_tiles import TILE_NAMES
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
@@ -283,7 +284,7 @@ _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
     **{f"samples/#/{k}": _N for k in (
         "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
-        "humidity", "cop_residual")},
+        "humidity", "solar_radiation", "cop_residual")},
     "samples/#/predicted_cost": _R,
     # #1935: whether a boost overlay governed the interval -- the exclusion
     # tag a post-drift recommendation reads.
@@ -426,6 +427,13 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "fuse_advisor/comfort_shortfall_c": _Z, "fuse_advisor/worst_margin_kw": _R,
         "fuse_advisor/cost_delta_sek_month": _N, "fuse_advisor/error": _TEXT,
         "fuse_advisor_at": _AT0,
+        # The price tiles' horizon (price_tiles.py): the shadow solve's
+        # overrides, and per local day the sum and count of its monthly figures.
+        "price_tiles/~": Domain("choice", choices=TILE_NAMES),
+        "price_tiles/*/overrides/~": _TEXT, "price_tiles/*/overrides/*": _R,
+        "price_tiles/*/days/#/day": _DAY, "price_tiles/*/days/#/sum": _R,
+        "price_tiles/*/days/#/count": Domain("int", 1),
+        "price_tiles/*/min_room_temperature": _N, "price_tiles/*/computed_at": _AT,
     },
     "dhw_profile": {
         **{f"{k}/#": _DHW_INTENSITY for k in ("hourly_profile", "profile_weekday", "profile_weekend")},
