@@ -1,0 +1,3 @@
+
+=== harness header EXPECTED vs RESULT (#817) ===
+rc=0
