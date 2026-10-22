@@ -1,1 +1,3 @@
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+Null control: the same command on the draft without a Carry on the nightly-status bullet printed: UNROUTED review verdict item 2aa9d1b6 (## Red checks) [non-blocking]; CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s); rc=1
+roster ref origin/handoff/audit-r10-roster = 2ce05426410f8606267d3e4ce1857fcb0e61294a

@@ -1,47 +1,45 @@
-Fix review: blocked 59c5b20ef0d7beef377fe2580bd87f9fdb783ff7 mutation-survivor: the model-record refusal, the violating-plan refusal and the link-caption fix each survive deletion while the body says each new predicate is pinned
+Fix review: merge 9ebc80551588c69ebd607c1fd8f9fdb6de993512
 
-bus-nonce: e98d4b97318b505ab007e725b74e5c4d
+bus-nonce: b31bf36ebe541343b0a71be5b4004b50
 
 ## Round
 
-First review of PR #2558 (R10-PLAN-ARTIFACT), measured at head `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7`. The PR's base is `5006687576713535518634a154f7de1824432219`, and origin/main was `1ebc737e7e187a1d45c62069ae8ab69c465db928` when I measured. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so my contract is current.
-
-## Block
-
-1. **Step 1 (mutation proof): four mutants survive.** I applied each one in place at the head, ran `python3 -I tools/audit/seat/plan_page.py --self-test` and `python3 tools/plan/replan.py --self-test`, then restored the file. The driver is `ev/reviewer_mutants.txt`, and the M0 null control passes both suites (rc 0/0). Survivors:
-   - **B**: `if "model" not in plan["generated"]:` -> `if False:` in `plan_page.main`. Both suites stay at 0 failed. The body states "A plan without that record is refused with a replan instruction", and no arm feeds main a plan without `generated.model`.
-   - **C**: `bad = replan.check_plan(plan)` -> `bad = []` in `plan_page.main`. Both suites stay at 0 failed. The forward-carry states the page "refuses a stale or violating plan with exit 1 and writes nothing". Only the stale arm is pinned.
-   - **D**: the caption's `{drawn} of` -> `{max(0, len(chain) - 1) - drawn} of`, which re-introduces the bug the body says this PR fixed ("The link caption printed the *skipped* count as the drawn count"). Both suites stay at 0 failed.
-   - **E**: in `replan.stale_reason`, `ref = ref or gen.get("roster_ref")` -> `ref = gen.get("roster_ref") or ref`, so an explicit `--roster-ref` is ignored in favour of the plan's own ref. Both suites stay at 0 failed.
-
-   The body's `## Unpinned sites` says "The predicates `plan_page.py` adds are each pinned by a self-test arm, shown killed under `## Mutation proof`". B, C and D contradict that at this head. The fixer's own driver (`dev/audit/harnesses/r10_plan_page_mutants.py`) re-ran `RESULT survived=0` here, but its 14 rows do not include these sites.
-2. **Step 10 (forward-carry): `carry-missing: not carried to R10-ORCH-MACHINERY`.** The body's `## Forward-carry` says R10-ORCH-MACHINERY's item (3) premise changed: the page cannot share one model builder with `plan_table.py`. At `origin/handoff/audit-r10-roster` `8a6d22506a7bfe497888384533010e346bc85ffe`, that group's `brief` still reads "(3) The plan page as a tree instrument sharing one model builder with tools/audit/seat/plan_table.py". None of its `carry` entries names `plan_page`, `R10-PLAN-ARTIFACT`, `2558` or `gen.py` (`ev/orch_machinery_carry.txt`). The body names no roster SHA where the carry was written. So the finding exists only as a `Carry:` marker in this PR's body, which `finding-propagation.md` says is not propagation.
+Second fix review of PR #2558 (R10-PLAN-ARTIFACT), after `blocked mutation-survivor` at `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` (`origin/review/2558`, `probe/rev-2558-e98d4b97`). The fixer's own count puts this at fix round 3 plus the orchestrator's main merge, so it is not yet the fourth round that owes a re-cut. Measured at head `9ebc80551588c69ebd607c1fd8f9fdb6de993512`, from a detached worktree. The PR's base and merge base are `b0f134142de15b37dcada9accc7dff19ed185d3b`. origin/main was `46e3681276f99e8d3e4d12e9d316a46946f666d7` at measurement. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract I followed is current. The PR head was still `9ebc8055` when I read it for this verdict.
 
 ## Findings
 
-- Survivor B: `plan_page.main`'s `generated.model` refusal is unpinned. It needs a self-test arm that runs `main` on a fresh plan with `generated.model` removed and expects rc 1 and no file written. Carry: R10-PLAN-ARTIFACT
-- Survivor C: `plan_page.main`'s `replan.check_plan` refusal is unpinned. It needs an arm with a fresh but violating plan, expecting rc 1 and no file written. Carry: R10-PLAN-ARTIFACT
-- Survivor D: the link caption's drawn count is unpinned, though the body names it as a fixed defect. It needs an arm on a fixture where drawn != skipped that asserts the caption figure. Carry: R10-PLAN-ARTIFACT
-- Survivor E: `stale_reason`'s explicit `ref` argument has no arm where it differs from `generated.roster_ref`. Lower stakes than B to D, since `main` resolves `ref` itself before calling, but `--check` with a ref override is not covered. Carry: R10-PLAN-ARTIFACT
-- Forward-carry not written: the premise change to R10-ORCH-MACHINERY item (3) has to go into that group's `brief` or `carry` on the roster, with its control (`plan_page.py --self-test` re-measured at that stage's merge base) stated as a precondition, before this PR merges. The same applies to retiring the out-of-tree `gen.py`/`tpl.html`. Carry: R10-ORCH-MACHINERY
+- The body's prose has two unclosed parentheticals. In `## Head`, "(see `## Red checks" never closes, so the round-3 narrative ("Every figure below was re-taken ...") renders under a first `## Red checks` heading, and the real `## Red checks` appears again further down. In `## Figures`, "(see `## Forward-carry` (`python3 ...`" also never closes. No figure or answer is lost: `pr-contract` is green at this head and every figure is re-derived below. Carry: dismissed: prose formatting only, contract check green (item F1)
+- The body states its figures at `6d981d0d`, not at this head. I re-took each one at `9ebc8055` and every one matches. The only difference is `ci_predict.py`'s named base, `b0f134142de1` here against `5a755f53efda` in the body, which is expected after the main merge. Carry: dismissed: re-derived equal at head (item F2)
+- The live-page figures (108 rows, the stage counts, 11 of 14 open PRs) are not re-derived. They rest on an uncommitted, hand-assembled GitHub snapshot, and the body says so. Production code is unchanged since round 1. Carry: dismissed: disclosed in body, no committed snapshot (item F3)
+- There is no finder harness. On the roster, R10-PLAN-ARTIFACT is a tooling group with `findings: []`, `issues: []` and an empty `architect_note`. Every arm here is the fixer's or a reviewer's, and my driver (`ev/reviewer_mutants_driver.py`) is my own instrument, extending the round-1 reviewer's anchors. Carry: dismissed: tooling group without finder (item F4)
+- Work owed after the merge, on R10-ORCH-MACHINERY item (3): drive the page from `state_docs.py`, add an UNAVAILABLE page if the design still wants one, add the generator-defect fixtures, and retire the out-of-tree `gen.py`/`tpl.html`. This is carried on `origin/handoff/audit-r10-roster` `2ce05426410f8606267d3e4ce1857fcb0e61294a` as "From #2558 (R10-PLAN-ARTIFACT ...) ... Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition." (`ev/roster_carry.txt`). Carry: R10-ORCH-MACHINERY (item F5)
 
 ## Evidence
 
-- RESULT `plan_page self-test: 36 checks, 0 failed` at the head (`ev/plan_page_selftest.txt`). This matches the body.
-- RESULT `replan.py --self-test: 0 failed`, including `mutation freshness: 'if have != want:' -> rc=1` (`ev/replan_selftest.txt`). This matches the body.
-- RESULT fixer's driver `r10_plan_page_mutants.py`: `survived=0`, 14 rows killed (`ev/fixer_mutants.txt`). This reproduces the body, but the driver is the fixer's own and does not cover B to E.
-- RESULT reviewer mutants: M0 null rc 0/0; A (`if not want:` -> `if False:`, a blob-less plan accepted) killed by replan's self-test; B, C, D and E survived (`ev/reviewer_mutants.txt`).
-- Finder's harness: this group has no finder or committed finder harness. It is a roster `kind: fix, class: tooling` group with `findings: []` and `issues: []` (`ev/roster_groups.txt`). Every arm here is the fixer's or mine. Mine is `ev/reviewer_mutants.txt`, and I disclose it as my own instrument.
-- `git merge-tree --write-tree origin/main 59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` exited 0 with tree `86a75f8c99b8044ee7d83b5dbc115c2d2448981a`: clean, with no claim-file conflict.
-- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden` are untouched in the three-dot diff from the merge base.
-- Cheap checks at the head (`ev/cheap_checks.txt`):
-  - `selftest_wiring: 39 self-testing, 39 wired, 0 unwired`. The body says 38; main added one instrument after the body's measurement base. Both counts have 0 unwired.
-  - `tmp_paths: 0 refused`.
-  - `ref_privacy ... 0 refused`.
-  - `claims hygiene: origin/main ok`.
-  - `closure.py select --diff origin/main`: `MODE: FULL`, with reason `tests/closure.py changes the gate itself`. This matches the body.
-  - `tests/harness_headers.py` could not run in this container (`No module named 'voluptuous'`). I did not re-derive that figure.
-- Figures I could not re-derive: the live-page figures (108 rows, stage counts, 11 of 14 open PRs). They used a hand-assembled GitHub snapshot that is not committed, and the roster has since grown to 128 groups at `8a6d2250`.
-- CI on this head, from the check-runs API at about 21:09Z. Concluded: `pr-contract` (run 39675845704) green, `arch-score` green twice, `budget-raise-gate` green twice. Still queued or in progress: `pr-contract` (run 39675846088), `instrument-self-tests`, `policy-docs`, `delivery-status`, `env-matrix`, `wave-script`, `scope`, `hassfest`, `validate-hacs`, `briefs`, `mutation` and `closure-scope`. The verdict above rests on local measurement, not on those runs.
-- `nightly-status` (job 119485352084) is red on scheduled run 39563978649 (`mutation-nightly`, `slow`), the run the body's `## Red checks` names and answers as main's. It is not a required context and does not block.
-- Head check: the PR's head was `59c5b20ef0d7beef377fe2580bd87f9fdb783ff7` when I read it, and the body's `## Head` names it.
+- Mutation proof (step 1), with my own driver `ev/reviewer_mutants_driver.py` and output in `ev/reviewer_mutants.txt`. Each mutant is applied alone at this head, both self-tests run, and the file is restored byte for byte (`git status` clean afterwards).
+  - RESULT mutant=M0 verdict=null rc=0/0: `plan_page self-test: 41 checks, 0 failed`, `self-test: 0 failed`. This is the null control, the unmutated tree passing the same tests.
+  - RESULT mutant=B-model-record-refusal verdict=killed rc=1/0. `FAIL a fresh plan recording no duration model is refused, nothing written (got: ('raised KeyError', False, False))`. The arm treats the crash as a failed refusal, so its assertion is what goes red.
+  - RESULT mutant=C-check_plan-dropped verdict=killed rc=1/0: `FAIL a fresh plan that check_plan refuses is refused, nothing written (got: (0, True, False))`, plus the knock-on `FAIL a stale plan is refused, nothing written (got: (1, True))`.
+  - RESULT mutant=D-caption-drawn-count verdict=killed rc=1/0: `FAIL the caption counts the links drawn (none drawn, one left) (got: ['1 of 1 critical-path links'])` and `FAIL the caption counts the links drawn (one drawn, none left) (got: ['0 of 1 critical-path links'])`.
+  - RESULT mutant=E-ref-override-ignored verdict=killed rc=0/1: `FAIL an explicit ref is read instead of generated.roster_ref`, `FAIL --check --roster-ref passes the plan at the ref it names: rc=1`.
+  - RESULT mutant=A-blobless-accepted verdict=killed rc=0/1: `FAIL a plan pinning no roster blob is refused as unknowable`.
+  - Mutants of my own, which test the body's claim that a constant caption fails: RESULT mutant=D2-caption-constant-0 killed by `(one drawn, none left)`; RESULT mutant=D3-caption-constant-1 killed by `(none drawn, one left)`; RESULT mutant=C2-check_plan-truncated (`check_plan(plan)[:0]`) killed by the check_plan arm.
+- The fixer's driver `python3 dev/audit/harnesses/r10_plan_page_mutants.py` at this head printed M0 null, then 18 rows killed and `RESULT survived=0`, the body's "18 mutants plus M0" and "19 rows" (`ev/figures.txt`).
+- Figures re-measured at `9ebc8055` (`ev/figures.txt`):
+  - `plan_page self-test: 41 checks, 0 failed`; `replan.py --self-test` `self-test: 0 failed` with 41 `ok` lines.
+  - `selftest_wiring: 73 self-testing, 73 wired, 0 unwired`; `STRUCTURE RATCHET PASSED`; `ALL 124 closure shrink pins PASSED`; `layout self-test: ok`; `claims hygiene: origin/main ok`.
+  - `CI PREDICT: no closures or fast red predicted against b0f134142de1`; `Architecture score: dS +0.0000 NULL`.
+  - `throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`.
+  - `ALL 2382 ENTITY CHECKS PASSED` (venv-ci, `PYTHONPATH=tests/hastub`).
+  - `ALL 109 HARNESS HEADER CHECKS PASSED` (venv-ci); `closure: no test file defines a symbol production also defines` (`no-copies`); `closure.py select --diff b0f134142`: `MODE: FULL`, reason `tests/closure.py changes the gate itself`, as the body states.
+- Step 5: `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden` are untouched in the three-dot diff from `b0f134142`. No claim file is touched, so step 4 has nothing to compare.
+- Step 13: `git merge-tree --write-tree origin/main 9ebc80551588c69ebd607c1fd8f9fdb6de993512`, with origin/main at `46e3681276f9`, exited 0 with tree `5e475ec6f538527d82b635b302a0ad49ddd1e986`. It is clean and no MERGE-CLAIM line was emitted.
+- Step 10: the forward-carry is on the roster with its control stated as a precondition, as quoted in item F5. The round-1 `carry-missing` block is settled.
+- Step 14: the diff moves one instrument, `tests/closures.json`, by one INERT READS entry for the new file `tools/audit/seat/plan_page.py`. That entry is the classification CLAUDE.md requires of a new tracked file, and `ci_predict` predicted the closures red without it. No budget file changes.
+
+## Red checks
+
+Read per commit from the check-runs API for `9ebc80551588c69ebd607c1fd8f9fdb6de993512`: 46 runs, all concluded (`ev/ci_check_runs.txt`). `closures` (job 119556985403) was in progress at my first read and is now `success`.
+- The only `failure` is `nightly-status` (job 119547580705). Its log grades main's scheduled run 39563978649 (`mutation-nightly failure`, `slow failure`), which is the run the body's `## Red checks` names and answers as main's, owned on main. This diff does not reach `tests.yml` or `tests/nightly_status.py`. The log itself says it is not one of the required contexts on `main-protect` and does not block. A `pr-contract` run (job 119547753712) started at 23:35:33Z, after that red concluded at 23:35:31Z, and passed. So the body was checked against it. Carry: dismissed: grades main, answered in body (item R1)
+- `mutation` is green. The diff writes no production line under `custom_components/`, so no mutant is drawn. The lane's conclusion is evidence only, and the step-1 proof above rests on my local mutants. Carry: dismissed: no production line drawn (item R2)
+- The `ci-ratchet` red on main named in the brief (runner-speed variance, R10-CI-LAYOUT) is not on this head's runs, and this diff does not touch its inputs. Carry: R10-CI-LAYOUT (item R3)
