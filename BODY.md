@@ -1,75 +1,139 @@
 Part of #201.
 
-Group: R10-FLOW-RELAY-HOLD (registration pending: roster PR-B)
+Group: R10-FLOW-RELAY-HOLD (registered on origin/handoff/audit-r10-roster)
 
 Pack file: dev/programme/flow-study/roster/groups/R10-FLOW-RELAY-HOLD.json at PACK_SHA f89bfb4e on branch claude/dazzling-gauss-7l3u2b.
 
-`cloud_relay.sh`'s handoff arm updated every open PR whose `handoff/<topic>` tip was ahead of its head, with no way to exclude one. The roster PR's topic is `audit-r10-roster`, the branch every `roster_edit.py` push (forward-carries included) lands on, so a freeze had to stop all roster pushes (K13a). This adds the hold the study specifies:
+`cloud_relay.sh`'s handoff arm updated every open PR whose `handoff/<topic>` tip was ahead of its head, and nothing could exclude one. The roster PR's topic is `audit-r10-roster`. Every `roster_edit.py` push lands on that branch, forward-carries included, so freezing the roster PR meant stopping every roster push (K13a). This PR adds the hold that the study specifies:
 
-- `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank and `#` lines allowed). Only the orchestrator writes it. A final line without a trailing newline is read like any other.
-- A listed PR whose handoff is ahead is not updated; the pass prints `cloud_relay: HELD #<pr> <handoff tip>` once. Removing the number resumes it.
-- A missing or empty file holds nothing. Any line that is not a plain PR number (or a file that is not a readable regular file) refuses the whole handoff arm for that pass: rc 2, `refused: malformed hold file`, and `OWED <utc> handoff-hold-malformed <file> -` in `<log>.level` until a pass reads the file well-formed (since this round: see Conflict resolution). It never holds all and never holds none.
-- `cloud_relay.sh held <pr>` (rc 0 held, 1 not held, 2 malformed) reads the same file through the same parser, so R10-ORCH-MACHINERY's `handoff` job can honour it unchanged: same path, same grammar, same refusal.
+- `<state>/cloud-handoff-hold` lists PR numbers, one per line. Blank lines and `#` lines are allowed. Only the orchestrator writes it. A last line with no trailing newline is read like any other.
+- A listed PR whose handoff is ahead is not updated. The pass prints `cloud_relay: HELD #<pr> <handoff tip>` once. Removing the number resumes it.
+- A missing or empty file holds nothing. The whole handoff arm is refused for that pass by any line that is not a plain PR number, or by a file that is not a readable regular file. The refusal is rc 2, `refused: malformed hold file`, and `OWED <utc> handoff-hold-malformed <file> -` in `<log>.level`. That line stays until a pass reads the file well-formed. A malformed file never holds all and never holds none.
+- `cloud_relay.sh held <pr>` reads the same file through the same parser: rc 0 held, 1 not held, 2 malformed. R10-ORCH-MACHINERY's `handoff` job can therefore use it unchanged, with the same path, grammar and refusal.
 
-Design choices a later seat should not read as bugs, each now pinned by a check and a mutant: the hold is checked after the "handoff already contained in the PR head" test (a held PR with nothing to apply prints nothing; `cloud_relay-9`) and before the failed-update ledger (a hold outranks a recorded failure; `cloud_relay-8`); a refusal stops the handoff arm only, the probe arm of `pass` still runs; the grammar is strict (no leading zeros, no trailing text) because a lenient parse is how "hold nothing" happens silently.
+Some design choices here could look like bugs to a later seat. Each is pinned by a check and a mutant:
 
-Round 3 answers the review of a8a2778e: R6 (the unterminated-last-line check held #41 on line 1, so dropping `|| [ -n "$l" ]` survived), R3 (no check read the `OWED handoff-hold-malformed` log line) and R4 (the self-test called `held()` but never the `held` CLI arm). Each now has a check that goes red when its production line is removed. The review's notes R12 and R13 (the two orderings above) are pinned too. The hold mutants take per-file ids, `cloud_relay-1` to `cloud_relay-11`, never a new S number (the pack's P6 convention, in this group's own brief): the four formerly numbered S35 to S38 are `cloud_relay-1` to `cloud_relay-4`, and the harness docstring carries main's `S01..S38` plus one sentence stating the convention.
+- The hold is checked after the "handoff already contained in the PR head" test, so a held PR with nothing to apply prints nothing (`cloud_relay-9`).
+- It is checked before the failed-update ledger, so a hold outranks a recorded failure (`cloud_relay-8`).
+- A refusal stops only the handoff arm. The probe arm of `pass` still runs.
+- The grammar is strict: no leading zeros and no trailing text. A lenient parse is how "hold nothing" happens silently.
+- The malformed-file refusal is a level line, never an event-log line. `orchestrator_tick.py`'s `relay_owed` (#2547) skips any log `OWED` line that names no PR (`cloud_relay-10`). Every well-formed pass clears it (`cloud_relay-11`).
 
-Code-owned: no. None of `tools/audit/seat/cloud_relay.sh`, `tools/audit/seat/INSTRUMENTS.md` or `dev/audit/harnesses/r10_seat_selftests_mutants.py` matches a `.github/CODEOWNERS` pattern (`grep -n "cloud_relay\|tools/audit/seat\|r10_seat" .github/CODEOWNERS` prints nothing).
+Mutant ids are per file, `cloud_relay-1` to `cloud_relay-11`, never new S numbers. This is the P6 convention in this group's brief.
 
-Round 4 is a conflict-resolution round: main moved under the merge verdict (#2547, R10-TICK-OWED-LEVEL, and #2529, R10-CI-LAYOUT G), and `git merge-tree --write-tree origin/main bc313e7c` conflicted in `dev/audit/harnesses/r10_seat_selftests_mutants.py` and `tools/audit/seat/cloud_relay.sh`.
+Code-owned: no. `grep -n "cloud_relay\|tools/audit/seat\|r10_seat" .github/CODEOWNERS` prints nothing for `tools/audit/seat/cloud_relay.sh`, `tools/audit/seat/INSTRUMENTS.md` and `dev/audit/harnesses/r10_seat_selftests_mutants.py`.
+
+This round clears the review of f44296a6, which was blocked on the forward-carry alone (fix-review.md step 10). The roster ref is frozen until #2588 merges, so this seat cannot append to it. `## Forward-carry` now gives the exact text for each destination's roster `carry`, fenced and labelled `ROSTER-APPEND`, for the orchestrator to land with `roster_edit.py`. R10-FLOW-ROSTER-FREEZE was dismissed as "not yet registered", but it is registered and live, so it is now a carry with its own append text. The code is unchanged since f44296a6, apart from merging origin/main.
 
 ## Head
 
-929ee160731596b654d2c69afa1e278d5ca7ec40: the merge commit 47a40f71f (origin/main 5a755f53e merged into the PR head bc313e7cad5e78ea918427db74d33e8109fb00d4, a merge, never a rebase), then one commit, 929ee1607, which moves the malformed-hold refusal onto #2547's level file. origin/main was 5a755f53e (`Merge pull request #2529`) when every figure below was taken, and `git merge-base --is-ancestor origin/main HEAD` held. Measured 2026-10-21T22:43Z.
+f78491bb28138e6318524da43f04abcdb1f3190b. It is f44296a61f42250b23c0f557a54c6295ab991dac (the reviewed head) with origin/main 93e6a63d2855651448a2b8f677b392feddc03c99 (`Merge pull request #2557`) merged in. That is a merge, never a rebase, with no conflict. It adds no commit of this PR's own. The PR's own diff against the merge base is unchanged: 4 files, +133/-3, by `git diff --stat $(git merge-base origin/main HEAD)...HEAD`. Every figure below was taken at this head, or at origin/main 93e6a63d2 where marked. `git merge-base --is-ancestor origin/main HEAD` held. Measured 2026-10-22T01:49Z.
 
-## Conflict resolution
-
-- `cloud_relay.sh`, header usage lines: both kept. Main's `dispose [--log FILE] <ref> <sha40>` (#2547) replaces the old dispose line, and this PR's `held <pr>` line follows it, padded to main's column.
-- `cloud_relay.sh`, the handoff-arm comment: main's text is kept whole (`handoff-no-pr` lines live in `<log>.level`, which every pass rewrites; a failed PR listing leaves them; the log holds events only). This PR's `HOLD.` paragraph follows it, and its refusal sentence now names the level file (below).
-- `r10_seat_selftests_mutants.py`, `MUTANTS`: both kept. #2529's S35 to S38 (handoff_push.sh push lines, merge_pr.sh merge line) come first, then this PR's `cloud_relay-1` onward. The docstring auto-merged to main's `S01..S38` plus this PR's per-file-id sentence. No id collides: this PR's mutants were already renamed off S35 to S38 in round 3.
-- Semantic, with no textual conflict: after the merge, `orchestrator_tick.py`'s `relay_owed` (#2547) skips every log `OWED` line naming no PR as "an older writer's level lines". This PR's `logline OWED "handoff-hold-malformed <file>"` names no PR, so the tick stopped surfacing the refusal. Driving the merged handoff arm with a hold file of `41x`, then `Tick.relay_owed` on its log, printed only `cloud-relay log: 1 OWED line(s) naming no PR skipped (an older writer's level lines; the level file is the level)` and no `OWED:` line, unflagged. The refusal repeats every pass while the file stays malformed, which is #2547's definition of a level. So 929ee1607 writes it with `level_line handoff-hold-malformed <file> -` and `level_set`, and every pass that reads the file well-formed sets that kind empty, which clears it. The same probe at 929ee1607 prints a flagged `OWED: OWED <utc> handoff-hold-malformed <file> -` from the level file, and the log is empty. #2547's own checks are unchanged and pass. A refused pass returns before `level_set handoff-no-pr`, so it leaves those lines as they were, which is #2547's "unknown is not nothing owed".
+The PR's commits, oldest first, excluding main's: cfa89d24f, 0ddbc0c21, a8a2778e1, 71a85d660, 255883803, ce4d12085, a54aed8b9, ed13f9a4f, bc313e7ca, 47a40f71f, 929ee1607, a43f68813, f44296a61, and new in this round f78491bb2 (the origin/main merge).
 
 ## Mutation proof
 
-Failing test first for 929ee1607: the self-test's three new malformed-file checks were written first and run against the merge commit 47a40f71f's production line. Result: `cloud_relay self-test: 189 checks, 27 failed`, 9 each (one per malformed variant) of `and owes handoff-hold-malformed in the level file`, `once after two passes (rewritten, never appended)` and `and the event log carries no refusal line`. The fourth new check, `a pass that reads the file well-formed drops the refusal from the level`, passed there vacuously, since nothing was written. `cloud_relay-11` is what pins it.
+This round adds no production line, so it has no new failing-test-first. The proof is re-taken at the merged head.
 
-New mutants, each planted alone in `cloud_relay.sh` at the head and run on `--self-test` (189 checks unmutated):
+Each mutant below was planted alone in `tools/audit/seat/cloud_relay.sh` at f78491bb2, using the harness's own `MUTANTS` patterns, and run with `--self-test`. The unmutated count is 189 checks. The file was restored after each mutant, and `git status --short` printed nothing afterwards.
 
-- `cloud_relay-6`, no level line written on refusal: `18 failed`. Failing: `and owes handoff-hold-malformed in the level file`, `once after two passes (rewritten, never appended)`.
-- `cloud_relay-10`, the pre-merge form (`logline OWED` to the event log): `27 failed`. Failing: the two above plus `and the event log carries no refusal line`.
-- `cloud_relay-11`, the clearing `level_set` replaced by `rm -f`: `1 failed`. Failing: `a pass that reads the file well-formed drops the refusal from the level`.
+- `cloud_relay-6`: no level line is written on refusal. Result: `18 failed`. Failing checks: `and owes handoff-hold-malformed in the level file` and `once after two passes (rewritten, never appended)`.
+- `cloud_relay-10`: the pre-#2547 form, `logline OWED` to the event log. Result: `27 failed`. Failing checks: the two above, plus `and the event log carries no refusal line`.
+- `cloud_relay-11`: the clearing `level_set` is replaced by `rm -f`. Result: `1 failed`. Failing check: `a pass that reads the file well-formed drops the refusal from the level`.
 
-`cloud_relay-1` to `-5` and `-7` to `-9` are unchanged from round 3. Their kills are re-taken below through the harness.
+The finder's harness was run at the head with no names, so every mutant ran: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`.
 
-Through the finder's harness at the head (`python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, every mutant): M0 prints `0 seat step(s) red`. All 53 mutant rows are `KILLED`, which is every row main defines plus this PR's eleven. Main's rows are S01 to S38 (S35 to S38 included), S04U and W1 to W3. This PR's are `cloud_relay-1` to `cloud_relay-11`. It ends `RESULT survivors=0`, exit 0. At the merge commit 47a40f71f, before 929ee1607, the same harness gave 51 `KILLED` (main's 42 plus `cloud_relay-1` to `-9`) and `RESULT survivors=0`.
+- M0 printed `0 seat step(s) red`.
+- 53 mutant rows were `KILLED`, which is every row the harness defines. Main's rows are S01 to S38, S04U, and W1 to W3. This PR's rows are `cloud_relay-1` to `-11`.
+- This PR's rows failed these self-test counts: `-2` 36, `-3` 49, `-4` 2, `-5` 3, `-6` 18, `-7` 2, `-8` 1, `-9` 1, `-10` 27 and `-11` 1. `-1` died on the self-test's own `updated` file.
+- The run ended `RESULT survivors=0`, exit 0.
 
 ## Null control
 
-- origin/main 5a755f53e, in a detached worktree: the harness prints 42 `KILLED` rows (S01 to S38, S04U, W1 to W3), `RESULT survivors=0`, exit 0, and `cloud_relay.sh --self-test` prints `81 checks, 0 failed`. Main's `cloud_relay.sh` has no `HELD`, so a listed PR is updated on every pass.
-- A well-formed hold file owes no refusal: `a well-formed hold file owes no refusal (null control)` reads `<log>.level` and passes at the head. So the reds under `cloud_relay-6` and `-10` come from the mutated line.
-- The tick probe has its own control: the same driver at 47a40f71f (log line) and at 929ee1607 (level line) differ only in that one production line.
-- Each mutant's harness row runs the unmutated step first (NOT RUN otherwise).
-- Round 2 and 3 in-head controls are kept: a #99 hold leaves #41 updating; #141 does not hold #41; empty, comment-only and missing files hold nothing; a newline-terminated `99\n41\n` holds #41.
+- The finder's harness at origin/main 93e6a63d2, run from a detached worktree with the same command:
+  - 42 `KILLED` rows: S01 to S38, S04U and W1 to W3. No mutant row survived.
+  - M0 printed `1 seat step(s) red`, so the run ended `RESULT survivors=1`, exit 1. The harness adds M0 reds to the survivor count (`survivors += bad`).
+  - The red step is `ref_privacy`. It refuses `dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md:3` as `home-directory`. That line names `dev/governance/roles/root-cause.md`, and this host's home directory is `/root`, which appears in it as `/root-cause.md`. `sed -n 3p ... | grep -o "/root[^ ]*"` printed `/root-cause.md`.
+  - At main, the check judges the lines #2557 added since f24895c0c. At this head it judges only the lines added since 93e6a63d2, which prints `0 refused`. So the red belongs to this seat's host and main's own diff, not to this PR.
+- `cloud_relay.sh --self-test` at origin/main printed `81 checks, 0 failed`. Main's `cloud_relay.sh` has no `HELD`, so a listed PR is updated on every pass.
+- `a well-formed hold file owes no refusal (null control)` reads `<log>.level` and passes at the head. So the reds under `cloud_relay-6` and `-10` come from the mutated line.
+- Each harness row runs its unmutated step first. No row printed NOT RUN.
+- The in-head controls are kept:
+  - a #99 hold leaves #41 updating;
+  - #141 does not hold #41;
+  - empty, comment-only and missing files hold nothing;
+  - a newline-terminated `99\n41\n` holds #41.
 
 ## Figures
 
-- `bash tools/audit/seat/cloud_relay.sh --self-test | tail -1`: `189 checks, 0 failed` at the head, and `81 checks, 0 failed` at origin/main 5a755f53e. The rule is the script's own check count, which CI requires to be nonzero with 0 failed (`governance.yml` instrument-self-tests). The previous handoff's 163 was taken against an older main.
-- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, with no names so every mutant runs: 53 `KILLED` and `RESULT survivors=0`, exit 0, at the head. 42 `KILLED`, survivors 0, exit 0 at origin/main. The instrument is the harness. Its scope is every mutant it defines, M0, S04U and the W rows included. The count is `grep -c KILLED` over its output.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` with an empty `scope.run`. Key on the mode line. `PREPR_SKIP_CLOSURES=1`.
-- Run at the head: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. With `/opt/hpo/venv-ci/bin/python` and `PYTHONPATH=tests/hastub`: `tests/entities.py` ends `ALL 2382 ENTITY CHECKS PASSED`, `tests/harness_headers.py` `ALL 109 HARNESS HEADER CHECKS PASSED` and `tests/layout.py` `layout self-test: ok`. `python3 -I tools/audit/seat/tmp_paths.py --check` prints `0 refused`. `python3 tests/throwaway_git.py --check` prints `0 raw git init or clone site(s) refused`. `python3 tools/audit/seat/selftest_wiring.py --check` prints `72 self-testing, 72 wired, 0 unwired`.
-- `git diff --stat $(git merge-base origin/main HEAD)...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden` prints nothing (0 lines). That diff would list any of those files this branch touched.
-- `git merge-tree --write-tree origin/main 929ee160731596b654d2c69afa1e278d5ca7ec40` exits 0 at origin/main 5a755f53e. At bc313e7c it named the two conflicts above.
-- Class seams (step 8), for the semantic conflict. The seam is "a cloud_relay.sh writer of a log `OWED` line the tick would skip as naming no PR". The instrument is `grep -n 'logline OWED\|owed "\|>> "$(relay_log)"' tools/audit/seat/cloud_relay.sh` at the head. It returns `owed()` (PR first), `handoff-update $pr`, `approve-held-runs $pr`, two `dispatch $pr` lines and `OWED reviewer-fire <pr>`. Each has the PR in fields 2 to 4, where `relay_owed` looks for it, so each is already guarded. The former `handoff-hold-malformed` log line was the only one without a PR, and it is closed in this diff. The hold-file reader seams of round 3 (`grep -rn "cloud-handoff-hold\|hold_list" tools/ .github/ dev/`) are unchanged: `cloud_relay.sh`, `INSTRUMENTS.md` (its refusal sentence now names `<log>.level`) and the harness's `cloud_relay-2`, `-6`, `-10` and `-11` patterns.
+- `bash tools/audit/seat/cloud_relay.sh --self-test | tail -1`:
+  - `189 checks, 0 failed` at the head.
+  - `81 checks, 0 failed` at origin/main 93e6a63d2.
+  - The rule is the script's own check count. CI requires it to be nonzero with 0 failed (`governance.yml` instrument-self-tests).
+- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run with no names so every mutant runs:
+  - At the head: `grep -c ': KILLED'` gives 53, `RESULT survivors=0`, exit 0.
+  - At origin/main: 42, `RESULT survivors=1`, exit 1, from the M0 host red explained under Null control.
+  - The instrument is the harness. Its scope is every mutant it defines, M0, S04U and the W rows included.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, and `scope.run` was empty. Key on the mode line. The run used `PREPR_SKIP_CLOSURES=1`.
+- Run at the head:
+  - `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+  - With `/opt/hpo/venv-ci/bin/python` and `PYTHONPATH=tests/hastub`: `tests/entities.py` ends `ALL 2382 ENTITY CHECKS PASSED`, `tests/harness_headers.py` ends `ALL 109 HARNESS HEADER CHECKS PASSED`, and `tests/layout.py` prints `layout self-test: ok`.
+  - `python3 -I tools/audit/seat/tmp_paths.py --check` prints `0 refused`.
+  - `python3 tests/throwaway_git.py --check` prints `0 raw git init or clone site(s) refused`.
+  - `python3 tools/audit/seat/selftest_wiring.py --check` prints `73 self-testing, 73 wired, 0 unwired`. Main's `pulse.py` (#2557) is the 73rd.
+- `git diff --stat $(git merge-base origin/main HEAD)...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden | wc -l` prints 0. That diff would list any of those files this branch touched.
+- `git merge-tree --write-tree origin/main HEAD` exits 0 with tree 9aa93118, at origin/main 93e6a63d2.
+- Class seams (step 8). The seam is "a cloud_relay.sh writer of a log `OWED` line that the tick would skip as naming no PR". The instrument is `grep -n 'logline OWED\|owed "\|>> "$(relay_log)"' tools/audit/seat/cloud_relay.sh`, and the merge did not change that file. It returns `owed()` (PR first), `handoff-update $pr`, `approve-held-runs $pr`, two `dispatch $pr` lines and `OWED reviewer-fire <pr>`. Each has the PR in fields 2 to 4, where `relay_owed` looks, so each is already guarded. The hold refusal was the only log `OWED` line without a PR, and this diff closes it.
+- Hold-file readers: `grep -rn "cloud-handoff-hold\|hold_list" tools/ .github/ dev/` returns `cloud_relay.sh`, `INSTRUMENTS.md` and the harness's `cloud_relay-2`, `-6`, `-10` and `-11` patterns. No second reader exists yet. R10-ORCH-MACHINERY's job will be the second, which is the carry below.
+- Destination content on `origin/handoff/audit-r10-roster` 306a96d5f. For each group, `git show <ref>:dev/programme/rosters/wave-r10-groups.json | jq -r --arg g <group> '.groups[]|select(.group==$g)|[.brief]+.carry|join("\n")' | grep -cE 'cloud_relay\.sh held|cloud-handoff-hold|malformed'` gives:
+  - R10-ORCH-MACHINERY 0, stage `not-started`;
+  - R10-FLOW-ROSTER-FREEZE 0, stage `not-started`, `after` lists R10-FLOW-RELAY-HOLD.
+  - Both groups are live and neither yet holds the text. This is the null control for the two appends below: once the appends land, the same command prints a nonzero count.
+- `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>` prints `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`. That routing is syntactic. The destination content is the line above, and it is pending the roster freeze.
 
 ## Red checks
 
-At this head none is known: it has not run CI, because the code is a handoff ref, not yet the PR head. nightly-status grades main, not this head, so this diff neither caused it nor can clear it. Main's ci-ratchet red is runner-speed variance owned by R10-CI-LAYOUT. This diff touches no ratchet input (`tests/structure.py` passes at the head, and the gate scope above runs no script), so no cheaper detector here would have caught it. Carry: R10-CI-LAYOUT
+Read from the check-runs API, per commit, for this PR's commits. f78491bb2 has not run CI, because this seat pushes only `handoff/` refs.
+
+- Commits with no check-runs (`total_count` 0): cfa89d24f, 71a85d660, 255883803, ce4d12085, 47a40f71f, 929ee1607 and a43f68813. These are intermediate commits that were never a PR head.
+- At a54aed8b9, ed13f9a4f, bc313e7ca and f44296a61 there were 32 success, 16 skipped and 1 failure. a8a2778e1 had 29 success, 16 skipped and 1 failure. The failure was `nightly-status` each time.
+- 0ddbc0c21 had 13 cancelled checks (superseded by the next push), `CodeQL` neutral (`Error when processing the SARIF file`) and `nightly-status` failure. Its next push, a8a2778e1, ran the same contexts green apart from `nightly-status`.
+- **`nightly-status`** is main's red, not this PR's. Job 119567199209 at f44296a61 printed `NIGHTLY FAILED: mutation-nightly, slow failed last night.` It read scheduled run 39563978649 on main c77f89d, and `tests/nightly_status.py` reads only `schedule`-triggered runs of the Tests workflow.
+  - `slow`, job 119101702593, failed on `FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1138 over its budget 0.111]`.
+  - `mutation-nightly`, job 119101702662, failed on `10 survivor(s) of 23 evaluated = 39.1% (1 triaged equivalent, raw 43.5%), cap 30.0%`. All ten survivors are under `custom_components/heatpump_optimizer/`.
+  - This diff touches neither `tests.yml`, `tests/replay.py`, nor anything under `custom_components/`, so it can neither cause nor clear either failure.
+  - `loop_cpu_ratio` was re-recorded by #2548 (`290712ec0`), which this head carries. No scheduled run has concluded since.
+  - The mutation cap breach is in production code this PR does not touch. It belongs to the mutation lane's owner.
+  - No live roster group's brief or carry names `mutation-nightly`.
+  - Cheaper detector: none. Both lanes run only on the runner class they budget against.
 
 ## Forward-carry
 
-- R10-ORCH-MACHINERY (issue #2505): its `handoff` job must read `<state>/cloud-handoff-hold` through `cloud_relay.sh held <pr>` (rc 0 held, 1 not held, 2 malformed, which refuses the job's pass), never re-parse it. Control: put the PR in the hold file with its handoff ahead; the job must not update it. Null control: the same pass with the line removed updates it. This seat writes only its return refs, so the orchestrator lands the line on that group's `carry` with `roster_edit.py`. Carry: R10-ORCH-MACHINERY
-- R10-FLOW-ROSTER-FREEZE, which writes the hold automatically while a reviewer is live: it must write only valid lines, because a malformed file refuses the whole handoff pass and is owed in `<log>.level` until fixed. Carry: dismissed: group not yet registered on any roster; the orchestrator carries the hold-file grammar onto its brief when it registers (its pack brief already lists this group in `after`).
+- R10-ORCH-MACHINERY (issue #2505): its `handoff` job must read `<state>/cloud-handoff-hold` only through `cloud_relay.sh held <pr>`, and must never re-parse it.
+  - rc 0 skips that PR, rc 1 proceeds, and rc 2 refuses the job's whole pass.
+  - Control: a held PR whose handoff is ahead is not updated.
+  - Null control: the same pass with the line removed updates it.
+  - The roster ref is frozen until #2588 merges, so this seat cannot append. The orchestrator lands the text below verbatim as one new entry in that group's `carry`, with `roster_edit.py`, once the freeze lifts. carry_audit routes this item now, but the destination content is pending the freeze (Figures, "Destination content").
+  - Carry: R10-ORCH-MACHINERY
+
+  ROSTER-APPEND R10-ORCH-MACHINERY carry:
+
+  ```text
+  Hold file (R10-FLOW-RELAY-HOLD, #2580): the beat's handoff job reads <state>/cloud-handoff-hold only through `tools/audit/seat/cloud_relay.sh held <pr>`, never by re-parsing the file, so it shares cloud_relay.sh's path, grammar and refusal. rc 0 (held): the job does not update that PR. rc 1 (not held): it proceeds. rc 2 (malformed file): the job refuses its whole handoff pass and updates no PR, the same refusal as cloud_relay.sh's handoff arm (`refused: malformed hold file`; `OWED <utc> handoff-hold-malformed <file> -` in <log>.level until a well-formed pass). Control: a fixture PR listed in the hold file whose handoff/<topic> tip is ahead of its head is not updated by the job. Null control: the same pass with that line removed updates it. Malformed control: a hold file holding `41x` makes the pass update no PR. Mutant: delete the job's `held` call; the control goes red.
+  ```
+
+- R10-FLOW-ROSTER-FREEZE: if its part (a) freezes the roster PR's head through the hold file, it must write only plain PR-number lines, and it must remove its own line when the review posts.
+  - One malformed line refuses cloud_relay.sh's whole handoff arm for every PR. The pass returns rc 2 and writes `OWED <utc> handoff-hold-malformed <file> -` to <log>.level until a well-formed pass. A bad write would therefore freeze every relay update, not only the roster's.
+  - Control: the self-test's nine malformed variants each refuse.
+  - Null control: `a well-formed hold file owes no refusal`.
+  - The earlier dismissal ("group not yet registered") was false. The group is on the handoff roster, live (`not-started`), its `after` lists R10-FLOW-RELAY-HOLD, and its brief and carry hold 0 matches for the grammar. The same freeze applies, and so does the same pending note.
+  - Carry: R10-FLOW-ROSTER-FREEZE
+
+  ROSTER-APPEND R10-FLOW-ROSTER-FREEZE carry:
+
+  ```text
+  Hold-file grammar (R10-FLOW-RELAY-HOLD, #2580): if part (a) freezes the roster pull request's head by writing <state>/cloud-handoff-hold, write only plain PR-number lines (digits, no leading zero, no trailing text; blank and `#` lines allowed), and remove only your own line when the review posts. One malformed line refuses cloud_relay.sh's whole handoff arm for every PR (rc 2, `refused: malformed hold file`, `OWED <utc> handoff-hold-malformed <file> -` in <log>.level until a well-formed pass), so a bad write freezes every relay update, not only the roster's. Read a hold back through `tools/audit/seat/cloud_relay.sh held <pr>` (rc 0 held, 1 not held, 2 malformed), never by re-parsing. Control: cloud_relay.sh --self-test's nine malformed variants each refuse. Null control: its `a well-formed hold file owes no refusal`. Own control: the freeze writer's fixture output read through `cloud_relay.sh held <pr>` returns rc 0, never 2.
+  ```
 
 ## Friction
 
@@ -77,8 +141,8 @@ none
 
 ## Notes
 
-Not a stated design choice: `cloud_relay-7`'s malformed-file CLI check cannot kill that mutant, because usage exits 2 too. The rc 0 and rc 1 CLI arms are what kill it.
+- `cloud_relay-7`'s malformed-file CLI check cannot kill that mutant, because usage exits 2 too. The rc 0 and rc 1 CLI arms are what kill it. This is not a stated design choice.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_01N3YggrcPUPeCRB4jMLrbBN
+https://claude.ai/code/session_01QDEyGCKxQsek7nsYMNPJfd
