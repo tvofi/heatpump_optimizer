@@ -1,0 +1,6 @@
+# old harness at 1ebc737e7
+RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=8 pr_keyed_writers=4 pr_keyed_lines=0
+# old harness at 46e368127
+RESULT writers=9 kinds_on_kind_token=4 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0
+# old harness at 4da469164e865be71478ac1221fbd8aabf0f65db
+RESULT writers=9 kinds_on_kind_token=4 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0

@@ -1,0 +1,8 @@
+# unmodified (python3.13 venv, tests/requirements-ci.txt)
+rc=0
+
+ALL 2382 ENTITY CHECKS PASSED
+# mutant: inert line deleted
+rc=0
+
+ALL 2382 ENTITY CHECKS PASSED

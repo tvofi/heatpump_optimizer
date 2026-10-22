@@ -1,0 +1,14 @@
+# finder replay under P1
+RESULT tick=tick_P1.py uncleared_after_POSTED=8 kinds=['approve-held-runs', 'dispatch', 'handoff-no-pr', 'handoff-update', 'probe-ref']
+# new harness tick=1ebc737e7 relay=1ebc737e7
+RESULT writers=10 events=8 events_cleared=4 events_uncleared=4 events_unreported=0 level_writers=2 level_lines=4 level_items=2
+# new harness tick=4da469164e865be71478ac1221fbd8aabf0f65db relay=4da469164e865be71478ac1221fbd8aabf0f65db
+RESULT writers=10 events=8 events_cleared=8 events_uncleared=0 events_unreported=0 level_writers=2 level_lines=2 level_items=2
+# new harness tick=P1 relay=4da469164e865be71478ac1221fbd8aabf0f65db
+RESULT writers=10 events=8 events_cleared=4 events_uncleared=4 events_unreported=0 level_writers=2 level_lines=2 level_items=2
+# new harness tick=4da469164e865be71478ac1221fbd8aabf0f65db relay=P2
+RESULT writers=10 events=8 events_cleared=8 events_uncleared=0 events_unreported=0 level_writers=2 level_lines=4 level_items=2
+# new harness tick=4da469164e865be71478ac1221fbd8aabf0f65db relay=1ebc737e7
+RESULT writers=10 events=8 events_cleared=8 events_uncleared=0 events_unreported=0 level_writers=2 level_lines=0 level_items=2
+# new harness tick=1ebc737e7 relay=4da469164e865be71478ac1221fbd8aabf0f65db
+RESULT writers=10 events=8 events_cleared=4 events_uncleared=4 events_unreported=0 level_writers=2 level_lines=0 level_items=2
