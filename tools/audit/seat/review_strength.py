@@ -6,7 +6,7 @@
         --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
         --window L=2026-10-19T14:50Z..2026-10-21T14:50Z \\
         [--by kind|class|prior-merge|origin|size|product|fixer[+...] ...] \\
-        [--roster REF:PATH] [--as-of T] [--guardrail N --p0 P]
+        [--roster REF:PATH] [--as-of T]
 
 R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
 REST call, so no rate limit and no 403. `--fetch` first fetches
@@ -51,13 +51,6 @@ in every fact stratum. Every figure is then a function of the bus, the two refs
 and T, not of a tip's position when it is run.
 first-pass m/n: of the PRs whose FIRST bus verdict falls in the window, the
 m whose first verdict is `merge`.
-
-GUARDRAIL (`--guardrail N --p0 P`). The last N reviewed PRs by first verdict
-time before the last window's `until` (a tie broken by PR number, in any
-input order), their incidence k/N, and the binomial
-P(X <= k | N, P). It prints `would-trip` when that is below 0.05, else `ok`;
-it decides nothing (R13: the guardrail reports and trips on nothing until
-the owner adopts a threshold).
 """
 from __future__ import annotations
 
@@ -73,7 +66,6 @@ import tempfile
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
-from math import comb
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -92,7 +84,6 @@ PROBE_RE = re.compile(r"rev-(\d+)-([0-9a-f]{8})$")
 CONFIRMED_RE = re.compile(r"^bus-confirmed:\s*(\S+) \(review/\d+ at ([0-9a-f]{40})\)", re.M)
 GROUP_RE = re.compile(r"\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b")
 MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
-ALPHA = 0.05
 STRATA = ("kind", "class", "prior-merge", "origin", "size", "product", "fixer")
 FACT_STRATA = {"origin", "fixer", "size", "product"}
 
@@ -244,26 +235,6 @@ def fmt(o: dict) -> str:
             f"first-pass {sum(o['first'])}/{len(o['first'])}")
 
 
-def binom_cdf(k: int, n: int, p: float) -> float:
-    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k + 1))
-
-
-def guardrail(verdicts: list[dict], until: datetime, n: int, p0: float) -> str:
-    first, caught = {}, set()
-    for v in verdicts:
-        if v["t"] < until:
-            first[v["pr"]] = min(first.get(v["pr"], v["t"]), v["t"])
-            if v["real"]:
-                caught.add(v["pr"])
-    last = sorted(first, key=lambda p: (first[p], p))[-n:]
-    if len(last) < n:
-        return f"GUARDRAIL insufficient: {len(last)} reviewed PRs < N={n}"
-    k = sum(p in caught for p in last)
-    cdf = binom_cdf(k, n, p0)
-    return (f"GUARDRAIL last {n} PRs (first verdict {first[last[0]]:%m-%dT%H:%MZ}..{first[last[-1]]:%m-%dT%H:%MZ}): "
-            f"incidence {k}/{n}; P(X<={k}|{n},{p0}) = {cdf:.3f} -> {'would-trip' if cdf < ALPHA else 'ok'} (report-only)")
-
-
 def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--repo", default=str(ROOT))
@@ -275,8 +246,6 @@ def parser() -> argparse.ArgumentParser:
                     help="one of " + ", ".join(STRATA) + "; joined with + to cross them")
     ap.add_argument("--roster", metavar="REF:PATH")
     ap.add_argument("--as-of", metavar="T", help="the time the fact strata are taken at; default the latest window's until")
-    ap.add_argument("--guardrail", type=int, metavar="N")
-    ap.add_argument("--p0", type=float, metavar="P", help="the baseline incidence; required with --guardrail")
     ap.add_argument("--real-extra", default="", metavar="W[,W...]",
                     help="class words counted REAL beside REAL_CATCH (a sensitivity run)")
     ap.add_argument("--self-test", action="store_true")
@@ -296,8 +265,6 @@ def main(argv: list[str]) -> int:
         ap.error(f"unknown stratum {sorted(used - set(STRATA))}; one of {', '.join(STRATA)}")
     if {"origin", "fixer"} & used and not a.roster:
         ap.error("--by origin|fixer needs --roster REF:PATH")
-    if a.guardrail and a.p0 is None:
-        ap.error("--guardrail needs --p0")
     if a.fetch:
         git(repo, "fetch", "-q", "--tags", a.remote, *(f"+refs/heads/{f}/*:refs/remotes/{a.remote}/{f}/*"
                                                       for f in ("review", "verdict", "probe")))
@@ -322,8 +289,6 @@ def main(argv: list[str]) -> int:
             for name, _, _ in wins:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
                 print(f"  {k:24} {name:6} {fmt(o)}")
-    if a.guardrail:
-        print(guardrail(verdicts, wins[-1][2], a.guardrail, a.p0))
     return 0
 
 
@@ -404,15 +369,8 @@ def self_test() -> int:
         ex = tally(load(R, "origin", REAL_CATCH | {"carry-missing"})[0], a, b, lambda v: "all")["all"]
         check("--real-extra moves a word from bookkeeping to real, and only that word",
               (ex["real"], ex["book"]) == (2, 1))
-        check("binomial: P(X<=0|20,0.15) = 0.039", abs(binom_cdf(0, 20, 0.15) - 0.0388) < 1e-3)
         check("window: [from, until) excludes a verdict at until (PR 2's block at 04:00)",
               tally(vlist, a, when("2026-10-01T04:00Z"), lambda v: "all")["all"]["verdicts"] == 3)
-        check("guardrail: 3 PRs < N=5 is insufficient, never a trip",
-              guardrail(vlist, c, 5, 0.18) == "GUARDRAIL insufficient: 3 reviewed PRs < N=5")
-        check("guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875)",
-              guardrail(vlist, c, 3, 0.5).endswith("incidence 2/3; P(X<=2|3,0.5) = 0.875 -> ok (report-only)"))
-        check("guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020)",
-              guardrail(vlist, b, 2, 0.99).endswith("= 0.020 -> would-trip (report-only)"))
 
         # pr_facts: a roster, delivery rows, a merged PR (5) and an unmerged one (6).
         def mk(parent: str | None, files: dict[str, str], msg: str, t: str) -> str:
@@ -501,9 +459,6 @@ def self_test() -> int:
         fv = load(R, "origin")[0]
         check("bus-confirmed *-cloud id marks the verdict cloud",
               [v["reviewer"] for v in fv if v["pr"] == 7] == ["cloud"])
-        check("guardrail: the LATEST N by first verdict (5, 6, 7: 1/3), not the oldest (1, 2, 3: 2/3)",
-              guardrail(fv, when("2026-10-04T00Z"), 3, 0.5).endswith(
-                  "incidence 1/3; P(X<=1|3,0.5) = 0.500 -> ok (report-only)"))
         check("as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T",
               as_of(R, "main", when("2026-10-02T12:00Z")) == m1)
         f4 = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", fv, when("2026-10-04T00:00Z"))
@@ -537,24 +492,6 @@ def self_test() -> int:
             f6 = pr_facts(R, "main", RR, fv, T6)
             f5 = pr_facts(R, "main", RR, fv, when("2026-10-05T01:00Z"))
             fn = pr_facts(R, "main", None, fv, T6)
-        check("guardrail orders by FIRST VERDICT, not PR number: PR 8 (first, real) is not among the latest 3",
-              guardrail(fv, when("2026-10-04T00Z"), 3, 0.5)
-              == "GUARDRAIL last 3 PRs (first verdict 10-02T02:00Z..10-02T03:00Z): incidence 1/3; "
-                 "P(X<=1|3,0.5) = 0.500 -> ok (report-only)")
-        check("guardrail: a PR first reviewed exactly at until (7, 03:00) is outside; the bounds print [0] and [-1]",
-              guardrail(fv, when("2026-10-02T03:00Z"), 3, 0.5)
-              == "GUARDRAIL last 3 PRs (first verdict 10-02T01:00Z..10-02T02:00Z): incidence 2/3; "
-                 "P(X<=2|3,0.5) = 0.875 -> ok (report-only)")
-        check("guardrail: a first-verdict tie (9 and 10 at 10-05T02) breaks on PR number, so 10 is the latest",
-              "incidence 1/1;" in guardrail([v for v in fv if v["pr"] <= 10], T6, 1, 0.5))
-        check("guardrail: a PR's FIRST verdict places it, not its latest (6 at 10-02T02, though re-reviewed 10-05T01)",
-              guardrail(fv, T6, 8, 0.5).startswith("GUARDRAIL last 8 PRs (first verdict 10-02T02:00Z..10-05T06:00Z)"))
-        check("guardrail: the input's order moves nothing (the bus reversed reads the same)",
-              all(guardrail(fv[::-1], t, 3, 0.5) == guardrail(fv, t, 3, 0.5)
-                  for t in (when("2026-10-02T03:00Z"), when("2026-10-04T00:00Z"), T6)))
-        check("guardrail: ALPHA is 0.05: P = 0.038 would trip (not at 0.025), P = 0.087 is ok (not at 0.1)",
-              guardrail(vlist, c, 3, 0.987).endswith("= 0.038 -> would-trip (report-only)")
-              and guardrail(vlist, c, 3, 0.97).endswith("= 0.087 -> ok (report-only)"))
         check("size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600",
               [f6[p]["size"] for p in (10, 11, 12, 13)] == ["S<150", "M<600", "M<600", "L>=600"])
         check("size: a head that is no commit is '?'", f6[8]["size"] == "?")
@@ -624,10 +561,12 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     """PRs 16-18: the literal, regex, ref-scope and merge-walk seams the mutation sweep found unpinned."""
     rv = lambda pr: f"refs/remotes/origin/review/{pr}"
     N16, N17 = "09abcdef" * 4, "90fedcba" * 4
-    # PR 16: 147 lines plus one each in files a prefix cut would wrongly read: the delivery
-    # exclusion and the product prefixes all hold at their trailing '/' (150 lines, M<600, not product).
-    h16 = mk(m1, {"docs/s16.md": lines(147), "dev/programme/delivery.md": lines(1),
-                  "custom_components.md": lines(1), "blueprints.md": lines(1)}, "pr 16", "2026-10-05T01:00:00Z")
+    # PR 16: 145 lines plus one each in files a prefix cut would wrongly read: the delivery
+    # exclusion and the product prefixes all hold at their trailing '/', and tests/ and tools/
+    # are top-level directories outside the product (150 lines, M<600, not product).
+    h16 = mk(m1, {"docs/s16.md": lines(145), "dev/programme/delivery.md": lines(1), "tests/t16.py": lines(1),
+                  "tools/t16.py": lines(1), "custom_components.md": lines(1), "blueprints.md": lines(1)},
+             "pr 16", "2026-10-05T01:00:00Z")
     # Its VERDICT.md quotes another nonce mid-line before its own; its nonce holds a 0 and a 9.
     s16 = verdict(rv(16), f"verdict: #16 Fix review: merge {h16}", N16, "2026-10-05T09:00:00Z",
                   pre=f"quoting bus-nonce: {'1' * 32}\n")
@@ -657,12 +596,19 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     g("update-ref", f"refs/remotes/origin/elsewhere/rev-17-{N17[:8]}",
       g("commit-tree", g("write-tree"), "-m",
         f"verdict: #18 Fix review: blocked {'b' * 40} harness: x\n\nbus-confirmed: cloud-18 (review/18 at {s18})"))
+    # PR 20: a verdict commit authored a month before it was committed (a rebased verdict); the
+    # window reads committer time.
+    g("update-ref", rv(20), g("commit-tree", g("hash-object", "-t", "tree", "-w", os.devnull), "-m",
+                              f"verdict: #20 Fix review: merge {'e' * 40}",
+                              e={"GIT_COMMITTER_DATE": "2026-10-05T09:47:00Z", "GIT_AUTHOR_DATE": "2026-09-05T09:47:00Z"}))
     tip = g("rev-parse", "main")
     # main: rows naming groups whose letters hold a 0 and a 9 at every position the group regex
-    # reads; a merge of 17 reached only through a side branch; 18's merge; and a two-parent commit
+    # reads, and a group holding three dashes as the real bus's do; a merge of 17 reached only through a side branch; 18's merge; and a two-parent commit
     # whose subject names 16's merge after a prefix.
     m10 = mk(tip, {"dev/programme/delivery/16.md": "| 16 | R1-0909 |\n",
-                   "dev/programme/delivery/17.md": "| 17 | R1-9090 |\n"}, "rows 16 17", "2026-10-05T09:50:00Z")
+                   "dev/programme/delivery/17.md": "| 17 | R1-9090 |\n",
+                   "dev/programme/delivery/18.md": "| 18 | R10-FLOW-YIELD-PROBE |\n"}, "rows 16 17 18",
+             "2026-10-05T09:50:00Z")
     side1 = mk(m1, {"docs/s17.md": lines(700)}, "side", "2026-10-05T01:00:00Z")
     side = mk(f"{m1} {side1}", {"docs/s17.md": lines(700)}, "Merge pull request #17 from tvofi/fix/side",
               "2026-10-05T02:00:00Z")
@@ -675,7 +621,8 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     g("update-ref", "refs/heads/main", m13)
     grp = lambda name, fixer: dict(group=name, issues=["i"], model=dict(fixer=fixer))
     old = json.loads(g("show", f"{r2}:{RP}"))["groups"]
-    r3 = mk(r2, {RP: json.dumps(dict(groups=[*old, grp("R1-0909", "g0"), grp("R1-9090", "g9")]))},
+    r3 = mk(r2, {RP: json.dumps(dict(groups=[*old, grp("R1-0909", "g0"), grp("R1-9090", "g9"),
+                                             grp("R10-FLOW", "cut"), grp("R10-FLOW-YIELD-PROBE", "dashes")]))},
             "roster: digit groups", "2026-10-05T13:00:00Z")
     g("update-ref", "refs/remotes/origin/roster", r3)
     vl, outside = load(R, "origin")
@@ -684,7 +631,7 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18) and v["kind"] == "merge"}
     check("size: delivery rows are excluded at their '/', other dev/programme/ files count (16: 150, M<600)",
           f[16]["size"] == "M<600")
-    check("product: custom_components.md and blueprints.md are not under the product prefixes (16)",
+    check("product: tests/, tools/, custom_components.md and blueprints.md are not under the product prefixes (16)",
           f[16]["product"] is False)
     check("cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)",
           kind[16] == "cloud")
@@ -696,6 +643,8 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
           all(v["pr"] != 19 for v in vl) and not any(o.startswith("re:") for o in outside))
     check("outside: the prefix 'Fix review:' exactly, and the shape matched from the start (19 twice)",
           sorted(outside) == sorted([long, "verdict: #4 Fix review: PASS\tmerge " + "a" * 40]))
+    check("a verdict counts at its committer time, not its author time (20: in 10-05T09:46..09:48)",
+          tally(vl, when("2026-10-05T09:46Z"), when("2026-10-05T09:48Z"), lambda v: "all")["all"]["prs"] == {20})
     check("merge walk: first-parent only; 17's side-branch merge is not its merge (17: 5 lines, S<150)",
           f[17]["size"] == "S<150")
     check("merge subject: a tab inside it leaves the parents field whole (18 merged: 700, L>=600)",
@@ -704,8 +653,8 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
           f[16]["size"] == "M<600")
     check("group regex: 0 and 9 at every position (16 R1-0909 fixer g0, 17 R1-9090 fixer g9)",
           (f[16]["fixer"], f[17]["fixer"]) == ("g0", "g9"))
-    check("guardrail: a real block after until is not caught (17 first at 09:30, blocked 11:00; until 09:40)",
-          "incidence 0/1;" in guardrail(vl, when("2026-10-05T09:40Z"), 1, 0.5))
+    check("group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)",
+          f[18]["fixer"] == "dashes")
     text = io.StringIO()
     with contextlib.redirect_stdout(text):
         main(["--repo", str(R), "--tree", "main", "--window", "A=2026-10-05T00:00Z..2026-10-06T00:00Z"])
@@ -730,8 +679,7 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
 
     wins = ("--window", "E=2026-09-29T00:00Z..2026-10-02T00:00Z", "--window", "L=2026-10-02T00:00Z..2026-10-06T00:00Z")
     rr = ("--roster", f"refs/remotes/origin/roster:{path}")
-    rc, text = run(*wins, *(x for s in STRATA for x in ("--by", s)), "--by", "kind+origin", *rr,
-                   "--guardrail", "3", "--p0", "0.5")
+    rc, text = run(*wins, *(x for s in STRATA for x in ("--by", s)), "--by", "kind+origin", *rr)
     expected = (
         f"facts as of 2026-10-06T00:00Z: tree {tip[:12]} roster {roster[:12]}\n"
         "verdicts on the bus: 18; outside the grammar: 1\n"
@@ -803,7 +751,6 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
         "  local+group              L      PRs 3 verdicts 4 real 1 (0.33/PR) book 0 (0.00/PR) incidence 1/3 (0.33) first-pass 2/3\n"
         "  local+none               E      PRs 2 verdicts 5 real 1 (0.50/PR) book 1 (0.50/PR) incidence 1/2 (0.50) first-pass 0/1\n"
         "  local+none               L      PRs 4 verdicts 4 real 1 (0.25/PR) book 0 (0.00/PR) incidence 1/4 (0.25) first-pass 3/4\n"
-        "GUARDRAIL last 3 PRs (first verdict 10-05T04:00Z..10-05T06:00Z): incidence 0/3; P(X<=0|3,0.5) = 0.125 -> ok (report-only)\n"
     )
     check("main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)",
           rc == 0 and text == expected)
@@ -819,25 +766,20 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     check("main --as-of takes the facts at T, not at the latest until; a PR first reviewed after T is its own row",
           text.startswith("facts as of 2026-10-04T00:00Z: ")
           and "  (unreviewed at T)        L      PRs 6 verdicts 6 real 1 " in text)
-    rc, text = run("--window", "A=2026-10-03T00:00Z..2026-10-05T00:00Z", *wins, "--by", "size",
-                   "--guardrail", "3", "--p0", "0.5")
-    check("main: the facts default to the LATEST until of any window, the guardrail to the LAST named's",
-          text.startswith("facts as of 2026-10-06T00:00Z: ")
-          and "GUARDRAIL last 3 PRs (first verdict 10-05T04:00Z..10-05T06:00Z)" in text)
+    rc, text = run(*wins, "--window", "A=2026-10-03T00:00Z..2026-10-05T00:00Z", "--by", "size")
+    check("main: the facts default to the LATEST until of any window, not the last named's (A, 10-05)",
+          text.startswith("facts as of 2026-10-06T00:00Z: "))
     check("main: no fact stratum asked, no facts taken (the bus line comes first)",
           run(*wins, "--by", "kind")[1].startswith("verdicts on the bus: "))
     for why, argv in (("no window", ()), ("an unknown stratum", (*wins, "--by", "nope")),
                       ("origin without --roster", (*wins, "--by", "kind+origin")),
-                      ("fixer without --roster", (*wins, "--by", "fixer")),
-                      ("--guardrail without --p0", (*wins, "--guardrail", "3"))):
+                      ("fixer without --roster", (*wins, "--by", "fixer"))):
         check(f"main refuses {why} (exit 2)", run(*argv)[0] == 2)
     run(*wins, "--by", "nope+aa+zz+mm+bb+kk")
     check("main names the unknown strata sorted",
           "unknown stratum ['aa', 'bb', 'kk', 'mm', 'nope', 'zz']" in err.getvalue())
     run(*wins, "--by", "nope+origin")
     check("main: an unknown stratum is refused before a missing --roster", "unknown stratum ['nope']" in err.getvalue())
-    run(*wins, "--by", "origin", "--guardrail", "3")
-    check("main: a missing --roster is refused before a missing --p0", "needs --roster" in err.getvalue())
     # --fetch reads the remote's refs/heads/{review,probe,verdict}/* into refs/remotes/<remote>/*/*, by
     # its own refspecs (the remote carries no configured fetch refspec), forced, with every tag.
     from throwaway_git import throwaway_git_env, throwaway_git_init
@@ -861,8 +803,8 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     # review/12 locally points at 13's verdict, which its remote tip does not descend from: only a forced
     # fetch moves it back.
     g("update-ref", "refs/remotes/origin/review/12", s13)
-    check("main --fetch refuses a missing window, and --guardrail without --p0, before it fetches",
-          run("--fetch")[0] == 2 and run(*wins, "--fetch", "--guardrail", "3")[0] == 2
+    check("main --fetch refuses a missing window, and an unknown stratum, before it fetches",
+          run("--fetch")[0] == 2 and run(*wins, "--fetch", "--by", "nope")[0] == 2
           and not g("for-each-ref", "refs/remotes/origin/review/15"))
     before = run(*wins, "--by", "kind")[1]
     after = run(*wins, "--by", "kind", "--fetch")[1]
