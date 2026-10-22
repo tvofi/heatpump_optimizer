@@ -157,6 +157,11 @@ MUTANTS = [
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
+    ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
+    ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
+    ("ci_probe-3", "ci_probe.py", "if login != OWNER:", 'if login == "":'),
+    ("ci_probe-4", "ci_probe.py", "if repo != REPO:", "if False:"),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
