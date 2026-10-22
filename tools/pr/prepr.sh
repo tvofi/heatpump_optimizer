@@ -2111,6 +2111,12 @@ PY
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b pexsib origin/main && echo "# planted" >> tools/audit/seat/orchestrator_tick.py \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('record_row','roster_lib','tmp_paths')];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pexsib \
+    && $G checkout -q -b pglobsib pexsib \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pglobsib \
     && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
     && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
@@ -2148,6 +2154,10 @@ PY
   got=$(cd "$PDX/r" && git checkout -q pinert && predict_line origin/main 2>/dev/null)
   grep -q 'repair before the handoff; `--apply-inert` repairs them$' <<<"$got" && ! grep -q "ci-autofix.md's" <<<"$got"
   st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
+  got=$(predict_at pexsib); grep -q 'INERT READS tests/zz_reader.py' <<<"$got"
+  st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
+  got=$(predict_at pglobsib); grep -q 'PREDICT closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
+  st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
   got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got"
   st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
