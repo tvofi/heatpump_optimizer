@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (cloud_relay-N, tick_loop-N, heartbeat-N) each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (body_patch-1, cloud_relay-N, tick_loop-N, heartbeat-N) each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). A mutant added
@@ -123,6 +123,10 @@ MUTANTS = [
     ("S38", "merge_pr.sh",
      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
      "exit 0  # mut:merge"),
+    # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
+    ("body_patch-1", "body_patch.sh",
+     '[ "$rbok" = 1 ] || die "#$pr could not be read back',
+     '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
     ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
