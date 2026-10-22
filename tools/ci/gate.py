@@ -39,17 +39,8 @@ sys.path.insert(0, str(HERE))                      # -I drops the script's direc
 import ghapi  # noqa: E402
 from prelude import BODY_UNITS, CODE_UNITS, context, derive, parse_title, title, workset  # noqa: E402,F401
 
-UNITS = {                                          # every name a unit owes at a PR head
-    "tests": ("fast (3.14)", "browser", "briefs", "typing", "mutation", "closures", "closure-scope"),
-    "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
-    "governance": ("policy-docs", "wave-script", "env-matrix"),
-    "hassfest": ("hassfest",),
-    "validate": ("validate-hacs",),
-    "arch-score": ("arch-score",),                 # owner ruling D-2
-    "budget-raise-gate": ("budget-raise-gate",),
-    "pr-contract": ("pr-contract",),
-}
-PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
+UNITS = {"probe": ("probe",)}                      # PROBE CUT (U0c probe ref, never P2b)
+PUSH_ONLY = {}                                     # PROBE CUT
 CODE = {u: UNITS[u] for u in CODE_UNITS}
 BODY = {u: UNITS[u] for u in BODY_UNITS}
 ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a run past 45 (4.3)
@@ -59,12 +50,7 @@ def _names(units, drop=(), extra=None) -> tuple[str, ...]:
     return tuple(f"{u} / {n}" for u in units for n in UNITS[u] + (extra or {}).get(u, ()) if n not in drop)
 
 
-REQUIRED: dict[str, tuple[str, ...]] = {
-    "push": _names(CODE_UNITS, drop=("closure-scope",), extra=PUSH_ONLY),   # closure-scope never runs on push
-    "no-pr": _names(CODE_UNITS),                                         # a dispatch naming no PR
-    "pr": _names(CODE_UNITS + ("budget-raise-gate", "pr-contract")),
-    "pr-cc": _names(CODE_UNITS + BODY_UNITS),                            # D-2
-}
+REQUIRED: dict[str, tuple[str, ...]] = {k: ("probe / probe",) for k in ("push", "no-pr", "pr", "pr-cc")}  # PROBE CUT
 
 
 def event_class(event_name: str, pr: str, reaches_cc) -> str:

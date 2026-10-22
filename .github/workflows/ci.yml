@@ -92,23 +92,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Restore the programs from the base
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-          INPUT_BASE: ${{ inputs.base }}
-        run: |
-          set -euo pipefail
-          # push and a dispatch naming no base run main's or the ref's own copy.
-          if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
-            [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
-            git fetch -q --no-tags origin "refs/heads/$INPUT_BASE"
-            PINNED=$(git rev-parse FETCH_HEAD)
-          fi
-          if [ -n "$PINNED" ]; then
-            git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-            git checkout "$PINNED" -- 'tools/ci/*.py' tools/pr/codeql_scope.py
-            echo "programs restored from $PINNED"
-          fi
       - name: Derive kind, PR, base, scope and legs
         id: derive
         env:
@@ -125,143 +108,17 @@ jobs:
           fi
           python3 -I tools/ci/prelude.py --changed-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
 
-  # The one copy (R10-CI-CONCURRENCY): from a non-bot pull_request run at the
-  # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
-  # a same-SHA run, so never a gate attempt at this head.
-  cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Cancel this branch's runs at superseded heads
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.head_ref }}
-          RUN_ID: ${{ github.run_id }}
-          SENDER: ${{ github.event.sender.login }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- tools/pr/cancel_superseded.py
-          python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow ci.yml \
-            --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
-            --run-id "$RUN_ID" --sender "$SENDER"
-
-  # >>> units: one caller per unit file, id == stem; each runs when the
-  # prelude's workset names it. A probe ci.yml keeps prelude, refresh, gate
-  # and the callers it probes, and drops the rest from every `needs:`.
-  tests:
+  # >>> units: PROBE CUT (U0c probe ref, never P2b): one trivial unit.
+  probe:
     needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' tests ')
-    uses: ./.github/workflows/tests.yml
-    with:
-      gate_scope: ${{ needs.prelude.outputs.gate_scope }}
-      pr: ${{ needs.prelude.outputs.pr }}
-      base: ${{ needs.prelude.outputs.base }}
-      head: ${{ needs.prelude.outputs.head }}
-      recheck: ${{ inputs.recheck }}
-      no-skip: ${{ inputs.no-skip }}
-    # Until M-3 decides the approve steps.
-    secrets:
-      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
-      HPO_RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
-      HPO_RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
-    permissions:
-      contents: write
-      actions: write
-      pull-requests: read
-  codeql:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' codeql ')
-    uses: ./.github/workflows/codeql.yml
-    with:
-      legs: ${{ needs.prelude.outputs.legs }}
-    permissions:
-      contents: read
-      security-events: write
-  governance:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' governance ')
-    uses: ./.github/workflows/governance.yml
-    permissions:
-      contents: read
-      pull-requests: read
-      issues: write
-  hassfest:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' hassfest ')
-    uses: ./.github/workflows/hassfest.yml
-    permissions:
-      contents: read
-  validate:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' validate ')
-    uses: ./.github/workflows/validate.yml
-    permissions:
-      contents: read
-  kernel-points:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' kernel-points ')
-    uses: ./.github/workflows/kernel-points.yml
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' probe ')
+    uses: ./.github/workflows/probe.yml
     with:
       pr: ${{ needs.prelude.outputs.pr }}
       base: ${{ needs.prelude.outputs.base }}
       head: ${{ needs.prelude.outputs.head }}
     permissions:
       contents: read
-  arch-score:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' arch-score ')
-    uses: ./.github/workflows/arch-score.yml
-    with:
-      pr: ${{ needs.prelude.outputs.pr }}
-      base: ${{ needs.prelude.outputs.base }}
-      head: ${{ needs.prelude.outputs.head }}
-    permissions:
-      contents: read
-      pull-requests: read
-  budget-raise-gate:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' budget-raise-gate ')
-    uses: ./.github/workflows/budget-raise-gate.yml
-    with:
-      pr: ${{ needs.prelude.outputs.pr }}
-      base: ${{ needs.prelude.outputs.base }}
-      head: ${{ needs.prelude.outputs.head }}
-    permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-  # Last, so its red list is final.
-  pr-contract:
-    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate]
-    if: ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}
-    uses: ./.github/workflows/pr-contract.yml
-    with:
-      pr: ${{ needs.prelude.outputs.pr }}
-      base: ${{ needs.prelude.outputs.base }}
-      head: ${{ needs.prelude.outputs.head }}
-    permissions:
-      contents: read
-      checks: read
-      pull-requests: read
-      security-events: read
-      actions: read
   # <<< units
 
   # An event can make an earlier green `gate` at this head stale: re-run the
@@ -279,13 +136,6 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Restore the programs from the base
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- 'tools/ci/*.py'
       - name: Re-run the stale green gates at this head
         env:
           GH_TOKEN: ${{ github.token }}
@@ -294,7 +144,7 @@ jobs:
   # The one required check. Never skippable: a skipped required check passes.
   # It trusts no guard; gate.py derives what the event owes from the event.
   gate:
-    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate, pr-contract]
+    needs: [prelude, probe]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -308,20 +158,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Restore the programs from the base
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-          INPUT_BASE: ${{ inputs.base }}
-        run: |
-          set -euo pipefail
-          if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
-            [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
-            PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")
-          fi
-          if [ -n "$PINNED" ]; then
-            git checkout "$PINNED" -- 'tools/ci/*.py'
-            echo "programs restored from $PINNED"
-          fi
       # The API read is the program's last step and this job's (rev3, R3-1).
       - name: Judge this head
         env:

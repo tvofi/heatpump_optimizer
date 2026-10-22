@@ -1,0 +1,27 @@
+# PROBE CUT (U0c probe ref, never P2b): the one trivial unit the umbrella
+# calls on ci-probe refs, so DESIGN-P2 10's U0 live perturbations run before
+# any real callee is converted. Its job reports `probe / probe`.
+name: Probe unit
+
+on:
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: "true"

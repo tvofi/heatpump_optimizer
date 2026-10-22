@@ -41,8 +41,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
 
-CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
-BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
+CODE_UNITS = ("probe",)                            # PROBE CUT (U0c probe ref, never P2b)
+BODY_UNITS = ()
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
 KP = "kernel-points"
