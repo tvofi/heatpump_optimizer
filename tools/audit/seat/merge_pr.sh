@@ -161,6 +161,9 @@ P
     && throwaway_git_clone -q "$mo" "$mm"
   mkdir -p "$mm/tools/audit/seat"
   cp "$SELF" "$mm/tools/audit/seat/merge_pr.sh"
+  # The real classifier, not a stub: unstale_head runs it against the fake
+  # gh's empty check-run list, so the flow crosses the K15 (b) re-run as a no-op.
+  cp "${SELF%/*}/merge_train.py" "$mm/tools/audit/seat/merge_train.py"
   for p in app_comment.sh app_approve.sh preflight.sh worktree_gc.sh; do
     printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
   done
