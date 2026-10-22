@@ -4338,7 +4338,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From #2609's red at ff83a3d7 (fast (3.14), check-run 119826108493): a docs PR whose README.md or docs/*.md change moved the round-4 D6 claims counts (dev/audit/rounds/round4/D6/claims.py, rows C108 links and C110 images) reached CI with the committed claims.json and claims.md stale, because its seats ran prepr with PREPR_SKIP_CLOSURES=1 and nothing else runs tests/harness_headers.py' byte-identical check before the push. Owed: prepr runs the executed-harness byte-identity check (or claims.py alone, a few seconds) whenever the diff touches README.md or docs/*.md, even with closures skipped. Null control: a README link added without re-recording goes red in prepr."
+   ],
    "architect_note": null,
    "group": "R10-PREPR-UNPINNED-RED",
    "findings": [],
