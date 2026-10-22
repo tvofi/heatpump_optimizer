@@ -1,0 +1,13 @@
+diff --git a/tests/nightly_status.py b/tests/nightly_status.py
+index 260808149..3c9554d5c 100644
+--- a/tests/nightly_status.py
++++ b/tests/nightly_status.py
+@@ -159,7 +159,7 @@ MAX_AGE_NIGHTS = 2
+ # bound needs only the period, not the cron's clock fields, so it reads no YAML.
+ # `tests/entities.py` pins the period against the workflow's own `cron:`.
+ SCHEDULE_PERIOD = dt.timedelta(days=1)
+-SCHEDULE_LATENCY = dt.timedelta(hours=1)
++SCHEDULE_LATENCY = dt.timedelta(0)
+ NEW_WINDOW = SCHEDULE_PERIOD + SCHEDULE_LATENCY
+ 
+ # GitHub's word for a workflow whose schedule may fire. Every other `state`
