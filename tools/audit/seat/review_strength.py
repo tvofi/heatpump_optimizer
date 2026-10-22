@@ -601,13 +601,30 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     g("update-ref", rv(20), g("commit-tree", g("hash-object", "-t", "tree", "-w", os.devnull), "-m",
                               f"verdict: #20 Fix review: merge {'e' * 40}",
                               e={"GIT_COMMITTER_DATE": "2026-10-05T09:47:00Z", "GIT_AUTHOR_DATE": "2026-09-05T09:47:00Z"}))
+    # PR 21: a class is the word up to its own colon: a block whose first word has none names no
+    # class, and one whose word is followed by a second colon names the word alone.
+    verdict(rv(21), f"verdict: #21 Fix review: blocked {'e' * 40} conflict also harness: x", "21" * 16,
+            "2026-10-05T09:51:00Z")
+    verdict(rv(21), f"verdict: #21 Fix review: blocked {'e' * 40} harness:x: y", "21" * 16, "2026-10-05T09:52:00Z")
+    # PR 22: a nonce with no space after its colon, returned by a probe; PR 23: a cloud confirmation
+    # with no space after its colon.
+    N22 = "22" * 16
+    s22 = mk(None, {"VERDICT.md": f"x\n\nbus-nonce:{N22}\n"}, f"verdict: #22 Fix review: merge {'e' * 40}",
+             "2026-10-05T09:53:00Z")
+    g("update-ref", rv(22), s22)
+    g("update-ref", f"refs/remotes/origin/probe/rev-22-{N22[:8]}", s22)
+    s23 = verdict(rv(23), f"verdict: #23 Fix review: merge {'e' * 40}", "23" * 16, "2026-10-05T09:54:00Z")
+    g("update-ref", "refs/remotes/origin/verdict/23",
+      g("commit-tree", g("write-tree"), "-m", f"verdict: #23\n\nbus-confirmed:cloud-23 (review/23 at {s23})"))
     tip = g("rev-parse", "main")
     # main: rows naming groups whose letters hold a 0 and a 9 at every position the group regex
-    # reads, and a group holding three dashes as the real bus's do; a merge of 17 reached only through a side branch; 18's merge; and a two-parent commit
+    # reads, a digit inside the ranges at each (R1-555), and a group holding three dashes as the
+    # real bus's do; a merge of 17 reached only through a side branch; 18's merge; and a two-parent commit
     # whose subject names 16's merge after a prefix.
     m10 = mk(tip, {"dev/programme/delivery/16.md": "| 16 | R1-0909 |\n",
                    "dev/programme/delivery/17.md": "| 17 | R1-9090 |\n",
-                   "dev/programme/delivery/18.md": "| 18 | R10-FLOW-YIELD-PROBE |\n"}, "rows 16 17 18",
+                   "dev/programme/delivery/18.md": "| 18 | R10-FLOW-YIELD-PROBE |\n",
+                   "dev/programme/delivery/20.md": "| 20 | R1-555 |\n"}, "rows 16 17 18 20",
              "2026-10-05T09:50:00Z")
     side1 = mk(m1, {"docs/s17.md": lines(700)}, "side", "2026-10-05T01:00:00Z")
     side = mk(f"{m1} {side1}", {"docs/s17.md": lines(700)}, "Merge pull request #17 from tvofi/fix/side",
@@ -622,13 +639,14 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
     grp = lambda name, fixer: dict(group=name, issues=["i"], model=dict(fixer=fixer))
     old = json.loads(g("show", f"{r2}:{RP}"))["groups"]
     r3 = mk(r2, {RP: json.dumps(dict(groups=[*old, grp("R1-0909", "g0"), grp("R1-9090", "g9"),
-                                             grp("R10-FLOW", "cut"), grp("R10-FLOW-YIELD-PROBE", "dashes")]))},
+                                             grp("R10-FLOW", "cut"), grp("R10-FLOW-YIELD-PROBE", "dashes"),
+                                             grp("R1-555", "g5")]))},
             "roster: digit groups", "2026-10-05T13:00:00Z")
     g("update-ref", "refs/remotes/origin/roster", r3)
     vl, outside = load(R, "origin")
     with contextlib.redirect_stdout(io.StringIO()):
         f = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", vl, when("2026-10-06T00:00Z"))
-    kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18) and v["kind"] == "merge"}
+    kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18, 22, 23) and v["kind"] == "merge"}
     check("size: delivery rows are excluded at their '/', other dev/programme/ files count (16: 150, M<600)",
           f[16]["size"] == "M<600")
     check("product: tests/, tools/, custom_components.md and blueprints.md are not under the product prefixes (16)",
@@ -653,6 +671,11 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, 
           f[16]["size"] == "M<600")
     check("group regex: 0 and 9 at every position (16 R1-0909 fixer g0, 17 R1-9090 fixer g9)",
           (f[16]["fixer"], f[17]["fixer"]) == ("g0", "g9"))
+    check("group regex: a digit inside the ranges at every position (20 R1-555 fixer g5)", f[20]["fixer"] == "g5")
+    check("cloud: a nonce and a confirmation with no space after the colon are read (22, 23)",
+          (kind[22], kind[23]) == ("cloud", "cloud"))
+    check("class: the word up to its own colon, none when the first word has none (21: '' and harness)",
+          sorted(v["cls"] for v in vl if v["pr"] == 21) == ["", "harness"])
     check("group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)",
           f[18]["fixer"] == "dashes")
     text = io.StringIO()
@@ -803,8 +826,9 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     # review/12 locally points at 13's verdict, which its remote tip does not descend from: only a forced
     # fetch moves it back.
     g("update-ref", "refs/remotes/origin/review/12", s13)
-    check("main --fetch refuses a missing window, and an unknown stratum, before it fetches",
+    check("main --fetch refuses a missing window, an unknown stratum and a missing --roster before it fetches",
           run("--fetch")[0] == 2 and run(*wins, "--fetch", "--by", "nope")[0] == 2
+          and run(*wins, "--fetch", "--by", "origin")[0] == 2
           and not g("for-each-ref", "refs/remotes/origin/review/15"))
     before = run(*wins, "--by", "kind")[1]
     after = run(*wins, "--by", "kind", "--fetch")[1]
