@@ -1,0 +1,9 @@
+R10-ORCH-MACHINERY fields changed: ['carry'] prefix kept: True 30 -> 31 stage on main: not-started
+R10-FLOW-ROSTER-FREEZE fields changed: ['carry'] prefix kept: True 3 -> 4 stage on main: not-started
+R10-RCA-FRICTION-RESIDUE fields changed: ['carry'] prefix kept: True 0 -> 2 stage on main: queued
+ORCH-MACHINERY carry == review/2580 VERDICT.md line 11: True
+FLOW-ROSTER-FREEZE carry == review/2580 VERDICT.md line 12: True
+RESIDUE carry 1 == review/2598 finding 1 (Carry tag replaced by suffix): True ' (from #2598 verdict, bus 15d0bf56)'
+RESIDUE carry 2 == review/2598 finding 2 (Carry tag replaced by suffix): True ' (from #2598 verdict, bus 15d0bf56)'
+15d0bf56ae0f6ef7adc9058bc6d862d673faa60e verdict: #2598 Fix review: merge 35dd3965082c7deac9b3cf101df992d88081e944 (on origin/verdict/2598)
+hpo-approver[bot]	https://github.com/tvofi/heatpump_optimizer/pull/2580#issuecomment-6335670563	Fix review: merge caac2c8dfb338b316803b94ba1df13aff02647e0
