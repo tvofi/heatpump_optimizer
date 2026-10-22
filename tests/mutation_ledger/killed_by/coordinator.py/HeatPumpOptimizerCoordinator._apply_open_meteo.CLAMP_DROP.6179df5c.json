@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_open_meteo CLAMP_DROP 6179df5c",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "            aligned.append(max(0.0, value))",
+  "reason": "Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: CLAMP_DROP (`aligned.append((0.0))`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=5."
+}
