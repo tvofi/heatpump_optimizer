@@ -25,6 +25,15 @@
 # next branch restates its own footprint, claims included.
 #
 
+# R10-ADVISOR (#2257): the Advisor page's four enable-to-see rows (price of
+# a degree, wood-stove timing, fuse size, compressor frequency). Each gains a
+# second line naming the options step that turns it on, and its button's
+# data-act "settings" becomes "open_options" (an entry link through
+# openHaLink); nothing else in the state moves. The fixture publishes no
+# price tiles, so the degree row's own copy is not rendered here (card.mjs
+# pins it). Only advisor_page moves; the other 39 states are identical.
+advisor_page  # R10-ADVISOR: the opt-in rows name their options step and link the entry
+
 # fix/card-plan-history (tvofi 2026-09-26: "the history should look as
 # similar to the future plan as possible"). Exactly the three states that
 # render recorded rows move; card_drift reports the other 37 identical. In
