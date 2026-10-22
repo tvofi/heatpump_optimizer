@@ -501,7 +501,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: none). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-currency",
     "commit": null,
     "last_step": null,
@@ -2687,9 +2687,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-prepr-cap",
-    "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
+    "commit": "f0724675ff079895f7af8756b342165137a344ed",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane that needs a first-green head; the local re-record duplicated CI required closures context plus closures-autofix and cost 10-25 min per handoff. CORRECTION 2026-10-21: the figure first recorded here (108 ok, 0 FAIL, 12 skip, read as never having refused) was WRONG. The step line format is REFUSE, not FAIL, and the filter could not see the word. Re-counted over the same logs: 108 ok, 13 skip, 3 REFUSE, and 10 REFUSE lines in a looser pass; the fixer measured 15 in its own corpus. So the step does catch under-scoped closures locally and the ruling cost side is not zero. Recommendation on record: keep the skip as the default and force the local check with PREPR_RECORD_CLOSURES=1 on diffs touching tests/closures.json, tests/closure.py, or adding a read of an INERT file - the class that actually refused. Same change makes closures_line reap its recorder on TERM: stopped preprs left derive_closures reparented to launchd for 20-38 min. Fixer on handoff/r10-prepr-closures."
@@ -6383,9 +6383,9 @@
    "architect_note": "",
    "brief": "A hold list the relay honours, so a frozen pull request's head stays put while its handoff branch keeps moving (Lean flow study K13a; expedite since revision 5). cloud_relay.sh's handoff arm updates every open pull request whose handoff/<topic> tip is ahead of its head, and has no hold or exclusion option. The round's roster pull request takes its topic from handoff/audit-r10-roster, the branch every roster_edit.py push lands on, so the roster freeze had to stop all roster pushes, forward-carries included; finding-propagation.md needs a fixer's carry on that branch before its pull request merges, and fix-review.md step 10 checks it at the body's handoff/audit-r<N>-roster sha (2026-10-21: #2567 blocked carry-missing behind the freeze). Add a hold file under the relay's state directory: a pull request number listed there is skipped by the handoff arm with one HELD line per pass, naming the handoff tip it did not apply; removing the number resumes it. The orchestrator writes and removes it; nothing else does. With a pull request held, roster pushes, forward-carries included, continue on the handoff branch and are taken up by the next roster pull request after the held one merges. Controls: a held pull request whose handoff tip moved is not updated and prints HELD; an unheld one is updated as today; a malformed hold file is a refusal for that pass, never a silent hold-all or hold-none; mutants for each arm.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-relay-hold",
-    "commit": null,
+    "commit": "50808a755ce300fac4b19b7cfe7f89c795b8387b",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -6533,9 +6533,9 @@
    "architect_note": "",
    "brief": "Explain the fall in review strength before any guardrail relies on it (Lean flow study, owner ruling R13). Real-catch blocked verdicts per reviewed pull request fell from 0.52 over round 10's first six days (112 pull requests) to 0.15 in the 48 h before the flow plan's adoption (47 pull requests), before any flow change merged; bookkeeping blocks held near 0.6 per pull request. Measure, on the review and verdict bus refs and the merged pull requests, which of these moves the rate: the mix of pull requests reviewed (product against instrument and process, size), the reviewer seat's model and agent kind (nudge.md replaced dead Opus seats with other models), fixer quality (first-pass merge share by fixer model), the verdict carries that replace re-reviews, and the real-catch classes themselves. Each candidate is a stratified rate with its own count, and a null control stratum whose rate must not move. Deliver the explanation and a recommended threshold for the review-strength guardrail; until it lands the guardrail reports the rate and trips on nothing. Follow D13's required outputs where they apply.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-yield-probe",
-    "commit": null,
+    "commit": "a9db47846647a516fbdb544c55c59a416875309f",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"

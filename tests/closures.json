@@ -3535,6 +3535,7 @@
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
+   "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
