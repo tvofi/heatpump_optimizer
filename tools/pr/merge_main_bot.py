@@ -25,8 +25,9 @@ IT PUSHES ONLY WHEN ALL OF THESE HOLD, and says which one failed otherwise:
     `refused` marker on stderr;
   - the push is a fast-forward of the head it read (never forced): a head that
     moved since is left for the next push to `main`;
-  - no job of the mutation PIN CHAIN (`mutation`, `mutation-pins (*)`,
-    `mutation-autofix`) is still queued or running at
+  - no job of the mutation PIN CHAIN (`tests / mutation`, `tests /
+    mutation-pins (*)`, `tests / mutation-autofix`: tests.yml's jobs as the
+    umbrella ci.yml names them) is still queued or running at
     the head: a push there cancels the chain (#2282, 2026-10-15: twice, the
     shards ~2 h long), and while main keeps moving it never finishes. The
     next push to `main` after the chain settles merges it. An unreadable
@@ -144,8 +145,9 @@ def decide(*, mergeable, same_repo: bool, contains_main: bool,
 
 #: The jobs of tests.yml's mutation pin chain; a push to the head cancels them.
 #: `mutation-pin-plan` folded into `mutation` (R10-CI-LAYOUT PR 1): `mutation`
-#: is in the chain and runs until the plan is written, so no gap opens.
-PIN_CHAIN = re.compile(r"^(?:mutation|mutation-pins(?: \(.*\))?|mutation-autofix)$")
+#: is in the chain and runs until the plan is written, so no gap opens. Since
+#: P2b, ci.yml's `tests` job calls tests.yml, so each is named `tests / <job>`.
+PIN_CHAIN = re.compile(r"^tests / (?:mutation|mutation-pins(?: \(.*\))?|mutation-autofix)$")
 
 
 def pins_running(repo_slug: str, head: str, api=None) -> "list[str] | None":
@@ -328,27 +330,33 @@ def self_test() -> int:
             return {"jobs": world["jobs"][rid]}
         return get
     W = {"runs": [{"id": 5, "status": "in_progress"}, {"id": 6, "status": "completed"}],
-         "jobs": {5: [{"name": "mutation-pins (2)", "status": "in_progress"},
-                      {"name": "mutation-pins (1)", "status": "completed"},
+         "jobs": {5: [{"name": "tests / mutation-pins (2)", "status": "in_progress"},
+                      {"name": "tests / mutation-pins (1)", "status": "completed"},
                       {"name": "mutation-nightly", "status": "queued"},
-                      {"name": "fast (3.14)", "status": "in_progress"}],
-                  6: [{"name": "mutation-autofix", "status": "in_progress"}]}}
+                      {"name": "tests / fast (3.14)", "status": "in_progress"}],
+                  6: [{"name": "tests / mutation-autofix", "status": "in_progress"}]}}
     got = pins_running("o/r", "a" * 40, api=api(W))
     check("pins_running names the pin-chain jobs of a run still in progress at the head, and no other "
           "job (a completed run's jobs are not read)",
-          got == ["mutation-pins (2)"] and not any("/runs/6/" in x for x in W["reads"])
+          got == ["tests / mutation-pins (2)"] and not any("/runs/6/" in x for x in W["reads"])
           and f"head_sha={'a' * 40}" in W["reads"][0], repr(got))
     W2 = {"runs": [{"id": 5, "status": "queued"}],
-          "jobs": {5: [{"name": "mutation", "status": "queued"}, {"name": "mutation-autofix", "status": "waiting"}]}}
+          "jobs": {5: [{"name": "tests / mutation", "status": "queued"}, {"name": "tests / mutation-autofix", "status": "waiting"}]}}
     check("a queued run's mutation and mutation-autofix jobs are the chain too (the pins follow them)",
-          pins_running("o/r", "a" * 40, api=api(W2)) == ["mutation", "mutation-autofix"])
+          pins_running("o/r", "a" * 40, api=api(W2)) == ["tests / mutation", "tests / mutation-autofix"])
 
     W3 = {"runs": [{"id": 5, "status": "in_progress"}],
-          "jobs": {5: [{"name": "mutation", "status": "in_progress"},
-                       {"name": "mutation-pin-plan", "status": "in_progress"}]}}
+          "jobs": {5: [{"name": "tests / mutation", "status": "in_progress"},
+                       {"name": "tests / mutation-pin-plan", "status": "in_progress"}]}}
     check("while mutation runs (its last step sizes the pins) it holds the head, and the retired "
           "mutation-pin-plan name is no chain job (R10-CI-LAYOUT PR 1 folded it into mutation)",
-          pins_running("o/r", "a" * 40, api=api(W3)) == ["mutation"])
+          pins_running("o/r", "a" * 40, api=api(W3)) == ["tests / mutation"])
+    W4 = {"runs": [{"id": 5, "status": "in_progress"}],
+          "jobs": {5: [{"name": "mutation-pins (2)", "status": "in_progress"},
+                       {"name": "tests / mutation-pins (1)", "status": "in_progress"}]}}
+    check("the umbrella's name is the chain: `tests / mutation-pins (1)` holds the head, and the "
+          "pre-P2b bare `mutation-pins (2)` (a Tests run's) is not read (P2b cuts over; null control)",
+          pins_running("o/r", "a" * 40, api=api(W4)) == ["tests / mutation-pins (1)"])
     check("a malformed runs page (no list) is unread, not settled",
           pins_running("o/r", "a" * 40, api=lambda path: {"workflow_runs": None}) is None)
     # THE NAMES THE STUB CANNOT SEE: PIN_CHAIN keys on tests.yml's job ids
@@ -356,12 +364,12 @@ def self_test() -> int:
     import re as _re
     wf = (ROOT / ".github/workflows/tests.yml").read_text()
     ids = _re.findall(r"(?m)^  ([A-Za-z0-9_-]+):\n", wf)
-    chain = {j for j in ids if PIN_CHAIN.match(j)}
+    chain = {j for j in ids if PIN_CHAIN.match(f"tests / {j}")}
     def block(j):  # the job's own lines: from its id to the next top-level key
         m = _re.search(rf"(?m)^  {_re.escape(j)}:\n((?:(?:    [^\n]*)?\n)*)", wf)
         return m.group(1) if m else ""
     renamed = [j for j in chain if _re.search(r"(?m)^    name:", block(j))]
-    check("PIN_CHAIN matches exactly tests.yml's three pin-chain jobs, none renamed by a `name:`",
+    check("PIN_CHAIN matches exactly tests.yml's three pin-chain jobs as `tests / <id>`, none renamed by a `name:`",
           chain == {"mutation", "mutation-pins", "mutation-autofix"} and not renamed,
           f"{sorted(chain)} renamed={renamed}")
 
@@ -413,19 +421,19 @@ def self_test() -> int:
                 return {"jobs": jobs}
             return get
         listed = {"number": 7, "head": {"sha": fix, "ref": "fix", "repo": {"full_name": "o/r"}}}
-        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "mutation-pins (3)", "status": "in_progress"}]),
+        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "tests / mutation-pins (3)", "status": "in_progress"}]),
                       fetch=False)
         check("plan_pr (run()'s per-PR step) reads the head's pin chain: a running shard is skip-pins-running",
-              got[0] == "skip-pins-running mutation-pins (3)", repr(got[0]))
-        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "mutation-pins (3)", "status": "completed"}]),
+              got[0] == "skip-pins-running tests / mutation-pins (3)", repr(got[0]))
+        got = plan_pr("o/r", listed, m1, r, api=bot_api([{"name": "tests / mutation-pins (3)", "status": "completed"}]),
                       fetch=False)
         check("... and the same head with its chain settled merges (null control)", got[0] == "merge", repr(got[0]))
         hundred = [{"id": 900 + i, "status": "completed"} for i in range(100)]
         got = plan_pr("o/r", listed, m1, r, fetch=False,
-                      api=bot_api([{"name": "mutation-autofix", "status": "queued"}],
+                      api=bot_api([{"name": "tests / mutation-autofix", "status": "queued"}],
                                   runs_pages=[hundred, [{"id": 5, "status": "in_progress"}]]))
         check("the runs read pages past the first 100 runs (the Tests run on page 2 still holds the head)",
-              got[0] == "skip-pins-running mutation-autofix", repr(got[0]))
+              got[0] == "skip-pins-running tests / mutation-autofix", repr(got[0]))
         status, _ = plan_one(r, fix, m1, mergeable=False, same_repo=True,
                              pins=lambda: ["mutation-pins (1)"])
         check("the same head with its pin chain running is not merged (plan_one asks the chain)",
