@@ -19274,67 +19274,6 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
-# --- the inert CI umbrella stub (R10-CI-LAYOUT PR 0; DESIGN-P1 step 5b) -------
-#
-# `.github/workflows/ci.yml` exists on main only so that `workflow_dispatch`
-# can dispatch it from a probe ref (GitHub dispatches a file only once it is on
-# the default branch). Until the umbrella replaces it, it must do nothing and
-# write no check at any pull-request head: dispatch is its one trigger, `stub`
-# its one job, running `true`, with no grant at either level and no `uses:`.
-# It is a gate file from the stub on, so the replacing edit runs FULL. Reads
-# the parsed document, not a source grep (PyYAML reads the `on:` key as True).
-def _ci_stub_defects(text: str) -> "list[str]":
-    doc = _yaml.safe_load(text) or {}
-    on = doc.get("on", doc.get(True))
-    defects = []
-    if not isinstance(on, dict) or set(on) != {"workflow_dispatch"}:
-        defects.append(f"triggers {sorted(map(str, on or {}))} (want only workflow_dispatch)")
-    dispatch = on.get("workflow_dispatch") if isinstance(on, dict) else None
-    inputs = (dispatch or {}).get("inputs") or {}
-    if set(inputs) != {"pr", "base", "recheck", "no-skip"} or any(
-            (v or {}).get("required", False) or (v or {}).get("type") != "string"
-            for v in inputs.values()):
-        defects.append(f"inputs {inputs!r} (want pr/base/recheck/no-skip, "
-                       "each an optional string)")
-    if doc.get("permissions") != {}:
-        defects.append(f"workflow permissions {doc.get('permissions')!r}")
-    jobs = doc.get("jobs") or {}
-    if set(jobs) != {"stub"}:
-        defects.append(f"jobs {sorted(jobs)} (want only stub)")
-    stub = jobs.get("stub") or {}
-    if stub.get("permissions") != {}:
-        defects.append(f"stub permissions {stub.get('permissions')!r}")
-    if [st.get("run") for st in stub.get("steps") or []] != ["true"] or any(
-            set(st) - {"run"} for st in stub.get("steps") or []):
-        defects.append(f"stub steps {stub.get('steps')!r} (want one `run: true`)")
-    if re.search(r"^\s*-?\s*uses:", text, re.M):
-        defects.append("a `uses:` line")
-    return defects
-
-
-_CI_STUB = Path(".github/workflows/ci.yml").read_text()
-_CI_STUB_DEFECTS = _ci_stub_defects(_CI_STUB)
-# Null controls: the same parser over a stub given a second trigger, a grant,
-# and a second job must name each defect, so a parser that reads nothing fails.
-_CI_STUB_PLANTS = {
-    "push trigger": _CI_STUB.replace("on:\n", "on:\n  push:\n", 1),
-    "grant": _CI_STUB.replace("permissions: {}\n\njobs:", "permissions:\n  contents: read\n\njobs:", 1),
-    "second job": _CI_STUB + "  other:\n    runs-on: ubuntu-latest\n    steps:\n      - run: \"true\"\n",
-}
-_CI_STUB_PLANT_MISSED = sorted(k for k, t in _CI_STUB_PLANTS.items()
-                               if t == _CI_STUB or not _ci_stub_defects(t))
-R.check(
-    "the ci.yml umbrella stub is inert: dispatch only, one `true` job, no "
-    "grant, no `uses:`, and a gate file",
-    not _CI_STUB_DEFECTS and not _CI_STUB_PLANT_MISSED
-    and _closure.is_gate_file(".github/workflows/ci.yml")
-    and _closure.affected([".github/workflows/ci.yml"])["case"] == "full",
-    f"defects={_CI_STUB_DEFECTS} plants the parser missed="
-    f"{_CI_STUB_PLANT_MISSED} gate={_closure.is_gate_file('.github/workflows/ci.yml')}; "
-    "a stub that triggers on anything but dispatch writes checks at pull-"
-    "request heads before the umbrella replaces it",
-)
-
 # --- the umbrella engine's pins (R10-CI-LAYOUT P2a glue) ---------------------
 #
 # REQUIRED. `tools/ci/gate.py`'s `REQUIRED` (contract item 4, keyed by event
@@ -19395,15 +19334,18 @@ R.check(
     f"{_CIG_PLANT_MISSED}; the gate and the ruleset would demand different checks",
 )
 
-# Forgery (DESIGN-P2 2.1, rev1 item 12(b)), the half that needs no umbrella:
-# no workflow but ci.yml defines a job whose id or `name:` can render `gate`
-# (a `${{ }}` in a name matches any text), and no workflow grants `checks:
-# write` -- neither at the top nor in a job, and never through `write-all`.
-# Every workflow declares a top-level `permissions:`, so no job falls back to
-# the repository's default token, which the tree cannot read. The other half,
-# "exactly one job in ci.yml carries `gate`", is P2b's: the stub has none.
+# Forgery (DESIGN-P2 2.1, rev1 item 12(b)): exactly one job in ci.yml, and
+# none in any other workflow, has an id or `name:` that can render `gate` (a
+# `${{ }}` in a name matches any text); and no workflow grants `checks:
+# write` or `statuses: write` -- neither at the top nor in a job, and never
+# through `write-all`. A required check is matched by name, and the ruleset's
+# integration pin (15368) accepts a commit status as readily as a check run,
+# so either grant could write a newer green `gate` at a PR head (#2622's
+# review, carry 8; DESIGN-P2 5 names no need for either). Every workflow
+# declares a top-level `permissions:`, so no job falls back to the
+# repository's default token, which the tree cannot read.
 def _forgery_defects(docs: "dict[str, dict]") -> "list[str]":
-    out = []
+    out, reporters = [], {}
     for name, doc in docs.items():
         if "permissions" not in doc:
             out.append(f"{name}: no top-level permissions (the default token)")
@@ -19412,12 +19354,18 @@ def _forgery_defects(docs: "dict[str, dict]") -> "list[str]":
             job = job or {}
             label = str(job.get("name") or jid)
             pat = ".+".join(re.escape(p) for p in re.split(r"\$\{\{.*?\}\}", label))
-            if name != "ci.yml" and (jid == "gate" or re.fullmatch(pat, "gate")):
-                out.append(f"{name}: job {jid} can report as `gate`")
+            if jid == "gate" or re.fullmatch(pat, "gate"):
+                reporters.setdefault(name, []).append(jid)
             grants.append((jid, job.get("permissions")))
         for where, perm in grants:
-            if perm == "write-all" or (isinstance(perm, dict) and perm.get("checks") == "write"):
-                out.append(f"{name}: {where} grants checks: write")
+            for scope in ("checks", "statuses"):
+                if perm == "write-all" or (isinstance(perm, dict) and perm.get(scope) == "write"):
+                    out.append(f"{name}: {where} grants {scope}: write")
+    for name, jids in sorted(reporters.items()):
+        if name != "ci.yml":
+            out += [f"{name}: job {jid} can report as `gate`" for jid in jids]
+    if "ci.yml" in docs and reporters.get("ci.yml") != ["gate"]:
+        out.append(f"ci.yml: jobs {reporters.get('ci.yml', [])} report `gate`, not exactly the job `gate`")
     return out
 
 
@@ -19430,6 +19378,8 @@ _FORGERY_PLANTS = {
     "a gate job id": {"jobs": {**_fg_jobs, "gate": {"runs-on": "x"}}},
     "a job named by an expression": {"jobs": {**_fg_jobs, "x": {"name": "${{ inputs.n }}"}}},
     "a job grant": {"jobs": {**_fg_jobs, "x": {"permissions": {"checks": "write"}}}},
+    "a job statuses grant": {"jobs": {**_fg_jobs, "x": {"permissions": {"statuses": "write"}}}},
+    "a workflow statuses grant": {"permissions": {"contents": "read", "statuses": "write"}},
     "write-all": {"permissions": "write-all"},
     "no top-level permissions": None,
 }
@@ -19438,12 +19388,368 @@ _FORGERY_PLANT_MISSED = sorted(
     if not _forgery_defects({"tests.yml": (
         {k2: v for k2, v in _fg_tests.items() if k2 != "permissions"} if over is None
         else {**_fg_tests, **over})}))
+# ... and over ci.yml itself: a second job that renders `gate`, the `gate` job
+# gone, and a grant on the one job that does report it.
+_fg_ci = _FORGERY_DOCS.get("ci.yml") or {}
+_fg_ci_jobs = _fg_ci.get("jobs") or {}
+_FORGERY_CI_PLANTS = {
+    "a second gate in ci.yml": {**_fg_ci_jobs, "x": {"name": "${{ inputs.n }}"}},
+    "no gate in ci.yml": {k: v for k, v in _fg_ci_jobs.items() if k != "gate"},
+    "gate granted statuses: write": {**_fg_ci_jobs, "gate": {
+        **(_fg_ci_jobs.get("gate") or {}), "permissions": {"statuses": "write"}}},
+}
+_FORGERY_PLANT_MISSED += sorted(
+    k for k, jobs in _FORGERY_CI_PLANTS.items()
+    if not _forgery_defects({"ci.yml": {**_fg_ci, "jobs": jobs}}))
 R.check(
-    "forgery: no workflow but ci.yml defines a `gate` job, none grants "
-    "checks: write, and every workflow declares its top-level permissions",
-    bool(_FORGERY_DOCS) and not _FORGERY_DEFECTS and not _FORGERY_PLANT_MISSED,
+    "forgery: exactly one job, ci.yml's `gate`, can report `gate`; no "
+    "workflow grants checks: write or statuses: write; and every workflow "
+    "declares its top-level permissions",
+    bool(_FORGERY_DOCS) and "gate" in _fg_ci_jobs
+    and not _FORGERY_DEFECTS and not _FORGERY_PLANT_MISSED,
     f"defects={_FORGERY_DEFECTS} plants the reader missed={_FORGERY_PLANT_MISSED}; "
     "a second producer of `gate` could write a newer green at a PR head",
+)
+
+# --- the CI umbrella (R10-CI-LAYOUT P2b, unit U0c; DESIGN-P2 2.1-2.3, 4.3) ---
+#
+# ci.yml replaced PR 0's inert stub. Each property below is one the `gate`
+# verdict rests on and the file alone shows, read from the parsed document
+# and, where a `${{ }}` decides it, evaluated under every event the file
+# lists (`_ghx`, a reader of literals, context paths, `!`, `==`, `!=`, `&&`,
+# `||`, `format`, `contains` and the status functions; anything else is
+# undecidable, which every check here counts as a defect):
+#   - the triggers are DESIGN-P2 2.1's plus A2 item 1's `labeled`, and
+#     `merge_group` (D-3, K9);
+#   - `run-name` renders exactly `prelude.title(*prelude.derive(event), sha)`
+#     for every modelled event (on `merge_group` with `pr=- base=-`, which no
+#     expression can cut from the queue ref), so a past run's kind, PR, base
+#     and `sha=` read back as the prelude derived them;
+#   - one run per concurrency group, cancelling nothing (rev2, N1);
+#   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
+#     own stem (the naming rule), all inside the `# >>> units` block the
+#     coordinator cuts a probe from, each run exactly when the prelude's
+#     `workset` names it, and each needed by `gate` (and by `pr-contract`,
+#     which runs last);
+#   - every `needs.prelude.outputs.*` read is a prelude output, and every
+#     prelude output reads a key prelude.py prints (the producer pin);
+#   - `gate`'s `if:` is true under every event type `on:` lists, with the
+#     prelude failed or not: a skipped required check passes;
+#   - `gate` checks out full history (D-2's three-dot diff) and its last step
+#     runs `python3 -I tools/ci/gate.py --pr --base --kind` on the prelude's
+#     outputs.
+# It stays a gate file, so an edit to it runs FULL.
+def _ghx(expr, ctx: dict):
+    """A GitHub expression (with or without `${{ }}`) under `ctx`, a flat map of
+    context paths; None when this reader cannot decide it."""
+    s = str(expr).strip()
+    if s.startswith("${{") and s.endswith("}}"):
+        s = s[3:-2]
+    s = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
+               lambda m: f"_c({m.group(0)!r})", s)
+    s = s.replace("&&", " and ").replace("||", " or ")
+    s = re.sub(r"!(?!=)", " not ", s)
+    if not re.fullmatch(r"(?:\s|\(|\)|,|==|!=|and|or|not|True|False|None|'[^']*'"
+                        r"|-?\d+|_c\('[^']*'\)|format|contains|cancelled|always"
+                        r"|success|failure)*", s):
+        return None
+
+    def _fmt(f, *a):
+        return re.sub(r"\{(\d+)\}", lambda m: "" if a[int(m.group(1))] is None
+                      else str(a[int(m.group(1))]), f)
+    env = {"_c": lambda k: ctx.get(k), "format": _fmt,
+           "contains": lambda h, n: str(n or "").lower() in str(h or "").lower(),
+           "cancelled": lambda: False, "always": lambda: True,
+           "success": lambda: True, "failure": lambda: False}
+    try:
+        return eval(s, {"__builtins__": {}}, env)  # literals, operators, the functions above
+    except Exception:  # noqa: BLE001 -- undecidable reads as None
+        return None
+
+
+def _ghx_flat(prefix: str, obj, out: dict) -> dict:
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            _ghx_flat(f"{prefix}.{k}", v, out)
+    out[prefix] = obj
+    return out
+
+
+_cip_spec = _cig_util.spec_from_file_location("hpo_ci_prelude", _closure.ROOT / "tools" / "ci" / "prelude.py")
+_cip = _cig_util.module_from_spec(_cip_spec)
+_cip_spec.loader.exec_module(_cip)
+_CI_PATH = Path(".github/workflows/ci.yml")
+_CI_TEXT = _CI_PATH.read_text()
+_CI_DOC = _yaml.safe_load(_CI_TEXT) or {}
+_CI_ON = {"pull_request": ["opened", "synchronize", "reopened", "edited", "labeled"],
+          "pull_request_review": ["submitted", "edited", "dismissed"],
+          "push": None, "merge_group": ["checks_requested"], "workflow_dispatch": None}
+_CI_SHA = "f" * 40
+_CI_PR = {"number": 7, "base": {"ref": "main", "sha": "b" * 40},
+          "head": {"sha": "e" * 40, "repo": {"full_name": "o/r"}}, "labels": []}
+# One modelled payload per (event, type) `on:` can list; a type the file
+# lists with no model here is a defect, so a new trigger arrives modelled.
+_CI_EVENTS = {
+    **{("pull_request", a): {"action": a, "pull_request": _CI_PR}
+       for a in ("opened", "synchronize", "reopened")},
+    ("pull_request", "edited"): {"action": "edited", "pull_request": _CI_PR,
+                                 "changes": {"body": {"from": "x"}}},
+    ("pull_request", "edited/base"): {"action": "edited", "pull_request": _CI_PR,
+                                      "changes": {"base": {"ref": {"from": "rel"}}}},
+    ("pull_request", "labeled"): {"action": "labeled", "pull_request": _CI_PR,
+                                  "label": {"name": "kernel-points"}},
+    ("pull_request", "labeled/other"): {"action": "labeled", "pull_request": _CI_PR,
+                                        "label": {"name": "docs"}},
+    **{("pull_request_review", a): {"action": a, "pull_request": _CI_PR}
+       for a in ("submitted", "edited", "dismissed")},
+    ("push", None): {"ref": "refs/heads/main"},
+    ("merge_group", "checks_requested"): {"action": "checks_requested", "merge_group": {
+        "head_ref": "refs/heads/gh-readonly-queue/main/pr-12-" + "a" * 40,
+        "base_ref": "refs/heads/main", "head_sha": _CI_SHA, "base_sha": "b" * 40}},
+    ("workflow_dispatch", None): {"inputs": {"pr": "7", "base": "main"}},
+    ("workflow_dispatch", "bare"): {"inputs": {}},
+}
+
+
+def _ci_ctx(ev: str, payload: dict, outputs=None) -> "tuple[dict, dict]":
+    """(the expression context, prelude.context's) for one modelled event;
+    `outputs` are the prelude's: a failed prelude's read as empty strings."""
+    flat = _ghx_flat("github.event", payload, {})
+    flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
+                 "github.repository": "o/r"})
+    flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
+    pctx = _cip.context(ev, payload, {"GITHUB_SHA": _CI_SHA, "GITHUB_REPOSITORY": "o/r",
+                                      "GITHUB_RUN_ID": "99"})
+    flat.update({f"needs.prelude.outputs.{k}": v for k, v in (outputs or {}).items()})
+    return flat, pctx
+
+
+def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
+    out = []
+    on = doc.get("on", doc.get(True))
+    if not isinstance(on, dict) or set(on) != set(_CI_ON):
+        out.append(f"triggers {sorted(map(str, on or {}))} (want {sorted(_CI_ON)})")
+        on = on if isinstance(on, dict) else {}
+    for ev, want in _CI_ON.items():
+        types = ((on.get(ev) or {}).get("types")) if isinstance(on.get(ev), dict) else None
+        if want is not None and sorted(types or []) != sorted(want):
+            out.append(f"{ev} types {types} (want {want})")
+    if ((on.get("push") or {}).get("branches")) != ["main"]:
+        out.append(f"push {on.get('push')} (want branches [main])")
+    inputs = ((on.get("workflow_dispatch") or {}).get("inputs")) or {}
+    if set(inputs) != {"pr", "base", "recheck", "no-skip"} or any(
+            (v or {}).get("required", False) or (v or {}).get("type") != "string"
+            for v in inputs.values()):
+        out.append(f"dispatch inputs {sorted(inputs)} (want pr/base/recheck/no-skip, optional strings)")
+    modelled = {(e, (a or "").split("/")[0] or None) for e, a in _CI_EVENTS}
+    for ev, types in on.items():
+        for a in ((types or {}).get("types") or [None]) if isinstance(types, dict) else [None]:
+            if (ev, a) not in modelled:
+                out.append(f"`on:` lists {ev}/{a}, which no model here renders")
+    if doc.get("permissions") != {}:
+        out.append(f"workflow permissions {doc.get('permissions')!r}")
+    cc = doc.get("concurrency") or {}
+    if cc.get("group") != "CI-${{ github.run_id }}" or cc.get("cancel-in-progress") is not False:
+        out.append(f"concurrency {cc} (want group CI-<run id>, cancelling nothing)")
+    jobs = doc.get("jobs") or {}
+    callers = {j for j, b in jobs.items() if "uses" in (b or {})}
+    if callers != set(_cig.UNITS) | {_cip.KP}:
+        out.append(f"callers {sorted(callers)} (want gate.py's UNITS and {_cip.KP})")
+    lines = text.splitlines()
+    try:
+        lo, hi = lines.index("  # >>> units: one caller per unit file, id == stem; each runs when the"), \
+            lines.index("  # <<< units")
+    except ValueError:
+        lo, hi = 0, -1
+        out.append("no `# >>> units` ... `# <<< units` block")
+    for j in sorted(callers):
+        at = [i for i, ln in enumerate(lines) if ln == f"  {j}:"]
+        if jobs[j].get("uses") != f"./.github/workflows/{j}.yml" or not Path(jobs[j]["uses"]).is_file():
+            out.append(f"{j}: uses {jobs[j].get('uses')!r}, not its own stem's file")
+        if len(at) != 1 or not lo < at[0] < hi:
+            out.append(f"{j}: outside the units block")
+        if not isinstance(jobs[j].get("permissions"), dict):
+            out.append(f"{j}: no caller grant (the callee would get the default token's cap)")
+    for j, want in (("gate", callers), ("pr-contract", callers - {"pr-contract"})):
+        needs = (jobs.get(j) or {}).get("needs") or []
+        if "prelude" not in needs or not want <= set(needs):
+            out.append(f"{j} needs {needs}, not prelude and {sorted(want)}")
+    pre = (jobs.get("prelude") or {}).get("outputs") or {}
+    sample, _ = _cip.outputs(_cip.context("push", {}, {"GITHUB_SHA": _CI_SHA}), [], lambda *a, **k: (200, {}, {}))
+    for k, v in pre.items():
+        m = re.fullmatch(r"\$\{\{ steps\.derive\.outputs\.([\w-]+) \}\}", str(v))
+        if not m or m.group(1) not in sample:
+            out.append(f"prelude output {k}={v!r} reads no key prelude.py prints")
+    for k in sorted(set(re.findall(r"needs\.prelude\.outputs\.([\w-]+)", text)) - set(pre)):
+        out.append(f"needs.prelude.outputs.{k} is read, and the prelude declares no such output")
+    gate = jobs.get("gate") or {}
+    steps = gate.get("steps") or []
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if not co or (co[0].get("with") or {}).get("fetch-depth") != 0:
+        out.append("gate's checkout is not full history (D-2's three-dot diff)")
+    last = steps[-1] if steps else {}
+    if str(last.get("run", "")).strip() != 'python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"' \
+            or {k: (last.get("env") or {}).get(k) for k in ("PR", "BASE", "KIND")} != {
+                k: f"${{{{ needs.prelude.outputs.{k.lower()} }}}}" for k in ("PR", "BASE", "KIND")}:
+        out.append("gate's last step is not `gate.py --pr --base --kind` on the prelude's outputs")
+    for (ev, a), payload in _CI_EVENTS.items():
+        flat, pctx = _ci_ctx(ev, payload)
+        kind, pr, base = _cip.derive(pctx)
+        want = _cip.title(kind, "" if ev == "merge_group" else pr, "" if ev == "merge_group" else base, _CI_SHA)
+        got = _ghx(doc.get("run-name", ""), flat)
+        if got != want:
+            out.append(f"run-name under {ev}/{a} renders {got!r}, prelude.title says {want!r}")
+        ws = _cip.workset(kind, pr, pctx.get("labels", ()))
+        outs = {"kind": kind, "pr": pr, "base": base, "workset": " ".join(sorted(ws))}
+        for o in (outs, dict.fromkeys(list(pre) + list(outs), "")):
+            if _ghx(gate.get("if", "true"), _ci_ctx(ev, payload, o)[0]) is not True:
+                out.append(f"gate's if: is not true under {ev}/{a} (prelude {'failed' if o is not outs else 'ok'})")
+        for j in sorted(callers):
+            runs = _ghx(jobs[j].get("if", "true"), _ci_ctx(ev, payload, outs)[0])
+            if runs is not (j in ws):
+                out.append(f"{j} under {ev}/{a}: if reads {runs!r}, the workset {'names' if j in ws else 'omits'} it")
+    return out
+
+
+_CI_DEFECTS = _ci_umbrella_defects(_CI_DOC, _CI_TEXT)
+# Null controls: each plant breaks one property and must be named.
+_CI_PLANTS = {
+    "run-name without the labeled arms": _CI_TEXT.replace(
+        "      || github.event_name == 'pull_request' && github.event.action == 'labeled' && 'label'\n", "", 1),
+    "run-name without sha=": _CI_TEXT.replace(" sha={3}'", "'", 1),
+    "no merge_group": _CI_TEXT.replace("  merge_group:\n    types: [checks_requested]\n", "", 1),
+    "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
+    "a group per PR": _CI_TEXT.replace("CI-${{ github.run_id }}", "CI-${{ github.event.pull_request.number }}", 1),
+    "gate skippable on merge_group": _CI_TEXT.replace(
+        "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
+    "gate skipped when the prelude fails": _CI_TEXT.replace(
+        "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && needs.prelude.outputs.kind != '' }}\n", 1),
+    # DESIGN-P2 2.2's own guard, which A2 item 2's label kinds made wrong.
+    "a unit guarded on the event, not the workset": _CI_TEXT.replace(
+        "    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' arch-score ')\n",
+        "    if: needs.prelude.outputs.pr != '' && needs.prelude.outputs.kind != 'review'\n", 1),
+    "a caller off its stem": _CI_TEXT.replace(
+        "    uses: ./.github/workflows/validate.yml\n", "    uses: ./.github/workflows/hassfest.yml\n", 1),
+    "gate does not need a unit": _CI_TEXT.replace(
+        "kernel-points, arch-score, budget-raise-gate, pr-contract]\n", "kernel-points, arch-score, pr-contract]\n", 1),
+    "shallow gate checkout": _CI_TEXT[:_CI_TEXT.find("  gate:\n")] + _CI_TEXT[_CI_TEXT.find("  gate:\n"):].replace(
+        "fetch-depth: 0", "fetch-depth: 1", 1) if "  gate:\n" in _CI_TEXT else _CI_TEXT,
+    "an output prelude.py never prints": _CI_TEXT.replace(
+        "steps.derive.outputs.scope }}", "steps.derive.outputs.gate_scope }}", 1),
+}
+_CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
+                          if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
+R.check(
+    "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
+    "run-name equal to prelude.title, one run per group, every unit called "
+    "by its stem exactly when the prelude's workset names it, and a `gate` "
+    "no event can skip, judging on the prelude's outputs (U0c)",
+    not _CI_DEFECTS and not _CI_PLANT_MISSED
+    and _closure.is_gate_file(".github/workflows/ci.yml")
+    and _closure.affected([".github/workflows/ci.yml"])["case"] == "full",
+    f"defects={_CI_DEFECTS} plants the reader missed={_CI_PLANT_MISSED} "
+    f"gate={_closure.is_gate_file('.github/workflows/ci.yml')}; a skippable "
+    "or mis-sourced `gate` passes a head its units never judged",
+)
+
+
+# The sweep (DESIGN-P2 2.1, 4.3; decision M-2 ships it). It fires on every CI
+# completion, holds `actions: write`, and runs the default branch's program at
+# the default branch's commit with nothing a pull request controls in the
+# job; it declares no `concurrency:` (R4-4: a shared group would replace a
+# pending sweep or cancel a polling one). Its outcome is read from the
+# program's last output line, never from the exit code: `gate.py --sweep`
+# exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
+# step's own text is run under bash with a stand-in `python3` printing each
+# outcome, so the classification is measured, not read.
+def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
+    with tempfile.TemporaryDirectory() as d:
+        fake = Path(d) / "python3"
+        fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
+        fake.chmod(0o755)
+        p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
+                            env={**os.environ, "PATH": f"{d}:{os.environ.get('PATH', '')}",
+                                 "RUN_ID": "123", "FAKE_OUT": stdout, "FAKE_RC": str(rc)})
+    return p.returncode, p.stdout
+
+
+_GS_CASES = [  # (program stdout, program rc) -> (the step fails, the annotation it must print)
+    ("SWEEP re-ran gate of run 1 (attempt 1, completed red)\nSWEEP-DONE run=2 reruns=1\n", 0, False, ""),
+    ("SKIP run 2: its gate is not green and newest-covering\n", 0, False, ""),
+    ("SWEEP-DONE run=2 reruns=0\n", 1, False, ""),
+    ("SWEEP re-ran gate of run 1\nRATE-LIMITED reset_epoch=99; no further re-runs before it\n", 1, True,
+     "::error title=RATE-LIMITED::"),
+    ("RATE-LIMITED reset_epoch=99; no further re-runs before it\n", 0, True, "::error title=RATE-LIMITED::"),
+    ("Traceback (most recent call last):\nRuntimeError: GET actions/runs/2: 500\n", 1, True,
+     "::error title=sweep failed::"),
+    ("", 0, True, "::error title=sweep failed::"),
+]
+
+
+def _gs_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get("on", doc.get(True)) or {}
+    jobs = doc.get("jobs") or {}
+    out = []
+    if on != {"workflow_run": {"workflows": [_CI_DOC.get("name")], "types": ["completed"]}}:
+        out.append(f"triggers {on} (want workflow_run of {_CI_DOC.get('name')!r} completed)")
+    if "concurrency" in doc or any("concurrency" in (j or {}) for j in jobs.values()):
+        out.append("a concurrency group")
+    if list(jobs) != ["sweep"]:
+        out.append(f"jobs {list(jobs)}")
+    job = jobs.get("sweep") or {}
+    if doc.get("permissions") != {} or job.get("permissions") != {
+            "actions": "write", "contents": "read", "pull-requests": "read"}:
+        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    steps = job.get("steps") or []
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
+            or (co[0].get("with") or {}).get("persist-credentials") is not False:
+        out.append(f"checkout {[s.get('with') for s in co]}")
+    if re.search(r"head_branch|head_repository|head_sha|pull_requests|display_title|head_commit",
+                 text.split("\njobs:", 1)[-1]):
+        out.append("a pull-request-controlled string reaches the job")
+    prog = [s for s in steps if "tools/ci/gate.py --sweep" in str(s.get("run", ""))]
+    if len(prog) != 1 or (prog[0].get("env") or {}).get("RUN_ID") != "${{ github.event.workflow_run.id }}" \
+            or 'python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"' not in str(prog[0].get("run")):
+        out.append("no one step runs `python3 -I tools/ci/gate.py --sweep --run \"$RUN_ID\"` on the trigger's id")
+    else:
+        for so, rc, fails, note in _GS_CASES:
+            got_rc, got_out = _gs_step_verdict(str(prog[0]["run"]), so, rc)
+            if (got_rc != 0) != fails or note not in got_out:
+                out.append(f"program ({so.splitlines()[-1:]!r}, rc {rc}) -> step rc {got_rc}, "
+                           f"want {'a failure' if fails else 'success'}{' with ' + note if note else ''}")
+    return out
+
+
+_GS_PATH = Path(".github/workflows/gate-sweep.yml")
+_GS_TEXT = _GS_PATH.read_text() if _GS_PATH.is_file() else ""
+_GS_DEFECTS = _gs_defects(_GS_TEXT)
+_GS_RUN = (_yaml.safe_load(_GS_TEXT) or {}).get("jobs", {}).get("sweep", {}).get("steps", [{}])[-1].get("run", "")
+_GS_PLANTS = {
+    "keyed on the exit code": _GS_TEXT.replace(_GS_RUN.rstrip("\n").replace("\n", "\n          "),
+                                              'python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"', 1)
+    if _GS_RUN else "",
+    "a crash read as done": _GS_TEXT.replace(
+        '            *) echo "::error title=sweep failed::${last:-no output}"; exit 1 ;;\n', "            *) ;;\n", 1),
+    "a concurrency group": _GS_TEXT.replace(
+        "permissions: {}\n", "permissions: {}\n\nconcurrency:\n  group: sweep-${{ github.event.workflow_run.id }}\n", 1),
+    "the PR's head checked out": _GS_TEXT.replace(
+        "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}", 1),
+}
+_GS_PLANT_MISSED = sorted(k for k, t in _GS_PLANTS.items() if t == _GS_TEXT or not _gs_defects(t))
+R.check(
+    "gate-sweep.yml: on CI's completion, no concurrency, main's program on "
+    "the trigger's run id alone, its outcome read from the output's word "
+    "(SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), "
+    "never from the exit code (U0c)",
+    _GS_TEXT and not _GS_DEFECTS and not _GS_PLANT_MISSED
+    and _closure.is_gate_file(str(_GS_PATH))
+    and _closure.affected([str(_GS_PATH)])["case"] == "full",
+    f"defects={_GS_DEFECTS} plants the reader missed={_GS_PLANT_MISSED} "
+    f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
+    "code reads a rate limit as a crash, and one that reads a crash as done "
+    "leaves a stale red `gate` unannounced",
 )
 
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
@@ -27198,6 +27504,13 @@ _PT_EXEMPT = {
     ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
     "tests/nightly_status.py":
         "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
+    # The umbrella's programs (U0c). An arm for them is owed to tests.yml's
+    # owner (U5); until it lands, the U0 live probe runs them under the
+    # Actions token before P2b merges.
+    "tools/ci/gate.py":
+        "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
+    "tools/ci/prelude.py":
+        "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
 }
 _PT_PROG = re.compile(r"(?:^|\s)(?:node|python3?)(?:\s+-\S+)*\s+([\w./-]+\.(?:mjs|py))", re.M)
 
@@ -28308,7 +28621,16 @@ R.check(
                       "budget-raise-gate.yml": ["budget-raise-gate"],
                       # R9-EG-A4: the required score check reads the body, so
                       # a body edit is the answer to its red; one job, no `if:`.
-                      "arch-score.yml": ["arch-score"]},
+                      "arch-score.yml": ["arch-score"],
+                      # The umbrella (U0c): its one required check is `gate`,
+                      # whose `if:` no event can make false (pinned above), and
+                      # gate.py takes no unit's verdict from a run whose
+                      # workset omits it, so a unit skipped by an edit run is
+                      # no source. Listed in full: a new job here is named.
+                      "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
+                                 "codeql", "gate", "governance", "hassfest",
+                                 "kernel-points", "pr-contract", "prelude", "refresh",
+                                 "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -28347,6 +28669,8 @@ _RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
 def _rc_producer(context: str) -> "tuple[str, str] | None":
     for _name, _doc in _RC_DOCS.items():
         for _jid, _job in (_doc.get("jobs") or {}).items():
+            if "uses" in (_job or {}):
+                continue                     # a caller reports `<id> / <job>` (DESIGN-P2 2.1)
             _label = str((_job or {}).get("name") or _jid)
             _pat = ".+".join(re.escape(_part)
                              for _part in re.split(r"\$\{\{.*?\}\}", _label))
@@ -28464,7 +28788,9 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 # twin from being cancelled. A design choice per file, not a derived fact.
 _CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
                   "budget-raise-gate.yml": "per-run",
-                  "arch-score.yml": "per-run"}
+                  "arch-score.yml": "per-run",
+                  # The umbrella (U0c): every run in a run-id group (rev2, N1).
+                  "ci.yml": "per-run"}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -29207,10 +29533,13 @@ R.check(
 # handing the program the newest red at the head. Pinned below: an `if:` on
 # the job, a group not keyed on the head, a watched copy that drifts, or a
 # program step not gated on the deferral re-opens the lost red or the cost.
+# The CI umbrella is not watched: its `pr-contract` needs every unit of its
+# own run, so no red of that run lands after the contract read it (U0c).
 _PR_WORKFLOW_NAMES = sorted(
     str((_yaml.safe_load(t) or {}).get("name"))
     for t in _PRW_TEXTS.values()
-    if {"pull_request", "pull_request_review"} & set(
+    if str((_yaml.safe_load(t) or {}).get("name")) != "CI"
+    and {"pull_request", "pull_request_review"} & set(
         (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(t) or {})))
 
 
