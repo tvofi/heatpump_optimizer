@@ -1,0 +1,51 @@
+dev/audit/harnesses/r10_carry_sweep_rows.py:117:    ('P47', '2349', 'composed-proof|coverage-ratchet'),
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py:8:the coverage->closures edge), `composed-proof` (deleted with it) adds no tail, and the
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py:28:    """(wall, gain) for one run: seconds the run ends sooner without the edge and composed-proof."""
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py:37:              and n not in ("closures", "composed-proof", "closures-autofix")]
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py:51:                       j("composed-proof", "2026-01-01T00:20:05Z", "2026-01-01T00:20:30Z")]
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py:55:        # Null control: a run whose closures already ends before coverage gains only composed-proof's tail.
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:20:  "composed-proof|",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:21:  "composed-proof|order",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:22:  "composed-proof|uses:actions/checkout@<sha>",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:23:  "composed-proof|uses:actions/setup-python@<sha>",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:24:  "composed-proof|Decide whether this run has proving to do",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:25:  "composed-proof|Install pinned test dependencies",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:26:  "composed-proof|Install strace",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:27:  "composed-proof|The self-sufficient proof (all three executions, this head)",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:28:  "composed-proof|Compute this checkout's tree",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:29:  "composed-proof|Fetch the nightly's composed recordings",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:30:  "composed-proof|Fetch the nightly's bare recordings",
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json:31:  "composed-proof|Compare read sets on the nightly's one tree",
+dev/audit/harnesses/r10_verdict_item_barrier.py:150:        '**CI on this head** (from the check-runs API, every run: ev/check_runs.tsv). Every gate check is gr
+dev/audit/harnesses/r10_verdict_item_barrier.py:251:ATTACK = "- composed-proof is not a required check, and the stale-head guard misses a deleted ref, not block
+tests/entities.py:33966:    r"composed_closures|composed-closures|composed-verify|composed_verify|composed_proof"
+tests/entities.py:33967:    r"|composed-proof|CHEAP_ARGV_OR_ENV|\$COMPOSED|COMPOSED=|COMPOSED\"|_COMPOSED|composed_arm")
+tests/entities.py:33975:    not _C1_LEFT and not Path("tests/composed_closures.json").exists()
+tests/entities.py:33976:    and not Path("tools/coverage/composed_proof.sh").exists()
+tests/entities.py:33983:    bool(_C1_PAT.search("COMPOSED=$(closure.py composed-list)"))
+tests/entities.py:33984:    and bool(_C1_PAT.search("name: composed-closures"))
+tools/audit/carry_audit.py:878:         head, verdict_of("merge", "## Evidence\n\n- composed-proof is queued, but it is not a required context "
+tools/audit/carry_audit.py:881:         verdict_of("merge", "## Evidence\n\n- composed-proof is not required check and does not block.\n"), []),
+tools/audit/carry_audit.py:883:         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"),
+tools/audit/carry_audit.py:886:         verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check and does not block. One nit, "
+tools/audit/carry_audit.py:926:                      verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check; "
+tools/audit/carry_audit.py:933:        ("minor defect", "composed-proof is not a required check and a minor defect stays, not blocking."),
+tools/audit/carry_audit.py:936:        ("colon-led nit", "composed-proof is not a required check, not blocking: the guard misses a ref."))]
+tools/audit/carry_audit.py:941:                      verdict_of("merge", "## Evidence\n\n- composed-proof: not a required check, non-blocking.\n"),
+tools/audit/seat/merge_train.py:1190:        # the 180-min composed-proof) must never hold a landing whose
+tools/audit/seat/merge_train.py:1457:        # composed-proof) must never hold a batch whose required set is green.
+tools/audit/seat/merge_train.py:2853:            # a non-required lane that never concludes (the composed-proof class)
+tools/audit/seat/merge_train.py:2854:            runs += [{"name": "composed-proof", "id": 16, "status": "in_progress", "started_at": "1",
+tools/audit/seat/merge_train.py:3339:          "head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)",
+tools/audit/seat/orchestrator_tick.py:3273:                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+tools/audit/seat/orchestrator_tick.py:3284:                 runs_at={H1: [run_obj("composed-proof", status="in_progress",
+--- files:
+dev/audit/harnesses/r10_carry_sweep_rows.py
+dev/audit/harnesses/r10_ci_layout_p1/critpath.py
+dev/audit/harnesses/r10_ci_layout_p1/unitcheck_map.json
+dev/audit/harnesses/r10_verdict_item_barrier.py
+tests/entities.py
+tools/audit/carry_audit.py
+tools/audit/seat/merge_train.py
+tools/audit/seat/orchestrator_tick.py
+rc=0 secs=.219484731

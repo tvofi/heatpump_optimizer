@@ -1,2 +1,0 @@
-/opt/hpo/venv-ci/bin/python
-Python 3.14.7

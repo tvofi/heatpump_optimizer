@@ -1,0 +1,2 @@
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 3976515a0822
+rc=0 secs=.178809731

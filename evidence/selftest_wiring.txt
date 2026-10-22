@@ -1,0 +1,2 @@
+selftest_wiring: 73 self-testing, 73 wired, 0 unwired
+rc=0 secs=.069864929

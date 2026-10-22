@@ -1,0 +1,4 @@
+ref_privacy: REFUSE .github/workflows/nightly.yml:381: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+ref_privacy: REFUSE .github/workflows/nightly.yaml: registered in PUSHERS but holds no push site; drop the entry
+ref_privacy --check at HEAD: 20 file(s) with a push site, 9 guarded, 1019 line(s) added since 3976515a0822 judged, 2 refused
+rc=1

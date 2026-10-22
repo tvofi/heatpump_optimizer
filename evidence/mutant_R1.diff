@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 173662648..7677761b4 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -1055,7 +1055,7 @@ jobs:
+   # program without --shard runs whole on shard 1 and the other shards stand
+   # down.
+   mutation-pins:
+-    needs: [mutation]
++    needs: [mutation, mutation-pin-plan]
+     if: >-
+       !cancelled()
+       && github.event_name == 'pull_request'
