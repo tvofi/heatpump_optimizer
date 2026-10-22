@@ -1,0 +1,6 @@
+Job-log excerpts at head 0c563c12e1ace15d5e2c73dc0a19f9fca1953f2b, read through the GitHub MCP get_job_logs (the raw blob download returned 403 through the proxy):
+pr-contract 119675443456: "gh: API rate limit exceeded for installation ... (HTTP 403)" in "Read the body off the API"; then "FIGURES: /tmp/pr-body.md is unreadable", jq "Could not open /tmp/pr-body.md", and carry_audit FileNotFoundError '/tmp/pr-body.md'. Version-edit step: "no version edit: origin/main...0c563c12e moves none of VERSION, the manifest version or a notes heading".
+arch-score 119675393295 and 119675399560: "gh: API rate limit exceeded for installation ... (HTTP 403)".
+validate-hacs 119675441309: "aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation".
+env-matrix 119675679118: "FAIL pr / nothing skipped in a full clone -- skip required-contexts the GitHub API is unreachable"; "15 declared outcome(s) held, 1 did not, across 6 environment shape(s)".
+nightly-status 119675836542: "NIGHTLY UNREADABLE: ... HTTP 403 ... (rate limit exhausted)"; "This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge."
