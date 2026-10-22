@@ -1,0 +1,7 @@
+## throwaway_git --check
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## ref_privacy
+tools/audit/seat/ref_privacy.py
+    python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
+    python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
+    python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...

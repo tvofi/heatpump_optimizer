@@ -1,0 +1,22 @@
+## codeowners_gap unpin (head)
+RESULT uncovered_files=18 count
+## policy_lint null (body 'hello')
+rc=1
+## policy_lint on the live body (head)
+/tmp/claude-0/-home-user-heatpump-optimizer/9a40a440-63ee-512f-bcf0-ae5e50eda444/scratchpad/rev.FePu/out/ev/pr_body.md
+  ERROR   [pr-body] /tmp/claude-0/-home-user-heatpump-optimizer/9a40a440-63ee-512f-bcf0-ae5e50eda444/scratchpad/rev.FePu/out/ev/pr_body.md: the pull request author is `hpo-author`; a pull request is authored by the hpo-author App (decision 0011) — re-open it via tools/audit/app_push.sh, never push.sh
+
+PR-BODY: 1 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/9a40a440-63ee-512f-bcf0-ae5e50eda444/scratchpad/rev.FePu/out/ev/pr_body.md
+rc=0
+## carry_audit unrouted null
+CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
+rc=0
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+## policy_lint on the live body, author hpo-author[bot] as pr-contract passes it
+rc=0
+
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/9a40a440-63ee-512f-bcf0-ae5e50eda444/scratchpad/rev.FePu/out/ev/pr_body.md
+## carry_audit rc
+unrouted rc=1
+none rc=0
