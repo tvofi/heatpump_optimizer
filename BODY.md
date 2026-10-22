@@ -27,11 +27,11 @@ Part of #2495. Group R10-CI-LAYOUT-P2, sub-PR **P2a, "umbrella engine, inert"** 
 
 ## Head
 
-`0e066014d8d31e690b2ee5ddd5fae76bb3015a04`, merge base `a9db47846647` (origin/main after #2579, 2026-10-22). The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
+`49ccd4a6cc0c67fb1361b70ea5ce762c93652f1e`, merge base `50808a755ce3` (origin/main after #2579 and #2580, 2026-10-22). The #2580 merge conflicted only in `r10_seat_selftests_mutants.py`; both blocks are kept, giving 94 ids with no duplicate. The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
 
 ## Mutation proof
 
-- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run at the head, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 90 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
+- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run at the head, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 101 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
 - **Alert-list mutants**: `sh tools/ci/alert_list_mutants.sh --self-test` refused 9 of 9, including the glue's case "the binding drops the Accept header".
 - **Gate predicate**: `r10_ci_gate_core.py mutants`, 16 of 16 killed at U0a's head. The predicate is unchanged here, because the glue touches only `main()`'s `--sweep` arm.
 - **Entities pins**: each pin was run against a mutated copy of the tree, through its own block. Dropping `ci-ratchet` from `PUSH_ONLY` gave `only in gate_required: tests / ci-ratchet`. Cutting `contexts` to 16 gave `contexts holds 16`. A `gate` job in `tests.yml` gave `tests.yml: job gate can report as gate`. `checks: write` in `hassfest.yml` gave `top grants checks: write`.
@@ -68,7 +68,7 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `replay`: `rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt`, and `replay --model` reads the same;
   - `sim`: `GATE-SIM rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt`, which holds the 42 sequences at END-BAD 0 and the 7 planted defects refused;
   - `b3`: `parity GREEN`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY CHECKS FAILED`. The same command at `origin/main` a9db47846 reads `4 of 2397 ENTITY CHECKS FAILED`, with the same four py-spy heartbeat-control checks. The two new pins read `ok`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY CHECKS FAILED` at the head. The same command at `origin/main` a9db47846 reads `4 of 2397 ENTITY CHECKS FAILED`, with the same four py-spy heartbeat-control checks. The two new pins read `ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget raised.
 - Other checks:
   - `python3 tests/throwaway_git.py --check`: 0 refused;
@@ -77,7 +77,7 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `tests/layout.py`: `GUARD: 0 refusal(s)`;
   - `tools/pr/ci_predict.py --base origin/main`: no closures or fast red predicted.
 - `python3 -I tests/harness_headers.py` fails at import here, because `-I` drops `PYTHONPATH=tests/hastub`, as U9c reported. The suite's own run is in the gate line below.
-- Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a9db47846647 PYTHONPATH=tests/hastub ./tests/run.sh` printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `4 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`, `entities.py`); everything else was `ok`, `harness_headers.py` included (`ALL 109 HARNESS HEADER CHECKS PASSED`). All four are environmental or main's and not caused by this diff; see `## Red checks`.
+- Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a9db47846647 PYTHONPATH=tests/hastub ./tests/run.sh`, run at `0e066014d` (base a9db478), printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `4 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`, `entities.py`); everything else was `ok`, `harness_headers.py` included (`ALL 109 HARNESS HEADER CHECKS PASSED`). The #2580 merge since then changed only `cloud_relay.sh`, `INSTRUMENTS.md`, the mutants harness and a delivery row. `entities.py`, `structure.py`, every self-test, the mutants harness and the static checks were re-run at the head. All four are environmental or main's and not caused by this diff; see `## Red checks`.
 - Line counts, from `git diff --stat origin/main...HEAD`: 26 files, 3686 insertions, 4 deletions (`governance.yml` +67). Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
   - `tools/ci/`: `gate` 419, `ghapi` 225, `prelude` 281, `sweep` 167, `alert_list` 305, `ruleset_cutover` 510, each self-test included;
   - `tools/audit/seat/`: `ci_probe` 466 and `sweep_driver` 150.
