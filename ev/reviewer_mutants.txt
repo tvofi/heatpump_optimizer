@@ -1,0 +1,41 @@
+RESULT mutant=M0 verdict=null rc=0/0
+  plan_page.py rc=0 ['plan_page self-test: 41 checks, 0 failed']
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=A-blobless-accepted verdict=killed rc=0/1
+  plan_page.py rc=0 ['plan_page self-test: 41 checks, 0 failed']
+  replan.py rc=1 ['self-test: 2 failed']
+    FAIL a plan pinning no roster blob is refused as unknowable: plan.json is stale: built from roster blob , but :dev/programme/rosters/wave-r9-groups.json is now 50dff6acba6a; re-run tools/plan/replan.py --out <plan.json>
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant=B-model-record-refusal verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 1 failed']
+    FAIL a fresh plan recording no duration model is refused, nothing written (got: ('raised KeyError', False, False))
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=C-check_plan-dropped verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 2 failed']
+    FAIL a fresh plan that check_plan refuses is refused, nothing written (got: (0, True, False))
+    FAIL a stale plan is refused, nothing written (got: (1, True))
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=D-caption-drawn-count verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 2 failed']
+    FAIL the caption counts the links drawn (none drawn, one left) (got: ['1 of 1 critical-path links'])
+    FAIL the caption counts the links drawn (one drawn, none left) (got: ['0 of 1 critical-path links'])
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=E-ref-override-ignored verdict=killed rc=0/1
+  plan_page.py rc=0 ['plan_page self-test: 41 checks, 0 failed']
+  replan.py rc=1 ['self-test: 3 failed']
+    FAIL an explicit ref is read instead of generated.roster_ref: plan.json is stale: built from roster blob dccca9ab346d, but main:dev/programme/rosters/wave-r9-groups.json is now 50dff6acba6a; re-run tools/plan/replan.py --out <plan.json>
+    FAIL --check --roster-ref passes the plan at the ref it names: rc=1
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant=D2-caption-constant-0 verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 1 failed']
+    FAIL the caption counts the links drawn (one drawn, none left) (got: ['0 of 1 critical-path links'])
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=D3-caption-constant-1 verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 1 failed']
+    FAIL the caption counts the links drawn (none drawn, one left) (got: ['1 of 1 critical-path links'])
+  replan.py rc=0 ['self-test: 0 failed']
+RESULT mutant=C2-check_plan-truncated verdict=killed rc=1/0
+  plan_page.py rc=1 ['plan_page self-test: 41 checks, 2 failed']
+    FAIL a fresh plan that check_plan refuses is refused, nothing written (got: (0, True, False))
+    FAIL a stale plan is refused, nothing written (got: (1, True))
+  replan.py rc=0 ['self-test: 0 failed']

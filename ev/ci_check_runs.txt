@@ -1,0 +1,6 @@
+Check-runs API (pull_request_read get_check_runs, commit 9ebc80551588c69ebd607c1fd8f9fdb6de993512), 46 runs, read 2026-10-22.
+failure: nightly-status job 119547580705 (completed 23:35:31Z); log: "mutation-nightly failure .../runs/39563978649/job/119101702662", "slow failure .../runs/39563978649/job/119101702593", "This check is NOT one of the required contexts on `main-protect`".
+closures job 119556985403: in_progress at first read, then get_check_run -> completed success.
+pr-contract job 119547753712 started 23:35:33Z (after nightly-status concluded 23:35:31Z) -> success; pr-contract 119547579996 success.
+success: lane-proofs graders-head-copy coverage-ratchet CodeQL Analyze(x3) typing browser coverage fast(3.14) arch-score(x2) budget-raise-gate(x2) delivery-status policy-docs wave-script env-matrix mutation instrument-self-tests briefs cancel-superseded(x2) validate-hacs closure-scope scope hassfest
+skipped: claims-autofix mutation-autofix mutation-pin-plan mutation-pins nightly-ha mutation-ledger-push slow mutation-nightly mutation-ledger delivery-status-publish record recheck-gate record-autofix kernel-points

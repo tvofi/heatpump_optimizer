@@ -1,0 +1,53 @@
+== fixer driver
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=live rc=1 fails=5 verdict=killed
+RESULT mutant=blocked rc=1 fails=5 verdict=killed
+RESULT mutant=partial rc=1 fails=5 verdict=killed
+RESULT mutant=blocked-by-less-done rc=1 fails=6 verdict=killed
+RESULT mutant=pr-by-merge-commit rc=1 fails=1 verdict=killed
+RESULT mutant=pr-by-branch rc=1 fails=1 verdict=killed
+RESULT mutant=pr-sha8-fallback rc=1 fails=1 verdict=killed
+RESULT mutant=branch-tail-fallback rc=1 fails=1 verdict=killed
+RESULT mutant=title-fallback rc=1 fails=1 verdict=killed
+RESULT mutant=closed-strike rc=1 fails=1 verdict=killed
+RESULT mutant=tracking-excluded rc=1 fails=1 verdict=killed
+RESULT mutant=page-refuses-stale rc=1 fails=1 verdict=killed
+RESULT mutant=freshness-rule rc=1 fails=6 verdict=killed
+RESULT mutant=stamp-on-axis rc=1 fails=1 verdict=killed
+RESULT mutant=B-model-record-refusal rc=1 fails=1 verdict=killed
+RESULT mutant=C-check_plan-refusal rc=1 fails=2 verdict=killed
+RESULT mutant=D-caption-drawn-count rc=1 fails=2 verdict=killed
+RESULT mutant=E-explicit-ref-wins rc=1 fails=3 verdict=killed
+RESULT survived=0
+== replan ok lines
+41
+== selftest_wiring
+selftest_wiring: 73 self-testing, 73 wired, 0 unwired
+== structure
+STRUCTURE RATCHET PASSED
+== closure selftest
+ALL 124 closure shrink pins PASSED
+== layout
+layout self-test: ok
+== claims
+claims hygiene: origin/main ok
+== ci_predict
+CI PREDICT: no closures or fast red predicted against b0f134142de1 (a data-file read is not seen)
+== archscore
+Architecture score: dS +0.0000 NULL
+== throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+== merge-tree
+5e475ec6f538527d82b635b302a0ad49ddd1e986
+rc=0
+== version files
+(empty = untouched)
+== entities (venv-ci)
+ALL 2382 ENTITY CHECKS PASSED
+== harness_headers
+ALL 109 HARNESS HEADER CHECKS PASSED
+== no-copies
+closure: no test file defines a symbol production also defines
+== closure select
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tests/closure.py changes the gate itself, so every closure is suspect
