@@ -5871,9 +5871,9 @@
    "architect_note": "",
    "brief": "Land the two design seats in the policy corpus (owner ruling, 2026-10-21: decision 0012's moratorium is void; L/XL groups gain a pipelined design and design review). (1) Two role contracts under dev/governance/roles/, the designer's and the design reviewer's, from the Lean flow study's drafts (design-seats directory on the study branch, at the pack commit the dispatch names); keep them to the drafts' scope and shorten where COMMON.md or fixer.md already says it. (2) orchestrator.md: for an L or XL group with no approved design, pre-study or prototype, dispatch the designer when the group's last predecessor dispatches, the design reviewer at the design's head, and the fixer only after 'Design review: approve'; the approved design note is the group's architect note. (3) fixer.md step 17: follow the approved design note; a departure is raised, not made. (4) fix-review.md step 15: judge the diff against the approved design note. (5) CLAUDE.md names both contracts in its role table. (6) A decision record under dev/governance/decisions/ states the owner's ruling voiding 0012's moratorium and the rationale (fewer future architecture-dimension findings), and 0012 points to it. The corpus caps in policy_budgets.json rise by what the new files cost: record the payments tried in the body's Raise justification; the owner's ruling is the authority, and the owner's approving review merges it (code-owned paths).",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-design-policy",
-    "commit": null,
+    "commit": "6077bf70e",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
