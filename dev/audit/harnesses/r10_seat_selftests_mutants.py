@@ -162,10 +162,30 @@ MUTANTS = [
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
+    ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
+    ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
+    ("ci_probe-3", "ci_probe.py", "if login != OWNER:", 'if login == "":'),
+    ("ci_probe-4", "ci_probe.py", "if repo != REPO:", "if False:"),
+    # route B (P2a): git owns the SHA shape; the exact-name test and review's re-check after the fetch.
+    ("ci_probe-5", "ci_probe.py", "return r.returncode == 0 and r.stdout.strip() == sha", "return r.returncode == 0"),
+    ("ci_probe-6", "ci_probe.py", "            self.fetch(self.remote, self.num(pr))\n        if not self.commit(sha):\n",
+     "            self.fetch(self.remote, self.num(pr))\n        if False:\n"),
+    ("ci_probe-7", "ci_probe.py", "        if not self.commit(sha):\n            raise Refuse(f\"'{sha}' is not the full SHA",
+     "        if False:\n            raise Refuse(f\"'{sha}' is not the full SHA"),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # r10-ci-layout P2a U9c: the ruleset cut-over instrument lives in tools/ci/,
+    # so its file is named from the repository root. -1 skips the read-back's
+    # second half, -2 its first, -3 the staged-hash precondition.
+    ("ruleset_cutover-1", "tools/ci/ruleset_cutover.py",
+     "    if without_checks(after) != without_checks(six(rollback)):", "    if False:"),
+    ("ruleset_cutover-2", "tools/ci/ruleset_cutover.py",
+     "    if put != want or contexts(after) != NEW_CHECKS:", "    if False:"),
+    ("ruleset_cutover-3", "tools/ci/ruleset_cutover.py",
+     'out.append(("staged-hash", a == b,', 'out.append(("staged-hash", True,'),
     # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
     ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
      'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
@@ -197,6 +217,24 @@ MUTANTS = [
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
     ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
      '  true \\\n'),
+    # R10-CI-LAYOUT P2a U0a: tools/ci/, named repo-relative (a file with a `/`); the
+    # steps that run their self-tests are P2a's glue, so these run once it is wired.
+    ("gate-1", "tools/ci/gate.py", "        summary(outcome, why)\n        return 3\n",
+     "        summary(outcome, why)\n        return 0\n"),
+    ("gate-2", "tools/ci/gate.py", 'if int(r.get("run_attempt", 1)) >= ATTEMPT_CAP:', "if False:"),
+    ("gate-3", "tools/ci/gate.py", 'return sweep.main(["--run", str(a.run)], get, post)', "return 0"),
+    ("ghapi-1", "tools/ci/ghapi.py", 'if status in (403, 429) and "rate limit" in text and "exceed" in text:',
+     'if status == 429 and "rate limit" in text and "exceed" in text:'),
+    ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
+    # P2a glue: the extra request headers alert_list's SARIF read is bound through.
+    ("ghapi-3", "tools/ci/ghapi.py", "        req.add_header(k, v)\n", "        pass\n"),
+    ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
+    ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
+     'if r["status"] in UNFINISHED)'),
+    # r10-ci-layout-p2a-u0b: the sweep driver's own block (per-file ids; the step is the glue's).
+    ("sweep_driver-1", "sweep_driver.py", "if n > 1 and not self.chain:", "if n > 1 and self.chain:"),
+    ("sweep_driver-2", "sweep_driver.py", "if status in (403, 429):\n            reset", "if status in (429,):\n            reset"),
+    ("sweep_driver-3", "sweep_driver.py", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.20", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.0"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
@@ -236,8 +274,13 @@ def steps() -> list[tuple[str, str]]:
     return out
 
 
+def rel(file: str) -> str:
+    """A seat file by its name; any other instrument by its repo-relative path."""
+    return file if "/" in file else f"{SEAT}/{file}"
+
+
 def step_for(file: str) -> tuple[str, str]:
-    pat = re.compile(re.escape(f"{SEAT}/{file}") + r" --self-test")
+    pat = re.compile(re.escape(rel(file)) + r" --self-test")
     hits = [s for s in steps() if pat.search(s[1])]
     assert len(hits) == 1, f"{file}: {len(hits)} steps"
     return hits[0]
@@ -300,7 +343,7 @@ def main(want: list[str]) -> int:
     for name, file, old, new, extra in plan:
         if not pick(name):
             continue
-        path = ROOT / SEAT / file
+        path = ROOT / rel(file)
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2
