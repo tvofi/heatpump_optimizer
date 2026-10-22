@@ -262,7 +262,9 @@ class CompressorStarts(TypedDict, total=False):
 
 class PriceTile(TypedDict, total=False):
     overrides: dict[str, float]
+    #: The mean of the tile's daily means over ``horizon_days`` (price_tiles.py).
     monthly_cost_delta: float | None
+    horizon_days: int
     min_room_temperature: float | None
     computed_at: str
 
