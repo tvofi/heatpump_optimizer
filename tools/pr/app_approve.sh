@@ -1204,9 +1204,10 @@ st "$(calls rhint 'gh api repos/o/r/pulls/7$')" 3 "after one retry of the pull-r
 # `|`-separated alternative of each `case` label, and of each single-quoted
 # sed/grep pattern -- plus `default`, the fall-through no rule matches, and
 # the table below must key exactly that set, each key holding both classes.
-# Two rows are design choices: of two status lines the LAST decides (it is
-# the response gh read last), and a `secondary rate limit` phrase rescues a
-# 403 only, on its whole phrase.
+# Three rows are design choices: of two status lines the LAST decides (it is
+# the response gh read last), and only a whole line is a status line; a status
+# decides even beside a transport line; and a `secondary rate limit` phrase
+# rescues a 403 only, on its whole phrase.
 ALTS=$( { sed -n '/^gh_transient() {/,/^}/p' "$SELF" | grep -v '^ *#' \
   | grep -oE "^ +[^ ()]+\)|(sed|grep) -[a-zA-Z]+ '[^']*'" \
   | sed -E "s/^ +//; s/\)$//; s/^[a-z]+ -[a-zA-Z]+ '(.*)'$/\1/" | tr '|' '\n'; echo default; } | sort -u)
@@ -1230,12 +1231,15 @@ secondary rate limit	refuse	gh: secondary rate limit (HTTP 404)
 ?*	refuse	gh: Conflict (HTTP 409)
 ?*	refuse	gh: Validation Failed (HTTP 422)
 ?*	transient	error connecting to api.github.com
+?*	refuse	gh: Not Found (HTTP 404)\nerror connecting to api.github.com
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: HTTP 502
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Server Error (HTTP 502)\nRetry the request in a few minutes.
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Not Found (HTTP 404)\ngh: Bad Gateway (HTTP 502)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502) after 3 pages
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404) see the docs
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)\nwarning: gh: Not Found (HTTP 404)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	warning: gh: Bad Gateway (HTTP 502)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	Bad Gateway (HTTP 502)
 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 5020)

@@ -76,8 +76,6 @@ EQUIVALENT: dict[tuple[str, str], str] = {
     ("  local code", ""): "scope only: no other line of the file names a variable `code` (grep -nw code)",
     ("    ?*) return 1 ;;", "    ?*) return 2 ;;"): NONZERO,
     ("    ?*) return 1 ;;", "    ?*) return 999 ;;"): NONZERO,
-    ("    ?*) return 1 ;;", ""): "a status line falls through to the transport grep, which no `gh: ... (HTTP NNN)` line matches; "
-                                 "the two differ only for one stderr holding a status and a transport line, and a transport failure carries no status",
     ('  _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }',
      '  _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 2; }'): NONZERO,
     ('  _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }',
