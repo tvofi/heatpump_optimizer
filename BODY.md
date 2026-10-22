@@ -124,6 +124,3 @@ none: no CI has run on this ref. Two predicted reds were repaired before the han
 
 Awaiting tvofi's approving review at the head. This diff edits policy files: the dimension briefs D1, D2, D5, D7, D9, D12 and D15; `fixer.md`; `fix-review.md`; `ci-autofix.md`; `claim-files.md` with their generated copies; CLAUDE.md; and `tests/README.md`. The roster's owner gate is "policy: dimension briefs". No owner approval has been given for this diff yet, and none is claimed.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-https://claude.ai/code/session_01So3QQDHt3b7Mw5TsjVAvHt
