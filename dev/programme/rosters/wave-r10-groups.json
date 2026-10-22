@@ -6597,7 +6597,7 @@
    "architect_note": "",
    "brief": "Land the architect/planner seat in the policy corpus for round 11 (owner, 2026-10-21). (1) Two role contracts under dev/governance/roles/, the architect/planner's and the architecture-plan reviewer's, from the Lean flow study's drafts (architect-planner directory on the study branch, at the pack commit the dispatch names). (2) orchestrator.md: from round 11, P3 is the architect's plan, reviewed and approved by the owner; the orchestrator's P4 executes the approved plan and records deviations against it. (3) A decision record amending decision 0012's move 5: findings are grouped by owning seam, with the bug-class id kept as a tag, and a class that spans seams is split per seam with its sweep as a fitness function. (4) The programme-level architecture target: a round's end-to-end score.py --diff at dS of at least +22.7 (a 30% weighted fall over the 17 scored metrics at frozen weights), admissible, read with the counters on, attributed per planned move, spread over at least three classes with no metric above 40%, and checked against holdouts the score does not contain; it binds the architect's plan, never a single seat. (5) One sentence in tools/audit/archscore/ABOUT.md that reconciles the target with 'a review trigger, never a target a seat is rewarded for moving'. (6) CLAUDE.md names both contracts in its role table. (7) The round-11 template in the plan of record: P3 at most 8 h, P4 at most 56 h.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-flow-arch-planner",
     "commit": null,
     "last_step": null,
