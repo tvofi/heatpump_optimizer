@@ -315,6 +315,8 @@ GUARDED = "guarded"
 PUSHERS = {
     "tools/audit/seat/wt_sync.sh": (GUARDED, "the #2310 instrument: a slug from slug(), both pushes guarded"),
     "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument, message composed from it"),
+    "tools/audit/seat/heartbeat.sh": (GUARDED, "the constant ref heartbeat/orchestrator, message from --message; "
+                                      "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/bus.sh": (GUARDED, "_post's ref from family and number, message from the caller; "
                                 "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/state_docs.py": (GUARDED, "message from --message or the regenerated names; "
