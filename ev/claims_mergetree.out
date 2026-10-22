@@ -1,0 +1,7 @@
+merge-base 58730d09f61f3c26c86dad79387b0c2ffa739d66
+(empty above = claim files, VERSION, manifest, notes untouched)
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (821 entries)
+  re-run the gate that owns this file before pushing
+170afefda92a138ee518724e89db590e97714b21
+merge-tree rc=0 origin/main=49018a8bec8d03fd2df52874b9021d25ab93741a

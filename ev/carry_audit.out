@@ -1,0 +1,7 @@
+UNROUTED body item 778b9384 (## Forward-carry) [section]: "- **D0 (price optimality) brief, the next round's D0 seats.** A stop-tolerance change is refused on money (#12"
+UNROUTED body item 939f1ab1 (## Forward-carry) [section]: "- **D0/D14 detector (from sweep-P4, re-confirmed).** `_solve_space`'s DHW seed set is unguarded, because `_CER"
+UNROUTED body item 7c55f715 (## Forward-carry) [section]: "- R10-TARIFF's carry (`PeakBilling` via `HeatPumpOptimizer._peak_billing`) is satisfied: this diff calls no ca"
+UNROUTED body item f97784cb (## Friction) [section]: '- `fixes-vs-disposition: contradiction: the roster lists the P4 class issue under fixes, while RCA-BULK-1 sect'
+UNROUTED body item 8432a4ea (## Friction) [section]: '- `finding-propagation: unenforced: a seat with handoff-only write access cannot land a carry into a policy br'
+CARRY-AUDIT: 5 finding item(s): 0 routed, 5 unrouted, 0 bad destination(s)
+rc=1
