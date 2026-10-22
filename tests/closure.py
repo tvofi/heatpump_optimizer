@@ -333,6 +333,12 @@ INERT = (
     # must-classify check names it too -- a new file there still has to be
     # classified, it is just classified as unread.
     "tools/plan/",
+    # The ruleset cut-over instrument (R10-CI-LAYOUT P2a, U9c) and its saved
+    # JSON: tvofi runs it by hand against the live ruleset; no gate script
+    # reads it, and its offline self-test runs in governance's
+    # instrument-self-tests.
+    "tools/ci/ruleset_cutover.py",
+    "tools/ci/fixtures/ruleset/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
     # under tests/ reads them. Same reason `.claude/` is here -- save the
     # policy files `_is_citation_source` below reads back out of it.
