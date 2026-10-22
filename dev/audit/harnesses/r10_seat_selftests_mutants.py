@@ -169,6 +169,19 @@ MUTANTS = [
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
     ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
      '  true \\\n'),
+    # R10-CI-LAYOUT P2a U0a: tools/ci/, named repo-relative (a file with a `/`); the
+    # steps that run their self-tests are P2a's glue, so these run once it is wired.
+    ("gate-1", "tools/ci/gate.py", "        summary(outcome, why)\n        return 3\n",
+     "        summary(outcome, why)\n        return 0\n"),
+    ("gate-2", "tools/ci/gate.py", 'if int(r.get("run_attempt", 1)) >= ATTEMPT_CAP:', "if False:"),
+    ("gate-3", "tools/ci/gate.py", "                print(\"FAIL sweep-unavailable: tools/ci/sweep.py (U0b) is not in this tree\")\n                return 1\n",
+     "                return 0\n"),
+    ("ghapi-1", "tools/ci/ghapi.py", 'if status in (403, 429) and "rate limit" in text and "exceed" in text:',
+     'if status == 429 and "rate limit" in text and "exceed" in text:'),
+    ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
+    ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
+    ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
+     'if r["status"] in UNFINISHED)'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
@@ -208,8 +221,13 @@ def steps() -> list[tuple[str, str]]:
     return out
 
 
+def rel(file: str) -> str:
+    """A seat file by its name; any other instrument by its repo-relative path."""
+    return file if "/" in file else f"{SEAT}/{file}"
+
+
 def step_for(file: str) -> tuple[str, str]:
-    pat = re.compile(re.escape(f"{SEAT}/{file}") + r" --self-test")
+    pat = re.compile(re.escape(rel(file)) + r" --self-test")
     hits = [s for s in steps() if pat.search(s[1])]
     assert len(hits) == 1, f"{file}: {len(hits)} steps"
     return hits[0]
@@ -272,7 +290,7 @@ def main(want: list[str]) -> int:
     for name, file, old, new, extra in plan:
         if not pick(name):
             continue
-        path = ROOT / SEAT / file
+        path = ROOT / rel(file)
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2
