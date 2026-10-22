@@ -47,13 +47,13 @@ At PR head 7a3fc062b the one red check is `nightly-status`. This head has not ru
 
 `ci-ratchet` was skipped on this PR. Main's own red there is runner-speed variance, and R10-CI-LAYOUT owns it. It is not this diff's: this diff adds no CI job and changes no budget. Carry: R10-CI-LAYOUT
 
-Round 2 answered `instrument-self-tests` red at round 1's head 8f5807ae4 (an unregistered push site), and that round fixed it. It was green at 7a3fc062b, and the harness M0 above re-runs every step of that job green at this head.
+`instrument-self-tests`: read from the check-runs API per commit (`repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs`, 2026-10-22). It concluded `failure` at 8f5807ae45b079dc5978e925b3f56fb2008af3fc (round 1 head, completed 2026-10-21T17:56:21Z) on an unregistered push site (`heartbeat.sh` absent from `ref_privacy.py`'s `PUSHERS`), and round 2 fixed that cause. It concluded `success` at 7a3fc062b4cfe43acc34dc24481dd21bc1a073ac (completed 2026-10-21T21:10:47Z), and 841c65da4 has no check run yet. The harness M0 above re-runs every step of that job green at 841c65da4. Carry: dismissed: fixed in round 2, green at 7a3fc062b
 
 ## Forward-carry
 
-- The owner-side watcher (a scheduled cloud task every 15 min running `heartbeat.sh --watch`, notify on exit 1) is not in the tree and needs the owner to schedule it. Carry: dismissed: owner-scheduled by design (K8 "no repo change"), stated in INSTRUMENTS.md.
+- The owner-side watcher (a scheduled cloud task every 15 min running `tools/audit/seat/heartbeat.sh --watch`, notify on exit 1) is not scheduled in the tree and needs the owner to schedule it. Carry: dismissed: owner-scheduled by design (K8 "no repo change"), stated in INSTRUMENTS.md.
 - R10-ORCH-MACHINERY must register `heartbeat.sh --once` as the beat's heartbeat job and then drop the call from `tick_loop.sh`. Carry: R10-ORCH-MACHINERY
 
 ## Friction
 
-The scoped scripts need the seat venv: system `python3` here lacks voluptuous, so `tests/entities.py` and `tests/harness_headers.py` ran under the seat venv.
+gate-scoping.md: cost: system python3 lacks voluptuous, so tests/entities.py and tests/harness_headers.py ran under the seat venv Carry: dismissed: seat env
