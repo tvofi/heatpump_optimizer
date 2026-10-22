@@ -1,1 +1,0 @@
-HEAD: ERROR   [pr-body] $W/both.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (2 error line(s) in all)

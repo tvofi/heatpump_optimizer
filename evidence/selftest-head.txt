@@ -50,6 +50,8 @@
   ok   and the ok line names what was answered
   ok   an answered red with a prose ## Friction line is refused
   ok   and the refusal prints the error, not only its count
+  ok   an unnamed red AND a prose ## Friction line is refused
+  ok   and the refusal is the red's sentence, not the earlier Friction error, with both counted
   ok   an ancestry whose only failure is pr-contract's own run passes (the exclusion key)
   ok   and the ok line says no red stands, so green was measured, not assumed
   ok   an ancestry no commit of which carries any check run skips, never refuses
@@ -69,6 +71,8 @@
   ok   a diff touching no budget file passes
   ok   a body with a prose ## Friction line is refused before the push
   ok   and the refusal prints the error ahead of the budget verdict
+  ok   a raise with a body silent on it AND a prose ## Friction line is refused
+  ok   and the refusal is the red's sentence, not the earlier Friction error, with both counted
   ok   a merge base with no gate skips the arm and says so
   ok   and the body check still runs, fed nothing (skip, never refuse)
   ok   an unpinned site with a body whose ## Red checks omits mutation is refused before the push
@@ -321,9 +325,5 @@ AssertionError: queue-base
   ok   gate_priority.py's derived-default self-test passes
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-308 passed, 5 failed
-
-real	2m11.912s
-user	1m45.066s
-sys	0m27.680s
+312 passed, 5 failed
 rc=2

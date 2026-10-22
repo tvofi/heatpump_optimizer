@@ -1,5 +1,5 @@
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index e8f21f17e..1e62ee5b6 100755
+index fda293504..5389e10ea 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
 @@ -703,7 +703,7 @@ PY

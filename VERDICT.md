@@ -1,38 +1,63 @@
-Fix review: blocked 400e15d277c7fb7c9e27aa1c203de282e0c51c4f mutant-survives: body_refusal's red-before-ERROR precedence is unpinned; swapping it survives the self-test and prints the Friction error instead of the red gate's sentence on a body carrying both
+Fix review: merge c5a968de35f3e71e2e5b06e2174b7b54e6a7c306
 
-bus-nonce: 83814d80bae8f1eedb0ae013d6900cdd
+bus-nonce: 607c141d921b6a6a806d4bf3605cc163
 
-Round: first review of this head (round 1). Group R10-FLY-BUDGET-LEAF. Reviewed from a detached worktree at 400e15d277c7fb7c9e27aa1c203de282e0c51c4f; head re-read at write time, still 400e15d277c7fb7c9e27aa1c203de282e0c51c4f.
+Round: second review of this group (round 2), after fixer round fix2591z on the blocked verdict at 400e15d277c7fb7c9e27aa1c203de282e0c51c4f. Group R10-FLY-BUDGET-LEAF. Reviewed from a detached worktree at c5a968de35f3e71e2e5b06e2174b7b54e6a7c306. At write time the PR head is still c5a968de35f3e71e2e5b06e2174b7b54e6a7c306 and origin/main is 3976515a08228598ea3863f4f36dc4c7c4846865.
 
-## Block
+## Prior blocks
 
-The PR adds one helper, `body_refusal` (tools/pr/prepr.sh:703-707), and its body states the precedence it implements: the red gate's own sentence when a red went unnamed ("unchanged"), else the first `ERROR` line, else the count line. Step 7c's own comment (prepr.sh:1040-1041) relies on that precedence: "The refusal printed is the red gate's own sentence ... so the row that reads it pins WHICH check refused."
-
-Mutant 2 (ev/mutant2.diff) swaps the first two alternatives: `grep -m1 'ERROR'` before `grep -m1 'does not name it'`. `bash tools/pr/prepr.sh --self-test` then gives 308 passed, 5 failed, the same as the head: no row changes (ev/selftest-mutant2.txt vs ev/selftest-head.txt). It is not an equivalent mutant. On a body with an unnamed red (`fast (3.14)`) and a prose `## Friction` line (ev/plant-both-errors.md, the committed `unnamed-red.md` with the PR's own one-line Friction plant), policy_lint prints the Friction ERROR first. The head prints the red gate's sentence (ev/both-head.txt), and the mutant prints the Friction error (ev/both-mut2.txt), so `RED UNANSWERED (fast (3.14)): ...` would no longer name the red. Every existing unnamed-red row uses a body whose only error is the red, which is why it survives.
-
-What re-cuts it: one self-test row that feeds `reds_line` (and/or `body_line`) a body carrying both an unnamed red and a prose Friction line, and asserts the printed line contains `does not name it`. Its null is the existing single-error rows. Re-run mutant 2 against it.
+- Block at 400e15d27 (mutant-survives: body_refusal's red-before-ERROR precedence was unpinned) is cleared. Commit cfdd9c26c adds two both-grounds rows, one at `reds_line` (7c) and one at `body_line` (7). Under the reviewer's mutant 2 (ERT) both rows go red at this head: 310 passed, 7 failed, against 312/5 unmutated (ev/selftest-m2.txt, ev/mutant-summary.txt). At 53ae6a8ca, the previous head plus a main merge, where prepr.sh is byte-identical to 400e15d27, the same swap (ETR measured, ev/selftest-p6.txt) still gives 308/5 and survives. That makes the new rows the killing ones.
+- The prior second finding (the count suffix was unpinned, mutant 3) is cleared. With the suffix dropped, the result is 310/7, and both new rows go red (ev/selftest-m3.txt). Both rows assert `(2 error line(s) in all)`.
 
 ## Findings
 
-- body_refusal's precedence of the red gate's sentence over an earlier ERROR line has no row: mutant 2 (order swap) survives the full self-test and changes the output on a two-error body (ev/both-head.txt vs ev/both-mut2.txt). This is the block above; a re-cut row in this PR settles it. Carry: R10-FLY-BUDGET-LEAF
-- The body's claim that the line is "followed by the count of error lines" is unpinned: mutant 3 (ev/mutant3.diff) drops the `(N error line(s) in all)` suffix and the self-test is unchanged (308 passed, 5 failed). With the first-ERROR choice the suffix is the only sign a body has more than one error (ev/both-ends.txt: #2582's body with a prose Friction line prints its first error, `## Forward-carry`, and only the suffix shows that 3 exist). One `case` on `error line(s) in all` in either new row settles it, in the same re-cut. Carry: R10-FLY-BUDGET-LEAF
+none
 
 ## Evidence
 
-- Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty (merge base 302f665711fb5c0c20f6d7c0be2cb1180217b875, origin/main 46e3681276f99e8d3e4d12e9d316a46946f666d7), so fix-review.md as read from main is current.
-- RESULT selftest head: 308 passed, 5 failed (ev/selftest-head.txt). The 5 failures are the step-6b rows plus the one beside them, all of them "no interpreter that parses the tree was found (tried the seat venv ...)": this container has no seat venv. They are identical in every mutant run, so they are environmental and not this diff's. CI's instrument-self-tests is green at this head.
-- RESULT mutation proof (the body's): body_refusal replaced at both call sites by the old `grep -m1 'does not name it' || tail -1` (ev/mutant1.diff), new rows kept: 306 passed, 7 failed. The diff against the head run is exactly the two new rows: `and the refusal prints the error, not only its count` (7c) and `and the refusal prints the error ahead of the budget verdict` (7). No other row changes. Confirmed as the body states.
-- RESULT mutant 2 (order swap): survives, 308/5, no row moves (ev/selftest-mutant2.txt).
-- RESULT mutant 3 (count suffix dropped): survives, 308/5, no row moves (ev/selftest-mutant3.txt).
-- Null control: the `an answered red ...` / `red-answered.md` null and `bl base docs unnamed-red.md` pass at the head and under mutant 1 (the base expression), so the plants' null rows hold at both ends. Re-derived.
-- The finder's harness at both ends: the roster brief names prepr's own printed refusal line on a prose-Friction body (#2545, #2558, #2582); no separate committed harness exists, so I replayed prepr's own expression (base) and `body_refusal` (head) over policy_lint output (ev/both-ends.txt). On the committed fixture `bad-friction.md`, base prints `PR-BODY: 1 error(s) ...` and head prints the `## Friction` line does not parse error. On `good.md` both pass (rc 0, a null). This instrument is mine and I disclose it as mine.
-- Body figure "#2582's refused body at b237d6688 ... byte-identical to the logged refusal": not re-derivable. `b237d6688` does not resolve from origin, and #2582's body has since been rewritten (its Friction line is now in rule form). Instead I took its current body with the Friction line set to prose versus `none`, at its current head c8b85d11564a9f429fafbe3353a4b8746e45b187 (ev/b2582-prose.md, ev/b2582-none.md, ev/both-ends.txt). That gives 3 versus 2 errors, a delta of exactly the Friction line, consistent in shape with the body's null control (`PR-BODY: 0 error(s)` with Friction `none`). The other 2 errors are `heartbeat.sh` forward-carry paths, which are absent from this tree and not from #2582's. That is my own reconstruction, not the body's replay.
-- Body figures "three refusals, #2545, #2558, #2582": not re-derivable from the tree. The refused bodies are no longer the current bodies (#2558's Friction is now `none`).
-- Class (step 6): no enumeration rule is named. Mine (ev/class-enum.txt): every caller in prepr.sh that reports a `body_check` result as one line. It returns `body_line` and `reds_line`, both in the diff. `claims_line` reports another check. `app_push.sh` prints policy_lint's whole output. No open seam.
-- Body `## Head` names 400e15d277c7fb7c9e27aa1c203de282e0c51c4f, the head I measured. The diff since the authored code head c3d66bca3 is a main merge (47e03696d) and the delivery row only.
-- VERSION, manifest version and RELEASE_NOTES heading: untouched (the diff is tools/pr/prepr.sh and dev/programme/delivery/2591.md only). No golden or claim file is touched, so env_drift has nothing to compare. No budget, closure or ledger number moves (step 14: nothing to earn).
-- Merge-tree: `git merge-tree --write-tree origin/main 400e15d277c7fb7c9e27aa1c203de282e0c51c4f` exit 0, tree 75af40f8b4351fe20517aab0c792849e4bee4c48, no MERGE-CLAIM lines (ev/merge-tree.txt). Clean; no absorb asked.
-- CI (check-runs API per commit, ev/check-runs.txt): at 400e15d27 every run concluded success or skipped except `nightly-status` (failure). nightly-status grades main; the diff reaches nothing it reads (prepr.sh and one new delivery row; `delivery-status` is green), so it is not this PR's red. At 47e03696d the non-success runs are cancelled (superseded) plus the same nightly-status. c3d66bca3 has no check runs. `pr-contract` ran green at 2026-10-22T00:20:02Z, after the last run concluded (Analyze (python) 00:19:11Z). The body's `## Red checks: none` is answered as the contract requires.
-- mutation lane at the head: `MUTATION TABLE PASSED (empty scope)`, "no production code line added or modified against the base". It drew no mutant, so it says nothing about this diff; the targeted mutants above are the only mutation evidence.
-- carry_audit over the PR body: `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body ev/pr-body.md` gives `CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` (ev/carry-audit-body.txt). The body's Forward-carry is `none`; nothing in the change alters a later stage (step 10).
-- Root cause section: no check went red on this branch's own runs (nightly-status is main's), so the red-check trigger does not apply; the body answers the recurrence trigger.
+- Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty (ev/contract-currency.txt). The merge base equals origin/main 3976515a0.
+- Diff, three-dot against the merge base: `tools/pr/prepr.sh` and `dev/programme/delivery/2591.md` only (ev/diff-names.txt). VERSION, the manifest version, the RELEASE_NOTES heading, claim files, goldens, budgets, closures and the ledger are untouched, so step 4 has nothing to compare and step 14 has nothing to earn. Between cfdd9c26c and the head, tools/pr/ does not change.
+- RESULT selftest head (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test`): 312 passed, 5 failed (ev/selftest-head.txt). The 5 failures are the four `6b` rows and `and makes no serial --single call beside it`, all of them "no interpreter that parses the tree was found (tried the seat venv ...)". They are the same 5 in every run here, so they are environmental (this container has no seat venv). CI's `instrument-self-tests` is green at this head.
+- RESULT mutation proof, every non-identity order of body_refusal's three alternatives (R red sentence, E first ERROR, T tail) at this head (ev/mutant-*.diff, ev/mutant-summary.txt). The killing rows are those that pass unmutated and fail under the mutant:
+  - ERT (m2): 310/7, killed by both new rows.
+  - ETR (m6): 310/7, killed by both new rows.
+  - RTE (m5): 310/7, killed by `and the refusal prints the error, not only its count` and `... ahead of the budget verdict`.
+  - TRE (m7): 305/12, 7 rows.
+  - TER (m4): 305/12, 7 rows. These include both new rows and the three red-gate rows.
+  - SUFFIX dropped (m3): 310/7, killed by both new rows.
+  - BASE `R || T` (the fix reverted, pb): 310/7, killed by the two Friction rows.
+  Every swap of every pair of refusal conditions turns a row red.
+- RESULT before the new rows at 53ae6a8ca: unmutated 308/5 (p0). ETR 308/5 survives (p6). RTE 306/7 (p5). TRE 303/10 (p7). Together with the head runs this re-derives every cell of the body's mutation table that I ran. The body's ERT and SUFFIX cells at 53ae6a8ca (308/5, survives) match the prior review's measurement at 400e15d27, whose prepr.sh is byte-identical. TER at 53ae6a8ca was not re-run by me; the body pairs it with TRE as 303/10.
+- Class (step 6): the body names an enumeration rule. Every unordered pair of body_refusal's alternatives gets a body carrying both and asserting which wins, plus a sweep of all 3! - 1 = 5 order permutations. I checked each pair:
+  - R/E: the new rows.
+  - R/T: the red-gate rows `naming the check`, `naming budget-raise-gate` and `naming mutation`.
+  - E/T: the two Friction rows.
+  All five permutations are killed, as listed above. Sibling hunt (ev/class-enum.txt): every `body_check` caller outside the self-test is `body_line` (prepr.sh:728) or `reds_line` (prepr.sh:1036), and both go through `body_refusal`. Step 7's `step "pr-body" ... tail -1` (prepr.sh:2934) reads body_line's own one-line output, so it is that seam's consumer and not a sibling. The other `tail -1` reporters report other checks (predictor, copy-claimed, throwaway git). app_push.sh prints policy_lint's whole output. I found no open seam.
+- Finder's harness at both ends. The roster brief names prepr's printed refusal line on a prose-Friction body, and no committed harness exists for it, so as in round 1 I replayed the merge base's expression (`grep -m1 'does not name it' || tail -1`) and the head's `body_refusal` over `policy_lint.mjs --pr-body` output (ev/both-ends.txt, ev/lint-*.txt). This instrument is mine, and I disclose it as mine.
+  - bad-friction.md: base prints `PR-BODY: 1 error(s) in ...`; head prints the `## Friction` line does not parse error, `(1 error line(s) in all)`.
+  - unnamed-red.md + prose Friction (`--red 'fast (3.14)'`): both print the red's sentence; head adds `(2 error line(s) in all)`.
+  - unnamed-red.md: both print the red's sentence; head adds `(1 ...)`.
+  - good.md, the null (rc 0): `PR-BODY: 0 error(s)`, with head adding `(0 ...)`.
+  - red-answered.md with the red passed, a second null (rc 0): the same.
+  This re-derives the body's both-ends table row for row.
+- Null control: the single-error rows (unnamed-red alone, and the answered-red prose-Friction body) pass under ERT and ETR, so the new rows are not vacuous and the nulls hold. Re-derived.
+- Body figures:
+  - Self-test counts and killing rows: re-derived, as above.
+  - Permutation count 5, all killed: re-derived.
+  - `grep -n 'body_refusal'` giving one definition and two call sites: re-derived (prepr.sh:703, 730, 1042).
+  - Three refusals #2545, #2558, #2582: not re-derivable. The body says so itself; those bodies have been rewritten, and the roster brief records them.
+  - `MODE: SCOPED -- 0 script(s) run, 33 scoped out` and the run_always lines: not re-derived by me. CI's `closures`, `closure-scope` and `scope` are green at this head.
+- Body `## Head` names c5a968de35f3e71e2e5b06e2174b7b54e6a7c306, the head I measured. Its commits above cfdd9c26c are main merges only (aef2c3e2e, c5a968de3), with no tools/pr change.
+- Merge-tree: `git merge-tree --write-tree origin/main c5a968de35f3e71e2e5b06e2174b7b54e6a7c306` exits 0 with tree b7cffb621203a94b858f0d0856ee7d9b797dfecd and no MERGE-CLAIM line (ev/merge-tree.txt). It is clean, and the head already contains origin/main; no absorb is asked.
+- carry_audit over the PR body: `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body ev/pr-body.md` gives `CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` (ev/carry-audit-body.txt). The body's Forward-carry is `none`, and nothing here changes a later stage (step 10). This verdict carries nothing. The group R10-FLY-BUDGET-LEAF is live on the roster (resume.stage `not-started`).
+- mutation lane at this head (job 119602338064 log, ev/mutation-lane.txt): `MUTATION TABLE PASSED (empty scope)`, "no production code line added or modified against the base". It drew no mutant, so the targeted mutants above are the mutation evidence.
+- Architecture (step 15): the added lines are two self-test rows and comments beside the existing rows, with no production change in this round. Nothing breaches.
+
+## Red checks
+
+The check-runs API per commit (ev/check-runs.txt, ev/check-runs-head-final.txt, the latter taken at 02:46Z after every run at the head had concluded):
+- c5a968de3: every run is success, skipped or neutral except `nightly-status` (failure, 02:23:19–02:23:30Z). That includes instrument-self-tests, closures, Analyze (python), mutation and fast (3.14).
+- aef2c3e2e, cfdd9c26c and 53ae6a8ca: no check runs.
+- 400e15d27: `nightly-status` failure only.
+
+`nightly-status` grades main's nightly run, and this diff touches nothing it reads. The body's `## Red checks` names it and answers why it is not this branch's. `pr-contract` ran green twice at this head, and the second run started at 02:23:47Z, after the last red concluded (02:23:30Z). So the red-check trigger is answered (step 11).

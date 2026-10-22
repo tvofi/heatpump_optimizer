@@ -1,1 +1,0 @@
-MUT2: ERROR   [pr-body] $W/both.md: `## Friction` line does not parse: "The scoped scripts need the seat venv.". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`. (2 error line(s) in all)

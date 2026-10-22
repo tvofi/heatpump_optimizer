@@ -1,23 +1,15 @@
-RESULT body=bad-friction.md lint_rc=1
-  BASE: PR-BODY: 1 error(s) in tools/policy/fixtures/policy-rot/prepr/bad-friction.md
-  HEAD: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/bad-friction.md: `## Friction` line does not parse: "the contracts were confusing in places". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|co
-RESULT body=b2582-prose.md lint_rc=1
-  BASE: PR-BODY: 4 error(s) in $W/b2582-prose.md
-  HEAD: ERROR   [pr-body] $W/b2582-prose.md: `## Head` does not name 0000000, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 000000
-RESULT body=b2582-none.md lint_rc=1
-  BASE: PR-BODY: 3 error(s) in $W/b2582-none.md
-  HEAD: ERROR   [pr-body] $W/b2582-none.md: `## Head` does not name 0000000, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 0000000
-RESULT body=good.md lint_rc=0
-  BASE: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md
-  HEAD: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md (0 error line(s) in all)
-RESULT body=b2582-prose.md head=c8b85d11564a9f429fafbe3353a4b8746e45b187 lint_rc=1
-  ERROR   [pr-body] $W/b2582-prose.md: `## Forward-carry` names `tools/audit/seat/heartbeat.sh`, which is not in the tree. A carry to a file that does not exist
-  ERROR   [pr-body] $W/b2582-prose.md: `## Forward-carry` names `heartbeat.sh`, which is not in the tree. A carry to a file that does not exist is not a carry.
-  ERROR   [pr-body] $W/b2582-prose.md: `## Friction` line does not parse: "The scoped scripts need the seat venv.". Write `none`, or `<rule_id>: <unclear|contra
-  BASE: PR-BODY: 3 error(s) in $W/b2582-prose.md
-  HEAD: ERROR   [pr-body] $W/b2582-prose.md: `## Forward-carry` names `tools/audit/seat/heartbeat.sh`, which is not in the tree. A carry to a file that does not exist is not a carry. (3 error line(s) 
-RESULT body=b2582-none.md head=c8b85d11564a9f429fafbe3353a4b8746e45b187 lint_rc=1
-  ERROR   [pr-body] $W/b2582-none.md: `## Forward-carry` names `tools/audit/seat/heartbeat.sh`, which is not in the tree. A carry to a file that does not exist 
-  ERROR   [pr-body] $W/b2582-none.md: `## Forward-carry` names `heartbeat.sh`, which is not in the tree. A carry to a file that does not exist is not a carry.
-  BASE: PR-BODY: 2 error(s) in $W/b2582-none.md
-  HEAD: ERROR   [pr-body] $W/b2582-none.md: `## Forward-carry` names `tools/audit/seat/heartbeat.sh`, which is not in the tree. A carry to a file that does not exist is not a carry. (2 error line(s) i
+### bad-friction.md red= rc=1
+base: PR-BODY: 1 error(s) in tools/policy/fixtures/policy-rot/prepr/bad-friction.md
+head: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/bad-friction.md: `## Friction` line does not parse: "the contracts were confusing in places". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`. (1 error line(s) in all)
+### both-grounds.md red=R rc=1
+base: ERROR   [pr-body] $W/ev/both-grounds.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+head: ERROR   [pr-body] $W/ev/both-grounds.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (2 error line(s) in all)
+### unnamed-red.md red=R rc=1
+base: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+head: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+### good.md red= rc=0
+base: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md
+head: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md (0 error line(s) in all)
+### red-answered.md red=R rc=0
+base: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/red-answered.md
+head: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/red-answered.md (0 error line(s) in all)
