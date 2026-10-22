@@ -840,12 +840,12 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     check("main: a missing --roster is refused before a missing --p0", "needs --roster" in err.getvalue())
     # --fetch reads the remote's refs/heads/{review,probe,verdict}/* into refs/remotes/<remote>/*/*, by
     # its own refspecs (the remote carries no configured fetch refspec), forced, with every tag.
-    from throwaway_git import throwaway_git_env
+    from throwaway_git import throwaway_git_env, throwaway_git_init
     env = throwaway_git_env()
     g = lambda *x, at=d: subprocess.run(["git", "-C", at, *x], capture_output=True, text=True, check=True,
                                         env=env).stdout.strip()
     up = os.path.join(d, ".git", "upstream.git")
-    g("init", "-q", "--bare", up)
+    throwaway_git_init(up, "-q", "--bare")
     g("config", "remote.origin.url", up)
     s13, s12 = g("rev-parse", "refs/remotes/origin/review/13"), g("rev-parse", "refs/remotes/origin/review/12")
     s5, nonce = g("rev-parse", "refs/remotes/origin/review/5"), NONCE_RE.search(g("show", f"{s13}:VERDICT.md"))[1]
