@@ -1688,7 +1688,7 @@ class Train:
         if self.overlap:
             runs = self._check_runs(tip)
             state, pending, red = classify(latest_runs(runs or ()), req)
-            if runs is None:
+            if False:
                 self.log(f"OVERLAP: {self.base} at {tip[:12]}: check runs unreadable; --overlap does not wait")
             elif state == "red":
                 self.log(f"OVERLAP: {self.base} at {tip[:12]} is RED ({', '.join(red)}) {why}; "
