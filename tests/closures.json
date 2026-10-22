@@ -1440,6 +1440,7 @@
    "dev/governance/dimensions/D8.md",
    "dev/governance/dimensions/D9.md",
    "dev/governance/roles/COMMON.md",
+   "dev/governance/roles/architect-planner.md",
    "dev/governance/roles/design-review.md",
    "dev/governance/roles/designer.md",
    "dev/governance/roles/fix-review.md",
@@ -1447,7 +1448,13 @@
    "dev/governance/roles/judge.md",
    "dev/governance/roles/nudge.md",
    "dev/governance/roles/orchestrator.md",
+   "dev/governance/roles/plan-review.md",
+   "dev/governance/roles/proposal-triage.md",
    "dev/governance/roles/root-cause.md",
+   "dev/governance/roles/standing-dispatch.md",
+   "dev/governance/roles/standing-merge.md",
+   "dev/governance/roles/standing-roster.md",
+   "dev/governance/roles/standing-tick.md",
    "dev/governance/roles/verifier.md",
    "dev/programme/HANDOVER.md",
    "dev/programme/carries/carry-1645.json",
@@ -4361,7 +4368,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 2033.6
+   "seconds": 707.7
   },
   "tests/env_drift.py": {
    "rc": 0,
