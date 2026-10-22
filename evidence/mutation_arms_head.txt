@@ -1,0 +1,12 @@
+## arms applied to tools/audit/seat/body_patch.sh at 5f216b37f4aad0681f6a8a42f419fb1674b55bea
+head: body_patch self-test: 62 checks, 2 failed
+prew: body_patch self-test: 62 checks, 2 failed
+lint: body_patch self-test: 62 checks, 8 failed
+carry: body_patch self-test: 62 checks, 3 failed
+rb: body_patch self-test: 62 checks, 4 failed
+rbhead: body_patch self-test: 62 checks, 1 failed
+rbx: body_patch self-test: 62 checks, 3 failed
+eq1: body_patch self-test: 62 checks, 2 failed
+exist: body_patch self-test: 62 checks, 1 failed
+dot2: body_patch self-test: 62 checks, 1 failed
+restored: 0 dirty; body_patch self-test: 62 checks, 0 failed

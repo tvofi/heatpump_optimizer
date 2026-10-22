@@ -1,0 +1,4 @@
+roster=5620151813e03a5916c375554dd57c977f6d8097
+== R10-ORCH-MACHINERY
+== R10-FLOW-BODY-ONLY
+1:Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into the head unconditionally, in the step after it takes the handoff code head, and has no flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: observed 2026-10-21 on #2513,

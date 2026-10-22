@@ -1,0 +1,11 @@
+## at 115bf041d7bb129fb36b75fbfbae58a4f7502125
+
+tools/audit/briefs/orchestrator.md
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: about 4515 tokens across its lines exceeds its cap of 4513 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 1 error(s) across 43 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=1

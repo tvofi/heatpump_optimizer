@@ -1,36 +1,13 @@
-## structure
-
+## head 5f216b37f4aad0681f6a8a42f419fb1674b55bea
+selftest_wiring: 77 self-testing, 77 wired, 0 unwired
+body_patch self-test: 62 checks, 0 failed
+app_push self-test: 182 checks, 0 failed
 STRUCTURE RATCHET PASSED
-## archscore
 Architecture score: dS +0.0000 NULL
-## closure select
-  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-  changed files (7), measured against the recorded closures in tests/closures.json:
-      .github/workflows/governance.yml
-      dev/audit/harnesses/r10_seat_selftests_mutants.py
-      dev/programme/delivery/2578.md
-      tools/audit/seat/INSTRUMENTS.md
-      tools/audit/seat/body_patch.sh
-      tools/pr/app_mint.sh
-      tools/pr/app_push.sh
-      RUN   tests/entities.py
-      RUN   tests/harness_headers.py
-      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
-      SKIP  tests/arch_score_head.py  (closure: 124 files, no changed file is in its measured closure)
-      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
-      SKIP  tests/block_duty.py  (closure: 90 files, no changed file is in its measured closure)
-## codeowners_gap head
-RESULT enforcement_surface_files=135 count
-RESULT covered_by_an_owner=50 count
-RESULT pinned_by_base_restore=85 count
-RESULT of_which_no_pr_job_runs=68 count
+ 7 files changed, 534 insertions(+), 37 deletions(-)
+RESULT enforcement_surface_files=138 count
 RESULT uncovered_files=0 count
-RESULT enforcement_surface_files=135 count
-RESULT covered_by_an_owner=50 count
-RESULT pinned_by_base_restore=85 count
-RESULT of_which_no_pr_job_runs=68 count
-RESULT uncovered_files=0 count
-## minters
+RESULT enforcement_surface_files=138 count
 tools/pr/app_mint.sh:57:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
 tools/pr/app_comment.sh:126:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
 tools/pr/app_approve.sh:458:  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \

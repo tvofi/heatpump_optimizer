@@ -1,0 +1,27 @@
+ .github/workflows/governance.yml                  |   21 +
+ dev/audit/config/bugclasses.json                  |   21 +-
+ dev/audit/harnesses/r10_mermaid_gantt_title.mjs   |   49 +
+ dev/audit/harnesses/r10_plan_page_mutants.py      |  123 ++
+ dev/audit/harnesses/r10_relay_owed_class_reach.py |  142 ++
+ dev/audit/harnesses/r10_roster_sync_base.py       |  173 ++
+ dev/audit/harnesses/r10_seat_selftests_mutants.py |   10 +-
+ dev/audit/rca/N-orphaned-handoff.md               |  348 ++++
+ dev/programme/delivery/2545.md                    |    1 +
+ dev/programme/delivery/2554.md                    |    1 +
+ dev/programme/delivery/2558.md                    |    1 +
+ dev/programme/delivery/2582.md                    |    1 +
+ dev/programme/delivery/2588.md                    |    1 +
+ dev/programme/rosters/wave-r10-groups.json        | 1918 ++++++++++++++++++++-
+ tests/closure.py                                  |   11 +-
+ tests/closures.json                               |   11 +-
+ tools/audit/seat/INSTRUMENTS.md                   |   48 +
+ tools/audit/seat/heartbeat.sh                     |  112 ++
+ tools/audit/seat/plan_page.py                     |  878 ++++++++++
+ tools/audit/seat/r10_roster_sync_mutants.py       |  179 ++
+ tools/audit/seat/ref_privacy.py                   |    2 +
+ tools/audit/seat/roster_edit.py                   |  144 +-
+ tools/audit/seat/roster_sync.py                   |  954 ++++++++++
+ tools/audit/seat/state_docs.py                    |  156 ++
+ tools/audit/seat/tick_loop.sh                     |   34 +-
+ tools/plan/replan.py                              |  112 +-
+ 26 files changed, 5329 insertions(+), 122 deletions(-)

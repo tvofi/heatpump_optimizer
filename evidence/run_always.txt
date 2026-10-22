@@ -1,0 +1,19 @@
+$ python3 tests/harness_headers.py
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1
+$ PYTHONPATH=tests/hastub timeout 900 python3 tests/entities.py
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+rc=1
+$ python3 tests/env_drift.py --claims-only 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab
+claims hygiene: 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab ok
+rc=0
+$ python3 tests/closure.py selftest
+
+ALL 124 closure shrink pins PASSED
+rc=0
+$ python3 tests/layout.py
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: ok
+rc=0
