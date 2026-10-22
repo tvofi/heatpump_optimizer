@@ -135,7 +135,7 @@ pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never 
 pr_lead_stop() { # TERM the lead alone, if the walk returned it, and wait for it at most PR_REAP_LEAD_TENTHS
   local n=0
   [ -n "${PR_REAP_LEAD:-}" ] || return 0
-  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) return 0 ;; esac
+  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) return 0 ;; esac  # mut:leadwalk
   pr_kill TERM "$PR_REAP_LEAD"
   while [ "$n" -lt "${PR_REAP_LEAD_TENTHS:-300}" ] && kill -0 "$PR_REAP_LEAD" 2>/dev/null; do sleep 0.1; n=$((n + 1)); done
 }
@@ -507,7 +507,7 @@ STUB
   # first. The lead's child G stands for update_pr.sh's lock holder: G marks a TERM it gets;
   # the lead, TERMed, waits 0.5 s and writes "early" when G was TERMed beside it, then ends G.
   printf '. "$1"; pr_exit_trap\nbash "$0.lead" & PR_REAP_LEAD=$!\nwait $!\n' > "$t/lhost.sh"
-  printf 'echo $$ >> "$REAP_DIR/pids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "$REAP_DIR/marks" & g=$!; echo $g >> "$REAP_DIR/pids"\ntrap '"'"'sleep 0.5; grep -q G "$REAP_DIR/marks" && echo early >> "$REAP_DIR/marks"; kill $g; wait $g; exit 143'"'"' TERM\nwait\n' > "$t/lhost.sh.lead"
+  printf 'echo $$ >> "$REAP_DIR/pids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "$REAP_DIR/marks" & g=$!; echo $g >> "$REAP_DIR/pids"\ntrap '"'"'sleep 0.5; grep -q G "$REAP_DIR/marks" && echo early >> "$REAP_DIR/marks"; kill $g 2>/dev/null; wait $g; exit 143'"'"' TERM\nwait\n' > "$t/lhost.sh.lead"
   leadrun() { # <mutant>
     local hp k=0
     : > "$REAP_DIR/pids"; : > "$REAP_DIR/marks"; copyin "$1"
@@ -523,6 +523,25 @@ STUB
   leadrun lead
   ck "  mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead" \
      "$( grep -q early "$REAP_DIR/marks" && echo 0 || echo 1 )"
+  # A stale PR_REAP_LEAD -- a pid outside the walk, as a reused one is -- is never signalled.
+  printf '. "$1"; pr_exit_trap; PR_REAP_LEAD=$2\nsleep 30 & echo $! >> "$REAP_DIR/pids"\nwait $!\n' > "$t/shost.sh"
+  staleld() { # <mutant>
+    local hp bp k=0
+    : > "$REAP_DIR/pids"; copyin "$1"
+    sleep 30 & bp=$!
+    bash "$t/shost.sh" "$m/tools/audit/seat/pr_args.sh" "$bp" & hp=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 1 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -TERM "$hp"; wait "$hp" 2>/dev/null
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    kill -0 "$bp" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
+    kill "$bp" 2>/dev/null; wait "$bp" 2>/dev/null; rclean
+  }
+  staleld -
+  ck "a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped" \
+     "$( [ "$(cat "$t/unrel")" = alive ] && [ "$(cat "$t/survivors")" = 0 ] && echo 0 || echo 1 )"
+  staleld leadwalk
+  ck "  mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed" \
+     "$( [ "$(cat "$t/unrel")" = gone ] && echo 0 || echo 1 )"
   # The census (the class rule): every path the rule returns is dispositioned and
   # every runner reaps. Its own null control is a scratch tree holding copies of
   # the entries plus one seam the census must refuse.

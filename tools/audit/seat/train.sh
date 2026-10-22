@@ -231,7 +231,28 @@ if [ "$selftest" = 1 ]; then
     [ "$tn $held $live $pf $early" = "5 $lp 0 removed none" ] \
       || die "self-test: $sig to the train (pid $held, launcher $lp) left $live of $tn pids of its tree alive (pidfile $pf, $early)"
   done
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree)"
+  # 10. merge_train.py stops first, as the reap's lead: its own stop TERMs the tool it
+  #     runs and releases the train's hold, which a TERM to the whole tree at once
+  #     would cut short. The stub's child G marks a TERM it gets; the stub, TERMed,
+  #     waits 0.5 s, writes "early" when G was TERMed beside it, then ends G.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+  ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+  printf 'import os, signal, subprocess, sys, time\nopen("%s/pids", "a").write("%%d\\n" %% os.getpid())\ng = subprocess.Popen(["bash", "-c", "trap \\"echo G >> %s/marks; exit 0\\" TERM; while :; do sleep 0.1; done"])\nopen("%s/pids", "a").write("%%d\\n" %% g.pid)\ndef stop(*_):\n    time.sleep(0.5)\n    if "G" in open("%s/marks").read(): open("%s/marks", "a").write("early\\n")\n    g.terminate(); g.wait(); sys.exit(143)\nsignal.signal(signal.SIGTERM, stop)\nwhile True: time.sleep(0.1)\n' \
+    "$st" "$st" "$st" "$st" "$st" > "$st/C/tools/audit/seat/merge_train.py"
+  : > "$st/queue.json"; : > "$st/pids"; : > "$st/marks"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --checkout "$st/C" >/dev/null 2>&1 &
+  lp=$!; k=0
+  while [ "$(wc -l < "$st/pids")" -lt 2 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+  kill -TERM "$(cat "$st/state/train.pid" 2>/dev/null)" 2>/dev/null
+  { wait "$lp"; } 2>/dev/null
+  tlive
+  for p in $(cat "$st/pids"); do kill -KILL "$p" 2>/dev/null; done
+  marks=$(tr '\n' ' ' < "$st/marks"); pf=$([ -f "$st/state/train.pid" ] && echo present || echo removed)
+  rm -rf "$st"
+  [ "$live $marks$pf" = "0 G removed" ] \
+    || die "self-test: a TERMed train did not stop merge_train.py first (alive $live, marks '$marks', pidfile $pf)"
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree, merge_train.py first)"
   exit 0
 fi
 
