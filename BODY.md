@@ -23,11 +23,13 @@ Code-owned paths in the diff: `.claude/workflows/audit-find.js` and `tools/audit
 
 ## Head
 
-`2fe11ffbc87966eba52410dcead117224a26e04e`, one commit on `origin/main` `fd9914851f063bc03bb44d4050ad30d6d0052f8d`.
+`0bcc7d4ecd52e6955cdff3c701735819d39fee23`, round 2: round 1's `2fe11ffbc`, `origin/main` `de69745ffcab66b566b3e75aee0b572023f80857` merged in (`0fd4c951f`, 17 commits, none touching a file this diff changes: `git diff --stat 2fe11ffbc 0fd4c951f -- <this diff's files>` prints nothing), and one commit registering `tools/pr/prepr.sh` in `tools/audit/seat/ref_privacy.py`'s `PUSHERS`.
+
+Round 1's self-test pushes probe heads to `handoff/zz-lint` from two lines of `prepr.sh --self-test`. Both run after `git remote set-url origin "$PDX/bodies.git"` (a `throwaway_git_init` bare repository) and before the restore to `$BPO`. So the entry is `fixture`, beside `app_approve.sh` and `r9_rc_bus_fetchhead.sh`, not `guarded`: the ref is the constant `handoff/zz-lint` and nothing leaves the temp root.
 
 ## Mutation proof
 
-Each mutant was committed in its own worktree. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test` was then run there, at base `4d407a35f`. The mutated files have not changed since.
+Re-run at this head. Each mutant was committed in its own worktree at `0bcc7d4ec`, and `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test` was run there; the unmutated head gives `337 passed, 0 failed` (M0).
 
 | mutant | change | result |
 |---|---|---|
@@ -36,7 +38,11 @@ Each mutant was committed in its own worktree. `PREPR_SKIP_CLOSURES=1 bash tools
 | RE-SESSION | `policy_lint.mjs`: the session-link alternative is removed | `336 passed, 1 failed`: the session-link push arm |
 | LOG | `prepr.sh`: `body_line`'s `BODY_LOG` copy is removed | `336 passed, 1 failed`: the arm requiring both ERROR lines |
 
-**Class registration**, run CI's way. `ci_wave_base.sh` restores the pinned graders from the merge base as `governance.yml`'s `wave-script` job does, then runs `check-wave-script.mjs` and the agreement lane:
+| PUSHERS | `ref_privacy.py`: the `tools/pr/prepr.sh` entry absent (the merged head `0fd4c951f`, before the round-2 commit) | `python3 tools/audit/seat/ref_privacy.py --check`: `REFUSE tools/pr/prepr.sh:2424: a push site in a file PUSHERS does not name` |
+
+The PUSHERS row is CI's own red reproduced; with the entry, the same command no longer prints it (Figures).
+
+**Class registration** (round 1, base `4d407a35f`; the class files are unchanged by the merge), run CI's way. `ci_wave_base.sh` restores the pinned graders from the merge base as `governance.yml`'s `wave-script` job does, then runs `check-wave-script.mjs` and the agreement lane:
 
 | head | `wave-script` | agreement lane |
 |---|---|---|
@@ -61,17 +67,25 @@ The branch copies give the same two answers.
 
 ## Figures
 
-All at this head, `origin/main` `fd9914851`:
+All at this head `0bcc7d4ec`, `origin/main` `de69745ff`, measured 2026-10-22T22:15Z, under Python 3.13 (a venv from `tests/requirements-ci.txt --require-hashes`; this cloud image's ambient `python3` is 3.11, which cannot parse `tests/entities.py`):
 
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`: rc 0, `PRE-PR: 2fe11ffbc87966eba52410dcead117224a26e04e 0000000000000000000000000000`, with `agreement lane` `AGREEMENT ok` and `wave-script` `202 passed, 0 failed` (this run was on this body before this line was filled in, and again after).
-- Its self-test step: `337 passed, 0 failed`.
-- Scoped gate, `PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=<merge base> ./tests/run.sh`: `MODE: SCOPED -- 2 script(s) run`; `ALL 109 HARNESS HEADER CHECKS PASSED`; `4 of 2397 ENTITY CHECKS FAILED`. All four failures are heartbeat py-spy control arms (`hb:positive_control survives one hung py-spy sample`, `the control rests between tries`, and two more), and `tests/entities.py` at `origin/main` `fd9914851` fails the same four (`4 of 2397 ENTITY CHECKS FAILED`), so they are main's on this Mac, not this diff's. The three trailer checks print `ok`.
-- `python3 tools/audit/fold_ledger.py check`: `fold_ledger: 0 violation(s)`.
-- `prepr.sh --body-check` took 1.47 s, 2.19 s and 2.05 s at load 19 (base `4d407a35f`).
+- `python3 tools/audit/seat/ref_privacy.py --check`: `23 file(s) with a push site, 11 guarded, ... 1 refused`. The `tools/pr/prepr.sh` refusal is gone. The one left is `dev/audit/rca/R10-RCA-BODY-LINT.md:3: home-directory`, and it is this host's, not CI's: the seat runs as uid 0 with home `/root`, and line 3's `dev/governance/roles/root-cause.md` holds `/root`. That line through `ref_privacy.leaks` with `Identity.made({"/root"},{"root"},0)` returns `['home-directory']`; with the runner's `Identity.made({"/home/runner"},{"runner"},1001)` it returns `[]` (null control). CI job 120096849712 counted `1 refused`, the prepr.sh one alone.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`: rc 0, `PRE-PR: 0bcc7d4ecd52e6955cdff3c701735819d39fee23 0000000000000000000000000000`, with `agreement lane` `AGREEMENT ok` and `wave-script` `202 passed, 0 failed` (run on this body before this line was added; `--body-check` and `figure_lint.mjs --pr-body` re-run after it).
+- `python3 tools/audit/seat/ref_privacy.py --self-test`: `66 checks, 0 failed`.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test`: `337 passed, 0 failed`. Under the ambient 3.11 with no seat venv the same run gave `328 passed, 9 failed`, every failure step 6b's or its recorder's `no interpreter that parses the tree was found`: the environment, not the diff.
+- `node tools/policy/policy_lint.mjs --self-test`: `FIXTURE ok`; `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`.
+- Agreement lane on the BASE copy (`git show origin/main:tools/policy/agreement.mjs`, placed beside the branch copy in `tools/policy/` so its relative import and root resolve, after `python3 -I tools/policy/agreement_py.py --out`): `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`; its `--self-test`: `27 of 27 probes held`.
+- Scoped gate, `python3 tests/closure.py select --diff <merge base>`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/harness_headers.py`). `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py`: `ALL 2397 ENTITY CHECKS PASSED`; `tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- Round 1's figures not re-taken (the files they read are unchanged by the merge): the `--body-check` timings, the five-body replay and `fold_ledger.py check`.
 
 ## Red checks
 
-None. This head has no CI yet.
+- `instrument-self-tests` (job 120096849712), at round 1's head: `ref_privacy: REFUSE tools/pr/prepr.sh:<line>: a push site in a file PUSHERS does not name`, `ref_privacy --check at HEAD: ... 1 refused`.
+  - Cause: round 1's `body_push` self-test arms added two `git push -q origin ...:refs/heads/handoff/zz-lint` lines to `tools/pr/prepr.sh`, a file with no push site before and so no `PUSHERS` entry. The registry refuses an unregistered push site by design.
+  - Fixed here: `tools/pr/prepr.sh` is registered as `fixture` (Head; Mutation proof row PUSHERS).
+  - The cheaper detector: `python3 tools/audit/seat/ref_privacy.py --check`, offline and about a second, run before the push. Round 1 did not run it: prepr does not, and `scope.run` does not name it, because the instrument self-tests sit outside the scoped gate. It cost one CI round and this second fixer round; running it costs one command.
+- `nightly-status`: main's known `NIGHTLY ABSENT`. The nightly workflow is younger than its first cron slot, so no run exists for the check to find. It is being fixed by R10-NIGHTLY-ABSENT-NEW; not this PR's, and this diff touches no file it reads.
 
 ## Forward-carry
 
