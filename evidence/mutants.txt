@@ -1,30 +1,27 @@
-R1-firstpass: review_strength self-test: 24 checks, 1 failed | FAIL: first-pass: PR 1 opened blocked, PR 2 blocked -> 0 of 2 in E;
-  RESTORED
-R2-size600: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R3-nonce7: review_strength self-test: 24 checks, 1 failed | FAIL: probe ref rev-<pr>-<nonce8> marks the verdict cloud;
-  RESTORED
-R4-guard-head: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R5-asof-firstparent: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R6-product-cc: review_strength self-test: 24 checks, 2 failed | FAIL: product: 5 touches custom_components/, 6 only docs/;FAIL: as of: a verdict after T moves no fact (6's later head is product, read only after it);
-  RESTORED
-R7-delivery-filter: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R8-merges-first: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R9-cloud-suffix: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R10-binom-range: review_strength self-test: 24 checks, 3 failed | FAIL: binomial: P(X<=0|20,0.15) = 0.039;FAIL: guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875);FAIL: guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020);
-  RESTORED
-R11-guard-real: review_strength self-test: 24 checks, 2 failed | FAIL: guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875);FAIL: guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020);
-  RESTORED
-R12-merge-parent: review_strength self-test: 24 checks, 2 failed | FAIL: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150);FAIL: product: 5 touches custom_components/, 6 only docs/;
-  RESTORED
-R13-origin-fixes: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R14-branch-pr: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
-R15-tally-window: review_strength self-test: 24 checks, 0 failed | 
-  RESTORED
+R2: review_strength self-test: 31 checks, 1 failed | FAIL: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+R4: review_strength self-test: 31 checks, 1 failed | FAIL: guardrail: the LATEST N by first verdict (5, 6, 7: 1/3), not the oldest (1, 2, 3: 2/3)
+R5: review_strength self-test: 31 checks, 1 failed | FAIL: as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T
+R7: review_strength self-test: 31 checks, 1 failed | FAIL: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)
+R8: review_strength self-test: 31 checks, 1 failed | FAIL: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+R9: review_strength self-test: 31 checks, 1 failed | FAIL: bus-confirmed *-cloud id marks the verdict cloud
+R13: review_strength self-test: 31 checks, 1 failed | FAIL: origin: a group listing fixes alone is finding
+R14: review_strength self-test: 31 checks, 2 failed | FAIL: join: merge branch fix/r1-fix-pr, -pr stripped, finds R1-FIX's resume.branch (fixer haiku); FAIL: origin: a group listing fixes alone is finding
+R15: review_strength self-test: 31 checks, 1 failed | FAIL: window: [from, until) excludes a verdict at until (PR 2's block at 04:00)
+R1: review_strength self-test: 31 checks, 1 failed | FAIL: first-pass: PR 1 opened blocked, PR 2 blocked -> 0 of 2 in E
+R3: review_strength self-test: 31 checks, 1 failed | FAIL: probe ref rev-<pr>-<nonce8> marks the verdict cloud
+R6: review_strength self-test: 31 checks, 2 failed | FAIL: product: 5 touches custom_components/, 6 only docs/; FAIL: as of: a verdict after T moves no fact (6's later head is product, read only after it)
+R11: review_strength self-test: 31 checks, 3 failed | FAIL: guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875); FAIL: guardrail: 1/2 before L at p0=0.99 would trip (P(X<=1) = 0.020); FAIL: guardrail: the LATEST N by first verdict (5, 6, 7: 1/3), not the oldest (1, 2, 3: 2/3)
+R12: review_strength self-test: 31 checks, 3 failed | FAIL: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150); FAIL: product: 5 touches custom_components/, 6 only docs/; FAIL: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+N1-cut700: review_strength self-test: 31 checks, 0 failed | 
+N2-cut650: review_strength self-test: 31 checks, 0 failed | 
+N3-guard-sortpr: review_strength self-test: 31 checks, 0 failed | 
+N4-guard-le: review_strength self-test: 31 checks, 0 failed | 
+N5-cloud-prefix: review_strength self-test: 31 checks, 1 failed | FAIL: bus-confirmed cloud-* id marks the verdict cloud
+N6-findings: review_strength self-test: 31 checks, 0 failed | 
+N7-last-le: review_strength self-test: 31 checks, 0 failed | 
+N8-blueprints: review_strength self-test: 31 checks, 0 failed | 
+N9-parents: review_strength self-test: 31 checks, 0 failed | 
+N10-cut150-200: review_strength self-test: 31 checks, 1 failed | FAIL: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)
+N11-asof-ref-roster: review_strength self-test: 31 checks, 1 failed | FAIL: origin: a group listing issues is finding, one listing none is group
+N12-probes-pr: review_strength self-test: 31 checks, 1 failed | FAIL: probe ref rev-<pr>-<nonce8> marks the verdict cloud
+restored identical: True
