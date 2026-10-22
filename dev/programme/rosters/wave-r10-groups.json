@@ -7689,6 +7689,54 @@
     "next_step": "review, then merge",
     "note": null
    }
+  },
+  {
+   "group": "R10-RECORD-API-BUDGET",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "hot_files": [
+    ".github/workflows/governance.yml",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-RCA-INSTALL-RATELIMIT"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Countermeasure of dev/audit/rca/install-ratelimit.md (the record is at handoff/r10-rca-install-ratelimit 0a8c4523a). Governance's record job walks <last tag>..origin/main three times per push to main (--record, --stats, --sunset), costing 3W+6P GITHUB_TOKEN calls: 834 at 04c1dd779 against a bucket of 1,000 per hour. M0: print `gh api rate_limit` in the record job. M1: walk the window once and share it across the three modes (834 to 370 or below; the mutation proof is restoring the per-mode fetch, which must read 834 again with the harness). M2: a concurrency group on record, so a burst runs it at most twice. M3, decision O-1 (orchestrator, under the mandate): move --stats and --sunset off the push arm to the weekly schedule and the stamp, unless the designer measures a consumer that needs them per push; an App installation token is the fallback. Correct HANDOVER item 44's 'shared App quota' to the GITHUB_TOKEN bucket at merge.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-record-api-budget",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   },
+   "priority": "high"
   }
  ]
 }
