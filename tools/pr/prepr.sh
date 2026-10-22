@@ -1364,7 +1364,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry; do
+  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry attribution; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
     st $? 1 "a body with $f is refused"
   done
@@ -1381,6 +1381,8 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; fi
+  st $? 0 "a healthy body naming claude.ai in another sense is silent (the attribution arm's null control)"
 
   # The hooks check, driven over one fixture per way a wiring can be wrong.
   # `empty` and `broken` matter most: a settings file with no hooks, and one

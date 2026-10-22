@@ -91,6 +91,14 @@ ALLOWED_TOOLS = ["preset:default", "Bash", "Glob", "Grep", "Read", "Write",
                  "BashOutput", "KillBash", "Monitor"]
 
 
+#: The owner's ban on a tool's attribution (tvofi, 2026-10-22: "make this ban
+#: persistent"), stated to every role in one line. .claude/settings.json's
+#: `attribution` hides the harness's own lines; ref_privacy.py refuses the rest.
+FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai "
+              "session link in any commit, pull-request body or comment you produce; check your commits "
+              "with `git log --format=%B` before pushing.")
+
+
 class Refusal(Exception):
     pass
 
@@ -101,7 +109,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
     first = f"{who} seat for {subject}."
     if nonce:
         first += f" Bus nonce: {nonce}."
-    first += " Never send push notifications."
+    first += " Never send push notifications. " + FOOTER_BAN
     setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
              "is on PATH from the environment. Run anything heavy in the background with Monitor "
              "and no timeout.")
@@ -541,6 +549,12 @@ def self_test() -> int:
           all(r in render("fixer", head, **base, topic="t-1")["job_config"]["ccr"]["events"][0]
               ["data"]["message"]["content"] for r in ("handoff/t-1", "handoff-body/t-1")))
     check("a probe renders without a nonce", not refused("probe", nonce=""))
+    prompts = {r: render(r, head, **base, pr="7", topic="t-1", nonce="abc123")["job_config"]["ccr"]["events"][0]
+               ["data"]["message"]["content"] for r in ROLES}
+    check("every role's prompt states the footer ban in one line (R10-FLY-NO-FOOTERS)",
+          all(sum(FOOTER_BAN in line for line in t.splitlines()) == 1 for t in prompts.values()))
+    check("and no rendered prompt carries the attribution it bans (ref_privacy's classes: the null control)",
+          all(ref_privacy.attribution(t) == [] for t in prompts.values()))
     check("a 39-hex head is refused", refused(h=head[:-1]))
     check("a 41-hex head is refused", refused(h=head + "0"))
     check("an upper-case head is refused", refused(h=head.upper()))

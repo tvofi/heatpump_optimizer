@@ -111,6 +111,7 @@ const HOOKS = {
   load: () => JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/settings.json'), 'utf8')),
   ignore: {
     'permissions': 'tool permissions are not a hook; --hooks judges hooks and nothing else reads this key',
+    'attribution': "the harness's commit and PR attribution text, not a hook (R10-FLY-NO-FOOTERS); --hooks judges hooks. What it hides is refused downstream whatever this key holds: ref_privacy.py's push guard and policy_lint.mjs's body contract",
   },
   async verdict(obj) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fc-hooks-'))
