@@ -11636,12 +11636,16 @@ def _two_zone_learner(*, lower_entity=None, ratio=1.0):
     return c
 
 
-def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
-    """One learning interval, with the plant landing on `observed_lower`."""
+def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0, sun=0.0):
+    """One learning interval, with the plant landing on `observed_lower`.
+
+    ``sun`` is the interval's irradiance, W/m², which #2223's dark gauge
+    reads on the interval's opening state.
+    """
     base = ThermalState(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=20.0, slab_temperature=27.0,
-        outdoor_temperature=-5.0,
+        outdoor_temperature=-5.0, solar_radiation=sun,
     )
     now = _lz_dt.now()
     coord._last_house_sample = base
@@ -18029,11 +18033,12 @@ _RS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
 
 
 def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
-             boosted=None):
+             boosted=None, solar=None):
     """``days`` of pairs after ``start``, one per ``dt_h``: observed minus
     predicted is ``residual`` at a constant outdoor. ``boosted`` is a
     (from, to) span whose rows carry the #1935 tag and no prediction, as
-    ``_record_accuracy`` writes them."""
+    ``_record_accuracy`` writes them. ``solar`` is the interval's irradiance,
+    W/m² (#2223); ``None`` is a sample from before the field existed."""
     out = []
     for i in range(1, int(round(days * 24 / dt_h)) + 1):
         when = start + timedelta(hours=dt_h * i)
@@ -18041,7 +18046,7 @@ def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
         out.append(AccuracySample(
             when=when, predicted_temp=None if tag else pred,
             actual_temp=pred + residual, outdoor_temp=outdoor,
-            boost_space=tag,
+            boost_space=tag, solar_radiation=solar,
         ))
     return out
 
@@ -18140,6 +18145,60 @@ R.check(
     "#1936: a boost-tagged pair is refused before it can move the step",
     _rs_tagged_pair is None,
     f"{_rs_tagged_pair}",
+)
+
+# #2223: the refit pools the interval learner's own relation, so it inherits
+# that learner's dark gate -- a sunlit pair carries the aperture's error.
+_rs_on_gauge = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0, solar_radiation=50.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+_rs_past_gauge = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0, solar_radiation=50.5),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#2223: the refit's dark gauge is the tree's, inclusive at the threshold",
+    _rs_on_gauge == (0.0, _RS_MIN_DT) and _rs_past_gauge is None,
+    f"50 -> {_rs_on_gauge}, 50.5 -> {_rs_past_gauge}",
+)
+_rs_sunny = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03, solar=600.0))
+R.check(
+    "#2223: a sunlit window offers the refit no pair at all",
+    _rs_sunny["pairs"] == 0 and _rs_sunny["scale"] is None,
+    f"{_rs_sunny}",
+)
+_rs_dark = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03, solar=0.0))
+R.check(
+    "#2223: a dark window folds exactly the pairs it always did",
+    _rs_dark["scale"] == _rs_one["scale"]
+    and _rs_dark["pairs"] == _rs_one["pairs"],
+    f"{_rs_dark} against {_rs_one}",
+)
+_rs_half = _rs_fit(
+    _rs_rows(_RS_T0, 2.0, -0.03, solar=600.0)
+    + _rs_rows(_RS_T0 + timedelta(days=2), 2.0, -0.03, solar=0.0)
+)
+R.check(
+    "#2223: a half-sunny window folds only its dark half",
+    _rs_half["pairs"] == _rs_one["pairs"] // 2
+    and _rs_half["scale"] == _rs_one["scale"],
+    f"{_rs_half} against {_rs_one}",
+)
+R.check(
+    "#2223: the sample carries the interval's sun through its stored form",
+    AccuracySample(when=_RS_T0, solar_radiation=640.0).as_dict()[
+        "solar_radiation"
+    ] == 640.0
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "solar_radiation": 640.0}
+    ).solar_radiation == 640.0
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat()}
+    ).solar_radiation is None,
+    "a legacy sample (no field) must load as unknown, not as zero",
 )
 
 
@@ -18757,6 +18816,9 @@ R.check(
     > _tm53.simulate_step(_st53, 0.0, 0.0, hour_of_day=3.0).room_temperature,
 )
 _c53 = _t2_coord(internal_gains_learning_enabled=True)
+# #2223: the profile folds only behind an identified heat-loss level, so the
+# seat arrives converged -- an unconverged one is the check just below.
+_c53._house_heat_loss_samples = 400
 _st53d = replace(_c53._current_state)
 _st53d.solar_radiation = 0.0
 _g0 = _c53._thermal_params.internal_gains
@@ -18796,6 +18858,245 @@ _c54._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
 R.check(
     "with the flag off no profile ever forms",
     _c54._internal_gains_profile is None,
+)
+
+# --- #2223 (class N-confounded-learner): the heat-loss folds take the dark ----
+#
+# The replay nets the modelled solar term out to the accuracy of the aperture,
+# so a sunlit residual still carries the aperture's error. Solar gain
+# correlates with the conductive term through the time of day and the outdoor
+# temperature, and the Newton step settles that error into the heat-loss
+# coefficient at a value that looks converged (D2-s3-71: +0.09..+0.25 of UA
+# per unit of aperture error over six plants; the study's dark arm collapses
+# the spread to 0.0001). The gauge is the tree's own dark one, which
+# `_fold_internal_gains` already used.
+from heatpump_optimizer.thermal_model import is_sunlit_interval as _nf_sunlit  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _learned_zone_temperature as _nf_zone,
+    _zone_capacity as _nf_cap,
+)
+
+
+R.check(
+    "#2223: the dark gauge is inclusive at its own threshold, and unknown is dark",
+    _nf_sunlit(0.0) is False
+    and _nf_sunlit(None) is False
+    and _nf_sunlit(50.0) is False
+    and _nf_sunlit(50.5) is True,
+    f"0 -> {_nf_sunlit(0.0)}, None -> {_nf_sunlit(None)}, "
+    f"50 -> {_nf_sunlit(50.0)}, 50.5 -> {_nf_sunlit(50.5)}",
+)
+
+# The two choices #2223's move made once each, pinned as values so a mutant
+# cannot drop either half of the zone rule.
+_nf_state = ThermalState(room_temperature=19.0, upper_floor_temperature=23.0)
+_nf_two_zone = ThermalParameters(two_zone_enabled=True)
+_nf_single_zone = ThermalParameters()
+R.check(
+    "#2223: a fold's zone is the upper floor in two-zone mode, else the room",
+    _nf_zone(_nf_state, _nf_two_zone) == 23.0
+    and _nf_zone(_nf_state, _nf_single_zone) == 19.0,
+    f"two-zone {_nf_zone(_nf_state, _nf_two_zone)}, "
+    f"single {_nf_zone(_nf_state, _nf_single_zone)}",
+)
+R.check(
+    "#2223: and the fold's capacity is that same zone's thermal mass",
+    _nf_cap(_nf_two_zone) == _nf_two_zone.upper_floor_thermal_mass
+    and _nf_cap(_nf_single_zone) == _nf_single_zone.room_thermal_mass,
+    f"two-zone {_nf_cap(_nf_two_zone)}, single {_nf_cap(_nf_single_zone)}",
+)
+
+_nf_scale0 = _vent_coord()._house_heat_loss_scale
+_nf_night = _vent_coord()
+_feed_residual(_nf_night, -0.3, 8, _T4, sun=[0.0] * 8)
+_nf_day = _vent_coord()
+_feed_residual(_nf_day, -0.3, 8, _T4, sun=[600.0] * 8)
+R.check(
+    "#2223: a night interval still folds the house heat loss",
+    _nf_night._house_heat_loss_samples > 0
+    and _nf_night._house_heat_loss_scale != _nf_scale0,
+    f"{_nf_night._house_heat_loss_samples} samples, "
+    f"scale {_nf_night._house_heat_loss_scale} from {_nf_scale0}",
+)
+R.check(
+    "#2223: a sunlit interval takes no house heat-loss sample",
+    _nf_day._house_heat_loss_samples == 0
+    and _nf_day._house_heat_loss_scale == _nf_scale0,
+    f"{_nf_day._house_heat_loss_samples} samples, "
+    f"scale {_nf_day._house_heat_loss_scale}",
+)
+
+
+def _nf_samples_after(dt_s):
+    """House heat-loss samples one dark interval of ``dt_s`` seconds folds."""
+    import homeassistant.util.dt as _dt_mod
+
+    c = _vent_coord()
+    observed = c._current_state.room_temperature
+    c._thermal_model.simulate_step = lambda prev, power, outdoor, **kw: (
+        _dc_replace(prev, room_temperature=observed + 0.3))
+    c._current_state.solar_radiation = 0.0
+    real_now = _dt_mod.now
+    try:
+        for t in (_T4, _T4 + timedelta(seconds=dt_s)):
+            _dt_mod.now = lambda t=t: t
+            _asyncio.run(c._async_learn_house_heat_loss())
+    finally:
+        _dt_mod.now = real_now
+    return c._house_heat_loss_samples
+
+
+# The one range check #2223 folded the two one-sided dt guards into keeps
+# both bounds inclusive, as the pair was: 0.15 h and 1.5 h each fold.
+_nf_dt = {s: _nf_samples_after(s) for s in (539, 540, 5400, 5401)}
+R.check(
+    "#2223: the house fold's interval window is inclusive at both bounds",
+    _nf_dt == {539: 0, 540: 1, 5400: 1, 5401: 0},
+    f"samples by interval seconds {_nf_dt}",
+)
+
+_nf_ap = _vent_coord(solar_aperture_learning_enabled=True)
+_feed_residual(_nf_ap, 0.4, 8, _T4, sun=[600.0] * 8)
+R.check(
+    "#2223: the sunlit interval is still the aperture learner's",
+    _nf_ap._solar_aperture["n"] > 0 and _nf_ap._house_heat_loss_samples == 0,
+    f"aperture samples {_nf_ap._solar_aperture['n']}, "
+    f"heat-loss {_nf_ap._house_heat_loss_samples}",
+)
+
+_nf_det = _vent_coord()
+_feed_residual(_nf_det, -0.2, 6, _T4, sun=[600.0] * 6)
+R.check(
+    "#2223: the detector is fed the interval even when the heat-loss fold refuses it",
+    _nf_det._vent_cusum.last_fed is not None
+    and _nf_det._house_heat_loss_samples == 0,
+    f"last_fed {_nf_det._vent_cusum.last_fed!r}, "
+    f"heat-loss {_nf_det._house_heat_loss_samples}",
+)
+
+# One residual, two parameters: the hour shape must wait for the level.
+_nf_gain = _t2_coord(internal_gains_learning_enabled=True)
+_feed_residual(_nf_gain, 0.3, 8, _T4, sun=[0.0] * 8)
+R.check(
+    "#2223: the hour shape waits for the heat-loss level",
+    _nf_gain._internal_gains_profile is None,
+    f"profile {_nf_gain._internal_gains_profile!r} after "
+    f"{_nf_gain._house_heat_loss_samples} heat-loss samples",
+)
+_nf_levelled = _t2_coord(internal_gains_learning_enabled=True)
+_nf_levelled._house_heat_loss_samples = 400
+_nf_g0 = _nf_levelled._thermal_params.internal_gains
+_feed_residual(_nf_levelled, 0.3, 8, _T4, sun=[0.0] * 8)
+R.check(
+    "#2223: and folds its hour once the level has converged",
+    _nf_levelled._internal_gains_profile is not None
+    and _nf_levelled._internal_gains_profile[7] > _nf_g0,
+    f"hour 7 {(_nf_levelled._internal_gains_profile or [None] * 24)[7]!r} "
+    f"vs prior {_nf_g0}",
+)
+# The gate is inclusive: a level whose confidence sits exactly on the
+# threshold has converged. No integer sample count lands on 0.9 itself, so
+# the threshold is moved onto one the learner does reach, and the count just
+# under it is the control that must still wait.
+import heatpump_optimizer.coordinator as _nf_cm  # noqa: E402
+from heatpump_optimizer.coordinator import house_loss_confidence as _nf_conf  # noqa: E402
+
+_nf_edge_n = 114
+_nf_edge_threshold = _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE
+_nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_conf(_nf_edge_n)
+try:
+    _nf_edge = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_edge._house_heat_loss_samples = _nf_edge_n
+    _nf_edge._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+    _nf_under = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_under._house_heat_loss_samples = _nf_edge_n - 1
+    _nf_under._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+finally:
+    _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_edge_threshold
+R.check(
+    "#2223: a heat-loss level exactly on the confidence threshold has converged",
+    _nf_edge._internal_gains_profile is not None
+    and _nf_under._internal_gains_profile is None,
+    f"on the threshold {_nf_edge._internal_gains_profile is not None}, "
+    f"one sample under {_nf_under._internal_gains_profile is not None}",
+)
+
+_nf_low_day = _two_zone_learner(lower_entity="sensor.lower")
+_nf_low_r_day, _nf_low_n_day = _drive_lower(
+    _nf_low_day, observed_lower=19.6, sun=600.0
+)
+_nf_low_night = _two_zone_learner(lower_entity="sensor.lower")
+_nf_low_r_night, _nf_low_n_night = _drive_lower(
+    _nf_low_night, observed_lower=19.6, sun=0.0
+)
+R.check(
+    "#2223: the lower-floor split takes a night interval and refuses a sunlit one",
+    _nf_low_n_night > 0
+    and _nf_low_r_night != 1.0
+    and _nf_low_n_day == 0
+    and _nf_low_r_day == 1.0,
+    f"night {_nf_low_r_night:.3f} on {_nf_low_n_night} samples, "
+    f"day {_nf_low_r_day:.3f} on {_nf_low_n_day}",
+)
+
+# The plumbing, not the schema: the sample takes the sun the prediction was
+# made under (`pending`), not whatever the sky reads when the interval closes.
+_nf_smp = _t2_coord()
+_nf_smp._current_state.solar_radiation = 640.0
+_nf_smp._pending_prediction = {
+    "when": dt_util.now() - timedelta(minutes=30),
+    "predicted_temp": 20.5, "power": 2.0, "solar": 120.0, "outdoor": -2.0,
+}
+_nf_smp.hass.states.set("sensor.indoor", FakeState("21.0"))
+_nf_smp._record_accuracy()
+R.check(
+    "#2223: an accuracy sample records the sun its prediction was made under",
+    bool(_nf_smp._accuracy.samples)
+    and _nf_smp._accuracy.samples[-1].solar_radiation == 120.0,
+    f"{len(_nf_smp._accuracy.samples)} samples, sun "
+    f"{_nf_smp._accuracy.samples[-1].solar_radiation if _nf_smp._accuracy.samples else None}",
+)
+
+
+# And the capture too: the coordinator's own prediction under a sunlit sky,
+# settled half an hour later in the dark, reaches the tracker with its sun,
+# so the refit refuses that pair. The dark capture is the control arm: the
+# same drive forms a pair, so the refusal is the sun's and nothing else's.
+def _nf_settled(sun):
+    coord = _t2_coord()
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
+    )
+    coord._current_state.room_temperature = 21.0
+    coord._current_state.outdoor_temperature = -2.0
+    coord.hass.states.set("sensor.indoor", FakeState("21.0"))
+    t0 = datetime(2026, 1, 21, 12, 0, tzinfo=UTC)
+    dt_util.freeze(t0)
+    try:
+        coord._current_state.solar_radiation = sun
+        coord._record_accuracy()
+        coord._current_state.solar_radiation = 0.0
+        dt_util.freeze(t0 + timedelta(minutes=30))
+        coord._record_accuracy()
+    finally:
+        dt_util.freeze(None)
+    if not coord._accuracy.samples:
+        return None, None
+    sample = coord._accuracy.samples[-1]
+    return sample.solar_radiation, _rs_acc._refit_pair(
+        sample, _RS_MIN_DT, _RS_MAX_RES
+    )
+
+
+_nf_cap_sun, _nf_cap_pair = _nf_settled(640.0)
+_nf_cap_dark_sun, _nf_cap_dark_pair = _nf_settled(0.0)
+R.check(
+    "#2223: the coordinator's sunlit prediction settles with its sun, and the refit refuses it",
+    _nf_cap_sun == 640.0 and _nf_cap_pair is None
+    and _nf_cap_dark_sun == 0.0 and _nf_cap_dark_pair is not None,
+    f"sunlit: sun {_nf_cap_sun} pair {_nf_cap_pair}; "
+    f"dark: sun {_nf_cap_dark_sun} pair {_nf_cap_dark_pair}",
 )
 
 # --- #2 the heat-curve bias -------------------------------------------------------
@@ -58499,6 +58800,8 @@ def _z1524_learned(declared, free_kw, hours=range(24)):
     seat = _NS(
         _config=EntryConfig.from_mapping({_const922.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True}),
         _thermal_params=declared, _internal_gains_profile=None,
+        # #2223: the profile folds only behind an identified heat-loss level.
+        _house_heat_loss_samples=400,
     )
     cap = (declared.upper_floor_thermal_mass if declared.two_zone_enabled
            else declared.room_thermal_mass)
