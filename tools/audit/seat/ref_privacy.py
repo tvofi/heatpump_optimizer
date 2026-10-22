@@ -329,6 +329,8 @@ PUSHERS = {
     "tools/release/stamp.py": (GUARDED, "the stamp commit's message carries the --title argument"),
     "tools/audit/seat/prune_refs.py": (GUARDED, "writes archive/<branch> tags through gh api git/refs: "
                                        "a permanent name from a branch it does not fix (round 2)"),
+    "tools/audit/seat/ci_probe.py": (GUARDED, "pushes only ci-probe/<name> refs, the name and the log line through "
+                                     "ref_privacy.refusal; its self-test pushes go to a temp bare repository"),
     "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
                                    "a name the remote already holds, under the constant SUBJECT"),
     "tools/audit/seat/merge_train.py": ("republishes", "deletes merged branches the remote already "
