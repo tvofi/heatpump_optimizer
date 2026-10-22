@@ -3374,9 +3374,7 @@
     "R10-TRAIN-HOLD",
     "R10-DEEPLINK-HANDLERS"
    ],
-   "carry": [
-    "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
-   ],
+   "carry": [],
    "architect_note": "",
    "brief": "R10-ARCH-DOCS, the LAST stage of round 10 (owner ruling 2026-10-17, tvofi), after every other round-10 group. Two deliverables: (1) docs/architecture.md, the architecture clearly, graphically and in words; (2) developer README/onboarding covering the agentic coding process, its requirements, and the CI shape. Every claim is checked against the tree at the stage's merge base. Diagrams render on GitHub (mermaid) or are committed SVGs generated in-tree, taking their visual language from what origin/main defines at that base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens), read from the tree, never hand-copied, light and dark. Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66). Also fold finding P40 (committed card figures not compared to the card) and the harnesses README (O9). Issue #2395. Part of #201.",
    "resume": {
