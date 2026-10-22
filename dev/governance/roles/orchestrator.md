@@ -81,7 +81,7 @@ and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. Roster text applies too: a seat will
-paraphrase it into its own body — a third-hand path, and it has occurred.
+paraphrase it into its own body.
 
 **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
 filter, not as proof.** It checks **four** reference forms and names seven
@@ -260,7 +260,7 @@ beside a clean exit by design, the shape that lets a real error be waved through
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
   `defect-root-cause.md`).
-- The merge message passes section 4.
+- The merge message passes section 4; never a custom `--subject`, four readers parse it (#2423).
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
