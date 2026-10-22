@@ -5105,7 +5105,7 @@
    },
    "owner_gate": "Mandated approval under 6175172275 for the orchestrator-owned instruments; any change to a policy file (CLAUDE.md, dev/governance, .claude/workflows, the PR template) is tvofi's and is approved before merging, per CLAUDE.md.",
    "resume": {
-    "stage": "not-started",
+    "stage": "absorbed",
     "branch": null,
     "commit": null,
     "last_step": null,
