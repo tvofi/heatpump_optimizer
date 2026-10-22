@@ -3513,6 +3513,7 @@
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
+   "dev/audit/harnesses/r10_relay_owed_class_reach.py",
    "dev/audit/harnesses/r10_replay_loopnorm.py",
    "dev/audit/harnesses/r10_roster_push_race.sh",
    "dev/audit/harnesses/r10_sav_baseline.py",
