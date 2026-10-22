@@ -3522,6 +3522,8 @@
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_night_folds_alternatives.py",
    "dev/audit/harnesses/r10_night_folds_learners.py",
+   "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
+   "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_recarry_head.py",
