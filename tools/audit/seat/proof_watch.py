@@ -77,7 +77,6 @@ SEAT = Path(__file__).resolve().parent
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 DEFAULT_STATE = Path(os.path.expanduser(
     os.environ.get("HPO_STATE_DIR") or "~/.local/state/hpo")) / "proof-watch"
-GREEN = ("success", "skipped", "neutral")
 HEX = set("0123456789abcdef")
 
 
@@ -111,6 +110,14 @@ def _json_docs(raw: str) -> list:
             return out
         v, i = dec.raw_decode(raw, i)
         out.extend(v) if isinstance(v, list) else out.append(v)
+
+
+def _train():
+    """The sibling merge_train module: the train's list and state classifier."""
+    if str(SEAT) not in sys.path:
+        sys.path.insert(0, str(SEAT))  # -I and cron launches
+    import merge_train
+    return merge_train
 
 
 class Watcher:
@@ -173,16 +180,13 @@ class Watcher:
                               f"repos/{self.repo}/commits/{self.sha}/check-runs?per_page=100"])
         if code:
             raise Abort(f"could not read the check-runs at {self.sha[:12]}: {raw.strip()[-200:]}")
-        last: dict[str, dict] = {}
-        for c in sorted(_json_docs(raw), key=lambda c: c.get("started_at") or ""):
-            last[c["name"]] = c
-        return last
+        # The train's own reading, never a copy: `gate` per check suite, the
+        # worst suite standing, success only (A5).
+        return _train().latest_runs(_json_docs(raw))
 
     def required_names(self) -> list[str]:
         """The ruleset's required contexts, through merge_train's own reader."""
-        if str(SEAT) not in sys.path:
-            sys.path.insert(0, str(SEAT))  # -I and cron launches
-        import merge_train  # the sibling module: the train's list, never a copy
+        merge_train = _train()
         t = merge_train.Train(self.repo, state=self.state, mandate=None,
                               role="proof-watch", ignore=(), min_runs=0,
                               run=self.run, sleep=self.sleep)
@@ -194,12 +198,7 @@ class Watcher:
 
     def required_state(self) -> tuple[list[str], list[str]]:
         last = self.latest_by_name()
-        names = self.required_names()
-        red = sorted(n for n in names if n in last
-                     and last[n].get("status") == "completed"
-                     and last[n].get("conclusion") not in GREEN)
-        pending = sorted(n for n in names
-                         if n not in last or last[n].get("status") != "completed")
+        _, pending, red = _train().classify(last, self.required_names())
         return red, pending
 
     # -- the verdict -------------------------------------------------------
@@ -436,10 +435,10 @@ def self_test() -> int:
             self.checks = [
                 {"name": CHECK, "status": "completed", "conclusion": "success",
                  "started_at": "2026-10-12T00:00:00Z"},
-                {"name": "Tests", "status": "completed", "conclusion": "success",
-                 "started_at": "2026-10-12T00:01:00Z"},
+                {"name": "gate", "status": "completed", "conclusion": "success",
+                 "started_at": "2026-10-12T00:01:00Z", "check_suite": {"id": 1}},
             ]
-            self.required = "Tests"
+            self.required = "gate"
             self.mergeable = "MERGEABLE"
             self.now = [0.0]
             self.evidence = self.root / "evidence"
@@ -609,15 +608,31 @@ def self_test() -> int:
 
     # (g) a required context red at the head: abort before the merge path.
     f = Fixture(); cases.append(f); f.set_verdict()
-    f.checks.append({"name": "Tests", "status": "completed", "conclusion": "failure",
-                     "started_at": "2026-10-12T00:02:00Z"})
+    f.checks.append({"name": "gate", "status": "completed", "conclusion": "failure",
+                     "started_at": "2026-10-12T00:02:00Z", "check_suite": {"id": 2}})
     out = []
     try:
         f.watcher(out=out).watch()
         st("no-abort", "abort", "(g) a red required context aborts")
     except Abort as e:
-        st("REQUIRED RED" in str(e) and "Tests" in str(e), True, "(g) the red context is named")
+        st("REQUIRED RED" in str(e) and "gate" in str(e), True, "(g) the red context is named")
         st(f.merge_calls, [], "(g) no merge on red")
+
+    # (g2) A5: an OLDER red gate suite beside a newer green one is red too --
+    # GitHub refuses the merge while any suite's gate is red (#2009) -- and a
+    # RATE-LIMITED gate (a failed job) is never a pass.
+    for what, older in (("an older red gate suite", "failure"), ("a RATE-LIMITED gate suite", "failure")):
+        f = Fixture(); cases.append(f); f.set_verdict()
+        f.checks.insert(1, {"name": "gate", "status": "completed", "conclusion": older,
+                            "started_at": "2026-10-12T00:00:30Z", "check_suite": {"id": 9},
+                            "output": {"title": "RATE-LIMITED reset_epoch=1" if "RATE" in what else ""}})
+        out = []
+        try:
+            f.watcher(out=out).watch()
+            st("no-abort", "abort", f"(g2) {what} beside a newer green one aborts")
+        except Abort as e:
+            st("REQUIRED RED" in str(e) and "gate" in str(e), True, f"(g2) {what}: the red gate is named")
+            st(f.merge_calls, [], f"(g2) {what}: no merge")
 
     # (h) unmergeable: abort.
     f = Fixture(); cases.append(f); f.set_verdict()
@@ -671,7 +686,7 @@ def self_test() -> int:
 
     # (l) a required context still running keeps the watch waiting: no abort
     # and no merge on the first poll, then it merges once the context lands.
-    # The stub keeps Tests in_progress until the first poll has elapsed, so
+    # The stub keeps gate in_progress until the first poll has elapsed, so
     # both reads of a poll (the named check's and required_state's) agree.
     f2 = Fixture(); cases.append(f2); f2.set_verdict()
     orig_run = f2.run
@@ -683,7 +698,7 @@ def self_test() -> int:
         if "check-runs" in s and not sleeps:
             return 0, json.dumps({"name": CHECK, "status": "completed",
                                   "conclusion": "success", "started_at": "x"}) + "\n" + \
-                json.dumps({"name": "Tests", "status": "in_progress",
+                json.dumps({"name": "gate", "status": "in_progress",
                             "conclusion": None, "started_at": "y"}) + "\n"
         return orig_run(argv, cwd)
 

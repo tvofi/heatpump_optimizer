@@ -60,6 +60,9 @@ _FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 # name, file, old (exactly once in the file), new
 MUTANTS = [
     ("S01", "ci-watch.sh", '[ -n "$RS" ] && REQ=$(gh api', '[ -n "$RS" ] || REQ=$(gh api'),
+    # r10-ci-layout-p2-u9a: A5, gate read per check suite and success only.
+    ("ci-watch-1", "ci-watch.sh", 'k = ($1 == "gate") ? $1 SUBSEP $5 : $1;', "k = $1;"),
+    ("ci-watch-2", "ci-watch.sh", '($2 == "completed" && $3 != "success")', '($3 == "failure")'),
     ("S02", "cloud_dispatch.py", "return len(head) == 40 and set(head) <= LOWER_HEX",
      "return len(head) != 40 and set(head) <= LOWER_HEX"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
@@ -79,8 +82,11 @@ MUTANTS = [
      '        ids[g] = _task_id(g, ids)\n    lanes = sorted({open_[g].get("lane") and "?"'),
     ("S14", "pr_args.sh", '"$*" >&2; exit 1; }', '"$*" >&2; exit 0; }'),
     ("S15", "pr_cap.py", 'a = pr.get("author") or {}', 'a = pr.get("author") and {}'),
-    ("S16", "proof_watch.py", 'and last[n].get("conclusion") not in GREEN)',
-     'and last[n].get("conclusion") in GREEN)'),
+    ("S16", "proof_watch.py", '_, pending, red = _train().classify(last, self.required_names())',
+     '_, red, pending = _train().classify(last, self.required_names())'),
+    # r10-ci-layout-p2-u9a: the watch reads the train's per-suite gate (A5), never newest-wins.
+    ("proof_watch-1", "proof_watch.py", "return _train().latest_runs(_json_docs(raw))",
+     'return {c["name"]: c for c in _json_docs(raw)}'),
     ("S17", "prune_refs.py", "    if sha in main_reachable:\n        return DELETE_MERGED",
      "    if sha not in main_reachable:\n        return DELETE_MERGED"),
     ("S18", "queue_pre_flight.py", "if not mt.is_sha(v):", "if mt.is_sha(v):"),
@@ -116,7 +122,7 @@ MUTANTS = [
     # self-tests did not reach. Each mutant is the carry's, verbatim.
     ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
      "true  # mut:push-update"),
-    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+    ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
      "true  # mut:push-open"),
     ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
     ("S38", "merge_pr.sh",
@@ -156,12 +162,27 @@ MUTANTS = [
      "    if False:\n        return None\n    names"),
     ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
      "        if False:\n            raise Stop(\"build\""),
+    # r10-ci-layout-p2-u9a (A5): gate per check suite, success only, and GitHub's own evaluation.
+    ("merge_train-19", "merge_train.py", "    if suites:\n        out[GATE] = min(", "    if False:\n        out[GATE] = min("),
+    ("merge_train-20", "merge_train.py", "(GATE_GREEN if cr.get(\"name\") == GATE else GREEN)", "GREEN"),
+    ("merge_train-21", "merge_train.py", "        if GATE in req:\n            self.cross_check(", "        if False:\n            self.cross_check("),
+    ("merge_train-22", "merge_train.py", "    if not gates or other:\n", "    if not gates:\n"),
+    ("merge_train-23", "merge_train.py", "    if commit.get(\"oid\") != head:\n", "    if False:\n"),
+    ("merge_train-24", "merge_train.py", "    return sorted(set(required) | set(owed))", "    return required"),
+    # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
+    ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
+     'PIN_CHAIN = re.compile(r"^(?:'),
+    # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
+    ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
+    ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
     ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
     ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
     ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-ci-layout-p2-u9a: a unit's red under the gate ruleset is REQUIRED (DESIGN-P2 9 item 11).
+    ("orchestrator_tick-5", "orchestrator_tick.py", "gating = mt.gating_names(req) or []", "gating = req or []"),
     # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
     ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
     ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
