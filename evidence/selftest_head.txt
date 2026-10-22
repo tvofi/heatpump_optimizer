@@ -30,6 +30,20 @@
   ok   a repo-relative brief passes (null control)
   ok   the brief is inlined
   ok   the rendered text carries no home directory
+  ok   every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other
+  ok   --group refuses --brief (exit 2, nothing dispatched)
+  ok   --group refuses --env-id (exit 2, nothing dispatched)
+  ok   --group forwards --group to dispatch_group
+  ok   --group forwards --head to dispatch_group
+  ok   --group forwards --model to dispatch_group
+  ok   --group forwards --nonce to dispatch_group
+  ok   --group refuses --out (exit 2, nothing dispatched)
+  ok   --group forwards --overlay to dispatch_group
+  ok   --group forwards --pr to dispatch_group
+  ok   --group refuses --repo (exit 2, nothing dispatched)
+  ok   --group forwards --role to dispatch_group
+  ok   --group forwards --roster-ref to dispatch_group
+  ok   --group refuses --topic (exit 2, nothing dispatched)
   ok   a group dispatch prints one short line, the ref name
   ok   the printed line round-trips to a payload byte-identical to today's flag path
   ok   the ref carries the prompt the payload carries
@@ -48,5 +62,6 @@
   ok   by default the brief is the round's roster branch's and the head is main's tip, not that branch's
   ok   an explicit roster ref is read, not the round's roster branch
   ok   the --group CLI passes --head and --roster-ref through
+  ok   the --group CLI passes --role, --group, --model, --pr and --nonce through
   ok   a re-dispatch from a second clone fast-forwards the existing ref
-cloud_dispatch self-test: 51 checks, 0 failed
+cloud_dispatch self-test: 66 checks, 0 failed

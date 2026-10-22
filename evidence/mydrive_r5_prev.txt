@@ -1,0 +1,28 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=role-const failed=1 killed ['FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through']
+RESULT mutant=role-reviewer failed=2 killed ['FAIL the --group CLI passes --head and --roster-ref through', 'FAIL a re-dispatch from a second clone fast-forwards the existing ref']
+RESULT mutant=group-const failed=2 killed ['FAIL the --group CLI passes --head and --roster-ref through', 'FAIL a re-dispatch from a second clone fast-forwards the existing ref']
+RESULT mutant=model-const failed=0 SURVIVED []
+RESULT mutant=roster-ref-none failed=1 killed ['FAIL the --group CLI passes --head and --roster-ref through']
+RESULT mutant=head-empty failed=3 killed ['FAIL the --group CLI passes --head and --roster-ref through', 'FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through', 'FAIL a re-dispatch from a second clone fast-forwards the existing ref']
+RESULT mutant=head-rosterref-swap failed=3 killed ['FAIL the --group CLI passes --head and --roster-ref through', 'FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through', 'FAIL a re-dispatch from a second clone fast-forwards the existing ref']
+RESULT mutant=pr-empty failed=1 killed ['FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through']
+RESULT mutant=nonce-empty failed=1 killed ['FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through']
+RESULT mutant=pr-nonce-swap failed=1 killed ['FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through']
+RESULT mutant=pr-suffix-1 failed=0 SURVIVED []
+RESULT mutant=nonce-trunc-3 failed=1 killed ['FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through']
+RESULT mutant=overlay-none failed=3 killed ['FAIL the --group CLI passes --head and --roster-ref through', 'FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through', 'FAIL a re-dispatch from a second clone fast-forwards the existing ref']
+RESULT mutant=refusal-truthy NOT-APPLIED
+RESULT mutant=refusal-warn-only NOT-APPLIED
+RESULT mutant=refusal-after-dispatch-skip-first NOT-APPLIED
+RESULT mutant=refusal-skip-last NOT-APPLIED
+RESULT mutant=topic-forwarded NOT-APPLIED
+RESULT mutant=brief-forwarded NOT-APPLIED
+RESULT mutant=repo-forwarded NOT-APPLIED
+RESULT mutant=out-forwarded NOT-APPLIED
+RESULT mutant=brief-entry-deleted NOT-APPLIED
+RESULT mutant=pr-refused NOT-APPLIED
+RESULT mutant=overlay-refused NOT-APPLIED
+RESULT mutant=model-check-off failed=0 SURVIVED []
+RESULT mutant=flag-checks-unrun NOT-APPLIED
+RESULT mutants=14 survived=3

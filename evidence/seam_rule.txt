@@ -1,8 +1,16 @@
-args.role
-args.group
-args.model
-roster_ref
-head
-pr
-nonce
-overlay
+## seam rule at head
+role forwarded
+head forwarded
+group forwarded
+roster_ref forwarded
+pr forwarded
+topic refused
+nonce forwarded
+brief refused
+env_id refused
+model forwarded
+repo refused
+overlay forwarded
+out refused
+## null control (--extra added, copy in /tmp/tmp.seNAWaEQyf/nc)
+extra UNLISTED

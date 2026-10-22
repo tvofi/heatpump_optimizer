@@ -48,26 +48,48 @@ RESULT mutant=reviewer-head-off failed=1 verdict=killed
 RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
     FAIL an explicit roster ref is read, not the round's roster branch
     FAIL the --group CLI passes --head and --roster-ref through
-RESULT mutant=cli-head-dropped failed=3 verdict=killed
+RESULT mutant=cli-head-dropped failed=4 verdict=killed
+    FAIL --group forwards --head to dispatch_group
     FAIL the --group CLI passes --head and --roster-ref through
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutant=cli-roster-ref-dropped failed=1 verdict=killed
+RESULT mutant=cli-roster-ref-dropped failed=2 verdict=killed
+    FAIL --group forwards --roster-ref to dispatch_group
     FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=fetch-skipped failed=1 verdict=killed
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutant=cli-role-fixed failed=1 verdict=killed
+RESULT mutant=cli-role-fixed failed=2 verdict=killed
+    FAIL --group forwards --role to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-pr-dropped failed=1 verdict=killed
+RESULT mutant=cli-pr-dropped failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-nonce-dropped failed=1 verdict=killed
+RESULT mutant=cli-nonce-dropped failed=2 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-group-fixed failed=1 verdict=killed
+RESULT mutant=cli-group-fixed failed=2 verdict=killed
+    FAIL --group forwards --group to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-model-fixed failed=1 verdict=killed
+RESULT mutant=cli-model-fixed failed=2 verdict=killed
+    FAIL --group forwards --model to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-overlay-dropped failed=3 verdict=killed
+RESULT mutant=cli-overlay-dropped failed=4 verdict=killed
+    FAIL --group forwards --overlay to dispatch_group
     FAIL the --group CLI passes --head and --roster-ref through
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutants=23 survived=0
+RESULT mutant=group-refusal-off failed=5 verdict=killed
+    FAIL --group refuses --brief (exit 2, nothing dispatched)
+    FAIL --group refuses --env-id (exit 2, nothing dispatched)
+    FAIL --group refuses --out (exit 2, nothing dispatched)
+    FAIL --group refuses --repo (exit 2, nothing dispatched)
+    FAIL --group refuses --topic (exit 2, nothing dispatched)
+RESULT mutant=env-id-forwarded-as-none failed=1 verdict=killed
+    FAIL --group forwards --env-id to dispatch_group
+RESULT mutant=flag-unlisted failed=2 verdict=killed
+    FAIL every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other
+    FAIL --group forwards --extra to dispatch_group
+RESULT mutant=cli-pr-truncated failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutants=27 survived=0

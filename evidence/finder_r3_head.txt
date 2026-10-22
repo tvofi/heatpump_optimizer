@@ -1,12 +1,16 @@
-RESULT mutant=cli-pr-dropped failed=1 verdict=killed
+RESULT mutant=cli-pr-dropped failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-nonce-dropped failed=1 verdict=killed
+RESULT mutant=cli-nonce-dropped failed=2 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
-RESULT mutant=cli-overlay-dropped failed=3 verdict=killed
+RESULT mutant=cli-overlay-dropped failed=4 verdict=killed
+    FAIL --group forwards --overlay to dispatch_group
     FAIL the --group CLI passes --head and --roster-ref through
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutant=cli-role-fixed failed=1 verdict=killed
+RESULT mutant=cli-role-fixed failed=2 verdict=killed
+    FAIL --group forwards --role to dispatch_group
     FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=pr-dropped-api failed=-1 verdict=CRASHED
 RESULT mutant=nonce-dropped-api failed=-1 verdict=CRASHED
