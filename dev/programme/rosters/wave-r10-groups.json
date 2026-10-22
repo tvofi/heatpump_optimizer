@@ -8132,6 +8132,55 @@
     "branch": null
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern C, the plan page (note section 3 row C). Scope: (3) The plan page as a tree instrument sharing one model builder with tools/audit/seat/plan_table.py, driven by tools/audit/seat/state_docs.py, published beside the plan table, failing to an explicit UNAVAILABLE page rather than a page of zeros, with the five generator defects as mutation-pinned self-test fixtures recovered from the scratch generator's .bak files. Carries 15 and 39 withdraw item (3)'s shared-model premise: plan_page.py exists on main (R10-PLAN-ARTIFACT, #2558). Preconditions: python3 -I tools/audit/seat/plan_page.py --self-test printed 41 checks, 0 failed at fef4a1351 (re-measure at your merge base). Carry 13 is copied here whole; part (6) is this group's. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-ORCH-ROSTER-SCHEMA",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "M",
+   "issues": [
+    2505
+   ],
+   "fixes": [],
+   "after": [
+    "R10-ROSTER-OPS",
+    "R10-CI-LAYOUT",
+    "R10-TICK-OWED-LEVEL",
+    "R10-FLOW-MAIN-GATE",
+    "R10-CI-LAYOUT-P1"
+   ],
+   "files": [
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/roster_edit.py"
+   ],
+   "carry": [
+    "From #2554 (item b1ecb708, #2554): design 6.4 predicate 1, gate coverage, was assigned to R10-ROSTER-OPS (done at 929275e8) and not built there. owner_gate becomes structured {class, mandate, paths}, and readiness is class x in-force mandate scope, read from tools/policy/budget_raise_gate.py's own constants: code-owned <- code-owned|all, budget <- budget-raise|all, policy <- all only. It prints GATE-READY or GATE-OWNER <class>. Control: the run that prints the live roster's gate set at the mandate's scope returns every covered group ready and none blocked on the owner. Its consumer is the tick's owner-gated count (R10-ROSTER-OPS carry[0] and the design's PLAN section); it changes the roster's owner_gate schema, so #2554 did not build it in roster_sync.py.",
+    "From #2554 (item b1ecb708, #2554): design 6.4 predicate 2, absorbed-edge closure. resume.stage absorbed with absorbed_into <group> joins roster_lib.DONE_STAGES only when every after edge of the absorbed group is on the absorbing group or its transitive closure; otherwise ABSORB-EDGE-MISSING and the stage stays open. Control: a deliberately absorbed group missing one edge is refused. The fail-safe half already holds (absorbed is outside DONE_STAGES); the rest changes DONE_STAGES, which pr_cap.py, prune_refs.py, handover_prompt.py and the tick all read. The live roster has 0 absorbed groups.",
+    "From #2554 (item b1ecb708, #2554): R10-ROSTER-OPS carry[4] (from #2545), the brief pinned at handoff. Pin a group's brief at handoff (its hash beside resume) and compare it on each later pass, printing a brief that moved after its handoff (design section 3(d), carried from #2545). Control: a brief edited after its pin is reported on the next pass, and an unedited one is not. The handoff is the dispatcher's event and no pull-request read observes it, so the pin belongs where the handoff is written.",
+    "roster_edit append-group/set-stage must refuse a stage outside the classified set that roster_sync's self-test checks; the cause was the 'in-review' stage in roster PR 12, CI job 119785082787.",
+    "\u00a73's (d) observation, the brief pinned at handoff, is landed in `R10-ORCH-MACHINERY`'s carry at `743463c61`, re-carried from `R10-ROSTER-OPS` by #2554. Carry: R10-ORCH-MACHINERY"
+   ],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "Policy: tvofi approves at merge (design section 8 rows vii and viii, DONE_STAGES and the roster schema); mandate 6329234399 applies.",
+   "rca": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern D, the roster schema: owner_gate structure, absorbed-edge closure, the brief pin and the stage set (note section 3 row D). DONE_STAGES changes, and pr_cap.py, prune_refs.py, handover_prompt.py and the tick all read it (carry 24). Independent of the ledger, beat and page. It is policy: rows vii and viii of the design's section 8 table need tvofi's approval before merge. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   }
  ]
 }
