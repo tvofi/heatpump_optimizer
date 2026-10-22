@@ -1,0 +1,4 @@
+  record   red-history           129 commit(s) between origin/main and this head, every failure conclusion across them: nightly-status
+
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/600a4bed-a14f-5bea-9fd5-92a3e825ea03/scratchpad/tmp.hTC0twHKJ5/ev/body.md
+rc=0
