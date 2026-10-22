@@ -20933,13 +20933,18 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
         not _elsewhere,
         f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
     )
-_CODEQL_ON = (pathlib.Path(__file__).resolve().parents[1] / ".github"
-              / "workflows" / "codeql.yml").read_text()
-_CODEQL_ON = _CODEQL_ON[_CODEQL_ON.index("\non:\n"):_CODEQL_ON.index("\njobs:\n")]
+_CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
+               / "workflows" / "codeql.yml").read_text()
+_CODEQL_TRIGGERS = (_yaml.safe_load(_CODEQL_YML) or {}).get(True) or {}
+# DESIGN-P2 2.1: codeql.yml is a callee of ci.yml. `workflow_call` takes the
+# prelude's `legs`; the weekly schedule stays (it runs on main only); a
+# dispatch is ci.yml's, and the push/pull_request/merge_group triggers are the
+# umbrella's, so a standalone trigger here would run the analysis twice.
 R.check(
-    "codeql.yml accepts the autofix jobs' dispatch",
-    re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
-    "without the trigger `gh workflow run codeql.yml` is refused with 422",
+    "codeql.yml is a callee: workflow_call and the weekly schedule, no other trigger",
+    set(_CODEQL_TRIGGERS) == {"workflow_call", "schedule"}
+    and "legs" in ((_CODEQL_TRIGGERS.get("workflow_call") or {}).get("inputs") or {}),
+    f"triggers={sorted(_CODEQL_TRIGGERS)}",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
 # pull request. Its runtime swings with runner load, and the 30-minute cap sat
@@ -20951,15 +20956,32 @@ R.check(
 # design choice. The cap is pinned against the YAML (not left as prose in the
 # workflow) because a one-line edit shrinking it back is exactly what no other
 # check reads.
-_CODEQL_JOBS = (_yaml.safe_load(
-    (pathlib.Path(__file__).resolve().parents[1] / ".github"
-     / "workflows" / "codeql.yml").read_text()) or {}).get("jobs") or {}
+_CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
 _analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
 R.check(
     "codeql.yml's analyze cap clears the python leg's measured worst case",
     isinstance(_analyze_cap, int) and _analyze_cap >= 45,
     f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
     "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+)
+# D-5: O17's INERT list is admitted only with the soundness step, which runs
+# on push and reads the leg's extracted source archive; and the `scope` job
+# and `cancel-superseded` (now ci.yml's, the prelude's) are gone from the file.
+_CODEQL_STEPS = (_CODEQL_JOBS.get("analyze") or {}).get("steps") or []
+_D5 = [st for st in _CODEQL_STEPS
+       if "codeql_scope.py extracted" in str(st.get("run"))]
+R.check(
+    "codeql.yml carries the D-5 extracted-files check, on push, after the analysis",
+    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push'"
+    and _CODEQL_STEPS.index(_D5[0]) > max(
+        i for i, st in enumerate(_CODEQL_STEPS)
+        if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
+    f"d5 steps={len(_D5)}",
+)
+R.check(
+    "codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)",
+    set(_CODEQL_JOBS) == {"analyze"},
+    f"jobs={sorted(_CODEQL_JOBS)}",
 )
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
