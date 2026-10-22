@@ -7490,6 +7490,47 @@
     "note": "Registered by the orchestrator (s4) under mandate 6329234399 when R10-RCA-FRICTION went done (#2561)."
    },
    "role": "root-cause"
+  },
+  {
+   "group": "R10-NIGHTLY-PYSPY-RETRY",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tests/nightly_ha.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Build countermeasure A of dev/audit/rca/nightly-ha-pyspy-timeout.md (#2479) in tests/nightly_ha.py: retry the py-spy sample with a per-attempt timeout so one racy dump cannot fail hb:positive_control. Owed since R10-RCA-NIGHTLY-PYSPY (done) left it a fixer's change, not built there. The cost changed: the failure is about 7% of nightly runs, and a red nightly now blocks every PR through pr-contract (train 16, 2026-10-22: nightly-status red from run 39681119764 blocked all 9 cars). Control: a stub sampler that times out once then answers passes with 2 attempts; a stub that never answers still fails the check after the last attempt, so the positive control keeps its power.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-nightly-pyspy-retry",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T05:35Z; dispatch as soon as the roster unfreezes."
+   }
   }
  ]
 }
