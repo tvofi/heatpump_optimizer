@@ -1,0 +1,11 @@
+$ none
+app_approve self-test: 225 checks, 0 failed
+$ 5??|429) -> 5??|429|418)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|418|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+FAIL (nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default) (got '10', want '9')
+app_approve self-test: 225 checks, 2 failed
+$ delete the 403 key's refused row
+ 1 file changed, 1 deletion(-)
+FAIL (and every alternative holds both a transient input and a refused near-miss) (got '1', want '0')
+app_approve self-test: 225 checks, 1 failed
