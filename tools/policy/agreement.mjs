@@ -350,6 +350,7 @@ const SHARED_GRAMMARS = {
   "(?:\\||-\\[#\\d+\\])": "identical:the Delivery-status row anchor, counts.mjs and policy_lint.mjs",
   "[.+^${}()|[\\]\\\\]": "not-a-concept:the standard regexp-escape idiom",
   "\\.{0,2}\\/?[\\w.@-]+(\\/[\\w.@-]+)+\\.(sh|py|mjs|js)": "identical:figure_census and figure_lint's script-path word grammar (one census, one lint)",
+  "[\\w.-]+(?:/[\\w.-]+)+/?": "identical:the repository-path-shaped token, kept only when its first segment is a top-level tracked name: entities.py _sp_path_literal and doc_claims.py's doc-wiring predicate (a)",
   "[A-Za-z_][A-Za-z0-9_]*=": "identical:figure_census and figure_lint's env-assignment word",
   "##\\s+(.*?)": "identical:the h2 heading grammar, policy_lint.mjs and the record-predicate sweep",
   "\\|[\\s|:-]+\\|": "identical:the markdown table separator row, three readers",
