@@ -16,15 +16,15 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NIGHT-FOLDS (stage in-progress, branch `handoff/r10-night-folds`): `git fetch origin handoff/r10-night-folds && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-CAP (stage in-progress, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RCA-FRICTION (stage in-progress, branch `handoff/r10-rca-harness-friction`): `git fetch origin handoff/r10-rca-harness-friction && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RCA-HANDOFF-SLIP (stage in-progress, branch `handoff/r10-rca-handoff-slip`): `git fetch origin handoff/r10-rca-handoff-slip && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PLAN-ARTIFACT (stage in-progress, branch `handoff/r10-plan-artifact`): `git fetch origin handoff/r10-plan-artifact && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-BRIEFS-FOLD, R10-BUFFER-STORE, R10-CARD-VOICE, R10-CI-LAYOUT-P1, R10-CONFIG-NOTICES, R10-COP-PARTLOAD, R10-CURRENCY, R10-DEMAND-OVERBOOK, R10-FLOW-ANDON, R10-FLOW-BODY-PATCH, R10-FLOW-DESIGN-POLICY, R10-FLOW-DESIGN-STAGES, R10-FLOW-DISPATCH, R10-FLOW-MAIN-GATE, R10-FLOW-POSTMERGE, R10-FLOW-PULL, R10-FLOW-RELAY-HOLD, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-YIELD-PROBE, R10-FLY-BUDGET-LEAF, R10-FLY-CAP-LINE, R10-FLY-DEPGRAPH-STALE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-STAMP-CHECK-NOTES, R10-INPUT-STALENESS, R10-LEARNER-DEFAULT, R10-LEARNER-ETA, R10-MERGE-SUBJECT-HARDEN, R10-MUTANT-SKIP, R10-MUTATION-ANCHOR, R10-NIGHT-FOLDS, R10-PLAN-ARTIFACT, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-PREPR-CAP, R10-RATIO-ANCHOR, R10-RCA-FRICTION, R10-RCA-HANDOFF-SLIP, R10-REPLAY-LANE, R10-SAV-COMFORT, R10-SCORES, R10-SOLVER, R10-THERMAL-POWER-OPTION, R10-UPDATE-PR-SIGNALS
+Ready next (after-edges satisfied; nothing open constrains them): R10-BRIEFS-FOLD, R10-BUFFER-STORE, R10-CARD-VOICE, R10-CI-LAYOUT-P1, R10-CONFIG-NOTICES, R10-COP-PARTLOAD, R10-CURRENCY, R10-DEMAND-OVERBOOK, R10-FLOW-ANDON, R10-FLOW-BODY-PATCH, R10-FLOW-DESIGN-POLICY, R10-FLOW-DESIGN-STAGES, R10-FLOW-DISPATCH, R10-FLOW-MAIN-GATE, R10-FLOW-POSTMERGE, R10-FLOW-PULL, R10-FLOW-RELAY-HOLD, R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-YIELD-PROBE, R10-FLY-BUDGET-LEAF, R10-FLY-CAP-LINE, R10-FLY-DEPGRAPH-STALE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-STAMP-CHECK-NOTES, R10-INPUT-STALENESS, R10-LEARNER-DEFAULT, R10-LEARNER-ETA, R10-MERGE-SUBJECT-HARDEN, R10-MUTANT-SKIP, R10-MUTATION-ANCHOR, R10-NIGHT-FOLDS, R10-PLAN-ARTIFACT, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-PREPR-CAP, R10-RATIO-ANCHOR, R10-RCA-FRICTION-RESIDUE, R10-RCA-HANDOFF-SLIP, R10-RCA-HEADMOVED, R10-REPLAY-LANE, R10-SAV-COMFORT, R10-SCORES, R10-SOLVER, R10-THERMAL-POWER-OPTION, R10-UPDATE-PR-SIGNALS
 
 ## Resume steps
 
