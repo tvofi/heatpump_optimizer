@@ -7532,6 +7532,50 @@
     "next_step": "dispatch a fixer",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T05:35Z; dispatch as soon as the roster unfreezes."
    }
+  },
+  {
+   "group": "R10-TRAIN-OVERLAP-GRADE",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-train-overlap-grade",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted."
+   }
   }
  ]
 }
