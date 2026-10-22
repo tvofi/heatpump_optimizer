@@ -81,7 +81,7 @@ later pull request would be graded against a `main` the refused one never joined
 It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
 <reason>` (exit 1). A real run publishes `TRAIN HOLD refs/heads/train-hold`
 before anything merges and releases it just before the closing line: CI
-cannot see this process's pidfile, and tests.yml's record beat auto-merges
+cannot see this process's pidfile, and nightly.yml's record beat auto-merges
 record pull requests otherwise, moving main mid-train (#2291/#2295/#2299,
 2026-10-15; issue #2302). Every GitHub write is the orchestrator's: run this
 only from the orchestrator's machine and identity (decisions 0011, 0013).
@@ -298,7 +298,7 @@ HEARTBEAT_SECONDS = 240
 # main's entry to about two hours before it stops as before.
 MAIN_MOVED_TRIES = 3
 # THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
-# process's pidfile, and the record beat in tests.yml auto-merges record pull
+# process's pidfile, and the record beat in nightly.yml auto-merges record pull
 # requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
 # on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
 # publishes this ref while it is live and deletes it at its closing line; the
@@ -3440,7 +3440,7 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    beat = (ROOT / ".github/workflows/tests.yml").read_text()
+    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
     check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
           "the same --automerge-check ... --head ... --require-green guard",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",

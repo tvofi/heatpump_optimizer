@@ -9,7 +9,7 @@
     python3 tools/audit/seat/record_row.py --write-self-row --pr N [--root DIR]
     python3 tools/audit/seat/record_row.py --self-test
 
-The `record-autofix` job (.github/workflows/tests.yml) drives the three modes
+The `record-autofix` job (.github/workflows/nightly.yml) drives the three modes
 in order: `--enumerate` reads the window's merges off the REST API (the
 commit-to-pull-request map `policy_lint --record` reads, then `/pulls/{n}` for
 title, state and head branch), `--plan` computes the rows the checked-out tree
@@ -741,7 +741,7 @@ def automerge_rc(why: list[str]) -> int:
     """`--automerge-check`'s exit: 0 nothing stands in the way, 3 only
     required contexts not yet passed (the beat waits, keeping its review),
     1 anything else -- a refusal beside a pending context is still a refusal,
-    which tests.yml's record beat answers by dismissing its approval."""
+    which nightly.yml's record beat answers by dismissing its approval."""
     pending = [w for w in why if w.startswith("pending: ")]
     return 0 if not why else 3 if len(pending) == len(why) else 1
 
