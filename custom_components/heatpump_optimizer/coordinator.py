@@ -76,7 +76,6 @@ from .payload import (
     PlanSlot,
     PlanViews,
     PowerHeadroom,
-    PriceTile,
     Pv,
     REASON_BOOST,
     REASON_COMFORT_MODE,
@@ -181,6 +180,7 @@ from .const import (
     INTERNAL_GAINS_ALPHA,
     INTERNAL_GAINS_RIDGE,
     INTERNAL_GAINS_MAX_FACTOR,
+    INTERNAL_GAINS_MIN_UA_CONFIDENCE,
     CONFIDENCE_MARGIN_CAP_C,
     MOLD_SURFACE_RH_LIMIT,
     SCORE_ALPHA,
@@ -239,6 +239,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import early_cutoff, pump_arbiter, pump_signals
 from . import issues, setpoint_check
 from . import quiet_windows
+from . import price_tiles
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -312,6 +313,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    is_sunlit_interval,
     learner_newton_step,
     mold_safe_room_floor,
     learner_unmetered,
@@ -1081,6 +1083,20 @@ def _house_loss_terms(params: ThermalParameters) -> tuple[float, float]:
     return params.heat_loss_coefficient, params.room_thermal_mass
 
 
+def _learned_zone_temperature(
+    state: ThermalState, params: ThermalParameters
+) -> float:
+    """The zone a heat-loss fold's residual is read on: upper floor, else room."""
+    if params.two_zone_enabled:
+        return state.upper_floor_temperature
+    return state.room_temperature
+
+
+def _zone_capacity(params: ThermalParameters) -> float:
+    """The thermal mass the #36 and #53 folds scale a residual by (same zone)."""
+    return _house_loss_terms(params)[1]
+
+
 async def _async_save_restored(coord: Any) -> None:
     """Persist every learner a snapshot restore rewrote, each by its own store."""
     await coord._async_save_thermal_learning()
@@ -1347,6 +1363,10 @@ _SIM_OVERRIDE_CONFIG_CASTS: tuple[tuple[str, Any], ...] = (
     ("max_temp", float),
     ("comfort_temp_day", float),
     ("comfort_temp_night", float),
+    ("comfort_temp_day_weekend", float),
+    ("comfort_temp_night_weekend", float),
+    ("holiday_comfort_day", float),
+    ("holiday_comfort_night", float),
     ("comfort_weight", float),
     ("day_start_hour", int),
     ("day_end_hour", int),
@@ -3045,7 +3065,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tiles: dict[str, PriceTile] = {}
         self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
@@ -5015,6 +5034,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         gain, internal gains, wind and rain) is therefore accounted for, and
         what is left over is attributed to the heat loss coefficient.
 
+        Dark intervals only (#2223): the solar term is netted out only to
+        the aperture's accuracy, so a sunlit residual would settle the
+        aperture's error into the heat loss, at a value that looks converged.
+
         The Newton step follows from the single-zone dynamics: predicted room
         change is linear in UA with slope ``-(T_room - T_out)·Δt / C_room``, so
         a residual of ``e`` degrees implies ``ΔUA = -e·C_room / (ΔT·Δt)``.
@@ -5068,19 +5091,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
-        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS:
-            return
-        if dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
+        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
             return
 
         outdoor = previous_state.outdoor_temperature
         # Same zone as the residual, or the Newton step is taken about a
         # temperature difference the residual does not describe.
-        driving_temp = (
-            previous_state.upper_floor_temperature
-            if ctx._thermal_params.two_zone_enabled
-            else previous_state.room_temperature
-        )
+        driving_temp = _learned_zone_temperature(previous_state, ctx._thermal_params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
@@ -5102,11 +5119,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
         params = ctx._thermal_params
-        predicted_room = (
-            predicted_state.upper_floor_temperature
-            if params.two_zone_enabled
-            else predicted_state.room_temperature
-        )
+        predicted_room = _learned_zone_temperature(predicted_state, params)
         residual = observed - predicted_room
         if not np.isfinite(residual):
             return
@@ -5141,10 +5154,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # T4b (#36 #53, both gated): the same accepted residual, split by
         # attribution so the two learners cannot fight over one sample —
         # sunny intervals inform the solar aperture, dark ones the
-        # internal-gains profile, and the heat-loss fold below keeps
-        # everything as before (UA error correlates with ΔT, not with the
-        # sun, so sharing samples with it is sound).
+        # internal-gains profile.
         self._fold_solar_aperture(previous_state, residual, dt_h)
+        # #2223: dark only; a sunlit residual carries the aperture's error here.
+        if is_sunlit_interval(previous_state.solar_radiation):
+            return
         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
@@ -5234,6 +5248,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         outdoor = previous_state.outdoor_temperature
         delta_t = previous_state.lower_floor_temperature - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
+            return
+
+        # #2223: the same dark gate; the lower replay carries the same sun term.
+        if is_sunlit_interval(previous_state.solar_radiation):
             return
 
         # Same physics as the solve when #53 is on; inert when off.
@@ -7893,6 +7911,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
+        price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
+            "ledger", {"price_tiles": {name: part}}))
 
     def _schedule_ledger_save(self) -> None:
         """Persist the ledger without blocking the settlement path."""
@@ -7910,6 +7930,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
                     "fuse_advisor": dict(self._fuse_advisor),
+                    "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
                         self._fuse_advisor_at.isoformat()
                         if self._fuse_advisor_at is not None
@@ -8974,11 +8995,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         irradiance = float(previous_state.solar_radiation or 0.0)
         if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE:
             return
-        capacity = (
-            ctx._thermal_params.upper_floor_thermal_mass
-            if ctx._thermal_params.two_zone_enabled
-            else ctx._thermal_params.room_thermal_mass
-        )
+        capacity = _zone_capacity(ctx._thermal_params)
         if capacity <= 1e-6 or dt_h <= 1e-6:
             return
         x = self._thermal_model.compute_solar_gain(irradiance)
@@ -9019,19 +9036,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the aperture learner's business (#36) — and the ridge term keeps
         every hour tethered to the configured constant: the profile is a
         perturbation of the prior, never a replacement for it.
+
+        #2223: folded only once the heat-loss level has converged -- the
+        residual's ΔT-part is hour-correlated, so the shape would learn it.
         """
         ctx = getattr(self, "_ctx", self)
-        if not ctx._config.internal_gains_learning_enabled:
+        settled = house_loss_confidence(getattr(self, "_house_heat_loss_samples", 0))
+        if (
+            not ctx._config.internal_gains_learning_enabled
+            or settled < INTERNAL_GAINS_MIN_UA_CONFIDENCE
+        ):
             return
-        if float(previous_state.solar_radiation or 0.0) > 50.0:
+        if is_sunlit_interval(previous_state.solar_radiation):
             return
         if previous_time is None or dt_h <= 1e-6:
             return
-        capacity = (
-            ctx._thermal_params.upper_floor_thermal_mass
-            if ctx._thermal_params.two_zone_enabled
-            else ctx._thermal_params.room_thermal_mass
-        )
+        capacity = _zone_capacity(ctx._thermal_params)
         if capacity <= 1e-6:
             return
         g0 = float(ctx._thermal_params.internal_gains)
@@ -9701,6 +9721,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     ),
                     outdoor_temp=pending.get("outdoor"),
                     humidity=pending.get("humidity"),
+                    solar_radiation=pending.get("solar"),  # #2223, refit's gate
                 )
                 # T4a: observed-minus-modelled COP rides on the sample, so
                 # the snapshots' accuracy tags and #12's history both see
@@ -9778,6 +9799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "boost_space": boost.space_boost_active(self),
             "outdoor": ctx._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
+            "solar": ctx._current_state.solar_radiation,  # #2223, the sample's
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
             "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),
@@ -10413,30 +10435,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await self.async_request_refresh()
         return report
 
-    def _price_tile_specs(self, record: SolveRecord) -> list[tuple[str, dict[str, Any]]]:
-        """#39's fixed perturbation set. Fixed on purpose: tiles answer the
-        same three questions every day, so their day-to-day drift means the
-        situation changed, not the question.
-
-        The target tiles perturb the target ``record``'s plan was solved
-        with — the baseline the what-if is compared against. During an away
-        setback the configured target would make "one degree lower" a
-        raise against the setback plan, and the published trade would
-        carry the wrong sign.
-        """
-        target = float(record.config.target_temp)
-        return [
-            ("target_minus_1", {"target_temp": round(target - 1.0, 1)}),
-            ("target_plus_1", {"target_temp": round(target + 1.0, 1)}),
-            (
-                "power_cap_75",
-                {
-                    "power_cap_kw": round(
-                        0.75 * record.params.max_electrical_power, 2
-                    )
-                },
-            ),
-        ]
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
         """#39 (gated): refresh ONE tile after a scheduled solve.
 
@@ -10451,10 +10449,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not getattr(self, "_ctx", self)._config.price_tiles_enabled:
             # Gate off means gone: stale what-if money left published
             # would outlive the user's decision to stop paying for it.
-            if self._price_tiles:
-                self._price_tiles.clear()
+            price_tiles.book(self).clear()
             return
-        specs = self._price_tile_specs(record)
+        specs = price_tiles.specs(record.config, record.params.max_electrical_power)
         name, overrides = specs[self._price_tile_cursor % len(specs)]
         try:
             answer = await self.async_simulate(
@@ -10467,14 +10464,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._price_tile_cursor += 1
             return
         self._price_tile_cursor += 1
-        if answer.get("error"):
-            return
-        self._price_tiles[name] = {
-            "overrides": overrides,
-            "monthly_cost_delta": answer.get("monthly_cost_delta"),
-            "min_room_temperature": answer.get("min_room_temperature"),
-            "computed_at": dt_util.now().isoformat(timespec="seconds"),
-        }
+        # An error answer carries no figure, so the tile records nothing.
+        price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
 
     def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
@@ -10492,7 +10483,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "monthly_report": (
                 reports[max(reports)] if reports else None
             ),
-            "price_tiles": dict(self._price_tiles),
+            "price_tiles": price_tiles.published(price_tiles.book(self), dt_util.now().date()),
             "last_diagnosis": self._last_diagnosis,
         }
 
@@ -11105,9 +11096,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.warning("What-if simulation failed: %s", err)
             return {"error": str(err), "rate_limited": False}
 
-        horizon_hours = max(ctx._opt_config.horizon_hours, 1.0)
-        days_per_month = 30.4
-        scale = days_per_month * 24.0 / horizon_hours
+        horizon_hours = ctx._opt_config.horizon_hours
         delta = simulated.predicted_cost - result.predicted_cost + wood_sek
 
         payload = {
@@ -11115,7 +11104,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            "monthly_cost_delta": round(delta * scale, 2),
+            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
+            # The same choice held from a steady start (the price tiles'
+            # degree, price_tiles.py): no one-off coast or heat-up in it.
+            "monthly_held_cost_delta": round(price_tiles.per_month(
+                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(

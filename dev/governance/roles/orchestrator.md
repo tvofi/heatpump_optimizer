@@ -19,7 +19,7 @@ you follow. Where a rule names "the fixer" or "a seat", read yourself into it
 whenever you are the one acting — and you are acting whenever you write text
 another agent or the owner will treat as established.
 
-These sections do not replace the source rules. The turn is `dev/governance/roles/nudge.md`.
+The turn is `dev/governance/roles/nudge.md`.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
@@ -30,8 +30,6 @@ command, not the impression it left.** Before writing a claim, ask what exactly
 ran, and what its output would have looked like had the claim been false. If you
 cannot answer the second, you have not measured — you have expected.
 
-- **A sample is not a quantifier.** Five runs checked and reported as "every run"
-  was false.
 - Describing an artifact without opening it is the same defect. A wrong claim
   is corrected under `fixer.md` step 9.
 - **Never print a conclusion beside a command** (`fixer.md` step 3): the
@@ -81,7 +79,7 @@ and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. Roster text applies too: a seat will
-paraphrase it into its own body — a third-hand path, and it has occurred.
+paraphrase it into its own body.
 
 **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
 filter, not as proof.** It checks **four** reference forms and names seven
@@ -128,6 +126,11 @@ exactly that.
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
   shape); it binds them (`fixer.md` 17).
+- **An L or XL group with no approved design, pre-study or prototype is
+  designed first** (decision 0014): dispatch `designer.md` when its last
+  predecessor dispatches, `design-review.md` at the design's head, and its
+  fixer only after `Design review: approve <sha>`, read back from
+  `design-verdict/<group>`. The approved note is its architect note.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
   relative one resolves against the seat's cwd, which was yours for three seats.
@@ -158,8 +161,7 @@ request that exists but whose head is an ancestor of the ref is a different
 repair -- `tools/audit/seat/update_pr.sh` -- and dispatching an opener at it
 opens a second pull request for work one already carries; a ref and its pull
 request that have diverged needs your judgement, not a pattern's. `bus.sh
-orphans` answers all of it for every ref at once; this rule is what to do with
-the answer.
+orphans` answers it for every ref at once.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -208,7 +210,7 @@ established fact, with nothing gating it. A real finding you must not touch goes
 frozen by the handoff costs a record pull request; that is the price, not zero.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
-Three failure shapes already produced, all yours:
+Failure shapes already produced, all yours:
 
 - **A completeness check over "open" sets is blind to what lands.** Merged pull
   requests leave every open listing the moment they merge; twenty had no
@@ -260,7 +262,7 @@ beside a clean exit by design, the shape that lets a real error be waved through
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
   `defect-root-cause.md`).
-- The merge message passes section 4.
+- The merge message passes section 4; never a custom `--subject`, four readers parse it (#2423).
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
@@ -307,9 +309,8 @@ before merging — so open the pull request and surface it.
 - **Do not build an automated gate that clears your own work.** A check you
   wrote, run by you, on text you wrote is three roles this programme separates,
   and `judge.md`'s void rule applies to it: *a finding whose harness does not
-  move under its own perturbation is void, whatever the votes said.* Tools you
-  run are encouraged — `tools/pr/preflight.sh` exists because intentions did
-  not bind and a script bound immediately — but the reviewer stays the authority.
+  move under its own perturbation is void, whatever the votes said.* Run tools,
+  but the reviewer stays the authority.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
