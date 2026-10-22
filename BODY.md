@@ -14,6 +14,8 @@ https://claude.ai/code/session_01Wgz2w3vSn5gRBkUNkgQRm8
 
 ## Head
 
+`4237ca684e89ff2be14054f41e790b4b671ec106` merges the authored code head `e96f64a5ad78053eb240056f135a10b08026c86d` and then merges origin/main `cd4aaed44` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `e96f64a5a` (round-1 code `0a8c4523a` with origin/main `cd4aaed44`, v7.0.3, merged in). Every count is measured with origin/main at `04c1dd77990b97ae144e48cd29655853783532f2`, the base the record and the review measured at; `tools/policy/policy_lint.mjs` and `.github/workflows/governance.yml` are unchanged between it and `cd4aaed44`. Run logs are taken from the fix review's evidence (`review/2606` `3f3e5bda1`, `evidence/record_job_runs_0803_0912.txt`, `evidence/record_job_08z_extract.txt`), not re-fetched.
 
 ## Mutation proof
@@ -39,7 +41,8 @@ Harness lines with origin/main at `04c1dd779`; at a later main the default windo
 
 ## Red checks
 
-none
+- `pr-contract`, jobs `119783138386` (10:54:07Z) and `119800875823` (11:36:45Z), both at head `4237ca684`. Each log ends `BAD-DEST body item 5afde258: R10-RECORD-API-BUDGET: R10-RECORD-API-BUDGET is not a group of the roster` (the same line for items `b5f92218` and `6635e3d7`), then `CARRY-AUDIT: 4 finding item(s): 1 routed, 0 unrouted, 3 bad destination(s)`. Cause: pr-contract reads the roster from the PR tree, and `R10-RECORD-API-BUDGET` reached main only with #2608 (`543c8087c`, 11:33:58Z), after the first run and about 3 minutes before the second. Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body <file>` run against the head tree before the push, about 0.1 s per push. Resolution: the base merge of origin/main that the orchestrator applies with this body. Carry: dismissed: resolved by #2608 plus this base merge; no remaining work
+- No other red at this head. `nightly-status` is graded on main and is not required.
 
 ## Forward-carry
 
