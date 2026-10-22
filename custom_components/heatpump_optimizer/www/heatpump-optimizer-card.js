@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.0.2";
+const CARD_VERSION = "7.0.4";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -208,7 +208,9 @@ const STRINGS = {
     "advisor.act_apply": "Apply",
     "advisor.act_settings": "Open settings",
     "advisor.degree_title": "A degree cooler is cheaper",
-    "advisor.degree_detail": "A degree warmer costs {up} {currency}/month more.",
+    "advisor.degree_detail": "A degree warmer costs {up} {currency}/month more (a {days}-day average).",
+    "advisor.degree_unsettled":
+      "Not shown yet: over the last {days} days a degree cooler and a degree warmer did not price in the order heating does.",
     "advisor.act_degree": "Try in what-if",
     "advisor.optin_degree": "Price of a degree",
     "advisor.applied": "Valve target set to {to} °C.",
@@ -229,6 +231,11 @@ const STRINGS = {
     "advisor.optin_wood": "Wood-stove timing",
     "advisor.optin_fuse": "Fuse size",
     "advisor.optin_frequency": "Compressor frequency",
+    // The options-flow step each opt-in is turned on in (ADVISOR_OPT_IN_STEP).
+    "advisor.step_tuning": "Configure → Savings vs comfort",
+    "advisor.step_building": "Configure → Advanced settings → Heating system and heat storage",
+    "advisor.step_grid": "Configure → Grid peak tariff",
+    "advisor.step_metering": "Configure → Advanced settings → Power and solar sensors",
     // The feedback-sensor recommendation (R9-UX-9, #1956).
     "advisor.feedback_title": "Add a heat pump power, energy, frequency or flow sensor",
     "advisor.feedback_detail":
@@ -377,6 +384,10 @@ const STRINGS = {
       "cannot heat rooms (hot-water-only or cooling). Switch the unit " +
       "to a heating mode.",
     "reasons.idle": "Not heating",
+    "reasons.boost": "A boost you turned on",
+    "reasons.comfort_mode": "Comfort mode you selected",
+    "reasons.system_identification": "Measuring the house (step-response test)",
+    "reasons.untagged": "No plan step to attribute it to",
     // R9-UX-1: why an idle step is idle, inferred from the published fields.
     "why.space_off": "Space heating off",
     "why.dhw_off": "Hot water off",
@@ -922,7 +933,9 @@ const STRINGS = {
     "advisor.act_apply": "Verkställ",
     "advisor.act_settings": "Öppna inställningar",
     "advisor.degree_title": "En grad svalare är billigare",
-    "advisor.degree_detail": "En grad varmare kostar {up} {currency}/månad mer.",
+    "advisor.degree_detail": "En grad varmare kostar {up} {currency}/månad mer (ett {days}-dagarsmedel).",
+    "advisor.degree_unsettled":
+      "Visas inte än: de senaste {days} dagarna prissattes en grad svalare och en grad varmare inte i den ordning uppvärmning gör.",
     "advisor.act_degree": "Prova i what-if",
     "advisor.optin_degree": "Pris på en grad",
     "advisor.applied": "Ventilmålet satt till {to} °C.",
@@ -942,6 +955,10 @@ const STRINGS = {
     "advisor.optin_wood": "Vedpannans timing",
     "advisor.optin_fuse": "Huvudsäkring",
     "advisor.optin_frequency": "Kompressorfrekvens",
+    "advisor.step_tuning": "Konfigurera → Besparing kontra komfort",
+    "advisor.step_building": "Konfigurera → Avancerade inställningar → Värmesystem och värmelagring",
+    "advisor.step_grid": "Konfigurera → Effekttariff",
+    "advisor.step_metering": "Konfigurera → Avancerade inställningar → Effekt- och solgivare",
     "advisor.feedback_title": "Lägg till en givare för värmepumpens effekt, energi, frekvens eller flöde",
     "advisor.feedback_detail":
       "Utan en kan planeraren inte se vad pumpen faktiskt drar, och ingen pålitlig uppskattning finns utan den. En räcker: {list}.",
@@ -1064,6 +1081,10 @@ const STRINGS = {
       "-- kan inte värma huset (endast varmvatten eller kylning). Ställ " +
       "om aggregatet till ett värmeläge.",
     "reasons.idle": "Värmer inte",
+    "reasons.boost": "En boost som du slog på",
+    "reasons.comfort_mode": "Komfortläge som du valde",
+    "reasons.system_identification": "Mäter huset (stegsvarstest)",
+    "reasons.untagged": "Inget planerat steg att knyta det till",
     "why.space_off": "Husvärmen av",
     "why.dhw_off": "Varmvattnet av",
     "why.both_off": "Husvärmen och varmvattnet av",
@@ -2462,6 +2483,12 @@ const REASON_LABELS = {
   manual_plan: "reasons.manual_plan",
   pump_mode: "reasons.pump_mode",
   idle: "reasons.idle",
+  // The settlement's whole-action causes (R10-SAV-REASONS, #2256): energy a
+  // receipt books under them is the overlay's or the experiment's, not a step's.
+  boost: "reasons.boost",
+  comfort_mode: "reasons.comfort_mode",
+  system_identification: "reasons.system_identification",
+  untagged: "reasons.untagged",
 };
 
 /** Whether two point series are the same curve, to the plotted precision.
@@ -8616,7 +8643,11 @@ const ADVISOR_SUFFIXES = {
   restart: "_model_restart_advisor",
 };
 const ADVISOR_OPT_IN = ["wood", "fuse", "frequency"];
-// Shown only while the score sensor publishes no price_tiles (their switch is off).
+// The options-flow step that turns each opt-in on ("degree" is shown only while
+// the score sensor publishes no price_tiles: their switch is off). Home
+// Assistant has no URL into a step, so the button opens the entry, whose
+// Configure starts the flow, and the row names the step (R10-DEEPLINK).
+const ADVISOR_OPT_IN_STEP = { degree: "tuning", wood: "building", fuse: "grid", frequency: "metering" };
 const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
 const DAYS_PER_MONTH = 30;
 
@@ -8655,6 +8686,30 @@ function priceTiles(plan) {
   const down = tiles && tiles.target_minus_1;
   const up = tiles && tiles.target_plus_1;
   return down && up && Number.isFinite(Number(down.monthly_cost_delta)) ? { down, up } : null;
+}
+
+/** The price of a degree as an inbox row, checked before it is rendered
+ * (#2257): a degree cooler must save and a degree warmer must cost, in the
+ * whole units the row renders. That order is what the held figure keeps at
+ * every start, so any mean of its samples keeps it too. How far apart the two
+ * are is not checked: the thermostat's cost is linear in its target up to its
+ * own discretisation, and the tiles are sampled at different solves
+ * (price_tiles.py), so their gap is a few units either way and a convexity
+ * check hid true pairs. A pair out of order is shown without money; a degree
+ * cooler that saves nothing (no heating) is no row. */
+function degreeRow(tiles, currency) {
+  const save = -Math.round(Number(tiles.down.monthly_cost_delta));
+  const cost = Math.round(Number(tiles.up.monthly_cost_delta));
+  const days = Math.min(Number(tiles.down.horizon_days) || 1, Number(tiles.up.horizon_days) || 1);
+  const row = { kind: "degree", status: "ready", act: "try_degree",
+    target: Number(tiles.down.overrides && tiles.down.overrides.target_temp) };
+  if (!(save >= 0 && cost >= 0)) {
+    return { ...row, value: null, title: L("advisor.optin_degree"),
+      detail: L("advisor.degree_unsettled", { days }) };
+  }
+  if (save === 0) return null;
+  return { ...row, value: save, title: L("advisor.degree_title"),
+    detail: L("advisor.degree_detail", { up: cost, currency, days }) };
 }
 
 /** Linear cost per day at an off-grid setpoint, clamped to the swept range. */
@@ -8742,15 +8797,7 @@ function advisorRows(host) {
         detail: L("advisor.valve_detail", { from, reason: attrs.reason || "" }),
       };
     }),
-    tiles && {
-      kind: "degree", status: "ready", act: "try_degree",
-      // Only a saving is a value; a degree that costs more is still shown.
-      value: Number(tiles.down.monthly_cost_delta) < 0 ? -Number(tiles.down.monthly_cost_delta) : null,
-      target: Number(tiles.down.overrides && tiles.down.overrides.target_temp),
-      title: L("advisor.degree_title"),
-      detail: L("advisor.degree_detail", {
-        up: Math.round(Number(tiles.up.monthly_cost_delta)), currency: plan.currency() }),
-    },
+    tiles && degreeRow(tiles, plan.currency()),
   ].filter(Boolean);
   // Ranked by monthly value; a row with no money in it follows every priced one.
   return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
@@ -8810,8 +8857,8 @@ function feedbackGaps(plan) {
 function feedbackRowHtml(gaps) {
   const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
   return `<div class="adv-inbox-row" data-advice="feedback">
-      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span></span>
-      <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
+      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="adv-sub">${esc(L("advisor.step_metering"))}</span></span>
+      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
       <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
     </div>`;
 }
@@ -8820,8 +8867,8 @@ function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
   const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}</span>
-      <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
+      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
   return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
     ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
@@ -9396,6 +9443,9 @@ function attachAdvisorInbox(host, root) {
       } else if (act === "dismiss_feedback") {
         dismissFeedback();
         host._render();
+        return;
+      } else if (act === "open_options") {
+        openHaLink(host, "options", null);
         return;
       } else if (act === "settings" || act === "diagnostics") {
         navigateTo(SETTINGS_PATH);

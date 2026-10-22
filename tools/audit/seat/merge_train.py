@@ -79,8 +79,12 @@ later pull request would be graded against a `main` the refused one never joined
      recarry worktrees a run made are removed before its closing line.
 
 It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
-<reason>` (exit 1). Every GitHub write is the orchestrator's: run this only
-from the orchestrator's machine and identity (decisions 0011, 0013).
+<reason>` (exit 1). A real run publishes `TRAIN HOLD refs/heads/train-hold`
+before anything merges and releases it just before the closing line: CI
+cannot see this process's pidfile, and nightly.yml's record beat auto-merges
+record pull requests otherwise, moving main mid-train (#2291/#2295/#2299,
+2026-10-15; issue #2302). Every GitHub write is the orchestrator's: run this
+only from the orchestrator's machine and identity (decisions 0011, 0013).
 Replaces the session-local train3.py / mergewhen.sh / waitci.sh of round 9;
 the stale-base guard mergewhen.sh carried is subsumed by step 4, which refuses
 any head that does not contain the `main` it merges into.
@@ -104,8 +108,8 @@ Same queue file; no head is re-merged with main. In order:
                  that decision at the merge, so admission is only the early
                  refusal, not the verdict;
   2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
-                 (git's text merge in place of every .gitattributes driver, which
-                 GitHub never runs), P_0 = origin/main; a head that does not merge
+                 (git's text merge in place of every merge driver the clone
+                 configures, which GitHub never runs: `text_merge`), P_0 = origin/main; a head that does not merge
                  cleanly goes serial, which covers every pairwise conflict;
   3. prove    -- B: two or more entries push P_n to batch/<tag>-<n> as the App
                  (`app_push.sh --branch-only`), dispatch DISPATCH on it, and wait
@@ -222,6 +226,7 @@ import functools
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -230,6 +235,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 HEX = frozenset("0123456789abcdef")
+
+# A stopped train ends the tool it is running (R10-PUSHER-REAP). A TERM or HUP
+# unwinds like Ctrl-C (stop_on_signal), so Train._run TERMs the tool -- whose own
+# EXIT trap (pr_args.sh) reaps the tool's tree -- and waits for it. An untrapped
+# TERM ended the train with remerge_main.sh's app_push and its prepr still
+# running; subprocess.run's own handler SIGKILLs, which runs no trap.
+TOOL_STOP_SECONDS = 10  # the tool's reap grants its tree 2 s (pr_args.sh's PR_REAP_TENTHS)
+
+
+def stop_on_signal() -> None:
+    """TERM and HUP raise SystemExit(128 + signal), so a stop unwinds through
+    Train._run's handler and the train's own `finally` blocks."""
+    def unwind(signum, _frame):
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, unwind)
 
 # EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
 # dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
@@ -260,6 +281,94 @@ def tool(name: str) -> str:
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
 GREEN = ("success", "skipped", "neutral")
+# THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15): the one
+# owner of "is this head red" for the train, merge_pr.sh and the orchestrator
+# tick (its MAIN and PRS sections import these; no third rule). At main
+# e7c66485 on 2026-10-21, checks in flight plus owed record reds made the
+# --overlap gate log "main is not green ... revert it first".
+#: Contexts that grade the record beat or the nightly lane, never a merge: a
+#: ruleset that listed one would still not make a head red.
+NOT_GATING = ("record", "record-autofix", "nightly-status", "delivery-status")
+#: A check-run's workflow run, read from its details_url (K15 (b)).
+RUN_URL = re.compile(r"/actions/runs/(\d+)(?:/|$)")
+
+
+def latest_runs(runs) -> dict:
+    """The check runs keyed by name, the latest started winning."""
+    return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+
+
+def run_state(cr: dict) -> str:
+    """'pending' while not completed (wait, never red); else 'green' for a
+    GREEN conclusion and 'red' for any other, one GitHub adds later included."""
+    if cr.get("status") != "completed":
+        return "pending"
+    return "green" if (cr.get("conclusion") or "") in GREEN else "red"
+
+
+def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
+    """(state, pending, red) over the required contexts less NOT_GATING, each
+    on its latest run: 'red' when any concluded non-green, else 'wait' while
+    any is pending or has no run yet, else 'green'. `required` None (a ruleset
+    that could not be read) raises ValueError: a refusal, never green. A head
+    is reviewable (K15 (d)) exactly when `red` is empty."""
+    if required is None:
+        raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
+    names = [n for n in required if n not in NOT_GATING]
+    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending")
+    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red")
+    return ("red" if red else "wait" if pending else "green"), pending, red
+
+
+def stale(cr: dict, run_status: str) -> bool:
+    """K15 (b): a check-run still queued or in progress while its workflow run
+    has completed is stale, not pending: nothing will conclude it (#2559's
+    budget-raise-gate check-run 119308796140 held the merge BLOCKED)."""
+    return cr.get("status") in ("queued", "in_progress") and run_status == "completed"
+
+
+def text_merge(run) -> "list[str] | None":
+    """`-c` arguments putting git's own text merge in place of every merge
+    driver this clone's config defines, since GitHub runs none: a merge here
+    is then the one GitHub makes. None when the config could not be read
+    (rc 1 is git's "no such key", so no driver). Only a configured driver can
+    run; an attribute naming none already falls back to the text merge."""
+    code, o = run(["git", "config", "--get-regexp", r"^merge\..+\.driver$"])
+    if code not in (0, 1):
+        return None
+    names = sorted({k[len("merge."):-len(".driver")] for k in (x.split(" ", 1)[0] for x in o.splitlines()) if k})
+    return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+
+
+def conflicts(run, base: str, head: str) -> "list[str] | None":
+    """K15 (c): the paths `git merge-tree --write-tree base head` leaves
+    conflicted under GitHub's merge (`text_merge`), [] for a clean merge;
+    None when git could not answer (an unknown commit also exits 1, with no
+    tree line). A claim file the local claimnotes driver would resolve is
+    therefore listed: GitHub reports that head DIRTY, and the driver is its
+    repair, not a reason to read it clean (it also printed `MERGE-CLAIM:` to
+    stderr, which a stdout+stderr runner read as merge-tree output)."""
+    drivers = text_merge(run)
+    if drivers is None:
+        return None
+    code, o = run(["git", *drivers, "merge-tree", "--write-tree", "--name-only", "--no-messages", base, head])
+    lines = [x.strip() for x in o.splitlines() if x.strip()]
+    if code not in (0, 1) or not lines or not is_sha(lines[0]) or (code == 1) != (len(lines) > 1):
+        return None
+    return lines[1:]
+
+
+def dirty_repair(files: list[str], claim_files) -> str:
+    """The repair a DIRTY head is owed, its conflicted files named first: the
+    claimnotes driver only when every one is a claim file; anything else is a
+    content conflict, back to the owning fixer, and its verdict does not carry
+    (the tick sent #2569 to the driver over a conflict in roster_edit.py)."""
+    if files and all(f in claim_files for f in files):
+        return f"claim-file conflict in {', '.join(files)}: absorb main locally with the claimnotes driver"
+    return (f"content conflict in {', '.join(files) or '(unnamed)'}: back to the owning fixer; "
+            "the resolution changes reviewed code, so its verdict does not carry")
+
+
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
@@ -276,6 +385,20 @@ HEARTBEAT_SECONDS = 240
 # costs one full CI wait at the new head (~40 min), so three bound a busy
 # main's entry to about two hours before it stops as before.
 MAIN_MOVED_TRIES = 3
+# THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
+# process's pidfile, and the record beat in nightly.yml auto-merges record pull
+# requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
+# on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
+# publishes this ref while it is live and deletes it at its closing line; the
+# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
+# an older one as stale, so a crashed train cannot block records forever. The
+# ref points at a commit created at publication, whose committer date is the
+# age the beat reads; it is refreshed at the start of every queue item, before
+# every recarry, and before every sleep inside wait_ci, so the age is the last
+# REFRESH's, not the run's, and the beat's bound prices that gap -- one phase
+# (a recarry or a poll), never a whole CI wait and never a whole batch. A
+# `batch/` rehearsal publishes nothing: it merges nothing into main.
+HOLD_REF = "refs/heads/train-hold"
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -472,11 +595,23 @@ class Train:
         self.pre_flight, self.free_holders = pre_flight, free_holders
         self.skipped: list[dict] = []
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
+        self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
+        self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
-        r = subprocess.run(argv, cwd=cwd, input=stdin, capture_output=True, text=True)
-        return r.returncode, r.stdout + r.stderr
+        with subprocess.Popen(argv, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              stdin=None if stdin is None else subprocess.PIPE) as p:
+            try:
+                out, err = p.communicate(stdin)
+            except BaseException:  # a stop (stop_on_signal): TERM the tool, never a bare SIGKILL
+                p.terminate()
+                try:
+                    p.wait(TOOL_STOP_SECONDS)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+                raise
+        return p.returncode, out + err
 
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
@@ -661,14 +796,6 @@ class Train:
         except ValueError:
             return None
 
-    @staticmethod
-    def _by_name(runs: "list[dict]") -> dict:
-        """The runs keyed by name, the latest started winning (wait_ci's order)."""
-        last: dict[str, dict] = {}
-        for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
-            last[c["name"]] = c
-        return last
-
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -686,16 +813,20 @@ class Train:
         silence). The beat is time-based -- computed from the wait's start
         against the poll clock -- never poll-based, so a poll cadence slower
         or faster than HEARTBEAT_SECONDS cannot hide it. Log only: no return
-        value, gate or wait duration changes."""
+        value, gate or wait duration changes. One write rides the loop: while
+        the wait goes on, the train-hold ref is refreshed before each sleep
+        (`hold_refresh`), so a wait that runs to its `polls` ceiling still
+        keeps the record beat held; a wait that settles writes nothing."""
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
-            last = self._by_name(runs or ())
-            if only is not None and runs is not None and all(
-                    last.get(n, {}).get("status") == "completed" for n in only):
-                return sorted(n for n in only if last[n]["conclusion"] not in GREEN)
+            last = latest_runs(runs or ())
+            if only is not None and runs is not None:
+                _, pending, red = classify(last, only)
+                if not pending:
+                    return red
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
@@ -715,6 +846,11 @@ class Train:
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
             # t+305s (tvofi, 2026-10-14) -- a beat never waits on a poll.
+            # Before the wait the hold is refreshed (R10-TRAIN-HOLD): a wait is
+            # the longest silence a train has, so the beat's bound prices the
+            # refresh gap, not a whole wait. Returning above (CI settled) costs
+            # no write.
+            self.hold_refresh()
             self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
         return ["TIMEOUT"]
 
@@ -1059,6 +1195,7 @@ class Train:
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
         if not self.contains_main(h):
+            self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
             if not wt.exists():
@@ -1114,6 +1251,7 @@ class Train:
         return h
 
     def one(self, item: dict, req: "list[str] | None" = None) -> None:
+        self.hold_refresh()  # per item: a long item must not age the hold stale
         req = req if req is not None else self.required()
         self.serial(item, self.recarry(item), None, req)
 
@@ -1221,6 +1359,7 @@ class Train:
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
+        self.unstale(h)
         said = "(no output)"
         for k in range(1, self.merge_tries + 1):
             self.sleep(30)
@@ -1262,24 +1401,90 @@ class Train:
                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
         self.made_wts = []
 
+    def hold_refresh(self) -> None:
+        """Publish, or refresh, the record-beat hold ref (R10-TRAIN-HOLD).
+
+        The ref points at a commit made NOW, through the API and never a
+        `git push`: its committer date is the publication time the record
+        beat reads as the hold's age, and creating the ref through the API
+        starts no push-triggered run. A failure is logged and the train runs
+        on -- the pre-fix behaviour -- because the hold guards a bookkeeping
+        beat, and stopping a merge train for it is the worse failure."""
+        if not (self.real and self.hold_armed):
+            return
+        tip = self.out("git", "rev-parse", "origin/main")
+        tree = self.out("git", "rev-parse", tip + "^{tree}") if is_sha(tip) else ""
+        if not (is_sha(tip) and is_sha(tree)):
+            self.held = False
+            self.log(f"NOT held: origin/main is unreadable ({tip[:40]!r}); the record beat is not held")
+            return
+        code, said = self.run(
+            ["gh", "api", "--method", "POST", f"repos/{self.repo}/git/commits",
+             "--input", "-", "--jq", ".sha"],
+            stdin=json.dumps({"message": f"train hold pid={os.getpid()}",
+                              "tree": tree, "parents": [tip]}))
+        sha = next((w for w in said.split() if is_sha(w)), "")  # not said.strip(): a gh warning may trail it
+        if code or not is_sha(sha):
+            self.held = False
+            self.log(f"NOT held: the hold commit was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        # A hold this run owns is a PATCH; the first one is a create, and a
+        # stale ref a crashed train left is taken over by the PATCH fallback.
+        method = "PATCH" if self.held else "POST"
+        ref_url = (f"repos/{self.repo}/git/refs/heads/train-hold" if method == "PATCH"
+                   else f"repos/{self.repo}/git/refs")
+        payload = {"sha": sha, "force": True} if method == "PATCH" else {"ref": HOLD_REF, "sha": sha}
+        code, said = self.run(["gh", "api", "--method", method, ref_url, "--input", "-"],
+                              stdin=json.dumps(payload))
+        if code and method == "POST":
+            code, said = self.run(
+                ["gh", "api", "--method", "PATCH", f"repos/{self.repo}/git/refs/heads/train-hold",
+                 "--input", "-"], stdin=json.dumps({"sha": sha, "force": True}))
+        if code:
+            self.held = False
+            self.log(f"NOT held: the hold ref was refused (rc={code}: {said.strip()[-160:]})")
+            return
+        self.held = True
+        self.log(f"TRAIN HOLD {HOLD_REF} {sha[:8]}: the record beat waits")
+
+    def hold_release(self) -> None:
+        """Delete the hold ref at the closing line, so the record beat resumes.
+
+        Idempotent: every closing path calls it, the last one finding the ref
+        already gone. A refused delete is logged with the expiry that bounds
+        the damage, never raised -- the train's merges have already landed."""
+        if not self.held:
+            return
+        self.held = False
+        code, said = self.run(["gh", "api", "--method", "DELETE",
+                               f"repos/{self.repo}/git/refs/heads/train-hold"])
+        self.log("TRAIN HOLD released" if not code else
+                 f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
+                 "it expires at the beat's own bound, or delete it by hand")
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
             try:
                 self.one(item)
             except Stop as s:
                 self.release_worktrees()  # before the closing line, which stays last
+                self.hold_release()
                 self.log(f"TRAIN STOPPED #{item.get('pr')} {s.step}: {classified(s)}")
                 return 1
         self.release_worktrees()
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1321,13 +1526,15 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def required(self) -> list[str]:
+    def required(self, pr_head: bool = False) -> list[str]:
+        """The ruleset's required contexts, read live; less PR_ONLY unless
+        <pr_head> (a pull request's head carries those; main and a proof never)."""
         code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
                               f'.[] | select(.name == "{RULESET}") | .id'])
         code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
                              '.rules[] | select(.type == "required_status_checks")'
                              ' | .parameters.required_status_checks[].context'])
-        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(PR_ONLY))
+        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
         if code or code2 or not rid.strip().isdigit() or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
@@ -1382,12 +1589,12 @@ class Train:
     def build(self, base: str, entries: list[dict]) -> tuple[list[dict], list[str], list[dict]]:
         """Proof commits over <base>: P_i is the merge GitHub will make of P_(i-1)
         and entry i's head -- git's own text merge in place of every driver
-        main's .gitattributes names, since GitHub runs none. An entry that does
+        the clone configures (`text_merge`), since GitHub runs none. An entry that does
         not merge cleanly onto the entries before it is returned to go serial,
         which covers every pairwise conflict and the three-way ones besides."""
-        attrs = self.run(["git", "show", f"{base}:.gitattributes"])[1]
-        drivers = [x for n in sorted(set(re.findall(r"\bmerge=([\w-]+)", attrs)))
-                   for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+        drivers = text_merge(self.run)
+        if drivers is None:
+            raise Stop("build", "git config could not be read: no proof is built under an unknown merge driver")
         kept, proofs, conflicted, last = [], [], [], base
         for a in entries:
             code, o = self.run(["git", *drivers, "merge-tree", "--write-tree", last, a["head"]])
@@ -1503,17 +1710,49 @@ class Train:
         # R9-ADMIT-REQ: under --overlap the read is ONE pass, non-blocking --
         # the loop below would hold every batch through main's push-run window
         # (40-60 min measured) before admission, the wait the flag exists to
-        # drop. The not-green names are logged and the batch starts.
+        # drop. The state is logged and the batch starts: a context still in
+        # flight is a wait, never red, and only RED carries `why` (K15).
         if self.overlap:
-            last = self._by_name(self._check_runs(tip) or ())
-            red = sorted(n for n in req if last.get(n, {}).get("conclusion") not in GREEN)
-            if red:
-                self.log(f"OVERLAP: {self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; "
+            runs = self._check_runs(tip)
+            state, pending, red = classify(latest_runs(runs or ()), req)
+            if runs is None:
+                self.log(f"OVERLAP: {self.base} at {tip[:12]}: check runs unreadable; --overlap does not wait")
+            elif state == "red":
+                self.log(f"OVERLAP: {self.base} at {tip[:12]} is RED ({', '.join(red)}) {why}; "
                          "--overlap logs it and does not wait")
+            elif state == "wait":
+                self.log(f"OVERLAP: {self.base} at {tip[:12]} is still running ({', '.join(pending)}): "
+                         "a wait, not red; --overlap does not wait")
             return
         red = self.wait_ci(tip, only=req)
         if red:
             raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
+
+    def unstale(self, h: str) -> None:
+        """K15 (b), before a merge attempt: each check-run at <h> queued or in
+        progress over a workflow run that has completed is re-run, each run
+        once, logged with its run id (two recurrences on
+        2026-10-21, #2559 and #2567: a third goes to a root-cause seat), then
+        re-read until it concludes; still red or unconcluded is a stop. An
+        unreadable run is left pending: GitHub's own merge refusal follows."""
+        reran: dict[str, str] = {}
+        for name, c in latest_runs(self._check_runs(h) or ()).items():
+            m = RUN_URL.search(c.get("details_url") or "")
+            if run_state(c) != "pending" or not m:
+                continue
+            code, st = self.run(["gh", "api", f"repos/{self.repo}/actions/runs/{m.group(1)}", "--jq", ".status"])
+            if code or not stale(c, st.strip()):
+                continue
+            if m.group(1) not in reran.values():
+                code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
+                self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
+                         f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
+            reran[name] = m.group(1)
+        if reran:
+            red = self.wait_ci(h, only=sorted(reran), beat=f"stale re-run at {h[:8]}")
+            if red:
+                raise Stop("ci", f"red at the head after the stale re-run of run(s) "
+                           f"{', '.join(sorted(set(reran.values())))}: {', '.join(red)}")
 
     def is_merged(self, pr: int) -> bool:
         """Whether GitHub already reports <pr> MERGED -- the post-merge test for
@@ -1545,6 +1784,7 @@ class Train:
             return self._batch(queue, tag)
         finally:
             self.release_worktrees()
+            self.hold_release()
 
     def _batch(self, queue: list[dict], tag: str) -> int:
         # The banner is the FIRST output, before any blocking call: a
@@ -1554,6 +1794,8 @@ class Train:
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})"
                  f"{' --overlap' if self.overlap else ''}{' --skip-bad' if self.skip_bad else ''}")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.hold_armed = True
+        self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         self.skipped: list[dict] = []
         try:
@@ -1685,6 +1927,7 @@ class Train:
                                   f"#{a['pr']} {s.why}", s.cls)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
+            self.hold_release()
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(len(queue))
@@ -1697,6 +1940,7 @@ class Train:
                      f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
         if self.skip_bad:
             self.skip_report(len(queue))
+        self.hold_release()
         self.log("TRAIN DONE")
         return 1 if self.skipped else 0
 
@@ -1733,6 +1977,17 @@ def _self_test() -> int:
                     return world.get("bot_find", (0, "0"))
                 world.setdefault("bot_guarded", []).append(argv[argv.index("--head") + 1])
                 return world.get("bot_guard", (0, "AUTOMERGE OK #9"))
+            # THE RECORD-BEAT HOLD (issue #2302): the commit the hold ref points
+            # at, and the ref create/update. `hold_sha` empty (the default) is
+            # the API refusing, which the train must survive.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a:
+                world.setdefault("hold_commits", []).append(json.loads(stdin or "{}"))
+                return world.get("hold_commit", (0, world.get("hold_sha", "")))
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                world.setdefault("hold_refs", []).append(argv)
+                if "/git/refs/heads/train-hold" in a:  # PATCH or DELETE an existing ref
+                    return world.get("hold_update", (0, "{}"))
+                return world.get("hold_create", (0, "{}"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
@@ -1758,12 +2013,29 @@ def _self_test() -> int:
                 return (0 if world["contains"].pop(0) else 1) if world["contains"] else 0, ""
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
+            if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
+                world.get("on_rerun", lambda: None)()
+                return 0, ""
+            wf = re.search(r"/actions/runs/(\d+)\b", a)
+            if argv[:2] == ["gh", "api"] and wf:  # a workflow run's status
+                st = world.get("wf_runs", {}).get(wf.group(1))
+                return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+                # `pending_reads`: the first N reads report in_progress, so a
+                # wait that outlives one poll can be driven without a clock.
+                reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                runs = world.get("runs", [])
+                if reads <= world.get("pending_reads", 0):
+                    runs = [dict(c, status="in_progress") for c in runs]
+                return 0, "\n".join(json.dumps(c) for c in runs)
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
                 return 0, f"{'github-actions[bot]' if subj else 'tvofi'}\t{subj or 'fix: x'}"
+            if argv[:3] == ["git", "rev-parse", "origin/main"]:  # the hold's parent
+                return 0, world.get("main_tip", "d" * 40)
+            if argv[:2] == ["git", "rev-parse"] and argv[2].endswith("^{tree}"):
+                return 0, world.get("main_tree", "e" * 40)
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
             if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
@@ -1824,21 +2096,34 @@ def _self_test() -> int:
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
     def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1,
-           wrap=None, approval_carry: bool = False, **opts) -> tuple[int, list[str], list[list[str]]]:
+           wrap=None, approval_carry: bool = False, base: str = "main",
+           **opts) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         lines: list[str] = []
+        timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
         if wrap:
             run = wrap(run)
+        base_run = run
+
+        def run_traced(argv, cwd=ROOT, stdin=None):
+            timeline.append(("call", " ".join(argv)))
+            return base_run(argv, cwd=cwd, stdin=stdin)
+
+        def logline(s: str) -> None:
+            lines.append(s)
+            timeline.append(("log", s))
+
         with tempfile.TemporaryDirectory() as d:
-            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
-                       sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3,
-                       approval_carry=approval_carry, **opts).train(q or [dict(item)])
+            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
+                       run=run_traced, sleep=lambda s: None, log=logline, polls=2, merge_tries=3,
+                       approval_carry=approval_carry, base=base, **opts).train(q or [dict(item)])
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
                 world[key] = f.read_text() if f.exists() else ""
+        world["timeline"] = timeline
         return rc, lines, calls
 
     def merged(calls) -> bool:
@@ -1874,7 +2159,11 @@ def _self_test() -> int:
     # still beats exactly on time.
     hang = [{"name": "fast", "status": "in_progress", "conclusion": None, "started_at": "1"}]
     def hung_run(argv, cwd=ROOT, stdin=None):
-        return 0, "\n".join(json.dumps(c) for c in hang) if "check-runs" in " ".join(argv) else (0, "")
+        # The pair wraps the whole conditional: `return 0, X if c else (0, "")`
+        # made a non-check-runs call answer `(0, (0, ""))`, a tuple where the
+        # trainer reads a string (found by the R10-TRAIN-HOLD session/arming
+        # mutant, which is the only reader to reach it).
+        return (0, "\n".join(json.dumps(c) for c in hang)) if "check-runs" in " ".join(argv) else (0, "")
     ticks = iter([0, 100, 240, 300, 480, 700, 960, 1100])
     lines: list[str] = []
     with tempfile.TemporaryDirectory() as d:
@@ -2557,9 +2846,334 @@ def _self_test() -> int:
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
     check("every script the train runs resolves through TOOLS, none by a bare path"
           + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
+    # THE RECORD-BEAT HOLD (issue #2302). A record pull request that auto-merges
+    # mid-train moves main under it (#2291/#2295/#2299, 2026-10-15, stopped or
+    # re-carried #2284/#2290); CI cannot see the train's local pidfile, so the
+    # train publishes refs/heads/train-hold while it is live. These read the
+    # call/log timeline: the commit and ref create must precede the first merge,
+    # and the delete must close the train before its closing line.
+    def hold_idx(world: dict, kind: str) -> list[int]:
+        stop = {"create": "/git/refs --input -", "update": "/git/refs/heads/train-hold",
+                "delete": "/git/refs/heads/train-hold", "commit": "/git/commits"}
+        return [i for i, (k, v) in enumerate(world["timeline"])
+                if k == "call" and "gh api" in v and stop[kind] in v
+                and (kind == "delete") == ("--method DELETE" in v)]
+
+    def tl_idx(world: dict, kind: str, text: str) -> list[int]:
+        return [i for i, (k, v) in enumerate(world["timeline"]) if k == kind and v == text]
+
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w)
+    creates, commits = hold_idx(w, "create"), hold_idx(w, "commit")
+    deletes = hold_idx(w, "delete")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    done = tl_idx(w, "log", "TRAIN DONE")
+    check("a real train holds the record beat before its first merge and releases it "
+          "before the closing line (issue #2302)",
+          bool(rc == 0 and commits and creates and deletes and merges and done)
+          and commits[0] < creates[0] < merges[0] < deletes[0] < done[0]
+          and "TRAIN HOLD refs/heads/train-hold" in " ".join(lines)
+          and "TRAIN HOLD released" in lines)
+    w = {"hold_sha": "f" * 40,
+         "runs": [{"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]}
+    rc, lines, calls = go(w)
+    deletes = hold_idx(w, "delete")
+    stopped = [i for i, (k, v) in enumerate(w["timeline"])
+               if k == "log" and v.startswith("TRAIN STOPPED")]
+    check("a train stopped mid-queue still releases the hold before its closing line "
+          "(a stopped train must not block the record beat)",
+          bool(rc == 1 and deletes and stopped) and deletes[-1] < stopped[-1])
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)], base="batch/rehearsal")
+    check("a batch/ rehearsal publishes no hold (null control: it merges nothing into main)",
+          rc == 0 and not any(k == "call" and "/git/refs" in v for k, v in w["timeline"]))
+    w = {"hold_sha": "f" * 40}
+    rc, lines, calls = go(w, q=[dict(item), dict(item, pr=8)])
+    creates, updates = hold_idx(w, "create"), hold_idx(w, "update")
+    merges = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and v.startswith("gh pr merge")]
+    check("the hold is refreshed once per queue item, so one long item cannot age it stale",
+          rc == 0 and len(creates) == 1 and len(updates) == 2 and len(merges) >= 2
+          and merges[0] < updates[1] < merges[1] and max(creates + updates) < hold_idx(w, "delete")[0])
+    w = {}  # the API refuses the hold commit: the train must still merge
+    rc, lines, calls = go(w)
+    check("an unreadable hold commit does not stop the train: logged, no ref, no delete",
+          rc == 0 and merged(calls) and not any(k == "call" and "/git/refs" in v
+                                                for k, v in w["timeline"])
+          and any(ln.startswith("NOT held:") for ln in lines))
+    # A WAIT IS THE LONGEST SILENCE (review F1). One CI wait runs to 24 polls
+    # of HEARTBEAT_SECONDS, and a --batch proof and a main_green wait are the
+    # same loop, so the ref is refreshed from the loop itself: the bound then
+    # prices the refresh gap, not a whole wait.
+    w = {"hold_sha": "f" * 40, "pending_reads": 1}
+    rc, lines, calls = go(w)  # polls=2: read 1 in progress, read 2 green
+    reads = [i for i, (k, v) in enumerate(w["timeline"]) if k == "call" and "check-runs" in v]
+    check("a CI wait that outlives one poll refreshes the hold mid-wait, so the bound "
+          "can be shorter than a wait",
+          rc == 0 and merged(calls) and len(reads) >= 2
+          and any(reads[0] < u < reads[1] for u in hold_idx(w, "update")))
+    # A recarry takes 5-15 min inside app_push's prepr, and --overlap runs one
+    # per serial entry BEFORE any wait: a refresh only per item or per wait
+    # would let the up-front loop age the ref stale.
+    w = {"hold_sha": "f" * 40, "contains": [False]}
+    rc, lines, calls = go(w)
+    check("a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it",
+          rc == 0 and merged(calls) and len(hold_idx(w, "update")) == 2)
+    # `wait-ci` is a bare CI watch, not a train: it has no closing line to
+    # release a ref, so it must never publish one.
+    w = {"hold_sha": "f" * 40, "runs": green, "pending_reads": 1}
+    run0, calls0 = fake(w)
+    Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run0,
+          sleep=lambda s: None, polls=2).wait_ci(H0)
+    check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
+          not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
+    _stop_self_test(check)
+    _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _stop_self_test(check) -> None:
+    """R10-PUSHER-REAP: a TERMed train ends the tool Train._run is running, and
+    the tool's tree with it. The tool sources the real pr_args.sh and starts a
+    two-level sleep tree recorded by pid; the driver is a python3 process
+    running Train._run on it, TERMed once all three pids are recorded. The null
+    control is the same driver without stop_on_signal: the tree survives, so
+    the arm can see the defect it pins."""
+    with tempfile.TemporaryDirectory() as d:
+        tool, pids = Path(d) / "tool.sh", Path(d) / "pids"
+        tool.write_text(f'. "{ROOT}/tools/audit/seat/pr_args.sh"; pr_exit_trap\n'
+                        f'echo $$ >> "{pids}"\n'
+                        f"bash -c 'sleep 30 & echo $! >> \"$0\"; wait' \"{pids}\" & echo $! >> \"{pids}\"\n"
+                        "wait\n")
+
+        def alive() -> list[int]:
+            got = [int(x) for x in pids.read_text().split()] if pids.exists() else []
+            live = []
+            for k in got:
+                try:
+                    os.kill(k, 0)
+                    live.append(k)
+                except OSError:
+                    pass
+            return live
+
+        def stopped(install: bool) -> tuple[int | None, int]:
+            pids.write_text("")
+            drv = ("import sys; sys.path.insert(0, sys.argv[1]); import merge_train as m; "
+                   + ("m.stop_on_signal(); " if install else "") + "m.Train._run(['bash', sys.argv[2]])")
+            p = subprocess.Popen([sys.executable, "-c", drv, str(Path(__file__).resolve().parent), str(tool)])
+            for _ in range(200):
+                if len(pids.read_text().split()) >= 3:
+                    break
+                time.sleep(0.05)
+            p.terminate()
+            try:
+                rc = p.wait(15)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                rc = None
+            for _ in range(30):  # a killed child can be a zombie for a moment
+                if not alive():
+                    break
+                time.sleep(0.1)
+            left = alive()
+            for k in left:  # by pid, never a pattern
+                os.kill(k, signal.SIGKILL)
+            return rc, len(left)
+
+        rc, left = stopped(True)
+        check("a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)",
+              rc == 143 and left == 0)
+        rc, left = stopped(False)
+        check("  null control: without stop_on_signal the train dies and its tool's tree survives",
+              left == 3)
+
+
+def _state_self_test(check, go, merged, throwaway_git_init) -> None:
+    """THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15)."""
+    import contextlib
+    import io
+
+    def cr(name, status="completed", conclusion="success", started="1", cid=1, url=""):
+        return {"name": name, "status": status, "started_at": started, "id": cid, "details_url": url,
+                "conclusion": conclusion if status == "completed" else None}
+
+    req = ["fast", "mutation", "typing", "record"]
+    e7 = latest_runs([cr("fast"), cr("mutation", "in_progress"), cr("typing", "queued"),
+                      cr("record", conclusion="failure"), cr("record-autofix", conclusion="failure")])
+    check("K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- "
+          "reads wait, never red, even with record listed as required",
+          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+    check("K15 (a): every required context green reads green; a non-required red is not counted",
+          classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
+                   req) == ("green", [], []))
+    check("K15 (a): a failed required context reads red while another is still in flight",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
+                   req) == ("red", ["mutation"], ["fast"]))
+    check("K15 (a): judged on the latest run of each context -- a re-run that went green clears the red",
+          classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
+                                cr("typing")]), req)[0] == "green")
+    check("K15 (a): a required context with no run yet is wait, never green",
+          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+    try:
+        classify(e7, None)
+        refused = False
+    except ValueError:
+        refused = True
+    check("K15 (a): an unreadable ruleset is a refusal, never green", refused)
+    # The --overlap main gate on the e7c66485 shape: logged as a wait, with
+    # no "not green" and no revert; a failed required context is still RED.
+    for runs, want in (([cr("fast", "in_progress"), cr("record", conclusion="failure")], "wait"),
+                       ([cr("fast", conclusion="failure")], "red")):
+        lines: list[str] = []
+        body = "\n".join(json.dumps(c) for c in runs)
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (0, body),
+                  sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+                  base="batch/x").main_green("a" * 40, ["fast", "record"], "after #7's unproved merge: revert it first")
+        said = " ".join(lines)
+        check(f"K15 (a): the --overlap gate logs main {want.upper()} for "
+              f"{'pending plus a record red' if want == 'wait' else 'a failed required context'}",
+              said.startswith("OVERLAP: ") and ("revert" in said) == (want == "red")
+              and ("still running" in said) == (want == "wait") and ("is RED" in said) == (want == "red"))
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        Train("o/r", Path(d), None, "", (), 1, run=lambda argv, cwd=ROOT, stdin=None: (1, "HTTP 502"),
+              sleep=lambda s: None, log=lines.append, polls=1, overlap=True,
+              base="batch/x").main_green("a" * 40, ["fast", "record"], "revert it first")
+    check("K15 (a): unreadable check runs log the --overlap gate as unreadable, never as a wait on every "
+          "context (null control: the readable arms above)",
+          len(lines) == 1 and "check runs unreadable" in lines[0] and "still running" not in lines[0])
+    # (b) a stale check-run: in progress over a completed workflow run.
+    url = "https://github.com/o/r/actions/runs/119308796140/job/5"
+    stale_cr = cr("budget-raise-gate", "in_progress", cid=7, url=url)
+    check("K15 (b): stale only while its run has completed (null control: a run still in progress)",
+          stale(stale_cr, "completed") and not stale(stale_cr, "in_progress")
+          and not stale(cr("budget-raise-gate"), "completed"))
+
+    def stale_world(run_status: str, clears: bool) -> dict:
+        w = {"runs": [cr("fast"), stale_cr], "wf_runs": {"119308796140": run_status}}
+        if clears:
+            w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, cr("budget-raise-gate", started="2")])
+        return w
+
+    rc, lines, calls = go(stale_world("completed", True))
+    reruns = [i for i, c in enumerate(calls) if c[-1].endswith("/actions/runs/119308796140/rerun")]
+    first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
+    check("K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged "
+          "with its run id",
+          rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
+          and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
+    stale2 = cr("closures", "in_progress", cid=8, url=url)
+    w = {"runs": [cr("fast"), stale_cr, stale2], "wf_runs": {"119308796140": "completed"}}
+    w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, stale2, cr("budget-raise-gate", started="2"),
+                                           cr("closures", started="2")])
+    rc, lines, calls = go(w)
+    check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
+          rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
+          and sum(ln.startswith("STALE ") for ln in lines) == 1)
+    rc, lines, calls = go(stale_world("in_progress", False))
+    check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
+          rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
+    rc, lines, calls = go(stale_world("completed", False))
+    check("K15 (b): a re-run that leaves it unconcluded stops the merge, and never re-runs twice",
+          rc == 1 and not merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    # (d) the `classify` CLI a reviewer dispatch asks: a pull request's head
+    # is judged on every required context, PR_ONLY included; --main drops them.
+    def cli(runs, ruleset="fast\npr-contract\n", *flags) -> "tuple[int, str]":
+        def fake_run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "check-runs" in a:
+                return 0, "\n".join(json.dumps(c) for c in runs)
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if ruleset else (1, "HTTP 404")
+            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+        saved, buf = Train._run, io.StringIO()
+        Train._run = staticmethod(fake_run)
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["classify", "a" * 40, *flags])
+        finally:
+            Train._run = saved
+        return rc, buf.getvalue()
+
+    red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
+    check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
+          "(rc 1); the same runs read as main's tip drop PR_ONLY and are GREEN (rc 0)",
+          cli(red_pc)[0] == 1 and cli(red_pc)[1].startswith("RED ")
+          and cli(red_pc, "fast\npr-contract\n", "--main")[0] == 0)
+    check("K15 (d): a head still in flight is WAIT (rc 3) and reviewable; an unreadable ruleset refuses (rc 2)",
+          cli([cr("fast", "in_progress"), cr("pr-contract")])[0] == 3 and cli(red_pc, "")[0] == 2)
+    # (c) a DIRTY head, from git merge-tree against a throwaway repository:
+    # once bare, once with the claimnotes driver installed as claim-files.md
+    # tells every clone to, which resolves a notes-only claim conflict and
+    # says so on stderr. The claim notes are comment lines, which it unions.
+    claim = "tests/golden/claimed_drift.txt"
+    got, raw = {}, {}
+    for driver in (False, True):
+        with tempfile.TemporaryDirectory() as d:
+            env = throwaway_git_init(d, "-q", "-b", "main")
+
+            def rg(argv, cwd=d):
+                r = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
+                return r.returncode, r.stdout + r.stderr  # the tick's Tick.git shape
+
+            def commit(files: dict, msg: str) -> None:
+                for f, text in files.items():
+                    (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                    (Path(d) / f).write_text(text)
+                rg(["git", "add", "-A"])
+                rg(["git", "commit", "-qm", msg])
+
+            if driver:
+                rg(["git", "config", "merge.claimnotes.driver",
+                    f"{sys.executable} {ROOT / 'tests/env_drift.py'} --merge-claim-file %O %A %B %L %P"])
+            commit({claim: "# claims-for: 1\n", "roster_edit.py": "0\n", ".gitattributes": f"{claim} merge=claimnotes\n"},
+                   "base")
+            for br, files in (("claims", {claim: "# claims-for: 1\n# c\n"}),
+                              ("content", {claim: "# claims-for: 1\n# c\n", "roster_edit.py": "c\n"})):
+                rg(["git", "checkout", "-qb", br, "main"])
+                commit(files, br)
+            rg(["git", "checkout", "-q", "main"])
+            commit({claim: "# claims-for: 1\n# m\n", "roster_edit.py": "m\n"}, "main")
+            got[driver] = {br: conflicts(rg, "main", br) for br in ("claims", "content", "main", "nope")}
+            raw[driver] = rg(["git", "merge-tree", "--write-tree", "--name-only", "--no-messages", "main", "claims"])
+    def shaped(code: int, out: str):
+        return lambda argv: (1, "") if argv[1] == "config" else (code, out)
+
+    check("K15 (c): an exit code that disagrees with the lines is no answer: a clean exit with a second "
+          "line (a driver's stderr) and a conflict exit with none are None (null control: each agreeing shape)",
+          conflicts(shaped(0, f"{'a' * 40}\nMERGE-CLAIM: resolved {claim}\n"), "main", "x") is None
+          and conflicts(shaped(1, f"{'a' * 40}\n"), "main", "x") is None
+          and conflicts(shaped(0, f"{'a' * 40}\n"), "main", "x") == []
+          and conflicts(shaped(1, f"{'a' * 40}\n{claim}\n"), "main", "x") == [claim])
+    unread = lambda argv, cwd=ROOT, stdin=None: (128, "fatal: bad config") if "config" in argv else (0, "a" * 40)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            Train("o/r", Path(d), None, "", (), 1, run=unread, sleep=lambda s: None, log=lambda s: None,
+                  polls=1).build("a" * 40, [{"pr": 1, "head": "b" * 40}])
+        built = True
+    except Stop as e:
+        built = e.step != "build"
+    except Exception:  # a crash is not the stop
+        built = True
+    check("K15 (c): an unreadable git config is no answer and no proof: conflicts() None, build stops "
+          "(null control: rc 1, git's no-such-key, is a clean read above)",
+          conflicts(unread, "main", "x") is None and not built)
+    check("K15 (c): merge-tree names the conflicted files; a clean merge is [] and an unknown head None",
+          got[False] == {"claims": [claim], "content": ["roster_edit.py", claim], "main": [], "nope": None})
+    check("K15 (c): with the claimnotes driver installed the answer is GitHub's, which runs none: a claim-only "
+          "head lists its claim file and a content conflict lists no stderr line (null control: the bare "
+          "merge-tree in that clone resolves the claim and prints MERGE-CLAIM, and without the driver it does not)",
+          got[True] == got[False] and raw[True][0] == 0 and "MERGE-CLAIM: resolved" in raw[True][1]
+          and raw[False][0] == 1 and "MERGE-CLAIM" not in raw[False][1])
+    got = got[False]  # dirty_repair's own arm reads the driverless answer
+    check("K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content "
+          "conflict goes back to its fixer and its verdict does not carry",
+          "claimnotes" in dirty_repair(got["claims"], (claim,))
+          and "claimnotes" not in dirty_repair(got["content"], (claim,))
+          and "does not carry" in dirty_repair(got["content"], (claim,)))
 
 
 def _batch_self_test(check) -> None:
@@ -2638,7 +3252,16 @@ def _batch_self_test(check) -> None:
 
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
+            w.setdefault("calls", []).append(argv)  # the hold's order on the primary path
             a = " ".join(argv)
+            # THE RECORD-BEAT HOLD on the batch arm: `batch` defaults to
+            # `--base main`, so this world can prove the ref is published
+            # before anything merges. `hold_sha` empty (the default) is the API
+            # refusing, which the batch must survive like the serial train.
+            if argv[:2] == ["gh", "api"] and "/git/commits" in a and "/commits/" not in a:
+                return 0, w.get("hold_sha", "")
+            if argv[:2] == ["gh", "api"] and "/git/refs" in a:
+                return 0, "{}"
             if "record_row.py" in a:  # --bot-prs: an open record PR #9 whose guard passes
                 w.setdefault("bot_calls", []).append(argv)
                 return (0, "9") if "--find-open" in argv else (0, "AUTOMERGE OK #9")
@@ -2817,6 +3440,24 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    # THE HOLD ON THE PRIMARY PATH (re-review M8/M10). `batch` defaults to
+    # `--base main`, its start publish is the only hold write before a D merge
+    # (no wait sleeps, no proof), and nothing else in this suite asked whether
+    # the batch armed the ref: deleting the arming and/or the start publish
+    # left the suite green. These read the stub's own call order.
+    w = go({1: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.__setitem__("hold_sha", "f" * 40))
+    _calls = w["calls"]
+    _commits = [i for i, c in enumerate(_calls)
+                if c[:2] == ["gh", "api"] and "/git/commits" in " ".join(c)]
+    _refs = [i for i, c in enumerate(_calls)
+             if c[:2] == ["gh", "api"] and "git/refs" in " ".join(c)]
+    _merges = [i for i, c in enumerate(_calls) if c[:3] == ["gh", "pr", "merge"]]
+    check("a real-base batch publishes the record-beat hold before it merges anything "
+          "(the primary path is armed, not only the serial one)",
+          w["rc"] == 0 and list(w["merged"]) == [1]
+          and bool(_commits) and bool(_refs) and bool(_merges)
+          and _commits[0] < _refs[0] < _merges[0])
     _bg, brev, bman, _brev_revoke = policy_fixture_builders()
     bnow = datetime.datetime.now(datetime.timezone.utc)
     w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")
@@ -3045,7 +3686,7 @@ def _batch_self_test(check) -> None:
     check("--overlap starts the batch while main's fresh push run is still in progress: the "
           "pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)",
           w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
-          and any(ln.startswith("OVERLAP: ") and "is not green" in ln and "before admission" in ln
+          and any(ln.startswith("OVERLAP: ") and "is still running" in ln and "a wait, not red" in ln
                   for ln in w["lines"]))
 
     w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {"b.txt": "B\n"}, 3: {"a.txt": "A\n"}}, base="main",
@@ -3109,7 +3750,7 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    beat = (ROOT / ".github/workflows/tests.yml").read_text()
+    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
     check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
           "the same --automerge-check ... --head ... --require-green guard",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
@@ -3215,6 +3856,15 @@ def _parser() -> argparse.ArgumentParser:
                         "Default: recarry one, wait, merge, next.")
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
+    # K15: the classifier for a caller outside the train -- merge_pr.sh's
+    # stale sweep, and a reviewer dispatch's reviewable-head check (d).
+    u = sub.add_parser("unstale", parents=[common], help="re-run each stale check-run's workflow run once")
+    u.add_argument("sha")
+    c = sub.add_parser("classify", parents=[common],
+                       help="GREEN (rc 0), RED (rc 1), WAIT (rc 3) over the required contexts; "
+                            "unreadable rc 2; a head is reviewable unless RED")
+    c.add_argument("sha")
+    c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     return p
 
 
@@ -3229,11 +3879,27 @@ def main(argv: list[str]) -> int:
         sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
         return _self_test()
+    stop_on_signal()
     a = _parser().parse_args(argv)
     if a.cmd == "wait-ci":
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd in ("unstale", "classify"):
+        t = Train(a.repo, Path("."), None, "", (), a.min_runs)
+        try:
+            if a.cmd == "unstale":
+                t.unstale(a.sha)
+                return 0
+            runs = t._check_runs(a.sha)
+            if runs is None:
+                raise Stop("ci", f"the check runs at {a.sha[:12]} could not be read")
+            state, pending, red = classify(latest_runs(runs), t.required(pr_head=not a.main))
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 1 if a.cmd == "unstale" else 2
+        print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+        return {"green": 0, "red": 1, "wait": 3}[state]
     queue = json.loads(Path(a.queue).read_text())
     ignore = tuple(a.ignore_red) if a.ignore_red else ("nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,

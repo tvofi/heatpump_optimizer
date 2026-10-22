@@ -558,10 +558,10 @@ const CORPUS_EXCLUDED = new Set([
   // rather than optional: a capped policy file cites it, and
   // `EXCLUDED_BECAUSE_CITED` below refuses the last such citation going.
   'docs/decisions/0011-app-authored-identity.md',
-  // The process-diet record (round-8 convergence programme, item F6): the
-  // process moratorium until 2026-10-31, the D11/D13-every-third-round and
-  // D5/D6-alternate-rounds cadence, the one-enforcement-point rule, and
-  // D14's stop rule. Named one by one per the rule above. Cited by nothing
+  // The process-diet record (round-8 convergence programme, item F6),
+  // revoked 2026-10-21 by decision 0014 and kept as history: it recorded a
+  // process moratorium until 2026-10-31, the D11/D13 and D5/D6 cadence, the
+  // one-enforcement-point rule, and D14's stop rule. Named one by one per the rule above. Cited by nothing
   // in the capped corpus as of this pull request -- TOTAL stays at 0 for
   // this entry -- so no capped file's `checkNamedDocs` count depends on it
   // yet; the line is paid here anyway, per this list's own rule that the
@@ -6188,6 +6188,8 @@ const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
 const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
   '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  // nightly-status reads nightly.yml's runs since R10-CI-LAYOUT PR 1.
+  '.github/workflows/nightly.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
   'dev/programme/plan-2026-09-open-issues.md', 'dev/programme/HANDOVER.md',
 ])

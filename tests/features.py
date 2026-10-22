@@ -22,7 +22,7 @@ import numpy as np
 from heatpump_optimizer import away as away_mode
 from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
-from heatpump_optimizer import presets, pv
+from heatpump_optimizer import presets, price_tiles, pv
 from heatpump_optimizer.accuracy import (
     AccuracySample,
     AccuracyTracker,
@@ -6034,7 +6034,7 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
         try:
             res = _grad_optmod._multi_start_minimize(
                 space_obj, [x0, np.minimum(x0 * 0.4, ubv)], bounds,
-                maxiter=25, batch_objective=space_obj_batch, fd_eps=1e-4,
+                maxiter=25, batch_objective=space_obj_batch,
             )
         finally:
             _grad_optmod._batch_fd_gradient = _real_bfd
@@ -6082,7 +6082,7 @@ def _d903_jac_f0_reuses_fun():
     bounds = [(-2.0, 2.0)] * n
     res = _grad_optmod._multi_start_minimize(
         obj, [np.zeros(n), np.full(n, 0.4)], bounds, maxiter=20,
-        batch_objective=batch_obj, fd_eps=1e-4,
+        batch_objective=batch_obj,
     )
     consecutive_dups = sum(
         1 for i in range(1, len(raw)) if raw[i] == raw[i - 1]
@@ -6310,7 +6310,7 @@ def _d901_gil_yield_inside_run():
             pool.submit(
                 _grad_optmod._multi_start_minimize,
                 obj, [np.zeros(6)], [(-2.0, 2.0)] * 6,
-                maxiter=15, batch_objective=batch_obj, fd_eps=1e-4,
+                maxiter=15, batch_objective=batch_obj,
             ).result()
     finally:
         _grad_optmod._scoped_minimize = real_minimize
@@ -11636,12 +11636,16 @@ def _two_zone_learner(*, lower_entity=None, ratio=1.0):
     return c
 
 
-def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
-    """One learning interval, with the plant landing on `observed_lower`."""
+def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0, sun=0.0):
+    """One learning interval, with the plant landing on `observed_lower`.
+
+    ``sun`` is the interval's irradiance, W/m², which #2223's dark gauge
+    reads on the interval's opening state.
+    """
     base = ThermalState(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=20.0, slab_temperature=27.0,
-        outdoor_temperature=-5.0,
+        outdoor_temperature=-5.0, solar_radiation=sun,
     )
     now = _lz_dt.now()
     coord._last_house_sample = base
@@ -18029,11 +18033,12 @@ _RS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
 
 
 def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
-             boosted=None):
+             boosted=None, solar=None):
     """``days`` of pairs after ``start``, one per ``dt_h``: observed minus
     predicted is ``residual`` at a constant outdoor. ``boosted`` is a
     (from, to) span whose rows carry the #1935 tag and no prediction, as
-    ``_record_accuracy`` writes them."""
+    ``_record_accuracy`` writes them. ``solar`` is the interval's irradiance,
+    W/m² (#2223); ``None`` is a sample from before the field existed."""
     out = []
     for i in range(1, int(round(days * 24 / dt_h)) + 1):
         when = start + timedelta(hours=dt_h * i)
@@ -18041,7 +18046,7 @@ def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
         out.append(AccuracySample(
             when=when, predicted_temp=None if tag else pred,
             actual_temp=pred + residual, outdoor_temp=outdoor,
-            boost_space=tag,
+            boost_space=tag, solar_radiation=solar,
         ))
     return out
 
@@ -18140,6 +18145,60 @@ R.check(
     "#1936: a boost-tagged pair is refused before it can move the step",
     _rs_tagged_pair is None,
     f"{_rs_tagged_pair}",
+)
+
+# #2223: the refit pools the interval learner's own relation, so it inherits
+# that learner's dark gate -- a sunlit pair carries the aperture's error.
+_rs_on_gauge = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0, solar_radiation=50.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+_rs_past_gauge = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0, solar_radiation=50.5),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#2223: the refit's dark gauge is the tree's, inclusive at the threshold",
+    _rs_on_gauge == (0.0, _RS_MIN_DT) and _rs_past_gauge is None,
+    f"50 -> {_rs_on_gauge}, 50.5 -> {_rs_past_gauge}",
+)
+_rs_sunny = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03, solar=600.0))
+R.check(
+    "#2223: a sunlit window offers the refit no pair at all",
+    _rs_sunny["pairs"] == 0 and _rs_sunny["scale"] is None,
+    f"{_rs_sunny}",
+)
+_rs_dark = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03, solar=0.0))
+R.check(
+    "#2223: a dark window folds exactly the pairs it always did",
+    _rs_dark["scale"] == _rs_one["scale"]
+    and _rs_dark["pairs"] == _rs_one["pairs"],
+    f"{_rs_dark} against {_rs_one}",
+)
+_rs_half = _rs_fit(
+    _rs_rows(_RS_T0, 2.0, -0.03, solar=600.0)
+    + _rs_rows(_RS_T0 + timedelta(days=2), 2.0, -0.03, solar=0.0)
+)
+R.check(
+    "#2223: a half-sunny window folds only its dark half",
+    _rs_half["pairs"] == _rs_one["pairs"] // 2
+    and _rs_half["scale"] == _rs_one["scale"],
+    f"{_rs_half} against {_rs_one}",
+)
+R.check(
+    "#2223: the sample carries the interval's sun through its stored form",
+    AccuracySample(when=_RS_T0, solar_radiation=640.0).as_dict()[
+        "solar_radiation"
+    ] == 640.0
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat(), "solar_radiation": 640.0}
+    ).solar_radiation == 640.0
+    and AccuracySample.from_dict(
+        {"t": _RS_T0.isoformat()}
+    ).solar_radiation is None,
+    "a legacy sample (no field) must load as unknown, not as zero",
 )
 
 
@@ -18757,6 +18816,9 @@ R.check(
     > _tm53.simulate_step(_st53, 0.0, 0.0, hour_of_day=3.0).room_temperature,
 )
 _c53 = _t2_coord(internal_gains_learning_enabled=True)
+# #2223: the profile folds only behind an identified heat-loss level, so the
+# seat arrives converged -- an unconverged one is the check just below.
+_c53._house_heat_loss_samples = 400
 _st53d = replace(_c53._current_state)
 _st53d.solar_radiation = 0.0
 _g0 = _c53._thermal_params.internal_gains
@@ -18796,6 +18858,245 @@ _c54._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
 R.check(
     "with the flag off no profile ever forms",
     _c54._internal_gains_profile is None,
+)
+
+# --- #2223 (class N-confounded-learner): the heat-loss folds take the dark ----
+#
+# The replay nets the modelled solar term out to the accuracy of the aperture,
+# so a sunlit residual still carries the aperture's error. Solar gain
+# correlates with the conductive term through the time of day and the outdoor
+# temperature, and the Newton step settles that error into the heat-loss
+# coefficient at a value that looks converged (D2-s3-71: +0.09..+0.25 of UA
+# per unit of aperture error over six plants; the study's dark arm collapses
+# the spread to 0.0001). The gauge is the tree's own dark one, which
+# `_fold_internal_gains` already used.
+from heatpump_optimizer.thermal_model import is_sunlit_interval as _nf_sunlit  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _learned_zone_temperature as _nf_zone,
+    _zone_capacity as _nf_cap,
+)
+
+
+R.check(
+    "#2223: the dark gauge is inclusive at its own threshold, and unknown is dark",
+    _nf_sunlit(0.0) is False
+    and _nf_sunlit(None) is False
+    and _nf_sunlit(50.0) is False
+    and _nf_sunlit(50.5) is True,
+    f"0 -> {_nf_sunlit(0.0)}, None -> {_nf_sunlit(None)}, "
+    f"50 -> {_nf_sunlit(50.0)}, 50.5 -> {_nf_sunlit(50.5)}",
+)
+
+# The two choices #2223's move made once each, pinned as values so a mutant
+# cannot drop either half of the zone rule.
+_nf_state = ThermalState(room_temperature=19.0, upper_floor_temperature=23.0)
+_nf_two_zone = ThermalParameters(two_zone_enabled=True)
+_nf_single_zone = ThermalParameters()
+R.check(
+    "#2223: a fold's zone is the upper floor in two-zone mode, else the room",
+    _nf_zone(_nf_state, _nf_two_zone) == 23.0
+    and _nf_zone(_nf_state, _nf_single_zone) == 19.0,
+    f"two-zone {_nf_zone(_nf_state, _nf_two_zone)}, "
+    f"single {_nf_zone(_nf_state, _nf_single_zone)}",
+)
+R.check(
+    "#2223: and the fold's capacity is that same zone's thermal mass",
+    _nf_cap(_nf_two_zone) == _nf_two_zone.upper_floor_thermal_mass
+    and _nf_cap(_nf_single_zone) == _nf_single_zone.room_thermal_mass,
+    f"two-zone {_nf_cap(_nf_two_zone)}, single {_nf_cap(_nf_single_zone)}",
+)
+
+_nf_scale0 = _vent_coord()._house_heat_loss_scale
+_nf_night = _vent_coord()
+_feed_residual(_nf_night, -0.3, 8, _T4, sun=[0.0] * 8)
+_nf_day = _vent_coord()
+_feed_residual(_nf_day, -0.3, 8, _T4, sun=[600.0] * 8)
+R.check(
+    "#2223: a night interval still folds the house heat loss",
+    _nf_night._house_heat_loss_samples > 0
+    and _nf_night._house_heat_loss_scale != _nf_scale0,
+    f"{_nf_night._house_heat_loss_samples} samples, "
+    f"scale {_nf_night._house_heat_loss_scale} from {_nf_scale0}",
+)
+R.check(
+    "#2223: a sunlit interval takes no house heat-loss sample",
+    _nf_day._house_heat_loss_samples == 0
+    and _nf_day._house_heat_loss_scale == _nf_scale0,
+    f"{_nf_day._house_heat_loss_samples} samples, "
+    f"scale {_nf_day._house_heat_loss_scale}",
+)
+
+
+def _nf_samples_after(dt_s):
+    """House heat-loss samples one dark interval of ``dt_s`` seconds folds."""
+    import homeassistant.util.dt as _dt_mod
+
+    c = _vent_coord()
+    observed = c._current_state.room_temperature
+    c._thermal_model.simulate_step = lambda prev, power, outdoor, **kw: (
+        _dc_replace(prev, room_temperature=observed + 0.3))
+    c._current_state.solar_radiation = 0.0
+    real_now = _dt_mod.now
+    try:
+        for t in (_T4, _T4 + timedelta(seconds=dt_s)):
+            _dt_mod.now = lambda t=t: t
+            _asyncio.run(c._async_learn_house_heat_loss())
+    finally:
+        _dt_mod.now = real_now
+    return c._house_heat_loss_samples
+
+
+# The one range check #2223 folded the two one-sided dt guards into keeps
+# both bounds inclusive, as the pair was: 0.15 h and 1.5 h each fold.
+_nf_dt = {s: _nf_samples_after(s) for s in (539, 540, 5400, 5401)}
+R.check(
+    "#2223: the house fold's interval window is inclusive at both bounds",
+    _nf_dt == {539: 0, 540: 1, 5400: 1, 5401: 0},
+    f"samples by interval seconds {_nf_dt}",
+)
+
+_nf_ap = _vent_coord(solar_aperture_learning_enabled=True)
+_feed_residual(_nf_ap, 0.4, 8, _T4, sun=[600.0] * 8)
+R.check(
+    "#2223: the sunlit interval is still the aperture learner's",
+    _nf_ap._solar_aperture["n"] > 0 and _nf_ap._house_heat_loss_samples == 0,
+    f"aperture samples {_nf_ap._solar_aperture['n']}, "
+    f"heat-loss {_nf_ap._house_heat_loss_samples}",
+)
+
+_nf_det = _vent_coord()
+_feed_residual(_nf_det, -0.2, 6, _T4, sun=[600.0] * 6)
+R.check(
+    "#2223: the detector is fed the interval even when the heat-loss fold refuses it",
+    _nf_det._vent_cusum.last_fed is not None
+    and _nf_det._house_heat_loss_samples == 0,
+    f"last_fed {_nf_det._vent_cusum.last_fed!r}, "
+    f"heat-loss {_nf_det._house_heat_loss_samples}",
+)
+
+# One residual, two parameters: the hour shape must wait for the level.
+_nf_gain = _t2_coord(internal_gains_learning_enabled=True)
+_feed_residual(_nf_gain, 0.3, 8, _T4, sun=[0.0] * 8)
+R.check(
+    "#2223: the hour shape waits for the heat-loss level",
+    _nf_gain._internal_gains_profile is None,
+    f"profile {_nf_gain._internal_gains_profile!r} after "
+    f"{_nf_gain._house_heat_loss_samples} heat-loss samples",
+)
+_nf_levelled = _t2_coord(internal_gains_learning_enabled=True)
+_nf_levelled._house_heat_loss_samples = 400
+_nf_g0 = _nf_levelled._thermal_params.internal_gains
+_feed_residual(_nf_levelled, 0.3, 8, _T4, sun=[0.0] * 8)
+R.check(
+    "#2223: and folds its hour once the level has converged",
+    _nf_levelled._internal_gains_profile is not None
+    and _nf_levelled._internal_gains_profile[7] > _nf_g0,
+    f"hour 7 {(_nf_levelled._internal_gains_profile or [None] * 24)[7]!r} "
+    f"vs prior {_nf_g0}",
+)
+# The gate is inclusive: a level whose confidence sits exactly on the
+# threshold has converged. No integer sample count lands on 0.9 itself, so
+# the threshold is moved onto one the learner does reach, and the count just
+# under it is the control that must still wait.
+import heatpump_optimizer.coordinator as _nf_cm  # noqa: E402
+from heatpump_optimizer.coordinator import house_loss_confidence as _nf_conf  # noqa: E402
+
+_nf_edge_n = 114
+_nf_edge_threshold = _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE
+_nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_conf(_nf_edge_n)
+try:
+    _nf_edge = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_edge._house_heat_loss_samples = _nf_edge_n
+    _nf_edge._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+    _nf_under = _t2_coord(internal_gains_learning_enabled=True)
+    _nf_under._house_heat_loss_samples = _nf_edge_n - 1
+    _nf_under._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+finally:
+    _nf_cm.INTERNAL_GAINS_MIN_UA_CONFIDENCE = _nf_edge_threshold
+R.check(
+    "#2223: a heat-loss level exactly on the confidence threshold has converged",
+    _nf_edge._internal_gains_profile is not None
+    and _nf_under._internal_gains_profile is None,
+    f"on the threshold {_nf_edge._internal_gains_profile is not None}, "
+    f"one sample under {_nf_under._internal_gains_profile is not None}",
+)
+
+_nf_low_day = _two_zone_learner(lower_entity="sensor.lower")
+_nf_low_r_day, _nf_low_n_day = _drive_lower(
+    _nf_low_day, observed_lower=19.6, sun=600.0
+)
+_nf_low_night = _two_zone_learner(lower_entity="sensor.lower")
+_nf_low_r_night, _nf_low_n_night = _drive_lower(
+    _nf_low_night, observed_lower=19.6, sun=0.0
+)
+R.check(
+    "#2223: the lower-floor split takes a night interval and refuses a sunlit one",
+    _nf_low_n_night > 0
+    and _nf_low_r_night != 1.0
+    and _nf_low_n_day == 0
+    and _nf_low_r_day == 1.0,
+    f"night {_nf_low_r_night:.3f} on {_nf_low_n_night} samples, "
+    f"day {_nf_low_r_day:.3f} on {_nf_low_n_day}",
+)
+
+# The plumbing, not the schema: the sample takes the sun the prediction was
+# made under (`pending`), not whatever the sky reads when the interval closes.
+_nf_smp = _t2_coord()
+_nf_smp._current_state.solar_radiation = 640.0
+_nf_smp._pending_prediction = {
+    "when": dt_util.now() - timedelta(minutes=30),
+    "predicted_temp": 20.5, "power": 2.0, "solar": 120.0, "outdoor": -2.0,
+}
+_nf_smp.hass.states.set("sensor.indoor", FakeState("21.0"))
+_nf_smp._record_accuracy()
+R.check(
+    "#2223: an accuracy sample records the sun its prediction was made under",
+    bool(_nf_smp._accuracy.samples)
+    and _nf_smp._accuracy.samples[-1].solar_radiation == 120.0,
+    f"{len(_nf_smp._accuracy.samples)} samples, sun "
+    f"{_nf_smp._accuracy.samples[-1].solar_radiation if _nf_smp._accuracy.samples else None}",
+)
+
+
+# And the capture too: the coordinator's own prediction under a sunlit sky,
+# settled half an hour later in the dark, reaches the tracker with its sun,
+# so the refit refuses that pair. The dark capture is the control arm: the
+# same drive forms a pair, so the refusal is the sun's and nothing else's.
+def _nf_settled(sun):
+    coord = _t2_coord()
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
+    )
+    coord._current_state.room_temperature = 21.0
+    coord._current_state.outdoor_temperature = -2.0
+    coord.hass.states.set("sensor.indoor", FakeState("21.0"))
+    t0 = datetime(2026, 1, 21, 12, 0, tzinfo=UTC)
+    dt_util.freeze(t0)
+    try:
+        coord._current_state.solar_radiation = sun
+        coord._record_accuracy()
+        coord._current_state.solar_radiation = 0.0
+        dt_util.freeze(t0 + timedelta(minutes=30))
+        coord._record_accuracy()
+    finally:
+        dt_util.freeze(None)
+    if not coord._accuracy.samples:
+        return None, None
+    sample = coord._accuracy.samples[-1]
+    return sample.solar_radiation, _rs_acc._refit_pair(
+        sample, _RS_MIN_DT, _RS_MAX_RES
+    )
+
+
+_nf_cap_sun, _nf_cap_pair = _nf_settled(640.0)
+_nf_cap_dark_sun, _nf_cap_dark_pair = _nf_settled(0.0)
+R.check(
+    "#2223: the coordinator's sunlit prediction settles with its sun, and the refit refuses it",
+    _nf_cap_sun == 640.0 and _nf_cap_pair is None
+    and _nf_cap_dark_sun == 0.0 and _nf_cap_dark_pair is not None,
+    f"sunlit: sun {_nf_cap_sun} pair {_nf_cap_pair}; "
+    f"dark: sun {_nf_cap_dark_sun} pair {_nf_cap_dark_pair}",
 )
 
 # --- #2 the heat-curve bias -------------------------------------------------------
@@ -20429,6 +20730,7 @@ _ctile = _t2_coord()
 async def _fake_sim(overrides, limited=True, base=None):
     return {
         "monthly_cost_delta": -42.0,
+        "monthly_held_cost_delta": -40.0,
         "min_room_temperature": 19.1,
         "rate_limited": False,
     }
@@ -20438,15 +20740,15 @@ _ctile.async_simulate = _fake_sim
 _asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
 R.check(
     "with the flag off no tile ever computes, whatever solves happen",
-    not _ctile._price_tiles,
+    not price_tiles.book(_ctile),
 )
 _ctile2 = _t2_coord(price_tiles_enabled=True)
 _ctile2.async_simulate = _fake_sim
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "one solve refreshes exactly one tile, in rotation",
-    list(_ctile2._price_tiles) == ["target_minus_1"]
-    and _ctile2._price_tiles["target_minus_1"]["monthly_cost_delta"] == -42.0
+    list(price_tiles.book(_ctile2)) == ["target_minus_1"]
+    and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
     and _ctile2._price_tile_cursor == 1,
 )
 
@@ -20475,7 +20777,7 @@ R.check(
 )
 R.check(
     "the tile set is fixed at three perturbations",
-    len(_ctile2._price_tile_specs(_solve_record_now(_ctile2))) == 3,
+    len(price_tiles.specs(_solve_record_now(_ctile2).config, 6.0)) == 3,
 )
 
 # --- the insight view and its persistence ----------------------------------------
@@ -20654,6 +20956,7 @@ async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None):
     _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
+        "monthly_held_cost_delta": -1.0,
         "min_room_temperature": 19.0,
         "rate_limited": False,
     }
@@ -20666,7 +20969,7 @@ R.check(
     _ctile3_route.get("limited") is False
     and _ctile3._simulation_cache is _marker3
     and _ctile3._last_simulation == _stamp3
-    and _ctile3._price_tiles,
+    and price_tiles.book(_ctile3),
     f"route={_ctile3_route}",
 )
 
@@ -20674,10 +20977,11 @@ R.check(
 # configured target would flip the sign of the published trade.
 _ctile6 = _t2_coord(price_tiles_enabled=True)
 _ctile6._opt_config.target_temp = 17.0
+_ctile6_specs = price_tiles.specs(_solve_record_now(_ctile6).config, 6.0)
 R.check(
     "the target tiles follow the live target through an away setback",
-    _ctile6._price_tile_specs(_solve_record_now(_ctile6))[0][1]["target_temp"] == 16.0
-    and _ctile6._price_tile_specs(_solve_record_now(_ctile6))[1][1]["target_temp"] == 18.0,
+    _ctile6_specs[0][1]["target_temp"] == 16.0
+    and _ctile6_specs[1][1]["target_temp"] == 18.0,
     "'one degree lower' must be lower than the plan being compared against",
 )
 
@@ -20693,16 +20997,16 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    _ctile4._price_tile_cursor == 1 and not _ctile4._price_tiles,
+    _ctile4._price_tile_cursor == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
 _ctile5 = _t2_coord()
-_ctile5._price_tiles["stale"] = {"monthly_cost_delta": 1.0}
+price_tiles.book(_ctile5)["stale"] = {"monthly_cost_delta": 1.0}
 _asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
 R.check(
     "gate off means gone: no stale what-if money outlives the flag",
-    not _ctile5._price_tiles,
+    not price_tiles.book(_ctile5),
 )
 
 # A pre-T6 month has no partition to break: its receipt says None, never
@@ -20955,6 +21259,28 @@ R.check(
     bool(_cextf._freq_map.buckets),
     "#781: do not gate the fold on _learning_frozen wholesale",
 )
+# D7-s2-01: a defrost reverses the cycle, so the meter reads the pump clearing
+# its own coil rather than the load its frequency delivers. Every other learner
+# refuses the interval (_learning_frozen returns "defrosting"); the map did not.
+_cdf = _freq_coord()
+_cdf._pump_signals = PumpSignals(defrosting=True)
+_cdf._observe_frequency(_T6)
+R.check(
+    "a defrost interval never teaches the frequency map",
+    not _cdf._freq_map.buckets,
+    "the fold would learn a ratio that is not a kW-per-Hz point, and the "
+    "decile-keyed map is inherited when the user later switches to control",
+)
+# The carry's null control: the fact must not be over-read. A defrost flag
+# that is False is an ordinary interval, and the arm still folds.
+_cdf0 = _freq_coord()
+_cdf0._pump_signals = PumpSignals(defrosting=False)
+_cdf0._observe_frequency(_T6)
+R.check(
+    "null control: a non-defrost interval still folds",
+    _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
+    repr(_cdf0._freq_map.buckets),
+)
 # No reading is no evidence, in either stage: an unavailable frequency entity
 # neither teaches the map nor counts towards the control watchdog.
 _cnone = []
@@ -21109,6 +21435,24 @@ R.check(
     "overnight idle never trips the watchdog",
     not _ci7._freq_fallback and _ci7._freq_watchdog.strikes == 0,
     "compressor-off is not write-path divergence",
+)
+
+# A defrost is the pump working on its own coil, not on the plan's command:
+# a report that diverges during one says nothing about the write path, so the
+# tick is not active and must neither strike nor keep a streak alive.
+# D7-s2-01: the watchdog's own contract said this; the caller did not.
+_cdw = _armed_coord()
+_asyncio.run(_cdw._command_frequency())  # commands 45.0
+_cdw._pump_signals = PumpSignals(defrosting=True)
+_cdw.hass.states.set(
+    "number.freq", FakeState("90", attributes={"min": 20.0, "max": 120.0})
+)
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _cdw._observe_frequency(_T6)
+R.check(
+    "defrost ticks never stand control down",
+    not _cdw._freq_fallback and _cdw._freq_watchdog.strikes == 0,
+    "a defrost is not a write path that stopped listening",
 )
 
 # The first report after a command is a grace tick: the pump is entitled
@@ -32552,6 +32896,158 @@ R.check(
     not _db_halfrestored.has_lead_history()
     and _db_halfrestored.sigma(1.0) == 0.0,
 )
+
+from datetime import date as _pt_date  # noqa: E402
+from heatpump_optimizer import store as _pt_store  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationConfig as _PtCfg  # noqa: E402
+
+
+# --- #2257: what a degree tile perturbs, which figure it reads, and its horizon --
+# A degree is the whole comfort schedule moved, because the schedule is what
+# the plan heats to: the tile used to move ``target_temp`` alone, which moved
+# only the settlement caps and the terminal value.
+_pt_cfg = _PtCfg(
+    target_temp=21.0, comfort_temp_day=21.0, comfort_temp_night=19.5,
+    comfort_temp_day_weekend=22.0, holiday_comfort_night=17.0,
+)
+_pt_specs = dict(price_tiles.specs(_pt_cfg, 6.0))
+R.check(
+    "#2257: a degree tile moves every comfort level the schedule has set, and no other",
+    _pt_specs["target_minus_1"] == {
+        "target_temp": 20.0, "comfort_temp_day": 20.0, "comfort_temp_night": 18.5,
+        "comfort_temp_day_weekend": 21.0, "holiday_comfort_night": 16.0}
+    and _pt_specs["target_plus_1"]["comfort_temp_night"] == 20.5
+    and _pt_specs["power_cap_75"] == {"power_cap_kw": 4.5},
+    repr(_pt_specs),
+)
+_pt_all = _PtCfg(comfort_temp_night_weekend=18.0, holiday_comfort_day=20.0,
+                 comfort_temp_day_weekend=21.5, holiday_comfort_night=17.0)
+R.check(
+    "#2257: every level a degree moves is one the what-if applies to its scratch config",
+    set(dict(price_tiles.specs(_pt_all, 6.0))["target_plus_1"])
+    == {k for k, _ in _coord_mod._SIM_OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
+                                                                "day_start_hour", "day_end_hour"},
+    "a level the what-if drops would leave that part of the schedule unmoved",
+)
+R.check(
+    "#2257: a degree tile reads the held figure, the cap tile the plan's",
+    price_tiles.monthly_figure(_pt_specs["target_plus_1"],
+                       {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
+    and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
+                           {"monthly_cost_delta": 4.0, "monthly_held_cost_delta": 0.0}) == 4.0
+    and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
+)
+_pt_day0 = _pt_date(2026, 1, 1)
+_pt_days = []
+for _pt_i in range(40):
+    _pt_d = _pt_day0 + timedelta(days=_pt_i)
+    # Two samples a day, i and i + 1: the day's mean is i + 0.5.
+    _pt_days = price_tiles.fold(_pt_days, _pt_d, float(_pt_i))
+    _pt_days = price_tiles.fold(_pt_days, _pt_d, float(_pt_i) + 1.0)
+_pt_today = _pt_day0 + timedelta(days=39)
+_pt_view = price_tiles.published({"target_plus_1": {"overrides": {}, "days": _pt_days}}, _pt_today)
+R.check(
+    "#2257: a tile keeps the last 30 local days and publishes the mean of their daily means",
+    len(_pt_days) == price_tiles.HORIZON_DAYS == 30
+    and _pt_days[0]["day"] == "2026-01-11" and _pt_days[-1]["count"] == 2
+    and _pt_view["target_plus_1"]["monthly_cost_delta"] == 25.0
+    and _pt_view["target_plus_1"]["horizon_days"] == 30
+    and "days" not in _pt_view["target_plus_1"],
+    f"{len(_pt_days)} days from {_pt_days[0]} -> {_pt_view}",
+)
+R.check(
+    "#2257: a day past the horizon, or ahead of today, is not in the published mean",
+    price_tiles.published({"t": {"days": [
+        {"day": "2025-11-01", "sum": 900.0, "count": 1},
+        {"day": "2026-02-10", "sum": 900.0, "count": 1},
+        {"day": "2026-02-09", "sum": 10.0, "count": 2}]}}, _pt_today)["t"]["monthly_cost_delta"] == 5.0
+    and price_tiles.published({"t": {"days": [{"day": "2025-11-01", "sum": 1.0, "count": 1}]}}, _pt_today) == {},
+)
+_pt_bad_day = {"day": "2026-02-08", "sum": 1.0, "count": 0}
+_pt_restored = {"stale": {"days": _pt_days[:1]}}
+_pt_admit = lambda name, part: _pt_store.admitted("ledger", {"price_tiles": {name: part}})  # noqa: E731
+price_tiles.restore(
+    _pt_restored,
+    {"target_plus_1": {"overrides": {"target_temp": 22.0}, "days": [*_pt_days[:2], _pt_bad_day, "junk"],
+                       "min_room_temperature": "warm", "computed_at": "2026-02-08T10:00:00+01:00"},
+     "target_minus_1": {"days": _pt_days[:1], "computed_at": "2026-02-08T10:00:00"},
+     "power_cap_75": {"days": [_pt_bad_day]},
+     "not_a_tile": {"days": _pt_days[:1]}},
+    _pt_admit,
+)
+R.check(
+    "#2257: a stored tile loads day by day and field by field: a day or a field outside "
+    "its domain costs itself alone, a tile with no day left is dropped, and the load "
+    "replaces the book",
+    sorted(_pt_restored) == ["target_minus_1", "target_plus_1"]
+    and _pt_restored["target_plus_1"]["days"] == _pt_days[:2]
+    and _pt_restored["target_plus_1"]["overrides"] == {"target_temp": 22.0}
+    and _pt_restored["target_plus_1"]["computed_at"] == "2026-02-08T10:00:00+01:00"
+    and "min_room_temperature" not in _pt_restored["target_plus_1"],
+    repr(_pt_restored),
+)
+R.check(
+    "#2257: a naive stored stamp is dropped, never published as an instant",
+    "computed_at" not in _pt_restored["target_minus_1"],
+    repr(_pt_restored["target_minus_1"]),
+)
+_pt_shapes = {"stale": {"days": _pt_days[:1]}}
+price_tiles.restore(_pt_shapes, None, _pt_admit)
+_pt_shapes_none = dict(_pt_shapes)
+price_tiles.restore(_pt_shapes, {"target_plus_1": 5, "target_minus_1": {"days": "x"}}, _pt_admit)
+R.check(
+    "#2257: a store with no tiles, or tiles of the wrong shape, loads an empty book",
+    _pt_shapes_none == {} and _pt_shapes == {},
+    f"{_pt_shapes_none!r} {_pt_shapes!r}",
+)
+
+
+async def _pt_degree_at_seam(room):
+    """Both degree tiles' figures from a real solve and its real what-ifs,
+    with the live house at ``room`` (its slab a kelvin above)."""
+    coord = _solve_coord()
+    live = getattr(coord, "_ctx", coord)._current_state
+    live.room_temperature = live.upper_floor_temperature = live.lower_floor_temperature = room
+    live.slab_temperature = room + 1.0
+    await coord.async_run_optimization()
+    record = _solve_record_now(coord)
+    out = {}
+    for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power)[:2]:
+        answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
+        out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
+    return out
+
+
+# The held figure is the thermostat's, which starts held at its own target
+# whatever the live house is doing, so a coasted and a pre-heated house price
+# a degree alike; the plan's single-solve spend starts from the house as it
+# stands, so the two starts part it. The clock is fixed at a night and an
+# afternoon instant: what the check reads is the same at every hour it runs.
+_pt_seams = {}
+for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=UTC), datetime(2026, 1, 15, 15, 7, tzinfo=UTC)):
+    _fi_dt.freeze(_pt_at)
+    try:
+        for _pt_room in (19.0, 23.0):
+            _pt_seams[(_pt_at.hour, _pt_room)] = _asyncio.run(_pt_degree_at_seam(_pt_room))
+    finally:
+        _fi_dt.freeze(None)
+_pt_held = {k: (v["target_minus_1"][0], v["target_plus_1"][0]) for k, v in _pt_seams.items()}
+_pt_plan = {k: (v["target_minus_1"][1], v["target_plus_1"][1]) for k, v in _pt_seams.items()}
+R.check(
+    "#2257: at the real what-if seam a degree cooler saves and a degree warmer costs, at night and by day",
+    all(d is not None and u is not None and d < 0.0 < u for d, u in _pt_held.values()),
+    f"held (cooler, warmer) by (hour, room): {_pt_held}",
+)
+R.check(
+    "#2257: the held figure prices a degree from a steady start: a coasted and a pre-heated house "
+    "read it alike, while the plan's single-solve spend tells them apart",
+    all(_pt_held[(h, 19.0)] == _pt_held[(h, 23.0)]
+        and max(abs(x - y) for x, y in zip(_pt_plan[(h, 19.0)], _pt_plan[(h, 23.0)])) > 1.0
+        for h in (3, 15)),
+    f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day")
 
@@ -42451,6 +42947,19 @@ R.check(
     "would let a crash between them leave the ledger and its riders "
     "describing different months",
 )
+# #2257: the price tiles' days ride the same save, so a restart resumes their
+# 30-day mean instead of starting it over.
+_t3_pt = _t3_coord()
+_t3_pt_tile = {"overrides": {"target_temp": 22.0}, "days": [{"day": "2026-01-15", "sum": 30.0, "count": 1}]}
+price_tiles.book(_t3_pt)["target_plus_1"] = _t3_pt_tile
+_t3_pt._ledger_store = _T3SavingStore()
+_t3_drive(_t3_pt, "_async_save_ledger")
+_t3_pt_saved = _t3_pt._ledger_store.saved[0].get("price_tiles") if _t3_pt._ledger_store.saved else None
+R.check(
+    "#2257: the ledger save carries the price tiles' book, day by day",
+    _t3_pt_saved == {"target_plus_1": _t3_pt_tile},
+    repr(_t3_pt_saved),
+)
 _t3_sv_full = _t3_coord()
 _t3_sv_full._ledger_store = _T3FullStore()
 _t3_drive(_t3_sv_full, "_async_save_ledger")
@@ -42535,10 +43044,10 @@ _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
     _t3_tile_boom._price_tile_cursor == 1
-    and dict(_t3_tile_boom._price_tiles) == {}
+    and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
     f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
-    f"{dict(_t3_tile_boom._price_tiles)!r} -- leaving the cursor put would "
+    f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
 )
@@ -42547,26 +43056,26 @@ R.check(
 # turn is always spent -- no "leaves the cursor put" arm remains.
 _t3_tile_error = _t3_tile({"error": "no solution"})
 _t3_tile_good = _t3_tile(
-    {"monthly_cost_delta": -12.5, "min_room_temperature": 20.1}
+    {"monthly_held_cost_delta": -12.5, "min_room_temperature": 20.1}
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
     _t3_tile_error._price_tile_cursor == 1
-    and dict(_t3_tile_error._price_tiles) == {}
+    and dict(price_tiles.book(_t3_tile_error)) == {}
     and _t3_tile_good._price_tile_cursor == 1
-    and sorted(_t3_tile_good._price_tiles) == ["target_minus_1"],
+    and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
     f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
-    f"{sorted(_t3_tile_error._price_tiles)!r}; good -> cursor "
+    f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
     f"{_t3_tile_good._price_tile_cursor}, tiles "
-    f"{sorted(_t3_tile_good._price_tiles)!r}",
+    f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
-_t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
+price_tiles.book(_t3_tile_off)["target_minus_1"] = {"days": [{"day": "2026-01-01", "sum": 1.0, "count": 1}]}
 _t3_drive(_t3_tile_off, "_maybe_refresh_price_tile", _solve_record_now(_t3_tile_off))
 R.check(
     "turning the tiles off clears what was published, rather than freezing it",
-    dict(_t3_tile_off._price_tiles) == {},
-    f"{dict(_t3_tile_off._price_tiles)!r} -- stale what-if money left on the "
+    dict(price_tiles.book(_t3_tile_off)) == {},
+    f"{dict(price_tiles.book(_t3_tile_off))!r} -- stale what-if money left on the "
     "card would outlive the user's decision to stop paying for it",
 )
 
@@ -51807,6 +52316,18 @@ R.check(
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
 )
+# The two bounds are exclusive at the floor and inclusive at the minimum on
+# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
+# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
+# exactly at the entity's minimum is in the compressor's running range. A
+# flipped bound is visible only at those two inputs, and no other driver feeds
+# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
+# drives (`pin-killed` measured it), and this check is their killer.
+R.check(
+    "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
+    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
+)
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
 #
@@ -57252,7 +57773,7 @@ def _f22_solve(batch):
     try:
         res = _grad_optmod._multi_start_minimize(
             counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
-            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+            maxiter=40, batch_objective=batch,
         )
     finally:
         _grad_optmod._scoped_minimize = real_min
@@ -58279,6 +58800,8 @@ def _z1524_learned(declared, free_kw, hours=range(24)):
     seat = _NS(
         _config=EntryConfig.from_mapping({_const922.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True}),
         _thermal_params=declared, _internal_gains_profile=None,
+        # #2223: the profile folds only behind an identified heat-loss level.
+        _house_heat_loss_samples=400,
     )
     cap = (declared.upper_floor_thermal_mass if declared.two_zone_enabled
            else declared.room_thermal_mass)
@@ -59057,6 +59580,201 @@ R.check(
     "the latter with the buffer store's survival-weighted term)",
     not _f25_tbad,
     f"(arm, row) that moved: {_f25_tbad[:4]} of {len(_f25_tbad)}",
+)
+
+# -- R10-SOLVER: N-solve-recompute -- a batch-served run makes no scalar call --
+# Round 10, R10-SOLVER (D9-s1-01, Part of #2250). L-BFGS-B asks for the value
+# and the gradient at every point it visits. The multi-start's own runs take
+# both from one batch (R9 D9-s1-02); the two runs that move a start -- the
+# two-zone half-price continuation and the relaxed duty-cycle candidate --
+# took the value from the scalar objective twice per gradient (once as
+# ``fun``, once as the difference's base), two scalar horizons a batch row
+# replaces. Every run is now the driver's one ``_lbfgsb_run``.
+#
+# THE PROPERTY IS PER RUN, NOT PER SITE: every ``_scoped_minimize`` call a
+# solve makes with a supplied jac is metered for scalar trajectory
+# simulations made while it runs, and every one must read zero. That reaches
+# a third such site the day one is written, where a check keyed on the two
+# fixed here would not. The census asserts its own preconditions -- one solve
+# that runs the continuation, the relaxed candidate and the multi-start's
+# own runs, each seen at least once -- so a solve that stopped reaching a
+# kind refuses instead of passing on an empty population. Positive control:
+# the same solve with ``_lbfgsb_run`` taking ``f`` from the scalar objective
+# reads nonzero, so the meter sees a scalar evaluation when one is made.
+# Null control, exact: that scalar-valued solve ships the same plan bit for
+# bit -- the fusion is value-neutral, because a batched row is the scalar
+# objective (the batched simulation's contract, #97).
+import contextlib as _r10s_ctx  # noqa: E402
+from unittest import mock as _r10s_mock  # noqa: E402
+
+from profiles import house as _r10s_house, prices as _r10s_prices  # noqa: E402
+from profiles import weather as _r10s_weather  # noqa: E402
+from heatpump_optimizer import optimizer as _r10s_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _r10s_Opt,
+    OptimizationConfig as _r10s_Cfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _r10s_Model,
+    ThermalParameters as _r10s_Params,
+    ThermalState as _r10s_State,
+)
+
+
+# The reference arm spells L-BFGS-B's step itself (1e-4, the shipped value)
+# rather than reading the driver's constant, so a production step that moves
+# -- in the fused gradient, the ``eps`` option or both -- moves only the fused
+# arm and the exact null below refuses it (review O2).
+def _r10s_scalar_valued_run(objective, batch_objective, x0, bounds, args,
+                            maxiter, memo=None):
+    """The pre-fusion run: ``f`` from the scalar, the gradient from the batch."""
+    if batch_objective is None:
+        return _r10s_optmod._scoped_minimize(
+            objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        )
+    fused = _r10s_optmod._fused_value_and_gradient(batch_objective, bounds, 1e-4)
+    return _r10s_optmod._scoped_minimize(
+        objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+        jac=lambda x, *a: fused(x, *a)[1],
+        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+    )
+
+
+def _r10s_solve(run=None):
+    """A two-zone, level-clamped space solve; every L-BFGS-B run metered."""
+    cfg = _r10s_house(two_zone=True, dhw=False)
+    params = _r10s_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _r10s_Opt(_r10s_Model(params), _r10s_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+        clamp_planned_levels=True,
+    ))
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _r10s_weather("winter_cold", t0)
+    state = _r10s_State(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(out[0]),
+    )
+    runs, live = [], []
+    real_sm = _r10s_optmod._scoped_minimize
+    real_traj = _r10s_Model.simulate_trajectory
+
+    def traj(self, *a, **k):
+        for rec in live:
+            rec["scalar"] += 1
+        return real_traj(self, *a, **k)
+
+    def sm(fun, x0, *a, **kw):
+        rec = {
+            "jac": kw.get("jac") is not None, "scalar": 0,
+            "kind": ("continuation" if opt._floor_l1_scale != 1.0
+                     else "relaxed" if opt._levels_relaxed else "multi-start"),
+        }
+        runs.append(rec)
+        live.append(rec)
+        try:
+            return real_sm(fun, x0, *a, **kw)
+        finally:
+            live.remove(rec)
+
+    with _r10s_mock.patch.object(_r10s_optmod, "_scoped_minimize", sm), \
+            _r10s_mock.patch.object(_r10s_Model, "simulate_trajectory", traj), \
+            (_r10s_mock.patch.object(_r10s_optmod, "_lbfgsb_run", run, create=True)
+             if run is not None else _r10s_ctx.nullcontext()):
+        res = opt.optimize(inputs=solve_inputs(
+            initial_state=state, prices=_r10s_prices("winter_typical", t0),
+            outdoor_temps=out, wind_speeds=wind, precipitation=rain,
+            solar_radiation=sun, start_time=t0,
+        ))
+    return runs, np.asarray(res.power_schedule, dtype=float)
+
+
+_r10s_runs, _r10s_plan = _r10s_solve()
+_r10s_ref_runs, _r10s_ref_plan = _r10s_solve(_r10s_scalar_valued_run)
+
+
+def _r10s_census(runs):
+    """Per run kind: (supplied-jac runs, scalar simulations inside them)."""
+    out = {}
+    for rec in runs:
+        if rec["jac"]:
+            n, s = out.get(rec["kind"], (0, 0))
+            out[rec["kind"]] = (n + 1, s + rec["scalar"])
+    return out
+
+
+_r10s_got = _r10s_census(_r10s_runs)
+_r10s_ref = _r10s_census(_r10s_ref_runs)
+print(f"RESULT r10_solver_runs fused={_r10s_got} scalar_valued={_r10s_ref}")
+R.check(
+    "R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the "
+    "continuation, the relaxed candidate and the multi-start's own runs on "
+    "the batched jac",
+    all(_r10s_got.get(k, (0, 0))[0] > 0
+        for k in ("continuation", "relaxed", "multi-start")),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the "
+    "scalar trajectory -- the value rides in the gradient's batch",
+    all(s == 0 for _, s in _r10s_got.values()),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the "
+    "same runs is seen by the meter",
+    _r10s_ref.get("continuation", (0, 0))[1] > 0
+    and _r10s_ref.get("relaxed", (0, 0))[1] > 0,
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_ref}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the "
+    "scalar-valued runs ship, bit for bit",
+    np.array_equal(_r10s_plan, _r10s_ref_plan),
+    f"max |dP| {float(np.max(np.abs(_r10s_plan - _r10s_ref_plan))):.3e} kW",
+)
+
+
+# The driver's bounds gate (review O1): bounds ``_bounds_supported_by_batch``
+# refuses run on scipy's own estimate and never call the batch, whatever
+# batch objective the caller hands in. Positive control: the same run on
+# finite bounds is served by the batch, so the zero is not a dead counter.
+# Null: the refused run is the plain scalar run, bit for bit.
+def _r10s_gate_run(bounds):
+    calls = [0]
+
+    def scalar(x):
+        d = np.asarray(x, dtype=float) - 0.7
+        return float(d @ d)
+
+    def batch(rows):
+        calls[0] += 1
+        d = np.asarray(rows, dtype=float) - 0.7
+        return np.einsum("ij,ij->i", d, d)
+
+    res = _r10s_optmod._lbfgsb_run(scalar, batch, np.zeros(4), bounds, (), 30)
+    plain = _r10s_optmod._scoped_minimize(
+        scalar, np.zeros(4), method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": 30, "ftol": 1e-6, "eps": 1e-4},
+    )
+    return calls[0], np.asarray(res.x, dtype=float), np.asarray(plain.x, float)
+
+
+_r10s_open = [(0.0, float("inf"))] * 4
+_r10s_refused, _r10s_refused_x, _r10s_plain_x = _r10s_gate_run(_r10s_open)
+_r10s_served = _r10s_gate_run([(0.0, 2.0)] * 4)[0]
+R.check(
+    "R10-SOLVER (O1): bounds _bounds_supported_by_batch refuses run on "
+    "scipy's own estimate -- no batch call, the plain scalar run's point",
+    not _r10s_optmod._bounds_supported_by_batch(_r10s_open)
+    and _r10s_refused == 0 and _r10s_served > 0
+    and bool(np.array_equal(_r10s_refused_x, _r10s_plain_x)),
+    f"batch calls refused={_r10s_refused} served={_r10s_served}; "
+    f"x {_r10s_refused_x} vs plain {_r10s_plain_x}",
 )
 
 # -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
@@ -60622,8 +61340,10 @@ R.check(
     _r9egb1_w_reason is None
     and "error" not in _r9egb1_w_card
     and len(_r9egb1_w_seen) == 3
+    # #2257: a degree tile moves the setback's whole schedule, not the
+    # target alone -- the schedule is what the setback plan heats to.
     and [c.comfort_temp_day for c in _r9egb1_w_seen]
-    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_away]
+    == [_r9egb1_w_away, round(_r9egb1_w_away - 1.0, 1), _r9egb1_w_away]
     and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
     and _r9egb1_w_seen[2].target_temp == min(
         _r9egb1_w_coord._opt_config.target_temp, _r9egb1_w_away)

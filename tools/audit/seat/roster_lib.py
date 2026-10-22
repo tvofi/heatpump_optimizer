@@ -10,9 +10,9 @@ which roster a tool reads (`roster_path`). The wave computation is
 critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
-satisfied and stop constraining the groups behind them. Only `roster_path` and
-`show_roster` shell out (to git); nothing touches the network, and the roster
-reaches a tool as a parsed dict.
+satisfied and stop constraining the groups behind them. `roster_path`,
+`show_roster` and `critical_path_groups` shell out (to git); nothing touches
+the network, and the roster reaches a tool as a parsed dict.
 
 Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
@@ -292,7 +292,11 @@ def branch_of(group: dict) -> str:
             or "handoff/" + str(group.get("group") or "").lower())
 
 
-def _norm_branch(s: str) -> str:
+def norm_group(s: str) -> str:
+    """A roster group id or branch tail normalized for comparison:
+    lowercased with ``_`` written as ``-``. `group_for_branch` and the
+    critical-path reader both match on this rule, so a hand-edited case or an
+    underscore in either file cannot silently stop a group matching."""
     return s.replace("_", "-").lower()
 
 
@@ -312,12 +316,49 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     for g in roster.get("groups", []):
         if branch_of(g) == branch:
             return g.get("group")
-    tail = _norm_branch(branch.rstrip("/").rsplit("/", 1)[-1])
+    tail = norm_group(branch.rstrip("/").rsplit("/", 1)[-1])
     for g in roster.get("groups", []):
-        gid = _norm_branch(str(g.get("group") or ""))
+        gid = norm_group(str(g.get("group") or ""))
         if gid and gid == tail:
             return g.get("group")
     return None
+
+
+# ------------------------------------------------------- the critical-path set
+#
+# Which groups a wave must drain first is the orchestrator's policy, re-cut at
+# each wave edge and published beside the roster so a caller reads it without
+# the out-of-tree plan. The schema is two keys and nothing else:
+#
+#     {"at": "<iso8601>", "critical": ["R10-GROUP", ...]}
+#
+# `at` records when the set was published and is not read; `critical` is the
+# list of roster group ids. A missing, unreadable or differently-shaped file is
+# None -- "no group is critical" to a caller, never a crash and never "all are".
+CRITICAL_PATH_NAME = f"{ROSTERS_DIR}/critical-path.json"
+
+
+def critical_path_groups(repo: str, ref: str) -> set[str] | None:
+    """The normalized group ids `CRITICAL_PATH_NAME` lists at `ref`, or None.
+
+    Read at `ref` (`git show`), so a caller needs no checkout of the roster
+    branch. None covers every failure the caller must treat as "nothing is
+    critical": the file absent at this ref, git unreadable, invalid JSON, a
+    non-object, or a `critical` that is not a list of strings.
+    """
+    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
+    if r.returncode:
+        return None
+    try:
+        data = json.loads(r.stdout)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    ids = data.get("critical")
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        return None
+    return {norm_group(i) for i in ids}
 
 
 # ------------------------------------------------------------------ self-test
@@ -380,6 +421,28 @@ def _self_test() -> int:
         check("no roster on disk refuses loudly", "--roster-path" in why, why)
         put(9, "R9-A")
         put(10, "R10-A")
+        # The critical-path set: read at a ref and normalized; None for every
+        # failure shape, so a caller fails to FIFO rather than crashing.
+        check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
+        check("no critical-path file at a ref is None",
+              critical_path_groups(str(repo), "HEAD") is None)
+        (repo / CRITICAL_PATH_NAME).write_text(
+            json.dumps({"at": "2026-10-20T00:00:00Z", "critical": ["R10_A", "R10-B"]}),
+            encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "critical"],
+                       check=True)
+        check("the critical-path set reads at a ref, normalized",
+              critical_path_groups(str(repo), "HEAD") == {"r10-a", "r10-b"},
+              critical_path_groups(str(repo), "HEAD"))
+        for bad in ('{"critical": "R10-A"}', '{"critical": [1]}', "not json"):
+            (repo / CRITICAL_PATH_NAME).write_text(bad, encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "bad"],
+                           check=True)
+            check(f"a malformed critical-path file is None: {bad}",
+                  critical_path_groups(str(repo), "HEAD") is None,
+                  critical_path_groups(str(repo), "HEAD"))
         check("two rosters at a ref: the newest",
               roster_path(str(repo), "HEAD")
               == f"{ROSTERS_DIR}/wave-r10-groups.json")

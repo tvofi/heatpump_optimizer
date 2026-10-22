@@ -1,6 +1,7 @@
 #!/bin/bash
-# pr_args.sh -- the argument checks and the stop report open_pr.sh and
-# update_pr.sh share, so neither can stop without saying why.
+# pr_args.sh -- the argument checks, the stop report and the signal reap
+# open_pr.sh and update_pr.sh share, so neither can stop without saying why,
+# and a stopped one ends the work it started.
 #
 #   . tools/audit/seat/pr_args.sh       (open_pr.sh, update_pr.sh; PR_NAME first)
 #   tools/audit/seat/pr_args.sh --self-test
@@ -54,9 +55,186 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
 }
+pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
+  local rc=0 o
+  kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $1 did not report within 20 s"
+  wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$1" 2>/dev/null || :)
+  [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $1 (its holder exited $rc)"
+  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+  echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
+}
+pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run ends, or exit 75 BUSY
+  # One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch the other
+  # is pushing (R10-OPENPR-ROW-PUSH). $WT and $WT.log of update_pr.sh are fixed per branch, and the
+  # line there that removes $WT force-removed a concurrent run's live worktree under its prepr
+  # (2026-10-19/20: the orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is
+  # flock(2) held by one holder process; this shell holds no fd on it, so nothing the run starts can (a
+  # detached `git gc --auto` kept an inherited one). The caller's pr_exit_trap ends the holder before
+  # the run returns, and only after its reap (R10-PUSHER-REAP): bash runs that EXIT trap when
+  # TERM/INT/HUP end the shell too, the reap spares the holder (PR_REAP_SPARE) and ends the push's
+  # tree, and then PR_AFTER_REAP frees the lock -- so a stopped run frees the lock once its push has
+  # ended, never while it runs; a SIGKILLed run's holder exits once its parent is gone.
+  local k=0
+  python3 -I -c 'import fcntl, os, sys, time
+f = open(sys.argv[1], "a")
+try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError: sys.exit(75)
+p = os.getppid()
+f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+while os.getppid() == p: time.sleep(2)  # mut:watch
+sys.exit(0)' "$1" </dev/null >/dev/null 2>&1 & LKP=$!
+  PR_REAP_SPARE=$LKP
+  PR_AFTER_REAP='{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
+  while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+  [ "$(cat "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
+}
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
   pr_refuse "the push failed; its log is $1"
+}
+
+# ---- the stop: reap the whole descendant tree -------------------------------
+# WHY IT EXISTS (R10-PUSHER-REAP, 2026-10-20). A pusher stopped with TERM left
+# its whole subtree running: a shell does not forward a signal to a foreground
+# child, so the child reparented to launchd and kept burning CPU -- six
+# survivors aged 26 to 62 minutes on a box already at load 77 on eight cores,
+# each needing a kill two levels further down.
+#
+# The reap is the EXIT trap (pr_exit_trap): bash runs it when TERM, INT or HUP
+# ends the shell, and on every other exit. A signal trap would be DEFERRED while
+# a foreground command runs, and an untrapped INT waits for the foreground child
+# too, so each pusher runs its push asynchronously and `wait`s on it, which every
+# one of the three signals interrupts.
+#
+# The reap walks children by parent pid and signals each by pid -- never
+# `pkill -f`, which on a shared box reaches other seats' processes. The walk
+# appends to PR_REAP_PIDS in a function called from this shell, so the pgrep in
+# its `for` list is the only child each step forks -- a wrapping subshell would
+# itself be listed as a descendant of this shell.
+pr_descendants() { # <pid>: append every live descendant to PR_REAP_PIDS, a parent before its children
+  local k
+  for k in $(pgrep -P "$1" 2>/dev/null); do
+    [ "$k" != "${PR_REAP_SPARE:-}" ] || continue  # the branch lock's holder: PR_AFTER_REAP ends it
+    PR_REAP_PIDS[${#PR_REAP_PIDS[@]}]=$k
+    pr_descendants "$k"
+  done
+}
+pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never a group
+  case $2 in ''|0|1|*[!0-9]*) return 0 ;; esac
+  kill -"$1" "$2" 2>/dev/null || :  # mut:stop
+}
+# A runner whose child is itself a runner names that child PR_REAP_LEAD. The lead
+# stops its own tree in its own order -- update_pr.sh frees its branch lock only
+# after its push has ended, merge_train.py TERMs its tool and runs its `finally`
+# -- so it is TERMed alone and given PR_REAP_LEAD_TENTHS to end. A reap that
+# TERMed the whole tree at once would end a lock holder beside the push it
+# guards. The walk is taken first, while the tree is still attached: whatever
+# the lead leaves, orphans included, is reaped after it by those pids. Only a
+# lead the walk returned is signalled: a stale PR_REAP_LEAD, whose pid a later
+# process may hold, is never one.
+pr_lead_stop() { # TERM the lead alone, if the walk returned it, and wait for it at most PR_REAP_LEAD_TENTHS
+  local n=0
+  [ -n "${PR_REAP_LEAD:-}" ] || return 0
+  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) return 0 ;; esac  # mut:leadwalk
+  pr_kill TERM "$PR_REAP_LEAD"
+  while [ "$n" -lt "${PR_REAP_LEAD_TENTHS:-300}" ] && kill -0 "$PR_REAP_LEAD" 2>/dev/null; do sleep 0.1; n=$((n + 1)); done
+}
+pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a bounded grace
+  local p alive n=0
+  # A second stop signal must not end the shell mid-reap, before the KILL below.
+  trap '' TERM INT HUP  # mut:sigign
+  PR_REAP_PIDS=()
+  pr_descendants $$
+  [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
+  pr_lead_stop  # mut:lead
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done
+  while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
+    alive=()
+    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done
+    [ "${#alive[@]}" -gt 0 ] || return 0
+    PR_REAP_PIDS=("${alive[@]}")
+    sleep 0.1
+    n=$((n + 1))
+  done
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
+  return 0
+}
+pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <command>, reap the tree, then run PR_AFTER_REAP
+  local first=${1:+$1; }
+  trap "${first}"'pr_reap; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
+}
+pr_wait() { # <pid> <log>: wait for the asynchronous pusher -- a stop signal interrupts it
+  local rc=0
+  wait "$1" || rc=$?
+  [ "$rc" = 0 ] || pr_push_failed "$2"
+}
+
+# ---- the class: every pusher reaps its tree (R10-PUSHER-REAP) ---------------
+# The rule that enumerates the class's seams: a PUSHER is a tracked tools/ script
+# naming app_push.sh or push.sh, found by the git grep below, so a new one cannot
+# land undispositioned: the self-test runs this census on the tree. Each path the
+# grep returns has one disposition in PR_PUSHERS:
+#   runner     runs a push or prepr: it installs pr_exit_trap, and every line
+#              running "$_push" or "$prepr" runs it asynchronously (`&`);
+#   runner-py  a Python runner: a stop TERMs, never SIGKILLs, the tool whose own
+#              EXIT trap reaps the tree (`.terminate()`), and its entry calls
+#              stop_on_signal(), so a TERM/HUP to it unwinds to that handler;
+#   retired    push.sh: decision 0011's retired author path, run by no runner;
+#   mention    names one and runs none (the reason follows).
+# A returned path with no entry, an entry the grep no longer returns, and a
+# runner missing either property each print OPEN, and the census exits 1.
+# Usage: pr_args.sh --pushers [<rev>] (the tree at <rev>; default the worktree).
+PR_PUSHER_RULE='(^|[^A-Za-z0-9_])(app_)?push\.sh'
+PR_PUSHERS='tools/audit/seat/handoff_push.sh runner
+tools/audit/seat/open_pr.sh runner
+tools/audit/seat/update_pr.sh runner
+tools/audit/seat/remerge_main.sh runner
+tools/pr/app_push.sh runner
+tools/audit/seat/merge_train.py runner-py
+tools/pr/push.sh retired
+tools/audit/seat/pr_args.sh mention: this census and its self-test stubs
+tools/audit/seat/handover_prompt.py mention: a prompt string naming the author path
+tools/audit/seat/ref_privacy.py mention: its guard table keys the two paths
+tools/pr/app_approve.sh mention: a self-test fixture file list
+tools/pr/approve_held_runs.sh mention: comments
+tools/pr/head_note.py mention: its docstring
+tools/policy/check-wave-script.mjs mention: a test title
+tools/policy/friction_issues.mjs mention: comments
+tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_mint.sh and runs no push
+tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
+tools/policy/policy_lint.mjs mention: a refusal message'
+pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
+  local root=${1:-$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)} rev=${2:-} f kind txt bad=0
+  local found
+  if [ -n "$rev" ]; then
+    found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" "$rev" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js' | sed "s|^$rev:||")
+  else
+    found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js')
+  fi
+  for f in $found; do
+    kind=$(printf '%s\n' "$PR_PUSHERS" | awk -v f="$f" '$1 == f { print $2; exit }')
+    if [ -n "$rev" ]; then txt=$(git -C "$root" show "$rev:$f"); else txt=$(cat "$root/$f"); fi
+    txt=$(printf '%s\n' "$txt" | grep -vE '^[[:space:]]*#')  # a comment runs nothing
+    case $kind in
+      '') echo "OPEN $f: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS"; bad=1 ;;
+      runner)
+        if ! printf '%s\n' "$txt" | grep -qE '(^|[;{[:space:]])pr_exit_trap([[:space:]]|$)'; then
+          echo "OPEN $f runner: no pr_exit_trap, so a stop leaves its tree"; bad=1
+        elif printf '%s\n' "$txt" | grep -E 'bash "\$(_push|prepr)"' \
+             | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
+          echo "OPEN $f runner: a push runs in the foreground, so an INT waits behind it"; bad=1
+        else echo "ok   $f runner"; fi ;;
+      runner-py)
+        if printf '%s\n' "$txt" | grep -qF '.terminate()' && printf '%s\n' "$txt" | grep -qE '^[[:space:]]+stop_on_signal\(\)'; then
+          echo "ok   $f runner-py"
+        else echo "OPEN $f runner-py: a stop SIGKILLs or orphans its tool"; bad=1; fi ;;
+      *) echo "ok   $f $kind" ;;
+    esac
+  done
+  for f in $(printf '%s\n' "$PR_PUSHERS" | awk '{ print $1 }'); do
+    printf '%s\n' $found | grep -qxF "$f" || { echo "OPEN $f: stale -- the rule no longer returns it"; bad=1; }
+  done
+  [ "$bad" = 0 ]
 }
 
 # ---- self-test -------------------------------------------------------------
@@ -69,9 +247,29 @@ pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
 # update_pr.sh resolve (`PRT`) before their first check: without it every run
 # stopped in the ERR trap there, and 25 arms failed (#2444's CI, after #2442).
 pr_args_self_test() (
-  local src t f=0 n=0 o m base code side body i
+  local src t f=0 n=0 o m base code side body i reapsha UNREL
   src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
   t=$(mktemp -d) || { echo "pr_args self-test: no temporary directory"; return 1; }
+  # The pusher stubs the reap arms drive read this directory ($T is open_pr's topic).
+  REAP_DIR=$t; export REAP_DIR
+  # A stopped pusher's stub app_push: it records itself and a two-level sleep
+  # tree by pid, then blocks, so the survivors of a signal can be counted. A
+  # successful run (`ok`) leaves nothing behind; a later run (`fast`) exits at once.
+  cat > "$t/reap-stub.sh" <<'STUB'
+#!/bin/bash
+echo $$ > "$REAP_DIR/started"
+echo $$ >> "$REAP_DIR/pids"
+[ -e "$REAP_DIR/fast" ] && exit 1
+[ -e "$REAP_DIR/stubborn" ] && { bash -c 'trap "" TERM; sleep 30' & echo $! >> "$REAP_DIR/pids"; }
+if [ -e "$REAP_DIR/ok" ]; then
+  bash -c 'sleep 1' reap-child "$REAP_DIR/mark" & echo $! >> "$REAP_DIR/pids"
+  wait; exit 0
+fi
+bash -c 'sleep 30; :' reap-parent "$REAP_DIR/mark" & echo $! >> "$REAP_DIR/pids"
+bash -c 'sleep 30 & echo $! >> "$0"; wait' "$REAP_DIR/pids" & echo $! >> "$REAP_DIR/pids"
+wait
+exit 1
+STUB
   . "$src/../../../tests/throwaway_git.sh" && throwaway_git_env
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   o=$t/o; m=$t/m
@@ -80,6 +278,10 @@ pr_args_self_test() (
     && printf 'b\n' > "$o/b" && git -C "$o" add b && git -C "$o" commit -q -m code \
     && code=$(git -C "$o" rev-parse HEAD) && git -C "$o" branch handoff/x "$code" \
     && git -C "$o" branch handoff/y "$code" \
+    && git -C "$o" checkout -q -b reapup "$code" && mkdir -p "$o/tools/pr" \
+    && cp "$REAP_DIR/reap-stub.sh" "$o/tools/pr/app_push.sh" \
+    && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m "reap stub" \
+    && git -C "$o" checkout -q main && git -C "$o" branch handoff/reap reapup \
     && git -C "$o" checkout -q -b side "$base" && printf 'c\n' > "$o/c" && git -C "$o" add c \
     && git -C "$o" commit -q -m side && side=$(git -C "$o" rev-parse HEAD) \
     && git -C "$o" checkout -q main && git -C "$o" reset -q --hard "$base" \
@@ -89,23 +291,29 @@ pr_args_self_test() (
          "$(git -C "$o" hash-object -w "$t/body.md")" | git -C "$o" mktree)" -m "body: x") \
     && git -C "$o" update-ref refs/heads/handoff-body/x "$body" \
     && git -C "$o" update-ref refs/heads/handoff-body/z "$body" \
+    && git -C "$o" update-ref refs/heads/handoff-body/reap "$body" \
     && throwaway_git_clone -q "$o" "$m" && mkdir -p "$t/bin" "$m/tools/audit/seat" "$m/tools/pr" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
     && printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh" \
     && echo '[]' > "$t/prs.json" \
     && chmod +x "$t/bin/gh"; } || { echo "  FAIL fixture"; rm -rf "$t"; return 1; }
+  reapsha=$(git -C "$o" rev-parse reapup)
   export PATH="$t/bin:$PATH"; unset HANDOFF_TOPIC PR_N
   # run <mutant|-> <script> <args...>: copies of the scripts (less the mutant's
   # line), a fresh state root, the output in $t/out and the status in $t/rc.
+  copyin() { # <mutant|->: copies of the scripts, less the named mutant's line
+    local g
+    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+  }
   i=0
   run() {
-    local mu=$1 sc=$2 g; shift 2; i=$((i + 1))
+    local mu=$1 sc=$2; shift 2; i=$((i + 1))
     # The last run's worktrees go, so a branch it checked out is free again.
     rm -rf "$t/s$((i - 1))"; git -C "$m" worktree prune
-    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
-      if [ "$mu" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
-      else grep -v "# mut:$mu\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
-    done
+    copyin "$mu"
     HPO_STATE_DIR=$t/s$i BR=fix/x-$i BR_FIXED=1 bash "$m/tools/audit/seat/$sc" "$@" > "$t/out" 2>&1
     echo $? > "$t/rc"
   }
@@ -138,41 +346,47 @@ pr_args_self_test() (
   touch "$t/s$((i + 1))/pr/x/wt/f" "$t/s$((i + 2))/pr/x/wt/f"
   arm "open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap" trap \
     "open_pr: STOPPED: line" open_pr.sh x "$code" T G
-  # The open-PR cap (pr_cap.py; tvofi, 2026-10-18): six counted open is the cap.
+  # The soft cap gates dispatch, not opening (pr_cap.py; tvofi, 2026-10-20):
+  # a twenty-strong open board is information, and --over-cap is advisory.
   prs() { # <counted> [extra json objects]: the stub's open list
     local k=0 j=""
     while [ $k -lt "$1" ]; do j="$j{\"number\":$k,\"title\":\"t\",\"author\":{\"login\":\"app/hpo-author\",\"is_bot\":true}},"; k=$((k + 1)); done
     printf '[%s%s]\n' "$j" "${2:-}" | sed 's/,]$/]/' > "$t/prs.json"
   }
-  prs 6
-  arm "open_pr: six counted open pull requests refuse at the cap" cap \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)" \
-    open_pr.sh x "$code" T G
-  arm "open_pr: the cap is checked by the script itself (the call's lines)" capcall \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6" open_pr.sh x "$code" T G
-  touch "$t/gh.fail"
-  arm "open_pr: an open list gh cannot read refuses, never passes" capreadrc \
-    "open_pr: REFUSE: open-PR cap: the open pull requests could not be read (gh exited 1" open_pr.sh x "$code" T G
-  rm -f "$t/gh.fail"
-  # passes <name> <mutant> <expected text> <args...>: opens (stops only at the
-  # absent push), printing the text; the mutant refuses at the cap instead.
+  # passes <name> <mutant> <expected text> <args...>: the run opens (stops only
+  # at the absent push), printing the text and no cap refusal; on a copy
+  # without the mutant's line the text is gone and the run did not crash (a
+  # deleted line that only tracebacks pins no behaviour).
   passes() {
     local nm=$1 mu=$2 want=$3; shift 3
-    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" && ! grep -q 'REFUSE: open-PR cap' "$t/out" \
+    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" \
+      && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
       && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
     ck "$nm" $?
-    run "$mu" open_pr.sh "$@"; grep -q 'REFUSE: open-PR cap' "$t/out"
-    ck "  mutant mut:$mu (its line deleted) refuses at the cap instead" $?
+    run "$mu" open_pr.sh "$@"; ! grep -qF -- "$want" "$t/out" && ! grep -q Traceback "$t/out"
+    ck "  mutant mut:$mu (its line deleted) no longer prints it" $?
   }
-  prs 6
-  passes "open_pr: --over-cap opens at the cap and logs its reason" overcap \
-    "open_pr: OVER-CAP: 6 open >= 6, overridden: the train is draining" \
+  prs 20
+  passes "open_pr: twenty open pull requests do not stop an open; the count is information" openinfo \
+    "open_pr: 20 open PRs; the cap gates dispatch, not opening" x "$code" T G
+  passes "open_pr: --over-cap is still accepted, and says it is advisory" overadvisory \
+    "open_pr: --over-cap is advisory: the train is draining (the cap gates dispatch, not opening)" \
     --over-cap "the train is draining" x "$code" T G
+  touch "$t/gh.fail"
+  run - open_pr.sh x "$code" T G
+  grep -qF "open_pr: open pull requests could not be read (gh exited 1" "$t/out" \
+    && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
+    && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+  ck "open_pr: an open count gh cannot read says so and still opens" $?
+  run inforead open_pr.sh x "$code" T G
+  ! grep -qF "could not be read" "$t/out" && ! grep -q Traceback "$t/out"
+  ck "  mutant mut:inforead (its line deleted) reports the unreadable board as a count" $?
+  rm -f "$t/gh.fail"
   prs 5 '{"number":90,"title":"record: rows","author":{"login":"app/hpo-author","is_bot":true}},{"number":91,"title":"bump","author":{"login":"app/dependabot","is_bot":true}}'
-  passes "open_pr: five counted open (a record: and a bot pull request beside them) opens" caprecord \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+  passes "open_pr: a record: title and another bot's pull request are not in the open count" caprecord \
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   passes "open_pr: the same board, the bot pull request uncounted" capbot \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   echo '[]' > "$t/prs.json"
   run - open_pr.sh x "$code" T G
   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
@@ -180,6 +394,188 @@ pr_args_self_test() (
     && grep -qF "open_pr: REFUSE: the push failed; its log is $t/s$i/pr/x/p1.log" "$t/out" \
     && ! grep -q STOPPED "$t/out"
   ck "null control: open_pr with the code sha passes every check, and its failed push names its log" $?
+  # ---- a stopped pusher reaps its whole descendant tree (R10-PUSHER-REAP) ----
+  # The stub app_push above leaves a two-level sleep tree recorded by pid, so
+  # each arm counts what is still alive after the signal. The bystander sleeper
+  # started here descends from no pusher: it is the null control for "kills only
+  # what it started", and the arm the by-pid rule is mutated against.
+  ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
+  "$REAP_DIR/unrelated-sleep" 300 & UNREL=$!
+  ralive() { # <pids file> -> how many of its pids are alive; polled, since a killed child can be a zombie for a moment
+    local p n k=0
+    while :; do
+      n=0
+      for p in $(cat "$1" 2>/dev/null); do kill -0 "$p" 2>/dev/null && n=$((n + 1)); done
+      if [ "$n" = 0 ] || [ "$k" -ge 30 ]; then echo "$n"; return; fi
+      sleep 0.1; k=$((k + 1))
+    done
+  }
+  rclean() { # end this fixture's recorded pids, by pid (never a pattern)
+    local p
+    for p in $(cat "$REAP_DIR/pids" 2>/dev/null); do
+      case $p in ''|0|1|*[!0-9]*) ;; *) kill -TERM "$p" 2>/dev/null ;; esac
+    done
+    : > "$REAP_DIR/pids"
+  }
+  # stopreap <script> <args...>: signal a pusher (TERM, or $STOPSIG) once its
+  # push's tree is recorded (four pids), then record whether it is gone, what of
+  # the tree survives it, and whether the bystander does; the scripts are copyin's.
+  stopreap() {
+    local sc=$1 up k=0; shift
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok"; : > "$REAP_DIR/pids"
+    # A background job here starts with INT ignored, which bash cannot undo; the
+    # exec resets it, as a terminal's foreground job has it.
+    python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$m/tools/audit/seat/$sc" "$@" > "$t/out" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
+    kill -"${STOPSIG:-TERM}" "$up"; k=0
+    while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+    kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    kill -0 "$UNREL" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
+    rclean; wait "$up" 2>/dev/null
+  }
+  # Each verdict first asks that the push's tree started, so a run that stopped
+  # short of its push cannot pass an arm with nothing to reap.
+  reaped() { [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/pusher")" = gone ] && [ "$(cat "$t/survivors")" = 0 ] && echo 0 || echo 1; }
+  survived() { [ "$(cat "$t/treen")" = 4 ] && [ "$(cat "$t/survivors")" -gt 0 ] && echo 0 || echo 1; }
+  reapopen() { # <mutant>: TERM open_pr.sh mid-push
+    local sd=$t/ropen
+    git -C "$m" worktree prune; rm -rf "$sd"; copyin "$1"
+    HPO_STATE_DIR=$sd stopreap open_pr.sh reap "$reapsha" T G
+    git -C "$m" worktree remove --force "$sd/pr/reap" 2>/dev/null
+    git -C "$m" branch -D fix/reap fix/reap-pr >/dev/null 2>&1; rm -rf "$sd"
+  }
+  reapopen -
+  ck "open_pr: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  ck "open_pr: the null control -- an unrelated sleeper survives" \
+     "$( [ "$(cat "$t/unrel")" = alive ] && echo 0 || echo 1 )"
+  STOPSIG=INT reapopen -
+  ck "open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
+  reapopen stop
+  ck "  mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives" "$(survived)"
+  reapopen exitreap
+  ck "  mutant mut:exitreap (pr_exit_trap's trap line deleted): the pusher dies and its tree survives" "$(survived)"
+  # handoff_push.sh and remerge_main.sh run app_push from the main checkout, so
+  # the stub stands there for these arms alone.
+  cp "$REAP_DIR/reap-stub.sh" "$m/tools/pr/app_push.sh"
+  reaphandoff() { # <mutant>: TERM handoff_push.sh mid-push (the new-PR route, on a branch of its own)
+    local sd=$t/rhand
+    git -C "$m" worktree prune; rm -rf "$sd"; copyin "$1"
+    HPO_STATE_DIR=$sd HPO_WT_ROOT=$sd BRNAME=fix/rhand stopreap handoff_push.sh reap "$reapsha" T
+    git -C "$m" worktree remove --force "$sd/fix-rhand" 2>/dev/null
+    git -C "$m" branch -D fix/rhand >/dev/null 2>&1; rm -rf "$sd"
+  }
+  reaphandoff -
+  ck "handoff_push: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  STOPSIG=INT reaphandoff -
+  ck "handoff_push: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
+  reaphandoff exitreap
+  ck "  mutant mut:exitreap: handoff_push dies and its tree survives" "$(survived)"
+  reapremerge() { # <mutant>: TERM remerge_main.sh mid-push
+    local w=$t/rrem
+    git -C "$m" worktree prune; rm -rf "$w"; copyin "$1"
+    git -C "$m" worktree add -q --detach "$w" "$reapsha" 2>/dev/null
+    cp "$t/body.md" "$t/rbody.md"
+    stopreap remerge_main.sh 7 "$w" handoff/reap "$t/rbody.md"
+    git -C "$m" worktree remove --force "$w" 2>/dev/null
+  }
+  reapremerge -
+  ck "remerge_main: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  STOPSIG=INT reapremerge -
+  ck "remerge_main: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
+  reapremerge exitreap
+  ck "  mutant mut:exitreap: remerge_main dies and its tree survives" "$(survived)"
+  rm -f "$m/tools/pr/app_push.sh"
+  # The reap's own bounds, on a host that sources pr_args.sh and starts a child
+  # that ignores TERM: only the KILL past the grace ends it, and a second TERM
+  # during the grace must not end the host before that KILL.
+  printf '. "$1"; pr_exit_trap\nbash -c '"'"'trap "" TERM; sleep 30 & echo $! >> "$0"; echo $$ >> "$0"; wait'"'"' "$REAP_DIR/pids" &\nwait $!\n' > "$t/host.sh"
+  stubborn() { # <mutant>
+    local hp k=0
+    : > "$REAP_DIR/pids"; copyin "$1"
+    bash "$t/host.sh" "$m/tools/audit/seat/pr_args.sh" & hp=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 2 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -TERM "$hp"; sleep 0.5; kill -TERM "$hp" 2>/dev/null
+    wait "$hp" 2>/dev/null; echo $? > "$t/rc"
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    for k in $(cat "$REAP_DIR/pids"); do case $k in ''|*[!0-9]*) ;; *) kill -KILL "$k" 2>/dev/null ;; esac; done
+  }
+  stubborn -
+  ck "the reap KILLs a child that ignores TERM once the grace is spent, through a second TERM; the host exits 143" \
+     "$( [ "$(cat "$t/survivors")" = 0 ] && [ "$(cat "$t/rc")" = 143 ] && echo 0 || echo 1 )"
+  stubborn grace
+  ck "  mutant mut:grace (the KILL line deleted): the TERM-proof child survives" "$(survived)"
+  stubborn sigign
+  ck "  mutant mut:sigign (its line deleted): the second TERM ends the host mid-reap and the child survives" "$(survived)"
+  # The lead (train.sh's merge_train.py, cloud_relay.sh's update_pr.sh) stops its own tree
+  # first. The lead's child G stands for update_pr.sh's lock holder: G marks a TERM it gets;
+  # the lead, TERMed, waits 0.5 s and writes "early" when G was TERMed beside it, then ends G.
+  printf '. "$1"; pr_exit_trap\nbash "$0.lead" & PR_REAP_LEAD=$!\nwait $!\n' > "$t/lhost.sh"
+  printf 'echo $$ >> "$REAP_DIR/pids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "$REAP_DIR/marks" & g=$!; echo $g >> "$REAP_DIR/pids"\ntrap '"'"'sleep 0.5; grep -q G "$REAP_DIR/marks" && echo early >> "$REAP_DIR/marks"; kill $g 2>/dev/null; wait $g; exit 143'"'"' TERM\nwait\n' > "$t/lhost.sh.lead"
+  leadrun() { # <mutant>
+    local hp k=0
+    : > "$REAP_DIR/pids"; : > "$REAP_DIR/marks"; copyin "$1"
+    bash "$t/lhost.sh" "$m/tools/audit/seat/pr_args.sh" & hp=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 2 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -TERM "$hp"; wait "$hp" 2>/dev/null
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    for k in $(cat "$REAP_DIR/pids"); do case $k in ''|*[!0-9]*) ;; *) kill -KILL "$k" 2>/dev/null ;; esac; done
+  }
+  leadrun -
+  ck "a lead (PR_REAP_LEAD) is TERMed alone and stops its own child first; nothing of its tree survives" \
+     "$( [ "$(cat "$t/survivors")" = 0 ] && grep -qx G "$REAP_DIR/marks" && ! grep -q early "$REAP_DIR/marks" && echo 0 || echo 1 )"
+  leadrun lead
+  ck "  mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead" \
+     "$( grep -q early "$REAP_DIR/marks" && echo 0 || echo 1 )"
+  # A stale PR_REAP_LEAD -- a pid outside the walk, as a reused one is -- is never signalled.
+  printf '. "$1"; pr_exit_trap; PR_REAP_LEAD=$2\nsleep 30 & echo $! >> "$REAP_DIR/pids"\nwait $!\n' > "$t/shost.sh"
+  staleld() { # <mutant>
+    local hp bp k=0
+    : > "$REAP_DIR/pids"; copyin "$1"
+    sleep 30 & bp=$!
+    bash "$t/shost.sh" "$m/tools/audit/seat/pr_args.sh" "$bp" & hp=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 1 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -TERM "$hp"; wait "$hp" 2>/dev/null
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    kill -0 "$bp" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
+    kill "$bp" 2>/dev/null; wait "$bp" 2>/dev/null; rclean
+  }
+  staleld -
+  ck "a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped" \
+     "$( [ "$(cat "$t/unrel")" = alive ] && [ "$(cat "$t/survivors")" = 0 ] && echo 0 || echo 1 )"
+  staleld leadwalk
+  ck "  mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed" \
+     "$( [ "$(cat "$t/unrel")" = gone ] && echo 0 || echo 1 )"
+  # The census (the class rule): every path the rule returns is dispositioned and
+  # every runner reaps. Its own null control is a scratch tree holding copies of
+  # the entries plus one seam the census must refuse.
+  ( pr_pushers > "$t/census" ); [ $? = 0 ] && ! grep -q '^OPEN' "$t/census" \
+    && [ "$(grep -c '^ok ' "$t/census")" = "$(printf '%s\n' "$PR_PUSHERS" | grep -c .)" ]
+  ck "the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps" $?
+  census() { # <extra file> <its text> [<entry> [<sed script applied to it; default: its pr_exit_trap line goes>]]
+    local c=$t/census-tree f r
+    rm -rf "$c"; throwaway_git_init "$c" -q
+    r=$(cd "$src/../../.." && pwd)
+    for f in $(printf '%s\n' "$PR_PUSHERS" | awk '{ print $1 }'); do
+      mkdir -p "$c/$(dirname "$f")"; cp "$r/$f" "$c/$f"
+    done
+    [ -z "${3:-}" ] || sed -i "${4:-/^[^#]*pr_exit_trap/d}" "$c/$3"
+    [ -z "$1" ] || { mkdir -p "$c/$(dirname "$1")"; printf '%s\n' "$2" > "$c/$1"; }
+    git -C "$c" add -A; ( pr_pushers "$c" > "$t/census" ); echo $? > "$t/rc"
+  }
+  census "" ""; [ "$(cat "$t/rc")" = 0 ]
+  ck "  the census on the scratch copy passes as it does on the tree" $?
+  census tools/audit/seat/new_pusher.sh 'bash tools/pr/app_push.sh "$@"'
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/new_pusher.sh: undispositioned" "$t/census"
+  ck "  a new script that runs app_push.sh is refused as undispositioned" $?
+  census "" "" tools/audit/seat/handoff_push.sh
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/handoff_push.sh runner: no pr_exit_trap" "$t/census"
+  ck "  a runner without pr_exit_trap is refused" $?
+  census "" "" tools/audit/seat/handoff_push.sh '/bash "\$_push"/s/ &$//'
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "OPEN tools/audit/seat/handoff_push.sh runner: a push runs in the foreground" "$t/census"
+  ck "  a runner whose push runs in the foreground is refused (its \`2>&1\` backgrounds nothing)" $?
   arm "update_pr: two arguments refuse, naming the count" arity \
     "update_pr: REFUSE: 2 argument(s), at least 3 needed" update_pr.sh fix/x "$code"
   arm "update_pr: an abbreviated code sha refuses as not 40-hex" hex \
@@ -223,7 +619,7 @@ pr_args_self_test() (
     [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
   }
   lockrun - 1
-  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another update_pr.sh run" "$t/out" \
+  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another open_pr.sh or update_pr.sh run" "$t/out" \
     && [ "$(cat "$t/live")" = 1 ] && ! grep -q STOPPED "$t/out"
   ck "update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place" $?
   lockrun lock 1
@@ -238,12 +634,9 @@ pr_args_self_test() (
   # detrun <mutant>: two runs on fix/x in ONE state directory, one after the other; during the
   # first, a post-checkout hook (git runs it at `worktree add`) leaves a detached child behind.
   detrun() {
-    local sd=$t/sd-$1 g hk=$m/.git/hooks/post-checkout
+    local sd=$t/sd-$1 hk=$m/.git/hooks/post-checkout
     rm -rf "$t/s$i"; git -C "$m" worktree prune  # the last run's worktree holds fix/x
-    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
-      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
-      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
-    done
+    copyin "$1"
     printf '#!/bin/sh\nsleep 30 </dev/null >/dev/null 2>&1 &\necho $! >> "%s/sleepers"\n' "$t" > "$hk"; chmod +x "$hk"
     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
     if kill -0 "$(cut -d' ' -f2 "$sd/pr/upd-fix-x.lock")" 2>/dev/null; then echo 1 > "$t/hold1"; else echo 0 > "$t/hold1"; fi
@@ -262,49 +655,200 @@ pr_args_self_test() (
   ck "update_pr: the lock holder has exited by the time a run returns" $?
   detrun unlock; [ "$(cat "$t/hold1")" = 1 ]
   ck "  mutant mut:unlock (its line deleted): the holder is still alive when the run returns" $?
-  # A stopped run keeps the lock until its push has ended, and a killed run leaves no stale lock.
-  # Branch fix/t carries a push stub that records its start, ends after 6 s, and exits at once
-  # when $t/fast exists. Every wait is on a condition with a generous bound, never a fixed window.
+  # A stopped run reaps its whole descendant tree (R10-PUSHER-REAP): branch fix/t
+  # carries the same stub app_push, so a TERM is judged by what survives it.
+  # SIGKILL runs no trap, so that arm checks only the lock, which the holder
+  # frees when its parent dies. Every wait is on a condition with a bound.
   # stoprun <mutant> <signal>: run 1 gets the signal mid-push.
-  #   TERM: run 2 starts 1 s later (the push has 5 s left) and must be BUSY; run 3 starts once
-  #         run 1 has exited and must take the lock.
-  #   KILL: runs are retried for up to 20 s until one is not BUSY; one must get through.
   if [ ! -e "$t/fixt" ]; then
     git -C "$o" checkout -q -b fix/t "$base" && mkdir -p "$o/tools/pr" \
-      && printf '#!/bin/bash\n[ -e "%s/fast" ] && exit 1\necho $$ > "%s/started"\nsleep 6\necho ended > "%s/ended"; exit 1\n' "$t" "$t" "$t" > "$o/tools/pr/app_push.sh" \
+      && cp "$REAP_DIR/reap-stub.sh" "$o/tools/pr/app_push.sh" \
       && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixt"
   fi
   updt() { cp "$t/body.md" "$t/b$1.md"; HPO_STATE_DIR=$2 bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b$1.md" > "$t/out$1" 2>&1; }
-  stoprun() {
-    local sd=$t/st-$1-$2 g up k=0
-    rm -rf "$t/s$i"; git -C "$m" worktree prune; rm -f "$t/started" "$t/ended" "$t/fast" "$t/out2" "$t/out3"
+  stoprun() { # <mutant> <signal>
+    local sd=$t/st-$1-$2 up k=0 hp
+    rm -rf "$t/s$i"; git -C "$m" worktree prune
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
+    copyin "$1"
+    cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
+    # The exec resets the INT a background job starts with ignored (stopreap's why).
+    HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
+    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
+    case $hp in ''|0|1|*[!0-9]*) echo 0 > "$t/held" ;; *) kill -0 "$hp" 2>/dev/null && echo 1 > "$t/held" || echo 0 > "$t/held" ;; esac
+    kill -"$2" "$up"
+    k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+    kill -0 "$up" 2>/dev/null && echo alive > "$t/pusher" || echo gone > "$t/pusher"
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    kill -0 "$UNREL" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
+    touch "$REAP_DIR/fast"  # every later run's stub exits at once
+    updt 2 "$sd"; wait "$up" 2>/dev/null; updt 3 "$sd"
+    rclean
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  took_lock() { ! grep -qF "update_pr: BUSY" "$t/out3" && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
+  stoprun - TERM
+  ck "update_pr: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  ck "update_pr: the lock is held while the push runs" \
+     "$( [ "$(cat "$t/held")" = 1 ] && echo 0 || echo 1 )"
+  ck "update_pr: after the stop the lock is free, so the next run takes it" \
+     "$( ! grep -qF "update_pr: BUSY" "$t/out2" && took_lock && echo 0 || echo 1 )"
+  stoprun - INT
+  ck "update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
+  stoprun stop TERM
+  ck "  mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives" "$(survived)"
+  ck "  mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)" \
+     "$( ! grep -qF "update_pr: BUSY" "$t/out2" && echo 0 || echo 1 )"
+  # The lock outlives the push (main's pr_branch_lock, kept by the reap): the push holds a child
+  # that ignores TERM, so the reap's grace runs ~2 s before its KILL. heldrun <mutant>: TERM run 1
+  # mid-push, then poll; "early" when the holder is gone while a pid of the push is still alive.
+  # Mutant afterreap (sed, not a `# mut:` line) frees the lock BEFORE the reap: pr_exit_trap's order reversed.
+  heldrun() {
+    local sd=$t/hd-$1 up k=0 hp p a
+    rm -rf "$t/s$i"; git -C "$m" worktree prune
+    rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok"; : > "$REAP_DIR/pids"; : > "$REAP_DIR/stubborn"
+    if [ "$1" = afterreap ]; then copyin -; sed -i 's/pr_reap; eval "${PR_AFTER_REAP:-:}"/eval "${PR_AFTER_REAP:-:}"; pr_reap/' "$m/tools/audit/seat/pr_args.sh"
+    else copyin "$1"; fi
+    cp "$t/body.md" "$t/b1.md"
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 5 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
+    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
+    echo none > "$t/early"
+    case $hp in ''|0|1|*[!0-9]*) echo nohold > "$t/early" ;; esac
+    kill -TERM "$up"; k=0
+    while kill -0 "$up" 2>/dev/null && [ $k -lt 80 ]; do
+      if ! kill -0 "$hp" 2>/dev/null; then
+        a=0; for p in $(cat "$REAP_DIR/pids"); do kill -0 "$p" 2>/dev/null && [ "$(ps -o stat= -p "$p" | cut -c1)" != Z ] && a=1; done
+        [ "$a" = 1 ] && echo early > "$t/early"
+      fi
+      sleep 0.05; k=$((k + 1))
+    done
+    wait "$up" 2>/dev/null; rm -f "$REAP_DIR/stubborn"; rclean
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  heldrun -
+  ck "update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it" \
+     "$( [ "$(cat "$t/early")" = none ] && echo 0 || echo 1 )"
+  heldrun afterreap
+  ck "  mutant afterreap (pr_exit_trap's order reversed by sed: the lock freed before the reap): the holder is gone while the push still runs" \
+     "$( [ "$(cat "$t/early")" = early ] && echo 0 || echo 1 )"
+  stoprun - KILL
+  ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" "$( took_lock && echo 0 || echo 1 )"
+  stoprun watch TERM
+  ck "  mutant mut:watch (the holder's wait line deleted): the holder exits at once, so it is not held during the push" \
+     "$( [ "$(cat "$t/held")" = 0 ] && echo 0 || echo 1 )"
+  stopok() { # the null control: a run that succeeds leaves nothing behind
+    local sd=$t/okrun
+    rm -rf "$sd"; git -C "$m" worktree prune; rm -f "$REAP_DIR/started" "$REAP_DIR/fast"
+    : > "$REAP_DIR/pids"; : > "$REAP_DIR/ok"; cp "$t/body.md" "$t/b.md"
+    copyin -
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b.md" > "$t/out" 2>&1
+    echo $? > "$t/rc"
+    rm -f "$REAP_DIR/ok"
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    kill -0 "$UNREL" 2>/dev/null && echo alive > "$t/unrel" || echo gone > "$t/unrel"
+    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+  }
+  stopok
+  ck "null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start" \
+     "$( [ "$(cat "$t/rc")" = 0 ] && [ "$(cat "$t/survivors")" = 0 ] && [ "$(cat "$t/unrel")" = alive ] && echo 0 || echo 1 )"
+  # The branch a pull request is opened on belongs to one instrument at a time (R10-OPENPR-ROW-PUSH,
+  # 2026-10-21, #2547 #2548 #2549). open_pr.sh commits the PR's own row in its worktree and pushes
+  # it second; update_pr.sh (cloud_relay's arm, minutes later) detached any clean worktree holding
+  # the branch and reset the branch to origin's, so the second push found HEAD detached and not
+  # the branch's tip, and the PR kept no row. The stub app_push.sh is the real push's HEAD check:
+  # call 1 pushes and "opens" #5, call 2 (the row's push) waits for $t/release, then refuses unless
+  # HEAD is the branch's tip, and pushes. racerun <mutant>: open_pr.sh is in its second push when
+  # update_pr.sh starts on the same branch. Expected: update_pr.sh is BUSY, the row reaches origin.
+  if [ ! -e "$t/fixr" ]; then
+    git -C "$o" checkout -q -b handoff/r "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
+      && cat > "$o/tools/pr/app_push.sh" <<'STUB'
+#!/bin/bash
+D=$STUB_DIR; wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+case $n in
+  1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
+  2) : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+     [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
+       || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
+     git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED the row"; exit 0 ;;
+  *) exit 1 ;;
+esac
+STUB
+    git -C "$o" add b tools/pr/app_push.sh && git -C "$o" commit -q -m "code r" \
+      && git -C "$o" update-ref refs/heads/handoff-body/r "$body" && git -C "$o" checkout -q main \
+      && git -C "$o" branch fix/u "$base" && touch "$t/fixr"
+  fi
+  codeR=$(git -C "$o" rev-parse handoff/r)
+  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh"
+  racerun() {
+    local sd=$t/race-${1//+/_} sdir=$t/race-${1//+/_}-stub g k=0 op
+    rm -rf "$sd" "$sdir" "$t/s$i"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)  # git lists worktrees by physical path
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null
+    git -C "$o" branch -qD fix/r 2>/dev/null
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v -e "# mut:${1%%+*}\$" -e "# mut:${1##*+}\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi  # a+b: two mutants at once
+    done
+    cp "$t/body.md" "$t/bR.md"
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1 & op=$!
+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rco"
+    git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
+    reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+  }
+  racerun -
+  [ "$(cat "$t/rcu")" = 75 ] && grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] \
+    && grep -q '^PR=5 ' "$t/outo" && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin" $?
+  racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
+  racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
+  # Only committed work is detached from a worktree: one holding commits origin lacks is refused
+  # (the old reset would have dropped them); one whose HEAD origin has is detached as before.
+  unpushed() { # <mutant> <commit: 1|0>
+    local sd=$t/unp-$1-$2 g
+    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
-    while [ ! -e "$t/started" ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
-    kill -"$2" "$up"
-    if [ "$2" = TERM ]; then
-      sleep 1; updt 2 "$sd"; wait "$up" 2>/dev/null; touch "$t/fast"; updt 3 "$sd"
-    else
-      wait "$up" 2>/dev/null; touch "$t/fast"; k=0
-      while updt 3 "$sd"; grep -qF "update_pr: BUSY" "$t/out3" && [ $k -lt 20 ]; do sleep 1; k=$((k + 1)); done
-    fi
-    reap
-    k=0; while [ ! -e "$t/ended" ] && [ -e "$t/started" ] && [ $k -lt 200 ] && [ "$2" = KILL ]; do sleep 0.05; k=$((k + 1)); done
-    git -C "$m" worktree remove --force "$sd/pr/upd-fix-t" 2>/dev/null; rm -rf "$sd"
+    git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$sd/pr/u/wt" origin/fix/u || return 1
+    [ "$2" = 0 ] || { printf 'row\n' > "$sd/pr/u/wt/row" && git -C "$sd/pr/u/wt" add row && git -C "$sd/pr/u/wt" commit -q -m row; }
+    cp "$t/body.md" "$t/bU.md"
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    git -C "$sd/pr/u/wt" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
+    reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
   }
-  took_lock() { ! grep -qF "update_pr: BUSY" "$t/out3" && grep -qF "update_pr: REFUSE: the push failed" "$t/out3"; }
-  stoprun - TERM; grep -qF "update_pr: BUSY" "$t/out2" && took_lock
-  ck "update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it" $?
-  stoprun stop TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
-  ck "  mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs" $?
-  stoprun - KILL; took_lock
-  ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" $?
-  stoprun watch TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
-  ck "  mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push" $?
+  unpushed - 1
+  [ "$(cat "$t/rcu")" != 0 ] && grep -qF "update_pr: REFUSE: worktree" "$t/outu" && grep -qF "(unpushed work" "$t/outu" \
+    && [ "$(cat "$t/attached")" = refs/heads/fix/u ]
+  ck "update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch" $?
+  unpushed unpushed 1; [ "$(cat "$t/attached")" = detached ] && ! grep -qF "(unpushed work" "$t/outu"
+  ck "  mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit" $?
+  unpushed - 0
+  [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "(unpushed work" "$t/outu"
+  ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
+  # The row-only arm (R10-ROW-ONLY-UPDATE): with code sha `-` update_pr.sh asks app_push.sh for
+  # --row-only, whose own verdict decides whether a full prepr is owed; a code sha never asks.
+  # Branch fix/w carries an app_push.sh stub that records its arguments, then fails the push.
+  if [ ! -e "$t/fixw" ]; then
+    git -C "$o" checkout -q -b fix/w "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\necho "$*" > "%s/argv"; exit 1\n' "$t" > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixw"
+  fi
+  rowrun() { # <mutant> <code-sha|->: update_pr.sh on fix/w; the stub's arguments in $t/argv
+    rm -f "$t/argv"; cp "$t/body.md" "$t/b.md"; HANDOFF_TOPIC=x run "$1" update_pr.sh fix/w "$2" "$t/b.md"; }
+  rowrun - -; [[ $(cat "$t/argv" 2>/dev/null) == "--row-only tvofi/heatpump_optimizer "* ]]
+  ck "update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr" $?
+  rowrun rowonly -; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
+  ck "  mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr" $?
+  rowrun - "$code"; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
+  ck "null control: a code sha never asks for --row-only, so its push runs the full prepr" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
@@ -315,6 +859,7 @@ pr_args_self_test() (
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?
   reap
+  kill "$UNREL" 2>/dev/null; wait "$UNREL" 2>/dev/null || :
   rm -rf "$t"
   echo "pr_args self-test: $n checks, $f failed"
   [ "$f" = 0 ]
@@ -323,6 +868,7 @@ pr_args_self_test() (
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case ${1:-} in
     --self-test) pr_args_self_test; exit ;;
+    --pushers) pr_pushers "" "${2:-}"; exit ;;
     *) sed -n '2,6p' "$0" >&2; exit 2 ;;
   esac
 fi

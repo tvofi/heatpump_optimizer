@@ -4,8 +4,8 @@
 #
 # owner mode approves code-owned paths as tvofi's account under the mandate
 # comment <comment-id> on #201, read live at this run by budget_raise_gate.py's
-# own reading (`_mandate`, `mandate_state` judged now, scope `code-owned` or
-# `all`). No --mandate, or one not in force now, refuses before anything is
+# own reading (`_mandate`, `mandate_state` judged now, its scope the gate's
+# MANDATE_COVERS_CODE_OWNED). No --mandate, or one not in force now, refuses before anything is
 # posted: the script never defaults to a mandate, because a stale one is a
 # forged grant (until R10-TRAIN-RAISE-HOLD it hard-coded one that had expired). A budget RAISE is still the gate's to refuse: this
 # approval says nothing of the raise justification `budget-raise-gate` reads.
@@ -33,7 +33,7 @@ except Exception as e:  # fail closed: an unread mandate grants nothing
     sys.exit(1)
 now = datetime.datetime.now(datetime.timezone.utc)
 ok, why = g.mandate_state(cid, comment, thread, now, now.strftime("%Y-%m-%dT%H:%M:%SZ"), "merge",
-                          ("code-owned", "all"), "an owner approval of code-owned paths")
+                          g.MANDATE_COVERS_CODE_OWNED, "an owner approval of code-owned paths")
 print(("IN FORCE: " if ok else "REFUSE: ") + why)
 sys.exit(0 if ok else 1)
 P
@@ -61,6 +61,13 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
 
+# K15 (b): a check-run left queued or in progress over a completed workflow
+# run blocks the merge as BLOCKED forever (#2559: 8 attempts); the train's
+# classifier re-runs each such run once, logged with its run id, and re-reads.
+unstale_head() { # <sha>
+  python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale --repo "$R" "$1"
+}
+
 self_test() {
   local T pass=0 fail=0 out
   T=$(mktemp -d) || return 1
@@ -73,12 +80,15 @@ case "$*" in
   *isDraft*) echo "${FAKE_DRAFT:-false}" ;;
   *issues/comments/*) [ -n "${FAKE_MANDATE:-}" ] && cat "$FAKE_MANDATE" || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; } ;;
   *issues/201/comments*) echo "[[]]" ;;
+  *check-runs*) cat "$FAKE_RUNS" ;;
+  */rerun*) cp "$FAKE_RUNS_AFTER" "$FAKE_RUNS" ;;
+  *actions/runs/*) echo "$FAKE_RUN_STATUS" ;;
   *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
 esac
 G
   chmod +x "$T/gh"
-  mk() { # <from-min> <until-min> -> a mandate comment, minutes from now
-    python3 -I - "$1" "$2" <<'P'
+  mk() { # <from-min> <until-min> [scope] -> a mandate comment, minutes from now
+    python3 -I - "$1" "$2" "${3:-all}" <<'P'
 import datetime, json, sys
 now = datetime.datetime.now(datetime.timezone.utc)
 iso = lambda m: (now + datetime.timedelta(minutes=int(m))).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -86,10 +96,11 @@ c = iso(sys.argv[1])
 print(json.dumps({"id": 4100000001, "user": {"login": "tvofi", "id": 70032254, "type": "User"},
                   "created_at": c, "updated_at": c,
                   "issue_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/issues/201",
-                  "body": f"MANDATE: agents may approve as tvofi, scope all, from {c} until {iso(sys.argv[2])}"}))
+                  "body": f"MANDATE: agents may approve as tvofi, scope {sys.argv[3]}, from {c} until {iso(sys.argv[2])}"}))
 P
   }
   mk -60 60 > "$T/live.json"; mk -120 -10 > "$T/expired.json"
+  mk -60 60 code-owned > "$T/code-owned.json"; mk -60 60 budget-raise > "$T/raise.json"
   ck() { # <name> <want rc> <want substring> <draft> <mandate file> -- gates args...
     local name=$1 want=$2 sub=$3 draft=$4 mf=$5 rc; shift 6
     : > "$T/log"
@@ -101,6 +112,8 @@ P
   ck "owner mode with no --mandate refuses, never a default" 1 "MANDATE REQUIRED" false "$T/live.json" -- 7 owner "" 0
   ck "owner mode with a non-id --mandate refuses" 1 "MANDATE REQUIRED" false "$T/live.json" -- 7 owner "yesterday" 0
   ck "owner mode under a mandate in force now passes" 0 "" false "$T/live.json" -- 7 owner 4100000001 0
+  ck "owner mode under a code-owned mandate in force now passes" 0 "" false "$T/code-owned.json" -- 7 owner 4100000001 0
+  ck "owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it" 1 "does not cover" false "$T/raise.json" -- 7 owner 4100000001 0
   ck "owner mode under an expired mandate refuses with the gate's why" 1 "expired" false "$T/expired.json" -- 7 owner 4100000001 0
   ck "owner mode under a mandate that does not exist refuses" 1 "not a comment that exists" false "" -- 7 owner 4100000001 0
   ck "a draft refuses without --ready, naming the flag" 1 "DRAFT: #7 is a draft; pass --ready" true "" -- 7 app "" 0
@@ -111,6 +124,18 @@ P
   PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=false gates 7 app "" 1 >/dev/null
   if [ "$READY_OWED" = 0 ]; then pass=$((pass + 1)); echo "  ok   a ready pull request with --ready owes no ready mark"
   else fail=$((fail + 1)); echo "  FAIL a ready pull request with --ready owes no ready mark"; fi
+  stale='{"name":"budget-raise-gate","status":"in_progress","conclusion":null,"started_at":"1","id":7,"details_url":"https://github.com/o/r/actions/runs/119308796140/job/5"}'
+  printf '%s\n' "$stale" | sed 's/"in_progress","conclusion":null,"started_at":"1"/"completed","conclusion":"success","started_at":"2"/' > "$T/after.json"
+  for st in completed in_progress; do
+    printf '%s\n' "$stale" > "$T/runs.json"; : > "$T/log"
+    out=$(PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_RUNS="$T/runs.json" FAKE_RUNS_AFTER="$T/after.json" FAKE_RUN_STATUS=$st unstale_head "$(printf 'a%.0s' {1..40})" 2>&1); rc=$?
+    n=$(grep -c '/actions/runs/119308796140/rerun' "$T/log")
+    if [ "$st" = completed ] && [ "$rc" = 0 ] && [ "$n" = 1 ] && [[ "$out" == *"STALE budget-raise-gate"*119308796140* ]]; then
+      pass=$((pass + 1)); echo "  ok   a stale check-run over a completed run is re-run once and logged with its run id"
+    elif [ "$st" = in_progress ] && [ "$rc" = 0 ] && [ "$n" = 0 ]; then
+      pass=$((pass + 1)); echo "  ok   a check-run whose run is still in progress is not re-run (null control)"
+    else fail=$((fail + 1)); echo "  FAIL unstale_head with its run $st (rc=$rc, re-runs=$n: $out)"; fi
+  done
   b=$(owner_body "$(printf 'a%.0s' {1..40})" 4100000001 "in force (scope all)")
   if python3 -I - "$PWD/tools/policy" "$b" <<'P'
 import sys; sys.path.insert(0, sys.argv[1]); import budget_raise_gate as g
@@ -121,6 +146,62 @@ P
   else fail=$((fail + 1)); echo "  FAIL the owner body declares an agent and cites exactly the mandate given"; fi
   if grep -q "2026-09-2[45]" "$SELF"; then fail=$((fail + 1)); echo "  FAIL no mandate date is written into this script"
   else pass=$((pass + 1)); echo "  ok   no mandate date is written into this script"; fi
+  # The merge call after the gates (#2444's fourth unpinned line). A scratch
+  # clone, a fake gh answering the whole flow, the stub programs the script
+  # prefers under tools/audit/, and a `sleep` that does not sleep. The null
+  # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
+  # a merge line replaced by `exit 0` records none, which reddens this step.
+  local mo mm msha
+  . "$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/tests/throwaway_git.sh" && throwaway_git_env
+  mo=$T/mo; mm=$T/mm; msha=$(printf 'd%.0s' {1..40})
+  mkdir -p "$T/ev" "$T/bin2" "$T/state2"
+  printf '# verdict\n' > "$T/ev/VERDICT.md"
+  throwaway_git_init "$mo" -q -b main && printf 'a\n' > "$mo/a" \
+    && git -C "$mo" add a && git -C "$mo" commit -q -m base \
+    && throwaway_git_clone -q "$mo" "$mm"
+  mkdir -p "$mm/tools/audit/seat"
+  cp "$SELF" "$mm/tools/audit/seat/merge_pr.sh"
+  # The real classifier, not a stub: unstale_head runs it against the fake
+  # gh's empty check-run list, so the flow crosses the K15 (b) re-run as a no-op.
+  cp "${SELF%/*}/merge_train.py" "$mm/tools/audit/seat/merge_train.py"
+  for p in app_comment.sh app_approve.sh preflight.sh worktree_gc.sh; do
+    printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
+  done
+  printf 'import sys\nprint(sys.argv[2] if len(sys.argv) > 2 else "")\n' \
+    > "$mm/tools/audit/seat/ref_privacy.py"
+  printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"
+  cat > "$T/bin2/gh" <<'G'
+#!/bin/bash
+echo "$*" >> "$FAKE_LOG2"
+case "$*" in
+  *headRefOid*) echo "$FAKE_SHA" ;;
+  *isDraft*) echo false ;;
+  *mergeStateStatus*) echo CLEAN ;;
+  *mergeCommit*) echo deadbeef ;;
+  *title*) echo "a title" ;;
+  *length*) echo 0 ;;
+  *check-runs*) echo "" ;;
+  "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
+  *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
+esac
+G
+  chmod +x "$T/bin2/gh"
+  flow() { # <merge fails 0|1>: the whole script, offline
+    : > "$T/gh2.log"
+    HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
+      FAKE_MERGE_FAIL=$1 bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+      > "$T/flow.out" 2>&1
+    echo $? > "$T/flow.rc"
+  }
+  flow 0
+  [ "$(cat "$T/flow.rc")" = 0 ] \
+    && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: the merge records the reviewed head"
+  else fail=$((fail + 1)); echo "  FAIL null control: the merge records the reviewed head ($(tail -1 "$T/flow.out"))"; fi
+  flow 1
+  [ "$(cat "$T/flow.rc")" != 0 ]
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a refused merge fails the script (the line's own exit)"
+  else fail=$((fail + 1)); echo "  FAIL a refused merge fails the script"; fi
   rm -rf "$T"
   echo "merge_pr self-test: $((pass + fail)) checks, $fail failed"
   [ "$fail" = 0 ]
@@ -150,6 +231,7 @@ else
   if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh $R $PR $S 2>&1; else bash tools/pr/app_approve.sh $R $PR $S 2>&1; fi| tail -1
 fi
 sleep 45
+unstale_head "$S" || { echo "STALE: a re-run did not clear #$PR's head"; exit 1; }
 for i in $(seq 1 60); do n=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs[] | select(.status!="completed")] | length'); [ "$n" = 0 ] && break; sleep 60; done
 red=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs | group_by(.name)[] | sort_by(.started_at) | last | select(.conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out") | .name] | join(",")')
 if [ -n "$red" ]; then
@@ -166,7 +248,7 @@ sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
 [ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
 gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/preflight.sh "$@" 2>&1; fi| tail -1
-gh pr merge $PR --merge --match-head-commit $S || exit 1
+gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
 bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:<module> CONST 771262ee",
+  "killed_by": "tests/features.py",
+  "old": "HORIZON_DAYS = 30",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: CONST (`HORIZON_DAYS = 60`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
