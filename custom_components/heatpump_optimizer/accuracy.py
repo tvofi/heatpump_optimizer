@@ -31,7 +31,12 @@ import numpy as np
 
 from homeassistant.util import dt as dt_util
 
-from .const import COP_TRACKING_ERROR_GATE, HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
+from .const import (
+    COP_TRACKING_ERROR_GATE,
+    HOUSE_HEAT_LOSS_SCALE_MAX,
+    HOUSE_HEAT_LOSS_SCALE_MIN,
+)
+from .thermal_model import is_sunlit_interval
 from .draw_range import DrawRange, follows_ask
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
@@ -66,6 +71,13 @@ class AccuracySample:
     actual_cost: float | None = None
     outdoor_temp: float | None = None
     humidity: float | None = None
+    #: #2223: the interval's measured irradiance, W/m², as the state carried
+    #: it when the prediction was made. The drift refit admits night pairs
+    #: only -- a sunlit residual carries the solar term's error, and folding
+    #: it into the heat-loss scale settles a bias that looks converged. A
+    #: sample written before this field existed reads as no sun, the tree's
+    #: rule for an unknown irradiance (``None`` is never a measurement).
+    solar_radiation: float | None = None
     #: Observed minus modelled COP for the interval (v4.0.0 T4a, #42's
     #: snapshot tags and #12's health watch both read it). None whenever a
     #: power meter or the model's figure was missing.
@@ -87,6 +99,7 @@ class AccuracySample:
             "actual_cost": self.actual_cost,
             "outdoor_temp": self.outdoor_temp,
             "humidity": self.humidity,
+            "solar_radiation": self.solar_radiation,
             "cop_residual": self.cop_residual,
             "boost_space": self.boost_space,
         }
@@ -125,6 +138,7 @@ class AccuracySample:
             actual_cost=num("actual_cost"),
             outdoor_temp=num("outdoor_temp"),
             humidity=num("humidity"),
+            solar_radiation=num("solar_radiation"),
             cop_residual=num("cop_residual"),
             boost_space=bool(data.get("boost_space", False)),
         )
@@ -664,9 +678,20 @@ def _refit_start(
 def _refit_pair(
     s: AccuracySample, min_delta: float, max_residual: float
 ) -> tuple[float, float] | None:
-    """``(residual, delta_t)`` for a pair the interval learner would admit."""
+    """``(residual, delta_t)`` for a pair the interval learner would admit.
+
+    #2223: a sunlit pair is refused, the same dark gate the interval
+    learner takes (:func:`thermal_model.is_sunlit_interval`). The refit pools
+    the interval learner's own relation, so it inherits the confound the
+    gate removes: a residual on a sunny interval carries the aperture's
+    error, and the pooled step settles it into the heat-loss scale. A
+    sample with no recorded irradiance reads as no sun, which is how the
+    tree reads an unknown one everywhere else.
+    """
     pred, act, out = s.predicted_temp, s.actual_temp, s.outdoor_temp
     if s.boost_space or pred is None or act is None or out is None:
+        return None
+    if is_sunlit_interval(s.solar_radiation):
         return None
     residual = act - pred
     delta_t = (act + pred) / 2.0 - out
@@ -724,7 +749,9 @@ def heat_loss_refit(
     pooled over every admitted pair as one step, ``sum(-e*C) / sum(dT*dt)``,
     instead of 2 % a sample for days. ``dT`` is taken about the pair's mean
     indoor temperature, and a pair the learner's own guards would refuse
-    (``min_delta``, ``max_residual``) is refused here too.
+    (``min_delta``, ``max_residual``) is refused here too. So is a pair
+    whose interval carried sun (#2223): the interval learner folds dark
+    intervals only, and this refit pools that learner's relation.
 
     The step is taken about ``current_scale`` although each pair was
     predicted under the scale of its own interval, which the learner walks

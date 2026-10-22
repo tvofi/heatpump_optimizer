@@ -9,12 +9,16 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S34,
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38,
 and each per-file id (<file>-<n>), plant one production-line mutant in one
 file -- outside that file's self-test function -- and run only the step
 that names the file: a killed mutant reddens the step, and the same step on
 the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
+carry's own mutant (`true`, and `exit 0` for the merge), and the step's
+offline self-test must redden.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
@@ -103,6 +107,16 @@ MUTANTS = [
     ("S34", "tick_loop.sh",
      '    relay_start "$out.relay" "$relay"\n    # 76:',
      '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # #2444's fourth forward-carry: the push and merge lines their own
+    # self-tests did not reach. Each mutant is the carry's, verbatim.
+    ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
+     "true  # mut:push-update"),
+    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+     "true  # mut:push-open"),
+    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+    ("S38", "merge_pr.sh",
+     "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+     "exit 0  # mut:merge"),
     # R10-FLOW-MAIN-GATE (K15): the train's state classifier and its readers.
     ("merge_train-1", "merge_train.py", "names = [n for n in required if n not in NOT_GATING]",
      "names = list(required)"),
@@ -143,16 +157,26 @@ MUTANTS = [
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
+    ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
+    ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+    ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
+    ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
+    ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
+    ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
+     '  true \\\n'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
+# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
+# the mutant drops the delivery_row dispatch, so that tally is never printed.
 WRAPPERS = [
     ("S08", "handoff_push.sh",
-     '[ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test',
-     '[ "${1:-}" = --self-test ] && exit 0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
+     'r=0; :'),
     ("S12", "open_pr.sh",
      'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
      'exit $r; }'),
