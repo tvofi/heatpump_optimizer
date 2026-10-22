@@ -19570,6 +19570,14 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
             out.append(f"{j}: outside the units block")
         if not isinstance(jobs[j].get("permissions"), dict):
             out.append(f"{j}: no caller grant (the callee would get the default token's cap)")
+        for k, v in (jobs[j].get("with") or {}).items():
+            src = "inputs" if k in ("recheck", "no-skip") else "needs.prelude.outputs"
+            if v != f"${{{{ {src}.{k} }}}}":
+                out.append(f"{j}: with {k}={v!r}, not {src}.{k}")
+        sec = jobs[j].get("secrets")
+        if sec is not None and (not isinstance(sec, dict) or any(
+                v != f"${{{{ secrets.{k} }}}}" for k, v in sec.items())):
+            out.append(f"{j}: secrets {sec!r} (each passed by its own name, never inherit)")
     for j, want in (("gate", callers), ("pr-contract", callers - {"pr-contract"})):
         needs = (jobs.get(j) or {}).get("needs") or []
         if "prelude" not in needs or not want <= set(needs):
@@ -19628,6 +19636,12 @@ _CI_PLANTS = {
     "a unit guarded on the event, not the workset": _CI_TEXT.replace(
         "    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' arch-score ')\n",
         "    if: needs.prelude.outputs.pr != '' && needs.prelude.outputs.kind != 'review'\n", 1),
+    "a caller handed another input's value": _CI_TEXT.replace(
+        "      head: ${{ needs.prelude.outputs.head }}\n    permissions:\n      contents: read\n  arch-score:",
+        "      head: ${{ needs.prelude.outputs.base }}\n    permissions:\n      contents: read\n  arch-score:", 1),
+    "secrets inherited": _CI_TEXT.replace(
+        "    secrets:\n      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}\n",
+        "    secrets: inherit\n    _x:\n      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}\n", 1),
     "a caller off its stem": _CI_TEXT.replace(
         "    uses: ./.github/workflows/validate.yml\n", "    uses: ./.github/workflows/hassfest.yml\n", 1),
     "gate does not need a unit": _CI_TEXT.replace(
