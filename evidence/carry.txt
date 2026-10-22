@@ -1,8 +1,1 @@
 CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
-rc=0
--- without roster-ref (CI form):
-BAD-DEST body item 39d44c61: R10-FLOW-JIDOKA: R10-FLOW-JIDOKA is not a group of the roster
-CARRY-AUDIT: 4 finding item(s): 3 routed, 0 unrouted, 1 bad destination(s)
-rc=1
-UNROUTED review None item 4b3799ec (## Evidence) [evidence]: "- **Round 3's block (carry-missing) is cleared on the roster ref.** R10-FLOW-JIDOKA is at stage `not-started`,"
-CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)

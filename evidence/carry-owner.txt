@@ -1,8 +1,0 @@
-roster 5ffe2a933 key #2528: carry-201=0 JIDOKA=0
-roster 5ffe2a933 key #2582: carry-201=0 JIDOKA=1
-roster 743463c61 key #2528: carry-201=0 JIDOKA=1
-roster 743463c61 key #2582: carry-201=0 JIDOKA=1
-roster 306a96d5f key #2528: carry-201=0 JIDOKA=1
-roster 306a96d5f key #2582: carry-201=0 JIDOKA=1
-2ce054264 on roster ref
-JIDOKA groups on main roster: 0
