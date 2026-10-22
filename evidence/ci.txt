@@ -1,0 +1,7 @@
+Check runs at 3fd42d9539ee90e5bf409593ff681f748db76f6e (read 2026-10-22 ~23:00Z, 41 runs, all completed):
+failure: pr-contract (job 120135698603, started 22:54:12Z, after closures concluded 22:53:55Z; also 120122104135, 120121904962)
+  carry_audit.py check --body: CARRY-AUDIT: 4 finding item(s): 0 routed, 4 unrouted, 0 bad destination(s)
+  UNROUTED 681ba691 (## Forward-carry) M3's inputs; 09e2ad3e (## Forward-carry) HANDOVER item 44; 4815ba1b (## Friction) tools/pr/prepr.sh; 8c0ab63e (## Friction) seat_venv.sh
+failure: nightly-status (job 120122540498) -- answered in body ## Red checks (false ABSENT, R10-NIGHTLY-ABSENT / #2627)
+success: fast (3.14), coverage, closures, typing, browser, briefs, closure-scope, mutation, policy-docs, env-matrix, wave-script, instrument-self-tests, delivery-status, budget-raise-gate x2, arch-score x2, validate-hacs, hassfest, CodeQL, Analyze x3, scope, cancel-superseded x2, graders-head-copy, coverage-ratchet, lane-proofs
+skipped: record, delivery-status-publish, kernel-points, nightly-ha, mutation-pins, mutation-autofix, claims-autofix, closures-autofix, ci-ratchet
