@@ -8292,6 +8292,45 @@
     "branch": null
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. ci_predict.py must run the layout guard (the carry has the control). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-FLY-CLOUD-SETUP-TOOLCHAIN",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "XS",
+   "issues": [
+    2505
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/cloud-setup.sh"
+   ],
+   "carry": [
+    "From #2572 (friction, gate-scoping): the cloud seat's non-login shell has no numpy until /etc/profile.d/hpo-toolchain.sh is sourced, although the payload says the toolchain is on PATH. Fix tools/audit/seat/cloud-setup.sh's profile note, or source the profile in the cloud payload. Control: a non-login `python3 -c \"import numpy\"` succeeds in a fresh cloud seat.",
+    "From #2554 (item 4c5f0868, #2554) Friction: cloud_dispatch: stale: the payload says \"the toolchain (venv python, node, gh) is on PATH\". In this seat python3 was the system 3.11 without voluptuous, and `gh auth status` printed `Failed to log in to github.com using token (GH_TOKEN)`. The reviewer built a 3.13 venv from tests/requirements-ci.txt for the gate runs.",
+    "From the R10-BRIEFS-FOLD body (handoff-body/r10-briefs-fold at 0a1c1f12ad43) Friction, fixer-env: cost, a third instance beside #2572 and #2554: the cloud seat's toolchain under /opt/hpo was not on PATH in the seat's shell; sourcing /etc/profile.d/hpo-toolchain.sh puts it there. The first harness run on the system python had no numpy and gave a different I5 base reading, discarded and re-taken. The cloud dispatch prompt (or cloud-setup.sh's profile note) should source the profile or state the step."
+   ],
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. The cloud seat's non-login shell lacks the toolchain the payload says is on PATH; fix the profile note or source the profile (three instances in the carries). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   }
  ]
 }
