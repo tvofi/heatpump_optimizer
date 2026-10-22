@@ -241,11 +241,12 @@ def self_test() -> int:
     check("dispatch naming the wrong base refused", bool(verify_dispatch(dctx, g({**live, "base": {"ref": "rel"}}))), True)
     check("dispatch of a fork PR refused", bool(verify_dispatch(dctx, g({**live, "head": {"sha": "H", "repo": {"full_name": "f/r"}}}))), True)
     check("dispatch pr without base refused", bool(verify_dispatch(ctx("workflow_dispatch", inputs={"pr": "7"}), g(live))), True)
-    listings = iter([[{"id": 40, "status": "in_progress"}, {"id": 60, "status": "queued"}],
-                     [{"id": 40, "status": "completed"}, {"id": 45, "status": "action_required"}]])
-    naps = []
+    listings = [[{"id": 40, "status": "in_progress"}, {"id": 60, "status": "queued"}],
+                [{"id": 40, "status": "completed"}, {"id": 45, "status": "action_required"}, {"id": 60, "status": "queued"}]]
+    naps, tick = [], iter(range(0, 10 ** 6, 3000))
     w = wait_earlier(ctx("pull_request_review", pull_request=pr),
-                     lambda p, q=None: (200, {}, {"workflow_runs": next(listings)}), naps.append)
+                     lambda p, q=None: (200, {}, {"workflow_runs": listings[min(len(naps), 1)]}), naps.append,
+                     lambda: next(tick))
     check("waits for an earlier run, not a later or held one", (w, naps), ("", [POLL_S]))
     check("poll floor is 60 s", POLL_S >= 60, True)
     clock = iter(range(0, 10 ** 6, 3000))
@@ -262,8 +263,11 @@ def self_test() -> int:
         raise ghapi.RateLimited(path, 99)
     path = _tmp_event({"inputs": {"pr": "7", "base": "main"}})
     try:
-        check("rate limit fails closed", main([], limited, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch",
-                                                             "GITHUB_EVENT_PATH": path}), 3)
+        import contextlib
+        import io
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            rc = main([], limited, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": path})
+        check("rate limit fails closed", (rc, err.getvalue().split()[:1]), (3, ["RATE-LIMITED"]))
     finally:
         os.unlink(path)
     print(f"prelude self-test: {n} checks, {fails} failed")
