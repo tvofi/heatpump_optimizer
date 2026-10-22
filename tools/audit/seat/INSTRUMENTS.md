@@ -443,6 +443,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
   run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
+- `plan_page.py` — renders the round's plan page (HTML) from
+  `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`, and
+  GitHub's issue and pull-request state (`gh`, or `--github-snapshot`):
+  swimlanes on the plan's time axis with the slot-occupancy strip,
+  critical-path marks and planned stamps; the group ledger with status
+  classes, PRs, struck closed issues and blockers; waves, stamps and the
+  ETA method, every figure plan.json's. When: after a replan at a wave
+  edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
+  is not the roster's at its ref now; an `origin/` ref is fetched first) or
+  `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
+  replan.py applies the same freshness rule.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
@@ -600,6 +611,22 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--self-test` is its only CLI. When: any tool that reads the roster — one
   schema reader, not several. Refusal: no roster where one was asked for
   raises `RosterNotFound`, never a fallback to another round's.
+- `roster_sync.py` — derives the factual half of a roster group's `resume`
+  from pull-request state: a merged pull request on the group's branch makes
+  it `done` at the merge commit (and routes the body's `Carry: <GROUP>` items
+  to the destination's `carry`), an open one makes it `in-progress` with
+  `resume.pr`. Branch matching is the topic rule its docstring states; a head
+  two topics match is the longer one's. It prints `RECORD-INVALID <group>` for
+  a `resume.commit` naming no commit or several, or a done group's off
+  `origin/main` -- a finding, never a refusal. When:
+  every `state_docs.py beat --apply` pass runs it; run it alone to see what a
+  pass would write. Dry run by default; `--apply` writes through
+  `roster_edit.write_roster()`, the one write path, lint gate and push-race retry. Refusals: an
+  unreadable pull-request read (never "no mismatches"), a `Carry:` to a done
+  group, `--apply` with `--roster-file`; a human disposition (`deferred`,
+  `refused` and every stage outside `DERIVABLE_STAGES`) is never rewritten,
+  and no pull request is no evidence. `--self-test` drives it offline over a
+  recorded `--pr-state`; `r10_roster_sync_mutants.py` plants its predicates.
 - `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
@@ -627,6 +654,24 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
   is reported and the loop goes on. `--self-test` drives it over stubs.
+  Each pass then calls `heartbeat.sh --once` (the andon, below), bounded at
+  60 s; `HPO_TICK_HEARTBEAT` replaces it.
+- `heartbeat.sh` — the andon (Lean flow study K8, R10-FLOW-ANDON; cost-tested
+  by R10-RCA-ORCH-CONTINUITY): `--once --message TEXT` force-pushes
+  `heartbeat/orchestrator` as one parentless empty-tree commit whose message is
+  the pass line `TICK-PASS <utc> relay=<..> tick=<rc>`, over the seat's own
+  credential (`-f --no-verify`, the message through `ref_privacy.py guard`);
+  a refused or failed push prints `HEARTBEAT NOT PUSHED: <reason>`, exits 1
+  and never stops the loop. `--watch [--max-age 1200]` is the off-host
+  watcher's command: it fetches the ref and exits 1 with `HEARTBEAT STALE: ..`
+  when the committer date is older than the limit or the ref is absent. When:
+  `tick_loop.sh` calls `--once` every pass; the owner schedules a cloud task
+  every 15 min running `--watch` that notifies the owner on exit 1 (the
+  schedule is owner-side, not in the tree). A standalone job script, so
+  R10-ORCH-MACHINERY registers it as the beat's heartbeat job and retires the
+  call from `tick_loop.sh`. Refusal: unknown option, a non-numeric
+  `--max-age`. `--self-test` drives both modes over a bare-repo fixture, a
+  stale ref and a fresh one.
 - `train.sh` — one invocation shape for `merge_train.py batch`: the seat
   venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
   build it), it never falls back to ambient python, which on 3.11 refuses
@@ -674,6 +719,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   end. Refusal, and the one that saves you: the tip is recorded ONLY on a
   regeneration that returned 0, so a push the remote rejected is retried on
   the next pass instead of silently dropping that merge from the record.
+  `--apply` runs `roster_sync.py --apply` at the start of each pass, before
+  the memo check, since a pull request can open or merge without moving a ref
+  the beat watches; without it the beat derives nothing.
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
