@@ -12,14 +12,10 @@ under `## Forward-carry`.
 
 ## Head
 
-`bb53ba321`, pushed to `handoff/r10-prepr-closures`. It is code head `df97bd446` plus one merge of
-origin/main at `46e368127` (read 2026-10-22T00:31:25Z), never a rebase. The merge base is `46e368127`.
-`tools/pr/prepr.sh` at this head is blob `1a0afd8c5`, the blob the round-3 review measured; the merge
-changed only main's three-line comment at step 3f4 relative to `df97bd446`.
-Main moved to `93e6a63d2` (#2557, #2572) after these measurements and before the push, read
-2026-10-22T01:16:34Z. `git diff --quiet 46e368127 93e6a63d2 -- tools/pr/prepr.sh` exits 0, and
-`git merge-tree --write-tree origin/main bb53ba321` exits 0, so the merge the orchestrator owes is clean;
-every figure below is at `bb53ba321` over base `46e368127`.
+`20d129b11e3dc3880e1c9cb2fe3ce0d6b9345370`: the previous head `1723d8743619f397bcf9e04a219e1a581f4a736c` plus one merge of
+origin/main `752f697cc` (read 2026-10-22T17:03:52Z), never a rebase; it merged without conflict. The merge base is
+`752f697cc`. No code changed this round. `tools/pr/prepr.sh` at this head is blob `a0edc03ab`; main's own
+changes to it came in with the merge. Every figure below is at `20d129b11` over base `752f697cc`.
 
 ## Mutation proof
 
@@ -47,7 +43,7 @@ before removal. The driver is a scratch seat script.
 
 ## Null control
 
-M0 (unmodified, `bb53ba321`) gives `323 passed, 0 failed`, so every failure above belongs to its mutant. The carry
+M0 (unmodified, `bb53ba321`) gave `323 passed, 0 failed`, so every failure above belongs to its mutant. The mutant counts above are at `bb53ba321` and were not re-taken: this round changes no code, and the merge only brought main's own edits to `prepr.sh`. The unmodified self-test at `20d129b11` reads `333 passed, 0 failed` (`## Figures`). The carry
 harness's null control is in `## Figures`: the same count reads 0 on the review's roster `5ffe2a933`.
 
 ## Figures
@@ -60,17 +56,18 @@ harness's null control is in `## Figures`: the same count reads 0 on the review'
   carry-201.json 0, R10-FLOW-JIDOKA 1. Null control for the counter: the same
   script keyed to `#2582`, which R10-FLOW-JIDOKA's carry already names, reads 1 at both SHAs, so a 0 is
   not the counter failing to match.
-- Carry audit: `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`
-  printed `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)` (rc 0). `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster pr 2528`
-  reads the PR's live body, the previous round's, so it printed `10 finding item(s): 7 routed, 3 unrouted` (rc 1); the three are round 1's c7585c9b, b50893bf and 2a8ed562, which this body routes under `## Forward-carry`, so they route once this body is the PR's.
-- Self-test at `bb53ba321`: `323 passed, 0 failed`.
-- At `bb53ba321`, under the seat toolchain with `PYTHONPATH=tests/hastub`, each rc 0:
+- Carry audit at `20d129b11`: `python3 -I tools/audit/carry_audit.py check --body <this body>` (no `--roster-ref`, main's roster)
+  printed `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)` (rc 0). Null control: the
+  run at `1723d8743` on main's roster before R10-FLOW-JIDOKA existed there is the three red `pr-contract` runs above.
+- Self-test at `20d129b11` (`bash tools/pr/prepr.sh --self-test`, seat toolchain from `/etc/profile.d/hpo-toolchain.sh`): `333 passed, 0 failed`.
+  Main added 10 arms since `bb53ba321`. Under the ambient python3 (3.11, no toolchain profile) 9 arms fail with the interpreter-not-found refusal; that is the environment, and the null control for the 0.
+- At `20d129b11`, under the seat toolchain with `PYTHONPATH=tests/hastub`, each rc 0:
   `node tools/policy/rules_sync.mjs --check` (`RULES-SYNC ok`).
   `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` printed
   `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, with `scope.run` = `tests/entities.py`.
-  `python3 tests/entities.py` (`ALL 2382 ENTITY CHECKS PASSED`),
-  `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)` (`claims hygiene: 46e368127... ok`),
-  `python3 tests/closure.py selftest` (`ALL 124 closure shrink pins PASSED`), `python3 tests/layout.py`
+  `python3 tests/entities.py` (`ALL 2397 ENTITY CHECKS PASSED`),
+  `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)` (`claims hygiene: 752f697ccc... ok`),
+  `python3 tests/closure.py selftest` (`ALL 112 closure shrink pins PASSED`), `python3 tests/layout.py`
   (`layout self-test: ok`), `python3 tests/harness_headers.py` (`ALL 109 HARNESS HEADER CHECKS PASSED`),
   `python3 tests/structure.py` (`STRUCTURE RATCHET PASSED`), `python3 tests/throwaway_git.py --check`
   (0 refused), and `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`
@@ -78,7 +75,7 @@ harness's null control is in `## Figures`: the same count reads 0 on the review'
 - Class enumeration (step 8). `grep -n 'PREPR_RECORD:-' tools/pr/prepr.sh` returns one production line,
   in `closures_line`, which is closed. The sibling-seam rule is
   `awk -v r=$(grep -n '^rc=0$' tools/pr/prepr.sh | cut -d: -f1) 'NR>r && /(node|python3|bash) [^|]*>\/tmp\/prepr-/' tools/pr/prepr.sh`;
-  it returns 18 lines (steps 3 to 3h) at both `df97bd446` and `bb53ba321`. Its null control: the same rule
+  it returned 18 lines (steps 3 to 3h) at both `df97bd446` and `bb53ba321` (not re-run at `20d129b11`). Its null control: the same rule
   over a scratch copy of `prepr.sh` with one appended line, a python3 run redirected to a
   `/tmp/prepr-null` file, returns 19. All 18 are one
   distinct finding, carried to R10-FLOW-JIDOKA (`## Forward-carry`).
@@ -89,15 +86,18 @@ harness's null control is in `## Figures`: the same count reads 0 on the review'
 
 ## Red checks
 
-- `df97bd446` ran no CI: the check-runs API lists 0 runs for it.
-- `10f85c3ee` (the previous PR head, the round-3 review's): the check-runs API lists 49 runs, all
-  concluded, and one red: `nightly-status` (job 119521063745). Its log grades main's last concluded
-  scheduled `Tests` run, 39563978649 at `c77f89d`, where `mutation-nightly` and `slow` failed; it states
-  it is not a required context on `main-protect`. This diff reaches nothing either lane reads (the
-  nightly-status filter in `## Figures`). The red is main's, and no detector on this branch could catch
-  or fix it.
-- `bb53ba321` has not run CI yet: it is pushed to the handoff ref only, and the check-runs API finds no
-  commit for it.
+- The required `pr-contract` check ran red four times at `1723d8743` (check-runs API, read 2026-10-22):
+  119585492906, 119585669593, 119587185157 and 119691498245. Cause: BAD-DEST R10-FLOW-JIDOKA. `carry_audit`
+  read main's roster, where that group did not exist when those runs read it. It exists on main's roster now
+  (`git show origin/main:dev/programme/rosters/wave-r10-groups.json | jq '.groups[]|select(.group=="R10-FLOW-JIDOKA")|.group'`
+  prints it), and at this head `python3 -I tools/audit/carry_audit.py check --body <this body>`, with no
+  `--roster-ref`, prints `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)` (rc 0).
+- Every other red in the branch history, from the check-runs API: `10f85c3ee` 49 runs, one red,
+  `nightly-status` (job 119521063745); `5332c59f9` 49 runs, one red, `nightly-status` (job 119339580088).
+  `nightly-status` grades main's last scheduled `Tests` run and is not a required context on `main-protect`;
+  this diff reaches nothing either nightly lane reads (the filter in `## Figures` prints nothing). The red is
+  main's. The other commits in the branch history (`df97bd446`, `bb53ba321`, `d7ab16465` and the rest) list 0 runs.
+- `20d129b11` has not run CI yet: it is pushed to the handoff ref only.
 
 ## Forward-carry
 
@@ -131,3 +131,4 @@ owes tvofi's approving review at the head.
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_01CEFcwib7dF1PvNxG4UDPjQ
+
