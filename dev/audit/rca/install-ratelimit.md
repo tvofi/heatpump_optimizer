@@ -31,13 +31,22 @@ App installation tokens are minted only in `nightly.yml` (ledger-, record- and
 approver-writer) and `merge-main.yml` (the run approver), and seats' own `gh`
 calls carry the hpo-author App's token: separate buckets. `GITHUB_TOKEN` is an
 installation token of the GitHub Actions App, so its exhaustion reads
-"for installation" exactly as an App's does; its limit is **1,000 requests per
-hour per repository**, shared by every job of every workflow (GitHub's
-documented limit for `GITHUB_TOKEN`). The brief's 5,000/hr is the limit of a
-different bucket, and so is HANDOVER item 44's "shared App quota".
-Not measured here: the `x-ratelimit-limit` header itself. `gh api rate_limit`
-is not counted against the limit; the countermeasure's first step prints it
-(section 4, M0), which settles the number on the first run.
+"for installation" exactly as an App's does, and the bucket is shared by every
+job of every workflow in the repository. HANDOVER item 44's "shared App quota"
+names a different bucket.
+
+**The bucket's size is unmeasured.** GitHub documents 1,000 requests per hour
+per repository for `GITHUB_TOKEN`, and round 1 of this record took that as the
+limit. The repository's own logs refute it: Governance push runs `39744954535`,
+`39745082624`, `39745228063` and `39745375894` (08:03:46Z to 08:07:08Z) all
+concluded `success`, and the third one's record job (`119711895503`, 08:06:01 to
+08:10:42) completed full walks (`RECORD_ENUM: api`, 84 PRs, steps 35 s / 112 s /
+110 s, no `403`) after the first two had demanded 1,497 calls. By section 1.2's
+formula the four runs demanded 744 + 753 + 762 + 771 = 3,030 calls, so **at
+least about 3,030 calls were served from 08:03:46Z**, a lower bound; other
+consumers add to it. The next record job to starve was the 08:38 one (section
+1.3). What the limit is, the logs do not say. `gh api rate_limit` is not counted
+against it; the countermeasure's first step prints it (section 4, M0).
 
 ### 1.2 The consumer is Governance's `record` job, on every push to main
 
@@ -68,8 +77,10 @@ The live job agrees: run `39755501453` (push `c409c9b18`, 09:27Z), job
 `119746351603`, printed `RECORD_ENUM: api` and `RECORD: 91 merged pull
 request(s) in v7.0.2..origin/main` (W=93, so `3W+6P` = 825), and its step times
 fit one sequential read every ~0.42 s: `--record` 44 s, `--stats` 153 s,
-`--sunset` 155 s. **One push to main spends 83 % of the repository's hourly
-`GITHUB_TOKEN` bucket**, and every later push in the same hour overdraws it.
+`--sunset` 155 s. **The record job is the heaviest consumer of the bucket**:
+hundreds of calls per push to main, where every other reader makes tens per PR
+head (section 1.3). What fraction of the bucket one push spends waits on M0's
+measured limit.
 
 ### 1.3 The trigger: merge bursts against a window that only grows
 
@@ -77,16 +88,23 @@ The window resets only at a stamp, so the per-push cost rises with every merge
 until the next tag. Pushes to main on 2026-10-22 (UTC, `git log --first-parent`),
 with `3W+6P` at each from `git rev-list`:
 
-| burst | pushes | per push | record-job demand | red |
+| UTC hour | pushes | per push | record-job demand | red |
 |---|---|---|---|---|
-| 06:07–06:11 | 5 (#2588, #2545, #2582, #2558, #2554) | 696–732 | ≈ 3,570 | ≈ 06:27Z |
-| 08:03–08:09, 08:38 | 6 (#2577, #2591, #2585, #2596, #2598, #2578) | 744–789 | ≈ 4,600 | ≈ 08:40Z |
-| 09:03–09:26 | 4 (#2600, #2599, #2601, #2602) | 798–825 | ≈ 3,250 | ≈ 09:44Z |
+| 06Z | 6: 06:07–06:11 (#2588, #2545, #2582, #2558, #2554) and the direct push `b787c7d45` at 06:35 | 696–735 | 4,305 | ≈ 06:27Z |
+| 08Z | 6: 08:03–08:09 (#2577, #2591, #2585, #2596, #2598) and 08:38 (#2578) | 744–789 | 4,599 | ≈ 08:40Z |
+| 09Z | 5: 09:03–09:26 (#2600, #2599, #2601, #2602) and `04c1dd779` (#2604) at 09:42 | 798–834 | 4,080 | 09:44:27Z |
 
-Each red follows a burst in the same hour, and each burst's record jobs alone
-demand 3.2–4.6× the bucket (demand: once the bucket is dry the job's own reads
-fail too, and Governance's push runs at `01cf1398a`, `8a4c438e7` and `04c1dd779`
-concluded `failure`; their failing step was not read here). Everything else is small beside it: a PR head costs
+Each red follows a burst in the same hour; the 09:44:27Z arch-score red came
+about 90 s after the push of `04c1dd779`. "Demand" is the formula's figure, not
+calls served: once the bucket is dry the job's own reads fail too. The 08Z hour
+shows both sides. The first four record jobs ran full walks (section 1.1), and
+the record job at 08:38 (run `39749268769`, job `119725423893`) degraded: its
+refusal step ran full (41 s), its histograms step took 15 s instead of about
+112 s, and the friction-filer step failed after 0 s, the shape of a failed
+fetch. Governance's push runs at `07fcbee2e`, `6077bf70e`, `b787c7d45`,
+`01cf1398a`, `8a4c438e7` and `04c1dd779` concluded `failure`; only the
+`8a4c438e7` job's steps were read. No ratio of demand to bucket is stated,
+because the bucket's size is unmeasured. Everything else is small beside it: a PR head costs
 pr-contract roughly 4 + its commit count, arch-score 1–2, the follower 1–2 per
 watched-workflow completion (8 workflows per head), env-matrix a few per shape —
 tens per head, against ~800 per main push. The candidates the brief named
@@ -103,9 +121,8 @@ its three modes with a window of 38 first-parent commits (`v6.3.18..31bcabac1`)
 and two reads per PR. `9eaa284c9` (2026-09-23, #1471) added the reviews
 endpoint, the third per-PR read, in both `--stats` and `--sunset`. The tag
 cadence then slowed from about daily (v6.7.9–v6.7.16, 2026-09-28 to 10-04) to
-windows of 104 (`v6.7.17..v7.0.0`) and 188 (`v7.0.0..v7.0.1`) commits; at 188 a
-single push is ≈ 1,680 calls by the measured formula, over the bucket on its
-own. Main's merge rate reached 53 pushes on 2026-10-21. The job did not change;
+windows of 104 (`v6.7.17..v7.0.0`) and 188 (`v7.0.0..v7.0.1`) commits; at 188
+(177 merges) a single push is 1,626 calls by the measured formula. Main's merge rate reached 53 pushes on 2026-10-21. The job did not change;
 its window, its per-PR read count and the merge rate did.
 
 ## 2. Process state: (c)
@@ -155,14 +172,11 @@ cycle, in wall-clock.
 
 - **P(recurrence), measured.** 3 instances on 2026-10-22 (3 of the day's 3
   bursts); HANDOVER 44 and R10-FOLLOWER-DEBOUNCE record the same class on
-  2026-10-14 and 2026-10-19. With one push at 834 calls the bucket is overdrawn
-  by any hour holding two pushes to main, which today was 6 of the 10 hours from
-  00Z to 10Z (01, 02, 04, 06, 08, 09). A red needs a second condition: a
-  required check reading while the bucket is dry, so the quiet-PR hours (01Z to
-  04Z) show none and the three busy ones show one each. P per busy hour with
-  two or more pushes is therefore high, not 1; the measured rate, 3 a day, is
-  the figure used. W grows until the next stamp, so the rate does not fall on
-  its own.
+  2026-10-14 and 2026-10-19. Pushes to main per UTC hour that day: 00Z 1, 01Z 3,
+  02Z 3, 04Z 2, 06Z 6, 08Z 6, 09Z 5; the three reds fell in the three hours of
+  five or more. Which push counts overdraw the bucket is not derived here: that
+  needs M0's limit. The measured rate, 3 a day, is the figure used. W grows
+  until the next stamp, so the per-push demand does not fall on its own.
 - **cost(defect).** At least 1 h of merge-train wall-clock per instance (the
   brief), so ≥ 3 h on 2026-10-22, plus the seat time of diagnosing a red that is
   not the head's.
@@ -174,7 +188,7 @@ cycle, in wall-clock.
 - **M0 — measure the unit (addresses state (c)).** The record job prints
   `gh api rate_limit --jq .resources.core` before its first and after its last
   step: two reads that are not counted against the limit, < 1 s. It turns "a
-  run" into "N calls of L" in the log, settles the limit (section 1.1), and lets
+  run" into "N calls of L" in the log, measures the limit (section 1.1), and lets
   the next diagnosis rank consumers by calls. A log line, not a gate, so the
   detector demonstration does not apply to it.
 - **M1 — one window walk, not three (cuts per push 834 → 370).** `--record`,
@@ -189,9 +203,14 @@ cycle, in wall-clock.
 - **M2 — one record run per burst.** A job-level concurrency group on `record`
   for `push` (fixed group, `cancel-in-progress: false`): GitHub keeps one
   running and one pending, and drops the superseded pending runs. A burst of 5
-  pushes runs it twice. Standing cost 0; a burst's report lands up to one job
-  length (≈ 6 min) later. The job is not a required context, so nothing waits on
-  it. Not alone sufficient: today's 08Z hour would still run it 3 times.
+  pushes runs it fewer times; how many depends on the job's length. Standing cost
+  0; a burst's report lands up to one job length later. The job is not a
+  required context, so nothing waits on it. M1 and M2 interact: M1 shortens
+  the job to about 155 s (370 calls at 0.42 s), so the pending slot drains
+  faster, and the fix review's replay of the 08Z pushes (08:03:46, 08:04:49,
+  08:05:57, 08:07:08, 08:09:21, 08:38:37) with one running and one pending runs
+  it about 5 times, about 1,850 calls. The count after both is for the
+  countermeasure group to measure, not carried from this record.
 - **M3 — take the O(window) reader off the shared bucket.** Mint the record
   job's token from an App installation (`nightly.yml` already mints the
   record-writer's), so the required checks never share a bucket with a job whose
@@ -200,14 +219,15 @@ cycle, in wall-clock.
   it is the owner's decision; the record job's `issues: write` grant was the
   owner's (#201 comment 5670207248).
 
-With M1 + M2, today's worst hour costs 3 × 370 ≈ 1,110 from the record job:
-still over 1,000. **Recommended: M0 + M1 + M2, and M3** — M1 and M2 are the
-cheap part and halve the load, M3 is the part that removes the coupling, and
-without it the class returns as the window grows (M1's 370 is itself
-O(window): `W + 3P` crosses 1,000 at about W = 250, one slow release). The
-alternative to M3 that changes no identity — `--stats` and `--sunset` off the
-push arm, onto the existing weekly schedule and dispatch — changes the friction
-filer's cadence (#959 option B), which is also the owner's call.
+**Recommended order: M0 first, then M1 + M2; the M3 call waits for M0's
+measured limit.** Whether M1 + M2 suffice is open until the limit is printed and
+the demand after M1 + M2 is measured against it. M1 cuts the walk to a third
+but leaves it O(window) (`W + 3P`), so a slow release still grows it. If the
+measured demand after M1 + M2 still meets the measured limit, M3 is the part
+that removes the coupling. The alternative to M3 that changes no identity —
+`--stats` and `--sunset` off the push arm, onto the existing weekly schedule
+and dispatch — changes the friction filer's cadence (#959 option B), which is
+also the owner's call.
 
 **Verdict: the countermeasure pays for itself.** Its standing cost is ≤ 0 s per
 run for M0–M2 and ≈ 2 s per push for M3, against ≥ 1 h of train wall-clock per
@@ -221,14 +241,27 @@ reset time the 403 names, never loop.
 
 ## 5. Owner
 
-No live group in `dev/programme/rosters/wave-r10-groups.json` owns
+No group on main's `dev/programme/rosters/wave-r10-groups.json` owns
 `governance.yml`'s record job: R10-FOLLOWER-DEBOUNCE is done and owns the
 follower; R10-CI-LAYOUT-P2 is `tests.yml`; R10-FLY-GH-READ-RETRY is
-`app_approve.sh`. **Proposed new group: `R10-RECORD-API-BUDGET`** (lane IN,
-kind instrument, size S, priority high: it sits on every merge), carrying M0, M1
-and M2 in one pull request (`.github/workflows/governance.yml`,
-`tools/policy/policy_lint.mjs`), and M3 or the cadence alternative as a separate
-owner decision before any code. Code-owned paths: the owner reviews.
-Until the orchestrator registers it, the carry is held by R10-CI-LAYOUT-P2, the
-only live group that already lists `governance.yml`; that group's brief should
-also correct HANDOVER item 44's "shared App quota" to the `GITHUB_TOKEN` bucket.
+`app_approve.sh`. The orchestrator has registered **`R10-RECORD-API-BUDGET`**
+(lane IN, kind instrument, size S, priority high, after this record) on
+`handoff/audit-r10-roster`, landing in roster PR 12. It carries M0, M1 and M2 in
+one pull request (`.github/workflows/governance.yml`,
+`tools/policy/policy_lint.mjs`), M3 or the cadence alternative as decision O-1
+taken only after M0's measured limit, and the correction of HANDOVER item 44's
+"shared App quota" to the `GITHUB_TOKEN` bucket. Code-owned paths: the owner
+reviews.
+
+The fix review of this record found two defects in the harness that group's
+proof will use, carried there and not fixed here:
+
+- On a checkout whose origin is not a github remote, `policy_lint.mjs` falls
+  back to the `subject` enumerator, no `curl` runs, and the harness prints
+  `TOTAL 0` with exit 0. M1's bar "370 or less" is met by that 0, and the null
+  control reads 0 for a different reason. The harness should refuse a zero on a
+  non-empty window.
+- It exits only on `curl failed`; any other fetch error (`HTTP 403 from ...`,
+  `unparseable JSON ...`) ends a mode early and the early count is printed as
+  the mode's total (the review's mutant: 96 instead of 278 per mode, exit 0),
+  which is the shape a real 403 produces.
