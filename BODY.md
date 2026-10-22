@@ -23,15 +23,16 @@ Part of #2495. Group R10-CI-LAYOUT-P2, sub-PR **P2a, "umbrella engine, inert"** 
 - `gate.REQUIRED`'s sorted union equals the fixture's `gate_required`, which must be sorted and duplicate-free, and `contexts` holds 17.
 - The half of the forgery rule that needs no `ci.yml` (DESIGN-P2 2.1): no workflow except `ci.yml` defines a job that can report as `gate`; no workflow or job grants `checks: write` or `write-all`; every workflow declares top-level `permissions:`.
 
-`tmp_paths.py` gains an `ALLOW` entry for `ci_probe.py`'s self-test fixture.
+`tmp_paths.py` gains an `ALLOW` entry for `ci_probe.py`'s self-test fixture. `ci_probe.py` now asks git whether a SHA names a commit (route B, decision 8) instead of restating the full-SHA regex `policy_lint.mjs` owns.
 
 ## Head
 
-`ad3b94a0b4f98569892d2d89fb303fbe0bb65c91`, merge base `4d407a35f5f5` (origin/main, 2026-10-22). The last merge of main brought only `gate-scoping.md` (and its generated copies), `prepr.sh` and delivery rows, none of them a file this diff changes; the mutants harness and `entities.py` figures below were taken at `49ccd4a6c` (base 50808a755). The #2580 merge conflicted only in `r10_seat_selftests_mutants.py`; both blocks are kept, giving 94 ids with no duplicate. The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
+`7bf6a9213139132ef1db920d62eb910cf9107cb7`, merge base `fd9914851f06` (origin/main, 2026-10-22). It contains #2622's previous head `19d36dcda`, so the update is a fast-forward. The mutants harness and full-gate figures below were taken at `49ccd4a6c` and `0e066014d`. Every later commit changes seat tooling, `governance.yml` steps, `agreement.mjs` (now back to main's bytes) or `ci_probe.py`; `ci_probe`'s own mutants were re-run at this head.
 
 ## Mutation proof
 
-- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run at the head, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 101 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
+- **ci_probe at this head**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py ci_probe-1 ci_probe-2 ci_probe-3 ci_probe-4 ci_probe-5 ci_probe-6 ci_probe-7` gave `RESULT survivors=0`, each `KILLED`. ci_probe-5 drops the exact-name test, ci_probe-6 drops review's re-check after the fetch, and ci_probe-7 drops push's check.
+- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run at `49ccd4a6c`, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 101 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
 - **Alert-list mutants**: `sh tools/ci/alert_list_mutants.sh --self-test` refused 9 of 9, including the glue's case "the binding drops the Accept header".
 - **Gate predicate**: `r10_ci_gate_core.py mutants`, 16 of 16 killed at U0a's head. The predicate is unchanged here, because the glue touches only `main()`'s `--sweep` arm.
 - **Entities pins**: each pin was run against a mutated copy of the tree, through its own block. Dropping `ci-ratchet` from `PUSH_ONLY` gave `only in gate_required: tests / ci-ratchet`. Cutting `contexts` to 16 gave `contexts holds 16`. A `gate` job in `tests.yml` gave `tests.yml: job gate can report as gate`. `checks: write` in `hassfest.yml` gave `top grants checks: write`.
@@ -52,7 +53,8 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
 5. `tests/closure.py` drops the per-file lines under `tools/ci/` (U0b's and U9c's `GATE_FILES` lines and U6-lib's `INERT` lines), because U0a's `tools/ci/` prefix classifies them.
 6. The forgery pin also requires every workflow to declare top-level `permissions:`, so no job falls back to the repository's default token.
 
-7. `tools/policy/agreement.mjs` registers `[0-9a-f]{40}` as `not-a-concept` (the full git SHA shape), which `ci_probe.py` shares with `policy_lint.mjs`. It follows the precedent of the semantic-version entry; no single owner can serve both a `.mjs` and a `.py` reader. This one is the seat's, made after prepr's agreement lane refused the head.
+7. **Withdrawn.** The `SHARED_GRAMMARS` entry for `[0-9a-f]{40}` is dropped, and `tools/policy/agreement.mjs` is main's bytes. CI's wave-script restores that file from the base (a pinned grader), so the entry could not take effect in this pull request. Split out alone, it reads `DEAD` (see `## Forward-carry`).
+8. **Route B.** `ci_probe.py` no longer restates the regex. git owns the SHA shape: `push` and `review` accept a SHA only when `git rev-parse --verify --quiet <sha>^{commit}` prints exactly that SHA, so a short, upper-case or unknown name refuses before any API write. `review` fetches `refs/pull/<pr>/head` first when the commit is not local and refuses if it still is not. `review` has no programmatic caller (`git grep ci_probe` finds only its CLI, workflow step, INSTRUMENTS row and pins). Confirmed under mandate 6329234399.
 
 ## Figures
 
@@ -64,32 +66,33 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `alert_list` 25, 0 failed;
   - `ruleset_cutover` 51, 0 failed;
   - `sweep_driver` 15, 0 failed;
-  - `ci_probe` 34, 0 failed;
+  - `ci_probe` 40, 0 failed (34 before route B: short SHA, upper-case SHA, unknown full SHA before any API write, review fetch-then-refuse, and the two nulls);
   - `python3 tools/audit/seat/prune_refs.py --self-test`: `SELF-TEST PASS (29 checks)`.
 - Oracles over the assembled `gate.py`, from `dev/audit/harnesses/r10_ci_gate_core.py`:
   - `replay`: `rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt`, and `replay --model` reads the same;
   - `sim`: `GATE-SIM rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt`, which holds the 42 sequences at END-BAD 0 and the 7 planted defects refused;
   - `b3`: `parity GREEN`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY CHECKS FAILED` at the head. The same command at `origin/main` a9db47846 reads `4 of 2397 ENTITY CHECKS FAILED`, with the same four py-spy heartbeat-control checks. The two new pins read `ok`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY CHECKS FAILED` at this head. The same command at `origin/main` a9db47846 reads `4 of 2397 ENTITY CHECKS FAILED`, with the same four py-spy heartbeat-control checks. The two new pins read `ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget raised.
 - Other checks:
   - `python3 tests/throwaway_git.py --check`: 0 refused;
   - `python3 -I tools/audit/seat/tmp_paths.py --check`: 0 refused;
   - `ref_privacy.py --check`: 0 refused;
   - `tests/layout.py`: `GUARD: 0 refusal(s)`;
-  - `python3 -I tools/policy/agreement_py.py --out ag.json && node tools/policy/agreement.mjs --py-json ag.json`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
+  - Agreement lane as CI runs it: wave-script's two `run:` blocks ("Restore the check source from the base commit", then "Refuse two readers of one concept that disagree"), taken from `.github/workflows/governance.yml` and run in a detached worktree at the head with `PINNED=fd9914851f06`, gave `RESULT divergent=0 unregistered=0 dead=0 refused=0`, then `AGREEMENT ok`. At `19d36dcda` the same base copy gave `UNREGISTERED "[0-9a-f]{40}" in .claude/workflows/policy_lint.mjs, tools/audit/seat/ci_probe.py`.
 - `tools/pr/ci_predict.py --base origin/main`: no closures or fast red predicted.
 - `python3 -I tests/harness_headers.py` fails at import here, because `-I` drops `PYTHONPATH=tests/hastub`, as U9c reported. The suite's own run is in the gate line below.
 - Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a9db47846647 PYTHONPATH=tests/hastub ./tests/run.sh`, run at `0e066014d` (base a9db478), printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `4 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`, `entities.py`); everything else was `ok`, `harness_headers.py` included (`ALL 109 HARNESS HEADER CHECKS PASSED`). The #2580 merge since then changed only `cloud_relay.sh`, `INSTRUMENTS.md`, the mutants harness and a delivery row. `entities.py`, `structure.py`, every self-test, the mutants harness and the static checks were re-run at the head. All four are environmental or main's and not caused by this diff; see `## Red checks`.
-- Line counts, from `git diff --stat origin/main...HEAD`: 26 files, 3686 insertions, 4 deletions (`governance.yml` +67). Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
+- Line counts, from `git diff --stat origin/main...HEAD`: 26 files, 3725 insertions, 4 deletions (`governance.yml` +67). Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
   - `tools/ci/`: `gate` 419, `ghapi` 225, `prelude` 281, `sweep` 167, `alert_list` 305, `ruleset_cutover` 510, each self-test included;
   - `tools/audit/seat/`: `ci_probe` 466 and `sweep_driver` 150.
 
 ## Red checks
 
-- **nightly-status**: red on main's ancestry, not this diff's. It reports the nightly lanes' latest result on main. The diff touches no nightly lane: `git diff --name-only origin/main...HEAD | grep -E 'nightly|rolling|mutation_table|nightly_ha'` matches nothing. No cheaper detector is owed here.
-- **Local `entities.py`, four py-spy heartbeat-control checks** (`hb:positive_control` retries, the rest between tries, the hung-sample arms): these are main's, not this diff's. The same four fail at `origin/main` a9db47846 on this host (4 of 2397). The diff touches no heartbeat or py-spy code. CI owns them.
-- **Local `optimality.py`, `stress.py`, `card.mjs`**: none of the three scripts' measured closures in `tests/closures.json` holds a changed file. The `optimality.py` red (`1 of 84 OPTIMALITY CHECKS FAILED`, a closed claim still recorded) and the `stress.py` red (`shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`) read the same at the earlier base `origin/main` 49018a8bec8d in a detached worktree (both scripts' closures are untouched by the #2579 merge's delta too). `card.mjs` died with a Node 20 `JavaScript heap out of memory` on this host. CI owns these three. No cheaper detector is owed by this diff.
+On #2622's head `19d36dcda`:
+- **wave-script** (job 120056478277): `AGREEMENT REFUSED`, with `UNREGISTERED "[0-9a-f]{40}" in .claude/workflows/policy_lint.mjs, tools/audit/seat/ci_probe.py`. The cause was that the job grades a pull request with the base's `tools/policy/agreement.mjs` (a pinned grader), and decision 7's entry lived only in the branch. Fixed by route B (decision 8): the regex is gone from `ci_probe.py`, and the base-copy lane reads `AGREEMENT ok` at this head (`## Figures`). The cheaper detector is the agreement lane run against the base copy, as CI runs it; `tools/pr/prepr.sh` runs the branch's copy, which read `AGREEMENT ok` on the red head. Its standing cost is seconds. Carry: R10-RCA-BODY-LINT
+- **nightly-status** (job 120056478339): `NIGHTLY ABSENT: no scheduled run of the workflow was found at all.` This is main's red, a one-time transition from the CI-LAYOUT P1 cut-over. `nightly.yml`'s schedule (cron `17 2 * * *`) reached main with #2585 at 2026-10-22T08:05Z, after that day's 02:17Z slot, so the workflow has had no scheduled run yet. It clears with the first one, around 2026-10-23T02:17Z. This diff touches no nightly file. No cheaper detector is worth building for a one-time event. The orchestrator owns it on main.
+- **pr-contract** (job 120056744119): downstream of the two above. It refused `RED UNANSWERED (nightly-status wave-script)`, and both are now answered here.
 
 ## Forward-carry
 
@@ -97,6 +100,8 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
 - **The two-part `get` signature**: `ghapi.get(path, params=None, headers=None)` is now the signature both CI-run modules use. Any further `tools/ci/` reader that needs a media type binds through it. Carry: R10-CI-LAYOUT-P2
 - **The rest of the forgery rule**: "exactly one job in `ci.yml` reports `gate`" needs the real `ci.yml`. Carry: R10-CI-LAYOUT-P2
 - **The units' own carries**: U0a's to U0c (`run-name`, `fetch-depth: 0`, the gate step); U0b's live status values and `workflow_run` on a job-token re-run; U9c's ruleset staging at H. Carry: R10-CI-LAYOUT-P2
+- **The agreement lane in `tools/pr/prepr.sh` runs the branch's copy**: CI's wave-script runs the base's copy of `tools/policy/agreement.mjs`, so a head can pass prepr and fail CI, as `19d36dcda` did. The cheaper detector is prepr running the lane against the base copy, as wave-script does. Carry: R10-RCA-BODY-LINT
+- **The bootstrap deadlock of a shared grammar under a pinned grader**: in `tools/policy/agreement.mjs`, a grammar a new reader shares cannot be registered before that reader lands, because a `SHARED_GRAMMARS` entry spanning one file reads `DEAD` (measured: the split cut from `origin/main` 98b532ab1 gave `RESULT ... dead=1`). The reader cannot land before the entry, because the base-copy lane reads it `UNREGISTERED`. Route B avoided it here; the next shared grammar has no route. Carry: R10-POLICY-LINT-FAMILY
 
 ## Friction
 
