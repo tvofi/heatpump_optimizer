@@ -1,0 +1,13 @@
+M0-null all checks pass
+M1-one-try KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+M2-timeout-30 KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+M3-any-output KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+M4-no-hold KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+M5-no-release KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+M6-check-any-rc0 KILLED by: hb:positive_control passes at the spin, and fails just under it, without the spin's frame, or without py-spy's own rc=0 section naming it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+M7-control-no-hold KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+M8-check-split-tries KILLED by: hb:positive_control passes on any one try that reads all three, and never on three readings split across tries
+M9-rc-ignored KILLED by: and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted
+M10-boot-skips-control KILLED by: the real heartbeat boot runs the retried control
+SUMMARY killed=10 survived=0 null=ok
+rc=0
