@@ -1,0 +1,1 @@
+verdicts 395, with a bus-nonce line 395, not 32-hex 0
