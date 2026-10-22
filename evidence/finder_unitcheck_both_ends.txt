@@ -1,0 +1,7 @@
+# base end: before=after=origin/main 3976515a0 tests.yml, no map
+  STATIC rows 249->249 lost 0 gained 0 changed 0 (mapped 0) misplaced 0 rc 0
+# head end, no map
+  CHANGED  |triggers  b2395454478e -> 79c342ba636a
+  STATIC rows 249->232 lost 30 gained 13 changed 24 (mapped 0) misplaced 0 rc 1
+# head end, with committed map
+  STATIC rows 225->232 lost 0 gained 0 changed 29 (mapped 29) misplaced 0 rc 0

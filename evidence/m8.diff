@@ -1,0 +1,14 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 2ef4a5a29..874c054fe 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -227,8 +227,7 @@ def inert_siblings(changed, inert_reads, closure, pairs=None):
+         for script, files in inert_reads.items():
+             if f in files:
+                 continue
+-            sib = [g for g in files if str(Path(g).parent) == d and Path(g).suffix == suf
+-                   and closure.is_inert(g)]
++            sib = [g for g in files if str(Path(g).parent) == d and Path(g).suffix == suf]
+             if len(sib) >= 3:
+                 preds.append(("closures", f"INERT READS {script}: {f} "
+                               f"(a new file beside {len(sib)} it lists)"))

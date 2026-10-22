@@ -1,5 +1,0 @@
- tools/audit/seat/ref_privacy.py | 2 --
- 1 file changed, 2 deletions(-)
-ref_privacy: REFUSE .github/workflows/nightly.yml:381: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
-ref_privacy --check at HEAD: 20 file(s) with a push site, 9 guarded, 1002 line(s) added since 57f0c9c77cfd judged, 1 refused
-rc=1

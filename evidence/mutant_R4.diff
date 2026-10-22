@@ -1,0 +1,12 @@
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 173662648..6f8fd8950 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -541,6 +541,7 @@ jobs:
+   # brief_lint.mjs's no-arg path requires those ten errors, so gutting
+   # lintBrief cannot green the job.
+   briefs:
++    needs: [recheck-gate]
+     if: >-
+       !cancelled() && (
+         github.event_name == 'push'

@@ -1,0 +1,2 @@
+self-test: edge+tail gain 330 s (want 330) ok; null control 0 s (want 0) ok
+rc=0 secs=.152918195
