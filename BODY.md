@@ -66,4 +66,3 @@ none
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE
