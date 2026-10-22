@@ -1,0 +1,7 @@
+b647bb0c5a728bd1f78d6e16647d2b958d65e099
+100644 6615203930046749f142df69d489bf3f11914883 1	dev/governance/roles/orchestrator.md
+100644 d366e5250ce5a55598e9c674d08cae80dd92811b 2	dev/governance/roles/orchestrator.md
+100644 a85ee31277230dfa395b98640f5adc9f804ea783 3	dev/governance/roles/orchestrator.md
+
+Auto-merging dev/governance/roles/orchestrator.md
+CONFLICT (content): Merge conflict in dev/governance/roles/orchestrator.md
