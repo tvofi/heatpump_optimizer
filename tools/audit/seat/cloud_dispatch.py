@@ -419,6 +419,15 @@ def _group_checks(check) -> None:
         check("the --group CLI passes --head and --roster-ref through",
               rc == 0 and out.getvalue() == line + "\n" and first in msg and main_tip not in msg
               and "Changed." in msg and "On the branch." not in msg)
+        # A pr and nonce the API dispatch above did not publish, so the prompt is this call's.
+        out = io.StringIO()
+        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            rc = main(["--role", "reviewer", "--group", "R10-X", "--model", "m-1", "--head", first,
+                       "--pr", "8", "--nonce", "def456", "--overlay", str(overlay)])
+        msg = fetched("dispatch/reviewer-r10-x", "PROMPT.md")
+        check("the --group CLI passes --role, --pr and --nonce through",
+              rc == 0 and out.getvalue() == "dispatch/reviewer-r10-x\n" and msg.startswith("CLOUD REVIEWER")
+              and "PR #8 " in msg and "Bus nonce: def456." in msg)
         # A clone of main alone (--no-local: a local clone copies every object) holds none of the
         # dispatch ref's objects, so it must fetch the tip it extends.
         tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
