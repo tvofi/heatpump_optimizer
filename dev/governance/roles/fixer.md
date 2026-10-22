@@ -59,8 +59,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
-   (`ci-autofix.md`'s wait starts at the PR), and the body passes `prepr.sh`;
-   the orchestrator opens the PR (`docs/decisions/0011-app-authored-identity.md`).
+   (`ci-autofix.md`'s wait starts at the PR), and the body passes
+   `tools/pr/prepr.sh`; the orchestrator opens
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
