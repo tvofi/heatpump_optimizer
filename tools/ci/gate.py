@@ -211,11 +211,15 @@ def reaches_custom_components(base: str, head: str) -> bool:
     return p.returncode != 0 or bool(p.stdout.strip())
 
 
-def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components) -> tuple[str, list[str]]:
+def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components) -> tuple[str, list[str], list[str]]:
+    """(outcome, reasons, this run's other jobs: reported, never gating)."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
-    ok, why = gate(ctx, read_api(ctx, claim, cc, get))
-    return ("PASS" if ok else f"FAIL {why[0]}"), why
+    api = read_api(ctx, claim, cc, get)
+    ok, why = gate(ctx, api)
+    owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
+    notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
+    return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
 
 
 def refresh(ctx: dict, get, post) -> tuple[int, list[str]]:
@@ -245,11 +249,12 @@ def refresh(ctx: dict, get, post) -> tuple[int, list[str]]:
     return rc, log
 
 
-def summary(outcome: str, why: list[str]) -> None:
+def summary(outcome: str, why: list[str], notes=()) -> None:
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
         with open(path, "a") as fh:
-            fh.write(f"### gate: {outcome.split()[0]}\n\n" + "".join(f"- {w}\n" for w in why))
+            fh.write(f"### gate: {outcome.split()[0]}\n\n" + "".join(f"- {w}\n" for w in why)
+                     + ("\nNot gating:\n" + "".join(f"- {x}\n" for x in notes) if notes else ""))
 
 
 def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int:
@@ -280,16 +285,17 @@ def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int
         if a.kind is None or a.pr is None:
             print("FAIL usage: --pr N --base B --kind K (the prelude's outputs)")
             return 1
-        outcome, why = judge(ctx, {"kind": a.kind, "pr": a.pr}, get)
+        outcome, why, notes = judge(ctx, {"kind": a.kind, "pr": a.pr}, get)
     except ghapi.RateLimited as e:
         outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
-        print(outcome)
+        # The annotation is how the sweep tells this red from any other (check-runs/<job>/annotations).
+        print(f"{outcome}\n::error title=RATE-LIMITED::reset_epoch={e.reset_epoch}")
         summary(outcome, why)
         return 3
     except ghapi.ApiError as e:
-        outcome, why = f"FAIL {e}", [str(e)]
+        outcome, why, notes = f"FAIL {e}", [str(e)], []
     print("\n".join([outcome] + why[1:]))
-    summary(outcome, why)
+    summary(outcome, why, notes)
     return 0 if outcome == "PASS" else 1
 
 
@@ -335,6 +341,9 @@ def self_test() -> int:
         return get
     claim, cc = {"kind": "code", "pr": "7"}, (lambda b, h: True)
     check("null: every source green", judge(ctx, claim, fake(), cc)[0], "PASS")
+    extra = green + [{"name": "tests / nightly-status", "status": "completed", "conclusion": "failure"}]
+    check("a red job no class requires is reported, never gating", judge(ctx, claim, fake(extra), cc)[::2],
+          ("PASS", ["tests / nightly-status: failure"]))
     red = [dict(j, conclusion="failure") if j["name"] == "tests / closures" else j for j in green]
     check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
     skip = [dict(j, conclusion="skipped") if j["name"] == "tests / browser" else j for j in green]
@@ -378,6 +387,8 @@ def self_test() -> int:
                 rc = main(args, g, None, menv)
             first = buf.getvalue().split("\n")[0]
             check(label, (rc, first.split()[0]), (want, "RATE-LIMITED" if want == 3 else "FAIL"))
+            if want == 3:
+                check("the sweep's annotation", buf.getvalue().split("\n")[1], "::error title=RATE-LIMITED::reset_epoch=1700000000")
         check("the 403's reason is printed", "HTTP 403 Resource not accessible" in first, True)
         import types
         calls, saved = [], sys.modules.get("sweep")
