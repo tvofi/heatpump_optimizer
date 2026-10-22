@@ -79,8 +79,7 @@ and an orphan `.mdc`.
 
 `AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
 name instead of this one (ZCode, Codex); it states no policy of its own and
-binds the seat to this file. It is measured policy: `POLICY_GLOBS` matches it
-and `policy_budgets.json` caps it.
+binds the seat to this file.
 
 | rule | what it binds |
 |---|---|
@@ -117,6 +116,13 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
 | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
+| `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
+| `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
+| `proposal-triage.md` | the cost/benefit gate a process or tooling proposal passes first |
+| `standing-tick.md` | reports only owed or new items from the tick board |
+| `standing-merge.md` | runs merges, critical path first; never chooses what merges |
+| `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
+| `standing-roster.md` | `roster_edit.py` ops only, behind the lint gate |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
@@ -152,9 +158,8 @@ individually, because a range reads as complete while covering a fraction:
 
 ### Instruments
 
-`tools/audit/seat/` is the instrument inventory (merge train, verdict bus, PR
-openers and updaters, crash-safety snapshot, merge and absorb, CI watcher, seat
-venv, tmp-path detector); the gate-check family is in `.claude/workflows/`, the
+`tools/audit/seat/` is the instrument inventory, listed in its
+instruments guide; the gate-check family is in `.claude/workflows/`, the
 architecture score in `tools/audit/archscore/`, per-group harnesses in
 `dev/audit/harnesses/` and `dev/audit/rounds/round9/`. Check it before hand-rolling
 any merge, push, body, gate or watch loop; new reusable instruments land here,
