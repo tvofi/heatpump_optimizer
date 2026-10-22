@@ -4,7 +4,22 @@
     python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe \
         --head <40-hex> [--pr N] [--topic T] [--nonce N] [--brief FILE] \
         [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE]
+    python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe --group G --model M \
+        [--roster-ref REF] [--head <40-hex>] [--pr N] [--nonce N] [--overlay FILE]
     python3 -I tools/audit/seat/cloud_dispatch.py --self-test
+
+THE GROUP PATH (`--group`, or `dispatch_group()` for a caller that hosts it) takes
+a role, a roster group and a model. The roster at REF (default: the round's
+roster branch, roster_lib.default_roster_ref) gives the brief, the topic (the
+group's branch) and the repository; the head is --head, else origin/main's tip,
+never the roster ref's (a seat forks from main, not from the roster branch); a
+reviewer needs --head (the PR head); the environment id comes from the overlay /
+$HPO_CLOUD_ENV_ID. The
+payload is rendered by the same `render` as the flag path, so it is the flag
+path's byte for byte, and is published, with its prompt, on origin as
+`dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md); the one line printed is that
+ref name. A standing trigger whose prompt fetches the ref it is fired with
+needs nothing else. A render refusal (below) pushes nothing.
 
 WHAT IT RENDERS. The whole `job_config.ccr` object a cloud runner's trigger
 update takes: `environment_id`, `session_context` (`allowed_tools`, `model`,
@@ -31,7 +46,11 @@ WHAT IT REFUSES (exit 2, nothing printed on stdout):
   * any home-directory path in the rendered text (ref_privacy.HOME_DIR, the
     host-path grammar): the payload is published to the runner, and a seat's
     prompt may not name the machine it was written on;
-  * an unreadable brief.
+  * an unreadable brief;
+  * with --group: a group the roster does not name, a roster that cannot be read,
+    a reviewer without --head, a ref name that would publish the host
+    (ref_privacy.refusal), and any flag the group path does not consume
+    (--topic, --brief, --repo, --env-id, --out; GROUP_FLAGS gives each its reason).
 """
 from __future__ import annotations
 
@@ -40,22 +59,25 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
 
-def _ref_privacy():
-    """Load the sibling module by path (`python3 -I` puts no script dir on sys.path)."""
-    spec = importlib.util.spec_from_file_location("ref_privacy", HERE / "ref_privacy.py")
+def _sibling(name: str):
+    """Load a sibling module by path (`python3 -I` puts no script dir on sys.path)."""
+    spec = importlib.util.spec_from_file_location(name, HERE / f"{name}.py")
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["ref_privacy"] = mod  # @dataclass reads sys.modules[cls.__module__]
+    sys.modules[name] = mod  # @dataclass reads sys.modules[cls.__module__]
     spec.loader.exec_module(mod)
     return mod
 
 
-HOME = re.compile(_ref_privacy().HOME_DIR)
+ref_privacy = _sibling("ref_privacy")
+roster_lib = _sibling("roster_lib")
+HOME = re.compile(ref_privacy.HOME_DIR)
 LOWER_HEX = frozenset("0123456789abcdef")
 
 
@@ -172,9 +194,96 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     return payload
 
 
-def _config(args: argparse.Namespace) -> dict:
+# ------------------------------------------------------------ the group path
+#
+# `dispatch_group` is the whole call for one seat: role, group, model. It is a
+# function, not a CLI step, so the beat (R10-ORCH-MACHINERY) can host it as it
+# is. It renders through `render`, the same code the flag path runs, so the
+# payload is the flag path's byte for byte; what it adds is where the inputs
+# come from and where the output goes.
+
+#: The ref namespace a seat fetches its dispatch from: `dispatch/<role>-<topic>`.
+DISPATCH_NS = "dispatch"
+#: Where a seat's head comes from when none is passed: main, never the roster
+#: ref, whose tip is the roster branch a fixer must not fork from.
+HEAD_REF = roster_lib.MAIN_REF
+#: Identity of the commit that carries a dispatch (a constant, never the host's).
+_SEAT = ("-c", "user.name=seat", "-c", "user.email=seat@users.noreply.github.com")
+
+
+def _git(repo_dir: str, *argv: str, stdin: str | None = None) -> str:
+    r = subprocess.run(["git", "-C", repo_dir, *argv], input=stdin, capture_output=True, text=True)
+    if r.returncode:
+        raise Refusal(f"git {argv[0]} failed: {(r.stderr or r.stdout).strip()[:200]}")
+    return r.stdout
+
+
+def _topic_of(group: dict) -> str:
+    """The topic a group's seat returns under: its branch, less the `handoff/` prefix."""
+    return roster_lib.branch_of(group).removeprefix("handoff/")
+
+
+def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> None:
+    """Append one commit holding `files` to `refs/heads/<ref>` on origin.
+
+    The first commit has no parent; later ones fast-forward, so a re-dispatch
+    needs no force-push. An identical tree adds no commit. A fetch that fails
+    for any reason but a missing ref refuses: a parentless commit would only be
+    refused by the push as a non-fast-forward, never rewritten."""
+    why = ref_privacy.refusal(ref, (("the dispatch message", f"dispatch: {ref}"),))
+    if why:
+        raise Refusal(f"the dispatch ref would publish the host: {why}")
+    tip = _git(repo_dir, "ls-remote", "origin", f"refs/heads/{ref}").split()[:1]
+    if tip:
+        _git(repo_dir, "fetch", "-q", "origin", f"refs/heads/{ref}")
+    entries = "".join(f"100644 blob {_git(repo_dir, 'hash-object', '-w', '--stdin', stdin=text).strip()}\t{name}\n"
+                      for name, text in sorted(files.items()))
+    tree = _git(repo_dir, "mktree", stdin=entries).strip()
+    if tip and _git(repo_dir, "rev-parse", f"{tip[0]}^{{tree}}").strip() == tree:
+        return
+    commit = _git(repo_dir, *_SEAT, "commit-tree", tree, *(["-p", tip[0]] if tip else []),
+                  "-m", f"dispatch: {ref}").strip()
+    _git(repo_dir, "push", "-q", "origin", f"{commit}:refs/heads/{ref}")
+
+
+def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+                   roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
+                   overlay: str | None = None, environ=None) -> str:
+    """Render the seat for `group_id` from the roster, publish it, return its ref name.
+
+    The roster at `roster_ref` of `repo_dir` (default: the round's roster
+    branch, `roster_lib.reader_ref`) gives the brief, the topic (the group's
+    branch) and the repository. The head is a separate source: the one passed,
+    else HEAD_REF's tip; a reviewer must pass its PR head. The environment id comes from the
+    known seat environment (`--overlay` / $HPO_CLOUD_ENV_ID). Nothing is pushed
+    unless the payload rendered, so every `render` refusal holds here too."""
+    if role == "reviewer" and not head:
+        raise Refusal("a reviewer is dispatched at its PR head: pass --head")
+    roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)
+    try:
+        roster = roster_lib.show_roster(repo_dir, roster_ref)
+    except roster_lib.RosterNotFound as e:
+        raise Refusal(str(e))
+    group = roster_lib.groups_of(roster).get(group_id)
+    if group is None:
+        raise Refusal(f"{group_id} is not a group of the roster at {roster_ref}")
+    environ = os.environ if environ is None else environ
+    known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
+    topic = _topic_of(group)
+    payload = render(role, head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip(),
+                     env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+                     pr=pr, topic=topic, nonce=nonce, brief=group.get("brief") or "")
+    ref = f"{DISPATCH_NS}/{role}-{topic}"
+    _publish(repo_dir, ref, {
+        "PAYLOAD.json": json.dumps(payload),
+        "PROMPT.md": payload["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]})
+    return ref
+
+
+def _config(args: argparse.Namespace, environ=None) -> dict:
+    environ = os.environ if environ is None else environ
     ov: dict = {}
-    path = args.overlay or os.environ.get("HPO_CLOUD_OVERLAY")
+    path = args.overlay or environ.get("HPO_CLOUD_OVERLAY")
     if path:
         try:
             ov = json.loads(Path(path).read_text())
@@ -184,10 +293,203 @@ def _config(args: argparse.Namespace) -> dict:
             raise Refusal("overlay must be a JSON object")
 
     def pick(flag, key, var):
-        return flag or ov.get(key) or os.environ.get(var) or ""
+        return flag or ov.get(key) or environ.get(var) or ""
     return {"env_id": pick(args.env_id, "environment_id", "HPO_CLOUD_ENV_ID"),
             "model": pick(args.model, "model", "HPO_CLOUD_MODEL"),
             "repo": pick(args.repo, "repo", "HPO_CLOUD_REPO")}
+
+
+def _group_checks(check) -> None:
+    """The group path (`dispatch`): offline, against a throwaway origin and checkout."""
+    import contextlib
+    import io
+    import subprocess
+    import tempfile
+    sys.path.insert(0, str(HERE.parents[2] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_environ, throwaway_git_init
+
+    def git(cwd, *a):
+        return subprocess.run(["git", "-C", str(cwd), *a], capture_output=True, text=True, check=True).stdout
+
+    env = {"HPO_CLOUD_ENV_ID": "env_x", "HPO_CLOUD_MODEL": "ignored"}
+    users = "/" + "Users/"
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        origin, work = Path(td) / "origin.git", Path(td) / "work"
+        throwaway_git_init(origin, "-q", "--bare")
+        throwaway_git_init(work, "-q", "-b", "main")
+        roster = work / roster_lib.ROSTERS_DIR / "wave-r10-groups.json"
+        roster.parent.mkdir(parents=True)
+
+        def land(groups):
+            roster.write_text(json.dumps({"repo": "owner/name", "groups": groups}))
+            git(work, "add", "-A")
+            git(work, "commit", "-q", "-m", "roster")
+            git(work, "push", "-q", "-f", str(origin), "main")
+            git(work, "fetch", "-q", str(origin), "+main:refs/remotes/origin/main")
+        grp = {"group": "R10-X", "brief": "Fix the thing in tools/x.py.\n", "resume": {"branch": "handoff/r10-x"}}
+        bad = {"group": "R10-BAD", "brief": "cd " + users + "someone/work"}
+        land([grp, bad])
+        git(work, "remote", "add", "origin", str(origin))
+        tip = git(work, "rev-parse", "origin/main").strip()
+
+        def dispatch(group="R10-X", role="fixer", **kw):
+            with contextlib.redirect_stderr(io.StringIO()):  # roster_lib's absent-branch note
+                return dispatch_group(role, group, "m-1", repo_dir=str(work), **{"environ": env, **kw})
+
+        def refused(*a, **kw):
+            try:
+                dispatch(*a, **kw)
+            except Refusal:
+                return True
+            return False
+
+        def fetched(line, name):
+            git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
+            return git(work, "show", "FETCH_HEAD:" + name)
+
+        line = dispatch()
+        check("a group dispatch prints one short line, the ref name",
+              line == "dispatch/fixer-r10-x" and "\n" not in line and " " not in line)
+        brief = work / "brief.txt"
+        brief.write_text(grp["brief"])
+        old = io.StringIO()
+        with contextlib.redirect_stdout(old):
+            rc = main(["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
+                       "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
+        check("the printed line round-trips to a payload byte-identical to today's flag path",
+              rc == 0 and fetched(line, "PAYLOAD.json") == old.getvalue().rstrip("\n"))
+        msg = json.loads(fetched(line, "PAYLOAD.json"))["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+        check("the ref carries the prompt the payload carries", fetched(line, "PROMPT.md") == msg)
+        check("the roster brief is inlined and the roster tip is the head",
+              "Fix the thing in tools/x.py." in msg and tip in msg)
+        check("a re-dispatch of the same brief moves no ref", dispatch() == line
+              and git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
+              == git(work, "rev-parse", "FETCH_HEAD").strip())
+        first = git(work, "rev-parse", "FETCH_HEAD").strip()
+        land([{**grp, "brief": "Changed.\n"}, bad])
+        dispatch()
+        git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
+        check("a changed brief fast-forwards the ref",
+              git(work, "rev-parse", "FETCH_HEAD^").strip() == first and "Changed." in fetched(line, "PROMPT.md"))
+        check("the dispatch ref is on origin only once the render passed (null control for the refusals)",
+              git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").count("\n") == 1)
+        check("a host path in a roster brief refuses and pushes nothing",
+              refused("R10-BAD") and "r10-bad" not in git(work, "ls-remote", str(origin)))
+        check("a group the roster does not name refuses", refused("R10-NOPE"))
+        check("an unknown environment refuses", refused(environ={}))
+        check("a reviewer needs its pr and nonce, as on the flag path", refused(role="reviewer", head=tip))
+        check("a reviewer needs its PR head", refused(role="reviewer", pr="7", nonce="abc123"))
+        check("a reviewer dispatch with pr and nonce renders",
+              dispatch(role="reviewer", head=first, pr="7", nonce="abc123") == "dispatch/reviewer-r10-x")
+        check("a reviewer is dispatched at the PR head passed, not at a ref's tip",
+              first in fetched("dispatch/reviewer-r10-x", "PROMPT.md")
+              and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        leak = DISPATCH_NS + "/fixer-" + users + "someone"
+        try:
+            _publish(str(work), leak, {"PROMPT.md": "x"})
+            published = True
+        except Refusal:
+            published = False
+        check("_publish itself refuses a ref that would publish the host, and pushes nothing",
+              not published and "someone" not in git(work, "ls-remote", str(origin)))
+        # Two sources, never one: the roster from the round's roster branch
+        # (O17), the head from main. The branch is one commit ahead of main
+        # with its own brief, so either swap shows.
+        main_tip = git(work, "rev-parse", "origin/main").strip()
+        roster.write_text(json.dumps({"repo": "owner/name", "groups": [{**grp, "brief": "On the branch.\n"}]}))
+        git(work, "commit", "-q", "-am", "roster edit")
+        git(work, "push", "-q", str(origin), "HEAD:refs/heads/handoff/audit-r10-roster")
+        git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
+        branch_tip = git(work, "rev-parse", "origin/handoff/audit-r10-roster").strip()
+        dispatch()
+        msg = fetched(line, "PROMPT.md")
+        check("by default the brief is the round's roster branch's and the head is main's tip, not that branch's",
+              "On the branch." in msg and main_tip in msg and branch_tip not in msg)
+        # An explicit source wins over the default: main's brief differs from the branch's.
+        dispatch(roster_ref="origin/main")
+        msg = fetched(line, "PROMPT.md")
+        check("an explicit roster ref is read, not the round's roster branch",
+              "Changed." in msg and "On the branch." not in msg)
+        overlay = Path(td) / "overlay.json"
+        overlay.write_text(json.dumps({"environment_id": "env_x"}))
+        out = io.StringIO()
+        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            rc = main(["--role", "fixer", "--group", "R10-X", "--model", "m-1", "--head", first,
+                       "--roster-ref", "origin/main", "--overlay", str(overlay)])
+        msg = fetched(line, "PROMPT.md")
+        check("the --group CLI passes --head and --roster-ref through",
+              rc == 0 and out.getvalue() == line + "\n" and first in msg and main_tip not in msg
+              and "Changed." in msg and "On the branch." not in msg)
+        # Every other input distinct from any call above (a second group, a model, a pr and a nonce
+        # nothing published), so each value on the ref is this call's.
+        roster.write_text(json.dumps({"repo": "owner/name", "groups": [
+            {**grp, "brief": "On the branch.\n"}, {**grp, "group": "R10-Y", "resume": {"branch": "handoff/r10-y"}}]}))
+        git(work, "commit", "-q", "-am", "second group")
+        git(work, "push", "-q", str(origin), "HEAD:refs/heads/handoff/audit-r10-roster")
+        git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
+        out = io.StringIO()
+        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", first,
+                       "--pr", "81", "--nonce", "def456", "--overlay", str(overlay)])
+        try:  # a wrong role or group publishes no reviewer-r10-y ref: the check, not a crash, says so
+            msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
+            model = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"][
+                "session_context"]["model"]
+        except subprocess.CalledProcessError:
+            msg = model = ""
+        check("the --group CLI passes --role, --group, --model, --pr and --nonce through",
+              rc == 0 and out.getvalue() == "dispatch/reviewer-r10-y\n" and msg.startswith("CLOUD REVIEWER")
+              and "PR #81 " in msg and "Bus nonce: def456." in msg and model == "m-9")
+        # A clone of main alone (--no-local: a local clone copies every object) holds none of the
+        # dispatch ref's objects, so it must fetch the tip it extends.
+        tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
+        other = Path(td) / "other"
+        throwaway_git_clone(origin, other, "-q", "--no-local", "--single-branch", "--branch", "main")
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                again = dispatch_group("fixer", "R10-X", "m-1", repo_dir=str(other), roster_ref="origin/main",
+                                       environ=env)
+        except Refusal:
+            again = None
+        git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
+        check("a re-dispatch from a second clone fast-forwards the existing ref",
+              again == line and git(work, "rev-parse", "FETCH_HEAD^").strip() == tip_before)
+
+
+
+
+def _flag_checks(check) -> None:
+    """Every flag the parser accepts is either forwarded or refused on the --group path.
+
+    Table-driven from the parser itself, so a flag added without a GROUP_FLAGS
+    entry fails here. `dispatch_group` is stubbed to record its call: a
+    forwarded flag's distinct value must reach it, a refused flag must exit 2
+    without calling it."""
+    import contextlib
+    import io
+    dests = {a.dest for a in _parser()._actions if a.dest != "help"}
+    check("every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other",
+          dests == set(GROUP_FLAGS))
+    calls: list = []
+    real = globals()["dispatch_group"]
+    globals()["dispatch_group"] = lambda *a, **kw: calls.append((a, kw)) or "dispatch/stub"
+    try:
+        for dest in sorted(dests):
+            base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
+            value = "probe" if dest == "role" else f"value-of-{dest}"
+            argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
+            calls.clear()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                rc = main(argv)
+            if GROUP_FLAGS.get(dest):
+                check(f"--group refuses --{dest.replace('_', '-')} (exit 2, nothing dispatched)",
+                      rc == 2 and not calls)
+            else:
+                sent = [*calls[0][0], *calls[0][1].values()] if len(calls) == 1 else []
+                check(f"--group forwards --{dest.replace('_', '-')} to dispatch_group",
+                      rc == 0 and value in sent)
+    finally:
+        globals()["dispatch_group"] = real
 
 
 def self_test() -> int:
@@ -263,16 +565,33 @@ def self_test() -> int:
           "FIND-ME" in render("fixer", head, **base, topic="t", brief="FIND-ME")["job_config"]["ccr"]
           ["events"][0]["data"]["message"]["content"])
     check("the rendered text carries no home directory", HOME.search(json.dumps(ok)) is None)
+    _flag_checks(check)
+    _group_checks(check)
     print(f"cloud_dispatch self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
 
-def main(argv: list[str]) -> int:
-    if argv == ["--self-test"]:
-        return self_test()
+#: Every flag `_parser()` accepts, and what the --group path does with it: None
+#: when main() forwards it to `dispatch_group`, else the refusal's reason. The
+#: self-test drives each entry through main() and refuses a flag missing here.
+GROUP_FLAGS = {
+    "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
+    "pr": None, "nonce": None, "overlay": None,
+    "topic": "the roster gives the topic (the group's branch)",
+    "brief": "the roster gives the brief",
+    "repo": "the roster gives the repository",
+    "env_id": "the environment id comes from the overlay or $HPO_CLOUD_ENV_ID",
+    "out": "--group publishes the payload to its ref and prints the ref name",
+}
+
+
+def _parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="cloud_dispatch.py", description=__doc__.split("\n")[0])
     ap.add_argument("--role", required=True, choices=ROLES)
-    ap.add_argument("--head", required=True)
+    ap.add_argument("--head")
+    ap.add_argument("--group", help="a roster group: publish its seat to a dispatch ref, print the ref name")
+    ap.add_argument("--roster-ref", help="default: the round roster branch, else origin/main "
+                    "(roster_lib.default_roster_ref)")
     ap.add_argument("--pr", default="")
     ap.add_argument("--topic", default="")
     ap.add_argument("--nonce", default="")
@@ -282,8 +601,26 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--repo")
     ap.add_argument("--overlay")
     ap.add_argument("--out")
+    return ap
+
+
+def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        return self_test()
+    ap = _parser()
     args = ap.parse_args(argv)
     try:
+        if args.group:
+            for dest, why in GROUP_FLAGS.items():
+                if why and getattr(args, dest) != ap.get_default(dest):
+                    raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
+            if not args.model:
+                raise Refusal("--group needs --model")
+            print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
+                                 head=args.head or "", pr=args.pr, nonce=args.nonce, overlay=args.overlay))
+            return 0
+        if not args.head:
+            raise Refusal("--head is required without --group")
         brief = ""
         if args.brief:
             try:

@@ -1,0 +1,66 @@
+name: nightly-ha
+description: >-
+  Real Home Assistant in its own container: stage the integration, run it and
+  assert a plan came out (tests/nightly_ha.py), then re-ask the floor-names
+  snapshot on the floor image. Shared by tests.yml's pull-request arm and
+  nightly.yml's schedule arm (R10-CI-LAYOUT PR 1), so the two cannot drift; a
+  composite action keeps each caller's `nightly-ha (<image>)` check name.
+inputs:
+  image:
+    description: The Home Assistant image tag (the caller's matrix arm).
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      with:
+        python-version: "3.13"
+
+    # The driver has a HOST half as well as a container half, and the host
+    # half imports the production package: `_seed_unique_id` calls
+    # `config_flow.entry_identity` for the seed's unique_id, and
+    # `load_committed_roster` imports every platform module for the A3
+    # roster. That import resolves `homeassistant` from tests/hastub, which
+    # imports voluptuous, and the package imports aiohttp -- so a bare
+    # `setup-python` runner dies inside `_stage`, before Docker is reached
+    # at all. It did, on both matrix arms, on two consecutive nights.
+    # The same pinned set `fast`, `slow`, `browser` and `closures` install --
+    # four of the eleven jobs here, not all of them; `typing`, `closure-scope`
+    # and the three autofix jobs run Python and install nothing, because what
+    # they run imports neither the package nor the stub. The host only stages
+    # files, so nothing about these versions reaches the container, which
+    # uses Home Assistant's own.
+    # Plus py-spy (#1758), which the driver stages into the A15 heartbeat
+    # container: the Home Assistant image ships none.
+    - name: Install pinned test dependencies
+      shell: bash
+      run: >-
+        pip install --require-hashes
+        --build-constraint tests/requirements-build.txt
+        -r tests/requirements-ci.txt
+        -r tests/requirements-nightly-ha.txt
+
+    # Its own step so a registry failure is an unmistakable red here,
+    # rather than a timeout somewhere inside the lane.
+    - name: Pull the Home Assistant image
+      shell: bash
+      run: docker pull "homeassistant/home-assistant:${{ inputs.image }}"
+
+    - name: Run the integration inside Home Assistant
+      shell: bash
+      run: |
+        python tests/nightly_ha.py \
+          --image "homeassistant/home-assistant:${{ inputs.image }}"
+
+    # The PR gate checks every Home Assistant name production reaches
+    # against a snapshot recorded from upstream source at the floor
+    # (tests/entities.py, the P11 floor arm). Here the floor itself answers
+    # every recorded question again, so a wrong recording or a hand edit is
+    # red within a night. After the lane, and whatever it concluded, so
+    # neither hides the other.
+    - name: Verify the floor-names snapshot in Home Assistant itself
+      if: ${{ !cancelled() && inputs.image == '2025.2.0' }}
+      shell: bash
+      run: >-
+        python tests/ha_floor.py verify
+        --image "homeassistant/home-assistant:${{ inputs.image }}"
