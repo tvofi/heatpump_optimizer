@@ -1,0 +1,7 @@
+architect-planner 803 [(11, 'dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md')]
+plan-review 192 []
+proposal-triage 310 []
+standing-dispatch 280 []
+standing-merge 297 [(2, 'dev/governance/roles/orchestrator.md')]
+standing-roster 214 []
+standing-tick 207 []

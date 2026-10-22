@@ -1,0 +1,7 @@
+
+=== harness header EXPECTED vs RESULT (#817) ===
+  FAIL every inlined walk matches the canonical helper and no depth root remains  [
+=== harness header EXPECTED vs RESULT (#817) ===
+FAIL depth seams: dev/audit/harnesses/r10_triage_gate_replay.py:34: ROOT = Path(__file__).resolve().parents[3]
+]
+rc=0
