@@ -20221,6 +20221,26 @@ R.check(
     "a 20-hour house grades 0 — the learned loss scale keeps it honest",
     _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
 )
+_ce._thermal_params.heat_loss_coefficient = 0.05
+R.check(
+    "#2258: a house past 100 hours grades 100, not more",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "tau = 10 / 0.05 = 200 h, clipped to the top of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 1.0
+R.check(
+    "#2258: a house under 20 hours grades 0, not less",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+    "tau = 10 / 1.0 = 10 h, clipped to the bottom of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 0.5
+_ce._thermal_params.house_heat_loss_scale = 0.0
+R.check(
+    "#2258: a configured scale under the learner's clamp is floored at 0.1, "
+    "not read as a house with no loss",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "loss = 0.5 x 0.1 = 0.05 kW/K -> tau 200 h; with no floor the loss is 0",
+)
 _ce._thermal_params.heat_loss_coefficient = 0.25
 _ce._thermal_params.house_heat_loss_scale = 0.5
 R.check(

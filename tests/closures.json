@@ -3548,6 +3548,7 @@
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
+   "dev/audit/harnesses/r10_scores_envelope.py",
    "dev/audit/harnesses/r10_seat_selftests_mutants.py",
    "dev/audit/harnesses/r10_setpoint_boost.py",
    "dev/audit/harnesses/r10_setpoint_power.py",
