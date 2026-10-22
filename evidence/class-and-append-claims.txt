@@ -1,0 +1,12 @@
+  for hb in '41 99' 'abc' '41x' '0' '-1' '041' '41,99' ' 41' '41 # c'; do
+    printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; : > "$LOG"; ho=$(handoff_arm 2>&1)
+569:  held) shift; held "$@"; exit $?;;
+tools/audit/seat/INSTRUMENTS.md:241:  Hold: `cloud-handoff-hold` under the state dir lists PR numbers, one per line
+tools/audit/seat/cloud_relay.sh:81:#     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
+tools/audit/seat/cloud_relay.sh:211:hold_file() { echo "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-handoff-hold"; }
+tools/audit/seat/cloud_relay.sh:212:hold_list() { # the held PR numbers, one per line; rc 2 when the hold file is malfor
+tools/audit/seat/cloud_relay.sh:221:  l=$(hold_list) || return 2; grep -qxF "$1" <<< "$l"; }
+tools/audit/seat/cloud_relay.sh:226:  held_prs=$(hold_list) || { level_line handoff-hold-malformed "$(hold_file)" - >> "
+tools/audit/seat/cloud_relay.sh:461:  hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%
+dev/audit/harnesses/r10_seat_selftests_mutants.py:129:    ("cloud_relay-2", "cloud_relay.sh", 'held_prs=$(hold_list) || 
+CODEOWNERS: []
