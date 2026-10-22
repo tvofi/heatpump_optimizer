@@ -320,7 +320,7 @@ def text_merge(run) -> "list[str] | None":
     if code not in (0, 1):
         return None
     names = sorted({k[len("merge."):-len(".driver")] for k in (x.split(" ", 1)[0] for x in o.splitlines()) if k})
-    return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+    return []
 
 
 def conflicts(run, base: str, head: str) -> "list[str] | None":
