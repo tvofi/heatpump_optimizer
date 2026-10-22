@@ -19,6 +19,12 @@ A features check now pins the corrected claim (below). The D4-04 test's comment,
 
 Architecture score: dS +0.0000 NULL.
 
+
+Carries settled in this diff, so none is forwarded:
+
+- R10-FEEDS carry (callers of `_get_current_price` / `_current_spot_price` must handle `None`): this diff touches no such call site. Nothing to carry.
+- The stale "In the instance currency" comment in `_raise_cop_issue`, which round 1 carried to this decision, is closed in this diff. Nothing left to carry.
+
 ## Head
 
 `23392d5d697ce7e26fab677a12d0d58921793d07`. It is round 1's head `701448f90` with origin/main `50808a755ce300fac4b19b7cfe7f89c795b8387b` merged in, plus the route-1 commit. Merge base `50808a755`, measured 2026-10-22.
@@ -53,11 +59,6 @@ Architecture score: dS +0.0000 NULL.
 ## Forward-carry
 
 none
-
-Both items below are settled in this diff, so nothing is carried:
-
-- R10-FEEDS carry (callers of `_get_current_price` / `_current_spot_price` must handle `None`): this diff touches no such call site. Nothing to carry.
-- The stale "In the instance currency" comment in `_raise_cop_issue`, which round 1 carried to this decision, is closed in this diff. Nothing left to carry.
 
 ## Friction
 
