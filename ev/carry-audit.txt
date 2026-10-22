@@ -1,0 +1,5 @@
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+-- null: round-1 head tree
+CARRY-AUDIT: 6 finding item(s): 1 routed, 0 unrouted, 5 bad destination(s)
+rc=0

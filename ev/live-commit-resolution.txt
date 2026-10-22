@@ -1,0 +1,2 @@
+roster 743463c61f6a records= 64 short= 6 invalid= 0 []
+null planted 0000000deadbeef invalid= 1

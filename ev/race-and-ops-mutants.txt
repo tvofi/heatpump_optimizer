@@ -1,0 +1,24 @@
+mode=shared silent_losses=0 false_reports=0 refused_edits=0 pushes=2
+mode=separate silent_losses=0 false_reports=0 refused_edits=0 pushes=2
+mode=solo silent_losses=0 false_reports=0 refused_edits=0 pushes=1
+RESULT mutant=A1 rc=1 fails=1
+RESULT mutant=A2 rc=1 fails=1
+RESULT mutant=A3 rc=1 fails=1
+RESULT mutant=A4 rc=1 fails=3
+RESULT mutant=A5 rc=1 fails=2
+RESULT mutant=A6 rc=1 fails=1
+RESULT mutant=A7 rc=1 fails=2
+RESULT mutant=C1 rc=1 fails=1
+RESULT mutant=C2 rc=1 fails=5
+RESULT mutant=C3 rc=1 fails=6
+RESULT mutant=C4 rc=1 fails=4
+RESULT mutant=C5 rc=1 fails=6
+RESULT mutant=C6 rc=1 fails=2
+RESULT mutant=C7 rc=1 fails=4
+RESULT mutant=C8 rc=1 fails=1
+RESULT mutant=P1 rc=1 fails=4
+RESULT mutant=P2 rc=1 fails=1
+RESULT mutant=P3 rc=1 fails=4
+RESULT mutant=D1 rc=1 fails=3
+
+[exited with code 0]
