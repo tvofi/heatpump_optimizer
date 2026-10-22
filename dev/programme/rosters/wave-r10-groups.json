@@ -5465,9 +5465,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-orch-continuity",
-    "commit": null,
+    "commit": "93e6a63d2855651448a2b8f677b392feddc03c99",
     "last_step": null,
     "next_step": "cloud RCA seat dispatched 2026-10-21",
     "note": null
