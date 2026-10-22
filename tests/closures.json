@@ -3456,6 +3456,7 @@
   "tests/entities.py": [
    "LICENSE",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/queue_pre_flight.py",
@@ -3506,6 +3507,7 @@
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
    "dev/audit/harnesses/r10_field_coverage_paths.sh",
+   "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
