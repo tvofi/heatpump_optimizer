@@ -76,7 +76,6 @@ from .payload import (
     PlanSlot,
     PlanViews,
     PowerHeadroom,
-    PriceTile,
     Pv,
     REASON_BOOST,
     REASON_COMFORT_MODE,
@@ -239,6 +238,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import early_cutoff, pump_arbiter, pump_signals
 from . import issues, setpoint_check
 from . import quiet_windows
+from . import price_tiles
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -287,11 +287,11 @@ from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
-    FREQ_SOURCE_NUMBER,
     FREQ_WRITE_EPSILON_HZ,
     FREQ_WRITE_MIN_INTERVAL_S,
     FrequencyMap,
     FrequencyWatchdog,
+    defrost_interval,
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp
@@ -1000,16 +1000,16 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
 
 
 def _freq_fold_blocked(coord: Any) -> bool:
-    """Cooling, distorted draw or a pinned unusable power reading.
+    """The COP gate, a defrost, cooling or a pinned unusable power reading.
 
-    The map is a kW-per-Hz curve for the compressor, so it asks the same
-    question :func:`_cop_fold_blocked` does about the draw -- through the
-    same property, so the two can never drift apart -- plus its own two.
-    #781 records why a bad fold matters here specifically: the map is keyed
-    by decile only, so it is inherited when the user later switches to
-    control.
+    The map is a kW-per-Hz curve for the compressor, so it asks
+    :func:`_cop_fold_blocked` itself -- immersion and distorted draw, never a
+    copy of either -- and :func:`defrost_interval`, the one defrost predicate
+    its watchdog asks too (D7-s2-01), plus its own two. #781 records why a
+    bad fold matters here: the map is keyed by decile only, so it is
+    inherited when the user later switches to control.
     """
-    if coord._pump_signals.electric_heat.compressor_draw_distorted:
+    if _cop_fold_blocked(coord) or defrost_interval(coord._pump_signals.defrosting):
         return True
     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
         return True
@@ -1347,6 +1347,10 @@ _SIM_OVERRIDE_CONFIG_CASTS: tuple[tuple[str, Any], ...] = (
     ("max_temp", float),
     ("comfort_temp_day", float),
     ("comfort_temp_night", float),
+    ("comfort_temp_day_weekend", float),
+    ("comfort_temp_night_weekend", float),
+    ("holiday_comfort_day", float),
+    ("holiday_comfort_night", float),
     ("comfort_weight", float),
     ("day_start_hour", int),
     ("day_end_hour", int),
@@ -3045,7 +3049,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tiles: dict[str, PriceTile] = {}
         self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
@@ -7893,6 +7896,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
+        price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
+            "ledger", {"price_tiles": {name: part}}))
 
     def _schedule_ledger_save(self) -> None:
         """Persist the ledger without blocking the settlement path."""
@@ -7910,6 +7915,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
                     "fuse_advisor": dict(self._fuse_advisor),
+                    "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
                         self._fuse_advisor_at.isoformat()
                         if self._fuse_advisor_at is not None
@@ -10413,30 +10419,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await self.async_request_refresh()
         return report
 
-    def _price_tile_specs(self, record: SolveRecord) -> list[tuple[str, dict[str, Any]]]:
-        """#39's fixed perturbation set. Fixed on purpose: tiles answer the
-        same three questions every day, so their day-to-day drift means the
-        situation changed, not the question.
-
-        The target tiles perturb the target ``record``'s plan was solved
-        with — the baseline the what-if is compared against. During an away
-        setback the configured target would make "one degree lower" a
-        raise against the setback plan, and the published trade would
-        carry the wrong sign.
-        """
-        target = float(record.config.target_temp)
-        return [
-            ("target_minus_1", {"target_temp": round(target - 1.0, 1)}),
-            ("target_plus_1", {"target_temp": round(target + 1.0, 1)}),
-            (
-                "power_cap_75",
-                {
-                    "power_cap_kw": round(
-                        0.75 * record.params.max_electrical_power, 2
-                    )
-                },
-            ),
-        ]
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
         """#39 (gated): refresh ONE tile after a scheduled solve.
 
@@ -10451,10 +10433,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not getattr(self, "_ctx", self)._config.price_tiles_enabled:
             # Gate off means gone: stale what-if money left published
             # would outlive the user's decision to stop paying for it.
-            if self._price_tiles:
-                self._price_tiles.clear()
+            price_tiles.book(self).clear()
             return
-        specs = self._price_tile_specs(record)
+        specs = price_tiles.specs(record.config, record.params.max_electrical_power)
         name, overrides = specs[self._price_tile_cursor % len(specs)]
         try:
             answer = await self.async_simulate(
@@ -10467,14 +10448,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._price_tile_cursor += 1
             return
         self._price_tile_cursor += 1
-        if answer.get("error"):
-            return
-        self._price_tiles[name] = {
-            "overrides": overrides,
-            "monthly_cost_delta": answer.get("monthly_cost_delta"),
-            "min_room_temperature": answer.get("min_room_temperature"),
-            "computed_at": dt_util.now().isoformat(timespec="seconds"),
-        }
+        # An error answer carries no figure, so the tile records nothing.
+        price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
 
     def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
@@ -10492,7 +10467,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "monthly_report": (
                 reports[max(reports)] if reports else None
             ),
-            "price_tiles": dict(self._price_tiles),
+            "price_tiles": price_tiles.published(price_tiles.book(self), dt_util.now().date()),
             "last_diagnosis": self._last_diagnosis,
         }
 
@@ -10530,15 +10505,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _observe_frequency(self, now: datetime) -> None:
         """One cycle of #61: watchdog first, then the kW-per-Hz fold.
 
-        The learning fold skips immersion intervals (#11 owns resistive
-        draw — folding it would teach the map that some frequency draws
-        the element's kilowatts), but the watchdog never skips: divergence
+        The learning fold skips every interval :func:`_freq_fold_blocked`
+        refuses -- immersion (#11 owns resistive draw) and a defrost among
+        them. The watchdog rests only through a defrost: divergence
         evidence is about the write path, not about what the meter reads.
         """
         ctx = getattr(self, "_ctx", self)
-        configured = ctx._config.freq_control_mode
         if (
-            configured != FREQ_MODE_CONTROL
+            ctx._config.freq_control_mode != FREQ_MODE_CONTROL
             or not ctx._config.compressor_freq_entity
         ) and self._freq_fallback:
             # The user switched back to observe — or removed the entity
@@ -10551,10 +10525,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
             self._spawn(self._async_save_thermal_learning())
-        reported, hz_min, hz_max, source = self._freq_entity_reading()
+        reported, hz_min, hz_max, _source = self._freq_entity_reading()
         if reported is None:
             return
-        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+        if self._freq_mode() == FREQ_MODE_CONTROL:
             # Divergence is only meaningful while the plan is actually
             # asking for the compressor AND the reading is in its running
             # range: an idle pump reading 0 Hz overnight, or one pausing
@@ -10563,6 +10537,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # idle must not stand control down.
             watch_active = (
                 self._commanded_power() > 0.05 and reported >= hz_min
+                and not defrost_interval(self._pump_signals.defrosting)
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
@@ -10592,7 +10567,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
+        if self._measured_power is None or _freq_fold_blocked(self):
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
@@ -11105,9 +11080,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.warning("What-if simulation failed: %s", err)
             return {"error": str(err), "rate_limited": False}
 
-        horizon_hours = max(ctx._opt_config.horizon_hours, 1.0)
-        days_per_month = 30.4
-        scale = days_per_month * 24.0 / horizon_hours
+        horizon_hours = ctx._opt_config.horizon_hours
         delta = simulated.predicted_cost - result.predicted_cost + wood_sek
 
         payload = {
@@ -11115,7 +11088,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            "monthly_cost_delta": round(delta * scale, 2),
+            "monthly_cost_delta": round(price_tiles.per_month(delta, horizon_hours), 2),
+            # The same choice held from a steady start (the price tiles'
+            # degree, price_tiles.py): no one-off coast or heat-up in it.
+            "monthly_held_cost_delta": round(price_tiles.per_month(
+                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(
