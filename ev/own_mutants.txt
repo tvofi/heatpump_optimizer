@@ -1,0 +1,28 @@
+ tools/audit/seat/tick_loop.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## R1 host path (out=) in heartbeat message
+  FAIL each pass calls the heartbeat once, with the pass line (no --out path)
+  FAIL a real pass moves heartbeat/orchestrator on the remote
+tick_loop self-test: 12 checks, 2 failed
+ tools/audit/seat/tick_loop.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## R2 failed heartbeat aborts the pass
+  FAIL a failing heartbeat is printed, never silent, and the loop still exits cleanly
+tick_loop self-test: 12 checks, 1 failed
+ tools/audit/seat/heartbeat.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## R3 watcher comparison inverted
+  FAIL watcher: a fresh ref does not alert
+  FAIL watcher: a ref older than the limit alerts, naming its message
+heartbeat self-test: 7 checks, 2 failed
+ tools/audit/seat/heartbeat.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## R4 --max-age ignored (always 1200)
+heartbeat self-test: 7 checks, 0 failed
+ tools/audit/seat/heartbeat.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## R5 commit gains a parent
+  FAIL --once moves heartbeat/orchestrator to a commit carrying the pass line
+  FAIL a second pass force-moves the same ref (one parentless commit, no history)
+  FAIL watcher: a fresh ref does not alert
+heartbeat self-test: 7 checks, 3 failed

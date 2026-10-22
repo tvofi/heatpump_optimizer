@@ -1,0 +1,39 @@
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+age=60 default-max:
+HEARTBEAT FRESH age=60s
+rc=0
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+age=1190 default-max:
+HEARTBEAT FRESH age=1190s
+rc=0
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+age=1260 default-max:
+HEARTBEAT STALE: heartbeat/orchestrator is 1260s old, limit 1200s: TICK-PASS age1260
+rc=1
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+age=3600 default-max:
+HEARTBEAT STALE: heartbeat/orchestrator is 3601s old, limit 1200s: TICK-PASS age3600
+rc=1
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+age=900 --max-age 600:
+HEARTBEAT STALE: heartbeat/orchestrator is 900s old, limit 600s: TICK-PASS age900
+rc=1
+age=900 --max-age 1200:
+HEARTBEAT FRESH age=900s
+rc=0
+bad max:
+heartbeat: --max-age needs whole seconds, got '2m'
+rc=2
+once real:
+rc=0
+TICK-PASS 2026-10-22T00:00:00Z relay=ok tick=0 parents=
+HEARTBEAT FRESH age=0s
+rc=0
+host path msg:
+HEARTBEAT NOT PUSHED: ref_privacy guard refused the message
+rc=1
