@@ -5947,9 +5947,11 @@ const FRICTION_BULLET_RE = /^[-*]\s/
 // number. None of the shapes is `<rule_id>: <event>: <evidence>`, so the drop
 // cannot swallow a well-formed entry; the null control in tests/entities.py
 // drives the same words mid-evidence, where no line-anchored shape matches,
-// and the entry survives.
+// and the entry survives. The cloud harness appends one more, its session
+// link alone on a line, which opened a `https:` near-miss and refused 8 body
+// pushes over 5 topics in round 10 (dev/audit/rca/R10-RCA-BODY-LINT.md).
 const FRICTION_TRAILER_RE =
-  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b)/i
+  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b|<?https:\/\/claude\.ai\/code\/session_[A-Za-z0-9]+>?\s*$)/i
 
 function frictionEntries(text) {
   const section = String(text ?? '').trim()

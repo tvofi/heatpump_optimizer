@@ -2329,6 +2329,48 @@
     "total": 4,
     "max_per_round": 4
   },
+  "N-body-lint-bounce": {
+    "kind": "instrument",
+    "mechanism": "The handoff instrument checks the code and not the body: tools/audit/seat/body_push.sh runs the static ci_predict.py (R10-HANDOFF-PREPR-BOUNCE M2) and publishes handoff-body/<topic> unlinted, so the first run of policy_lint.mjs --pr-body on a fixer's body is prepr step 7 inside the orchestrator's open_pr.sh, after the branch is frozen; a pathless Forward-carry (carry_audit.py accepts Carry: <GROUP> alone), a carry to a missing file, or an unparseable Friction line -- including the session-link line the cloud harness appends, which FRICTION_TRAILER_RE's closed list predated -- each cost an orchestrator repair round",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 body-ae1b71ed",
+      "R10 body-0854e390",
+      "R10 body-8f8ed571",
+      "R10 body-d19baa85",
+      "R10 body-bf227ff6"
+    ],
+    "detector": "node tools/policy/policy_lint.mjs --pr-body over every handoff-body/* commit (dev/audit/rca/R10-RCA-BODY-LINT.md section 1): 36 of 519 body commits over 22 topics carry a content error",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/body_push.sh runs prepr.sh --body-check (step 7's body_line, offline) for a topic whose handoff/<topic> is the checkout's HEAD and refuses the push with the lint's own ERROR lines; FRICTION_TRAILER_RE drops the cloud harness's session-link line; pinned in prepr.sh --self-test (pr-contract) and tests/entities.py",
+    "status": "barriered",
+    "nearest_existing": "N-orphaned-handoff",
+    "mechanism_difference": "N-orphaned-handoff is a handoff no PR ever carries; here the handoff reaches open_pr.sh and is refused there, on a body defect a check the seat could run in 2 s would have named at the push",
+    "aliases": [
+      "new: a fixer's PR body bounces at open_pr.sh's pr-body lint"
+    ],
+    "non_round_note": "The five round-10 instances are body pushes the orchestrator's open_pr.sh/update_pr.sh refused on 2026-10-22, named by their handoff-body commits; process incidents, not audit findings. Counted because the class is round-10 and the three-instance audit rule is what it met.",
+    "non_round_instances": [
+      "handoff-body/* 2026-10-15..10-22: 36 body commits over 22 topics fail the lint (upper bound on bounces)"
+    ],
+    "rca": [
+      "R10-RCA-BODY-LINT"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    },
+    "per_round": {
+      "R10": 5
+    },
+    "total": 5,
+    "max_per_round": 5
+  },
   "_rca": {
     "RCA-546-paired-artifacts": {
       "class": null,
@@ -4321,6 +4363,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md",
       "doc": [
         "dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md"
+      ]
+    },
+    "R10-RCA-BODY-LINT": {
+      "class": "N-body-lint-bounce",
+      "level": "class",
+      "subject": "N-body-lint-bounce class: a fixer's PR body is first linted at open_pr.sh and bounces there (5 instances on 2026-10-22, round 10)",
+      "trigger": "class (5 instances in round 10)",
+      "date": "2026-10-22",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the handoff gate (body_push.sh M2) ran and passed on every bounced push; its unit was the code, never the body; (d) for the session link, a trailer shape the cloud harness added after #1238's closed list",
+      "countermeasure": "prepr.sh --body-check from body_push.sh (1.5-2.2 s a PR-body push, at most 2.4 min/day) against at least 5 x 20 min/day of bounces; the session link added to FRICTION_TRAILER_RE",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-BODY-LINT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-BODY-LINT.md"
       ]
     }
   },

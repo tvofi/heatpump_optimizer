@@ -486,6 +486,10 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # The umbrella's programs (R10-CI-LAYOUT P2a): the prelude decides the
+    # GATE_SCOPE every lane runs under and gate.py is the one required check,
+    # so a change here changes the gate's verdict as ci.yml does.
+    "tools/ci/",
     # The nightly lanes' workflow and nightly-ha's composite action
     # (R10-CI-LAYOUT PR 1, DESIGN-P1 2(a)): both run gate scripts --
     # tests/rolling.py under SLOW, mutation_table.py, tests/nightly_ha.py --
