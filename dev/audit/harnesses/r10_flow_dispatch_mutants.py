@@ -7,7 +7,8 @@ added the four the round-2 review found (explicit-roster-ref-ignored,
 cli-head-dropped, cli-roster-ref-dropped, fetch-skipped); round 4 added
 the three the round-3 review found (cli-role-fixed, cli-pr-dropped,
 cli-nonce-dropped) and the rest of the --group call's inputs (cli-group-fixed,
-cli-model-fixed, cli-overlay-dropped). Each
+cli-model-fixed, cli-overlay-dropped); round 5 added the flag table's arms
+(group-refusal-off, env-id-forwarded-as-none, flag-unlisted) and cli-pr-truncated. Each
 mutant is a one-occurrence replacement in tools/audit/seat/cloud_dispatch.py;
 it is applied alone, `cloud_dispatch.py --self-test` run, and the file
 restored byte for byte. The drive refuses a dirty file and aborts on a
@@ -74,6 +75,10 @@ MUTANTS = [
     ("cli-group-fixed", "print(dispatch_group(args.role, args.group,", 'print(dispatch_group(args.role, "R10-X",'),
     ("cli-model-fixed", "args.group, args.model, roster_ref", 'args.group, "m-1", roster_ref'),
     ("cli-overlay-dropped", "nonce=args.nonce, overlay=args.overlay))", "nonce=args.nonce, overlay=None))"),
+    ("group-refusal-off", "if why and getattr(args, dest)", "if False and getattr(args, dest)"),
+    ("env-id-forwarded-as-none", '"env_id": "the environment id', '"env_id": None and "the environment id'),
+    ("flag-unlisted", '    ap.add_argument("--out")\n    return ap', '    ap.add_argument("--out")\n    ap.add_argument("--extra")\n    return ap'),
+    ("cli-pr-truncated", 'head=args.head or "", pr=args.pr,', "head=args.head or \"\", pr=(args.pr or '')[:1],"),
 ]
 SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")
 
