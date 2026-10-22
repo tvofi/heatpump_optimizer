@@ -43,9 +43,9 @@ for tzs,pp,wp in cells:
     pr=prices(pp,START)[:96]; ot,wi,ra,so=(s[:96] for s in weather(wp,START))
     st=ThermalState(room_temperature=21.0,slab_temperature=22.0,outdoor_temperature=float(ot[0]),upper_floor_temperature=21.0,lower_floor_temperature=21.0,buffer_tank_temperature=40.0)
     caps=[]
-    def wrap(objective,candidates,bounds,args=(),maxiter=300,batch_objective=None,fd_eps=1e-4,move_starts=lambda c,mi:c):
+    def wrap(objective,candidates,bounds,args=(),maxiter=300,batch_objective=None,move_starts=lambda c,mi:c):
         cands=[np.array(c,float) for c in candidates]
-        r=ORIG(objective,candidates,bounds,args=args,maxiter=maxiter,batch_objective=batch_objective,fd_eps=fd_eps,move_starts=move_starts)
+        r=ORIG(objective,candidates,bounds,args=args,maxiter=maxiter,batch_objective=batch_objective,move_starts=move_starts)
         caps.append((objective,cands,bounds,args,maxiter,batch_objective,np.asarray(r.x,float))); return r
     with mock.patch.object(O,"_multi_start_minimize",wrap):
         opt.optimize(inputs=solve_inputs(initial_state=st,prices=pr,outdoor_temps=ot,wind_speeds=wi,precipitation=ra,solar_radiation=so,start_time=START))

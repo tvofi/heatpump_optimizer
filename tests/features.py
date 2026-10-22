@@ -6034,7 +6034,7 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
         try:
             res = _grad_optmod._multi_start_minimize(
                 space_obj, [x0, np.minimum(x0 * 0.4, ubv)], bounds,
-                maxiter=25, batch_objective=space_obj_batch, fd_eps=1e-4,
+                maxiter=25, batch_objective=space_obj_batch,
             )
         finally:
             _grad_optmod._batch_fd_gradient = _real_bfd
@@ -6082,7 +6082,7 @@ def _d903_jac_f0_reuses_fun():
     bounds = [(-2.0, 2.0)] * n
     res = _grad_optmod._multi_start_minimize(
         obj, [np.zeros(n), np.full(n, 0.4)], bounds, maxiter=20,
-        batch_objective=batch_obj, fd_eps=1e-4,
+        batch_objective=batch_obj,
     )
     consecutive_dups = sum(
         1 for i in range(1, len(raw)) if raw[i] == raw[i - 1]
@@ -6310,7 +6310,7 @@ def _d901_gil_yield_inside_run():
             pool.submit(
                 _grad_optmod._multi_start_minimize,
                 obj, [np.zeros(6)], [(-2.0, 2.0)] * 6,
-                maxiter=15, batch_objective=batch_obj, fd_eps=1e-4,
+                maxiter=15, batch_objective=batch_obj,
             ).result()
     finally:
         _grad_optmod._scoped_minimize = real_minimize
@@ -57773,7 +57773,7 @@ def _f22_solve(batch):
     try:
         res = _grad_optmod._multi_start_minimize(
             counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
-            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+            maxiter=40, batch_objective=batch,
         )
     finally:
         _grad_optmod._scoped_minimize = real_min
@@ -59621,8 +59621,19 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
 )
 
 
-def _r10s_scalar_valued_run(objective, fused, x0, bounds, args, maxiter):
+# The reference arm spells L-BFGS-B's step itself (1e-4, the shipped value)
+# rather than reading the driver's constant, so a production step that moves
+# -- in the fused gradient, the ``eps`` option or both -- moves only the fused
+# arm and the exact null below refuses it (review O2).
+def _r10s_scalar_valued_run(objective, batch_objective, x0, bounds, args,
+                            maxiter, memo=None):
     """The pre-fusion run: ``f`` from the scalar, the gradient from the batch."""
+    if batch_objective is None:
+        return _r10s_optmod._scoped_minimize(
+            objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        )
+    fused = _r10s_optmod._fused_value_and_gradient(batch_objective, bounds, 1e-4)
     return _r10s_optmod._scoped_minimize(
         objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
         jac=lambda x, *a: fused(x, *a)[1],
@@ -59725,6 +59736,45 @@ R.check(
     "scalar-valued runs ship, bit for bit",
     np.array_equal(_r10s_plan, _r10s_ref_plan),
     f"max |dP| {float(np.max(np.abs(_r10s_plan - _r10s_ref_plan))):.3e} kW",
+)
+
+
+# The driver's bounds gate (review O1): bounds ``_bounds_supported_by_batch``
+# refuses run on scipy's own estimate and never call the batch, whatever
+# batch objective the caller hands in. Positive control: the same run on
+# finite bounds is served by the batch, so the zero is not a dead counter.
+# Null: the refused run is the plain scalar run, bit for bit.
+def _r10s_gate_run(bounds):
+    calls = [0]
+
+    def scalar(x):
+        d = np.asarray(x, dtype=float) - 0.7
+        return float(d @ d)
+
+    def batch(rows):
+        calls[0] += 1
+        d = np.asarray(rows, dtype=float) - 0.7
+        return np.einsum("ij,ij->i", d, d)
+
+    res = _r10s_optmod._lbfgsb_run(scalar, batch, np.zeros(4), bounds, (), 30)
+    plain = _r10s_optmod._scoped_minimize(
+        scalar, np.zeros(4), method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": 30, "ftol": 1e-6, "eps": 1e-4},
+    )
+    return calls[0], np.asarray(res.x, dtype=float), np.asarray(plain.x, float)
+
+
+_r10s_open = [(0.0, float("inf"))] * 4
+_r10s_refused, _r10s_refused_x, _r10s_plain_x = _r10s_gate_run(_r10s_open)
+_r10s_served = _r10s_gate_run([(0.0, 2.0)] * 4)[0]
+R.check(
+    "R10-SOLVER (O1): bounds _bounds_supported_by_batch refuses run on "
+    "scipy's own estimate -- no batch call, the plain scalar run's point",
+    not _r10s_optmod._bounds_supported_by_batch(_r10s_open)
+    and _r10s_refused == 0 and _r10s_served > 0
+    and bool(np.array_equal(_r10s_refused_x, _r10s_plain_x)),
+    f"batch calls refused={_r10s_refused} served={_r10s_served}; "
+    f"x {_r10s_refused_x} vs plain {_r10s_plain_x}",
 )
 
 # -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------
