@@ -183,6 +183,8 @@ EQUIVALENT: dict[tuple[str, str], str] = {
     ('        elif a[:2] in SHORT_FIELD_FLAGS or a.split("=", 1)[0] in LONG_FIELD_FLAGS:',
      '        elif a[:2] in SHORT_FIELD_FLAGS or a.split("=", 999)[0] in LONG_FIELD_FLAGS:'): "the first field of a split is the same at any maxsplit >= 1",
     ("    return None", "    pass"): "a function falling off its end returns None",
+    ("def retry(attempt, wait_for, sleep, note=lambda line: None):",
+     "def retry(attempt, wait_for, sleep, note=lambda line: 0.0):"): "nothing reads a note's return value",
 }
 
 STRUCTURE = re.compile(r"^\s*(\{|\}|fi|done|esac|case .* in|while .*; do|[a-z_]+\(\) \{.*)\s*$")
@@ -475,8 +477,16 @@ def py_mutants(lines: list[str]) -> list[tuple[int, int, str, list[str]]]:
     return out
 
 
+#: No bytecode is written or read: a mutant written within the second of the
+#: last one, at the same size, would run that one's stale `__pycache__` entry
+#: (CPython checks only mtime and size), which flipped P121's verdict between
+#: two runs before this was set.
+NO_PYC = {**__import__("os").environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+
 def tier(tree: Path, argv: list[str]) -> tuple[int, str]:
-    p = subprocess.run(argv, cwd=tree, capture_output=True, text=True)
+    argv = [argv[0], "-B", *argv[1:]] if argv[0] == "python3" else argv
+    p = subprocess.run(argv, cwd=tree, capture_output=True, text=True, env=NO_PYC)
     out = p.stdout.splitlines()
     summary = next((l for l in reversed(out) if "self-test" in l), "no summary line")
     fails = [l.strip()[5:] for l in out if l.strip().startswith("FAIL ")]
@@ -638,6 +648,8 @@ def main(argv: list[str]) -> int:
     for k in range(jobs):
         w = tmp / f"w{k}"
         subprocess.run(["git", "worktree", "add", "--detach", "-q", str(w), "HEAD"], cwd=ROOT, check=True)
+        for cache in w.rglob("__pycache__"):
+            shutil.rmtree(cache)
         trees.put(w)
 
     def one(name: str) -> tuple[str, str]:
