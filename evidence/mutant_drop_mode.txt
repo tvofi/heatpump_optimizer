@@ -1,3 +1,0 @@
---record 94 call(s) over v7.0.2..origin/main
---stats 370 call(s) over v7.0.2..origin/main
-TOTAL 464 call(s) per push to main, before policy-docs, env-matrix and the other jobs

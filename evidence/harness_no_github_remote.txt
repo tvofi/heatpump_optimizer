@@ -1,3 +1,0 @@
-Same harness, same window, in a clone whose origin is a local path (no github remote): policy_lint prints "RECORD_ENUM: subject (no github remote on origin)" and the harness exits 0 with
---record 0 / --stats 0 / --sunset 0 / TOTAL 0 call(s) per push to main
-Setting origin to https://github.com/tvofi/heatpump_optimizer.git (no fetch happens) gives 94 / 370 / 370 / TOTAL 834.
