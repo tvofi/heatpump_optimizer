@@ -80,6 +80,7 @@
   "_ecl110_view": "views",
   "_effective_cycling_cost": "core",
   "_entity_state": "core",
+  "_expire_away_override": "core",
   "_external_heat_config": "core",
   "_external_heat_forecast": "core",
   "_external_heat_override": "core",

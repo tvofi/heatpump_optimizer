@@ -924,7 +924,7 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     return heat_kw
 
 
-def _replay_interval(
+async def _replay_interval(
     coord: Any,
     previous_state: Any,
     previous_power: float,
@@ -941,14 +941,14 @@ def _replay_interval(
     what the interval delivered is answered once, by
     :func:`_interval_measured_heat_kw`, rather than twice, and ``label`` keeps
     the debug line a failed simulation leaves naming its learner -- the only
-    thing the two copies ever differed in besides a comment.
+    thing the two copies ever differed in besides a comment. The inputs are
+    read here, on the loop; the step runs in the process worker (P10).
     """
     try:
         wind_speed, precipitation = coord._current_weather()
-        return coord._thermal_model.simulate_step(
-            previous_state,
-            previous_power,
-            outdoor,
+        return await _await_off_loop(coord.hass, functools.partial(
+            coord._thermal_model.simulate_step,
+            previous_state, previous_power, outdoor,
             wind_speed=wind_speed,
             precipitation=precipitation,
             solar_radiation=previous_state.solar_radiation,
@@ -960,7 +960,7 @@ def _replay_interval(
             # byte-inert.
             hour_of_day=previous_time.hour + previous_time.minute / 60.0,
             measured_heat_kw=_interval_measured_heat_kw(coord),
-        )
+        ))
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
         return None
@@ -1586,6 +1586,27 @@ async def _sysid_step_off_loop(
     state, override = await _await_off_loop(hass, step_detached, experiment, kwargs)
     vars(experiment).update(state)
     return None if override is None else float(override)
+
+
+def _recovery_off_loop(
+    hass: HomeAssistant, model: ThermalModel, live: ThermalState
+) -> away_mode.RecoveryEstimate:
+    """D14-s1-01: away's recovery ramp, simulated in the process worker.
+
+    A cold house steps the model up to ``away.MAX_RECOVERY_HOURS`` deep, and
+    the resolve is inline in the update cycle. The state is a snapshot taken
+    here, on the loop: the job is pickled off it while callbacks write the
+    live one.
+    """
+    house = replace(live)
+
+    async def estimate(target_temp: float) -> float:
+        return await _await_off_loop(
+            hass, away_mode.estimate_recovery_hours,
+            model, house, target_temp, house.outdoor_temperature,
+        )
+
+    return estimate
 
 
 async def _with_sensor_advisor(coordinator: Any, data: Payload) -> Payload:
@@ -5095,14 +5116,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         outdoor = previous_state.outdoor_temperature
-        # Same zone as the residual, or the Newton step is taken about a
-        # temperature difference the residual does not describe.
-        driving_temp = _learned_zone_temperature(previous_state, ctx._thermal_params)
+        # Same zone as the residual, or the Newton step is taken about a temperature
+        # difference the residual does not describe; one params read spans the await.
+        params = ctx._thermal_params
+        driving_temp = _learned_zone_temperature(previous_state, params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "House heat loss",
         )
@@ -5118,7 +5140,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # threshold. It does not average out, so it accumulated into the learned
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
-        params = ctx._thermal_params
         predicted_room = _learned_zone_temperature(predicted_state, params)
         residual = observed - predicted_room
         if not np.isfinite(residual):
@@ -5255,7 +5276,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         # Same physics as the solve when #53 is on; inert when off.
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "Lower floor loss",
         )
@@ -5765,8 +5786,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 float(np.max(horizon.solar_radiation)),
             )
 
-            # Away mode resolves on the event loop before the record reads it.
-            self._resolve_away()
+            # Away mode resolves before the record reads it.
+            await self._resolve_away()
             # #1754: the override the pins come from, by identity (release write).
             pinned_override = self._manual_override
             record = self._solve_record(solve_now, horizon)
@@ -9501,40 +9522,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             attributes = {}
         return getattr(state, "state", None), attributes
 
-    def _resolve_away(self) -> away_mode.AwayState:
+    def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
+        """The override as of ``now``, written back when it lapsed; no await splits it."""
+        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
+        if active != self._away_state.override_active or ret != parsed:
+            self._away_state.override_active = active
+            self._away_state.override_return_iso = ret.isoformat() if ret else None
+            self._spawn(away_mode.persist_override(self, self._away_state))
+        return active, ret
+
+    async def _resolve_away(self) -> None:
         """Work out whether the house is empty, and when it must be warm again."""
         ctx = getattr(self, "_ctx", self)
         config = away_mode.config_from_mapping(ctx._config)
         now = dt_util.now()
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
-        active, ret = away_mode.expire_override(
-            self._away_state.override_active, parsed, now
-        )
-        migrated = self._away_state.migrated_helpers
-        if active != self._away_state.override_active or ret != parsed:
-            self._away_state.override_active = active
-            self._away_state.override_return_iso = (
-                ret.isoformat() if ret else None
-            )
-            self._spawn(away_mode.persist_override(self, self._away_state))
+        active, ret = self._expire_away_override(now)
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
-        self._away_state = away_mode.resolve(
+        written = replace(self._away_state)
+        resolved = await away_mode.resolve(
             config,
             now=now,
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
             return_raw=None,
-            comfort_temp=ctx._opt_config.get_comfort_temp(
-                now.hour + now.minute / 60.0
+            comfort_temp=ctx._opt_config.get_comfort_temp(now.hour + now.minute / 60.0),
+            estimate_recovery=_recovery_off_loop(
+                self.hass, self._thermal_model, ctx._current_state
             ),
-            model=self._thermal_model,
-            thermal_state=ctx._current_state,
-            outdoor_temp=ctx._current_state.outdoor_temperature,
             override_active=active,
             override_return_time=ret,
         )
-        self._away_state.migrated_helpers = migrated
-        return self._away_state
+        # The await lets async_set_away write the live state; never revert its write.
+        if self._away_state == written:
+            self._away_state = replace(resolved, migrated_helpers=written.migrated_helpers)
     async def async_set_away(
         self,
         active: bool | None = None,

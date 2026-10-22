@@ -4065,17 +4065,27 @@ def _away_house(current=16.0):
     return ThermalState(room_temperature=current, slab_temperature=current + 1.0)
 
 
+def _away_estimate(house, model=_away_model, outdoor=0.0):
+    """The coordinator's off-loop estimate, run inline: the job is the same."""
+    async def estimate(target_temp):
+        return away_mode.estimate_recovery_hours(model, house, target_temp, outdoor)
+    return estimate
+
+
+def _away_resolve(config, **kw):
+    import asyncio as _away_aio
+    return _away_aio.run(away_mode.resolve(config, **kw))
+
+
 def resolve_away(now, return_at, current=16.0):
-    return away_mode.resolve(
+    return _away_resolve(
         AWAY_CFG,
         now=now,
         presence_raw="on",
         presence_attributes=None,
         return_raw=return_at,
         comfort_temp=21.0,
-        model=_away_model,
-        thermal_state=_away_house(current),
-        outdoor_temp=0.0,
+        estimate_recovery=_away_estimate(_away_house(current)),
     )
 
 
@@ -4099,16 +4109,14 @@ R.check(
     "without a return time the setback still applies",
     no_return.active and not no_return.recovery_active,
 )
-home = away_mode.resolve(
+home = _away_resolve(
     AWAY_CFG,
     now=now,
     presence_raw="off",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(21.0),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house(21.0)),
 )
 R.check("an occupied house is never set back", not home.active)
 
@@ -4129,32 +4137,28 @@ R.check(
     away_mode.expire_override(True, None, _now) == (True, None),
 )
 
-_person_home = away_mode.resolve(
+_person_home = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=True,
     override_return_time=_future,
 )
 R.check("the service override wins over a person at home", _person_home.active)
 R.check("override source is service", _person_home.source == "service")
 
-_person_only = away_mode.resolve(
+_person_only = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="not_home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=False,
     override_return_time=None,
 )
@@ -4202,16 +4206,14 @@ R.check(
     "and left the house ~3 °C cold at the stated return",
 )
 
-cal = away_mode.resolve(
+cal = _away_resolve(
     away_mode.AwayConfig(presence_entity="calendar.holidays"),
     now=now,
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
 )
 R.check(
     "a calendar event supplies its own return time",
@@ -61650,8 +61652,8 @@ _ux5_home_cfg = _ux5_home._solve_hubs(
 _ux5_away = _r9egb1_coord(away=True)
 # The update resolves away before it publishes; a payload read before that
 # still shows the configured floor, which is the defect's own shape.
-_ux5_away._resolve_away()
-_ux5_home._resolve_away()
+asyncio.run(_ux5_away._resolve_away())
+asyncio.run(_ux5_home._resolve_away())
 _ux5_away_view = _ux5_away._build_data_dict()
 _ux5_home_view = _ux5_home._build_data_dict()
 R.check(
@@ -61672,6 +61674,34 @@ R.check(
     and _ux5_away_view["configured_min_temperature"] == _ux5_away._opt_config.min_temp
     and _ux5_away_view["min_temperature"] != _ux5_away_view["configured_min_temperature"],
     str({k: _ux5_away_view.get(k) for k in ("min_temperature", "configured_min_temperature")}),
+)
+# D14-s1-01: the recovery estimate is awaited off the loop, so the Plan-page
+# switch can land inside the resolve. Its write must survive the publish.
+_lc_away = _r9egb1_coord(away=True)
+_lc_away._away_state.override_return_iso = (
+    _r9egb1_cmod.dt_util.now() + timedelta(hours=6)).isoformat()
+_lc_real_off_loop = _r9egb1_cmod._await_off_loop
+_lc_jobs = []
+
+
+async def _lc_switch_mid_estimate(hass, fn, *args):
+    _lc_jobs.append(fn.__name__)
+    await _lc_away.async_set_away(active=False, refresh=False)
+    return fn(*args)
+
+
+_r9egb1_cmod._await_off_loop = _lc_switch_mid_estimate
+try:
+    asyncio.run(_lc_away._resolve_away())
+finally:
+    _r9egb1_cmod._await_off_loop = _lc_real_off_loop
+R.check(
+    "D14-s1-01 the away recovery estimate is handed off the loop, and a switch "
+    "written during its await is not reverted by the resolve's publish",
+    _lc_jobs == ["estimate_recovery_hours"]
+    and _lc_away._away_state.override_active is False
+    and _lc_away._away_state.override_return_iso is None,
+    str((_lc_jobs, _lc_away._away_state)),
 )
 # idle_reason is the production function the two classifiers call; a direct
 # call with nothing to go on is the null for a step the sub-codes cannot see.
