@@ -6755,7 +6755,7 @@
    "architect_note": "",
    "brief": "Land the Lean flow study's measuring tools on main, generalised for any round (owner, 2026-10-21: the study's tools belong on main for future programmes; decision 0013: reusable instruments land in the tree, never only in /tmp). Three new instruments under tools/audit/seat/, each with --self-test on a recorded fixture and an INSTRUMENTS.md row. (1) A critical-path instrument (working name ci-critpath): from one workflow run's job and step timestamps, the critical path, and a counterfactual that drops a job edge or deletes a job and charges a stated bare cost; over the last N runs of a workflow, median and p90. Reuse the method behind the critical-path measurement in the CI design archive (tag archive/probe/design-ci-rev4 at 1371a0a6, its measure directory, phase 2) rather than writing a second one. (2) A review-strength instrument (working name review-strength): the study's baseline enumerator, real-catch and bookkeeping blocks per reviewed pull request over the review/<N> bus refs in a window [start, end), with the verdict-class sets read from VERDICT_CLASSES rather than copied. (3) A flow-metrics instrument (working name flow-metrics): the study's section 0 enumerators (groups closed and added per hour, records' share of merges, first-pass yield, main absorbs per fix branch, merge-to-merge re-reviews of unchanged code, share of hours with a merge). No round constant in code: repository, round prefix and window are arguments. API reads are paged, cached per run id and bounded by a stated maximum.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-flow-toolkit-measure",
     "commit": null,
     "last_step": null,
