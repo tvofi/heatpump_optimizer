@@ -1,2 +1,0 @@
-RESULT demo=unmutated roster_ref=origin/main brief_in_prompt=MAIN
-RESULT demo=mutant roster_ref=origin/main brief_in_prompt=BRANCH

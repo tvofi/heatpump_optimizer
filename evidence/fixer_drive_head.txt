@@ -2,15 +2,18 @@ RESULT mutant=M0 failed=0 verdict=null-ok
 RESULT mutant=tree-skip failed=2 verdict=killed
     FAIL a re-dispatch of the same brief moves no ref
     FAIL a changed brief fast-forwards the ref
-RESULT mutant=brief-drop failed=5 verdict=killed
+RESULT mutant=brief-drop failed=7 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to today's flag path
     FAIL the roster brief is inlined and the roster tip is the head
     FAIL a changed brief fast-forwards the ref
     FAIL a host path in a roster brief refuses and pushes nothing
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=parent-drop failed=-1 verdict=CRASHED
-RESULT mutant=nonce-altered failed=1 verdict=killed
+RESULT mutant=nonce-altered failed=2 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to today's flag path
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=topic-to-id failed=-1 verdict=CRASHED
     FAIL a group dispatch prints one short line, the ref name
     FAIL a reviewer dispatch with pr and nonce renders
@@ -22,18 +25,71 @@ RESULT mutant=render-host-off failed=5 verdict=killed
     FAIL a host path in a roster brief refuses and pushes nothing
 RESULT mutant=privacy-off failed=1 verdict=killed
     FAIL _publish itself refuses a ref that would publish the host, and pushes nothing
-RESULT mutant=head-ignored failed=1 verdict=killed
+RESULT mutant=head-ignored failed=3 verdict=killed
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
-RESULT mutant=prompt-wrong failed=4 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=prompt-wrong failed=7 verdict=killed
     FAIL the ref carries the prompt the payload carries
     FAIL a changed brief fast-forwards the ref
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=roster-repo-ignored failed=-1 verdict=CRASHED
-RESULT mutant=roster-ref-main failed=1 verdict=killed
+RESULT mutant=roster-ref-main failed=2 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=head-from-roster-ref failed=1 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
 RESULT mutant=reviewer-head-off failed=1 verdict=killed
     FAIL a reviewer needs its PR head
-RESULT mutants=13 survived=0
+RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=cli-head-dropped failed=4 verdict=killed
+    FAIL --group forwards --head to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-roster-ref-dropped failed=2 verdict=killed
+    FAIL --group forwards --roster-ref to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=fetch-skipped failed=1 verdict=killed
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-role-fixed failed=2 verdict=killed
+    FAIL --group forwards --role to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-pr-dropped failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-nonce-dropped failed=2 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-group-fixed failed=2 verdict=killed
+    FAIL --group forwards --group to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-model-fixed failed=2 verdict=killed
+    FAIL --group forwards --model to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-overlay-dropped failed=4 verdict=killed
+    FAIL --group forwards --overlay to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=group-refusal-off failed=5 verdict=killed
+    FAIL --group refuses --brief (exit 2, nothing dispatched)
+    FAIL --group refuses --env-id (exit 2, nothing dispatched)
+    FAIL --group refuses --out (exit 2, nothing dispatched)
+    FAIL --group refuses --repo (exit 2, nothing dispatched)
+    FAIL --group refuses --topic (exit 2, nothing dispatched)
+RESULT mutant=env-id-forwarded-as-none failed=1 verdict=killed
+    FAIL --group forwards --env-id to dispatch_group
+RESULT mutant=flag-unlisted failed=2 verdict=killed
+    FAIL every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other
+    FAIL --group forwards --extra to dispatch_group
+RESULT mutant=cli-pr-truncated failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutants=27 survived=0

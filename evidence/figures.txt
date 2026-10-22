@@ -1,68 +1,36 @@
+## closure select
 ########## scoped gate ##########
   MODE: SCOPED -- 1 script(s) run, 32 scoped out.
   changed files (6), measured against the recorded closures in tests/closures.json:
       dev/audit/harnesses/r10_flow_dispatch_mutants.py
       dev/programme/delivery/2577.md
----
-STRUCTURE RATCHET PASSED
-Architecture score: dS +0.0000 NULL
-ref_privacy --check at HEAD: 19 file(s) with a push site, 10 guarded, 329 line(s) added since 1ebc737e7e18 judged, 0 refused
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 1ebc737e7e18
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## harness_headers
 ALL 109 HARNESS HEADER CHECKS PASSED
+## env_drift claims
 claims hygiene: origin/main ok
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Price entity is empty
-Unknown DSO catalog product not_a_swedish_dso_2026; not writing
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
-Failed to publish ECL110 displace command: mqtt unreachable
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
-Config entry version 8 is newer than the supported version 7; downgrade is not supported
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/tmp/claude-0/-home-user-heatpump-optimizer/ce83653c-e023-5147-9d0b-f44ffd64fb91/scratchpad/rev/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
-  callback()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-21 21:49:21.924046+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:22.593846+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:22.593846+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:22.593846+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:24.307377+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:25.012034+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:25.520556+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:25.520556+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-21 21:49:26.132293+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for a heavy slot (0:h until 2026-10-21 21:49:26.335848+00:00)
-gate_lock: waiting for a heavy slot (0:h until 2026-10-21 21:49:26.335848+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 21:49:26.743783+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 21:49:26.743783+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-10-21 21:47:27.147886+00:00)
-gate_lock: waiting for the lease held by seat until 2026-10-21 21:49:41.202134+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
-gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
-closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
-closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-<unknown>:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
-ci-ratchet: artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
-ci-ratchet: artifacts fetch attempt 2/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
-Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
-ALL 2382 ENTITY CHECKS PASSED
+## closure selftest
+ALL 124 closure shrink pins PASSED
+## layout
+layout self-test: ok
+## structure
+STRUCTURE RATCHET PASSED
+## archscore
+Architecture score: dS +0.0000 NULL
+## ref_privacy
+ref_privacy --check at HEAD: 19 file(s) with a push site, 10 guarded, 448 line(s) added since 93e6a63d2855 judged, 0 refused
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 93e6a63d2855
+## throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## ci_predict
+CI PREDICT: no closures or fast red predicted against 93e6a63d2855 (a data-file read is not seen)
+## diffstat
+ 6 files changed, 495 insertions(+), 18 deletions(-)
+0
+## changed files
+dev/audit/harnesses/r10_flow_dispatch_mutants.py
+dev/programme/delivery/2577.md
+tests/closures.json
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/cloud_dispatch.py
+tools/audit/seat/ref_privacy.py
