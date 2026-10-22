@@ -23,7 +23,7 @@ M = [
  ("M9 (d) sequence participants unchecked", DC, "            if who not in declared:", "            if False:"),
  ("M10 (e) hex colour unchecked", DC, "                if _HEX.search(body):", "                if False:"),
  ("M11 (e) init unchecked", DC, "                if \"%%{init\" in body:", "                if False:"),
- ("M12 button: README arm off", DC, "    if not m:\n        out.append(\"README.md: no button", "    if False:\n        out.append(\"README.md: no button"),
+ ("M12 button: README arm off", DC, "out.append(\"README.md: no button linking \" + COFFEE + \" above the first section\")", "pass"),
  ("M13 button: index footer arm off", DC, "    if not (foot and _COFFEE_A.search(foot.group(0))):\n        out.append(\"docs/index.html", "    if False:\n        out.append(\"docs/index.html"),
  ("M14 button: built footer arm off", DC, "        if not (foot and _COFFEE_A.search(foot.group(0))):\n            out.append(f\"{page}", "        if False:\n            out.append(f\"{page}"),
  ("M15 button: SVG token compare off", DC, "if not want or not got or got.group(1).strip().lower() != want.lower():", "if False:"),
