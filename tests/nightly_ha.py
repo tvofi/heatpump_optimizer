@@ -280,6 +280,22 @@ HB_MAX_DUMPS = 3  # per scenario, so a slow runner cannot flood the log
 HB_FREEZE_S = 1.0
 HB_HANG_S = 60.0  # no tick at all this long: report by name, then exit
 HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
+# One ``py-spy dump --nonblocking`` races the process it reads: against CPython
+# 3.14.6 about 7% of stable runs had the one sample run past a 30 s timeout and
+# fail hb:positive_control (dev/audit/rca/nightly-ha-pyspy-timeout.md, #2479).
+# A healthy sample returned in at most 0.15 s on all 710 in-image samples the
+# RCA took, so 5 s is over 30x that, and a hung one costs 5 s instead of 30.
+PY_SPY_TIMEOUT_S = 5.0
+# So the control tries a FRESH spin, sampled once, up to this many times. Not
+# the same spin sampled again: on real HA one held spin had 3 of 3 samples hang
+# (R10-NIGHTLY-PYSPY-RETRY), so whatever hangs py-spy outlives a retry inside it.
+HB_CONTROL_TRIES = 3
+HB_CONTROL_REST_S = 1.0  # the loop runs between tries, so the next spin is a new state
+# Each spin outlasts HB_CONTROL_S until its sample has returned, so a slow but
+# healthy sample still finds it; bounded by the sample's own timeout, far
+# under HB_HANG_S. Worst case for the whole control, every try hung:
+# HB_CONTROL_TRIES * (HB_CONTROL_HOLD_S + HB_CONTROL_REST_S), about 22 s.
+HB_CONTROL_HOLD_S = HB_DUMP_S + PY_SPY_TIMEOUT_S + 1.0
 HB_SETTLE_S = 120.0  # wait for the last reload's first solve to finish
 # Every scenario stays measured this long after its last action, before any
 # settling: work an abort or a save defers (a listener, a scheduled refresh)
@@ -1860,15 +1876,20 @@ async def _async_check_a9(checks: Checks, hass, entry):
 # but dumped only once it lets go.
 
 
-def _hb_spin(seconds: float) -> None:
+def _hb_spin(seconds: float, hold: threading.Event | None = None,
+             hold_max: float = HB_CONTROL_HOLD_S) -> None:
     """The positive control: a pure-Python CPU stall.
 
     It calls none of the functions HA's blocking detector wraps, so by that
     mechanism the detector would not report it -- reasoned, not measured: the
-    log scan counts only reports that blame this package.
+    log scan counts only reports that blame this package. Past ``seconds`` it
+    keeps spinning until ``hold`` is set, up to ``hold_max`` in all.
     """
-    end = time.perf_counter() + seconds
-    while time.perf_counter() < end:
+    start = time.perf_counter()
+    end, bound = start + seconds, start + hold_max
+    while (now := time.perf_counter()) < end or (
+        hold is not None and not hold.is_set() and now < bound
+    ):
         pass
 
 
@@ -1876,8 +1897,11 @@ class LoopHeartbeat:
     """A ``call_later`` probe on a running loop and a thread watching it."""
 
     def __init__(self, loop, *, tick=HB_TICK_S, dump_after=HB_DUMP_S,
-                 hang_after=HB_HANG_S, on_hang=None, py_spy=None) -> None:
-        self.loop, self.tick, self.py_spy = loop, tick, py_spy
+                 hang_after=HB_HANG_S, on_hang=None, py_spy=None,
+                 spy_timeout=PY_SPY_TIMEOUT_S, dumped: threading.Event | None = None) -> None:
+        self.loop, self.tick, self.py_spy, self.spy_timeout = loop, tick, py_spy, spy_timeout
+        # Set each time a stall's dump has returned, py-spy's sample included.
+        self.dumped = dumped if dumped is not None else threading.Event()
         self.dump_after, self.hang_after, self.on_hang = dump_after, hang_after, on_hang
         self.max_gap, self.ticks, self.dumps = 0.0, 0, []
         self._last = time.monotonic()
@@ -1919,6 +1943,7 @@ class LoopHeartbeat:
                 self._stall_dumped = True
                 if len(self.dumps) < HB_MAX_DUMPS:
                     self.dumps.append(self.dump(stalled))
+                    self.dumped.set()
 
     def dump(self, stalled: float) -> str:
         # Frame attributes only: format_stack reads every source file through
@@ -1936,7 +1961,7 @@ class LoopHeartbeat:
                 # included, and that pause would be added to the gap it reports.
                 spy = subprocess.run(
                     [self.py_spy, "dump", "--nonblocking", "--pid", str(os.getpid())],
-                    capture_output=True, text=True, timeout=30,
+                    capture_output=True, text=True, timeout=self.spy_timeout,
                 )
                 text += f"py-spy rc={spy.returncode}:\n{spy.stdout}{spy.stderr[-400:]}"
             except (OSError, subprocess.SubprocessError) as err:
@@ -1975,23 +2000,34 @@ def check_hb_scenario(checks: Checks, name: str, summary: dict, *,
     )
 
 
-def check_hb_positive_control(checks: Checks, summary: dict) -> None:
-    """The gap is seen, and BOTH dumpers name the spin.
-
-    Requiring py-spy's own section (rc=0, naming ``_hb_spin``) is what pins
-    the wiring: a heartbeat container without SYS_PTRACE, or without the
-    staged binary, still dumps the Python stack and would pass on it alone.
-    """
+def hb_control_reading(summary: dict) -> tuple[bool, bool, bool]:
+    """One try of the control: (gap seen, dump names the spin, py-spy rc=0 names it)."""
     named = any("_hb_spin" in d for d in summary["dumps"])
     spied = any(
         "_hb_spin" in d.split("py-spy rc=0:", 1)[1]
         for d in summary["dumps"] if "py-spy rc=0:" in d
     )
+    return summary["max_gap"] >= HB_CONTROL_S, named, spied
+
+
+def check_hb_positive_control(checks: Checks, summaries: list[dict]) -> None:
+    """In one try, the gap is seen and BOTH dumpers name the spin.
+
+    Requiring py-spy's own section (rc=0, naming ``_hb_spin``) is what pins
+    the wiring: a heartbeat container without SYS_PTRACE, or without the
+    staged binary, still dumps the Python stack and would pass on it alone.
+    A try whose sample hung or missed is counted, not failed.
+    """
+    readings = [hb_control_reading(s) for s in summaries]
+    shown = next((i for i, r in enumerate(readings) if all(r)), len(readings) - 1)
+    _, named, spied = readings[shown]
+    gap = summaries[shown]["max_gap"]
     checks.check(
         "hb:positive_control",
-        summary["max_gap"] >= HB_CONTROL_S and named and spied,
-        f"a {HB_CONTROL_S * 1000:.0f} ms spin read as {summary['max_gap'] * 1000:.1f} ms; "
-        f"dump names the spin: {named}; py-spy rc=0 names it: {spied}",
+        any(all(r) for r in readings),
+        f"a {HB_CONTROL_S * 1000:.0f} ms spin read as {gap * 1000:.1f} ms; "
+        f"dump names the spin: {named}; py-spy rc=0 names it: {spied}; "
+        f"try {shown + 1} of {len(summaries)} (at most {HB_CONTROL_TRIES})",
     )
 
 
@@ -2021,9 +2057,11 @@ def _py_spy_path() -> str | None:
     return path if os.access(path, os.X_OK) else None
 
 
-async def _async_hb_measure(checks: Checks, name: str, drive) -> tuple[dict, str | None]:
+async def _async_hb_measure(checks: Checks, name: str, drive,
+                            **sampling) -> tuple[dict, str | None]:
     hb = LoopHeartbeat(
-        asyncio.get_running_loop(), py_spy=_py_spy_path(), on_hang=_hb_on_hang(checks, name)
+        asyncio.get_running_loop(), on_hang=_hb_on_hang(checks, name),
+        **{"py_spy": _py_spy_path(), **sampling},
     )
     hb.start()
     raised = None
@@ -2034,6 +2072,29 @@ async def _async_hb_measure(checks: Checks, name: str, drive) -> tuple[dict, str
     summary = hb.stop()
     _print_dumps(name, summary["dumps"])
     return summary, raised
+
+
+async def _async_hb_control(checks: Checks, *, tries: int = HB_CONTROL_TRIES,
+                            rest: float = HB_CONTROL_REST_S, **sampling) -> list[dict]:
+    """The positive control: up to ``tries`` fresh spins, each held until its sample returns."""
+    summaries: list[dict] = []
+    for _ in range(tries):
+        if summaries:
+            await asyncio.sleep(rest)
+        dumped = threading.Event()
+
+        async def control(dumped=dumped):
+            asyncio.get_running_loop().call_soon(_hb_spin, HB_CONTROL_S, dumped)
+            await asyncio.sleep(HB_CONTROL_S + 0.2)
+
+        summary, _ = await _async_hb_measure(
+            checks, "hb:positive_control", control, dumped=dumped, **sampling
+        )
+        summaries.append(summary)
+        if all(hb_control_reading(summary)):
+            break
+    check_hb_positive_control(checks, summaries)
+    return summaries
 
 
 async def _async_hb_settle(hass, entry_id: str) -> None:
@@ -2061,12 +2122,7 @@ async def _async_check_hb(checks: Checks, hass, entry) -> None:
         live = hass.config_entries.async_get_entry(eid)
         return {**dict(live.data), **dict(live.options)}
 
-    async def control():
-        asyncio.get_running_loop().call_soon(_hb_spin, HB_CONTROL_S)
-        await asyncio.sleep(HB_CONTROL_S + 0.2)
-
-    summary, _ = await _async_hb_measure(checks, "hb:positive_control", control)
-    check_hb_positive_control(checks, summary)
+    await _async_hb_control(checks)
 
     values = hb_values(float(current()[HB_KEY]), 1 + HB_MENU_SAVES)
 
