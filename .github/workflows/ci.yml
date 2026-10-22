@@ -1,42 +1,332 @@
-# The inert CI umbrella stub (R10-CI-LAYOUT PR 0; DESIGN-P1 step 5b).
+# The CI umbrella (R10-CI-LAYOUT P2b, unit U0c; DESIGN-P2 2.1-2.3, 4.3, 5).
 #
-# `workflow_dispatch` dispatches only a file that exists on the default
-# branch, so without this file on main no `probe/ci-layout-<unit>` ref can
-# dispatch the umbrella and the fan-out's live work cannot run. It does
-# nothing: one job that runs `true`, no grant, no other trigger, no `uses:`.
-# It writes no check at any pull-request head, because nothing dispatches it
-# there; the umbrella pull request replaces it. `tests/entities.py` pins it
-# inert, and `tests/closure.py` lists it in GATE_FILES, because the umbrella
-# that replaces it defines the gate.
+# One required check, `gate`. Every unit is a `workflow_call` file called once
+# below, and the caller job id is the file's stem, so each check reads
+# `<stem> / <job>` as tools/ci/gate.py's REQUIRED names it. The prelude
+# (tools/ci/prelude.py) computes what this run is once; each unit runs when
+# the prelude's `workset` names it, the set gate.py also keys its sources on.
+# Every program runs the BASE's copy (restored before it runs), as every
+# grader does. tests/entities.py pins this file: the triggers, the run-name,
+# the run-id group, one `gate` job whose `if:` no event can make false, the
+# caller set and its naming rule, and no `checks:` or `statuses: write`.
 
 name: CI
 
+# Fixed when the run is CREATED, from the event alone: gate.py and pr-contract
+# read a past run's kind, PR, base and `sha=` (github.sha: on pull_request the
+# test merge commit its code-scanning analyses carry) from `display_title`.
+# Each arm is prelude.derive's; on merge_group the PR and base read `-`,
+# because no expression can cut them out of the queue ref, and a queue head
+# has one run, so no reader takes a source from its title.
+run-name: >-
+  ${{ format('CI {0} pr={1} base={2} sha={3}',
+      github.event_name == 'pull_request_review' && 'review'
+      || github.event_name == 'pull_request' && github.event.action == 'labeled'
+         && github.event.label.name == 'kernel-points' && 'kernel-points'
+      || github.event_name == 'pull_request' && github.event.action == 'labeled' && 'label'
+      || github.event_name == 'pull_request' && github.event.action == 'edited'
+         && !github.event.changes.base && 'edit'
+      || 'code',
+      github.event.pull_request.number || inputs.pr || '-',
+      github.event.pull_request.base.ref || inputs.base || '-',
+      github.sha) }}
+
 on:
+  pull_request:
+    # `labeled` is A2 item 1 (kernel-points); `edited` re-judges a body.
+    types: [opened, synchronize, reopened, edited, labeled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  push:
+    branches: [main]
+  # The merge queue (D-3, K9): `gate` reports on the queue's merge commit.
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       pr:
-        description: "Pull request number (unused by the stub)"
+        description: "PR this ref heads (bot heads); empty for a batch proof or main"
         required: false
         type: string
       base:
-        description: "Base SHA (unused by the stub)"
+        description: "That PR's base ref; required with pr"
         required: false
         type: string
       recheck:
-        description: "Re-judge only (unused by the stub)"
+        description: "tests: lane proofs and lane skip"
         required: false
         type: string
       no-skip:
-        description: "Disable lane skipping (unused by the stub)"
+        description: "tests: force every lane (R9-CI-SKIP)"
         required: false
         type: string
 
 permissions: {}
 
+# A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
+# and a re-run re-enters its run's group, so a group shared between runs would
+# let a re-run cancel a live run. Supersession is cancel-superseded's alone.
+concurrency:
+  group: CI-${{ github.run_id }}
+  cancel-in-progress: false
+
 jobs:
-  stub:
+  prelude:
     runs-on: ubuntu-latest
-    permissions: {}
-    timeout-minutes: 1
+    # A verdict run waits for every earlier run at its head (max measured 3450 s).
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      kind: ${{ steps.derive.outputs.kind }}
+      pr: ${{ steps.derive.outputs.pr }}
+      base: ${{ steps.derive.outputs.base }}
+      head: ${{ steps.derive.outputs.head }}
+      gate_scope: ${{ steps.derive.outputs.scope }}
+      legs: ${{ steps.derive.outputs.legs }}
+      workset: ${{ steps.derive.outputs.workset }}
     steps:
-      - run: "true"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Restore the programs from the base
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          INPUT_BASE: ${{ inputs.base }}
+        run: |
+          set -euo pipefail
+          # push and a dispatch naming no base run main's or the ref's own copy.
+          if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
+            [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
+            git fetch -q --no-tags origin "refs/heads/$INPUT_BASE"
+            PINNED=$(git rev-parse FETCH_HEAD)
+          fi
+          if [ -n "$PINNED" ]; then
+            git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+            git checkout "$PINNED" -- 'tools/ci/*.py' tools/pr/codeql_scope.py
+            echo "programs restored from $PINNED"
+          fi
+      - name: Derive kind, PR, base, scope and legs
+        id: derive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/changed.txt"
+          if [ "$EVENT" = pull_request ]; then
+            python3 -I tools/pr/codeql_scope.py changed --base "$BASE_SHA" \
+              --head "$HEAD_SHA" > "$RUNNER_TEMP/changed.txt"
+          fi
+          python3 -I tools/ci/prelude.py --changed-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
+
+  # The one copy (R10-CI-CONCURRENCY): from a non-bot pull_request run at the
+  # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
+  # a same-SHA run, so never a gate attempt at this head.
+  cancel-superseded:
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.sender.login != 'github-actions[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Cancel this branch's runs at superseded heads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PINNED: ${{ github.event.pull_request.base.sha }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          RUN_ID: ${{ github.run_id }}
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- tools/pr/cancel_superseded.py
+          python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow ci.yml \
+            --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
+            --run-id "$RUN_ID" --sender "$SENDER"
+
+  # >>> units: one caller per unit file, id == stem; each runs when the
+  # prelude's workset names it. A probe ci.yml keeps prelude, refresh, gate
+  # and the callers it probes, and drops the rest from every `needs:`.
+  tests:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' tests ')
+    uses: ./.github/workflows/tests.yml
+    with:
+      gate_scope: ${{ needs.prelude.outputs.gate_scope }}
+      pr: ${{ needs.prelude.outputs.pr }}
+      base: ${{ needs.prelude.outputs.base }}
+      head: ${{ needs.prelude.outputs.head }}
+      recheck: ${{ inputs.recheck }}
+      no-skip: ${{ inputs.no-skip }}
+    # Until M-3 decides the approve steps.
+    secrets:
+      CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
+      HPO_RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+      HPO_RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: read
+  codeql:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' codeql ')
+    uses: ./.github/workflows/codeql.yml
+    with:
+      legs: ${{ needs.prelude.outputs.legs }}
+    permissions:
+      contents: read
+      security-events: write
+  governance:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' governance ')
+    uses: ./.github/workflows/governance.yml
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+  hassfest:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' hassfest ')
+    uses: ./.github/workflows/hassfest.yml
+    permissions:
+      contents: read
+  validate:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' validate ')
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read
+  kernel-points:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' kernel-points ')
+    uses: ./.github/workflows/kernel-points.yml
+    with:
+      pr: ${{ needs.prelude.outputs.pr }}
+      base: ${{ needs.prelude.outputs.base }}
+      head: ${{ needs.prelude.outputs.head }}
+    permissions:
+      contents: read
+  arch-score:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' arch-score ')
+    uses: ./.github/workflows/arch-score.yml
+    with:
+      pr: ${{ needs.prelude.outputs.pr }}
+      base: ${{ needs.prelude.outputs.base }}
+      head: ${{ needs.prelude.outputs.head }}
+    permissions:
+      contents: read
+      pull-requests: read
+  budget-raise-gate:
+    needs: prelude
+    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' budget-raise-gate ')
+    uses: ./.github/workflows/budget-raise-gate.yml
+    with:
+      pr: ${{ needs.prelude.outputs.pr }}
+      base: ${{ needs.prelude.outputs.base }}
+      head: ${{ needs.prelude.outputs.head }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+  # Last, so its red list is final.
+  pr-contract:
+    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate]
+    if: ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}
+    uses: ./.github/workflows/pr-contract.yml
+    with:
+      pr: ${{ needs.prelude.outputs.pr }}
+      base: ${{ needs.prelude.outputs.base }}
+      head: ${{ needs.prelude.outputs.head }}
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
+      security-events: read
+      actions: read
+  # <<< units
+
+  # An event can make an earlier green `gate` at this head stale: re-run the
+  # gate of every completed run here whose latest gate is green, so it
+  # re-judges against this run. A notice, not a failure, at a fork head.
+  refresh:
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Restore the programs from the base
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- 'tools/ci/*.py'
+      - name: Re-run the stale green gates at this head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I tools/ci/gate.py --refresh
+
+  # The one required check. Never skippable: a skipped required check passes.
+  # It trusts no guard; gate.py derives what the event owes from the event.
+  gate:
+    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate, pr-contract]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      # Full history: D-2's three-dot diff against origin/<base>.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Restore the programs from the base
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          INPUT_BASE: ${{ inputs.base }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
+            [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
+            PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")
+          fi
+          if [ -n "$PINNED" ]; then
+            git checkout "$PINNED" -- 'tools/ci/*.py'
+            echo "programs restored from $PINNED"
+          fi
+      # The API read is the program's last step and this job's (rev3, R3-1).
+      - name: Judge this head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.prelude.outputs.pr }}
+          BASE: ${{ needs.prelude.outputs.base }}
+          KIND: ${{ needs.prelude.outputs.kind }}
+        run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"

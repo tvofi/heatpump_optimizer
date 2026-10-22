@@ -486,6 +486,9 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # Its sweep re-runs `gate` jobs, so it decides which verdict stands at a
+    # head as ci.yml does (U0c).
+    ".github/workflows/gate-sweep.yml",
     # The umbrella's programs (R10-CI-LAYOUT P2a): the prelude decides the
     # GATE_SCOPE every lane runs under and gate.py is the one required check,
     # so a change here changes the gate's verdict as ci.yml does.
