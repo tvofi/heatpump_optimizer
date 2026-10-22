@@ -584,13 +584,14 @@ python3 -c 'import sys,json,base64; print(json.dumps({"encoding": "base64", "con
 cat > "$W/bin/gh" <<'STUB'
 #!/bin/bash
 printf 'gh %s\n' "$*" >> "$STUB/log"
-# A queued failure: `fail-<read>` holds one gh stderr line per failing call,
-# popped in order; once it is empty the read answers as below.
+# A queued failure: `fail-<read>` holds one gh stderr per failing call, one
+# line each with `\n` for a line break, popped in order; once it is empty the
+# read answers as below.
 case "$*" in
   "api repos/o/r/pulls/7") q=pulls ;; *comments*) q=comments ;; *CODEOWNERS*) q=codeowners ;; *files*) q=files ;; *) q="" ;;
 esac
 if [ -n "$q" ] && [ -s "$STUB/fail-$q" ]; then
-  head -1 "$STUB/fail-$q" >&2; tail -n +2 "$STUB/fail-$q" > "$STUB/fail-$q.n"; mv "$STUB/fail-$q.n" "$STUB/fail-$q"; exit 1
+  printf '%b\n' "$(head -1 "$STUB/fail-$q")" >&2; tail -n +2 "$STUB/fail-$q" > "$STUB/fail-$q.n"; mv "$STUB/fail-$q.n" "$STUB/fail-$q"; exit 1
 fi
 case "$*" in
   "api repos/o/r/pulls/7")
@@ -1182,12 +1183,89 @@ st "$(grep -c 'REFUSE: could not read the comments on #7: gh failed with nothing
 # made was entered in it, and both classes are populated.
 census_bad=0
 while IFS=$'\t' read -r k f l; do
-  if gh_transient "$l"; then got=transient; else got=refuse; fi
+  if gh_transient "$(printf '%b' "$l")"; then got=transient; else got=refuse; fi
   [ "$got" = "$k" ] || { echo "     census: $f line '$l' classifies $got, its arm needs $k"; census_bad=$((census_bad + 1)); }
 done < "$W/census"
 st "$census_bad" 0 "every queued stderr line classifies as its arm needs (production gh_transient)"
 st "$(cut -f2 "$W/census" | sort -u | wc -l | tr -d ' ')" "$(ls "$W"/*/fail-* | wc -l | tr -d ' ')" "(the census covers every fail-* file an arm made)"
 st "$(cut -f1 "$W/census" | sort -u | tr '\n' ' ')" "refuse transient " "(and holds both classes)"
+
+# A failure over two stderr lines -- a status line, then a line that is not one
+# -- is classified on gh's stderr as it came, line by line; the folded GH_ERR
+# that the refusal prints puts the status mid-line, where no rule reads it.
+mkcase rhint open false "$SHA" "$GOOD"
+queue rhint pulls transient 'gh: Server Error (HTTP 502)\nRetry the request in a few minutes.'
+run rhint o/r 7 "$SHA"; st $? 0 "a 502 followed by a second stderr line, then an answer, is approved"
+st "$(calls rhint 'gh api repos/o/r/pulls/7$')" 3 "after one retry of the pull-request read"
+
+# Every alternative of gh_transient, pinned from both sides: an input it must
+# classify transient and a near-miss it must refuse. The alternatives are not
+# listed by hand: ALTS derives them from gh_transient's own source -- each
+# `|`-separated alternative of each `case` label, and of each single-quoted
+# sed/grep pattern -- plus `default`, the fall-through no rule matches, and
+# the table below must key exactly that set, each key holding both classes.
+# Two rows are design choices: of two status lines the LAST decides (it is
+# the response gh read last), and a `secondary rate limit` phrase rescues a
+# 403 only, on its whole phrase.
+ALTS=$( { sed -n '/^gh_transient() {/,/^}/p' "$SELF" | grep -v '^ *#' \
+  | grep -oE "^ +[^ ()]+\)|(sed|grep) -[a-zA-Z]+ '[^']*'" \
+  | sed -E "s/^ +//; s/\)$//; s/^[a-z]+ -[a-zA-Z]+ '(.*)'$/\1/" | tr '|' '\n'; echo default; } | sort -u)
+cat > "$W/alts" <<'ALT'
+5??	transient	gh: Server Error (HTTP 500)
+5??	transient	gh: HTTP 520
+5??	transient	gh: Network Connect Timeout Error (HTTP 599)
+5??	refuse	gh: Client Closed Request (HTTP 499)
+429	transient	gh: API rate limit exceeded (HTTP 429)
+429	refuse	gh: Precondition Required (HTTP 428)
+429	refuse	gh: Request Header Fields Too Large (HTTP 431)
+403	transient	gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)
+403	refuse	gh: Resource not accessible by integration (HTTP 403)
+secondary rate limit	transient	gh: You have exceeded a Secondary Rate Limit (HTTP 403)
+secondary rate limit	refuse	gh: API rate limit exceeded for installation ID 1. (HTTP 403)
+secondary rate limit	refuse	gh: secondary rate exceeded (HTTP 403)
+secondary rate limit	refuse	gh: secondary limit reached (HTTP 403)
+secondary rate limit	refuse	gh: secondary rate limit (HTTP 404)
+?*	refuse	gh: Not Found (HTTP 404)
+?*	refuse	gh: Bad credentials (HTTP 401)
+?*	refuse	gh: Conflict (HTTP 409)
+?*	refuse	gh: Validation Failed (HTTP 422)
+?*	transient	error connecting to api.github.com
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: HTTP 502
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Server Error (HTTP 502)\nRetry the request in a few minutes.
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Not Found (HTTP 404)\ngh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502) after 3 pages
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	warning: gh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 5020)
+^Get "https?://[^"]*": 	transient	Get "https://api.github.com/repos/o/r/pulls/7": net/http: TLS handshake timeout
+^Get "https?://[^"]*": 	transient	Get "http://127.0.0.1:1/x": dial tcp 127.0.0.1:1: connect: connection refused
+^Get "https?://[^"]*": 	refuse	post-step: Get "https://api.github.com/x": EOF
+^Get "https?://[^"]*": 	refuse	Get "https://api.github.com/x" EOF
+^Get "https?://[^"]*": 	refuse	Get https://api.github.com/x: EOF
+^Get "https?://[^"]*": 	refuse	Get "ftp://api.github.com/x": EOF
+^error connecting to 	transient	error connecting to api.github.com\ncheck your internet connection or https://githubstatus.com
+^error connecting to 	refuse	proxy: error connecting to api.github.com
+^error connecting to 	refuse	error connecting api.github.com
+default	refuse	something gh never says
+default	refuse	
+default	transient	Get "https://api.github.com/x": EOF
+ALT
+alt_bad=0; alt_out=0
+while IFS=$'\t' read -r a k l; do
+  x=$(printf '%b' "$l")
+  if gh_transient "$x"; then got=transient; else got=refuse; fi
+  [ "$got" = "$k" ] || { echo "     alternative '$a': '$l' classifies $got, want $k"; alt_bad=$((alt_bad + 1)); }
+  [ -z "$(gh_transient "$x" 2>&1)" ] || alt_out=$((alt_out + 1))
+done < "$W/alts"
+st "$alt_bad" 0 "every alternative's inputs and near-misses classify as the table needs (production gh_transient)"
+st "$alt_out" 0 "and gh_transient prints nothing on either stream"
+st "$(cut -f1 "$W/alts" | sort -u | tr '\n' '|')" "$(printf '%s\n' "$ALTS" | tr '\n' '|')" \
+   "(the table keys exactly the alternatives gh_transient's source holds)"
+st "$(cut -f1,2 "$W/alts" | sort -u | cut -f1 | uniq -c | awk '$1 != 2' | wc -l | tr -d ' ')" 0 \
+   "(and every alternative holds both a transient input and a refused near-miss)"
+st "$(printf '%s\n' "$ALTS" | wc -l | tr -d ' ')" 9 "(nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default)"
 
 mkcase post502 open false "$SHA" "$GOOD"; echo 'curl: (22) The requested URL returned error: 502' > "$W/post502/refuse-post"
 run post502 o/r 7 "$SHA"; st $? 1 "a 502 on the review POST refuses: a write is never retried"
