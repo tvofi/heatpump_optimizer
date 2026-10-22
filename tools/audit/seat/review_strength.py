@@ -560,14 +560,15 @@ def self_test() -> int:
 def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, check) -> None:
     """PRs 16-18: the literal, regex, ref-scope and merge-walk seams the mutation sweep found unpinned."""
     rv = lambda pr: f"refs/remotes/origin/review/{pr}"
-    N16, N17 = "09abcdef" * 4, "90fedcba" * 4
+    N16, N17 = "09abcdef1234567876543210fedcba98", "90fedcba" * 4
     # PR 16: 145 lines plus one each in files a prefix cut would wrongly read: the delivery
     # exclusion and the product prefixes all hold at their trailing '/', and tests/ and tools/
     # are top-level directories outside the product (150 lines, M<600, not product).
     h16 = mk(m1, {"docs/s16.md": lines(145), "dev/programme/delivery.md": lines(1), "tests/t16.py": lines(1),
                   "tools/t16.py": lines(1), "custom_components.md": lines(1), "blueprints.md": lines(1)},
              "pr 16", "2026-10-05T01:00:00Z")
-    # Its VERDICT.md quotes another nonce mid-line before its own; its nonce holds a 0 and a 9.
+    # Its VERDICT.md quotes another nonce mid-line before its own; its nonce holds a 0 and a 9, and
+    # its first 8 hex recur nowhere in it, so only nonce[:8] matches the probe ref.
     s16 = verdict(rv(16), f"verdict: #16 Fix review: merge {h16}", N16, "2026-10-05T09:00:00Z",
                   pre=f"quoting bus-nonce: {'1' * 32}\n")
     g("update-ref", f"refs/remotes/origin/probe/rev-16-{N16[:8]}", s16)
