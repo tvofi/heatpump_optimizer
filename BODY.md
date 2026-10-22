@@ -33,6 +33,10 @@ Alternatives, and why each lost (fixer.md step 17):
 
 ## Head
 
+`a6e90cbcc8b6baec9de8e8c4609236f601f13698` merges main `cd4aaed` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`e88d24b9b3adefd16804a9c11070f75f4b97e237` merges main `04c1dd7` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
 `53f24912dee67629b3bc383f91031627c995d520`. `git merge-base origin/main 53f24912dee67629b3bc383f91031627c995d520` is `b787c7d45951243a05b6522437b60a01288f0dfd`. Every figure below was taken at this SHA, in a detached worktree of it, with `origin/main` at `01cf1398a9cfa3dcae5945221afd0c1dae9cf682` (2026-10-22T08:24Z); none is a function of main's tip except where a row says so.
 
 ## Mutation proof
@@ -104,6 +108,11 @@ Red in the branch's history (`b787c7d45951243a05b6522437b60a01288f0dfd..53f24912
 
 - The check-runs of `74a18df9`, `9b9770b3`, `841b2fea` and `37cffb09` were re-read by the review at the head and show no non-success run. I did not re-read the earlier heads (`d42bda80f` through `21307f6fc`), to spare the API.
 - Earlier bodies recorded two reds, both answered: `pr-contract` `BAD-DEST` on an early head (CI checks carries against main's roster, where this group existed only on `handoff/audit-r10-roster`). Cheaper detector: `carry_audit.py check` run without `--roster-ref`, about a second, already in `## Figures`' carry audit; and `nightly-status` at `74a18df9` (grades main's nightly lanes; this diff touches nothing it reads; the latest read shows it success). Main's own red 02:52Z-04:35Z (`policy_lint.mjs` token cap, fixed by #2595, `dcf12f490` is in the head's ancestry) reached no check here. Carry: dismissed: main's own red and a main-graded check, neither this branch's
+- Three more checks are red in the history, all at `e88d24b9b3adefd16804a9c11070f75f4b97e237` (the merge of main `04c1dd7`, 09:44Z), none this diff's. I read each job's log once. The cause is one, quoted in three jobs and inferred in the fourth: the installation's GitHub API quota, which #2606's RCA records as spent by the record job's burst at the 09Z hour.
+  - `arch-score`, jobs `119753663737` (09:44:03Z) and `119753673006` (09:44:44Z): the step that reads the pull request body died on `gh: API rate limit exceeded for installation. ... timestamp 2026-10-22 09:44:44 UTC ... (HTTP 403)` (the first job's line reads `09:44:03 UTC`), before any measurement ran.
+  - `validate-hacs`, job `119753672066`: `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation.` at 09:44:39Z, raised from `hacs.githubapi.repos.get` in the action's preflight.
+  - `env-matrix`, job `119753674898` (09:47:02Z): one outcome failed of 16, `pr / nothing skipped in a full clone -- skip required-contexts the GitHub API is unreachable (the fixture or the API failed: 1)`. Its log holds no rate-limit line, so the cause is inferred, not quoted: the same installation, three minutes after the three quoted limit failures. The other 15 outcomes held.
+  - Cheaper detector: none exists for an external quota exhaustion; the budget is owned by R10-RECORD-API-BUDGET (#2606's record). Carry: dismissed: external installation quota, owned by R10-RECORD-API-BUDGET
 
 ## Forward-carry
 
@@ -122,3 +131,4 @@ none
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_01FnkqgMwEtyePst4dyJYpKz
+
