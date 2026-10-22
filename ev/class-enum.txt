@@ -1,0 +1,23 @@
+# rule: every caller of body_check / policy_lint --pr-body that reports its result by one line
+497:  if [ "$r" -eq 0 ]; then tail -1 "$out"
+703:body_refusal() { # policy_lint output file -> one line
+728:  body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
+729:  if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
+730:  else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
+1036:  body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+1042:    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
+1413:  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >"$ST_ROOT/bodyst.$$" 2>&1
+1417:  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-nonpolicy.txt" >/dev/null 2>&1
+1419:  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-empty.txt" >/dev/null 2>&1
+2034:  # #2028: body_check hands policy_lint the paths the base already had
+2045:    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+# other tools invoking --pr-body
+tools/policy/figure_lint.mjs
+tools/policy/brief_lint.mjs
+tools/policy/policy_lint.mjs
+tools/policy/counts.mjs
+tools/pr/app_push.sh
+tools/pr/prepr.sh
+tools/pr/push.sh
+tools/audit/seat/record_row.py
+.github/workflows/pr-contract.yml
