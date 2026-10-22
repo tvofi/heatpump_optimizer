@@ -5613,9 +5613,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-ci-layout-p1",
-    "commit": null,
+    "commit": "fae523a14",
     "last_step": null,
     "next_step": "dispatch a fixer once R10-CI-LAYOUT (PR G #2529) is done",
     "note": null
