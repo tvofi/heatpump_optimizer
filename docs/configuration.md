@@ -397,7 +397,7 @@ warmth.
 | Compressor replacement cost | 0 | 0–100 000, 100 steps | What a compressor swap costs including labour, in your price currency. Divided by the rated starts below it prices each realised start. 0 keeps the start counter pure observation. |
 | Compressor rated starts | 100 000 | 1 000–1 000 000 | What the manufacturer rates the compressor for. |
 | Let realised wear tune the cycling cost | off | on/off | Makes the wear price a floor under the cycling cost above. The only insight feature that changes plans. |
-| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — one degree lower, one higher, power capped at 75 %, in rotation. Off by default because each tile is a full extra solve. |
+| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — the comfort schedule one degree lower, one higher, power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile is a full extra solve. |
 
 ### Grid peak tariff
 
