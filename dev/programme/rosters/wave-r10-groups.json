@@ -1213,7 +1213,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10309) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge. R10-DEEPLINK-HANDLERS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it; every `addEventListener` call site must register a listener the census drives on one of its fixtures (the five pages, or a variant in the census's `FIXTURES` list), so a handler added in a state no fixture renders is red on `the census drove a listener from every addEventListener site in the card` until the same pull request adds a fixture that renders it, and a handler wired as an `on<event>` property or attribute is refused outright; a mention of a `NAV_SURFACE` name (`href`, `location`, `pushState`, `replaceState`, `open`, `navigation`, `formaction`, `submit`, `requestSubmit`, `hass-more-info`, `hass-action`) in the card's code outside `navigateTo` is red at once, in code or in a string, so an identifier that carries one is refused too -- name a fold boolean `foldOpen`, not `open`; and every way out a render or a drive reaches -- a history member, a form or its action, an anchor anywhere in the document (its body, the card host, any shadow root, or a detached element the document made) -- is recorded by the dynamic arm whatever spelling wrote it. Not covered (the census's Residual paragraph): code no fixture or drive reaches, where only those names are refused, and markup written through a DOM member the stub does not implement (`insertAdjacentHTML`, `outerHTML`, `cloneNode`; the driver's RD8 and Y1 are those witnesses, green) -- write no navigation there. Control, re-measured at your merge base: `python3 tools/audit/seat/r10_deeplink_mutants.py RV1_history_bracket_back_in_undriven_keydown RD8_insert_adjacent_html_built_href_driven_residual` reads RV1 red and RD8 green. Every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press or a drive reaches it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
+   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:1081) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge. R10-DEEPLINK-HANDLERS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it; every `addEventListener` call site must register a listener the census drives on one of its fixtures (the five pages, or a variant in the census's `FIXTURES` list), so a handler added in a state no fixture renders is red on `the census drove a listener from every addEventListener site in the card` until the same pull request adds a fixture that renders it, and a handler wired as an `on<event>` property or attribute is refused outright; a mention of a `NAV_SURFACE` name (`href`, `location`, `pushState`, `replaceState`, `open`, `navigation`, `formaction`, `submit`, `requestSubmit`, `hass-more-info`, `hass-action`) in the card's code outside `navigateTo` is red at once, in code or in a string, so an identifier that carries one is refused too -- name a fold boolean `foldOpen`, not `open`; and every way out a render or a drive reaches -- a history member, a form or its action, an anchor anywhere in the document (its body, the card host, any shadow root, or a detached element the document made) -- is recorded by the dynamic arm whatever spelling wrote it. Not covered (the census's Residual paragraph): code no fixture or drive reaches, where only those names are refused, and markup written through a DOM member the stub does not implement (`insertAdjacentHTML`, `outerHTML`, `cloneNode`; the driver's RD8 and Y1 are those witnesses, green) -- write no navigation there. Control, re-measured at your merge base: `python3 tools/audit/seat/r10_deeplink_mutants.py RV1_history_bracket_back_in_undriven_keydown RD8_insert_adjacent_html_built_href_driven_residual` reads RV1 red and RD8 green. Every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press or a drive reaches it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-REGISTRY-LEAK",
@@ -7799,6 +7799,88 @@
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": null
+   }
+  },
+  {
+   "group": "R10-RCA-BODY-LINT",
+   "lane": "RP",
+   "kind": "policy",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "N-body-lint-bounce"
+   ],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/body_push.sh",
+    "tools/pr/prepr.sh",
+    "tools/policy/policy_lint.mjs",
+    "tests/entities.py",
+    "dev/audit/rca/R10-RCA-BODY-LINT.md",
+    "dev/audit/config/bugclasses.json"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Root-cause countermeasure for the recurring class of fixer bodies refused at prepr by the pr-body lint (#2524 twice, R10-CURRENCY three times, P2a once; 36 of 519 handoff-body pushes over 22 topics fail it offline, 2-12 a day 10-15..10-22). Cause: body_push.sh ran only ci_predict, never the body lint, and the Friction trailer drop predates the cloud session-link line. Countermeasure: prepr.sh --body-check runs step 7 offline; body_push.sh lints when handoff/<topic> is HEAD and refuses a mismatched head; the session link joins the trailer drop. Record dev/audit/rca/R10-RCA-BODY-LINT.md and class N-body-lint-bounce. Code at handoff/r10-rca-body-lint 5b27a11aa.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-rca-body-lint"
+   }
+  },
+  {
+   "group": "R10-NIGHTLY-ABSENT-NEW",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "nightly-status NIGHTLY ABSENT misdiagnoses a workflow younger than its first cron slot"
+   ],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "after": [],
+   "files": [
+    "tests/nightly_status.py",
+    "tests/entities.py",
+    ".github/workflows/tests.yml"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "brief": "nightly-status (tests/nightly_status.py, classify(), the ABSENT arm around l.346) turns every PR head and main red with 'NIGHTLY ABSENT: no scheduled run of the workflow was found at all ... GitHub disables schedules on repositories with no recent activity'. Measured 2026-10-22: nightly.yml (cron '17 2 * * *') reached main with #2585 (fae523a14, 08:05Z), after that day's 02:17Z slot; `gh api repos/tvofi/heatpump_optimizer/actions/workflows/nightly.yml` gives state=active, created 2026-10-22T08:05:56Z; `actions/workflows/nightly.yml/runs?event=schedule` total_count 0. So the schedule is NOT disabled: the workflow is younger than its first slot, and the message's stated cause is false. Every PR must answer the red in its body until the first scheduled run (pr-contract refused #2622 for it). Fix: distinguish (a) no cron slot has elapsed since the workflow reached main (read the workflow's created_at, or the first-parent commit that added the file, against the cron) -> a NEW/PENDING state that is not red, bounded to the first slot plus a grace (the cron period plus one hour), after which ABSENT reds as today; (b) the workflow's state is disabled_* -> ABSENT with GitHub's own reason (one read of actions/workflows/<file>); (c) active and past its first slot with no run -> ABSENT, worded without the inactivity claim. Keep classify() pure: new inputs are data, drivable from tests/entities.py. Controls: a fixture workflow created after the last slot reads NEW, not red; the same fixture 26 h later with no run reads ABSENT (null control: the grace does not hide a dead schedule); a disabled_inactivity state reads ABSENT with that reason. Mutants: drop the grace bound -> the 26 h fixture passes wrongly; drop the state read -> the disabled fixture loses its reason. Spare the API: at most one extra read per run. If the first scheduled Nightly (due ~2026-10-23T02:17Z) lands before this merges, the fix still stands for the next new scheduled workflow (CI-LAYOUT P2b adds more).",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
    }
   }
  ]
