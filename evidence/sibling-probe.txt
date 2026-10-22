@@ -1,7 +1,5 @@
-A R10-STALE-PATHS in-progress -> done PR 900 ffffffff
 A R10-STALE-PATHS-2 in-progress -> done PR 900 ffffffff
-RESULT caseA_misattributed= 1
-B R10-DEEPLINK done -> in-progress PR 901
+RESULT caseA_misattributed= 0
 B R10-DEEPLINK-CENSUS not-started -> in-progress PR 901
-RESULT caseB_done_reopened= 1
+RESULT caseB_done_reopened= 0
 RESULT null_no_sibling_group_still_matches= 1

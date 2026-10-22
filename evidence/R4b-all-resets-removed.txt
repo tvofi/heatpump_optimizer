@@ -1,2 +1,0 @@
-roster_sync self-test: 34 checks, 1 failed
-FAIL and no unpushed commit is left on the local branch (it is back at the base it was cut from) (got: )

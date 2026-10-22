@@ -1,6 +1,0 @@
-roster_sync self-test: 34 checks, 0 failed
-
-real	0m1.385s
-user	0m0.714s
-sys	0m0.397s
-rc=0

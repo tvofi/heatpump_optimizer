@@ -1,0 +1,10 @@
+roster_sync self-test: 53 checks, 0 failed
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-dbsqbl7i/drv3; pass --roster-path or --roster-ref
+roster_edit self-test: 106 checks, 0 failed
+state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /tmp/tmpxz_8awhn/two; pass --roster-path or --roster-ref
+state_docs self-test: all checks passed
+RESULT base_apply_rc=2 head_apply_rc=0
+RESULT base_stage=in-progress head_stage=done
+RESULT head_noapply_stage=in-progress
+RESULT base_deferred=deferred head_deferred=deferred
+RESULT control=PASS

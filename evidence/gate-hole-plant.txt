@@ -1,0 +1,14 @@
+== tools/audit/seat/roster_sync.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+== tools/audit/seat/roster_edit.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+== tools/audit/carry_audit.py
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+== tools/audit/seat/r10_roster_sync_mutants.py
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+== null peer tools/audit/seat/queue_pre_flight.py (same inert_reads list)
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
