@@ -1,20 +1,22 @@
 RESULT mutant=NULL_no_plant rc=0 fails=0
 RESULT mutant=M1_deferred_overwritten rc=1 fails=2
-    FAIL the dry run says the human disposition is left alone (got: roster_sync: pull requests: 7 read offline from --pr-state
-    FAIL a deferred stage is never overwritten (got: {'stage': 'done', 'branch': 'handoff/r9-defer', 'commit': 'cccccccccccccccccccccccccccccccccccccccc'})
-RESULT mutant=M2_open_not_in_progress rc=1 fails=2
-    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 7 read offline from --pr-state
-    FAIL open PR: stage in-progress with its number (got: {'stage': 'queued', 'branch': 'handoff/r9-open'})
-RESULT mutant=M3_merged_without_commit rc=1 fails=2
-    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 7 read offline from --pr-state
-    FAIL merged PR: stage done at its merge commit (got: {'stage': 'done', 'branch': 'handoff/r9-live'})
+RESULT mutant=M2_open_not_in_progress rc=1 fails=3
+RESULT mutant=M3_merged_without_commit rc=1 fails=3
 RESULT mutant=M4_carry_to_done_appended rc=1 fails=2
-    FAIL the dry run refuses the done destination (got: roster_sync: pull requests: 7 read offline from --pr-state
-    FAIL a Carry: to a done group is refused, not appended (got: ['a real finding for a done group. Carry: R9-OVER'])
 RESULT mutant=M5_second_parser rc=1 fails=2
-    FAIL the merged body's Carry item lands in the destination (got: ['the widget parser drops a unit. Carry: R9-DEST', 'a quoted example `Carry: R9-DEST` in a code span routes nothing.'])
-    FAIL carry_audit's parser is used: a quoted marker in a code span routes nothing (a second parser would append it) (got: ['the widget parser drops a unit. Carry: R9-DEST', 'a quoted example `Carry: R9
 RESULT mutant=M6_dry_run_writes rc=1 fails=1
-    FAIL dry run creates no roster branch (no --apply writes nothing) (got: refs/heads/handoff/audit-r9-roster
+RESULT mutant=M7_exact_match_only rc=1 fails=4
+RESULT mutant=M8_sibling_decides rc=1 fails=2
+RESULT mutant=M9_carry_dedupe_dropped rc=1 fails=3
+RESULT mutant=M10_issue_dest_appended rc=1 fails=1
+RESULT mutant=M11_rc_path_no_reset rc=1 fails=1
+RESULT mutant=M12_length_test rc=1 fails=5
+RESULT mutant=M13_off_main_accepted rc=1 fails=1
+RESULT mutant=M14_ambiguous_accepted rc=1 fails=1
+RESULT mutant=M15_record_invalid_silent rc=1 fails=1
+RESULT mutant=M16_open_head_on_main rc=1 fails=1
+RESULT mutant=M17_unreadable_ancestry_ok rc=1 fails=1
+RESULT mutant=M18_non_commit_counted rc=1 fails=1
+RESULT mutant=M19_sha_grammar_dropped rc=1 fails=1
+RESULT mutant=M20_shared_topic_first_only rc=1 fails=1
 restored
-rc=0
