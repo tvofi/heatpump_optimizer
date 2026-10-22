@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report the last scheduled run of the Tests workflow, as its own red check.
+"""Report the last scheduled run of the Nightly workflow, as its own red check.
 
 WHY THIS EXISTS
 ---------------
@@ -125,7 +125,9 @@ import urllib.request
 
 API = "https://api.github.com"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
-DEFAULT_WORKFLOW = "tests.yml"
+# nightly.yml since R10-CI-LAYOUT PR 1 (DESIGN-P1 2(a)): the lanes below left
+# tests.yml, whose last scheduled run then ages past MAX_AGE_NIGHTS.
+DEFAULT_WORKFLOW = "nightly.yml"
 
 # The oldest age still ACCEPTED, which is what "max age" says. One missed night
 # is timezone slack or a rescheduled cron; two consecutive misses is exactly the
@@ -206,7 +208,7 @@ NOT_REQUIRED = (
 OWED_WHEN_RED = (
     "A red here is owed a fix and a PROOF, not an explanation. Fix the lane, "
     "then verify it on the default branch:",
-    "    gh workflow run tests.yml --ref main",
+    "    gh workflow run nightly.yml --ref main",
     "and name that run id under `## Red checks` in your pull-request body. A "
     "concluded dispatch on the default branch is read as the nightly here, so "
     "the check goes green on the fix rather than on the next cron.",
@@ -481,7 +483,7 @@ def _jobs(repo: str, run_id: int, token: str | None) -> list[dict]:
     this workflow comes near a hundred jobs -- not a specific count, which
     moves every time a job is added or a matrix arm changes. The rule, so a
     later reader re-derives rather than trusts: take the N most recent runs of
-    `tests.yml` and read `.total_count` from
+    `nightly.yml` and read `.total_count` from
     `/repos/<repo>/actions/runs/<id>/jobs`; the maximum is what matters. It is
     an order of magnitude below the page size. The day it is not, this raises
     `Unreadable` instead of lying, and that is the day to follow `Link` here.

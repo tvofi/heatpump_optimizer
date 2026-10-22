@@ -125,7 +125,6 @@ ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
 #: Per merge_train.py: written only by a PR event; no dispatch writes them.
 PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
-GREEN = ("success", "skipped", "neutral")
 ROW_DIR = "dev/programme/delivery/"
 CLAIM_FILES = ("tests/golden/claimed_drift.txt",
                "tests/golden/card_claimed_drift.txt")
@@ -159,6 +158,8 @@ RATE_FLOOR = 0.2
 #: Non-standard conclusions: completed, but neither red nor pending, and
 #: they block a merge invisibly (wait-ci's GREEN set does not know them).
 NONSTANDARD = ("cancelled", "startup_failure", "timed_out")
+#: GitHub's annotation on a run its concurrency group cancelled for a newer one.
+SUPERSEDED = re.compile(r"Canceling since a higher priority waiting request for \S+ exists")
 #: The mandate citation a review body carries (budget_raise_gate's own shape).
 MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:?\s*#?(\d{6,})", re.I)
 #: The plan's disposition region (record-check keys on the region, not a row).
@@ -232,6 +233,11 @@ def _module(name: str, *candidates: str):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+#: The train's state classifier (R10-FLOW-MAIN-GATE, K15): the one owner of
+#: "is this head red", read by MAIN and PRS rather than restated here.
+mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
 
 
 class Tick:
@@ -312,7 +318,7 @@ class Tick:
         return r.returncode, [l.strip() for l in r.stdout.splitlines()
                               if l.strip()]
 
-    def _roster_ref(self, S: str, rl) -> str:
+    def _roster_ref(self, S: str, rl, announce: bool = True) -> str:
         """The ref this tick reads the roster at: --roster-ref, else
         roster_lib's `default_roster_ref` (O17: the round's roster branch,
         else main) through the tick's own git, its note printed in `S`. One
@@ -320,7 +326,7 @@ class Tick:
         if self.roster_ref:
             return self.roster_ref
         ref, note = rl.default_roster_ref(self.git)
-        if note:
+        if note and announce:
             self.line(S, f"roster ref: {note}", flag=note.startswith("WARNING"))
         return ref
 
@@ -346,8 +352,7 @@ class Tick:
     # ------------------------------------------------------------- helpers
     def check_runs(self, sha: str) -> "list[dict] | None":
         """Every check run at <sha>, one object per line across pages; the
-        caller takes latest-per-name by started_at (merge_train.wait_ci's
-        own reading, same GREEN set)."""
+        caller judges them through the train's classifier (`mt`)."""
         code, raw = self.gh(["api", "--paginate", "--jq", ".check_runs[]",
                              f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
         if code:
@@ -359,7 +364,7 @@ class Tick:
 
     @staticmethod
     def latest(runs: list[dict]) -> dict:
-        return {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+        return mt.latest_runs(runs)
 
     def critical_median(self) -> "float | None":
         """The recorded critical-path median in minutes (tests/ci_budgets.json,
@@ -397,17 +402,12 @@ class Tick:
 
     @staticmethod
     def judge(runs_by_name: dict) -> tuple[list[str], list[str], list[str]]:
-        """(green, running, red): lowercase conclusions, latest-run-wins,
-        pending is not a pass (nudge.md step 15)."""
-        green, run, red = [], [], []
+        """(green, running, red) over every lane, each by the train's
+        run_state: latest-run-wins, pending is not a pass (nudge.md step 15)."""
+        by = {"green": [], "pending": [], "red": []}
         for n, c in runs_by_name.items():
-            if c.get("status") != "completed":
-                run.append(n)
-            elif (c.get("conclusion") or "") in GREEN:
-                green.append(n)
-            else:
-                red.append(n)
-        return sorted(green), sorted(run), sorted(red)
+            by[mt.run_state(c)].append(n)
+        return sorted(by["green"]), sorted(by["pending"]), sorted(by["red"])
 
     def fetch_head(self, head: str) -> bool:
         return self.git(["fetch", "-q", "origin", "main", head])[0] == 0
@@ -569,7 +569,7 @@ class Tick:
             self._files[n] = self._last_files
         self.owner_reviews(S, prs)
         self.body_staleness(S, prs)
-        self.open_pr_cap(S, prs)
+        self.cap_levels(S, prs)
         self.verdict_levels(S, prs)
         self.relay_owed(S)
         for head, ns in sorted(by_head.items()):
@@ -578,22 +578,31 @@ class Tick:
                           f"{head[:12]}: {', '.join('#' + str(x) for x in ns)}"
                           " (duplicate CI, ambiguous red)", flag=True)
 
-    def open_pr_cap(self, S: str, prs: list) -> None:
-        """Two level lines every pass (tvofi, 2026-10-18): the open-PR soft cap
-        open_pr.sh enforces, counted by pr_cap.py's own rule, and the counted
-        PRs whose three-dot diff touches the coordinator, against its cap of 2.
-        A diff one_pr could not read leaves the second count a floor: flagged."""
+    def cap_levels(self, S: str, prs: list) -> None:
+        """Two level lines every pass (tvofi, 2026-10-20, moving 2026-10-18's
+        open-PR cap to dispatch): `WIP: N/6 (open PRs M)`, N the roster's
+        `in-progress` groups through roster_lib (`pr_cap.py`'s dispatch-gate
+        count), M `pr_cap.py`'s counted open pull requests, flagged at or over
+        HPO_WIP_CAP -- at the cap a new group is not dispatched, while opening
+        and merging are always allowed; and the counted PRs whose three-dot
+        diff touches the coordinator, against its cap of 2. A diff one_pr
+        could not read leaves the second count a floor: flagged. A roster or a
+        cap it cannot read is UNREADABLE, never a clean zero."""
         cap_mod = _module("pr_cap_tick", "tools/audit/seat/pr_cap.py")
         if cap_mod is None:
-            self.unreadable(S, "open-PR cap", "tools/audit/seat/pr_cap.py absent")
+            self.unreadable(S, "WIP cap", "tools/audit/seat/pr_cap.py absent")
             return
-        counted, cap = cap_mod.counted(prs), cap_mod.cap_from_env()
+        counted, cap = cap_mod.counted(prs), cap_mod.wip_cap_from_env()
         if cap is None:
-            self.unreadable(S, "open-PR cap", f"{cap_mod.CAP_ENV} is not a positive integer")
+            self.unreadable(S, "WIP cap", f"{cap_mod.WIP_CAP_ENV} is not a positive integer")
         else:
-            n = len(counted)
-            self.line(S, f"OPEN-PR CAP: {n}/{cap}" + (" (at the cap: open_pr.sh refuses; drain first)"
-                                                     if n >= cap else ""), flag=n >= cap)
+            rl, roster = self._roster(S, announce=False)
+            if rl is not None:
+                n = len(cap_mod.wip_groups(roster))
+                self.line(S, f"WIP: {n}/{cap} (open PRs {len(counted)})"
+                          + (" (at the cap: do not dispatch a new group; opening "
+                             "and merging are always allowed)" if n >= cap else ""),
+                          flag=n >= cap)
         files = getattr(self, "_files", {}) or {}
         hit, unread = cap_mod.coordinator_prs({p["number"]: files.get(p["number"]) for p in counted})
         k, kcap = len(hit), cap_mod.COORDINATOR_CAP
@@ -683,27 +692,47 @@ class Tick:
                     self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
 
     def relay_owed(self, S: str) -> None:
-        """`OWED: <line>`, a level line every pass, for each OWED entry in
-        cloud_relay.sh's log with no later POSTED for the same PR (the round-10
-        orchestrator, 2026-10-18: a relayed verdict left unposted). The log's
-        lines are `POSTED <utc> <pr> <sha>` and `OWED <utc> <pr> <sha|-> <why>`.
-        No log is no relay yet, not a failure; an unreadable one is UNREADABLE."""
-        try:
-            with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
-                rows = fh.read().splitlines()
-        except FileNotFoundError:
-            self.line(S, "cloud-relay log: none yet (no OWED to report)")
-            return
-        except OSError as e:
-            self.unreadable(S, "cloud-relay log", str(e)[:100])
-            return
+        """`OWED: <line>` every pass for what cloud_relay.sh says is owed now.
+        Two sources, one writer. The LEVEL -- a probe or handoff ref owed until
+        disposed -- is `<log>.level`, which every relay pass rewrites whole, so
+        each of its lines prints as is. The log holds EVENTS, each naming its
+        PR in its first all-digit field (`OWED <utc> <pr> <sha|-> <why>`,
+        `OWED <utc> handoff-update <pr> ...`, `OWED reviewer-fire <pr> ...`,
+        `POSTED <utc> <pr> <sha>`); an OWED prints until a later POSTED for its
+        PR. An OWED naming no PR is a level line an older writer appended on
+        every pass: replaying those printed each pass's copy, so they are
+        skipped and counted. No log is no relay yet; an unreadable file is
+        UNREADABLE."""
+        rows: dict[str, list[str]] = {}
+        for name, path in (("log", self.relay_log), ("level", self.relay_log + ".level")):
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    rows[name] = fh.read().splitlines()
+            except FileNotFoundError:
+                rows[name] = []
+                if name == "log":
+                    self.line(S, "cloud-relay log: none yet (no OWED to report)")
+            except OSError as e:
+                rows[name] = []
+                self.unreadable(S, f"cloud-relay {name}", str(e)[:100])
+        for row in rows["level"]:
+            if row.startswith("OWED "):
+                self.line(S, f"OWED: {row.strip()}", flag=True)
         owed: dict[str, list[str]] = {}
-        for row in rows:
+        stale = 0
+        for row in rows["log"]:
             f = row.split()
-            if len(f) >= 3 and f[0] == "OWED":
-                owed.setdefault(f[2], []).append(row.strip())
-            elif len(f) >= 3 and f[0] == "POSTED":
-                owed.pop(f[2], None)
+            pr = next((x for x in f[1:4] if x.isdigit()), None)
+            if f[:1] == ["OWED"]:
+                if pr is None:
+                    stale += 1
+                else:
+                    owed.setdefault(pr, []).append(row.strip())
+            elif f[:1] == ["POSTED"] and pr is not None:
+                owed.pop(pr, None)
+        if stale:
+            self.line(S, f"cloud-relay log: {stale} OWED line(s) naming no PR skipped "
+                      "(an older writer's level lines; the level file is the level)")
         for pr in sorted(owed, key=lambda x: (len(x), x)):
             for row in owed[pr]:
                 self.line(S, f"OWED: {row}", flag=True)
@@ -741,6 +770,12 @@ class Tick:
             lat = self.latest(runs)
             for nm in run:
                 pend[(n, nm)] = (lat[nm].get("started_at"), head)
+        if red and required is not None:
+            req_red = mt.classify(self.latest(runs or []), getattr(self, "_req_pr", None) or required)[2]
+            if req_red:
+                self.line(S, f"#{n}: NOT REVIEWABLE at {head[:8]}: required "
+                             f"{', '.join(req_red)} concluded red -- back to its "
+                             "fixer, never a reviewer (K15 (d))", flag=True)
         if red:
             latest = self.latest(runs or [])
             for name in red:
@@ -764,14 +799,20 @@ class Tick:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
                                  f"{', '.join(missing)}", flag=True)
         ms = (pr.get("mergeStateStatus") or "").upper()
-        if ms in ("DIRTY", "BLOCKED"):
-            self.line(S, f"#{n}: mergeable state {ms}"
-                      + (" (the claim-file merge GitHub cannot run: absorb "
-                         "main locally with the claimnotes driver)"
-                         if ms == "DIRTY" else ""), flag=True)
+        if ms == "BLOCKED":
+            self.line(S, f"#{n}: mergeable state {ms}", flag=True)
         if not self.fetch_head(head):
             self.unreadable(S, f"fetch of #{n}'s head", "git fetch failed")
             return
+        if ms == "DIRTY":
+            # K15 (c): the conflicted files first, then the repair they owe.
+            files = mt.conflicts(lambda argv: self.git(argv[1:]), "origin/main", head)
+            self.line(S, f"#{n}: mergeable state DIRTY -- " + (
+                mt.dirty_repair(files, CLAIM_FILES) if files else
+                "git merge-tree reads it clean against origin/main: re-read "
+                "GitHub's state" if files == [] else
+                "git merge-tree could not answer: name the conflicted files "
+                "before any repair"), flag=True)
         files = self.three_dot_files(head)
         self._last_files = files
         if files is None:
@@ -1011,9 +1052,13 @@ class Tick:
             self.line(S, f"{seat}: STALLED? head unchanged and no new CI "
                          f"completion since dispatch {tail}", flag=True)
 
-    def _roster(self, S: str):
+    def _roster(self, S: str, announce: bool = True):
         """The roster through roster_lib, the one schema reader; (rl, roster)
-        or (None, None) with the UNREADABLE line already reported."""
+        or (None, None) with the UNREADABLE line already reported.
+
+        `announce=False` for a second reader in the same pass (PRS's WIP line):
+        the roster's location is PLAN's fact, printed once there, while a read
+        that fails is still reported by the section that needed it."""
         rl = _module("roster_lib_tick", "tools/audit/seat/roster_lib.py")
         if rl is None:
             self.unreadable(S, "roster", "roster_lib.py not found in the tree")
@@ -1032,7 +1077,7 @@ class Tick:
             # tree carries both rosters (R10-TICK b).
             # WHICH REF is roster_lib's too (O17): the round's roster
             # branch, else main, through the tick's own git.
-            ref = self._roster_ref(S, rl)
+            ref = self._roster_ref(S, rl, announce)
             path = self.roster_path
             if not path:
                 code, o = self.git(["ls-tree", "--name-only", ref,
@@ -1052,7 +1097,8 @@ class Tick:
             except ValueError as e:
                 self.unreadable(S, f"roster at {ref}:{path}", str(e)[:120])
                 return None, None
-            self.line(S, f"roster {ref}:{path}")
+            if announce:
+                self.line(S, f"roster {ref}:{path}")
         return rl, roster
 
     # ---------------------------------------------------------------- PLAN
@@ -1096,6 +1142,13 @@ class Tick:
         else:
             latest = self.latest(runs)
             green, _, red = self.judge(latest)
+            sup = [n for n in red
+                   if n not in (req or ()) and self.superseded(latest[n])]
+            if sup:
+                red = [n for n in red if n not in sup]
+                self.line(S, f"main {tip[:12]}: superseded, not red (GitHub "
+                             "cancelled each for a newer run in its own "
+                             f"concurrency group): {', '.join(sup)}")
             if req is not None:
                 absent = [r for r in req if r not in latest and r not in PR_ONLY]
                 waiting, absent = self.split_absent(absent, latest)
@@ -1106,7 +1159,7 @@ class Tick:
                 if absent:
                     self.line(S, f"main {tip[:12]}: required contexts ABSENT: "
                                  f"{', '.join(absent)}", flag=True)
-                req_bad = [n for n in red if n in req]
+                req_bad = mt.classify(latest, req)[2]
             else:
                 req_bad = red
             if req_bad:
@@ -1148,6 +1201,27 @@ class Tick:
                          "(an ancestor checkout is not current)", flag=True)
         elif code != 0:
             self.unreadable(S, "checkout staleness", o.strip()[-80:])
+
+    def superseded(self, cr: dict) -> bool:
+        """True when GitHub cancelled this run for a newer one in its own
+        concurrency group -- its annotation is GitHub's record of why. A
+        workflow_run follower of a PR head attaches to main's tip, and one
+        with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
+        design: its successor's conclusion is the status, and counting it red
+        sent a fixer after main for a run that never had a runner. Any other
+        cancellation, or an annotation list the API did not return, is red;
+        main() never asks for a required context, whose tip then has no
+        verdict at all."""
+        if cr.get("conclusion") != "cancelled" or not cr.get("id"):
+            return False
+        code, o = self.gh(["api", f"repos/{self.repo}/check-runs/{cr['id']}/annotations"])
+        try:
+            notes = json.loads(o) if code == 0 else []
+        except ValueError:
+            return False
+        return isinstance(notes, list) and any(
+            isinstance(a, dict) and SUPERSEDED.match(a.get("message") or "")
+            for a in notes)
 
     def policy_drift(self, S: str) -> None:
         """The newest commit on main touching any policy path, remembered in
@@ -1205,6 +1279,8 @@ class Tick:
                     self.line(S, f"required contexts ({RULESET}): "
                                  f"{len(names)} read live")
                     self._req = names
+                    # A pull request's head also carries PR_ONLY (K15 (d)).
+                    self._req_pr = sorted({x.strip() for x in o.splitlines() if x.strip()})
                     return names
         self.unreadable(S, "required contexts",
                         f"ruleset {RULESET} could not be read; "
@@ -2581,6 +2657,127 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- MAIN: D-1 (R10-CI-LAYOUT PR 1). record-autofix left the Tests
+        # push run for nightly.yml, so its red no longer reddens Tests; the
+        # tick must still flag it. It reads per-commit check runs, whatever
+        # workflow wrote them, so what is pinned is the name: every
+        # nightly.yml job that runs on a push to main -- read off the
+        # workflow, not listed here -- is one NIGHTLY_CLASS flags, and the
+        # tick names it red beside a green required set.
+        wf = (ROOT / ".github/workflows/nightly.yml").read_text().split("\njobs:\n", 1)[1]
+        on_push = []
+        for job in re.findall(r"(?m)^  ([A-Za-z][\w-]*):\n", wf):
+            body = re.search(rf"(?ms)^  {re.escape(job)}:\n(.*?)(?=^  [A-Za-z]|\Z)", wf).group(1)
+            cond = " ".join((re.search(r"(?ms)^    if: >-\n((?:      .*\n)+)|^    if: (.*)$", body)
+                             or re.match("", "")).group(0).split())
+            if "'push'" in cond and "!= 'push'" not in cond:
+                on_push.append(job)
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\nclosures\n")
+        gh.on(f"commits/{H1}/check-runs",
+              out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
+              + "".join("\n" + json.dumps(run_obj(j, conclusion="failure")) for j in on_push))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        t.main()
+        a, f = check("MAIN D-1", [
+            ("nightly.yml's push-run jobs are exactly the record beat", on_push == ["record-autofix"]),
+            ("each is a name the tick flags", all(NIGHTLY_CLASS.search(j) for j in on_push)),
+            ("and its red is named with the required set green",
+             any("non-required red" in x["text"] and "record-autofix" in x["text"]
+                 for x in t.findings)
+             and not any("REQUIRED not green" in x["text"] for x in t.findings)),
+            ("null control: a beat renamed out of the class would not be flagged",
+             not NIGHTLY_CLASS.search("delivery-beat")),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- MAIN: a lane GitHub cancelled for a newer run in its own
+        # concurrency group is superseded, not red (rerun-stale-contract on
+        # f58b14c1: a workflow_run follower of a PR head attaches to main's
+        # tip, and R10-FOLLOWER-DEBOUNCE's cancel-in-progress cancels it by
+        # design). Its annotation is GitHub's own record of why; any other
+        # cancellation, or an unreadable annotation list, stays red.
+        sup = ("Canceling since a higher priority waiting request for "
+               f"pr-contract-rerun-{H2} exists")
+        for label, ann, want_red in (
+                ("concurrency-superseded", [{"message": sup}], False),
+                ("cancelled otherwise (null control)",
+                 [{"message": "The operation was canceled."}], True),
+                ("annotations unreadable (fails closed)", None, True)):
+            gh = Stub()
+            gh.on("commits/main", out=H1)
+            gh.on(".[] | select(.name", out="42")
+            gh.on("rulesets/42", out="tests\n")
+            gh.on(f"commits/{H1}/check-runs",
+                  out=json.dumps(run_obj("tests")) + "\n" + json.dumps(
+                      run_obj("rerun-stale-contract", conclusion="cancelled",
+                              cid=119215715286)))
+            gh.on("check-runs/119215715286/annotations",
+                  rc=0 if ann is not None else 1,
+                  out=json.dumps(ann) if ann is not None else "HTTP 502")
+            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            t.main()
+            txt = [l["text"] for l in t.sections["MAIN"]]
+            briefed = any("main-red rerun-stale-contract" in x["text"]
+                          for x in t.findings)
+            a, f = check(f"MAIN cancelled lane: {label}", [
+                (f"brief {'present' if want_red else 'absent'}", briefed == want_red),
+                ("superseded line iff superseded",
+                 any("superseded" in x and "rerun-stale-contract" in x
+                     for x in txt) == (not want_red)),
+                ("main still reads green on its required contexts",
+                 any(x.startswith(f"main {H1[:12]} green") for x in txt)),
+            ])
+            total, failed = total + a, failed + f
+        # A required context superseded at the tip leaves the tip without its
+        # verdict: still REQUIRED not green, and its annotations never read.
+        gh = Stub()
+        gh.on("commits/main", out=H1)
+        gh.on(".[] | select(.name", out="42")
+        gh.on("rulesets/42", out="tests\n")
+        gh.on(f"commits/{H1}/check-runs", out=json.dumps(
+            run_obj("tests", conclusion="cancelled", cid=119215715286)))
+        gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        t.main()
+        txt = [l["text"] for l in t.sections["MAIN"]]
+        a, f = check("MAIN superseded required context stays red", [
+            ("REQUIRED not green", any("REQUIRED not green: tests" in x for x in txt)),
+            ("no superseded line", not any("superseded" in x for x in txt)),
+            ("annotations not read",
+             not any("annotations" in " ".join(c) for c in gh.calls)),
+        ])
+        total, failed = total + a, failed + f
+        # Only a cancelled lane is read: a failure carrying the same note is
+        # red, and its annotations are never fetched (one read per cancel).
+        gh = Stub()
+        gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
+        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+        a, f = check("MAIN failed lane is never superseded", [
+            ("failure: not superseded", not t.superseded(
+                run_obj("x", conclusion="failure", cid=119215715286))),
+            ("and no annotation read", not gh.calls),
+        ])
+        total, failed = total + a, failed + f
+        # A body that is not a list (null, or an error object carrying the
+        # same text) is not GitHub's annotation list: red, never a crash.
+        for label, body in (("null", "null"), ("object", json.dumps({"message": sup}))):
+            gh = Stub()
+            gh.on("check-runs/119215715286/annotations", out=body)
+            t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
+            try:
+                got = t.superseded(run_obj("x", conclusion="cancelled", cid=119215715286))
+            except Exception as e:  # noqa: BLE001 -- a crash is the failure shown
+                got = repr(e)
+            a, f = check(f"MAIN annotations body {label}", [
+                ("not superseded", got is False)])
+            total, failed = total + a, failed + f
+
         # mandate in force / expired, through the gate's own reader
         if gate_ok:
             for label, body, want_flag in (
@@ -2976,6 +3173,111 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- K15 (R10-FLOW-MAIN-GATE): the train's classifier, shared ----
+        # MAIN on main e7c66485's shape: a required context in flight and the
+        # owed record reds read as no REQUIRED red; a failed one still does.
+        for label, runs, want in (
+                ("in flight plus record reds", [run_obj("tests", status="in_progress"),
+                                                run_obj("closures"),
+                                                run_obj("record", conclusion="failure"),
+                                                run_obj("record-autofix", conclusion="failure")], False),
+                ("a failed required context", [run_obj("tests", conclusion="failure"),
+                                               run_obj("closures")], True)):
+            t = tick(runs_at={H1: runs})
+            t.main()
+            txt = [l["text"] for l in t.sections["MAIN"]]
+            a, f = check(f"K15 MAIN {label}", [
+                (f"REQUIRED not green {'present' if want else 'absent'}",
+                 any("REQUIRED not green" in x for x in txt) == want)])
+            total, failed = total + a, failed + f
+        # PRS (d): a required context concluded red makes the head not
+        # reviewable; a non-required red does not (null control).
+        for label, runs, want in (("required red", [run_obj("tests", conclusion="failure")], True),
+                                  ("non-required red", [run_obj("tests"),
+                                                        run_obj("codeql", conclusion="failure")], False)):
+            t = tick(prs=[pr_obj(71, H1)], runs_at={H1: runs},
+                     bodies={71: "## Red checks\n\ntests: x\ncodeql: x\n"})
+            t.one_pr("PRS", pr_obj(71, H1), None, ["tests"])
+            a, f = check(f"K15 (d) PRS {label}", [
+                (f"NOT REVIEWABLE {'present' if want else 'absent'}",
+                 any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
+            total, failed = total + a, failed + f
+        # PRS (d): a pull request's head is judged on PR_ONLY too: a red
+        # pr-contract, read live from the ruleset, is not reviewable (null
+        # control: the same head with pr-contract green).
+        for concl, want in (("failure", True), ("success", False)):
+            t = tick(prs=[pr_obj(74, H1)], required_names=("tests", "pr-contract"),
+                     runs_at={H1: [run_obj("tests"), run_obj("pr-contract", conclusion=concl),
+                                   run_obj("codeql", conclusion="failure")]},
+                     bodies={74: "## Red checks\n\npr-contract: x\ncodeql: x\n"})
+            req = t.required("PRS")
+            t.one_pr("PRS", pr_obj(74, H1), None, req)
+            nr = [x["text"] for x in t.findings if x["text"].startswith("#74: NOT REVIEWABLE")]
+            a, f = check(f"K15 (d) PRS PR_ONLY pr-contract {concl}", [
+                ("the ruleset's PR_ONLY context is not among the main-graded names", req == ["tests"]),
+                (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
+                 (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
+            total, failed = total + a, failed + f
+        # PRS (c): DIRTY names the conflicted files from git merge-tree first;
+        # the claimnotes repair only for claim files alone (#2569's shape).
+        claim = CLAIM_FILES[0]
+        for label, rc_mt, out, want in (
+                ("content conflict", 1, f"{V}\ntools/audit/seat/roster_edit.py\n{claim}\n",
+                 "content conflict in tools/audit/seat/roster_edit.py"),
+                ("claim files only", 1, f"{V}\n{claim}\n", "claimnotes driver"),
+                ("merge-tree unreadable", 128, "fatal: bad object", "could not answer")):
+            t = tick(prs=[pr_obj(72, H1, ms="DIRTY")], runs_at={H1: [run_obj("tests")]})
+            t._git.h.insert(0, (("merge-tree", "--write-tree", "origin/main", H1), rc_mt, out))
+            t.one_pr("PRS", pr_obj(72, H1, ms="DIRTY"), None, ["tests"])
+            dirty = [x["text"] for x in t.findings if x["text"].startswith("#72: mergeable state DIRTY")]
+            a, f = check(f"K15 (c) DIRTY {label}", [
+                ("one DIRTY line naming the classification", len(dirty) == 1 and want in dirty[0]),
+                ("claimnotes only for claim files alone",
+                 ("claimnotes" in dirty[0]) == (label == "claim files only") if dirty else False)])
+            total, failed = total + a, failed + f
+
+        # PRS (c) against real git, through the tick's own Tick.git: a clone
+        # with the claimnotes driver installed (claim-files.md: every clone),
+        # which resolves a notes-only claim conflict GitHub reports DIRTY and
+        # prints MERGE-CLAIM to stderr.
+        tg = _module("throwaway_git_tick", "tests/throwaway_git.py")
+        for label, files, want in (
+                ("claim files only, driver installed", {claim: "# claims-for: 1\n# c\n"}, "claimnotes driver"),
+                ("content and claim, driver installed",
+                 {claim: "# claims-for: 1\n# c\n", "roster_edit.py": "c\n"},
+                 f"content conflict in roster_edit.py, {claim}: back")):
+            with tempfile.TemporaryDirectory() as d:
+                env = tg.throwaway_git_init(d, "-q", "-b", "main")
+
+                def rg(*argv):
+                    return subprocess.run(["git", *argv], cwd=d, env=env, capture_output=True, text=True).stdout
+
+                def commit(fs: dict, msg: str) -> None:
+                    for f, text in fs.items():
+                        (Path(d) / f).parent.mkdir(parents=True, exist_ok=True)
+                        (Path(d) / f).write_text(text)
+                    rg("add", "-A")
+                    rg("commit", "-qm", msg)
+
+                rg("config", "merge.claimnotes.driver",
+                   f"{sys.executable} {ROOT / 'tests/env_drift.py'} --merge-claim-file %O %A %B %L %P")
+                rg("remote", "add", "origin", d)
+                commit({claim: "# claims-for: 1\n", "roster_edit.py": "0\n",
+                        ".gitattributes": f"{claim} merge=claimnotes\n"}, "base")
+                rg("checkout", "-qb", "pr", "main")
+                commit(files, "pr")
+                rg("checkout", "-q", "main")
+                commit({claim: "# claims-for: 1\n# m\n", "roster_edit.py": "m\n"}, "main")
+                head = rg("rev-parse", "pr").strip()
+                t = tick(prs=[pr_obj(73, head, ms="DIRTY")], runs_at={head: [run_obj("tests")]}, checkout=d)
+                t._git = None  # the real runner, stdout and stderr as Tick.git reads them
+                t.one_pr("PRS", pr_obj(73, head, ms="DIRTY"), None, ["tests"])
+                dirty = [x["text"] for x in t.findings if x["text"].startswith("#73: mergeable state DIRTY")]
+                a, f = check(f"K15 (c) DIRTY real git, {label}", [
+                    ("one DIRTY line naming the classification", len(dirty) == 1 and want in dirty[0]),
+                    ("no MERGE-CLAIM line read as a file", not any("MERGE-CLAIM" in x for x in dirty))])
+                total, failed = total + a, failed + f
+
         # ---- D. non-standard conclusions ----
         for concl, want in (("cancelled", True), ("failure", False)):
             t = tick(prs=[pr_obj(70, H1)],
@@ -3222,13 +3524,21 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
-        # ---- the open-PR cap and the coordinator count (tvofi, 2026-10-18) ----
+        # ---- WIP (the dispatch cap) and the coordinator count (tvofi, 2026-10-20) ----
         coord, row = "custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/1.md"
         app, dep = {"login": "app/hpo-author", "is_bot": True}, {"login": "app/dependabot", "is_bot": True}
+        wipfile = tmp / "wip.json"
 
-        def cap_board(specs):  # [(n, title, author, files | None)] -> the PRS lines
+        def wip_roster(n: int) -> str:  # n in-progress groups beside a done one
+            wipfile.write_text(json.dumps({"groups": [
+                {"group": f"W{i}", "resume": {"stage": "in-progress"}}
+                for i in range(n)] + [{"group": "DONE", "resume": {"stage": "done"}}]}))
+            return str(wipfile)
+
+        def cap_board(specs, roster=None):  # [(n, title, author, files | None)] -> the PRS lines
             heads = {n: f"{n:040x}" for n, *_ in specs}
-            t = tick(prs=[{**pr_obj(n, heads[n]), "title": ti, "author": au} for n, ti, au, _ in specs])
+            t = tick(prs=[{**pr_obj(n, heads[n]), "title": ti, "author": au} for n, ti, au, _ in specs],
+                     roster=roster)
             t.checkout = str(version)
             base, fs = git_factory(), {heads[n]: f for n, _, _, f in specs}
 
@@ -3245,24 +3555,34 @@ def self_test() -> int:
             hits = [l for l in lines if l["text"].startswith(prefix)]
             return hits[0] if len(hits) == 1 else {"flag": None, "text": f"{len(hits)} lines"}
 
-        at = cap_board([(n, "t", app, f"{row} {coord}" if n < 3 else row) for n in range(6)])
+        at = cap_board([(n, "t", app, f"{row} {coord}" if n < 3 else row) for n in range(6)],
+                       roster=wip_roster(6))
         below = cap_board([(n, "t", app, f"{row} {coord}" if n < 2 else row) for n in range(5)]
-                          + [(7, "record: rows", app, coord), (8, "bump", dep, coord)])
-        unread = cap_board([(1, "t", app, row), (2, "t", app, None)])
-        old_cap = os.environ.get("HPO_OPEN_PR_CAP")
-        os.environ["HPO_OPEN_PR_CAP"] = "x"
+                          + [(7, "record: rows", app, coord), (8, "bump", dep, coord)],
+                          roster=wip_roster(5))
+        unread = cap_board([(1, "t", app, row), (2, "t", app, None)], roster=wip_roster(5))
+        # A board far over the old open cap, and a roster at 5: WIP does not move.
+        board = cap_board([(n, "t", app, row) for n in range(20)], roster=wip_roster(5))
+        no_roster = cap_board([(1, "t", app, row)])
+        old_cap = os.environ.get("HPO_WIP_CAP")
+        os.environ["HPO_WIP_CAP"] = "x"
         try:
-            badcap = cap_board([(1, "t", app, row)])
+            badcap = cap_board([(1, "t", app, row)], roster=wip_roster(5))
         finally:
             if old_cap is None:
-                os.environ.pop("HPO_OPEN_PR_CAP", None)
+                os.environ.pop("HPO_WIP_CAP", None)
             else:
-                os.environ["HPO_OPEN_PR_CAP"] = old_cap
-        a, f = check("open-PR cap", [
-            ("six counted: OPEN-PR CAP: 6/6, flagged",
-             one(at, "OPEN-PR CAP: ")["flag"] is True and one(at, "OPEN-PR CAP: ")["text"].startswith("OPEN-PR CAP: 6/6")),
-            ("five counted beside a record: and a bot PR: 5/6, not flagged",
-             one(below, "OPEN-PR CAP: ") == {"flag": False, "text": "OPEN-PR CAP: 5/6"}),
+                os.environ["HPO_WIP_CAP"] = old_cap
+        a, f = check("WIP cap", [
+            ("six in-progress groups: WIP: 6/6, flagged",
+             one(at, "WIP: ")["flag"] is True and one(at, "WIP: ")["text"].startswith("WIP: 6/6 (open PRs 6)")),
+            ("five in-progress beside a record: and a bot pull request: WIP: 5/6, not flagged",
+             one(below, "WIP: ") == {"flag": False, "text": "WIP: 5/6 (open PRs 5)"}),
+            ("WIP is the roster's groups, not the open board: 20 open PRs still WIP: 5/6",
+             one(board, "WIP: ") == {"flag": False, "text": "WIP: 5/6 (open PRs 20)"}),
+            ("a roster it cannot read is UNREADABLE, never WIP: 0/6",
+             any(l["flag"] and "UNREADABLE: roster" in l["text"] for l in no_roster)
+             and not any(l["text"].startswith("WIP: ") for l in no_roster)),
             ("three counted PRs touch the coordinator: 3/2, flagged",
              one(at, "coordinator.py PRs: ") == {"flag": True, "text": "coordinator.py PRs: 3/2 (#0, #1, #2)"}),
             ("two counted touch it (the record and bot ones uncounted): 2/2, not flagged",
@@ -3270,9 +3590,9 @@ def self_test() -> int:
             ("a diff it cannot read flags the coordinator count as a floor",
              one(unread, "coordinator.py PRs: ")["flag"] is True
              and "UNREADABLE at #2, so at least 0" in one(unread, "coordinator.py PRs: ")["text"]),
-            ("an invalid HPO_OPEN_PR_CAP is UNREADABLE, never a count",
-             any(l["flag"] and "UNREADABLE: open-PR cap" in l["text"] for l in badcap)
-             and one(badcap, "OPEN-PR CAP: ")["flag"] is None),
+            ("an invalid HPO_WIP_CAP is UNREADABLE, never a count",
+             any(l["flag"] and "UNREADABLE: WIP cap" in l["text"] for l in badcap)
+             and not any(l["text"].startswith("WIP: ") for l in badcap)),
         ])
         total, failed = total + a, failed + f
 
@@ -3338,12 +3658,17 @@ def self_test() -> int:
         total, failed = total + a, failed + f
 
         # ---- OWED from cloud_relay.sh's log (2026-10-18) ----
-        def owed_lines(text):
+        def owed_lines(text, level=None):
             lg = tmp / "relay.log"
+            lv = tmp / "relay.log.level"
             if text is None:
                 lg.unlink(missing_ok=True)
             else:
                 lg.write_text(text)
+            if level is None:
+                lv.unlink(missing_ok=True)
+            else:
+                lv.write_text(level)
             t = tick(relay_log=str(lg))
             t.relay_owed("PRS")
             return t.sections.get("PRS", [])
@@ -3357,7 +3682,28 @@ def self_test() -> int:
         again = owed_lines("\n".join([o1, p1, o3]) + "\n")
         none = owed_lines(None)
         twice = owed_lines("\n".join([o1, o3]) + "\n")
+        # the level (cloud_relay.sh rewrites <log>.level each pass) beside an older
+        # writer's log, which appended the same level line on every pass
+        lvl = [f"OWED 2026-10-21T07:35:0{i}Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
+               for i in range(2)]
+        old = [f"OWED 2026-10-21T0{p}:00:00Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
+               for p in range(3) for i in range(3)]
+        levels = owed_lines("\n".join(old + [o2]) + "\n", "\n".join(lvl) + "\n")
+        hu = f"OWED 2026-10-18T19:00:00Z handoff-update 9 topic-9 {'d' * 40}"
+        rf = f"OWED reviewer-fire 9 {'d' * 40} {'0' * 32} 2026-10-18T19:01:00Z"
+        hu_posted = owed_lines("\n".join([hu, rf, f"POSTED 2026-10-18T19:30:00Z 9 {'e' * 40}"]) + "\n")
+        hu_open = owed_lines("\n".join([hu, rf]) + "\n")
         a, f = check("relay OWED", [
+            ("each level-file line prints once; the log's per-pass copies print none",
+             [l["text"] for l in levels if l["flag"]]
+             == [f"OWED: {x}" for x in lvl] + [f"OWED: {o2}"]),
+            ("the skipped copies are counted, unflagged",
+             any(not l["flag"] and "9 OWED line(s) naming no PR skipped" in l["text"]
+                 for l in levels)),
+            ("an OWED <utc> handoff-update <pr> is keyed on its PR: a later POSTED clears it",
+             not any(l["text"].startswith("OWED:") for l in hu_posted)),
+            ("null control: without that POSTED both kind-first lines print",
+             [l["text"] for l in hu_open if l["flag"]] == [f"OWED: {hu}", f"OWED: {rf}"]),
             ("each OWED with no later POSTED prints OWED: <line>, flagged",
              [l["text"] for l in both if l["flag"]] == [f"OWED: {o1}", f"OWED: {o2}"]),
             ("null control: an OWED followed by a POSTED prints nothing",

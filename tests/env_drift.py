@@ -1921,7 +1921,7 @@ def stamp_ref_allows(environ: dict[str, str]) -> bool:
     `pull_request` run, whose HEAD is the two-parent `refs/pull/N/merge`. A
     `workflow_dispatch` on the pull request's BRANCH checks out its tip -- an
     ordinary one-parent commit -- and `closures-autofix` dispatches exactly
-    that, as can anyone by hand, with tests.yml's recheck arm comparing it
+    that, as can anyone by hand, with tests.yml's dispatch arm comparing it
     against the merge base. A branch commit forging a stamp's content then
     passed the claims rule on that run while its `pull_request` run refused
     it. A stamp is pushed to `main`, so inside Actions the ref must be

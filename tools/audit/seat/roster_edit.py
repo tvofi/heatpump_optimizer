@@ -8,6 +8,8 @@
     python3 tools/audit/seat/roster_edit.py edit-brief  <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
+    python3 tools/audit/seat/roster_edit.py set-after   <group> <G1,G2,... | ->
+    python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
         [--message MSG]
@@ -22,11 +24,25 @@ with hand-written fixture bytes, because a dump that does not match the
 file's live formatting rewrites every one of its 7503 lines on ANY edit (a
 naive `json.dump(..., indent=2)` did exactly that).
 
-The write path is the checkout -B worktree pattern: a throwaway worktree of
-`--checkout` (default: this directory's repository) is created detached at
-`origin/<--branch>` when that exists, else at `origin/<--roster-ref>`, and
-`checkout -B <--branch>` resets the branch there, so a re-run is idempotent.
-An existing worktree with uncommitted changes is refused, never clobbered.
+The write path is a DETACHED worktree of `--checkout` (default: this
+directory's repository) at `origin/<--branch>` when that exists, else at
+`origin/<--roster-ref>`; the edit is committed there and pushed BY THE COMMIT
+IT MADE (`<sha>:refs/heads/<--branch>`), never by a local branch name. Every
+worktree of one repository shares its local branches, so a named branch is
+one a concurrent run can reset under this one (`checkout -B` at git 2.38
+moves a branch another worktree has checked out): on 2026-10-21 a run
+printed "pushed ... at b622ec9f1" with rc 0 while the push it made sent a
+rival's commit and no ref on origin ever held b622ec9f1.
+
+THE PUSH RACE. A push origin refuses because `origin/<--branch>` moved
+since this run's base (a rival landed in the lint window) re-fetches,
+re-applies the op on the new tip, re-lints and pushes again, at most
+PUSH_ATTEMPTS times; then it refuses with rc 2, saying nothing of the edit
+reached origin. Never a force push. A refused push with origin unmoved is no
+race and refuses at once. An existing worktree with uncommitted changes, or
+whose HEAD is on no origin ref (an unpushed edit), is refused,
+never clobbered. `write_roster()` is that path, and `roster_sync.py` writes
+through it too.
 
 WHICH ROSTER is `roster_lib.roster_path`'s answer, never a path of this
 file's: the newest `dev/programme/rosters/wave-r<N>-groups.json` in the
@@ -61,11 +77,22 @@ Ops (all group ids must exist, except append-group which must not):
                restarts from. stage and branch are non-null: an empty value
                is refused. commit demands a sha. An empty value for commit,
                last_step, next_step or note clears the field to null.
+  set-after    replaces the group's after-edges whole (`-` for none),
+               refusing an unknown group, a self-edge, a repeated edge and
+               a cycle in the resulting after-graph;
+  drop-carry   removes one carry entry by 0-based index or by the one entry
+               containing --match TEXT, refusing an absent carry, an index
+               out of range, no match and an ambiguous match; dropping the
+               last entry leaves the `carry` list empty, never removing the
+               key (27 of the 91 live groups carry `"carry": []`, and none
+               omits it, so the key's presence is the file's own shape).
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -86,6 +113,11 @@ SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 # checkout being linted.
 BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
 BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
+
+
+#: One push plus two re-applications on a rival's new tip; past that the
+#: branch is contended enough that a person should look.
+PUSH_ATTEMPTS = 3
 
 
 class Refuse(Exception):
@@ -217,6 +249,110 @@ def op_append_carry(roster, group, text):
     carry.append(entry)
 
 
+def op_set_after(roster, group, spec):
+    """Replace a group's after-edges whole: `G1,G2,...`, or `-` for none.
+    Each named group must exist, none may be the group itself or repeat, and
+    the resulting after-graph must stay acyclic -- the dispatch order a
+    replan rests on."""
+    g = _need(roster, group)
+    after = [] if spec == "-" else [a.strip() for a in spec.split(",")]
+    known = {x.get("group") for x in roster.get("groups", [])}
+    bad = [a for a in after if a not in known]
+    if bad:
+        raise Refuse(f"set-after: {group} after names no group: {bad}")
+    if group in after:
+        raise Refuse(f"set-after: {group} after itself is a self-edge")
+    dup = sorted({a for a in after if after.count(a) > 1})
+    if dup:
+        raise Refuse(f"set-after: duplicate edge in {group} after: {dup}")
+    edges = {x.get("group"): list(x.get("after") or [])
+             for x in roster.get("groups", [])}
+    edges[group] = after
+    cycle = _cycle(edges)
+    if cycle:
+        raise Refuse(f"set-after: {group} after {after} closes a cycle: "
+                     f"{' -> '.join(cycle)}")
+    g["after"] = after
+
+
+def _cycle(edges):
+    """One cycle of the after-graph as a node path (first node repeated at
+    the end), or None when the graph is a DAG."""
+    state = {}  # absent: unvisited; 1: on the DFS stack; 2: finished
+    for root in edges:
+        if root in state:
+            continue
+        stack, path = [(root, iter(edges.get(root, ())))], [root]
+        state[root] = 1
+        while stack:
+            node, it = stack[-1]
+            nxt = next(it, None)
+            if nxt is None:
+                state[node] = 2
+                stack.pop()
+                path.pop()
+            elif state.get(nxt) == 1:
+                return path[path.index(nxt):] + [nxt]
+            elif nxt not in state:
+                state[nxt] = 1
+                stack.append((nxt, iter(edges.get(nxt, ()))))
+                path.append(nxt)
+    return None
+
+
+def op_drop_carry(roster, group, index=None, match=None):
+    """The inverse of append-carry: drop one carry entry, by its 0-based
+    index (`jq '.carry[N]'`) or by the one entry containing `match`.
+    Dropping the last entry leaves `carry` empty and the key in place; a
+    group that already carries a list (all 91 live ones do) is therefore
+    byte-restored by append-then-drop of the appended entry."""
+    g = _need(roster, group)
+    carry = g.get("carry") or []
+    if not carry:
+        raise Refuse(f"drop-carry: {group} carries nothing")
+    if match is not None:
+        hits = [i for i, c in enumerate(carry) if match in c]
+        if not hits:
+            raise Refuse(f"drop-carry: no carry entry matches {match!r} "
+                         f"in {group}")
+        if len(hits) > 1:
+            raise Refuse(f"drop-carry: {match!r} is ambiguous in {group}: "
+                         f"entries {hits} match; pass an index")
+        i = hits[0]
+    else:
+        try:
+            i = int(index)
+        except ValueError:
+            raise Refuse(f"drop-carry: index must be an integer: {index!r}")
+        if not 0 <= i < len(carry):
+            raise Refuse(f"drop-carry: index {i} out of range for {group} "
+                         f"({len(carry)} entries)")
+    del carry[i]
+
+
+def apply_op(roster, op, group, value, field, at_sha, match=None):
+    """One op on a loaded roster -- re-run on each attempt of a push race,
+    so the edit is applied to the tip it is pushed onto."""
+    if op == "set-stage":
+        op_set_stage(roster, group, value, at_sha)
+    elif op == "wire-issue":
+        op_wire_issue(roster, group, value, field or "issues")
+    elif op == "unwire-issue":
+        op_unwire_issue(roster, group, value, field or "issues")
+    elif op == "append-group":
+        op_append_group(roster, value)
+    elif op == "edit-brief":
+        op_edit_brief(roster, group, value)
+    elif op == "set-resume":
+        op_set_resume(roster, group, field, value)
+    elif op == "set-after":
+        op_set_after(roster, group, value)
+    elif op == "drop-carry":
+        op_drop_carry(roster, group, value, match)
+    else:
+        op_append_carry(roster, group, value)
+
+
 def _need(roster, group):
     for g in roster.get("groups", []):
         if g.get("group") == group:
@@ -235,38 +371,38 @@ def _text(arg):
 
 
 # ----------------------------------------------------------------- flow
-def prepare_worktree(checkout, ref, branch, wt) -> None:
-    """A throwaway worktree on <branch>, reset to the branch's remote tip when
-    one exists (so sequential edits accumulate) and to origin/<ref> otherwise.
-    checkout -B makes the reset idempotent; the guards refuse anything that
-    would clobber work: uncommitted changes in an existing worktree, and a
-    local branch tip the base does not contain (unpushed commits). The
-    caller fetches first (`fetch_origin`)."""
+def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
+    """A throwaway DETACHED worktree at the branch's remote tip when one
+    exists (so sequential edits accumulate), else at origin/<ref>; returns
+    that base sha. No local branch is made or moved: the repository's
+    branches are shared by every worktree of it, so one a concurrent run can
+    reset (the module docstring's push race). The guards refuse anything
+    that would clobber work: uncommitted changes, and a HEAD the base does
+    no origin ref contains (an unpushed edit) -- except `discard`, this run's own
+    commit that lost a race and is being re-applied. The caller fetches
+    first (`fetch_origin`)."""
     base = f"origin/{ref}"
     has_branch = subprocess.run(
         ["git", "-C", str(checkout), "rev-parse", "--verify", "--quiet",
          f"origin/{branch}"], capture_output=True)
     if has_branch.returncode == 0:
         base = f"origin/{branch}"
+    base_sha = run(["git", "-C", str(checkout), "rev-parse",
+                    f"{base}^{{commit}}"]).strip()
     if Path(wt).exists():
         if run(["git", "-C", str(wt), "status", "--porcelain"]).strip():
             raise Refuse(f"{wt} has uncommitted changes; refusing to reuse it")
-        old = subprocess.run(
-            ["git", "-C", str(wt), "rev-parse", "--verify", "--quiet",
-             branch], capture_output=True, text=True).stdout.strip()
-        if old and old != run(["git", "-C", str(wt), "rev-parse",
-                               base]).strip():
-            anc = subprocess.run(
-                ["git", "-C", str(wt), "merge-base", "--is-ancestor",
-                 old, base], capture_output=True)
-            if anc.returncode != 0:
-                raise Refuse(f"branch {branch} at {old[:12]} is not contained "
-                             f"in {base}; unpushed commits would be lost")
-        run(["git", "-C", str(wt), "checkout", "-B", branch, base])
+        old = run(["git", "-C", str(wt), "rev-parse", "HEAD"]).strip()
+        if old != discard and not run(
+                ["git", "-C", str(wt), "for-each-ref", "--contains", old,
+                 "--format=%(refname)", "refs/remotes/origin/"]).strip():
+            raise Refuse(f"{wt} HEAD {old[:12]} is on no origin ref; an "
+                         "unpushed edit would be lost")
+        run(["git", "-C", str(wt), "checkout", "-q", "--detach", base_sha])
     else:
         run(["git", "-C", str(checkout), "worktree", "add", "-q", "--detach",
-             str(wt), base])
-        run(["git", "-C", str(wt), "checkout", "-B", branch, base])
+             str(wt), base_sha])
+    return base_sha
 
 
 def fetch_origin(checkout) -> None:
@@ -350,6 +486,79 @@ def dump(roster) -> str:
     return json.dumps(roster, indent=1)
 
 
+def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
+                 lint_cwd, label, edit) -> int:
+    """THE write path: worktree, edit, dump, commit, lint-gate, push -- shared
+    by every caller, so `main()` and `roster_sync.py` cannot drift apart in
+    formatting, the no-op rule, the gate or the push race.
+
+    `edit(roster)` applies the caller's ops to the roster loaded at the base
+    and returns whether there is anything to write; it is re-run on every
+    attempt of a push race, so the edit lands on the tip it is pushed onto.
+    Returns 0 or 3 (the lint gate refused); a failed git command, or a race
+    lost PUSH_ATTEMPTS times, raises Refuse, which each caller prints.
+
+    The round-trip rule: a write that reproduces the roster's own bytes
+    commits and pushes nothing and is still a success, so a re-run of an op
+    -- or a sync pass with nothing to derive -- is idempotent.
+    """
+    discard = None
+    for attempt in range(1, PUSH_ATTEMPTS + 1):
+        base_sha = prepare_worktree(checkout, ref, branch, worktree, discard)
+        try:
+            rel = roster_lib.roster_path(str(worktree), None, roster_path)
+        except roster_lib.RosterNotFound as e:
+            raise Refuse(str(e))
+        path = Path(worktree) / rel
+        print(f"roster: {rel} on {branch}")
+        roster = json.loads(path.read_text(encoding="utf-8"))
+        if not edit(roster):
+            return 0
+        path.write_text(dump(roster), encoding="utf-8")
+        if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
+            print(f"no change: {label} wrote the roster's own bytes "
+                  "(byte-identical); nothing to commit or push")
+            return 0
+        run(["git", "-C", str(worktree), "commit", "-q", "-am", msg])
+        head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
+        refspec = f"{head}:refs/heads/{branch}"
+        ok, detail = lint_gate(checkout, lint_cwd, path)
+        if not ok:
+            print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
+                  f"the commit is local at {head[:12]} in {worktree} "
+                  "(detached); nothing pushed", file=sys.stderr)
+            return 3
+        print("lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout")
+        if not push:
+            print(f"ready: {branch} at {head} (no --push): "
+                  f"git -C {worktree} push origin {refspec}")
+            return 0
+        r = subprocess.run(["git", "-C", str(worktree), "push", "-q",
+                            "origin", refspec],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print(f"pushed {branch} at {head}")
+            return 0
+        why = (r.stderr or r.stdout).strip()[:400]
+        fetch_origin(checkout)
+        tip = subprocess.run(
+            ["git", "-C", str(checkout), "rev-parse", "--verify",
+             "--quiet", f"origin/{branch}"],
+            capture_output=True, text=True).stdout.strip()
+        if not tip or tip == base_sha:
+            raise Refuse(f"push of {head[:12]} to {branch} failed with "
+                         f"origin unmoved (no race); nothing of this edit "
+                         f"reached origin: {why}")
+        print(f"roster_edit: lost a race: origin/{branch} moved "
+              f"{base_sha[:12]} -> {tip[:12]} under this edit; "
+              f"re-applying {label} on the new tip "
+              f"(attempt {attempt + 1} of {PUSH_ATTEMPTS})",
+              file=sys.stderr)
+        discard = head
+    raise Refuse(f"lost the race for {branch} {PUSH_ATTEMPTS} times; "
+                 "nothing of this edit reached origin")
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -362,7 +571,8 @@ def main(argv=None) -> int:
             return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
-                                  "edit-brief", "append-carry", "set-resume"))
+                                  "edit-brief", "append-carry", "set-resume",
+                                  "set-after", "drop-carry"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("--at-sha")
@@ -371,6 +581,8 @@ def main(argv=None) -> int:
                         "unwire-issue: issues (default) or fixes")
     p.add_argument("--value", dest="value_opt",
                    help="the value, for when a positional value does not fit")
+    p.add_argument("--match",
+                   help="drop-carry: drop the one carry entry containing it")
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default=None,
                    help="the base ref (default main)")
@@ -388,7 +600,14 @@ def main(argv=None) -> int:
     if a.value is not None and a.value_opt is not None:
         p.error("give the value positionally or with --value, not both")
     value = a.value_opt if a.value is None else a.value
-    if value is None or (value == "" and a.op != "set-resume"):
+    if a.match is not None and a.op != "drop-carry":
+        p.error("--match is a drop-carry flag")
+    if a.op == "drop-carry" and value is not None and a.match is not None:
+        p.error("drop-carry takes an index or --match, not both")
+    if a.op == "drop-carry" and value is None and a.match is None:
+        p.error("drop-carry needs an index or --match")
+    if a.match is None and (value is None
+                            or (value == "" and a.op != "set-resume")):
         p.error(f"{a.op} needs a value argument")
     if a.op == "set-resume" and not a.field:
         p.error("set-resume needs --field")
@@ -407,52 +626,11 @@ def main(argv=None) -> int:
         why = ref_privacy.refusal(branch, (("the message", msg),))
         if why:
             raise Refuse(f"{why} would publish this host (#2310); nothing written")
-        prepare_worktree(a.checkout, ref, branch, a.worktree)
-        try:
-            rel = roster_lib.roster_path(str(a.worktree), None, a.roster_path)
-        except roster_lib.RosterNotFound as e:
-            raise Refuse(str(e))
-        path = Path(a.worktree) / rel
-        print(f"roster: {rel} on {branch}")
-        roster = json.loads(path.read_text(encoding="utf-8"))
-        if a.op == "set-stage":
-            op_set_stage(roster, a.group, value, a.at_sha)
-        elif a.op == "wire-issue":
-            op_wire_issue(roster, a.group, value, a.field or "issues")
-        elif a.op == "unwire-issue":
-            op_unwire_issue(roster, a.group, value, a.field or "issues")
-        elif a.op == "append-group":
-            op_append_group(roster, value)
-        elif a.op == "edit-brief":
-            op_edit_brief(roster, a.group, value)
-        elif a.op == "set-resume":
-            op_set_resume(roster, a.group, a.field, value)
-        else:
-            op_append_carry(roster, a.group, value)
-        path.write_text(dump(roster), encoding="utf-8")
-        if not run(["git", "-C", str(a.worktree),
-                    "status", "--porcelain"]).strip():
-            # A no-op edit reproduces the roster's own bytes (the round-trip
-            # rule): nothing to commit, nothing to push, still a success --
-            # re-running an op is idempotent.
-            print(f"no change: {a.op} {a.group} wrote the roster's own "
-                  "bytes (byte-identical); nothing to commit or push")
-            return 0
-        run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
-        head = run(["git", "-C", str(a.worktree), "rev-parse", "HEAD"]).strip()
-        ok, detail = lint_gate(a.checkout, a.lint_cwd, path)
-        if not ok:
-            print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
-                  f"the commit is local at {branch} {head[:12]}; nothing pushed",
-                  file=sys.stderr)
-            return 3
-        print("lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout")
-        if a.push:
-            run(["git", "-C", str(a.worktree), "push", "-q", "origin", branch])
-            print(f"pushed {branch} at {head}")
-        else:
-            print(f"ready: {branch} at {head} (no --push)")
-        return 0
+        def edit(roster) -> bool:
+            apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match)
+            return True
+        return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
+                            msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
     except Refuse as e:
         print(f"roster_edit: REFUSED: {e}", file=sys.stderr)
         return 2
@@ -557,7 +735,7 @@ def _self_test() -> int:
          "after": [], "brief": "fixture group A",
          "resume": {"stage": "not-started", "branch": "handoff/a"}},
         {"group": "R9-B", "lane": "L1", "issues": [], "fixes": [],
-         "after": ["R9-A"], "brief": "fixture group B",
+         "after": ["R9-A"], "brief": "fixture group B", "carry": [],
          "resume": {"stage": "not-started", "branch": "handoff/b"}},
     ]}
     (seed / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
@@ -574,12 +752,14 @@ def _self_test() -> int:
     throwaway_git_clone(origin, drv, "-q")
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None, field=None, value_opt=None):
+             at_sha=None, field=None, value_opt=None, match=None, wt="wt"):
         args = [op, group]
         if value is not None:
             args += [value]
         if field:
             args += ["--field", field]
+        if match is not None:
+            args += ["--match", match]
         if value_opt is not None:
             args += ["--value", value_opt]
         if at_sha:
@@ -588,7 +768,7 @@ def _self_test() -> int:
             return main(args
                         + ["--checkout", str(drv), "--roster-ref", "main",
                            "--branch", branch, "--worktree",
-                           str(Path(tmp, "wt")),
+                           str(Path(tmp, wt)),
                            "--lint-cwd", lint_cwd or str(seed)]
                         + (["--push"] if push else []))
         except SystemExit as e:
@@ -601,6 +781,15 @@ def _self_test() -> int:
             return call()
         except SystemExit as e:
             return e.code
+
+    def refuses(why, *args, **kw):
+        """rc 2 (or argparse's exit) AND the refusal names `why`: a bare rc
+        cannot tell this op's refusal from argparse refusing the op itself,
+        or one refusal from another that happens to fire first."""
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = sysrc(lambda: edit(*args, **kw))
+        return rc not in (0, None) and why in err.getvalue()
 
     def branch_roster(name="edit-1"):
         sha = run(["git", "-C", str(origin), "rev-parse",
@@ -719,6 +908,103 @@ def _self_test() -> int:
     check("set-resume unknown field refused",
           sysrc(lambda: edit("set-resume", "R9-A", "x", field="log")) == 2)
 
+    # set-after: a group's after-edges replaced whole, through the same
+    # load/modify/dump flow; every refusal leaves the remote branch where it
+    # was, and the resulting graph stays a DAG.
+    def tip(name="edit-1"):
+        return run(["git", "-C", str(origin), "rev-parse",
+                    f"refs/heads/{name}"]).strip()
+
+    def after_of(group):
+        return next(g for g in branch_roster()["groups"]
+                    if g["group"] == group).get("after")
+
+    check("set-after rc", edit("set-after", "R9-C", "R9-B,R9-F") == 0)
+    check("set-after round-trip", after_of("R9-C") == ["R9-B", "R9-F"])
+    check("set-after - clears the edges",
+          edit("set-after", "R9-C", "-") == 0 and after_of("R9-C") == [])
+    t0 = tip()
+    check("no-op set-after reports no change and commits nothing",
+          edit("set-after", "R9-B", "R9-A") == 0 and tip() == t0)
+    check("set-after unknown group refused",
+          refuses("no roster group", "set-after", "R9-ZZ", "R9-A"))
+    check("set-after unknown after-group refused",
+          refuses("after names no group", "set-after", "R9-B",
+                  "R9-A,R9-NOPE"))
+    check("set-after self-edge refused",
+          refuses("self-edge", "set-after", "R9-B", "R9-B"))
+    check("set-after duplicate edge refused",
+          refuses("duplicate edge", "set-after", "R9-C", "R9-A,R9-A"))
+    check("set-after direct cycle refused",
+          refuses("cycle", "set-after", "R9-A", "R9-B"))
+    check("set-after indirect cycle refused",
+          edit("set-after", "R9-C", "R9-B") == 0
+          and refuses("cycle", "set-after", "R9-A", "R9-C")
+          and after_of("R9-A") == [])
+    t0 = tip()
+    check("refused set-after moved nothing",
+          refuses("cycle", "set-after", "R9-A", "R9-B") and tip() == t0)
+    check("set-after names no op flag",
+          refuses("--match is a drop-carry flag", "set-after", "R9-B",
+                  "R9-A", match="x"))
+
+    # drop-carry: the inverse of append-carry, by index or by a unique match.
+    # R9-B carries `"carry": []`, the live roster's empty shape (27 of 91
+    # groups; none omits the key), so the round-trip below is pinned on the
+    # shape the roster actually has. Dropping the last entry leaves the list
+    # empty, keeping the key: append-then-drop restores the bytes exactly.
+    def carry_of(group):
+        return next(g for g in branch_roster()["groups"]
+                    if g["group"] == group).get("carry")
+
+    def bytes_at(name="edit-1"):
+        return run(["git", "-C", str(origin), "show",
+                    f"{tip(name)}:{FIXTURE_ROSTER}"])
+
+    check("drop-carry with no carry refused",
+          refuses("carries nothing", "drop-carry", "R9-B", "0")
+          and refuses("carries nothing", "drop-carry", "R9-B", None,
+                      match="alpha"))
+    check("drop-carry unknown group refused",
+          refuses("no roster group", "drop-carry", "R9-ZZ", "0"))
+    before_carry = bytes_at()
+    for text in ("alpha one", "alpha two", "beta"):
+        edit("append-carry", "R9-B", text)
+    check("drop-carry fixture carries three",
+          carry_of("R9-B") == ["alpha one", "alpha two", "beta"])
+    t0 = tip()
+    check("drop-carry ambiguous match refused",
+          refuses("ambiguous", "drop-carry", "R9-B", None, match="alpha"))
+    check("drop-carry absent match refused",
+          refuses("no carry entry matches", "drop-carry", "R9-B", None,
+                  match="gamma"))
+    check("drop-carry index past the end refused",
+          refuses("out of range", "drop-carry", "R9-B", "3"))
+    check("drop-carry negative index refused",
+          refuses("out of range", "drop-carry", "R9-B", "-1"))
+    check("drop-carry non-integer index refused",
+          refuses("index must be an integer", "drop-carry", "R9-B", "x"))
+    check("drop-carry index and --match together refused",
+          refuses("not both", "drop-carry", "R9-B", "0", match="beta"))
+    check("drop-carry neither index nor --match refused",
+          refuses("drop-carry needs an index or --match", "drop-carry",
+                  "R9-B", None))
+    check("--match on another op refused",
+          refuses("--match is a drop-carry flag", "set-stage", "R9-B",
+                  "done", match="x"))
+    check("refused drop-carry moved nothing", tip() == t0)
+    check("drop-carry by index drops that entry",
+          edit("drop-carry", "R9-B", "1") == 0
+          and carry_of("R9-B") == ["alpha one", "beta"])
+    check("drop-carry by match drops that entry",
+          edit("drop-carry", "R9-B", None, match="beta") == 0
+          and carry_of("R9-B") == ["alpha one"])
+    check("drop-carry of the last entry leaves the key empty",
+          edit("drop-carry", "R9-B", None, match="alpha one") == 0
+          and carry_of("R9-B") == [])
+    check("append-carry then drop-carry is byte-identical",
+          bytes_at() == before_carry)
+
     # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
     # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump
     # that does not reproduce them rewrites every line of the file on ANY edit
@@ -775,8 +1061,22 @@ def _self_test() -> int:
                            "--lint-cwd", str(seed2), "--push"])) == 0)
     # The no-op path commits and pushes nothing, so the bytes are read from
     # the worktree the op wrote: they must be the roster's own, unchanged.
-    tip = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
-    check("no-op set-resume is byte-identical", tip == canon)
+    wt2_bytes = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
+    check("no-op set-resume is byte-identical", wt2_bytes == canon)
+    check("no-op set-after rc",
+          sysrc(lambda: main(["set-after", "R9-A", "-",
+                           "--checkout", str(drv2), "--roster-ref", "main",
+                           "--branch", "edit-byte",
+                           "--worktree", str(Path(tmp, "wt2")),
+                           "--lint-cwd", str(seed2), "--push"])) == 0)
+    wt2_bytes = (Path(tmp, "wt2") / FIXTURE_ROSTER).read_text(encoding="utf-8")
+    check("no-op set-after is byte-identical", wt2_bytes == canon)
+
+    def captured(call):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            rc = call()
+        return rc, out.getvalue()
 
     # the lint gate: a bad brief is refused BEFORE the push; the branch on the
     # remote stays where it was.
@@ -785,10 +1085,15 @@ def _self_test() -> int:
     badb.write_text(json.dumps({"group": "R9-E", "lane": "L2", "after": [],
                                 "brief": "a brief with __bad__ in it"}),
                     encoding="utf-8")
-    rc = edit("append-group", "R9-E", str(badb), push=True)
+    rc = edit("append-group", "R9-E", str(badb), push=True, wt="wt-lint")
     check("lint gate refuses a bad brief", rc == 3, rc)
     after = run(["git", "-C", str(origin), "rev-parse", "refs/heads/edit-1"]).strip()
     check("refused push moved nothing", before == after)
+    # that refused commit is the worktree's detached HEAD and on no ref:
+    # reusing the worktree would drop it, so reuse is refused.
+    rc, out = captured(lambda: edit("set-stage", "R9-A", "x", wt="wt-lint"))
+    check("a worktree holding an unpushed edit is not reused",
+          rc == 2 and "unpushed edit would be lost" in out, out[-200:])
 
     # a branch name naming a host path refuses before anything is committed (#2310)
     leaky = "edit/Users-" + "exampleuser-x"
@@ -804,7 +1109,7 @@ def _self_test() -> int:
     old = run(["git", "-C", str(stale), "rev-parse", "HEAD~1"]).strip()
     run(["git", "-C", str(stale), "checkout", "-q", "--detach", old])
     rc = edit("set-stage", "R9-A", "done", push=True, branch="edit-2",
-              lint_cwd=str(stale))
+              lint_cwd=str(stale), wt="wt-stale")
     check("stale lint-cwd refused", rc == 3, rc)
     ok, why = lint_gate(drv, str(stale), seed / FIXTURE_ROSTER)
     check("stale refusal named the trap",
@@ -814,6 +1119,110 @@ def _self_test() -> int:
           edit("set-stage", "R9-A", "done", push=True, branch="edit-3") == 0)
     check("pushed roster carries the edit",
           branch_roster("edit-3")["groups"][0]["resume"]["stage"] == "done")
+
+    # THE PUSH RACE (R10-ROSTER-PUSH-RACE). Two seats edit one branch through
+    # one --checkout repository, whose local branches every worktree of it
+    # shares. On 2026-10-21 one run printed "pushed ... at b622ec9f1" with rc
+    # 0 while no ref on origin ever held that commit: the rival's checkout -B
+    # had reset the shared local branch, and the push by branch NAME sent the
+    # rival's commit. The rival lands here inside this run's lint window --
+    # the real one takes ~40 s -- through the same checkout (drv).
+    real_lint = lint_gate
+    rivals = []
+    serial = iter(range(1, 100))
+
+    def racing(times):
+        busy = []
+
+        def hooked(checkout, lint_cwd, roster_path):
+            if not busy and len(rivals) < times:
+                rivals.append(f"rival carry {next(serial)}")
+                busy.append(1)
+                try:
+                    with contextlib.redirect_stdout(io.StringIO()), \
+                            contextlib.redirect_stderr(io.StringIO()):
+                        rc_r = edit("append-carry", "R9-B", rivals[-1],
+                                    branch="edit-race", wt="wt-rival")
+                finally:
+                    busy.clear()
+                if rc_r != 0:
+                    raise Refuse(f"self-test rival edit failed rc={rc_r}")
+            return real_lint(checkout, lint_cwd, roster_path)
+        return hooked
+
+    def race_tip():
+        return run(["git", "-C", str(origin), "rev-parse",
+                    "refs/heads/edit-race"]).strip()
+
+    pushed_at = re.compile(r"^pushed \S+ at ([0-9a-f]{40})$", re.M)
+    try:
+        # the null control first: a solo edit pushes once, says no race, and
+        # adds exactly one commit -- the one it reports.
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-1",
+                                        branch="edit-race", wt="wt-race"))
+        tip0 = race_tip()
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "solo-2",
+                                        branch="edit-race", wt="wt-race"))
+        tip1 = race_tip()
+        rep = pushed_at.findall(out)
+        check("solo edit: rc 0, one push, no race said",
+              rc == 0 and len(rep) == 1 and "lost a race" not in out, out[-300:])
+        check("solo edit: exactly one commit added, the one reported",
+              run(["git", "-C", str(origin), "rev-list", "--count",
+                   f"{tip0}..{tip1}"]).strip() == "1" and rep == [tip1],
+              (tip0, tip1, rep))
+
+        # one rival inside the lint window: both edits reach origin, and the
+        # sha this run reports is origin's tip.
+        globals()["lint_gate"] = racing(1)
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "raced",
+                                        branch="edit-race", wt="wt-race"))
+        r = branch_roster("edit-race")
+        rep = pushed_at.findall(out)
+        check("race: rc 0 after re-applying on the rival's tip", rc == 0, out[-400:])
+        check("race: the rival's edit survives",
+              r["groups"][1].get("carry") == ["rival carry 1"], r["groups"][1].get("carry"))
+        check("race: the loser's edit reaches origin",
+              r["groups"][0]["resume"]["stage"] == "raced",
+              r["groups"][0]["resume"]["stage"])
+        check("race: the sha reported pushed is origin's tip",
+              rep == [race_tip()], (rep, race_tip()))
+        check("race: the lost race is said", "lost a race" in out, out[-300:])
+
+        # a rival on every attempt: bounded, refused loudly, nothing of this
+        # edit on origin, every rival's edit kept.
+        rivals.clear()
+        globals()["lint_gate"] = racing(PUSH_ATTEMPTS)
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "exhausted",
+                                        branch="edit-race", wt="wt-race-x"))
+        r = branch_roster("edit-race")
+        check("race on every attempt: refused (rc 2), said loudly",
+              rc == 2 and "nothing of this edit reached origin" in out
+              and not pushed_at.findall(out), out[-400:])
+        check("race on every attempt: bounded at PUSH_ATTEMPTS rivals",
+              len(rivals) == PUSH_ATTEMPTS, rivals)
+        check("race on every attempt: origin holds every rival, not this edit",
+              r["groups"][0]["resume"]["stage"] == "raced"
+              and r["groups"][1]["carry"] == ["rival carry 1"] + rivals
+              and "rival carry 1" not in rivals,
+              (r["groups"][0]["resume"]["stage"], r["groups"][1]["carry"]))
+    finally:
+        globals()["lint_gate"] = real_lint
+
+    # a push refused for another reason (here a pre-receive hook) with origin
+    # unmoved is no race: refused at once, no retry, nothing reported pushed.
+    hook = origin / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'hook says no' >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    try:
+        before = race_tip()
+        rc, out = captured(lambda: edit("set-stage", "R9-A", "hooked",
+                                        branch="edit-race", wt="wt-race"))
+        check("a non-race push failure refuses at once (rc 2), no retry",
+              rc == 2 and "hook says no" in out and "lost a race" not in out
+              and not pushed_at.findall(out) and race_tip() == before, out[-400:])
+    finally:
+        hook.unlink()
 
     # WHICH ROSTER (R10-TICK b): a tree carrying round 9's roster AND round
     # 10's. The edit lands in the newest unless --roster-path names another;
@@ -882,7 +1291,7 @@ def _self_test() -> int:
           and not Path(tmp, "wt7").exists())
 
     shutil.rmtree(tmp, ignore_errors=True)
-    print(f"roster_edit self-test: {passed + len(failed)} checks, "
+    print(f"roster_edit self-test: {passed} checks, "
           f"{len(failed)} failed")
     for f in failed:
         print("FAIL", f)

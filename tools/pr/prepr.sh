@@ -695,6 +695,17 @@ PY
   return 4
 }
 
+# The one line a refused body check is reported by: the red gate's own
+# sentence when a red went unnamed, else the first ERROR policy_lint printed,
+# else its count line. The count alone (`PR-BODY: N error(s)`) names no
+# ground, and step 7 appends its budget verdict to it, so three refusals for a
+# prose `## Friction` line read as a budget refusal (R10-FLY-BUDGET-LEAF).
+body_refusal() { # policy_lint output file -> one line
+  local l
+  l=$(grep -m1 'does not name it' "$1") || l=$(grep -m1 'ERROR' "$1") || l=$(tail -1 "$1")
+  printf '%s (%s error line(s) in all)' "${l#"${l%%[! ]*}"}" "$(grep -c 'ERROR' "$1")"
+}
+
 # Step 7's whole body: the predicted budget red, then the body check fed it.
 # rc 0 the body answers, 1 refused.
 #
@@ -716,7 +727,7 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   out=$(mktemp)
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
-  else printf '%s -- %s' "$(grep -m1 'does not name it' "$out" || tail -1 "$out")" "$raised"; fi
+  else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
   rm -f "$out"; return "$r"
 }
 
@@ -1028,7 +1039,7 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   else
     # The refusal printed is the red gate's own sentence, not this wrapper's,
     # so the row that reads it pins WHICH check refused.
-    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(grep -m1 'does not name it' "$out" || tail -1 "$out")"
+    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
   fi
   rm -f "$out"; return "$r"
 }
@@ -1474,6 +1485,29 @@ EOS
   got=$(ra red red-answered.md)
   st "${got%%:*}" 0 "the same ancestry with a body that names the red passes (null control)"
   case "$got" in *'answers every red'*) st 1 1 "and the ok line names what was answered";; *) st 0 1 "and the ok line names what was answered";; esac
+  # A refusal on any ground but the red prints THAT ground, not only the count
+  # (R10-FLY-BUDGET-LEAF): #2545, #2558 and #2582 were refused for a prose
+  # `## Friction` line and the step printed `PR-BODY: N error(s)`, so the
+  # reason had to be re-derived by hand. The plant is the answered fixture
+  # with its Friction line turned to prose; red-answered.md above is its null.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/red-answered.md" >"$RA/friction-prose.md"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    reds_line "$RA/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 1 "an answered red with a prose ## Friction line is refused"
+  case "$got" in *'`## Friction` line does not parse'*) st 1 1 "and the refusal prints the error, not only its count";; *) st 0 1 "and the refusal prints the error, not only its count";; esac
+  # BOTH GROUNDS IN ONE BODY: body_refusal's precedence, pinned. Each pair of
+  # its three alternatives (the red's sentence, the first ERROR, the count
+  # line) gets a body carrying both, asserting which one wins: red over count
+  # and ERROR over count are the two rows above; this is red over ERROR. The
+  # plant is unnamed-red.md with its Friction line turned to prose, so
+  # policy_lint prints the Friction ERROR FIRST and only the precedence makes
+  # the red's sentence win. The count suffix is the one sign a second error
+  # exists, so the row reads it too. The single-error rows above are its null.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/unnamed-red.md" >"$RA/both-grounds.md"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    reds_line "$RA/both-grounds.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 1 "an unnamed red AND a prose ## Friction line is refused"
+  case "$got" in *'fast (3.14)'*'does not name it'*'(2 error line(s) in all)') st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
   got=$(ra green red-answered.md)
   st "${got%%:*}" 0 "an ancestry whose only failure is pr-contract's own run passes (the exclusion key)"
   case "$got" in *'no red check run stands'*) st 1 1 "and the ok line says no red stands, so green was measured, not assumed";; *) st 0 1 "and the ok line says no red stands, so green was measured, not assumed";; esac
@@ -1535,6 +1569,18 @@ EOS
   case "$got" in *'no budget leaf raised'*) st 1 1 "and the ok line says no raise was found, so the gate ran";; *) st 0 1 "and the ok line says no raise was found, so the gate ran";; esac
   got=$(bl base docs unnamed-red.md)
   st "${got%%:*}" 0 "a diff touching no budget file passes"
+  # The same plant through step 7 (R10-FLY-BUDGET-LEAF): no raise, so the
+  # line ends `no budget leaf raised`, and what precedes it must be the error.
+  # `bl base docs unnamed-red.md` above is its null control.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/unnamed-red.md" >"$BR/friction-prose.md"
+  got=$(GIT_DIR="$BR/.git" body_line "$BR/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" base docs)
+  st $? 1 "a body with a prose ## Friction line is refused before the push"
+  case "$got" in *'`## Friction` line does not parse'*'no budget leaf raised'*) st 1 1 "and the refusal prints the error ahead of the budget verdict";; *) st 0 1 "and the refusal prints the error ahead of the budget verdict";; esac
+  # Red over ERROR through step 7 (the pair rule above, at body_line's call
+  # site): a raise makes budget-raise-gate a red the prose body also omits.
+  got=$(GIT_DIR="$BR/.git" body_line "$BR/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" base raise)
+  st $? 1 "a raise with a body silent on it AND a prose ## Friction line is refused"
+  case "$got" in *'budget-raise-gate'*'does not name it'*'(2 error line(s) in all)'*) st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
   got=$(bl nogate raise unnamed-red.md)
   case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
@@ -2111,6 +2157,12 @@ PY
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b pexsib origin/main && echo "# planted" >> tools/audit/seat/orchestrator_tick.py \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('record_row','roster_lib','tmp_paths')];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pexsib \
+    && $G checkout -q -b pglobsib pexsib \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pglobsib \
     && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
     && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
@@ -2148,6 +2200,10 @@ PY
   got=$(cd "$PDX/r" && git checkout -q pinert && predict_line origin/main 2>/dev/null)
   grep -q 'repair before the handoff; `--apply-inert` repairs them$' <<<"$got" && ! grep -q "ci-autofix.md's" <<<"$got"
   st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
+  got=$(predict_at pexsib); grep -q 'INERT READS tests/zz_reader.py' <<<"$got"
+  st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
+  got=$(predict_at pglobsib); grep -q 'PREDICT closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
+  st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
   got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got"
   st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
@@ -2440,16 +2496,38 @@ PY
   # any exit a refusal also runs (R10-PREPR-CAP, #2267). The pool's own capacity
   # is `take_slot`'s and is driven in tests/entities.py; these rows pin the
   # WIRING the finding is about -- that a run takes one at all, where, and that
-  # the release rides an EXIT trap rather than a last line a mid-run refusal skips.
+  # the release rides an EXIT trap rather than a last line a mid-run refusal
+  # skips. Two traps carry an EXIT cleanup now: the success arm frees the slot,
+  # the failed-take arm clears its unleased marker, and both keep the run's rc.
   # A herestring, not `printf | grep -q`: an early-exit grep reading a pipe is
   # the drained-scripts defect the row above this block refuses (row 4).
   st "$(grep -cF 'slot-take --label "$SLOT_LABEL"' <<<"$flow")" 1 "the main flow takes a heavy slot"
   st "$(grep -cF "slot-release --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and frees it on the way out, a mid-run refusal included"
-  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 1 "and the release preserves the run's own exit status"
+  st "$(grep -cF 'exit \$rc" EXIT' <<<"$flow")" 2 "and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status"
   st "$(grep -cF 'export HPO_SLOT_LABEL="$SLOT_LABEL"' <<<"$flow")" 1 "and exports its label, so a nested heavy step joins this slot"
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
+  st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
+  st "$(grep -cF "slot-leased --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and clears the count on the way out"
   slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and takes it before the heavy steps begin"
+  # (7) The priority the slot-take reads is derived from the branch's group and
+  # exported BEFORE the take, so the lease's ticket carries it (tvofi,
+  # 2026-10-20). The derivation's own four arms are gate_priority.py's
+  # --self-test; these rows pin the WIRING -- that the main flow asks for it at
+  # all, and that the answer reaches the slot-take that queues on it.
+  st "$(grep -cF 'gate_priority.py --branch' <<<"$flow")" 1 "the main flow derives the branch's gate priority"
+  st "$(grep -cF 'export HPO_GATE_PRIORITY' <<<"$flow")" 1 "and exports it for the slot-take and every nested leased step"
+  prio_order=$(awk '/slot-take --label/{exit} /gate_priority.py --branch/{print "ok"}' <<<"$flow")
+  st "$prio_order" ok "and derives it before the heavy slot is taken"
+  # (8) The derived default is gate_priority.py's own: a listed group gets
+  # priority with no env and no marker, an unlisted or unresolvable branch
+  # stays FIFO, and every unreadable input is 0. Its self-test is hermetic --
+  # a throwaway roster and critical-path set -- so republishing the live set
+  # cannot redden this row. This is the copy that answers on every pull
+  # request: `tools/pr/` is INERT, so the suite never selects it.
+  out=$(python3 tools/pr/gate_priority.py --self-test 2>&1); r=$?
+  st "$r" 0 "gate_priority.py's derived-default self-test passes"
+  [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
   # The entry wires both before the first fixture is built: driving the two
   # helpers pins nothing if the self-test stops calling them (#1591's shape).
   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
@@ -2499,6 +2577,20 @@ case $? in
   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
 esac
 
+# --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
+# The lease is generic: it orders waiters by an integer and never decides who
+# deserves one. This step supplies the integer from tools/pr/gate_priority.py,
+# whose precedence is (1) $HPO_GATE_PRIORITY, (2) .gate-priority in the
+# worktree, (3) the default DERIVED from this branch's group in the round
+# roster and the critical-path set the orchestrator publishes at the roster
+# ref. Every unreadable answer is 0 -- FIFO -- never a crash and never a stuck
+# queue. It is exported before the slot-take so that take and every nested
+# leased step (run.sh, derive_closures.sh) carry the same priority.
+HPO_GATE_PRIORITY=$(python3 tools/pr/gate_priority.py --branch "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" 2>/dev/null)
+[ "$?" -eq 0 ] && [ -n "$HPO_GATE_PRIORITY" ] || HPO_GATE_PRIORITY=0
+export HPO_GATE_PRIORITY
+say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critical-path default)"
+
 # --- 1b. the heavy-slot lease (R10-PREPR-CAP, #2267).
 # WHY THIS EXISTS. This run is the heavy thing a seat starts most often, and its
 # steps -- the `--self-test` in 3h, the mutants drive, the closure recordings --
@@ -2510,7 +2602,10 @@ esac
 # HPO_SLOT_LABEL so a nested heavy step inherits it and joins this slot rather
 # than taking a second (`gate_lock.py holding_slot`). Released on any exit the
 # shell sees; a SIGKILL leaves the slot, which the next take steals once this
-# process is gone (`--owner-pid`). A fifth prepr waits at the back of the queue.
+# process is gone (`--owner-pid`). A run that outlives the 30-minute slot lease
+# KEEPS its slot while $$ lives: the pool's lease is a liveness handle, so load
+# cannot silently push this run beside an admitted fifth (R10-GATE-PRIORITY). A
+# fifth prepr waits at the back of the queue.
 # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
 # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
 SLOT_LABEL="prepr-$$"
@@ -2528,6 +2623,13 @@ else
     trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   else
     say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+    # R10-GATE-PRIORITY: a run that proceeds unleased is COUNTED in
+    # `gate_lock.py slot-status` (unleased=N), so the orchestrator sees an
+    # over-subscribed pool instead of inferring it from load. Removed on exit;
+    # a crashed run's marker is pruned once its pid is gone.
+    python3 tests/gate_lock.py slot-unleased --label "$SLOT_LABEL" --pid $$ >/dev/null 2>&1
+    trap "rc=\$?; python3 tests/gate_lock.py slot-leased --label '$SLOT_LABEL' >/dev/null 2>&1; exit \$rc" EXIT
+    trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   fi
   rm -f "$slot_stderr"
 fi
@@ -2630,8 +2732,9 @@ rm -f /tmp/prepr-fc.$$
 fi
 
 # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
-# base once the base carries it: the Python readers first, under -I, then the
-# lane over their answers. Needs full history for its merge-subject corpus.
+# base once the base carries it: the Python readers first, under -I, which
+# refuse to answer while the job's restore list misses a file they load, then
+# the lane over their answers. Needs full history for its merge-subject corpus.
 # NO CLOSURE SKIP HERE, deliberately: agreement_py.py reads the branch's OWN
 # merge-subject history (`git log --first-parent` since the tag through HEAD),
 # so every branch that adds a commit provably reaches it and no file table can

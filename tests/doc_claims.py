@@ -1711,7 +1711,7 @@ def check_card_version_tracks_stamp() -> None:
         f"card now {cur}, share {share}",
     )
     doc = DOCS["dashboard-card.md"]
-    m = re.search(r"heatpump-optimizer-card\s+v(\d+\.\d+\.\d+)", doc)
+    m = re.search(r"heatpump-optimizer-card\s+v(\S+)", doc)
     R.check("the banner section still shows an example version (anchor)", m is not None)
     stale = _CARD_LAGS.findall(doc)
     R.check(
@@ -1721,8 +1721,8 @@ def check_card_version_tracks_stamp() -> None:
     )
     # Null control: re-inserting the pre-fix sentences must fire the claim scan.
     mutated = doc.replace(
-        "That is the card's own version",
-        "That is the card's own version. It moves only when the card file "
+        "is the card's own version",
+        "is the card's own version. It moves only when the card file "
         "changes, so it is often lower than the integration version -- "
         "compare it against the card version named in the release notes, "
         "not against the integration version itself",
@@ -1730,7 +1730,7 @@ def check_card_version_tracks_stamp() -> None:
     )
     R.check(
         "re-inserting the pre-fix banner claim fires the scan (null control)",
-        len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
+        mutated != doc and len(_CARD_LAGS.findall(mutated)) == len(_CARD_LAGS.findall(doc)) + 2,
         f"{len(_CARD_LAGS.findall(doc))} -> {len(_CARD_LAGS.findall(mutated))}",
     )
 
@@ -2777,6 +2777,560 @@ def check_docs_build_controls() -> None:
     R.check("a second run over one root reuses the first result", again is base)
 
 
+# ---------------------------------------------------------------------------
+# Arm I5 -- docs name UI labels, a console banner and service counts the code
+# does not carry (R10-I5-DOCS; D5-s1-01, D5-s2-01, D5-s3-51), and the product
+# page's declared image sizes (#2298)
+# ---------------------------------------------------------------------------
+#
+# Each finding is a doc or comment sentence that was true when written and went
+# stale as the code moved. Each fact is derived from the production artifact:
+# the picker name from manifest.json, the menu buttons from strings.json, the
+# service count from what async_setup's registration path registers on a
+# FakeHass, the PNG size from the file's own header.
+
+_COUNT_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve "
+    "thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+_STATED_COUNT = re.compile(
+    r"\b(\d+|" + "|".join(_COUNT_WORDS) + r")\s+"
+    r"(?:services|handlers|``hass\.services\.async_register``\s+calls)\b",
+    re.IGNORECASE,
+)
+
+
+def ui_label_findings(texts: dict[str, str], picker_name: str, menu_labels: set[str]) -> list[str]:
+    """Doc sentences that tell the reader to pick a label the UI does not show.
+
+    Rule A: ``Add integration -> X`` where X is not the manifest ``name`` (the
+    Add integration picker lists the manifest name). Rule B: a bold or quoted
+    doc label that starts with a menu button's label and adds a parenthetical
+    the button does not carry. Labels under ten characters are not read as
+    prefixes (``Back``, ``Done``): they would match ordinary words.
+    """
+    low = {x.lower(): x for x in menu_labels if len(x) >= 10}
+    out: list[str] = []
+    for name, text in texts.items():
+        for m in re.finditer(r"Add integration\s*\u2192\s*([^*.)]+?)\s*(?:\*\*|\.|\))", text):
+            got = " ".join(m.group(1).split())
+            if got != picker_name:
+                out.append(f"{name}: 'Add integration -> {got}' but the picker shows '{picker_name}'")
+        for i, line in enumerate(text.split("\n"), 1):
+            for m in re.finditer(r'\*\*([^*\n]+)\*\*|"([^"\n<]+)(?:<br/>([^"\n<]+))?"', line):
+                t = " ".join(p for p in m.groups() if p).strip().rstrip(".:")
+                for seg in (x.strip() for x in t.split("\u2192")):
+                    if seg.lower() in low:
+                        continue
+                    for lab_l, lab in low.items():
+                        if seg.lower().startswith(lab_l) and re.fullmatch(r"\s*\([^)]*\)", seg[len(lab):]):
+                            out.append(f"{name}:{i}: '{seg}' but the button reads '{lab}'")
+    return out
+
+
+def check_ui_labels() -> None:
+    R.section("docs name the labels the Add integration picker and menus show (D5-s1-01)")
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    strings = json.loads((PKG / "strings.json").read_text())
+    labels: set[str] = set()
+    for flow in ("config", "options"):
+        for step in strings[flow]["step"].values():
+            labels.update(step.get("menu_options", {}).values())
+    R.check("the picker name and the menu buttons exist (anchor)",
+            bool(manifest.get("name")) and len(labels) > 5, f"{manifest.get('name')!r}, {len(labels)} labels")
+    texts = {"README.md": README, **{f"docs/{k}": v for k, v in DOCS.items()}}
+    bad = ui_label_findings(texts, manifest["name"], labels)
+    R.check("every 'Add integration' name and menu-button label in the docs is what the UI shows",
+            not bad, "; ".join(bad[:5]) + (f" (+{len(bad) - 5})" if len(bad) > 5 else ""))
+    # Null control: a drifted picker name and a suffixed button label must fire.
+    planted = {"x.md": "**Settings -> Add integration \u2192 Heat Pump Optimizer.**\n"
+                       "**Enter thermal values directly (expert)** is for experts\n"}
+    got = ui_label_findings(planted, manifest["name"], labels)
+    R.check("a drifted picker name and a suffixed button label are both refused (null control)",
+            len(got) == 2, repr(got))
+
+
+def banner_findings(doc: str, card_js: str) -> list[str]:
+    """The console-banner sample in dashboard-card.md against what the card prints.
+
+    The card prints ``%c <tag> %c v<CARD_VERSION>`` and ``stamp.py`` rewrites
+    CARD_VERSION on every release without touching the doc, so a literal
+    version in the sample is stale by the next stamp (it read 6.6.8 at 7.0.0).
+    The sample must therefore carry the placeholder ``v<version>``.
+    """
+    out: list[str] = []
+    tag = re.search(r'const CARD_TAG = "([^"]+)"', card_js)
+    prints = re.search(r"`%c \$\{CARD_TAG\} %c v\$\{CARD_VERSION\} `", card_js)
+    if not tag or not prints:
+        return ["the card no longer prints '<tag> v<CARD_VERSION>': re-derive this check"]
+    for m in re.finditer(re.escape(tag.group(1)) + r"[ \t]+v(\S+)", doc):
+        if m.group(1) != "<version>":
+            out.append(f"banner sample shows 'v{m.group(1)}', a literal the next stamp falsifies")
+    return out
+
+
+def check_banner_sample() -> None:
+    R.section("the console-banner sample carries no version a stamp would falsify (D5-s2-01)")
+    card = (PKG / "www" / "heatpump-optimizer-card.js").read_text()
+    doc = DOCS["dashboard-card.md"]
+    R.check("the sample banner is in the doc (anchor)", "heatpump-optimizer-card  v" in doc)
+    bad = banner_findings(doc, card)
+    R.check("the sample shows the placeholder, not a literal version", not bad, repr(bad))
+    mutated = doc.replace("heatpump-optimizer-card  v<version>", "heatpump-optimizer-card  v6.6.8", 1)
+    R.check("a literal version planted in the sample is refused (null control)",
+            mutated != doc and len(banner_findings(mutated, card)) == 1)
+
+
+def stated_service_counts(src: str) -> list[tuple[int, int]]:
+    """(line, number) for every whole-registry count a comment or docstring states.
+
+    Only numbers of ten or more are read as whole-registry counts; smaller ones
+    in these files name subsets ('one of two services that write to the entry').
+    """
+    import io
+    import tokenize
+
+    out = []
+    for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+        if tok.type not in (tokenize.COMMENT, tokenize.STRING):
+            continue
+        for m in _STATED_COUNT.finditer(" ".join(tok.string.split())):
+            n = m.group(1).lower()
+            n = int(n) if n.isdigit() else _COUNT_WORDS[n]
+            if n >= 10:
+                out.append((tok.start[0], n))
+    return out
+
+
+def check_service_count_comments() -> None:
+    R.section("service counts stated in __init__.py and services.py are the registry's (D5-s3-51)")
+    import asyncio
+
+    from harness import FakeHass
+    import heatpump_optimizer as integ
+    from heatpump_optimizer.const import DOMAIN
+
+    hass = FakeHass()
+    asyncio.run(integ._async_register_services(hass))
+    registered = len(hass.services.async_services().get(DOMAIN, {}))
+    R.check("the registration path registers services (anchor)", registered > 0, str(registered))
+    stale = []
+    for name in ("__init__.py", "services.py"):
+        for line, n in stated_service_counts((PKG / name).read_text()):
+            if n != registered:
+                stale.append(f"{name}:{line} states {n}, registered {registered}")
+    R.check("no comment or docstring states a whole-registry count that differs from it", not stale, repr(stale))
+    planted = '"""Registers the twelve services."""\n'
+    R.check("a stated count that differs from the registry is read (null control)",
+            stated_service_counts(planted) == [(1, 12)], repr(stated_service_counts(planted)))
+    R.check("a subset count below ten is not read as the registry (null control)",
+            stated_service_counts('"""one of two services that write"""\n') == [])
+
+
+def png_size(path: pathlib.Path) -> tuple[int, int] | None:
+    """(width, height) from a PNG's IHDR, or None when the file is not a PNG."""
+    import struct
+
+    head = path.read_bytes()[:24]
+    if len(head) < 24 or head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", head[16:24])
+
+
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
+
+def image_dim_findings(root: pathlib.Path, tracked: list[str]) -> tuple[list[str], int]:
+    """Declared width/height vs the PNG header, for every <img> in the pages named.
+
+    ``tracked`` lists the pages, relative to ``root``; only .html and .md are
+    read. ``src`` resolves relative to the page's own directory. An <img> that
+    declares both width and height and names a PNG is compared; the count
+    returned is how many were.
+    """
+    out, compared = [], 0
+    for rel in tracked:
+        if not rel.endswith((".html", ".md")):
+            continue
+        page = root / rel
+        if not page.is_file():
+            continue
+        for tag in _IMG_TAG.findall(page.read_text(errors="replace")):
+            src = re.search(r'\bsrc="([^"#?]+)"', tag)
+            w = re.search(r'\bwidth="(\d+)"', tag)
+            h = re.search(r'\bheight="(\d+)"', tag)
+            if not (src and w and h) or "://" in src.group(1):
+                continue
+            png = (page.parent / src.group(1)).resolve()
+            size = png_size(png) if png.is_file() and png.suffix.lower() == ".png" else None
+            if size is None:
+                continue
+            compared += 1
+            if size != (int(w.group(1)), int(h.group(1))):
+                out.append(f"{rel}: {src.group(1)} declares {w.group(1)}x{h.group(1)}, file is {size[0]}x{size[1]}")
+    return out, compared
+
+
+def published_pages() -> list[str]:
+    """The pages a reader loads: README, the reader-facing docs, and the product page.
+
+    The scanned corpus above (README.md and DOCS) plus every top-level
+    docs/*.html, which GitHub Pages serves. Records and programme state are
+    not pages a browser lays out for a reader, and reading every tracked file
+    would put the whole tree in this script's closure.
+    """
+    return ["README.md", *(f"docs/{k}" for k in DOCS),
+            *(f"docs/{p.name}" for p in sorted((ROOT / "docs").glob("*.html")))]
+
+
+def check_image_dimensions() -> None:
+    R.section("declared <img> sizes equal the PNG headers on every published page (#2298)")
+    pages = published_pages()
+    R.check("the product page is one of the pages read (anchor)", "docs/index.html" in pages, repr(pages))
+    bad, compared = image_dim_findings(ROOT, pages)
+    R.check("at least one sized <img> was compared (anchor)", compared > 0, str(compared))
+    R.check("every declared width and height equals the PNG header", not bad, "; ".join(bad))
+    with tempfile.TemporaryDirectory() as tmp:
+        t = pathlib.Path(tmp)
+        import zlib, struct
+
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+        (t / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 10, 20, 8, 0, 0, 0, 0)))
+        (t / "p.html").write_text('<img src="a.png" width="10" height="20"><img src="a.png" width="10" height="30">')
+        got, n = image_dim_findings(t, ["p.html"])
+        R.check("a wrong declared height is refused and a right one passes (null control)",
+                n == 2 and len(got) == 1 and "10x30" in got[0], repr((n, got)))
+
+
+# ---------------------------------------------------------------------------
+# Arm W -- doc wiring: paths, target markers, mermaid blocks (R10-ARCH-DOCS-FIRST,
+# #2395), and the Buy Me a Coffee button in its three places (owner, 2026-10-22)
+# ---------------------------------------------------------------------------
+#
+# The architecture page and the developer onboarding describe the shape at
+# programme end, so some of what they name is not on main yet. Such an element
+# carries a marker naming the roster group that lands it; the grammar is the
+# approved design note's (dev/programme/designs/R10-ARCH-DOCS-FIRST.md, section 3).
+# Every predicate here holds before and after a named group lands: none reads a
+# group's stage except (c), which only prints. Resolving the markers is
+# R10-ARCH-DOCS's end-of-round check, not this one.
+
+WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
+# (e) reads every reader doc that draws a mermaid block, plus the onboarding.
+MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
+                      "docs/setup.md", "dev/README.md")
+ROSTER = ROOT / "dev" / "programme" / "rosters" / "wave-r10-groups.json"
+_MARKER = re.compile(r"\[(target|retired-by): (R10-[A-Z0-9-]+(?:, R10-[A-Z0-9-]+)*)(; owner step)?\]")
+_MARKER_ANY = re.compile(r"\[(?:target|retired-by)\b[^\]\n]*\]?")
+_FENCE = re.compile(r"^```([^\n]*)\n(.*?)^```", re.M | re.S)
+_DIAGRAMS = ("flowchart", "graph", "sequenceDiagram")
+_SHAPES = (("([", "])"), ("[(", ")]"), ("((", "))"), ("{{", "}}"), ("[[", "]]"), ("[", "]"), ("(", ")"), ("{", "}"))
+_HEX = re.compile(r"(?:fill|stroke|color|background)[\w-]*\s*:\s*#[0-9a-fA-F]{3,8}\b|^\s*(?:style|classDef|linkStyle)\b.*#[0-9a-fA-F]{3,8}\b", re.M)
+
+
+def roster_stages(path: pathlib.Path = ROSTER) -> dict[str, str] | None:
+    """group -> resume.stage from the roster on this tree, or None when the file is absent (archived)."""
+    if not path.is_file():
+        return None
+    return {g["group"]: (g.get("resume") or {}).get("stage", "") for g in json.loads(path.read_text())["groups"]}
+
+
+def _units(text: str) -> list[tuple[str, bool]]:
+    """(unit, under a marked heading) for prose outside fences: a list item, a table row, a heading or a paragraph."""
+    out: list[tuple[str, bool]] = []
+    heads: list[tuple[int, bool]] = []
+    cur: list[str] = []
+
+    def flush() -> None:
+        if cur:
+            out.append(("\n".join(cur), any(m for _, m in heads)))
+            cur.clear()
+
+    for line in _FENCE.sub("", text).splitlines():
+        h = re.match(r"(#+)\s", line)
+        if h:
+            flush()
+            heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), bool(_MARKER.search(line)))]
+            out.append((line, any(m for _, m in heads)))
+        elif not line.strip():
+            flush()
+        elif line.lstrip().startswith("|") or re.match(r"\s*(?:[-*+]|\d+\.)\s", line):
+            flush()
+            cur.append(line)
+        else:
+            cur.append(line)
+    flush()
+    return out
+
+
+def _flowchart_findings(name: str, body: list[str]) -> list[str]:
+    """A bare node id used exactly once and never given a shape is a typo'd endpoint (section 6 (d)).
+
+    Declared: the id appears with a shape at least once, or is a subgraph id. Edge labels (`|...|`, quoted) are skipped.
+    """
+    shaped: set[str] = set()
+    seen: dict[str, int] = {}
+    ident = re.compile(r"[A-Za-z_]\w*")
+    for line in body:
+        s = line.strip()
+        if re.match(r"(?:end|direction|classDef|class|style|linkStyle|click)\b", s):
+            continue
+        sub = re.match(r"subgraph\s+([A-Za-z_]\w*)", s)
+        if sub:
+            shaped.add(sub.group(1))
+            continue
+        i = 0
+        while i < len(s):
+            c = s[i]
+            if c in '"|':
+                i = s.find(c, i + 1) + 1 or len(s)
+                continue
+            m = ident.match(s, i)
+            if not m or (i and re.match(r"[\w-]", s[i - 1])):
+                i += 1
+                continue
+            j = m.end()
+            shape = next(((o, cl) for o, cl in _SHAPES if s.startswith(o, j)), None)
+            if shape:
+                k = j + len(shape[0])
+                if s[k:k + 1] == '"':
+                    k = s.find('"', k + 1) + 1
+                k = s.find(shape[1], k) if k else -1
+                if k < 0:
+                    return [f"{name}: unclosed shape in {s!r}"]
+                shaped.add(m.group(0))
+                i = k + len(shape[1])
+            else:
+                seen[m.group(0)] = seen.get(m.group(0), 0) + 1
+                i = j
+    return [f"{name}: node {t!r} appears once and is never declared with a shape" for t, n in seen.items()
+            if n == 1 and t not in shaped]
+
+
+def _sequence_findings(name: str, body: list[str]) -> list[str]:
+    """Every message and note endpoint is a declared participant or actor (section 6 (d), item T3)."""
+    declared = {m.group(1) for line in body if (m := re.match(r"\s*(?:participant|actor)\s+(\w+)", line))}
+    out = []
+    for line in body:
+        m = re.match(r"\s*(\w+)\s*(?:<<)?-{1,2}(?:>>|>|x|\))\s*[+-]?\s*(\w+)\s*:", line)
+        n = re.match(r"\s*[Nn]ote\s+(?:over|left of|right of)\s+([\w ,]+?)\s*:", line)
+        for who in (m.groups() if m else ()) + (tuple(w.strip() for w in n.group(1).split(",")) if n else ()):
+            if who not in declared:
+                out.append(f"{name}: {who!r} is not a declared participant")
+    return out
+
+
+def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs: dict[str, str] | None = None
+                        ) -> tuple[list[str], list[str]]:
+    """(findings, notes) for the marked documents. `roster` is called only when a marker is present (N1)."""
+    from layout import repo_path
+
+    out: list[str] = []
+    notes: list[str] = []
+    dirs = {p[:i + 1] for p in tree for i in range(len(p)) if p[i] == "/"}
+    tops = {p.split("/")[0] for p in tree}
+    groups: list[tuple[str, str, str]] = []
+    for name, text in docs.items():
+        # a marker quoted in inline code is the grammar being described, not a marker
+        for m in _MARKER_ANY.finditer(re.sub(r"`[^`\n]+`", "", text)):
+            g = _MARKER.fullmatch(m.group(0))
+            if not g:
+                out.append(f"{name}: malformed marker {m.group(0)!r}")
+            elif g.group(1) == "retired-by" and ("," in g.group(2) or g.group(3)):
+                out.append(f"{name}: a retired-by marker names one group and no owner step: {m.group(0)!r}")
+            else:
+                groups += [(name, g.group(1), x) for x in g.group(2).split(", ")]
+        # (a) every backticked repository path resolves, or its unit carries a marker
+        for unit, covered in _units(text):
+            marked = covered or bool(_MARKER.search(unit))
+            for span in re.findall(r"`([^`\n]+)`", unit):
+                for tok in span.split():
+                    tok = re.sub(r":\d+(?:-\d+)?$", "", tok)
+                    if not repo_path(tok, tops) or re.search(r"[<>*{}$]", span):
+                        continue
+                    if tok not in tree and tok.rstrip("/") + "/" not in dirs and not marked:
+                        out.append(f"{name}: `{tok}` is not in the tree and carries no marker")
+        # (d) every mermaid block opens with a known diagram type and names only declared nodes
+        for info, body in _FENCE.findall(text):
+            if info.strip() != "mermaid":
+                continue
+            lines = [l for l in body.splitlines() if l.strip() and not l.strip().startswith("%%")]
+            kind = lines[0].split()[0] if lines else ""
+            if kind not in _DIAGRAMS:
+                out.append(f"{name}: a mermaid block opens with {kind!r}, not one of {', '.join(_DIAGRAMS)}")
+            elif kind == "sequenceDiagram":
+                out += _sequence_findings(name, lines[1:])
+            else:
+                out += _flowchart_findings(name, lines[1:])
+    # (b) every marker names a group in this tree's roster; read only when a marker exists
+    if groups:
+        stages = roster()
+        if stages is None:
+            out.append(f"{len(groups)} marker(s) present and no roster to resolve them against")
+        else:
+            for name, kind, g in groups:
+                if g not in stages:
+                    out.append(f"{name}: [{kind}: {g}] names no group in the roster")
+                elif stages[g] == "done":
+                    # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
+                    notes.append(f"{name}: [{kind}: {g}] names a done group; R10-ARCH-DOCS resolves it")
+    # (e) no hex colour and no init directive inside a mermaid block
+    for name, text in {**(style_docs or {}), **docs}.items():
+        for info, body in _FENCE.findall(text):
+            if info.strip() == "mermaid":
+                if _HEX.search(body):
+                    out.append(f"{name}: a mermaid block carries a hex colour")
+                if "%%{init" in body:
+                    out.append(f"{name}: a mermaid block carries an %%{{init}} directive")
+    return out, notes
+
+
+COFFEE = "https://buymeacoffee.com/rpgshcwb2tp"
+COFFEE_SVG = "docs/img/brand/coffee.svg"
+# inline, or by reference: the image stays inline and its line carries no '://', which HACS's README image rewriter
+# needs (tests/entities.py pins that rewriter's rule)
+_COFFEE_MD = re.compile(r"\[!\[[^\]]+\]\(([^)\s]+)\)\](?:\(" + re.escape(COFFEE) + r"\)|\[([\w-]+)\])")
+_COFFEE_A = re.compile(r'<a\b[^>]*\bclass="bmc"[^>]*\bhref="' + re.escape(COFFEE) + r'"', re.S)
+
+
+def _css_vars(block: str) -> dict[str, str]:
+    return dict(re.findall(r"(--[\w-]+):\s*([^;}]+?)\s*[;}]", block))
+
+
+def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], tree: set[str],
+                           svg: str | None, css: str) -> list[str]:
+    """The owner's button in its three places, drawn from in-tree assets in the docs.css tokens, light and dark.
+
+    1. README.md, above its first `## ` heading: an image link to COFFEE whose image is a tracked file.
+    2. docs/index.html's own <footer>, and 3. the shared footer of every page tools/site/build_docs.mjs renders: an
+    <a class="bmc"> to COFFEE, whose `.bmc` rule colours it from the page's own tokens.
+    """
+    out = []
+    top = readme.split("\n## ", 1)[0]
+    m = _COFFEE_MD.search(top)
+    if m and m.group(2) and not re.search(r"^\[" + re.escape(m.group(2)) + r"\]:\s*" + re.escape(COFFEE) + r"\s*$", readme, re.M | re.I):
+        m = None
+    if not m:
+        out.append("README.md: no button linking " + COFFEE + " above the first section")
+    elif m.group(1) not in tree:
+        out.append(f"README.md: the button's image {m.group(1)} is not a tracked file")
+    foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
+    if not (foot and _COFFEE_A.search(foot.group(0))):
+        out.append("docs/index.html: its <footer> has no button linking " + COFFEE)
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", index_html):
+        out.append("docs/index.html: no .bmc rule drawn from var(--accent)")
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", css):
+        out.append("docs/site/docs.css: no .bmc rule drawn from var(--accent)")
+    if not built:
+        out.append("the docs build produced no page to look for the shared footer in")
+    for page, html in sorted(built.items()):
+        foot = re.search(r'<footer class="site">.*?</footer>', html, re.S)
+        if not (foot and _COFFEE_A.search(foot.group(0))):
+            out.append(f"{page}: the shared footer has no button linking {COFFEE}")
+    # the README image cannot read CSS variables, so its colours are the tokens' values, compared here
+    if svg is None:
+        out.append(f"{COFFEE_SVG} is absent")
+    else:
+        light = _css_vars(css.split("@media", 1)[0])
+        dark = _css_vars(css.split(':root[data-theme="dark"]', 1)[-1].split("}", 1)[0])
+        sl, _, sd = svg.partition("@media")
+        for cls, var in ((".bg", "--accent"), (".fg", "--accent-ink")):
+            for where, part, want in (("light", sl, light.get(var)), ("dark", sd, dark.get(var))):
+                got = re.search(re.escape(cls) + r"\s*\{\s*fill:\s*([^;}]+)", part)
+                if not want or not got or got.group(1).strip().lower() != want.lower():
+                    out.append(f"{COFFEE_SVG}: {cls} in {where} is {got and got.group(1)!r}, docs.css {var} is {want!r}")
+    return out
+
+
+def _tracked(root: pathlib.Path = ROOT) -> set[str]:
+    return set(subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True, check=True).stdout.split("\n")) - {""}
+
+
+def check_doc_wiring() -> None:
+    R.section("doc wiring: paths, target markers and mermaid blocks (R10-ARCH-DOCS-FIRST)")
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    R.check("docs/architecture.md, README.md and dev/README.md exist (anchor)", len(docs) == len(WIRING_DOCS),
+            ", ".join(sorted(set(WIRING_DOCS) - set(docs))))
+    style = {p: (ROOT / p).read_text() for p in MERMAID_STYLE_DOCS if (ROOT / p).is_file()}
+    tree = _tracked()
+    errs, notes = doc_wiring_findings(docs, tree, roster_stages, style)
+    blocks = sum(1 for t in docs.values() for i, _ in _FENCE.findall(t) if i.strip() == "mermaid")
+    marks = sum(len(_MARKER.findall(t)) for t in docs.values())
+    R.check("the marked documents draw mermaid blocks and carry markers (anchor)", blocks > 0 and marks > 0,
+            f"{blocks} block(s), {marks} marker(s)")
+    R.check("every path resolves or is marked, every marker names a roster group, every block is well formed",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    for n in notes:
+        print(f"       note: {n}")
+    print(f"       ({blocks} mermaid block(s), {marks} marker(s), {len(notes)} note(s))")
+
+    stub = {"R10-A": "not-started", "R10-B": "done"}
+    t = {"tests/a.py", "docs/x.md"}
+    base = ("# T\n\nA marker reads `[target: <group>]`.\n\n- `tests/a.py` runs it.\n- `docs/y.md` lands later [target: R10-A]\n\n"
+            "```mermaid\nflowchart LR\n    A[a] --> B[\"b\"]\n    A -.->|\"[target: R10-A]\"| B\n```\n\n"
+            "```mermaid\nsequenceDiagram\n    participant F as fixer\n    participant O as orchestrator\n"
+            "    F->>O: handoff\n    Note over F,O: opens a ledger entry\n```\n")
+    calls = []
+
+    def ro():
+        calls.append(1)
+        return stub
+    clean, cn = doc_wiring_findings({"d.md": base}, t, ro)
+    R.check("the clean fixture yields no finding and no note (null control)", not clean and not cn and calls,
+            repr((clean, cn)))
+    plants = (
+        ("a renamed path", base.replace("`tests/a.py`", "`tests/b.py`"), "not in the tree"),
+        ("a marker naming no roster group", base.replace("[target: R10-A]\n\n", "[target: R10-NOPE]\n\n"), "names no group"),
+        ("a malformed marker", base.replace("[target: R10-A]\n\n", "[target R10-A]\n\n"), "malformed"),
+        ("a bare node id used once", base.replace("A -.->", "A --> Bx\n    A -.->"), "'Bx'"),
+        ("a block of an unknown diagram type", base.replace("flowchart LR", "pie"), "'pie'"),
+        ("a hex fill", base.replace("    A -.->", "    style A fill:#ff0000\n    A -.->"), "hex"),
+        ("an init directive", base.replace("flowchart LR\n", "%%{init: {'theme': 'dark'}}%%\nflowchart LR\n"), "init"),
+        ("an undeclared sequence participant", base.replace("F->>O", "F->>X"), "'X'"),
+    )
+    for what, doc, key in plants:
+        got, _ = doc_wiring_findings({"d.md": doc}, t, ro)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    done = base.replace("[target: R10-A]\n\n", "[target: R10-B]\n\n") + "\n- `.github/workflows/gone.yml` [retired-by: R10-B]\n"
+    got, gn = doc_wiring_findings({"d.md": done}, t, ro)
+    R.check("state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes",
+            not got and len(gn) == 2, repr((got, gn)))
+    calls.clear()
+    plain = "# T\n\n- `tests/a.py` runs it.\n"
+    got, gn = doc_wiring_findings({"d.md": plain}, t, lambda: calls.append(1))
+    R.check("no marker: no roster is read, and none needs to exist (null control, N1)", not got and not gn and not calls,
+            repr((got, gn, calls)))
+    got, _ = doc_wiring_findings({"d.md": base}, t, lambda: None)
+    R.check("a marker with no roster file to resolve it is a finding", any("no roster" in g for g in got), repr(got))
+
+
+def check_coffee_button() -> None:
+    R.section("Buy Me a Coffee button in its three places (owner, 2026-10-22)")
+    built = docs_build()["html"]
+    tree = _tracked()
+    css = (ROOT / "docs" / "site" / "docs.css").read_text()
+    svg = (ROOT / COFFEE_SVG).read_text() if (ROOT / COFFEE_SVG).is_file() else None
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    errs = coffee_button_findings(README, page, built, tree, svg, css)
+    R.check("README top, the product page footer and every built page's footer link the button, from in-tree tokens",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    one = next(iter(sorted(built)), None)
+    plants = (
+        ("README.md", (README.replace(COFFEE, "https://example.com/x", 1), page, built)),
+        ("docs/index.html", (README, page.replace(f'href="{COFFEE}"', 'href="#"', 1), built)),
+        (str(one), (README, page, {**built, str(one): built.get(one, "").replace(f'href="{COFFEE}"', 'href="#"')})),
+    )
+    for where, (r, p, b) in plants:
+        got = coffee_button_findings(r, p, b, tree, svg, css)
+        R.check(f"red case: the button removed from {where} is a finding there", any(g.startswith(where) for g in got),
+                repr(got[:3]))
+    if svg:
+        off = svg.replace(".bg{fill:", ".bg{fill:#000000;x:", 1)
+        R.check("red case: an SVG colour that is not the docs.css token is a finding",
+                any(".bg in light" in g for g in coffee_button_findings(README, page, built, tree, off, css)))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -2807,6 +3361,12 @@ def main() -> int:
     check_unit_typography()
     check_option_labels()
     check_options_page_census()
+    check_ui_labels()
+    check_banner_sample()
+    check_service_count_comments()
+    check_image_dimensions()
+    check_doc_wiring()
+    check_coffee_button()
     return R.close("checks")
 
 

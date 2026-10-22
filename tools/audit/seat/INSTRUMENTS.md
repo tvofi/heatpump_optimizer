@@ -24,6 +24,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
+  Its GitHub reads retry on `app_push.sh`'s read-back rule (4 reads, settling
+  5/15/45 s) only on a transport error, 5xx, 429 or a secondary-rate-limit
+  403, and refuse with the last error once spent; any other failure, a wrong
+  answer and the review POST are never retried.
 - `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
   and reads the posted comment back byte-identical. When: a reviewer seat
   delivers a verdict. Refusal: a read-back that differs from what it meant to
@@ -32,7 +36,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the `hpo-author` App, with the body's contract check before the push. When:
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
-  failing the contract check never reaches the remote.
+  failing the contract check never reaches the remote. `--row-only`
+  (`update_pr.sh`'s) replaces prepr with pr-contract's two body checks (the
+  contract, its red history read with prepr 7c's credential, and
+  `carry_audit.py check`) only when the head
+  is the live head plus one commit adding exactly that PR's own open row and
+  the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -110,6 +119,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   before anything is pushed, with each arm's repair printed; a fetch that
   half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through.
+- `body_patch.sh` — repairs an open pull request's BODY without moving its
+  head: `body_patch.sh [--dry-run] [--repo O/R] <pr> <expected-head-sha>
+  <body.md>`. Reads the live head, runs the body contract offline at it
+  (`policy_lint.mjs --pr-body` with pr-contract's arguments, then
+  `carry_audit.py check --body`), PATCHes as `hpo-author` through
+  `tools/pr/app_mint.sh` (the mint `app_push.sh` shares), reads the body back
+  and re-reads the head. When: a body `pr-contract` or `carry_audit` refuses
+  on a head that must not move (ruling R4; `update_pr.sh` merges main on every
+  run). Refusal: a live head other than the expected sha, before any mint or
+  write; a body the contract refuses is never sent; `--dry-run` prints the
+  PATCH request and signs nothing; a read-back that cannot be performed in
+  three tries refuses, never reports OK. The offline contract runs the
+  caller's checkout, so it can differ from pr-contract's (the script header
+  says how). One `--once` unit: its last line is `body_patch: OK|REFUSE ...`.
 - `autofix_statuses.sh` — re-derives what `mutation-autofix` and
   `closures-autofix` answered on recent pull-request runs, from their job
   logs, with the `closures` failure heading behind each closures skip. When:
@@ -145,8 +168,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `fixer` or `probe` seat from the PR, the 40-hex head, the bus nonce and an
   optional brief file. The environment id, model and repository come from a
   flag, an overlay JSON (`--overlay` / `$HPO_CLOUD_OVERLAY`) or `HPO_CLOUD_*`,
-  never from the tree. When: dispatching a seat to the cloud runner; paste
-  the printed JSON as the trigger update. The measured shape of a cloud seat:
+  never from the tree. `--role R --group G --model M` is the one-call path
+  (`dispatch_group()` for a host such as the beat): the brief, topic and
+  repository come from the roster at `--roster-ref` (default the round's roster
+  branch, `roster_lib.default_roster_ref`); the head is `--head`, else
+  `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
+  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
+  it renders through the same `render` (the payload is the flag path's byte
+  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
+  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
+  render refusal pushes nothing) and prints that ref name, the one line a
+  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+  re-runs its mutants. When: dispatching a seat to the cloud runner;
+  paste the printed JSON as the trigger update, or fire the standing trigger
+  with the printed ref. The measured shape of a cloud seat:
   every trigger update resends the full ccr and then `run`s it, never a
   patch; the brief is snapshotted at `run`, so it is inlined at render time,
   an edit afterwards reaches no running seat, and overlapping runs are fine;
@@ -196,11 +232,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `cloud_relay.sh --watch [--interval N] [--once]` is the orchestrator's poll
   loop, tracked: every N seconds (default 120) it runs the probe arm, which
   lists every `refs/heads/probe/*` with `git ls-remote origin`. A probe ref
-  that is not `rev-*` (a probe seat's return, a stray push) appends
-  `OWED <utc> probe-ref <ref> <sha>` on EVERY pass until
+  that is not `rev-*` (a probe seat's return, a stray push) is
+  `OWED <utc> probe-ref <ref> <sha>` in `<log>.level` until
   `cloud_relay.sh dispose <ref> <sha>` records it handled: a level, not a
   diff, so a missed line is repeated rather than lost, and a disposed ref
-  that moves is owed again at its new sha. It relays each `rev-*` ref+sha
+  that moves is owed again at its new sha. Every pass REWRITES its kind's
+  lines in `<log>.level` and appends none to the log (appended, 2026-10-21: 34757 copies
+  of ~281 items once reached the board); `dispose [--log FILE]` drops the
+  line at once from the level beside that log (the pass's `--log`), and a
+  failed listing leaves the level as it was. It relays each `rev-*` ref+sha
   once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
   or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
   left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
@@ -228,20 +268,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `approve_held_runs.sh` on the branch, then `bus.sh dispatch <pr> <new head>
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
-  existing PR, so the open-PR soft cap is untouched (an update is not an open).
+  existing PR, which the soft cap never refuses (it gates only group dispatch).
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
   `OWED handoff-update`, and retried only when the handoff moves. An update that
-  exits 75 is `update_pr.sh`'s BUSY (another run holds the branch's
-  `upd-<branch>.lock`, typically the orchestrator's own update of that PR): it is
+  exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
+  `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
   not recorded, and the next pass retries it. Every
   `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
-  appends `OWED <utc> handoff-no-pr <ref> <sha>` on every pass until disposed
-  the same way (a fixer's return the orchestrator has not opened, or a merged
-  PR's refs not yet archived); a failed PR listing reports none, since an
-  empty list would make every ref look orphaned. Note the two
-  OWED shapes: `OWED reviewer-fire` carries no timestamp first, the others
-  (`OWED <utc> ...`) do.
+  is `OWED <utc> handoff-no-pr <ref> <sha>` in `<log>.level`, rewritten every
+  pass, until disposed the same way (a fixer's return the orchestrator has
+  not opened, or a merged PR's refs not yet archived); a failed PR listing
+  leaves those lines as they were, since an empty list would make every ref
+  look orphaned. The log holds events only, each naming its PR in its first
+  all-digit field: `OWED reviewer-fire <pr> ...` carries no timestamp first,
+  the others (`OWED <utc> ...`) do.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
@@ -273,6 +314,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+  `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
+  (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
+  push line replaced by `true` reddens it (#2444).
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -282,7 +326,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--mandate <comment-id>` and reads that #201 mandate live; `--ready` marks a
   draft ready. Refusal: a verdict or head mismatch stops the merge before the
   merge API call; a draft without `--ready`, or owner mode with no mandate in
-  force, refuses before anything posts.
+  force, refuses before anything posts. Before its CI wait it runs
+  `merge_train.py unstale` (below) at the head. `--self-test` also drives the whole
+  script offline over a scratch clone and a fake `gh`, so the `gh pr merge …
+  --match-head-commit` line is pinned: replaced by `exit 0` it records no
+  merge and the null control reddens (#2444).
 - `merge_train.py` — lands a queue of verdicted PRs one at a time: re-carry
   CI, wait for green at the exact head, evidence-gated approval,
   `--match-head-commit`. When: any merge queue — queued PRs merge through
@@ -319,6 +367,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
+  It owns the state classifier (Lean flow study K15) the tick also imports,
+  judged on the latest run of each required context (`main-protect-checks`,
+  read live; `record`, `record-autofix`, `nightly-status` and
+  `delivery-status` never count): a queued or in-progress run is a wait,
+  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  or still running, by that rule. Before a merge attempt a check-run still
+  queued or in progress over a completed workflow run is stale: its run is
+  re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
+  to a root-cause seat), and re-read. `unstale <sha>` runs that step alone;
+  `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
+  request's required contexts (`--main`: less the PR-only ones), rc 2 when
+  unreadable — a head is reviewable unless RED.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the
@@ -342,22 +402,30 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   tip of `handoff-body/<topic>` ("that is the BODY sha; pass the CODE sha" —
   twice on 2026-10-18 that sha stopped the script silently); a missing
   `handoff/<topic>` or `handoff-body/<topic>`; no BODY.md at the body ref — the
-  body is the transport, not an afterthought; the open-PR soft cap (tvofi,
-  2026-10-18): `HPO_OPEN_PR_CAP` (default 6) or more open pull requests, drafts
-  included, `record:`-titled and non-`hpo-author` bot ones excluded, unless a
-  leading `--over-cap "<reason>"` overrides it, which prints `OVER-CAP` with
-  the reason; a count it cannot read refuses (`pr_cap.py`). Any later stop
-  prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
-  refused push names its log. `--self-test` runs `delivery_row.sh`'s, then
+  body is the transport, not an afterthought. The soft cap gates only
+  dispatching a new roster group, and never refuses opening or updating a pull
+  request for an owed handoff (tvofi, 2026-10-20): a leading `--over-cap
+  "<reason>"` is still accepted and prints that it is advisory; `pr_cap.py
+  info` prints the open count as information, and a count gh cannot read says
+  so and still opens. Any later stop prints `open_pr: STOPPED: line N exited S: <command>` (an ERR trap), and a
+  refused push names its log. It holds the branch's `upd-<branch>.lock` from
+  before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
+  (75) and cannot detach the worktree under the PR's row (#2547-#2549).
+  `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
 - `orchestrator_tick.py` — the heartbeat's dispatch list: one read-only command
   that measures the whole board — train liveness, stale queue entries, log/rc
   tail, prepr slots; per open PR the latest check-run per name, reds unanswered
   in `## Red checks`, missing delivery rows, moved verdicts with no carry,
-  DIRTY/BLOCKED, zero-run heads, absent required contexts, twin heads, claim
+  BLOCKED, DIRTY with the conflicted files `git merge-tree` names under
+  GitHub's merge, no local driver run (the
+  claimnotes repair only when all are claim files; a content conflict goes
+  back to its fixer), NOT REVIEWABLE at a head whose required context
+  concluded red, zero-run heads, absent required contexts, twin heads, claim
   stamps, staleness behind main; worker seats judged from the work they were
   dispatched for; roster groups newly unblocked or blocked; main's tip, its
-  required contexts re-read live, the mandate through `budget_raise_gate`'s
+  required contexts re-read live and judged by `merge_train.py`'s classifier,
+  the mandate through `budget_raise_gate`'s
   own reader, action-pin drift. When: run BY a watcher seat on a ~4-minute
   loop — never inline in the orchestrator's turn, whose cron firings skip
   while a turn runs (measured: ticks skipped for hours during one diagnosis
@@ -377,9 +445,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   PR-comment-is-not-propagation defect. Refusal: a section whose read fails
   prints UNREADABLE, never a silent skip; a rule the tick cannot read from
   the tree or API it does not report. Every pass prints two level lines in
-  PRS (tvofi, 2026-10-18): `OPEN-PR CAP: N/CAP`, counted by `pr_cap.py`'s
-  rule and flagged at or over the cap `open_pr.sh` refuses at, and
-  `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
+  PRS (tvofi, 2026-10-20): `WIP: N/6 (open PRs M)`, N the roster groups whose
+  `resume.stage` is `in-progress` through `pr_cap.py`'s `wip_groups` and M its
+  counted open pull requests, flagged at or over `HPO_WIP_CAP` — at the cap a
+  new group is not dispatched, while opening and merging are always allowed;
+  and `coordinator.py PRs: K/2`, the counted pull requests whose three-dot diff
   touches the coordinator, flagged over 2 or when a diff is unreadable. Also
   level lines every pass from the approver App's newest `Fix review:` on
   each open PR (the identity off `app_approve.sh`, the grammar `bus.sh`'s;
@@ -392,9 +462,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue
   whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
-  `OWED: <line>` prints every pass for each OWED entry in `cloud_relay.sh`'s
-  log (its default, `$HPO_STATE_DIR/cloud-relay.log`) with no later POSTED for
-  the same PR; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
+  `OWED: <line>` prints every pass for each line of `cloud_relay.sh`'s level
+  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`)
+  and for each OWED event in the log with no later POSTED for the same PR (its
+  first all-digit field); an OWED naming no PR is an older writer's per-pass
+  level copy, skipped and counted, never replayed; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
   prints every pass for each complete handoff no PR head carries, read by
   `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
   included, #2411); a run with no summary line is UNCHECKED, never a clean
@@ -407,6 +479,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
   run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
+- `plan_page.py` — renders the round's plan page (HTML) from
+  `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`, and
+  GitHub's issue and pull-request state (`gh`, or `--github-snapshot`):
+  swimlanes on the plan's time axis with the slot-occupancy strip,
+  critical-path marks and planned stamps; the group ledger with status
+  classes, PRs, struck closed issues and blockers; waves, stamps and the
+  ETA method, every figure plan.json's. When: after a replan at a wave
+  edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
+  is not the roster's at its ref now; an `origin/` ref is fetched first) or
+  `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
+  replan.py applies the same freshness rule.
 - `plan_table.py` — renders the plan artifact from a wave-groups roster:
   swimlanes, mermaid gantt (critical path tagged `crit`), per-group detail,
   ETA. When: regenerating the plan table after a roster edit. Refusal: none —
@@ -420,18 +503,24 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   ahead of the clock, an unreadable transcript, or a line naming the marker
   that is not JSON each print OWED, never OK. `--self-test` drives both arms.
 - `pr_args.sh` — sourced by `open_pr.sh` and `update_pr.sh`: their argument
-  checks and the ERR trap that reports every other stop, so neither stops
-  silently. When: never by hand; `--self-test` drives both scripts end to end
+  checks, the ERR trap that reports every other stop, so neither stops
+  silently, and `pr_branch_lock`, the per-branch lock both take. When: never by hand; `--self-test` drives both scripts end to end
   in a scratch repository, offline, each refusal arm beside a mutant that
   deletes its predicate line (`# mut:<name>`) and must fail the arm, plus
   null controls that pass every check. Refusal: its self-test's tally.
-- `pr_cap.py` — the open-PR soft cap's one counting rule (tvofi, 2026-10-18):
-  `gate` for `open_pr.sh`, imported by `orchestrator_tick.py`. A bot is a
-  GitHub-flagged bot other than `app/hpo-author`, which authors every seat PR.
-  When: `open_pr.sh` before it opens; the tick every pass. Refusal: at or over
-  the cap without `--over-cap <reason>`; an empty reason; an invalid
-  `HPO_OPEN_PR_CAP`; a list gh cannot read, that is not JSON, or that reaches
-  gh's 200 limit.
+- `pr_cap.py` — the soft cap, on dispatch since 2026-10-20: `dispatch-gate`
+  counts the roster groups whose `resume.stage` is `in-progress` through
+  `roster_lib` at the roster ref, prints their ids and refuses at or over
+  `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` is given; `info`
+  prints the open count for `open_pr.sh` and never refuses. A group that also
+  has an open pull request is one group. Imported by `orchestrator_tick.py`
+  for its `WIP` and coordinator level lines. A bot is a GitHub-flagged bot
+  other than `app/hpo-author`, which authors every seat PR. When: before
+  dispatching a new group, and `open_pr.sh` before it opens (information
+  only); the tick every pass. Refusal: at or over the cap without
+  `--over-cap <reason>`; an empty reason; an invalid `HPO_WIP_CAP`; a roster
+  it cannot read (never a clean zero); an open list gh cannot read, that is
+  not JSON, or that reaches gh's 200 limit (reported, not gated).
 - `proof_watch.py` — watches one named check-run at one pinned head of one
   pull request and, once it completes `success` beside green required contexts
   and a valid merge verdict at that exact head, merges through `merge_pr.sh`.
@@ -442,7 +531,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `merge_train.required`), an unmergeable pull request and a head
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
-  every guard and touches nothing.
+  every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
+  `--mandate <comment-id>`, and refuses at launch without one.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
@@ -457,6 +547,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   dropped unarchived; `--dry-run` (the default) prints the plan and writes
   nothing. `--self-test` drives the classifier, the planner, the precedence and
   the ordering offline (22 checks).
+- `pulse.py` — says whether the programme is still being driven, from origin
+  alone: per consumer, an input an off-host producer already delivered that
+  the consumer's footprint has not answered within a bound — a handoff with no
+  pull request and nothing opened since it arrived (`bus.sh orphans`, invoked),
+  a verdict still at its open pull request's head, a main move the round's
+  state ref has not followed. When: from where the orchestrator's host is not
+  (a scheduled cloud probe seat), and first at any takeover, before the hand
+  survey (R10-RCA-ORCH-CONTINUITY). Refusal: an input it could not read is
+  `UNREADABLE`, exit 2, never ok; a stamp ahead of the clock is never aged.
+  `--dump` keeps the snapshot a `STOPPED` line came from; `--snapshot`
+  re-judges it.
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
@@ -510,12 +611,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   validates, and dumps with the file's own formatting; ops `set-stage`
   (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
   fixes|issues]` (refuses an absent N), `append-group`, `edit-brief`,
-  `append-carry`, and `set-resume <group> --field
+  `append-carry`, `drop-carry <group> <index|--match TEXT>` (0-based index,
+  or the one entry containing TEXT; the last drop leaves `"carry": []`, the
+  key kept),
+  `set-after <group> <G1,G2,...|->` (replaces the after-edges whole, `-` for
+  none), and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
   fields a session restarts from. When: any roster change — never a string
   splice, which unbalanced the file twice. Refusals: the lint gate (run from
   a fresh origin/main checkout — a stale `--lint-cwd` is refused itself), an
-  unknown group, a duplicate issue or carry, and for `set-resume` an empty
+  unknown group, a duplicate issue or carry, for `set-after` an unknown
+  after-group, a self-edge, a repeated edge and a cycle in the resulting
+  after-graph, for `drop-carry` an absent carry, an out-of-range index, no
+  match and an ambiguous match, and for `set-resume` an empty
   value on the non-null fields (`stage`, `branch`) or a non-sha on
   `--field commit`; an empty value on a nullable field clears it to null.
   `--roster-ref` defaults to `main` and `--branch` to the round's
@@ -524,6 +632,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   A no-op edit reproduces the roster's bytes exactly and reports `no change`
   instead of an empty commit — the round-trip the self-test pins, because a
   dump that misses the file's formatting rewrites all 7503 lines on any edit.
+  The edit is committed in a detached worktree and pushed as
+  `<sha>:refs/heads/<branch>`, never by a local branch name another run of
+  the same `--checkout` can reset. A push lost to a rival re-applies the op
+  on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
+  `--worktree` whose HEAD is on no origin ref is not reused.
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup), and the one owner of WHICH
   roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`
@@ -534,28 +647,67 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--self-test` is its only CLI. When: any tool that reads the roster — one
   schema reader, not several. Refusal: no roster where one was asked for
   raises `RosterNotFound`, never a fallback to another round's.
+- `roster_sync.py` — derives the factual half of a roster group's `resume`
+  from pull-request state: a merged pull request on the group's branch makes
+  it `done` at the merge commit (and routes the body's `Carry: <GROUP>` items
+  to the destination's `carry`), an open one makes it `in-progress` with
+  `resume.pr`. Branch matching is the topic rule its docstring states; a head
+  two topics match is the longer one's. It prints `RECORD-INVALID <group>` for
+  a `resume.commit` naming no commit or several, or a done group's off
+  `origin/main` -- a finding, never a refusal. When:
+  every `state_docs.py beat --apply` pass runs it; run it alone to see what a
+  pass would write. Dry run by default; `--apply` writes through
+  `roster_edit.write_roster()`, the one write path, lint gate and push-race retry. Refusals: an
+  unreadable pull-request read (never "no mismatches"), a `Carry:` to a done
+  group, `--apply` with `--roster-file`; a human disposition (`deferred`,
+  `refused` and every stage outside `DERIVABLE_STAGES`) is never rewritten,
+  and no pull request is no evidence. `--self-test` drives it offline over a
+  recorded `--pr-state`; `r10_roster_sync_mutants.py` plants its predicates.
 - `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
   Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
   hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
   both. `--self-test` drives the recipe and the shim export.
-- `selftest_wiring.py` — refuses a self-testing file under
-  `tools/audit/seat/` that no workflow `run:` line, comments removed, invokes
-  with its self-test (`--check`, `--self-test`). Runs first among the seat
-  steps of `instrument-self-tests`. When: adding a seat instrument with a
-  `--self-test`; add its step in the same pull request. Refusal: each unwired
-  file by path; a mention in a comment, a step name or a `--check` call does
-  not wire it.
+- `selftest_wiring.py` — refuses a self-testing file under `tools/` (widened
+  from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:`
+  line, comments removed, invokes with its self-test (`--check`,
+  `--self-test`). Runs first among the seat steps of
+  `instrument-self-tests`. When: adding a tool with a `--self-test`; add its
+  step in the same pull request. Refusal: each unwired file by path; a
+  mention in a comment, a step name or a `--check` call does not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
   pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,
   writing the board whole to `--out` (default `$HPO_STATE_DIR/tick.txt`) and
-  one `TICK-PASS <utc> relay=<ok|rc=N|absent> tick=<rc>` line to stdout.
+  one `TICK-PASS <utc> relay=<ok|rc=N|running|absent> tick=<rc>` line to
+  stdout. The relay runs detached under the flock `<out>.relay.lock`, waited
+  for at most `HPO_TICK_RELAY_WAIT` s (default 30): one still in flight is
+  left running, never killed, reported `relay=running`, and no second starts
+  while it holds the lock, so a long `update_pr.sh` push never holds the
+  board; the next pass reaps it, printing its output and a `TICK-RELAY` line.
   When: run detached (`daemonize.py`) in place of a seat looping the tick;
   `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
   is reported and the loop goes on. `--self-test` drives it over stubs.
+  Each pass then calls `heartbeat.sh --once` (the andon, below), bounded at
+  60 s; `HPO_TICK_HEARTBEAT` replaces it.
+- `heartbeat.sh` — the andon (Lean flow study K8, R10-FLOW-ANDON; cost-tested
+  by R10-RCA-ORCH-CONTINUITY): `--once --message TEXT` force-pushes
+  `heartbeat/orchestrator` as one parentless empty-tree commit whose message is
+  the pass line `TICK-PASS <utc> relay=<..> tick=<rc>`, over the seat's own
+  credential (`-f --no-verify`, the message through `ref_privacy.py guard`);
+  a refused or failed push prints `HEARTBEAT NOT PUSHED: <reason>`, exits 1
+  and never stops the loop. `--watch [--max-age 1200]` is the off-host
+  watcher's command: it fetches the ref and exits 1 with `HEARTBEAT STALE: ..`
+  when the committer date is older than the limit or the ref is absent. When:
+  `tick_loop.sh` calls `--once` every pass; the owner schedules a cloud task
+  every 15 min running `--watch` that notifies the owner on exit 1 (the
+  schedule is owner-side, not in the tree). A standalone job script, so
+  R10-ORCH-MACHINERY registers it as the beat's heartbeat job and retires the
+  call from `tick_loop.sh`. Refusal: unknown option, a non-numeric
+  `--max-age`. `--self-test` drives both modes over a bare-repo fixture, a
+  stale ref and a fresh one.
 - `train.sh` — one invocation shape for `merge_train.py batch`: the seat
   venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
   build it), it never falls back to ambient python, which on 3.11 refuses
@@ -603,6 +755,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   end. Refusal, and the one that saves you: the tip is recorded ONLY on a
   regeneration that returned 0, so a push the remote rejected is retried on
   the next pass instead of silently dropping that merge from the record.
+  `--apply` runs `roster_sync.py --apply` at the start of each pass, before
+  the memo check, since a pull request can open or merge without moving a ref
+  the beat watches; without it the beat derives nothing.
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
@@ -634,7 +789,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
   origin/main (merge), adds the PR's own delivery row when the head lacks
   it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
-  `hpo-author`. When: updating a PR after review prep or a main merge.
+  `hpo-author`. With code sha `-` it asks `app_push.sh --row-only`, so a push
+  that only adds the row takes the body contract instead of the full prepr,
+  and prints app_push's `ROW-ONLY:` line naming which ran and why.
+  When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
   silently; no open PR at the branch stops before any push. Up front, each an
   `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a
@@ -642,8 +800,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   ancestor of `origin/handoff/<topic>` (the topic `HANDOFF_TOPIC`, else the
   branch less `fix/`, then less `-pr`), naming a `handoff-body/<topic>` tip as
   the BODY sha; a missing `handoff/<topic>`; no body file. The body is a file
-  here, so a missing body ref is no refusal. Any later stop prints
-  `update_pr: STOPPED: ...`, and a refused push names its log.
+  here, so a missing body ref is no refusal. It detaches another instrument's
+  clean worktree on the branch only when origin has that worktree's HEAD; one
+  holding commits origin lacks (a PR's unpushed row) is refused, naming it.
+  Any later stop prints `update_pr: STOPPED: ...`, and a refused push names its log.
 - `wt_sync.sh` — snapshots every worktree whose state is not already on
   origin (unpushed commits, uncommitted or untracked files) to
   `origin/wip-sync/<slug>`, plus the orchestrator scratch. The slug is

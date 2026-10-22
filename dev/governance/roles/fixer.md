@@ -6,9 +6,9 @@ Read only your roster group (`jq`). Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
-   heading.** Versions are assigned by `tools/release/stamp.py` after the
-   merge. The rule is keyed on the manifest's `version` field, not the file;
-   the command is `prepr.sh` step 5's. Compare three-dot (`CLAUDE.md` rule 3).
+   heading** (`CLAUDE.md` rule 4). The rule is keyed on the manifest's
+   `version` field, not the file; the command is `prepr.sh` step 5's.
+   Compare three-dot (`CLAUDE.md` rule 3).
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -242,7 +242,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     - `tests/structure.py` and `tools/audit/archscore/score.py --diff` not
       regressed, or the raise path below where only it lands the better
       architecture;
-    - a group's architect note (`orchestrator.md` section 5) followed.
+    - a group's architect note (`orchestrator.md` section 5) followed; a departure is raised, not made.
 
     Cost is no reason to take the worse fix; the preamble's scope still binds,
     and a fix that cannot be sound within it stops and asks the orchestrator.

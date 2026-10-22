@@ -33,10 +33,11 @@ import os
 import string
 import sys
 import tempfile
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from layout import canon as _layout_canon, locate as _layout_locate
+from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
 from throwaway_git import throwaway_git_env, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
@@ -1639,6 +1640,22 @@ def _workflow_job(text: str, name: str) -> str:
     nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
         text, text.index("\n", start) + 1)
     return text[start:nxt.start()] if nxt else text[start:]
+
+
+# A job's own `if:`, and its value over a context of literals: what the reach
+# checks below evaluate, so a guard that only appears in the text fails.
+def _gh_if(job: str) -> str:
+    m = _re.search(r"^    if: (?:>-\n((?:      .*\n)+)|(.*)\n)", job, _re.M)
+    return " ".join((m.group(1) or m.group(2)).split()) if m else "true"
+
+
+def _gh_eval(expr: str, ctx: dict) -> bool:
+    for k, v in ctx.items():
+        expr = expr.replace(k, repr(v))
+    expr = (expr.replace("always()", "True").replace("!cancelled()", "True").replace("&&", " and ")
+            .replace("||", " or ").replace("!=", "<>"))
+    expr = _re.sub(r"!(?!=)", " not ", expr).replace("<>", "!=")
+    return bool(eval(expr, {"__builtins__": {}}))  # noqa: S307 -- literals only
 
 
 _tests_workflow = Path(".github/workflows/tests.yml").read_text()
@@ -3660,6 +3677,29 @@ def _p2_match_literal_domain(domains):
     return m
 
 
+def _p2_match_defrost_decides(n, parents):
+    """A decision-context read of the pump's defrost flag (D7-s2-01).
+
+    The flag itself is ``*.defrosting``. A read passed straight to the owner,
+    ``defrost_interval(x.defrosting)``, is the owner deciding, not a second
+    reading of the flag, even inside an ``if`` or a bool op: the fold gate
+    and the watchdog both ask it that way. Any other decision-context read is
+    a hit.
+    """
+    par = parents.get(n)
+    if isinstance(par, ast.Call) and n in par.args and (
+        getattr(par.func, "id", None) == "defrost_interval"
+        or getattr(par.func, "attr", None) == "defrost_interval"
+    ):
+        return False
+    return (
+        isinstance(n, ast.Attribute)
+        and n.attr == "defrosting"
+        and isinstance(n.ctx, ast.Load)
+        and _p2_decides(n, parents)
+    )
+
+
 _P2_STAMPS = {"last_updated", "last_changed", "last_reported"}
 #: The cycle path: where a fenced step's direct call is an unfenced sibling.
 _P2_CYCLE = {"_async_update_data", "async_run_optimization", "_apply_action"}
@@ -3955,6 +3995,25 @@ def _p2_registry(sources):
                      "floored instant: it returns a slot number between 0 and "
                      "QUARTERS_PER_HOUR, and no datetime at all",
              }),
+        # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
+        # compressor's own evidence -- the meter reads the cycle the pump runs
+        # to clear its own coil, and the reported Hz is what executes the
+        # defrost rather than an answer to the command. One predicate,
+        # defrost_interval, owns the reading; the map's fold and the
+        # watchdog's ``active`` both consult it, where before the fold folded
+        # every defrost interval and the watchdog counted every one.
+        dict(fact="defrost_standoff", finding="D7-s2-01",
+             match=_p2_match_defrost_decides,
+             owners=["freq_control.py::defrost_interval"],
+             dispositions={
+                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                     "the plant-wide gate: it decides whether ANY learner "
+                     "ingests the interval and owns the reason string it "
+                     "returns. The frequency map deliberately folds intervals "
+                     "that gate freezes (external heat, #781), so the "
+                     "frequency pair's own predicate decides the two "
+                     "frequency questions the gate cannot express",
+             }),
     ]
 
 
@@ -4117,6 +4176,12 @@ _P2_PLANTS["slot_floor_rule"] = (
 _P2_PLANTS["entity_write_domain"] = (
     "\n\nasync def _p2_plant(hass):\n"
     "    await hass.services.async_call(\"switch\", \"turn_on\", {})\n"
+)
+_P2_PLANTS["defrost_standoff"] = (
+    "\n\ndef _p2_plant(signals):\n"
+    "    if signals.defrosting:\n"
+    "        return 1\n"
+    "    return 0\n"
 )
 _p2_planted = {
     fact: _p2_fails(_p2_scan(
@@ -15593,6 +15658,10 @@ R.check(
 )
 for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
     R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._priority_cases(_gate_lock):
+    R.check(f"gate lease priority: {_gl_name}", _gl_ok, _gl_detail)
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._slot_hold_cases(_gate_lock):
+    R.check(f"heavy-slot hold: {_gl_name}", _gl_ok, _gl_detail)
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
     "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
@@ -17896,7 +17965,7 @@ _HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nigh
 def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
     c = _nightly.Checks()
     _nightly.check_hb_positive_control(
-        c, {"max_gap": gap, "ticks": 9, "dumps": [dump]}
+        c, [{"max_gap": gap, "ticks": 9, "dumps": [dump]}]
     )
     return "hb:positive_control" not in c.failures()
 
@@ -17909,6 +17978,133 @@ R.check(
     and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
     and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
     "check_hb_positive_control arms",
+)
+
+
+def _hb_tries(*tries: tuple[float, str]) -> bool:
+    c = _nightly.Checks()
+    _nightly.check_hb_positive_control(
+        c, [{"max_gap": gap, "ticks": 9, "dumps": [dump]} for gap, dump in tries]
+    )
+    return "hb:positive_control" not in c.failures()
+
+
+_HB_SPIED_ONLY = "py-spy rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
+R.check(
+    "hb:positive_control passes on any one try that reads all three, and never "
+    "on three readings split across tries",
+    _hb_tries((_HB_C, "py-spy did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
+    and not _hb_tries((_HB_C, "in _hb_spin\n"), (_HB_C - 0.1, _HB_SPIED_ONLY))
+    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\npy-spy rc=1:\n")),
+    "check_hb_positive_control over tries",
+)
+
+# Countermeasure A of dev/audit/rca/nightly-ha-pyspy-timeout.md (#2479): one
+# py-spy sample that hangs must not fail the control, and samples that never
+# answer, or answer without the spin, still must. The real control runs on a
+# real loop against a stub py-spy whose k-th call answers ``answers[k]`` (the
+# last repeats); the stub counts its calls.
+_HB_SPY_T = 0.5  # the stubs' per-sample timeout; a hang outlasts it
+_HB_SPY_SAYS = {
+    "hang": "exec sleep 60",
+    "spin": "printf 'Thread 1 (active+gil)\\n    _hb_spin (nightly_ha.py:1)\\n'",
+    "idle": "printf 'Thread 1 (idle)\\n'",
+    "torn": "printf '    _hb_spin (nightly_ha.py:1)\\n'; exit 1",
+}
+
+
+def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], int, str, float]:
+    """``_async_hb_control`` against a stub py-spy: (passed, tries, calls, detail, seconds)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
+        cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        stub.write_text(
+            f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}") in\n{cases}'
+            f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
+        )
+        stub.chmod(0o755)
+        c = _nightly.Checks()
+        began = _time.monotonic()
+        tries = asyncio.run(_nightly._async_hb_control(
+            c, rest=rest, py_spy=str(stub), spy_timeout=_HB_SPY_T, dump_after=0.2,
+        ))
+        took = _time.monotonic() - began
+        made = len(calls.read_text().splitlines()) if calls.exists() else 0
+    return ("hb:positive_control" not in c.failures(), tries, made,
+            c.results["hb:positive_control"][1], took)
+
+
+_hb_once = _hb_spy_run("hang", "spin")
+_HB_REST = 1.0  # long enough that a control which skips its rest reads short
+_hb_late = _hb_spy_run("idle", "spin", rest=_HB_REST)
+_hb_twice = _hb_spy_run("hang", "hang", "spin")
+_hb_torn = _hb_spy_run("torn", "spin")
+_hb_never = _hb_spy_run("hang")
+_hb_blind = _hb_spy_run("idle")
+R.check(
+    "hb:positive_control survives one hung py-spy sample: a fresh spin answers on "
+    "try 2, the hang cut at the sample's timeout with the spin held across it",
+    _hb_once[0] and _hb_once[2] == 2 and len(_hb_once[1]) == 2
+    and "try 2 of 2" in _hb_once[3]
+    and f"timed out after {_HB_SPY_T} seconds" in "".join(_hb_once[1][0]["dumps"])
+    and 0.2 + _HB_SPY_T <= _hb_once[1][0]["max_gap"] < _nightly.HB_CONTROL_HOLD_S,
+    f"pass={_hb_once[0]} calls={_hb_once[2]} "
+    f"gaps={[round(t['max_gap'], 3) for t in _hb_once[1]]}; {_hb_once[3]}",
+)
+R.check(
+    "and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted",
+    _hb_late[0] and _hb_late[2] == 2 and _hb_torn[0] and _hb_torn[2] == 2,
+    f"idle first: pass={_hb_late[0]} calls={_hb_late[2]}; "
+    f"rc=1 first: pass={_hb_torn[0]} calls={_hb_torn[2]}",
+)
+R.check(
+    "the control rests between tries: two tries with a 1 s rest take at least the "
+    "rest plus both spins",
+    _hb_late[4] >= _HB_REST + 2 * _nightly.HB_CONTROL_S,
+    f"two tries took {_hb_late[4]:.2f}s against a {_HB_REST}s rest",
+)
+R.check(
+    "the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES "
+    "is at least 3",
+    _hb_twice[0] and _hb_twice[2] == 3 and "try 3 of 3" in _hb_twice[3],
+    f"pass={_hb_twice[0]} calls={_hb_twice[2]}; {_hb_twice[3]}",
+)
+R.check(
+    "null control: py-spy that never answers, or never names the spin, still fails "
+    "hb:positive_control after the last try",
+    not _hb_never[0] and _hb_never[2] == _nightly.HB_CONTROL_TRIES
+    and not _hb_blind[0] and _hb_blind[2] == _nightly.HB_CONTROL_TRIES,
+    f"never: pass={_hb_never[0]} calls={_hb_never[2]}; "
+    f"blind: pass={_hb_blind[0]} calls={_hb_blind[2]}",
+)
+R.check(
+    "the real heartbeat boot runs the retried control",
+    "await _async_hb_control(checks)" in _inspect.getsource(_nightly._async_check_hb),
+    "_async_check_hb no longer runs _async_hb_control",
+)
+R.check(
+    "the control's retry is bounded: each sample cut short of the old 30 s, each "
+    "spin held at most one sample's timeout, under the hang bound",
+    _nightly.HB_CONTROL_TRIES >= 2
+    and _nightly.PY_SPY_TIMEOUT_S < 30
+    and _nightly.HB_DUMP_S + _nightly.PY_SPY_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
+    < _nightly.HB_HANG_S,
+    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.PY_SPY_TIMEOUT_S}s "
+    f"hold={_nightly.HB_CONTROL_HOLD_S}s hang={_nightly.HB_HANG_S}s",
+)
+# The real boot passes no spy_timeout (pinned above), so the lane's cut is the
+# constructor default: a default of 30 s would put the base's cost back.
+_hb_whole = _nightly.HB_CONTROL_TRIES * (_nightly.HB_CONTROL_HOLD_S + _nightly.HB_CONTROL_REST_S)
+R.check(
+    "the real lane cuts py-spy at PY_SPY_TIMEOUT_S, and the whole control, every "
+    "try hung, is bounded under 22 s",
+    _inspect.signature(_nightly.LoopHeartbeat).parameters["spy_timeout"].default
+    is _nightly.PY_SPY_TIMEOUT_S
+    and "spy_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
+    and _hb_whole < 22.0,
+    f"default spy_timeout="
+    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['spy_timeout'].default}; "
+    f"whole control {_hb_whole:.2f}s",
 )
 _hb_cmd = _nightly.docker_command(
     "img", Path("/c"), Path("/d"), 9.0, ["--heartbeat-only"], caps=("SYS_PTRACE",)
@@ -20101,6 +20297,13 @@ R.check(
 # whole finding is about, so the wiring is asserted against the YAML itself.
 _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
+# The lanes no pull request runs left tests.yml for nightly.yml, and
+# nightly-ha's steps for a composite action both workflows call
+# (R10-CI-LAYOUT PR 1, DESIGN-P1 2(a)); a reader of a moved job reads here.
+_NIGHTLY_YML = (pathlib.Path(__file__).resolve().parents[1]
+                / ".github" / "workflows" / "nightly.yml").read_text()
+_NHA_ACTION = (pathlib.Path(__file__).resolve().parents[1]
+               / ".github" / "actions" / "nightly-ha" / "action.yml").read_text()
 
 # The disagreement check above reads a file only the closures job can write.
 _cl_step = [s for s in _workflow_job(_TESTS_YML, "closures").split("\n      - ")
@@ -20344,8 +20547,20 @@ R.check(
 # stub -- which is why the derived form of this check ("every job that runs a
 # tests/ script installs the requirements") was measured, over-fired on four
 # jobs, and rejected.
+# Both arms run the composite action's steps after their own checkout, so the
+# steps are read from the action, and each arm's job is pinned to call it.
 _NHA_JOB = _workflow_job(_TESTS_YML, "nightly-ha")
-_NHA_STEPS = _NHA_JOB.split("\n      - ")
+# The action's steps, less its header (whose description names the driver).
+_NHA_STEPS = _NHA_ACTION.split("\n  steps:\n", 1)[-1].split("\n    - ")
+_NHA_CALLERS = [_t for _t in (_NHA_JOB, _workflow_job(_NIGHTLY_YML, "nightly-ha"))
+                if _t.count("uses: ./.github/actions/nightly-ha\n") == 1
+                and "image: ${{ matrix.image }}" in _t
+                and _t.index("actions/checkout@") < _t.index("./.github/actions/nightly-ha")]
+R.check(
+    "both nightly-ha arms check out, then run the shared composite action on their matrix image",
+    len(_NHA_CALLERS) == 2,
+    f"{len(_NHA_CALLERS)} of 2 arms (tests.yml's pull-request arm, nightly.yml's) call it",
+)
 _NHA_INSTALL = [i for i, s in enumerate(_NHA_STEPS)
                 if "tests/requirements-ci.txt" in s]
 _NHA_RUN = [i for i, s in enumerate(_NHA_STEPS) if "tests/nightly_ha.py" in s]
@@ -20372,9 +20587,10 @@ _NHA_FLOOR = [s for s in _NHA_STEPS if "tests/ha_floor.py verify" in s]
 R.check(
     "nightly-ha re-asks the floor-names snapshot in the floor's own image",
     len(_NHA_FLOOR) == 1
-    and f"matrix.image == '{_hacs_floor}'" in _NHA_FLOOR[0]
+    and f"inputs.image == '{_hacs_floor}'" in _NHA_FLOOR[0]
     and "!cancelled()" in _NHA_FLOOR[0]
-    and f'"{_hacs_floor}"' in _NHA_JOB.split("image: [", 1)[-1].split("]", 1)[0],
+    and all(f'"{_hacs_floor}"' in _j.split("image: [", 1)[-1].split("]", 1)[0]
+            for _j in (_NHA_JOB, _workflow_job(_NIGHTLY_YML, "nightly-ha"))),
     f"{len(_NHA_FLOOR)} verify step(s); floor {_hacs_floor}",
 )
 # A script another script drives in a subprocess reaches the table only
@@ -24939,12 +25155,13 @@ def _job_shell(text: str, name: str) -> str:
 
 
 _DEPTH_JOBS = [
-    _name for _name in re.findall(r"^  ([a-z][\w-]*):$", _TESTS_YML, re.M)
-    if any(_d in _job_shell(_TESTS_YML, _name) for _d in _HISTORY_DRIVERS)
+    (_wf, _name) for _wf in (_TESTS_YML, _NIGHTLY_YML)
+    for _name in re.findall(r"^  ([a-z][\w-]*):$", _wf.split("\njobs:", 1)[1], re.M)
+    if any(_d in _job_shell(_wf, _name) for _d in _HISTORY_DRIVERS)
 ]
 _DEPTH_SHALLOW = [
-    _name for _name in _DEPTH_JOBS
-    if "fetch-depth: 0" not in _workflow_job(_TESTS_YML, _name)
+    _name for _wf, _name in _DEPTH_JOBS
+    if "fetch-depth: 0" not in _workflow_job(_wf, _name)
 ]
 R.check(
     "every job driving a history-reading script checks out the history",
@@ -25001,6 +25218,19 @@ R.check(
                       "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
+# nightly.yml (R10-CI-LAYOUT PR 1) overrides its floor in no job: the ledger
+# push and the record beat write through App tokens from their environments.
+_NS_NIGHTLY_OVERRIDES = sorted(
+    _m.group(1) for _m in re.finditer(
+        r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
+        _NIGHTLY_YML.split("\njobs:", 1)[1], re.M | re.S)
+)
+R.check(
+    "no nightly.yml job overrides that workflow's read-only floor",
+    not _NS_NIGHTLY_OVERRIDES
+    and "\npermissions:\n  contents: read\n" in _NIGHTLY_YML,
+    f"jobs with a permissions block: {_NS_NIGHTLY_OVERRIDES}",
+)
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
 R.check(
     "and the nightly reporter's own widening is read-only",
@@ -25012,32 +25242,51 @@ R.check(
 
 # `REQUIRED_LANES` is the reporter's answer to "the run concluded and the lane
 # inside it was skipped", which is absence one level down from "no run". Naming
-# two jobs is a coupling, so the coupling is DERIVED here rather than restated:
-# a job is schedule-only when its own `if:` admits `'schedule'` and neither
-# `'push'` nor `'pull_request'`, and those are exactly the jobs a pull request
-# cannot see for itself. A future lane added to the nightly is therefore
-# refused by this gate until it is registered, instead of being watched by
-# nobody -- which is the silence #533 is about, one level further out.
-# A pull-request admission gated on a `closure-scope` diff flag does not count:
-# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
-# no other, so every other pull request still cannot see it for itself.
-_NS_DIFF_GATED = re.compile(
-    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
-    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
-_NS_HEADS = {
-    _n: _NS_DIFF_GATED.sub("", " ".join(
-        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
-    for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
-}
-_NS_SCHEDULE_ONLY = sorted(
-    _n for _n, _h in _NS_HEADS.items()
-    if "'schedule'" in _h and "'push'" not in _h and "'pull_request'" not in _h
-)
+# the jobs is a coupling, so the coupling is DERIVED here rather than restated:
+# a nightly lane is a nightly.yml job whose own `if:`, EVALUATED, runs on a
+# schedule at main and not on a push -- the record beat runs on every push and
+# is graded by its own report, not this reporter (R10-CI-LAYOUT PR 1). Those are
+# exactly the jobs a pull request cannot see for itself. A future lane added to
+# the nightly is therefore refused by this gate until it is registered, instead
+# of being watched by nobody -- which is the silence #533 is about, one level
+# further out. tests.yml carries no schedule at all, so none of its jobs can be
+# one (its nightly-ha arm runs on the pull request that changes its driver).
+def _ns_nightly_lanes(text: str) -> "list[str]":
+    _body = text.split("\njobs:", 1)[1]
+    _ids = re.findall(r"^  ([A-Za-z][\w-]*):$", _body, re.M)
+    _ok = {_n: "success" for _n in _ids}
+
+    def _runs(_n, _ev):
+        _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main",
+                **{f"needs.{_m}.result": _v for _m, _v in _ok.items()}}
+        return _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx)
+    return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
+
+
+try:
+    _NS_SCHEDULE_ONLY = _ns_nightly_lanes(_NIGHTLY_YML)
+except Exception as _ns_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NS_SCHEDULE_ONLY = [f"{type(_ns_exc).__name__}: {_ns_exc}"]
+_NS_TESTS_CRON = re.findall(r"^  schedule:", _TESTS_YML.split("\njobs:", 1)[0], re.M)
 R.check(
     "the reporter watches exactly the lanes a pull request cannot see",
-    sorted(_nstatus.REQUIRED_LANES) == _NS_SCHEDULE_ONLY,
+    sorted(_nstatus.REQUIRED_LANES) == _NS_SCHEDULE_ONLY and not _NS_TESTS_CRON
+    and _nstatus.DEFAULT_WORKFLOW == "nightly.yml",
     f"REQUIRED_LANES={sorted(_nstatus.REQUIRED_LANES)} "
-    f"schedule-only jobs in tests.yml={_NS_SCHEDULE_ONLY}",
+    f"nightly lanes in nightly.yml={_NS_SCHEDULE_ONLY}; tests.yml schedule="
+    f"{bool(_NS_TESTS_CRON)}; reporter reads {_nstatus.DEFAULT_WORKFLOW!r}",
+)
+# The derivation's null control: a lane whose `if:` admits the push too (the
+# record beat's shape) is not a nightly lane, and one added on the schedule is.
+_NS_PLANT = _NIGHTLY_YML.replace(
+    "\n  slow:\n    if: github.event_name != 'push'\n",
+    "\n  slow:\n    if: github.event_name != 'pull_request'\n", 1) + (
+    "\n  planted-lane:\n    if: github.event_name == 'schedule'\n    runs-on: x\n")
+R.check(
+    "and the derivation drops a lane that also runs on push and adds one that runs on the schedule (null control)",
+    _ns_nightly_lanes(_NS_PLANT)
+    == sorted({*_nstatus.REQUIRED_LANES, "planted-lane"} - {"slow"}),
+    f"planted={_ns_nightly_lanes(_NS_PLANT)}",
 )
 
 # --- the four states --------------------------------------------------------
@@ -26534,7 +26783,7 @@ R.check(
     "deliberately -- a job would over-write the handover every beat",
 )
 
-# THE JOB'S WIRING, over tests.yml's record-autofix block read WITHOUT its
+# THE JOB'S WIRING, over nightly.yml's record-autofix block read WITHOUT its
 # comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
 # a grant would accept the sentence that explains the grant. Pinned: main
 # only, its own environment, the `ci:` commit subject the loop guard keys on,
@@ -26547,7 +26796,7 @@ R.check(
 # `--force-with-lease=refs/heads/record/autofix:<expected>` and nothing else
 # that forces. The null controls strip the subject, the ref guard and the
 # lease's anchor and must each fail.
-_RAF_JOB_RAW = _workflow_job(_TESTS_YML, "record-autofix")
+_RAF_JOB_RAW = _workflow_job(_NIGHTLY_YML, "record-autofix")
 _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
@@ -26627,7 +26876,7 @@ def _raf_job_ok(job: str) -> bool:
 
 
 R.check(
-    "tests.yml's record-autofix job: main-only, its own environment, "
+    "nightly.yml's record-autofix job: main-only, its own environment, "
     "loop-guarded ci: subject, guarded write set",
     _raf_job_ok(_RAF_JOB),
     f"job present={_RAF_JOB != ''}, ref guard="
@@ -26685,7 +26934,7 @@ def _raf_lookup_ok(job: str) -> bool:
 
 
 R.check(
-    "tests.yml's record-autofix finds its own open pull request by "
+    "nightly.yml's record-autofix finds its own open pull request by "
     "head=<owner>:record/autofix",
     _raf_lookup_ok(_RAF_JOB),
     f"head filters={_RAF_HEADS}, owner env="
@@ -26701,6 +26950,120 @@ R.check(
         "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
     "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
     "the repository's full name, must each turn the lookup pin red",
+)
+# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
+# while it is live and deletes it at its closing line, and this beat's
+# automerge step must not merge a record pull request while that ref is
+# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
+# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
+# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
+# stubbed API: the status it prints is what proves the skip happens before the
+# guard and the merge, so a check placed after them (or an inverted age
+# comparison) cannot pass. The bound is read from the step, never carried.
+_HOLD_STEP = next((s for s in ((_yaml.safe_load(_NIGHTLY_YML) or {}).get("jobs") or {})
+                   .get("record-autofix", {}).get("steps") or []
+                   if str(s.get("id") or "") == "automerge"), {})
+_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
+_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
+_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
+_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
+_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
+                         Path("tools/audit/seat/merge_train.py").read_text())
+
+
+def _train_hold_status(code: int, body: str) -> "tuple[str, bool]":
+    """The automerge step's `status=` and whether it warned "unreadable" over a
+    stubbed API whose train-hold read answers (code, body); every other read is
+    the minimum the step needs.
+
+    The record-row guard is a stub that refuses, so an arm that did NOT skip
+    reaches it and reports `refused`: a missing or unreached skip is visible
+    in the status, not inferred from an absence. `GET /commits/<ref>` answers
+    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
+    live 2026-10-20), never 404 -- an absent hold must be silent, or every
+    beat with no train running logs a warning."""
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
+            "import sys\nsys.exit(1)\n")
+        answers = t / "answers.json"
+        answers.write_text(json.dumps({
+            "hold": {"code": code, "body": body},
+            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
+            "reviews": {"code": 200, "body": "[]"},
+            "other": {"code": 404, "body": "{}"}}))
+        bin_ = t / "bin"
+        bin_.mkdir()
+        (bin_ / "curl").write_text(
+            "#!" + sys.executable + "\n"
+            "import json, sys\n"
+            f"ans = json.load(open({str(answers)!r}))\n"
+            "a = sys.argv[1:]\n"
+            "url = a[-1]\n"
+            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
+            "       else 'reviews' if '/reviews' in url\n"
+            "       else 'pulls' if '/pulls/' in url else 'other')\n"
+            "code, body = ans[key]['code'], ans[key]['body']\n"
+            "if '-o' in a:\n"
+            "    p = a[a.index('-o') + 1]\n"
+            "    if p != '/dev/null':\n"
+            "        open(p, 'w').write(body)\n"
+            "    if '-w' in a:\n"
+            "        sys.stdout.write(str(code))\n"
+            "else:\n"
+            "    sys.stdout.write(body)\n")
+        (bin_ / "curl").chmod(0o755)
+        out = t / "out"
+        out.write_text("")
+        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
+                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
+                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": "", "NUM": "42"})
+        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
+        warned = "unreadable" in (p.stdout + p.stderr)
+        return (found[-1] if found else ""), warned
+
+
+def _hold_when(offset_s: int) -> str:
+    """A commit read whose committer date is now + offset_s seconds."""
+    at = datetime.now(UTC) + timedelta(seconds=offset_s)
+    return json.dumps({"commit": {"committer": {
+        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
+
+
+R.check(
+    "tests.yml's automerge skips while a live merge train holds the record "
+    "beat (executed, issue #2302)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
+    f"bound={_HOLD_BOUND}, "
+    f"status={_train_hold_status(200, _hold_when(-60))!r}",
+)
+R.check(
+    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
+    "one (the API's own 422) and an unreadable one do not skip -- and only the "
+    "unreadable ones warn (null controls)",
+    _HOLD_BOUND > 0
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
+    and _train_hold_status(422, "{}") == ("refused", False)
+    and _train_hold_status(404, "{}") == ("refused", False)
+    and _train_hold_status(500, "{}") == ("refused", True)
+    and _train_hold_status(200, "{}") == ("refused", True),
+    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
+    "date ahead of the reading clock is unknowable, never young (#775); the "
+    "commits endpoint answers 422 for an absent ref, so that arm must be "
+    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
+    "behaviour, which is the safe failure",
+)
+R.check(
+    "the beat's hold ref and the train's hold ref name the same branch",
+    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
+    and "/commits/$HOLD_REF" in _HOLD_RUN
+    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
+    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
+    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
 )
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
@@ -28191,6 +28554,58 @@ R.check(
     sorted(_c.split(":")[0] for _c in _mq_problems(_MQ_NULL))
     == sorted(_c for _c in _RC_CONTEXTS if (_rc_producer(_c) or ("",))[0] == "tests.yml"),
     f"{_mq_problems(_MQ_NULL)}",
+)
+# B9 (R10-CI-LAYOUT PR 1's design review): the same producer check on the
+# recheck event. An autofix push retriggers Tests by `workflow_dispatch` with no
+# inputs, and the merge train's batch proof dispatches it with
+# `-f recheck=true`; every required context tests.yml produces must then run,
+# or that head waits on a context nobody writes. Until PR 1 the arm read
+# `needs.recheck-gate.outputs.recheck`, a job output this reader cannot know;
+# with recheck-gate gone it is the event itself, so it is decided here for both
+# dispatch shapes, and a job reading an output nothing produces fails.
+_RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
+              {"github.event_name": "workflow_dispatch",
+               "github.event.inputs.recheck": "true", "inputs.recheck": "true"})
+
+
+def _rd_problems(docs: "dict[str, dict]") -> "list[str]":
+    out = []
+    for _ctx in _RC_CONTEXTS:
+        _prod = _rc_producer(_ctx)
+        if _prod is None or _prod[0] != "tests.yml":
+            continue
+        _doc = docs[_prod[0]]
+        _on = _doc.get("on", _doc.get(True)) or {}
+        if "workflow_dispatch" not in ([_on] if isinstance(_on, str) else list(_on)):
+            out.append(f"{_ctx}: tests.yml does not list workflow_dispatch")
+            continue
+        _job = ((_doc.get("jobs") or {}).get(_prod[1]) or {})
+        for _ev in _RD_EVENTS:
+            if _if_under(_job.get("if"), _ev) is not True:
+                out.append(f"{_ctx}: {_prod[1]} does not run on {sorted(_ev.items())}")
+        for _need in ([_job.get("needs")] if isinstance(_job.get("needs"), str)
+                      else _job.get("needs") or []):
+            if _need not in (_doc.get("jobs") or {}):
+                out.append(f"{_ctx}: {_prod[1]} needs {_need}, which tests.yml has no job for")
+    return out
+
+
+_RD_FOUND = _rd_problems(_RC_DOCS)
+_RD_TESTS = sorted(_c for _c in _RC_CONTEXTS if (_rc_producer(_c) or ("",))[0] == "tests.yml")
+R.check(
+    "every required context tests.yml produces runs on an autofix or batch-proof dispatch (B9)",
+    bool(_RD_TESTS) and not _RD_FOUND,
+    f"{len(_RD_TESTS)} tests.yml context(s); {_RD_FOUND or 'none missing'}",
+)
+_RD_OLD_ARM = ("!cancelled() && (github.event_name == 'push' || (github.event_name == "
+               "'workflow_dispatch' && needs.recheck-gate.outputs.recheck == 'true'))")
+_RD_NULL = {**_RC_DOCS, "tests.yml": {**_RC_DOCS["tests.yml"], "jobs": {
+    **_RC_DOCS["tests.yml"]["jobs"],
+    "briefs": {**_RC_DOCS["tests.yml"]["jobs"]["briefs"], "if": _RD_OLD_ARM}}}}
+R.check(
+    "and a producer still gated on the old recheck-gate output is refused (null control)",
+    any(_p.startswith("briefs:") for _p in _rd_problems(_RD_NULL)),
+    f"{_rd_problems(_RD_NULL)}",
 )
 
 
@@ -30258,8 +30673,7 @@ def _sp_path_literal(v):
     """True when a string is a repository-path-shaped literal -- the same shape
     `_sp_literals` collects, so the census below and the reader agree on what
     counts as a path."""
-    return (isinstance(v, str) and re.fullmatch(r"[\w.-]+(?:/[\w.-]+)+/?", v)
-            and v.split("/")[0] in _SP_TOPS)
+    return isinstance(v, str) and _layout_repo_path(v, _SP_TOPS)
 
 
 def _sp_attr_bound(src):
@@ -30816,7 +31230,7 @@ import coverage_ratchet as _cov  # noqa: E402
 import mutation_table as _mut  # noqa: E402
 
 _MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
-_MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
+_MUTN_JOB = _workflow_job(_NIGHTLY_YML, "mutation-nightly")
 # The ratchet grades in its own job since #1589: `coverage` runs the pull
 # request's suite, and a grader after that in the same job is not the base's.
 _COV_JOB = _workflow_job(_TESTS_YML, "coverage-ratchet")
@@ -32616,12 +33030,12 @@ R.check(
 # drain with a date seed; the pushing job runs no driver, applies through
 # `apply_drained` with the measured head's diff, checks the write set, pushes
 # only to main under the writer's subject, and is graded by `drain_report`.
-_ml_meas = _workflow_job(_TESTS_YML, "mutation-ledger")
-_ml_push = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+_ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
+_ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
     ('--scope full --drain "$out" --max 40', _ml_meas),
     ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
-    ("github.event_name == 'schedule'", _ml_meas),
+    ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
     ("m.apply_drained(pins, head, changed)", _ml_push),
     ("m.drain_changed(at, head)", _ml_push),
@@ -32644,58 +33058,43 @@ R.check(
 
 
 # Reach (#1848 B1): the drain and its push run on main alone, under a schedule
-# or a dispatch that is not a recheck. Each job's own `if:` is EVALUATED over
-# every event, ref and recheck answer, so a guard that only appears in the
-# text -- or sits inside an `||` -- fails. A branch-ref dispatch reaches
-# neither job, and the push refuses a branch ref on its own even were the
-# measuring job to succeed there.
-def _gh_if(job: str) -> str:
-    m = _re.search(r"^    if: (?:>-\n((?:      .*\n)+)|(.*)\n)", job, _re.M)
-    return " ".join((m.group(1) or m.group(2)).split()) if m else "true"
-
-
-def _gh_eval(expr: str, ctx: dict) -> bool:
-    for k, v in ctx.items():
-        expr = expr.replace(k, repr(v))
-    expr = (expr.replace("always()", "True").replace("!cancelled()", "True").replace("&&", " and ")
-            .replace("||", " or ").replace("!=", "<>"))
-    expr = _re.sub(r"!(?!=)", " not ", expr).replace("<>", "!=")
-    return bool(eval(expr, {"__builtins__": {}}))  # noqa: S307 -- literals only
-
-
+# or a dispatch (every dispatch of nightly.yml; the recheck arm that once
+# excluded one was tests.yml's, R10-CI-LAYOUT PR 1). Each job's own `if:` is
+# EVALUATED over every event the workflow's `on:` admits and every ref, so a
+# guard that only appears in the text -- or sits inside an `||` -- fails. A
+# branch-ref dispatch reaches neither job, and the push refuses a branch ref on
+# its own even were the measuring job to succeed there.
+_NIGHTLY_ON = (_yaml.safe_load(_NIGHTLY_YML) or {})
+_NIGHTLY_EVENTS = sorted(_NIGHTLY_ON.get("on", _NIGHTLY_ON.get(True)) or {})
 _REACH: list = []
 try:
-    for _rv in ("schedule", "workflow_dispatch", "push", "pull_request"):
-        for _rr in ("refs/heads/main", "refs/heads/fix/x", "refs/pull/1/merge"):
-            for _rc in ("true", "false"):
-                _rx = {"github.event_name": _rv, "github.ref": _rr,
-                       "needs.recheck-gate.outputs.recheck": _rc}
-                _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
-                _r_push = _gh_eval(_gh_if(_ml_push), {
-                    **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
-                _r_alone = _gh_eval(_gh_if(_ml_push), {
-                    **_rx, "needs.mutation-ledger.result": "success"})
-                _r_want = _rr == "refs/heads/main" and (
-                    _rv == "schedule" or (_rv == "workflow_dispatch" and _rc != "true"))
-                if (_r_meas, _r_push) != (_r_want, _r_want) or (
-                        _r_alone and (_rr != "refs/heads/main"
-                                      or _rv not in ("schedule", "workflow_dispatch"))):
-                    _REACH.append((_rv, _rr, _rc, _r_meas, _r_push, _r_alone))
+    for _rv in _NIGHTLY_EVENTS:
+        for _rr in ("refs/heads/main", "refs/heads/fix/x"):
+            _rx = {"github.event_name": _rv, "github.ref": _rr}
+            _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
+            _r_push = _gh_eval(_gh_if(_ml_push), {
+                **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
+            _r_alone = _gh_eval(_gh_if(_ml_push), {
+                **_rx, "needs.mutation-ledger.result": "success"})
+            _r_want = _rr == "refs/heads/main" and _rv in ("schedule", "workflow_dispatch")
+            if (_r_meas, _r_push) != (_r_want, _r_want) or (_r_alone and not _r_want):
+                _REACH.append((_rv, _rr, _r_meas, _r_push, _r_alone))
 except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
     _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
 R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
-    not _REACH,
-    f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
+    not _REACH and _NIGHTLY_EVENTS == ["push", "schedule", "workflow_dispatch"],
+    f"events={_NIGHTLY_EVENTS}; (event, ref, measured, pushed, push alone) wrong: {_REACH}",
 )
-_CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
+_CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
 R.check(
-    "one schedule cron; required lanes share that run (#1930 (d))",
+    "one schedule cron, nightly.yml's; required lanes share that run (#1930 (d))",
     _CRONS == ["17 2 * * *"]
+    and "cron:" not in _TESTS_YML.split("\njobs:", 1)[0]
     and "github.event.schedule" not in _MUTN_JOB
     and "github.event.schedule" not in _ml_meas
-    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
-    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
+    and "github.event.schedule" not in _workflow_job(_NIGHTLY_YML, "slow")
+    and "github.event.schedule" not in _workflow_job(_NIGHTLY_YML, "nightly-ha"),
     f"crons={_CRONS!r}",
 )
 
@@ -32709,17 +33108,23 @@ R.check(
 # it mounts into the container, measured here with an audit hook -- is
 # matched by the pathspecs that step diffs, so a newly staged file cannot
 # leave the lane dark on the pull request that adds it.
+# Two arms since R10-CI-LAYOUT PR 1: tests.yml's on the pull request, and
+# nightly.yml's on its schedule and dispatch. Their union is the reach.
 _NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_NIGHT_IF = _gh_if(_workflow_job(_NIGHTLY_YML, "nightly-ha"))
 _NHA_REACH: list = []
 try:
     for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
         for _nf in ("true", "false", ""):
             _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
                                        "needs.closure-scope.outputs.nightly_ha": _nf})
-            _nwant = _nv in ("schedule", "workflow_dispatch") or (
-                _nv == "pull_request" and _nf == "true")
-            if _ngot != _nwant:
-                _NHA_REACH.append((_nv, _nf, _ngot))
+            # nightly.yml lists push, schedule and dispatch alone.
+            _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
+                _NHA_NIGHT_IF, {"github.event_name": _nv})
+            _nwant = _nv == "pull_request" and _nf == "true"
+            _nwant_n = _nv in ("schedule", "workflow_dispatch")
+            if (_ngot, _ngot_n) != (_nwant, _nwant_n):
+                _NHA_REACH.append((_nv, _nf, _ngot, _ngot_n))
 except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
     _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
 _NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
@@ -32730,7 +33135,7 @@ R.check(
     and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
                   re.M) is not None
     and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
-    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+    f"(event, nightly_ha, tests.yml arm ran, nightly.yml arm ran) wrong: {_NHA_REACH}",
 )
 _nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
                         r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
@@ -32790,10 +33195,10 @@ R.check(
 # and that job runs in the `ledger` environment, whose deployment branches the
 # owner restricts to main -- so no other job, branch or workflow is handed the
 # bypass token by this repository's YAML.
-_LEDGER_JOBS = sorted(n for n in _workflow_job_ids(_TESTS_YML)
-                      if "HPO_LEDGER_" in _workflow_job(_TESTS_YML, n))
+_LEDGER_JOBS = sorted(n for n in _workflow_job_ids(_NIGHTLY_YML)
+                      if "HPO_LEDGER_" in _workflow_job(_NIGHTLY_YML, n))
 _LEDGER_ELSEWHERE = sorted(str(f) for f in Path(".github/workflows").glob("*.y*ml")
-                           if f.name != "tests.yml" and "HPO_LEDGER_" in f.read_text())
+                           if f.name != "nightly.yml" and "HPO_LEDGER_" in f.read_text())
 R.check(
     "the ledger writer's secrets are read by mutation-ledger-push alone, in the ledger environment",
     _LEDGER_JOBS == ["mutation-ledger-push"] and not _LEDGER_ELSEWHERE
@@ -33113,7 +33518,7 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
-# --- the CI ratchet and the composed-closure allow-list (round 9) -----------
+# --- the CI ratchet (round 9) ----------------------------------------------
 #
 # tvofi's round-9 request: ratchet CI cost and code health (architecture,
 # complexity, script re-runs, scoping, critical path). tests/ci_ratchet.py is
@@ -33243,6 +33648,124 @@ R.check(
     f"(want 2); the same rows in the closures artifact {_CIR_OWNED!r} "
     f"(want 5, the null control); a file naming no lane {_CIR_UNNAMED!r} "
     "(want a refusal)",
+)
+
+# --- the gather half: the fetch, its refusal and its retry ------------------
+#
+# Main's ci-ratchet died on every push for twelve merges because the gather
+# step fetched the artifacts list inline as `gh api … --jq … > window.json ||
+# true`, and `|| true` turned a failed or truncated response into a 0-byte
+# file the next line `json.load`ed into a traceback naming nothing (CI job
+# 118878630676, 2026-10-20). The decision is tests/ci_ratchet.py's now, so
+# this script drives it offline. The empty arm is the failing test -- it
+# reddens against the base's heredoc, which raises JSONDecodeError instead of
+# naming the fetch -- and the good-body arm is its null control. The mutation
+# that removes the 0-byte guard reddens the first alone: the guard is what
+# names the RUN, which a body cut short can still be missing.
+_CIR_GOOD_ARTIFACTS = json.dumps({"artifacts": [
+    {"id": 1, "name": "ci-metrics-fast", "created_at": "2026-10-20T10:00:00Z",
+     "expired": False, "workflow_run": {"id": 9}},
+    {"id": 2, "name": "ci-metrics-fast", "created_at": "2026-10-20T12:00:00Z",
+     "expired": False, "workflow_run": None, "run_id": 8},
+    {"id": 3, "name": "ci-metrics-fast", "created_at": "2026-10-20T15:00:00Z",
+     "expired": False, "workflow_run": {"id": 77}},
+]})
+
+
+def _cir_refusal(fn) -> str:
+    try:
+        fn()
+    except SystemExit as exc:
+        return str(exc)
+    return ""
+
+
+_CIR_EMPTY = _cir_refusal(lambda: _cir.window_entries("", "77"))
+R.check(
+    "the CI ratchet's window parser refuses an empty artifacts response by "
+    "naming the fetch (a failed fetch is not an empty window)",
+    "artifacts fetch" in _CIR_EMPTY and "0 bytes" in _CIR_EMPTY
+    and "run 77" in _CIR_EMPTY,
+    _CIR_EMPTY or "an empty body was accepted as a window",
+)
+_CIR_SELECTED = [a["id"] for a in _cir.window_entries(_CIR_GOOD_ARTIFACTS, "77")]
+R.check(
+    "and a good response still yields the same window (the null control)",
+    _CIR_SELECTED == [2, 1],
+    f"{_CIR_SELECTED} (want [2, 1]: this run 77 out, the .run_id fallback for "
+    "id 2 read as run 8, and jq's (run, name) order kept)",
+)
+
+
+def _cir_retry_runner(calls: list):
+    def run(argv, **_kw):
+        calls.append(argv)
+        if len(calls) < 3:
+            return _subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
+        return _subprocess.CompletedProcess(argv, 0, _CIR_GOOD_ARTIFACTS, "")
+    return run
+
+
+_CIR_ATTEMPTS: list = []
+_CIR_RETRIED = [a["id"] for a in _cir.fetch_window(
+    "o/r", "77", runner=_cir_retry_runner(_CIR_ATTEMPTS), sleep=lambda _s: None)]
+R.check(
+    "the CI ratchet retries the artifacts list and uses the retry's window",
+    len(_CIR_ATTEMPTS) == 3 and _CIR_RETRIED == [2, 1],
+    f"attempts={len(_CIR_ATTEMPTS)} ids={_CIR_RETRIED}",
+)
+
+import io as _cir_io  # noqa: E402 - beside its subject, one block
+import zipfile as _cir_zip  # noqa: E402
+
+with _tempfile.TemporaryDirectory() as _cir_dl_td:
+    def _cir_zip_of(text: str) -> bytes:
+        buf = _cir_io.BytesIO()
+        with _cir_zip.ZipFile(buf, "w") as zf:
+            zf.writestr("ci-metrics-fast.tsv", text)
+        return buf.getvalue()
+
+    def _cir_dl_runner(argv, **_kw):
+        aid = int(argv[-1].rstrip("/zip").rsplit("/", 1)[-1])
+        if aid == 12:
+            return _subprocess.CompletedProcess(
+                argv, 1, b"", b"gh: Artifact has expired (HTTP 404)")
+        return _subprocess.CompletedProcess(argv, 0, _cir_zip_of("x\n"), b"")
+
+    _CIR_DL_SKIPPED = _cir.download_artifacts(
+        [{"id": 11, "name": "ci-metrics-fast"},
+         {"id": 12, "name": "ci-metrics-closures"}],
+        _cir_dl_td, "o/r", runner=_cir_dl_runner)
+    _CIR_DL_FILES = sorted(p.name for p in Path(_cir_dl_td).iterdir())
+R.check(
+    "a 404 on one artifact's zip is skipped, and the rest of the window lives",
+    [a["id"] for a in _CIR_DL_SKIPPED] == [12]
+    and _CIR_DL_FILES == ["w11-ci-metrics-fast.tsv"],
+    f"skipped={[a['id'] for a in _CIR_DL_SKIPPED]} files={_CIR_DL_FILES}",
+)
+
+# The wiring is a pinned fact, read from the job's own text. The two exact
+# command strings are unique to their run lines, and the two artifacts the
+# removal arm keys on are the gone jq program's URL and the heredoc's first
+# read -- both distinctive enough that neither the comment recording the
+# removal nor the runs-duration step beside it can satisfy or refuse them (the
+# over-fire class: a pin keyed on text the job also carries for another
+# reason). A self-test no run line names is one the tree never runs
+# (tools/audit/seat/selftest_wiring.py's rule); that tool scans
+# tools/audit/seat/ only, so this is the pin for tests/.
+R.check(
+    "the ci-ratchet job runs the gather and its self-test from the module",
+    "python3 -I tests/ci_ratchet.py --self-test" in _CIR_JOB
+    and "python3 -I tests/ci_ratchet.py --gather --metrics-dir" in _CIR_JOB,
+    f"self-test={'python3 -I tests/ci_ratchet.py --self-test' in _CIR_JOB}, "
+    f"gather={'python3 -I tests/ci_ratchet.py --gather --metrics-dir' in _CIR_JOB}",
+)
+R.check(
+    "and the inline artifacts fetch that swallowed its own failure is gone",
+    "actions/artifacts?per_page=100" not in _CIR_JOB
+    and "json.load(open(window))" not in _CIR_JOB,
+    "the gather step must not fetch and parse the artifacts list inside the "
+    "workflow again",
 )
 
 # The class's seam rule: every tracked shell file naming the variable is an
@@ -33404,8 +33927,9 @@ R.check(
 )
 
 # The recorded budget is the every-script-measured-once count: the closures
-# lane's full plan less the composed script it consumes from the coverage
-# job, plus the coverage `fast` stage's scripts. One extra execution over that
+# lane's full plan plus the coverage `fast` stage's scripts (since W1,
+# R10-CI-LAYOUT PR 1, the closures lane consumes no composed recording, so it
+# records every script bare). One extra execution over that
 # window must turn the ratchet red, and exactly the recorded count must not --
 # so a budget left loose by the `reused` exclusion is caught here, not by the
 # next drift (R10-CI-LAYOUT PR 0, the CI-RATCHET-RED brief's control).
@@ -33429,10 +33953,9 @@ def _cir_planted(extra: int) -> "tuple[object, int]":
 
 def _cir_once_count() -> "tuple[int, list[str]]":
     """The every-script-measured-once count, from the two instruments' own
-    enumerations: the closures lane's full plan (`lane-plan --all-scripts`),
-    less the composed scripts it consumes from the coverage job, plus the
-    coverage `fast` stage's scripts (coverage_tree.sh's own DERIVED and
-    `fast)` lines, run by bash, not re-implemented here)."""
+    enumerations: the closures lane's full plan (`lane-plan --all-scripts`)
+    plus the coverage `fast` stage's scripts (coverage_tree.sh's own DERIVED
+    and `fast)` lines, run by bash, not re-implemented here)."""
     closures_all = [s for s in _closure.test_scripts()
                     if Path(s).name not in _closure.SLOW_GATED]
     tree_sh = Path("tools/coverage/coverage_tree.sh").read_text()
@@ -33444,12 +33967,10 @@ def _cir_once_count() -> "tuple[int, list[str]]":
         ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
         capture_output=True, text=True, timeout=60)
     cov = [f"tests/{n}.py" for n in out.stdout.split()]
-    composed = [s for s in _closure.composed_scripts() if s in closures_all]
-    problems = [f"composed {s} is not in the coverage fast stage"
-                for s in composed if s not in cov]
+    problems = []
     if out.returncode or not cov:
         problems.append(f"coverage enumeration rc={out.returncode} n={len(cov)}")
-    return len(closures_all) - len(composed) + len(cov), problems
+    return len(closures_all) + len(cov), problems
 
 
 _CIR_ONCE, _CIR_ONCE_PROBLEMS = _cir_once_count()
@@ -33560,35 +34081,39 @@ R.check(
     _derive_join_detail,
 )
 
-# The composed-closure allow-list (round-9 C1): every entry a real selectable
-# script, off the never-compose list closure.py enumerates -- the class's seam
-# rule, not an instance check.
-_COMPOSED_LIST = json.loads(Path("tests/composed_closures.json").read_text())
-_COMPOSED_BAD = [
-    s for s in _COMPOSED_LIST.get("scripts", [])
-    if not Path(s).is_file()
-    or Path(s).name in _closure.CHEAP_ARGV_OR_ENV
-    or Path(s).name in _closure.NOT_A_TEST
-]
+# W1 (R10-CI-LAYOUT PR 1, owner ruling D-4): the round-9 C1 composition --
+# one script's closure recorded inside `coverage`'s traced run and consumed by
+# `closures` in place of a bare recording -- is gone at its source, and every
+# in-scope script records bare. Its proof job went with it: with no traced
+# recording produced or consumed there is no second recording left to
+# compare. This keeps it gone: none of the files that carried it names a C1
+# token, the pattern `measure/rev/c1_consumers.sh` greps
+# (archive/probe/design-ci-rev4).
+_C1_PAT = re.compile(
+    r"composed_closures|composed-closures|composed-verify|composed_verify|composed_proof"
+    r"|composed-proof|CHEAP_ARGV_OR_ENV|\$COMPOSED|COMPOSED=|COMPOSED\"|_COMPOSED|composed_arm")
+_C1_FILES = (".github/workflows/tests.yml", ".github/workflows/nightly.yml",
+             "tools/coverage/coverage_tree.sh", "tests/derive_closures.sh", "tests/closure.py")
+_C1_LEFT = {_f: sorted({_m.group(0) for _m in _C1_PAT.finditer(Path(_f).read_text())})
+            for _f in _C1_FILES}
+_C1_LEFT = {_f: _t for _f, _t in _C1_LEFT.items() if _t}
 R.check(
-    "every composed-closure entry is a selectable, composable script",
-    not _COMPOSED_BAD,
-    f"bad entries: {_COMPOSED_BAD}",
+    "the C1 composition stays removed at its source (W1): no carrier names a C1 token",
+    not _C1_LEFT and not Path("tests/composed_closures.json").exists()
+    and not Path("tools/coverage/composed_proof.sh").exists()
+    and "\n  closures:\n" in _TESTS_YML
+    and "needs: [closure-scope]\n" in _workflow_job(_TESTS_YML, "closures"),
+    f"tokens left: {_C1_LEFT}",
 )
-# The proof driver: `composed-proof`'s self arm runs it, and it must drive
-# the instrument's own comparison (composed-compare) over the allow-list
-# (composed-list) rather than a rule of its own -- read here so a change to
-# it selects this script, and so no parallel comparison logic grows beside
-# closure.py's.
-_CP_SH = Path("tools/coverage/composed_proof.sh").read_text()
 R.check(
-    "the composed-proof driver measures through closure.py's own comparison",
-    "tests/closure.py composed-compare" in _CP_SH
-    and "tests/closure.py composed-list" in _CP_SH,
-    "a driver with its own equality rule is a second owner for the proof",
+    "and the pattern finds the composition where it lived (null control)",
+    bool(_C1_PAT.search("COMPOSED=$(closure.py composed-list)"))
+    and bool(_C1_PAT.search("name: composed-closures"))
+    and not _C1_PAT.search("the batch proof's tree-named recordings"),
+    "the pattern must match the removed carriers' shapes and not C2's",
 )
 
-# `composed-proof`'s first run died resolving `actions/checkout@<40-hex>`
+# Round 9's closure-proof job's first run died resolving `actions/checkout@<40-hex>`
 # before any step: the pin in its job body was one transposed character off
 # the canonical v5 SHA, and every pin-shaped check only counts hex digits, so
 # a well-formed name of a commit that does not exist passed them all. The
@@ -33600,7 +34125,9 @@ R.check(
 # every pull request and the failing job cannot check out anything to run a
 # check with.
 _ACTION_PINS: dict[str, set[str]] = {}
-for _wf_path in sorted(Path(".github/workflows").glob("*.yml")):
+# The composite actions' pins are the same pins (R10-CI-LAYOUT PR 1).
+for _wf_path in sorted([*Path(".github/workflows").glob("*.yml"),
+                        *Path(".github/actions").glob("*/action.yml")]):
     for _m in re.finditer(r"uses:\s*(actions/[\w.-]+)@([0-9a-f]{40})",
                           _wf_path.read_text()):
         _ACTION_PINS.setdefault(_m.group(1), set()).add(_m.group(2))
@@ -33613,7 +34140,7 @@ R.check(
     not _PIN_OUTLIERS,
     f"actions pinned at more than one SHA: {sorted(_PIN_OUTLIERS)} -- "
     "a pin that differs from every other use of its action is a typo the "
-    "runner resolves as a missing version (composed-proof, 2026-10-12)",
+    "runner resolves as a missing version (round 9's closure proof, 2026-10-12)",
 )
 
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
@@ -34550,9 +35077,9 @@ _RCA_YAML_MISSING = [(j, w) for j, w in (
     ("mutation-ledger", "actions/cache/restore@"),
     ("mutation-ledger", "actions/cache/save@"),
     ("mutation-ledger", "Save the pool measurement for the next nightly"),
-) if w not in _workflow_job(_TESTS_YML, j)]
-_rca_ledger_job = _workflow_job(_TESTS_YML, "mutation-ledger")
-_rca_push_job = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+) if w not in _workflow_job(_NIGHTLY_YML, j)]
+_rca_ledger_job = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
+_rca_push_job = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 R.check(
     "RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and "
     "mutation-ledger persists on an if: always() cache save in the measuring job, "
@@ -34690,7 +35217,8 @@ _MUT_BW_MISSING = [(j, w) for j, w in (
     # checkout, pip install and upload.
     ("mutation-pins", "timeout-minutes: 340"),
     ("mutation-pins", "timeout-minutes: 350"),
-) if w not in _workflow_job(_TESTS_YML, j)]
+) if w not in _workflow_job(_NIGHTLY_YML if j.startswith(("mutation-nightly", "mutation-ledger"))
+                               else _TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
     not _MUT_BW_MISSING,
@@ -35155,16 +35683,51 @@ _MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
                                 f"against 3 at the ratchet base x, {n} of them "
                                 f"added by this diff.") for n in (1, 5, 6, 10, 56, 200)]
 _MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
-_MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
+# The plan is `mutation`'s last step since R10-CI-LAYOUT PR 1 folded the
+# `mutation-pin-plan` job into it (DESIGN-P1 2(b)), read off the parsed job so
+# its `if:` and `id` are the step's own, not a sibling's.
+_MUT_DOC = (((_yaml.safe_load(_TESTS_YML) or {}).get("jobs") or {}).get("mutation") or {})
+_MUT_STEPS = _MUT_DOC.get("steps") or []
+_MUT_PLAN_STEP = next((_st for _st in _MUT_STEPS if _st.get("id") == "plan"), {})
+
+
+def _mut_plan_ok(job: dict, step: dict, pins: str) -> bool:
+    """The folded plan's wiring: the job outputs the step's shards and count,
+    the step is the job's last and runs `always()` -- a refusal fails the
+    drive step, and that run is the one whose `shards` the pins need, where a
+    skipped plan leaves `fromJSON('')` failing `mutation-pins` at expansion --
+    and the pins read the folded outputs, needing `mutation` alone."""
+    steps = job.get("steps") or []
+    return (bool(steps) and steps[-1] is step
+            and str(step.get("if", "")).replace(" ", "") == "always()"
+            and "mutation_table.pin_shard_count(" in str(step.get("run", ""))
+            and (job.get("outputs") or {}) == {
+                "shards": "${{ steps.plan.outputs.shards }}",
+                "count": "${{ steps.plan.outputs.count }}"}
+            and "fromJSON(needs.mutation.outputs.shards)" in pins
+            and "SHARDS: ${{ needs.mutation.outputs.count }}" in pins
+            and "needs: [mutation]\n" in pins
+            and "mutation-pin-plan" not in _TESTS_YML.split("\njobs:", 1)[1].replace(
+                "`mutation-pin-plan`", ""))
+
+
 R.check(
     "the pin shard count scales with the diff's new sites, five a shard, "
     "capped at twelve, and sizes the matrix the shards run",
     _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
-    and "mutation_table.pin_shard_count(" in _MUT_PLAN
-    and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
-    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins
+    and _mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)
     and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
-    f"counts={_MUT_SC} none={_MUT_SC0}",
+    f"counts={_MUT_SC} none={_MUT_SC0} plan wiring="
+    f"{_mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)}",
+)
+R.check(
+    "and a plan step without always(), or a pin job still reading the old plan job, is refused (null control)",
+    not _mut_plan_ok(_MUT_DOC, {**_MUT_PLAN_STEP, "if": "success()"}, _ma_pins)
+    and not _mut_plan_ok({**_MUT_DOC, "steps": [*_MUT_STEPS[:-1], {**_MUT_PLAN_STEP}]},
+                         _MUT_PLAN_STEP, _ma_pins)
+    and not _mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins.replace(
+        "needs.mutation.outputs.shards", "needs.mutation-pin-plan.outputs.shards")),
+    "each plant must fail the wiring predicate",
 )
 # The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
 # "46 left unpinned -- a survivor needs a killing check" was 46 sites the
@@ -35397,7 +35960,7 @@ R.check(
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
     f"has pin={_MUT_AN_HAS} real={_MUT_AN_REAL!r:.500} wrong={_MUT_AN_WRONG!r:.500}",
 )
-_MUT_PV_NIGHT = _workflow_job(_TESTS_YML, "mutation-nightly")
+_MUT_PV_NIGHT = _workflow_job(_NIGHTLY_YML, "mutation-nightly")
 R.check(
     "mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)",
     '--seed "$(date -u +%Y%m%d)"' in _MUT_PV_NIGHT
@@ -35942,10 +36505,10 @@ for _rp_name, _rp_ok, _rp_detail in (
     R.check(f"replay {_rp_name}", _rp_ok, _rp_detail)
 R.check(
     "the nightly slow job runs the replay lane as its own step",
-    "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
-    "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+    "run: python3 tests/replay.py" in _workflow_job(_NIGHTLY_YML, "slow"),
+    "nightly.yml's `slow` job has no `python3 tests/replay.py` step",
 )
-_SLOW_STEPS = _workflow_job(_tests_workflow, "slow")
+_SLOW_STEPS = _workflow_job(_NIGHTLY_YML, "slow")
 R.check(
     "the nightly slow job is the unique scripts, not a second full suite "
     "(#1930 (c))",
