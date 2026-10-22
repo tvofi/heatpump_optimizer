@@ -14,18 +14,10 @@ Critical-path pull requests go first in the queue (owner ruling, tvofi
 report `set-stage owed <group> <merge sha>`: the roster write is the roster
 seat's.
 
-## The merge message is a second closing surface
+## The merge message (`orchestrator.md` section 4)
 
-A pull request's closing references describe its **body**, and no method on
-the GitHub tool surface here exposes them at all. The merge message is a
-separate artifact, written at merge time, and GitHub parses it too; since
-`main` took to merge commits (`dev/governance/decisions/0010-merge-commits-on-main.md`)
-its default body is the pull request's **title**, so a keyword in a title
-reaches `main` too. A pull request can show `[]` forever while its merge commit
-shuts an issue. **GitHub discards the negation**; only the keyword and the
-number matter. Write so the construction cannot arise: "**leaves #N open**",
-never the negated form; never a custom `--subject`, four readers parse it
-(#2423).
+Write it so no negated closing keyword can arise ("**leaves #N open**"), and
+never with a custom `--subject`: four readers parse it (#2423).
 
 **Run `tools/pr/preflight.sh` over the merge body before the merge, as a
 filter, not as proof**, the body on **stdin** and the issues you *intend* to
