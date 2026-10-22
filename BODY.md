@@ -27,7 +27,7 @@ Part of #2495. Group R10-CI-LAYOUT-P2, sub-PR **P2a, "umbrella engine, inert"** 
 
 ## Head
 
-`49ccd4a6cc0c67fb1361b70ea5ce762c93652f1e`, merge base `50808a755ce3` (origin/main after #2579 and #2580, 2026-10-22). The #2580 merge conflicted only in `r10_seat_selftests_mutants.py`; both blocks are kept, giving 94 ids with no duplicate. The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
+`ad3b94a0b4f98569892d2d89fb303fbe0bb65c91`, merge base `4d407a35f5f5` (origin/main, 2026-10-22). The last merge of main brought only `gate-scoping.md` (and its generated copies), `prepr.sh` and delivery rows, none of them a file this diff changes; the mutants harness and `entities.py` figures below were taken at `49ccd4a6c` (base 50808a755). The #2580 merge conflicted only in `r10_seat_selftests_mutants.py`; both blocks are kept, giving 94 ids with no duplicate. The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
 
 ## Mutation proof
 
@@ -52,6 +52,8 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
 5. `tests/closure.py` drops the per-file lines under `tools/ci/` (U0b's and U9c's `GATE_FILES` lines and U6-lib's `INERT` lines), because U0a's `tools/ci/` prefix classifies them.
 6. The forgery pin also requires every workflow to declare top-level `permissions:`, so no job falls back to the repository's default token.
 
+7. `tools/policy/agreement.mjs` registers `[0-9a-f]{40}` as `not-a-concept` (the full git SHA shape), which `ci_probe.py` shares with `policy_lint.mjs`. It follows the precedent of the semantic-version entry; no single owner can serve both a `.mjs` and a `.py` reader. This one is the seat's, made after prepr's agreement lane refused the head.
+
 ## Figures
 
 - Self-tests, each `python3 -I <file> --self-test` with the 3.14.7 seat venv:
@@ -75,7 +77,8 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `python3 -I tools/audit/seat/tmp_paths.py --check`: 0 refused;
   - `ref_privacy.py --check`: 0 refused;
   - `tests/layout.py`: `GUARD: 0 refusal(s)`;
-  - `tools/pr/ci_predict.py --base origin/main`: no closures or fast red predicted.
+  - `python3 -I tools/policy/agreement_py.py --out ag.json && node tools/policy/agreement.mjs --py-json ag.json`: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
+- `tools/pr/ci_predict.py --base origin/main`: no closures or fast red predicted.
 - `python3 -I tests/harness_headers.py` fails at import here, because `-I` drops `PYTHONPATH=tests/hastub`, as U9c reported. The suite's own run is in the gate line below.
 - Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a9db47846647 PYTHONPATH=tests/hastub ./tests/run.sh`, run at `0e066014d` (base a9db478), printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `4 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`, `entities.py`); everything else was `ok`, `harness_headers.py` included (`ALL 109 HARNESS HEADER CHECKS PASSED`). The #2580 merge since then changed only `cloud_relay.sh`, `INSTRUMENTS.md`, the mutants harness and a delivery row. `entities.py`, `structure.py`, every self-test, the mutants harness and the static checks were re-run at the head. All four are environmental or main's and not caused by this diff; see `## Red checks`.
 - Line counts, from `git diff --stat origin/main...HEAD`: 26 files, 3686 insertions, 4 deletions (`governance.yml` +67). Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
@@ -90,14 +93,14 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
 
 ## Forward-carry
 
-- **The sweep's exit code**: `gate.py --sweep`'s exit code is `sweep.main`'s. A rate limit prints `RATE-LIMITED` (contract item 3's word) but exits 1, not the gate's 3. A non-200 run read raises out of `sweep.main` (exit 1, traceback), which fails closed. `gate-sweep.yml` must key on the stdout word, not on the exit code. Carry: P2b brief (U8+U10, U0c).
-- **The two-part `get` signature**: `ghapi.get(path, params=None, headers=None)` is now the signature both CI-run modules use. Any further `tools/ci/` reader that needs a media type binds through it. Carry: P2b brief (U6, U9d).
-- **The rest of the forgery rule**: "exactly one job in `ci.yml` reports `gate`" needs the real `ci.yml`. Carry: P2b brief (U0c entities pins).
-- **The units' own carries**: U0a's to U0c (`run-name`, `fetch-depth: 0`, the gate step); U0b's live status values and `workflow_run` on a job-token re-run; U9c's ruleset staging at H. Carry: P2b brief.
+- **The sweep's exit code**: `gate.py --sweep`'s exit code is `sweep.main`'s. A rate limit prints `RATE-LIMITED` (contract item 3's word) but exits 1, not the gate's 3. A non-200 run read raises out of `sweep.main` (exit 1, traceback), which fails closed. P2b's sweep workflow must key on the stdout word, not on the exit code. Carry: R10-CI-LAYOUT-P2
+- **The two-part `get` signature**: `ghapi.get(path, params=None, headers=None)` is now the signature both CI-run modules use. Any further `tools/ci/` reader that needs a media type binds through it. Carry: R10-CI-LAYOUT-P2
+- **The rest of the forgery rule**: "exactly one job in `ci.yml` reports `gate`" needs the real `ci.yml`. Carry: R10-CI-LAYOUT-P2
+- **The units' own carries**: U0a's to U0c (`run-name`, `fetch-depth: 0`, the gate step); U0b's live status values and `workflow_run` on a job-token re-run; U9c's ruleset staging at H. Carry: R10-CI-LAYOUT-P2
 
 ## Friction
 
-- `writing-for-agents: cost`: the brief prescribes `python3 -I tests/harness_headers.py`, which cannot import the stubbed `homeassistant` under `-I`. `run.sh`'s form passes. Carry: plans/ci-layout P2a common brief.
-- `gate-scoping: unenforced`: UP's handoff reported `ref_privacy --check` at 0 but did not run `tmp_paths.py --check`. That check refused UP's self-test fixture on the assembled tree, and it would have reddened `governance` in CI. Carry: plans/ci-layout P2a common brief.
+- `writing-for-agents: cost`: the brief prescribes `python3 -I tests/harness_headers.py`, which cannot import the stubbed `homeassistant` under `-I`. `run.sh`'s form passes. Carry: R10-CI-LAYOUT-P2
+- `gate-scoping: unenforced`: UP's handoff reported `ref_privacy --check` at 0 but did not run `tmp_paths.py --check`. That check refused UP's self-test fixture on the assembled tree, and it would have reddened `governance` in CI. Carry: R10-CI-LAYOUT-P2
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
