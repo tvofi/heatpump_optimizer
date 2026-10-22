@@ -1,0 +1,8 @@
+7b42306f7e75af9dfa9c7934ae930fa3240d59ee github-actions[bot]
+ci: pin killed mutants
+
+ .../killed_by/optimizer.py/@module.CONST.5fcfc50a.json              | 6 ++++++
+ .../killed_by/optimizer.py/_lbfgsb_run.BOOLOP.6490f17d.json         | 6 ++++++
+ .../killed_by/optimizer.py/_lbfgsb_run.GUARD_OFF.6490f17d.json      | 6 ++++++
+ .../_memoized_value_and_gradient.GUARD_OFF.a5f6c7fe.json            | 6 ++++++
+ 4 files changed, 24 insertions(+)
