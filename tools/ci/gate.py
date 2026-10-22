@@ -368,6 +368,11 @@ def self_test() -> int:
     check("a newer held run is neither waited on nor a source", gate({**ctx, "action": "edited"}, {
         **api, "prelude": {"conclusion": "success", "kind": "edit", "pr": "7"}, "jobs": body,
         "runs_at_head": [older, held]}), (True, []))
+    dctx = context("workflow_dispatch", {"inputs": {}}, env)
+    dapi = {**api, "prelude": {"conclusion": "success", "kind": "code", "pr": ""}, "jobs": jobs, "runs_at_head": []}
+    check("an unnamed dispatch at an open PR's head is refused", gate(dctx, {**dapi, "open_pr_heads": {"M"}})[1],
+          ["this SHA heads an open PR: dispatch with -f pr=N -f base=REF"])
+    check("... and judged as usual at no PR's head (null)", gate(dctx, {**dapi, "open_pr_heads": {"X"}}), (True, []))
     busy = [{"id": 99, "display_title": title("code", "7", "main", "M"), "status": "in_progress"}]
     check("defer on an earlier run still adding a source", judge(ctx, claim, fake(runs=busy), cc)[0].startswith("FAIL run(s) [99]"), True)
 
