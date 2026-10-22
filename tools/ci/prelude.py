@@ -261,7 +261,10 @@ def self_test() -> int:
 
     def limited(path, params=None):
         raise ghapi.RateLimited(path, 99)
-    path = _tmp_event({"inputs": {"pr": "7", "base": "main"}})
+    import tempfile
+    fd, path = tempfile.mkstemp(suffix=".json")
+    os.write(fd, json.dumps({"inputs": {"pr": "7", "base": "main"}}).encode())
+    os.close(fd)
     try:
         import contextlib
         import io
@@ -272,14 +275,6 @@ def self_test() -> int:
         os.unlink(path)
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
-
-
-def _tmp_event(doc: dict) -> str:
-    import tempfile
-    fd, path = tempfile.mkstemp(suffix=".json")
-    os.write(fd, json.dumps(doc).encode())
-    os.close(fd)
-    return path
 
 
 if __name__ == "__main__":
