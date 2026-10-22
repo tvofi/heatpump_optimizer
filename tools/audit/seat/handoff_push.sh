@@ -43,7 +43,7 @@ handoff_push_self_test() (
     && git -C "$o" update-ref refs/heads/handoff-body/h "$body" \
     && throwaway_git_clone -q "$o" "$m" \
     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
-    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$m/tools/audit/seat/" \
+    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$m/tools/audit/seat/" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
     && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
     && chmod +x "$m/tools/pr/app_push.sh" \
@@ -60,7 +60,7 @@ handoff_push_self_test() (
       git -C "$m" worktree remove --force "$w" 2>/dev/null
     done
     git -C "$m" branch -D "fix/$topic" >/dev/null 2>&1
-    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$m/tools/audit/seat/"
+    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$m/tools/audit/seat/"
     [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
     [ "$exists" = "$t/pr-exists" ] && : > "$exists"
     : > "$t/push"
@@ -87,6 +87,9 @@ if [ "${1:-}" = --self-test ]; then
   handoff_push_self_test; h=$?
   [ "$r" = 0 ] && [ "$h" = 0 ]; exit $?
 fi
+# A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+# trap reaps it, and each push runs asynchronously (push_app) so an INT does not wait behind it.
+. "$(dirname -- "$0")/pr_args.sh"; pr_exit_trap
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
 # The main checkout is the one this script's checkout shares its object store with; a PR's
 # worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
@@ -98,10 +101,11 @@ cd $M
 # #2444's seam): the live pusher, behind the pre-move location a checkout may
 # still carry (tests/layout.json maps that path to this one).
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-push_app() { # <tail count>: the push, filtered to its REFUSE/PUSHED lines
-  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} \
-    bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 \
-    | grep -E 'REFUSE|PUSHED' | tail -"$1" | cut -c1-200
+push_app() { # <tail count>: the push, asynchronously into its log; its REFUSE/PUSHED lines, printed and in PUSH_OUT
+  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} > "$B.push.log" 2>&1 &
+  wait $! || :  # a stop signal interrupts the wait; the EXIT trap reaps the push (R10-PUSHER-REAP)
+  PUSH_OUT=$(grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -"$1" | cut -c1-200)
+  [ -z "$PUSH_OUT" ] || printf '%s\n' "$PUSH_OUT"
 }
 git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
@@ -174,7 +178,8 @@ s=prefix(s,"`%s` merges origin/main `%s` into the authored head `%s`, with no ha
 open(p,'w').write(s)
 E2
 fi
-out=$(push_app 2)  # mut:push-open
+# Never `$(push_app ...)`: the shell would wait on that subshell in the foreground, and an INT behind it.
+push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open
 echo "$out" | cut -c1-200
 N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
 gh pr edit $N --title "$TITLE" >/dev/null

@@ -46,7 +46,11 @@
 # installation token are written only as curl header files inside the private
 # mode-700 directory, never onto a command line and never printed. An EXIT
 # trap revokes the installation token (DELETE /installation/token) and removes
-# that directory on every path, the refusals and a failed POST included. The
+# that directory on every path, the refusals and a failed POST included.
+# Every exit, TERM/INT/HUP included, ends the whole descendant tree too
+# (pr_args.sh's pr_exit_trap): prepr runs asynchronously so an INT does not wait
+# behind it, and an orphaned prepr must not keep burning CPU after the pusher is
+# stopped. The
 # one read that is not an App call -- the open-pull-request query -- goes
 # through `gh` as whatever GH_TOKEN the caller set, exactly as `app_approve.sh`
 # reads; only the App calls carry the JWT or the token.
@@ -119,12 +123,21 @@
 # the push must still be the HEAD the verdict judged.
 set -uo pipefail
 
+# pr_args.sh's reap: a stopped pusher ends the whole tree it started, and prepr
+# below runs asynchronously so an INT does not wait behind it. The one EXIT trap
+# also runs app_mint.sh's mint_cleanup, which is a no-op until $PRIV exists.
+PR_ARGS=$(cd "$(dirname -- "$0")/../audit/seat" 2>/dev/null && pwd)/pr_args.sh
+[ -f "$PR_ARGS" ] || { printf 'app_push: REFUSE: no pr_args.sh beside this script at %s\n' "$PR_ARGS" >&2; exit 1; }
+. "$PR_ARGS"
+
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 die() { printf 'app_push: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 MINT_NAME=app_push
+MINT_TRAP=caller  # the EXIT trap is pr_exit_trap's, below: the mint must not replace it
 . "$(dirname -- "$0")/app_mint.sh" # the token mint, shared with seat/body_patch.sh
+pr_exit_trap mint_cleanup  # revokes the token (a no-op before the mint), then reaps the tree
 
 # push.sh's classification, over a JSON listing: `[]` POSITIVELY means no
 # pull request is open, an array naming a number names one, and anything
@@ -434,10 +447,17 @@ push_and_open() {
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
   # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
-  local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
+  # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+  # the tree (pr_args.sh's why).
+  local prepr prepr_pid="" prepr_rc=0
+  prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
-  [ "$bonly" = 1 ] || [ "$skip" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
-    || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+  if [ "$bonly" = 0 ] && [ "$skip" = 0 ]; then
+    ( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!
+    wait "$prepr_pid" || prepr_rc=$?
+    [ "$prepr_rc" = 0 ] \
+      || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+  fi
   [ "$rowonly$skip" != 11 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
     || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
 
@@ -485,9 +505,12 @@ HELPER
   # http.postBuffer=64m (bounded): git's 1 MiB default sends a larger push
   # chunked, and the remote hung up on every screenshot branch that hit it
   # (#1267) -- 64 MiB keeps such a push in one Content-Length request.
+  # Asynchronous, as prepr above, so a stop signal interrupts the `wait`.
+  local push_rc=0
   GIT_TERMINAL_PROMPT=0 git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
-    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" \
-    || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
+    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" &
+  wait $! || push_rc=$?
+  [ "$push_rc" = 0 ] || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
   if [ "$bonly" = 1 ]; then
     printf 'app_push: PUSHED %s to %s:%s as the App; --branch-only, no pull request\n' "$head" "$repo" "$br"
     return 0
@@ -542,8 +565,10 @@ mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
 cp "$(dirname -- "$SELF")/head_note.py" "$W/tool/"
 cp "$(dirname -- "$SELF")/app_mint.sh" "$W/tool/"
-# The real guard, at the path the copy resolves it by (../audit/seat/).
-mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/"
+# The real guard, at the path the copy resolves it by (../audit/seat/), and the
+# signal reap it sources from there.
+mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/" \
+  && cp "$(dirname -- "$SELF")/../audit/seat/pr_args.sh" "$W/audit/seat/"
 FAILS=0; N=0
 st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
 SHA=1111111111111111111111111111111111111111
@@ -558,11 +583,18 @@ printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' 
 cp "$W/id/hpo-author.pem" "$W/badid/"; printf '4242a\n' > "$W/badid/hpo-author.appid.txt"
 printf '## Head\n\n`%s`\n\n## Mutation proof\n\nm\n\n## Null control\n\nn\n\n## Figures\n\nnone\n\n## Red checks\n\nnone\n\n## Forward-carry\n\nnone\n\n## Friction\n\nnone\n' "$SHA" > "$W/body.md"
 
-# The stub prepr.sh: logs its arguments, passes, or refuses on a marker file.
+# The stub prepr.sh: logs its arguments, passes, or refuses on a marker file;
+# on `prepr-tree` it starts a two-level sleep tree recorded by pid and blocks,
+# so a stopped app_push can be judged by what survives it.
 cat > "$W/tool/prepr.sh" <<'STUB'
 #!/bin/bash
 printf 'prepr %s\n' "$*" >> "$STUB/log"
 [ -f "$STUB/prepr-fails" ] && { echo "prepr: REFUSE" >&2; exit 1; }
+if [ -f "$STUB/prepr-tree" ]; then
+  echo $$ >> "$STUB/pids"
+  bash -c 'sleep 30 & echo $! >> "$0"; wait' "$STUB/pids" & echo $! >> "$STUB/pids"
+  wait; exit 1
+fi
 echo "PRE-PR: stub ok"
 STUB
 # The stub gh: only the open-pull-request query, answered from a fixture.
@@ -607,6 +639,11 @@ case "$*" in
     else printf 'a\037t@t\037t@t\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
+    if [ -f "$STUB/push-tree" ]; then  # a push still running when the pusher is stopped
+      echo $$ >> "$STUB/pids"
+      bash -c 'sleep 30 & echo $! >> "$0"; wait' "$STUB/pids" & echo $! >> "$STUB/pids"
+      wait; exit 1
+    fi
     for a in "$@"; do
       case "$a" in credential.helper=*)
         sh "${a#credential.helper=}" get > "$STUB/credout" 2>&1 ;; esac
@@ -751,6 +788,53 @@ mkcase preprfail; : > "$W/preprfail/prepr-fails"
 run preprfail o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: prepr fails, so nothing is minted, pushed or posted"
 st "$(calls preprfail curl)" 0 "no curl call at all: the refusal precedes the mint"
 st "$(grep -c '^git .*push' "$W/preprfail/log")" 0 "and no push either (the ok case above is the healthy arm: it pushes exactly once)"
+
+# R10-PUSHER-REAP: app_push TERMed while prepr runs ends prepr's whole tree.
+# Its own pid, not a wrapping subshell's, gets the signal; every pid is
+# polled, since a killed child can be a zombie for a moment.
+alive_of() { local p n k=0; while :; do n=0
+  for p in $(cat "$1" 2>/dev/null); do kill -0 "$p" 2>/dev/null && n=$((n + 1)); done
+  if [ "$n" = 0 ] || [ "$k" -ge 30 ]; then echo "$n"; return; fi; sleep 0.1; k=$((k + 1)); done; }
+mkcase stopped; : > "$W/stopped/prepr-tree"; : > "$W/stopped/pids"
+( export STUB="$W/stopped" PATH="$W/bin:$PATH" TMPDIR="$W/stopped/tmp" HPO_IDENTITY_DIR="$W/id"
+  exec bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stopped/out" 2> "$W/stopped/err" ) & ap=$!
+k=0; while [ "$(wc -l < "$W/stopped/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+st "$(wc -l < "$W/stopped/pids" | tr -d ' ')" 3 "the stopped case's prepr tree started (three pids)"
+kill -TERM "$ap"; wait "$ap"; st $? 143 "app_push TERMed mid-prepr exits 143"
+st "$(alive_of "$W/stopped/pids")" 0 "and leaves none of prepr's tree alive (R10-PUSHER-REAP)"
+st "$(calls stopped curl)" 0 "and minted nothing"
+for p in $(cat "$W/stopped/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+# ... and INT too: prepr runs asynchronously, so the INT does not wait behind it.
+# A background job starts with INT ignored, which bash cannot undo; the exec resets it.
+mkcase stoppedint; : > "$W/stoppedint/prepr-tree"; : > "$W/stoppedint/pids"
+( export STUB="$W/stoppedint" PATH="$W/bin:$PATH" TMPDIR="$W/stoppedint/tmp" HPO_IDENTITY_DIR="$W/id"
+  exec python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+    bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stoppedint/out" 2> "$W/stoppedint/err" ) & ap=$!
+k=0; while [ "$(wc -l < "$W/stoppedint/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+st "$(wc -l < "$W/stoppedint/pids" | tr -d ' ')" 3 "the INT case's prepr tree started (three pids)"
+kill -INT "$ap"; k=0
+while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push INTed mid-prepr ends within 4 s, not behind prepr"
+st "$(alive_of "$W/stoppedint/pids")" 0 "and leaves none of prepr's tree alive"
+kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
+for p in $(cat "$W/stoppedint/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+# ... and stopped after the mint, mid-push: app_mint.sh's own traps would replace the
+# reap's EXIT trap (MINT_TRAP=caller keeps it), so the push would outlive the pusher.
+for sig in TERM INT; do
+  c=stoppedpush$sig; mkcase $c; : > "$W/$c/push-tree"; : > "$W/$c/pids"
+  ( export STUB="$W/$c" PATH="$W/bin:$PATH" TMPDIR="$W/$c/tmp" HPO_IDENTITY_DIR="$W/id"
+    exec python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/$c/out" 2> "$W/$c/err" ) & ap=$!
+  k=0; while [ "$(wc -l < "$W/$c/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+  st "$(wc -l < "$W/$c/pids" | tr -d ' ')" 3 "the mid-push $sig case's push tree started (three pids)"
+  kill -$sig "$ap"; k=0
+  while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+  st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push ${sig}ed mid-push, after the mint, ends within 4 s"
+  st "$(alive_of "$W/$c/pids")" 0 "and leaves none of the push's tree alive"
+  st "$(grep -c '^curl DELETE installation/token' "$W/$c/log")" 1 "and revokes the token it minted"
+  kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
+  for p in $(cat "$W/$c/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+done
 
 mkcase leaky; : > "$W/leaky/leaky-log"
 run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"
