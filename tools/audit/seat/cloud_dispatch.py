@@ -430,9 +430,12 @@ def _group_checks(check) -> None:
         with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
             rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", first,
                        "--pr", "8", "--nonce", "def456", "--overlay", str(overlay)])
-        msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
-        ccr = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"]
-        model = ccr["session_context"]["model"]
+        try:  # a wrong role or group publishes no reviewer-r10-y ref: the check, not a crash, says so
+            msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
+            model = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"][
+                "session_context"]["model"]
+        except subprocess.CalledProcessError:
+            msg = model = ""
         check("the --group CLI passes --role, --group, --model, --pr and --nonce through",
               rc == 0 and out.getvalue() == "dispatch/reviewer-r10-y\n" and msg.startswith("CLOUD REVIEWER")
               and "PR #8 " in msg and "Bus nonce: def456." in msg and model == "m-9")
