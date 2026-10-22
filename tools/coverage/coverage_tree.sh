@@ -144,21 +144,6 @@ if [ -n "${W5P_SCOPE:-}" ] && [ -n "${W5P_REUSE:-}" ]; then
 fi
 [ -n "${PLAN:-}" ] || PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
 
-# COMPOSED CLOSURES (round-9 C1): a script on tests/composed_closures.json's
-# allow-list is measured through `tests/closure.py record`, so ONE instrumented
-# execution yields both this stage's line set and the closure read set, and
-# the `closures` job consumes that record instead of re-running the script
-# bare. Not a cache: nothing crosses a tree -- every event still executes the
-# script and derives both answers from this run. Fail-closed by construction:
-# the record lands in $OUT/closures/ for the closures job to verify (tree
-# manifest, rc 0, the closures lane's argv) and any refusal re-records bare.
-# The byte-identity proof (read set traced-vs-bare, rc 0 under both) is the
-# composed-proof job's, when this file changes and nightly.
-mkdir -p "$OUT/closures"
-git rev-parse 'HEAD^{tree}' > "$OUT/closures/tree.txt"
-COMPOSED=$(env -u COVERAGE_PROCESS_START PYTHONPATH="$PWD/tests/hastub" \
-             "$PY" tests/closure.py composed-list)
-
 # One lane: measure the plan lines it is given, in order. A script's processes
 # write under their own data directory and combine into their own per/ file, and
 # the appends to scripts.tsv and combine.log are single lines, so two lanes share
@@ -188,15 +173,7 @@ measure() {
     sed "s#^data_file = .*#data_file = $WORK/data/$s/.coverage#" "$WORK/coveragerc" > "$WORK/coveragerc.$s"
     mkdir -p "$WORK/data/$s"
     a=$(date +%s)
-    if printf '%s\n' "$COMPOSED" | grep -qxF "tests/$s.py"; then
-      # The composed path: same tracer (COVERAGE_PROCESS_START reaches the
-      # recording child through the exported environment), same argv, plus
-      # closure.py's audit hook and -- where strace exists, as on CI's Linux
-      # recorder -- the same strace union the bare recording gets, so the
-      # read set is the closures lane's, not an approximation of it.
-      COVERAGE_PROCESS_START="$WORK/coveragerc.$s" "$PY" tests/closure.py record \
-        "tests/$s.py" --out-dir "$OUT/closures" > "$OUT/logs/$s.log" 2>&1
-    elif [ "$s" = "golden" ]; then
+    if [ "$s" = "golden" ]; then
       COVERAGE_PROCESS_START="$WORK/coveragerc.$s" GOLDEN_MODE=strict "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
     else
       COVERAGE_PROCESS_START="$WORK/coveragerc.$s" "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
@@ -213,8 +190,8 @@ measure() {
       # path and starts a default-config tracer, which writes .coverage into
       # this worktree at interpreter shutdown -- against this file's own
       # "nothing is written inside the worktree" contract. The same idiom
-      # reddened the composed-proof job from the proof script's own export
-      # of it (job 114682964269, `bare only: ['.coverage']`).
+      # once reddened round 9's closure-proof job from its driver's own
+      # export of it (job 114682964269, `bare only: ['.coverage']`).
       env -u COVERAGE_PROCESS_START "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
         >> "$OUT/logs/combine.log" 2>&1 \
         && mv "$WORK/data/$s/.coverage" "$OUT/per/.coverage.$s" \

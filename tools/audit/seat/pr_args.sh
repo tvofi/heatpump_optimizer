@@ -54,6 +54,37 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
 }
+pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
+  local rc=0 o
+  kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $1 did not report within 20 s"
+  wait "$LKP" || rc=$?; o=$(cut -d' ' -f1 "$1" 2>/dev/null || :)
+  [ "$rc" = 75 ] || pr_refuse "could not take the per-branch lock $1 (its holder exited $rc)"
+  if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then o="another open_pr.sh or update_pr.sh run (pid $o)"; else o="the lock holder of run ${o:-unknown}, which has ended (the holder exits within 2 s),"; fi
+  echo "${PR_NAME:-pr}: BUSY: $o holds $2's worktree $3; nothing was changed, run again when it ends" >&2; exit 75
+}
+pr_branch_lock() { # <lock-file> <branch> <worktree>: hold the branch's lock until the run ends, or exit 75 BUSY
+  # One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch the other
+  # is pushing (R10-OPENPR-ROW-PUSH). $WT and $WT.log of update_pr.sh are fixed per branch, and the
+  # line there that removes $WT force-removed a concurrent run's live worktree under its prepr
+  # (2026-10-19/20: the orchestrator's update and cloud_relay.sh's handoff arm on one PR). The lock is
+  # flock(2) held by one holder process; this shell holds no fd on it, so nothing the run starts can (a
+  # detached `git gc --auto` kept an inherited one). The EXIT trap ends the holder before the run
+  # returns; TERM/INT/HUP are trapped, and bash runs the trap once the foreground push has finished, so
+  # a stopped run frees the lock after its push; a SIGKILLed run's holder exits once its parent is gone.
+  local k=0
+  python3 -I -c 'import fcntl, os, sys, time
+f = open(sys.argv[1], "a")
+try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError: sys.exit(75)
+p = os.getppid()
+f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+while os.getppid() == p: time.sleep(2)  # mut:watch
+sys.exit(0)' "$1" </dev/null >/dev/null 2>&1 & LKP=$!
+  trap '{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :' EXIT  # mut:unlock
+  while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+  [ "$(cat "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock
+  trap 'exit 143' TERM INT HUP  # mut:stop
+}
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
   pr_refuse "the push failed; its log is $1"
@@ -138,41 +169,47 @@ pr_args_self_test() (
   touch "$t/s$((i + 1))/pr/x/wt/f" "$t/s$((i + 2))/pr/x/wt/f"
   arm "open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap" trap \
     "open_pr: STOPPED: line" open_pr.sh x "$code" T G
-  # The open-PR cap (pr_cap.py; tvofi, 2026-10-18): six counted open is the cap.
+  # The soft cap gates dispatch, not opening (pr_cap.py; tvofi, 2026-10-20):
+  # a twenty-strong open board is information, and --over-cap is advisory.
   prs() { # <counted> [extra json objects]: the stub's open list
     local k=0 j=""
     while [ $k -lt "$1" ]; do j="$j{\"number\":$k,\"title\":\"t\",\"author\":{\"login\":\"app/hpo-author\",\"is_bot\":true}},"; k=$((k + 1)); done
     printf '[%s%s]\n' "$j" "${2:-}" | sed 's/,]$/]/' > "$t/prs.json"
   }
-  prs 6
-  arm "open_pr: six counted open pull requests refuse at the cap" cap \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6; drain before opening (HPO_OPEN_PR_CAP, --over-cap <reason>)" \
-    open_pr.sh x "$code" T G
-  arm "open_pr: the cap is checked by the script itself (the call's lines)" capcall \
-    "open_pr: REFUSE: open-PR cap: 6 open >= 6" open_pr.sh x "$code" T G
-  touch "$t/gh.fail"
-  arm "open_pr: an open list gh cannot read refuses, never passes" capreadrc \
-    "open_pr: REFUSE: open-PR cap: the open pull requests could not be read (gh exited 1" open_pr.sh x "$code" T G
-  rm -f "$t/gh.fail"
-  # passes <name> <mutant> <expected text> <args...>: opens (stops only at the
-  # absent push), printing the text; the mutant refuses at the cap instead.
+  # passes <name> <mutant> <expected text> <args...>: the run opens (stops only
+  # at the absent push), printing the text and no cap refusal; on a copy
+  # without the mutant's line the text is gone and the run did not crash (a
+  # deleted line that only tracebacks pins no behaviour).
   passes() {
     local nm=$1 mu=$2 want=$3; shift 3
-    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" && ! grep -q 'REFUSE: open-PR cap' "$t/out" \
+    run - open_pr.sh "$@"; grep -qF -- "$want" "$t/out" \
+      && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
       && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
     ck "$nm" $?
-    run "$mu" open_pr.sh "$@"; grep -q 'REFUSE: open-PR cap' "$t/out"
-    ck "  mutant mut:$mu (its line deleted) refuses at the cap instead" $?
+    run "$mu" open_pr.sh "$@"; ! grep -qF -- "$want" "$t/out" && ! grep -q Traceback "$t/out"
+    ck "  mutant mut:$mu (its line deleted) no longer prints it" $?
   }
-  prs 6
-  passes "open_pr: --over-cap opens at the cap and logs its reason" overcap \
-    "open_pr: OVER-CAP: 6 open >= 6, overridden: the train is draining" \
+  prs 20
+  passes "open_pr: twenty open pull requests do not stop an open; the count is information" openinfo \
+    "open_pr: 20 open PRs; the cap gates dispatch, not opening" x "$code" T G
+  passes "open_pr: --over-cap is still accepted, and says it is advisory" overadvisory \
+    "open_pr: --over-cap is advisory: the train is draining (the cap gates dispatch, not opening)" \
     --over-cap "the train is draining" x "$code" T G
+  touch "$t/gh.fail"
+  run - open_pr.sh x "$code" T G
+  grep -qF "open_pr: open pull requests could not be read (gh exited 1" "$t/out" \
+    && ! grep -q 'REFUSE: open-PR cap\|REFUSE: WIP cap' "$t/out" \
+    && grep -qF "open_pr: REFUSE: the push failed" "$t/out"
+  ck "open_pr: an open count gh cannot read says so and still opens" $?
+  run inforead open_pr.sh x "$code" T G
+  ! grep -qF "could not be read" "$t/out" && ! grep -q Traceback "$t/out"
+  ck "  mutant mut:inforead (its line deleted) reports the unreadable board as a count" $?
+  rm -f "$t/gh.fail"
   prs 5 '{"number":90,"title":"record: rows","author":{"login":"app/hpo-author","is_bot":true}},{"number":91,"title":"bump","author":{"login":"app/dependabot","is_bot":true}}'
-  passes "open_pr: five counted open (a record: and a bot pull request beside them) opens" caprecord \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+  passes "open_pr: a record: title and another bot's pull request are not in the open count" caprecord \
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   passes "open_pr: the same board, the bot pull request uncounted" capbot \
-    "open_pr: open-PR cap: 5 open < 6" x "$code" T G
+    "open_pr: 5 open PRs; the cap gates dispatch, not opening" x "$code" T G
   echo '[]' > "$t/prs.json"
   run - open_pr.sh x "$code" T G
   [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
@@ -223,7 +260,7 @@ pr_args_self_test() (
     [ -e "$s/pr/upd-fix-x/live" ] && echo 1 > "$t/live" || echo 0 > "$t/live"
   }
   lockrun - 1
-  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another update_pr.sh run" "$t/out" \
+  [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: another open_pr.sh or update_pr.sh run" "$t/out" \
     && [ "$(cat "$t/live")" = 1 ] && ! grep -q STOPPED "$t/out"
   ck "update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place" $?
   lockrun lock 1
@@ -305,6 +342,100 @@ pr_args_self_test() (
   ck "update_pr: a SIGKILLed run leaves no stale lock; a later run takes it" $?
   stoprun watch TERM; ! grep -qF "update_pr: BUSY" "$t/out2"
   ck "  mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push" $?
+  # The branch a pull request is opened on belongs to one instrument at a time (R10-OPENPR-ROW-PUSH,
+  # 2026-10-21, #2547 #2548 #2549). open_pr.sh commits the PR's own row in its worktree and pushes
+  # it second; update_pr.sh (cloud_relay's arm, minutes later) detached any clean worktree holding
+  # the branch and reset the branch to origin's, so the second push found HEAD detached and not
+  # the branch's tip, and the PR kept no row. The stub app_push.sh is the real push's HEAD check:
+  # call 1 pushes and "opens" #5, call 2 (the row's push) waits for $t/release, then refuses unless
+  # HEAD is the branch's tip, and pushes. racerun <mutant>: open_pr.sh is in its second push when
+  # update_pr.sh starts on the same branch. Expected: update_pr.sh is BUSY, the row reaches origin.
+  if [ ! -e "$t/fixr" ]; then
+    git -C "$o" checkout -q -b handoff/r "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
+      && cat > "$o/tools/pr/app_push.sh" <<'STUB'
+#!/bin/bash
+D=$STUB_DIR; wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+case $n in
+  1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
+  2) : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+     [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
+       || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
+     git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED the row"; exit 0 ;;
+  *) exit 1 ;;
+esac
+STUB
+    git -C "$o" add b tools/pr/app_push.sh && git -C "$o" commit -q -m "code r" \
+      && git -C "$o" update-ref refs/heads/handoff-body/r "$body" && git -C "$o" checkout -q main \
+      && git -C "$o" branch fix/u "$base" && touch "$t/fixr"
+  fi
+  codeR=$(git -C "$o" rev-parse handoff/r)
+  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh"
+  racerun() {
+    local sd=$t/race-${1//+/_} sdir=$t/race-${1//+/_}-stub g k=0 op
+    rm -rf "$sd" "$sdir" "$t/s$i"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)  # git lists worktrees by physical path
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null
+    git -C "$o" branch -qD fix/r 2>/dev/null
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v -e "# mut:${1%%+*}\$" -e "# mut:${1##*+}\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi  # a+b: two mutants at once
+    done
+    cp "$t/body.md" "$t/bR.md"
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1 & op=$!
+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rco"
+    git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
+    reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+  }
+  racerun -
+  [ "$(cat "$t/rcu")" = 75 ] && grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] \
+    && grep -q '^PR=5 ' "$t/outo" && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin" $?
+  racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
+  racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
+  # Only committed work is detached from a worktree: one holding commits origin lacks is refused
+  # (the old reset would have dropped them); one whose HEAD origin has is detached as before.
+  unpushed() { # <mutant> <commit: 1|0>
+    local sd=$t/unp-$1-$2 g
+    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$sd/pr/u/wt" origin/fix/u || return 1
+    [ "$2" = 0 ] || { printf 'row\n' > "$sd/pr/u/wt/row" && git -C "$sd/pr/u/wt" add row && git -C "$sd/pr/u/wt" commit -q -m row; }
+    cp "$t/body.md" "$t/bU.md"
+    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    git -C "$sd/pr/u/wt" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
+    reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
+  }
+  unpushed - 1
+  [ "$(cat "$t/rcu")" != 0 ] && grep -qF "update_pr: REFUSE: worktree" "$t/outu" && grep -qF "(unpushed work" "$t/outu" \
+    && [ "$(cat "$t/attached")" = refs/heads/fix/u ]
+  ck "update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch" $?
+  unpushed unpushed 1; [ "$(cat "$t/attached")" = detached ] && ! grep -qF "(unpushed work" "$t/outu"
+  ck "  mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit" $?
+  unpushed - 0
+  [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "(unpushed work" "$t/outu"
+  ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
+  # The row-only arm (R10-ROW-ONLY-UPDATE): with code sha `-` update_pr.sh asks app_push.sh for
+  # --row-only, whose own verdict decides whether a full prepr is owed; a code sha never asks.
+  # Branch fix/w carries an app_push.sh stub that records its arguments, then fails the push.
+  if [ ! -e "$t/fixw" ]; then
+    git -C "$o" checkout -q -b fix/w "$base" && mkdir -p "$o/tools/pr" \
+      && printf '#!/bin/bash\necho "$*" > "%s/argv"; exit 1\n' "$t" > "$o/tools/pr/app_push.sh" \
+      && git -C "$o" add tools/pr/app_push.sh && git -C "$o" commit -q -m stub && git -C "$o" checkout -q main && touch "$t/fixw"
+  fi
+  rowrun() { # <mutant> <code-sha|->: update_pr.sh on fix/w; the stub's arguments in $t/argv
+    rm -f "$t/argv"; cp "$t/body.md" "$t/b.md"; HANDOFF_TOPIC=x run "$1" update_pr.sh fix/w "$2" "$t/b.md"; }
+  rowrun - -; [[ $(cat "$t/argv" 2>/dev/null) == "--row-only tvofi/heatpump_optimizer "* ]]
+  ck "update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr" $?
+  rowrun rowonly -; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
+  ck "  mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr" $?
+  rowrun - "$code"; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
+  ck "null control: a code sha never asks for --row-only, so its push runs the full prepr" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \

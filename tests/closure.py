@@ -327,8 +327,8 @@ INERT = (
     "tools/coverage/",
     "tools/devices/",
     # The plan model (`tools/plan/replan.py` and the measured durations it
-    # reads) is run by hand at a wave edge and read by the out-of-tree
-    # renderer that draws the page; no gate script opens it. An inert home of
+    # reads) is run by hand at a wave edge and read by the page renderer
+    # `tools/audit/seat/plan_page.py`; no gate script opens it. An inert home of
     # the same kind as the four above, and `tests/entities.py`'s
     # must-classify check names it too -- a new file there still has to be
     # classified, it is just classified as unread.
@@ -486,6 +486,12 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # The nightly lanes' workflow and nightly-ha's composite action
+    # (R10-CI-LAYOUT PR 1, DESIGN-P1 2(a)): both run gate scripts --
+    # tests/rolling.py under SLOW, mutation_table.py, tests/nightly_ha.py --
+    # with the arguments and dependencies they set, the criterion above.
+    ".github/workflows/nightly.yml",
+    ".github/actions/nightly-ha/action.yml",
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
@@ -561,14 +567,10 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
-    # Round 9 (C1): the composed-closure proof driver. tests/entities.py
-    # reads it to pin that it measures through closure.py's own comparison,
-    # so an edit to it selects that script; left inside the tools/coverage/
-    # prefix it would be declared unread while being read (#357).
-    "tools/coverage/composed_proof.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
-    # scripts it runs; same reason as the proof driver above.
+    # scripts it runs; left inside the tools/coverage/ prefix it would be
+    # declared unread while being read (#357).
     "tools/coverage/coverage_tree.sh",
     # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
     # (R9-RO-6). Left inside the prefix the note is declared unread while
@@ -633,9 +635,32 @@ INERT_EXCEPT = (
     # openat), so they stay under the docs/ prefix. The arm also opens
     # DISCLAIMER.md for the page's DISCLAIMER.md#disclaimer claims.
     "docs/index.html",
+    # #2298: the image-size arm of tests/doc_claims.py OPENS each PNG a sized
+    # <img> on a published page names, to read its IHDR, so those files are
+    # its reads, not stat()s: a re-exported screenshot of another height
+    # selects the script. The rest of docs/img/ stays under the prefix. A new
+    # sized <img> adds its PNG here, as a new reader doc does above.
+    "docs/img/card/advisor-light.png",
+    "docs/img/card/card-plan-chart.png",
+    "docs/img/card/options-hot-water-by-day.png",
+    "docs/img/card/plan-why-light.png",
+    "docs/img/model/card-dhw-band-weekly.png",
+    "docs/img/readme/how-it-works.png",
+    "docs/img/setup/01-first-screen.png",
+    "docs/img/setup/03-menu.png",
+    "docs/img/setup/04-quick-setup.png",
+    "docs/img/setup/08-setup-overview.png",
     # R9-WEB-3: the same arm opens the stylesheet the built pages link, to refuse
     # a third-party @import or url() in it; the route docs/index.html took.
     "docs/site/docs.css",
+    # R10-ARCH-DOCS-FIRST: the coffee-button arm opens the README button's SVG
+    # to compare its light and dark colours with docs.css's tokens, and the
+    # doc-wiring arm opens the round-10 roster to resolve the target markers
+    # (only when a marker is present). Same route as the stylesheet above: the
+    # docs/ and dev/programme/ prefixes stay INERT, the two files move to
+    # doc_claims.py's recorded closure.
+    "docs/img/brand/coffee.svg",
+    "dev/programme/rosters/wave-r10-groups.json",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
@@ -660,6 +685,14 @@ INERT_EXCEPT = (
     # tools/audit/ prefix would declare a read file unread (#357).
     "tools/audit/round4/D11/governance_cost.py",
     "tools/audit/round4/D11/d11lib.py",
+    # R10-CI-LAYOUT: tests/entities.py opens these three. Left on the
+    # tools/audit/ prefix they are declared unread while being read: the
+    # recording files them under inert_reads and also in the closure, and
+    # merge refuses that pair. An edit selects entities.py, the
+    # tools/policy/agreement.mjs route below.
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/queue_pre_flight.py",
+    "tools/audit/seat/tmp_paths.py",
     "dev/audit/rounds/round4/D6/claims.json",
     "dev/audit/rounds/round4/D6/claims.md",
     "tools/policy/policy_lint.mjs",
@@ -764,6 +797,13 @@ INERT_EXCEPT = (
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",
+    # #2554: state_docs.py imports roster_sync.py, the roster-sync step
+    # `beat --apply` runs, and roster_sync imports roster_edit.py and
+    # carry_audit.py, so entities.py's load of the beat reads all three.
+    # closures run 119202770035 was UNDER-SCOPED on exactly these.
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/carry_audit.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the
@@ -794,6 +834,14 @@ INERT_EXCEPT = (
     "tools/policy/friction_issues.mjs",
     "tools/policy/policy_lint_mutants.mjs",
     "tools/policy/rules_sync.mjs",
+    # R10-TRAIN-HOLD (issue #2302): tests/entities.py reads this file's
+    # HOLD_REF constant, so the record beat's ref name and the train's cannot
+    # drift apart (the TRAIN-HOLD block's cross-half pin). The `tools/audit/`
+    # prefix would keep it INERT while entities.py opens it -- the #357
+    # contradiction the 0c216ecc closures job reported as INERT READS
+    # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
+    # and an edit to the train selects tests/entities.py.
+    "tools/audit/seat/merge_train.py",
 )
 
 
@@ -1138,13 +1186,7 @@ def _exec_record(script: str, out_path: str, extra_args: list[str]) -> int:
         "files": sorted(opened | modules),
         "inert_reads": sorted(f for f in opened if _is_real_file(f) and is_inert(f)),
         "spawned": [" ".join(a) for a in spawned][:200],
-        # A composed run (C1) is the same instrumented execution carrying the
-        # coverage tracer beside this hook (COVERAGE_PROCESS_START set by
-        # tools/coverage/coverage_tree.sh); the marker says so, so a reader
-        # can tell a composed recording from a bare one without its artifact.
-        "how": ("audithook+sys.modules+coverage-tracer"
-                if os.environ.get("COVERAGE_PROCESS_START")
-                else "audithook+sys.modules"),
+        "how": "audithook+sys.modules",
         "argv": [script, *extra_args],
     }
     Path(out_path).write_text(json.dumps(record, indent=1))
@@ -2521,47 +2563,23 @@ def _autofix_cmd(in_dir: Path, out: Path, partial: bool) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Composed recordings (C1) and the batch proof's recordings (C2), from the
-# round-9 heavy-script consolidation pre-study
+# The batch proof's recordings (C2), from the round-9 heavy-script
+# consolidation pre-study
 # (dev/audit/rounds/round9/prestudy/heavy-script-consolidation-prestudy.md,
-# landed on handoff/r9-heavy-consolidation-prestudy).
+# landed on handoff/r9-heavy-consolidation-prestudy). Its other mechanism, C1,
+# derived a closure from the coverage job's traced run; R10-CI-LAYOUT PR 1
+# (W1, owner ruling D-4) removed it at its source, so every script records
+# bare.
 #
-# Both mechanisms move a MEASUREMENT, never an answer, and neither stores
-# anything across trees: C1 derives two artifacts from one instrumented
-# execution of the script on this tree, and C2 re-checks recordings that a
-# proof run made on a BYTE-IDENTICAL tree with the same committed
-# tests/closures.json. Both fail closed -- a miss, a mismatch or an unhealthy
-# record re-records, which is the pre-study's safety property and CLAUDE.md
-# rule 1's ("a wrong closure survives longer than one merge" must be
-# impossible): the only silent case a mislabeled artifact is guarded by the
-# tree-hash key checked against a manifest written by the same checkout that
-# recorded, and the check that consumes recordings runs unchanged either way.
-
-
-COMPOSED = ROOT / "tests" / "composed_closures.json"
-
-# Scripts that may never be composed, with the rule that enumerates them:
-# a script the closures lane records with CHEAP arguments records a different
-# argv than the coverage lane runs (golden.py, env_drift.py), a script whose
-# lane sets a special environment (dst_checks.py) does not meet the coverage
-# lane's environment, arch_score.py's --smoke argv differs by design, and
-# features.py FAILS under any tracer (#525: its heartbeat pair reads zero
-# ticks, null control included). composing any of these would grade a
-# different execution than the one the table describes.
-CHEAP_ARGV_OR_ENV = {
-    "golden.py", "env_drift.py", "arch_score.py", "dst_checks.py",
-    "features.py",
-}
-
-
-def composed_scripts() -> list[str]:
-    """The allow-list of scripts whose closure may be derived from the
-    coverage job's traced run. Empty until proven per script on Linux CI
-    (read-set byte-identity traced-vs-bare; rc 0 under both)."""
-    if not COMPOSED.exists():
-        return []
-    data = json.loads(COMPOSED.read_text())
-    return list(data.get("scripts", []))
+# C2 moves a MEASUREMENT, never an answer, and stores nothing across trees:
+# it re-checks recordings that a proof run made on a BYTE-IDENTICAL tree with
+# the same committed tests/closures.json, and fails closed -- a miss, a
+# mismatch or an unhealthy record re-records, which is the pre-study's safety
+# property and CLAUDE.md rule 1's ("a wrong closure survives longer than one
+# merge" must be impossible): the only silent case a mislabeled artifact is
+# guarded by the tree-hash key checked against a manifest written by the same
+# checkout that recorded, and the check that consumes recordings runs
+# unchanged either way.
 
 
 def _manifest_tree(in_dir: Path) -> str | None:
@@ -2620,8 +2638,8 @@ def proof_consume(expect_tree: str, in_dir: Path) -> int:
         problems.append("the artifact carries no recordings")
     # THE ROSTER: consuming means the full arm below is SKIPPED, so what is
     # consumed must satisfy the full check's own "a selectable script with
-    # no recording at all" rule by itself. A proof set missing any script --
-    # a dispatch that consumed a composed record, say -- fails closed here
+    # no recording at all" rule by itself. A proof set missing any script
+    # fails closed here
     # and the merge's push run re-records fresh, rather than dying at the
     # check step with half an arm.
     have = {Path(rec["script"]).name for rec in recs}
@@ -2648,127 +2666,6 @@ def proof_consume(expect_tree: str, in_dir: Path) -> int:
     return 0
 
 
-def composed_verify(expect_tree: str, in_dir: Path) -> int:
-    """C1: which allow-listed scripts may be taken from the coverage job's
-    composed run, printed one per line on stdout. Refusal (exit 1) consumes
-    NOTHING -- the caller re-records every script bare."""
-    problems = []
-    label = _manifest_tree(in_dir)
-    if label is None:
-        problems.append("no tree.txt manifest")
-    elif label != expect_tree:
-        problems.append(f"manifest tree {label} is not this run's tree "
-                        f"{expect_tree}")
-    by_name = {}
-    recs = _loadable_recordings(in_dir)
-    if recs is None:
-        problems.append("a recording is missing or malformed")
-        recs = []
-    for rec in recs:
-        by_name[Path(rec["script"]).name] = rec
-    ok: list[str] = []
-    for script in composed_scripts():
-        name = Path(script).name
-        if name in CHEAP_ARGV_OR_ENV:
-            problems.append(
-                f"{script} is on the never-compose list "
-                f"(CHEAP_ARGV_OR_ENV); remove it from {COMPOSED} or prove "
-                "its equality first")
-            continue
-        rec = by_name.get(name)
-        if rec is None:
-            # Not composed this run -- the coverage plan reused the script's
-            # base data, so nothing was composed to consume. That is a skip,
-            # not a refusal: the script records bare below, the safe
-            # direction. (A present-but-invalid record IS a refusal.)
-            # stderr, not stdout: the workflow step word-splits stdout as
-            # the script list -- a diagnostic there became a fake
-            # `composed-verify:` token and killed the cp (job 115038269065).
-            print(f"composed-verify: {script} was not composed this run; "
-                  "it records bare", file=sys.stderr)
-            continue
-        if rec.get("rc") != 0:
-            problems.append(
-                f"{script}'s composed run exited {rec.get('rc')!r}; a run "
-                "that did not end has a truncated read set")
-            continue
-        if rec.get("argv") != [script]:
-            problems.append(
-                f"{script}'s composed argv {rec.get('argv')!r} is not the "
-                "closures lane's argv")
-            continue
-        if not rec.get("files"):
-            problems.append(f"{script}'s composed read set is empty")
-            continue
-        ok.append(script)
-    if problems:
-        for p in problems:
-            print(f"composed-verify: {p}", file=sys.stderr)
-        print("composed-verify: consuming nothing; the closures lane "
-              "re-records bare", file=sys.stderr)
-        return 1
-    for script in ok:
-        print(script)
-    return 0
-
-
-def composed_compare(composed_dir: Path, bare_dir: Path) -> int:
-    """The byte-identity proof: an allow-listed script's composed read set
-    must equal its bare recording's, files and inert_reads both. Red on any
-    inequality or on a bare recording with no composed counterpart."""
-    bad = 0
-    checked = 0
-    for script in composed_scripts():
-        bare = bare_dir / (Path(script).name + ".json")
-        comp = composed_dir / (Path(script).name + ".json")
-        if not bare.is_file():
-            continue
-        checked += 1
-        if not comp.is_file():
-            print(f"composed-compare: {script} has a bare recording and no "
-                  "composed one: the composition did not run for it")
-            bad += 1
-            continue
-        b = json.loads(bare.read_text())
-        c = json.loads(comp.read_text())
-        for field in ("files", "inert_reads"):
-            if sorted(b.get(field) or []) != sorted(c.get(field) or []):
-                only_bare = sorted(set(b.get(field) or []) - set(c.get(field) or []))
-                only_comp = sorted(set(c.get(field) or []) - set(b.get(field) or []))
-                print(f"composed-compare: {script} {field} differs")
-                print(f"  bare only: {only_bare[:6]}")
-                print(f"  composed only: {only_comp[:6]}")
-                bad += 1
-        if b.get("rc") != 0 or c.get("rc") != 0:
-            print(f"composed-compare: {script} rc bare={b.get('rc')!r} "
-                  f"composed={c.get('rc')!r}; equality is proven only for a "
-                  "run that ended")
-            bad += 1
-    if checked == 0:
-        print("composed-compare: no allow-listed script has a bare recording "
-              "here; nothing to compare (not a pass)")
-        return 2
-    if bad:
-        print(f"composed-compare: {bad} inequalit{'y' if bad == 1 else 'ies'}; "
-              f"remove the script from {COMPOSED} until it is proven")
-        return 1
-    print(f"composed-compare: {checked} script(s) byte-identical, files and "
-          "inert_reads both")
-    return 0
-
-
-# ---------------------------------------------------------------------------
-# selection
-
-
-# THE CHANGED-FILE LIST (O17, #2405/#2406 round 1). Every lane and the gate
-# read the files a diff changed from here, and this list keeps BOTH sides of a
-# rename. Porcelain `git diff --name-only` detects renames by default and
-# prints only the destination: `git mv custom_components/.../__init__.py
-# dev/programme/delivery/99999.md` listed the row alone, so the gate scoped
-# to 0 scripts and lane_skip's Level 0 skipped three lanes on a diff that
-# deleted the integration's entry point. `_selftest_renames` pins it, and
-# `RENAME_SITES` is the census that refuses a rename-detecting list elsewhere.
 def changed_between(base: str, head: str, *, dots: str = "...",
                     cwd: Path | str = ROOT, env: dict | None = None) -> list[str]:
     """The files `<base><dots><head>` changed, both sides of every rename."""
@@ -4336,8 +4233,7 @@ def selftest() -> int:
     print("\n=== a layout git merges without a driver (R9-CI-2b) ===")
     _selftest_layout(pin)
 
-    print("\n=== composed and proof recordings fail closed (round-9 C1/C2) ===")
-    _selftest_composed(pin)
+    print("\n=== the batch proof's recordings fail closed (round-9 C2) ===")
     _selftest_proof(pin)
     print("\n=== the scoped re-derive's lane plan (round-9 R1) ===")
     _selftest_lane_plan(pin)
@@ -4417,160 +4313,6 @@ def _selftest_proof(pin) -> None:
             rc == 1, f"rc={rc}")
 
 
-def _selftest_composed(pin) -> None:
-    global COMPOSED
-    tree = "3" * 40
-    script = composed_scripts()[0] if composed_scripts() else \
-        "tests/boost_drift_replay.py"
-    name = Path(script).name
-
-    def composed_dir(td: Path, *, rec: dict | None, manifest: str | None = tree):
-        d = td / "composed"
-        d.mkdir(parents=True, exist_ok=True)
-        if manifest is not None:
-            (d / "tree.txt").write_text(manifest + "\n")
-        if rec is not None:
-            (d / (name + ".json")).write_text(json.dumps(rec))
-        return d
-
-    good_rec = {"script": script, "rc": 0, "argv": [script],
-                "files": ["tests/harness.py", script],
-                "inert_reads": ["docs/x.md"], "how": "audithook+sys.modules+coverage-tracer"}
-    with tempfile.TemporaryDirectory() as td:
-        d = composed_dir(Path(td), rec=good_rec)
-        with contextlib.redirect_stdout(io.StringIO()) as buf:
-            rc = composed_verify(tree, d)
-        pin("composed-verify accepts a healthy record on the same tree",
-            rc == 0 and script in buf.getvalue().splitlines(),
-            f"rc={rc} out={buf.getvalue()!r}")
-    # The channel contract: stdout carries ONLY the script list the workflow
-    # step word-splits. A diagnostic on stdout became the fake token
-    # `composed-verify:` and killed the consume step's cp (job
-    # 115038269065: `cp: cannot stat '..._temp/composed/composed-verify:
-    # .json'`). Force the diagnostic path (an allow-listed script with no
-    # recording) and pin the channel, not just the exit.
-    with tempfile.TemporaryDirectory() as td:
-        d = composed_dir(Path(td), rec=good_rec)
-        saved = COMPOSED
-        allow = Path(td) / "allow.json"
-        allow.write_text(json.dumps(
-            {"scripts": [script, "tests/never_composed_here.py"]}))
-        COMPOSED = allow
-        try:
-            with contextlib.redirect_stdout(io.StringIO()) as out, \
-                    contextlib.redirect_stderr(io.StringIO()) as err:
-                rc = composed_verify(tree, d)
-            val = out.getvalue()
-            pin("composed-verify's stdout is exactly the script list; the "
-                "not-composed diagnostic goes to stderr",
-                rc == 0 and val.split() == [script]
-                and "composed-verify:" not in val
-                and "was not composed this run" in err.getvalue(),
-                f"rc={rc} out={val!r} err={err.getvalue()[-160:]!r}")
-        finally:
-            COMPOSED = saved
-    # The workflow side of the same contract: the consume step's loop, run
-    # as the step itself writes it, must skip a foreign token to
-    # record-bare (printed, never a bare cp failure) and stage only real
-    # stems -- COMPOSED_CONSUMED lists what was actually consumed.
-    text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
-    step = text.split("- name: Verify and stage the composed recordings", 1)[1]
-    body = step.split("run: |", 1)[1]
-    block = body.split("mkdir -p", 1)[1].splitlines()
-    while block and not block[-1].strip():
-        block.pop()
-    loop_src = "mkdir -p" + "\n".join(block[:next(
-        i for i, ln in enumerate(block) if ln.strip().startswith("- name:"))])
-    with tempfile.TemporaryDirectory() as td:
-        run = Path(td) / "rt"
-        (run / "composed").mkdir(parents=True)
-        (run / "composed" / (name + ".json")).write_text("{}")
-        genv = Path(td) / "genv"
-        script_obj = Path(td) / "loop.sh"
-        script_obj.write_text(loop_src)
-        proc = subprocess.run(
-            ["bash", str(script_obj)],
-            env={**os.environ,
-                 "RUNNER_TEMP": str(run),
-                 "GITHUB_ENV": str(genv),
-                 "OUT": f"{script} composed-verify:"},
-            capture_output=True, text=True)
-        consumed = ""
-        if genv.exists():
-            for line in genv.read_text().splitlines():
-                if line.startswith("COMPOSED_CONSUMED="):
-                    consumed = line.split("=", 1)[1]
-        pin("the workflow loop skips a foreign token to record-bare and "
-            "consumes only real stems",
-            proc.returncode == 0
-            and (run / "closures" / (name + ".json")).is_file()
-            and consumed.split() == [script]
-            and "no composed recording's stem" in proc.stdout,
-            f"rc={proc.returncode} out={proc.stdout[-200:]!r} "
-            f"consumed={consumed!r}")
-    for label, rec, manifest in (
-        ("a run that did not end (rc 1)", {**good_rec, "rc": 1}, tree),
-        ("a run with the coverage lane's argv, not the closures lane's",
-         {**good_rec, "argv": [script, "--mode", "strict"]}, tree),
-        ("an empty read set", {**good_rec, "files": []}, tree),
-        ("a manifest naming another tree", good_rec, "4" * 40),
-    ):
-        with tempfile.TemporaryDirectory() as td:
-            d = composed_dir(Path(td), rec=rec, manifest=manifest)
-            with contextlib.redirect_stdout(io.StringIO()), \
-                    contextlib.redirect_stderr(io.StringIO()):
-                rc = composed_verify(tree, d)
-            pin(f"composed-verify refuses {label} and consumes nothing",
-                rc == 1, f"rc={rc}")
-    with tempfile.TemporaryDirectory() as td:
-        d = composed_dir(Path(td), rec=good_rec)
-        (d / (name + ".json")).write_text(json.dumps(
-            {**good_rec, "script": "tests/features.py"}))
-        saved = COMPOSED
-        allow = Path(td) / "allow.json"
-        allow.write_text(json.dumps({"scripts": ["tests/features.py"]}))
-        COMPOSED = allow
-        try:
-            with contextlib.redirect_stdout(io.StringIO()), \
-                    contextlib.redirect_stderr(io.StringIO()) as err:
-                rc = composed_verify(tree, d)
-            pin("composed-verify refuses a never-compose script even with a "
-                "healthy record", rc == 1 and "CHEAP_ARGV_OR_ENV" in err.getvalue(),
-                f"rc={rc} err={err.getvalue()[-200:]!r}")
-        finally:
-            COMPOSED = saved
-    # The committed allow-list itself: every entry is a real selectable
-    # script, off the never-compose list -- the seam the rule enumerates.
-    entries = composed_scripts()
-    bad = [s for s in entries
-           if not (ROOT / s).is_file()
-           or Path(s).name in CHEAP_ARGV_OR_ENV
-           or Path(s).name in NOT_A_TEST]
-    pin("every committed composed-closure entry is a selectable, composable script",
-        not bad, f"bad entries: {bad}")
-
-    # The byte-identity proof: equal passes, one file differs, bare-only.
-    bare = {"script": script, "rc": 0, "argv": [script],
-            "files": ["tests/harness.py", script], "inert_reads": ["docs/x.md"]}
-    with tempfile.TemporaryDirectory() as td:
-        b = Path(td) / "bare"; b.mkdir()
-        (b / (name + ".json")).write_text(json.dumps(bare))
-        c = composed_dir(Path(td), rec=good_rec)
-        with contextlib.redirect_stdout(io.StringIO()) as buf:
-            rc = composed_compare(c, b)
-        pin("composed-compare passes equal files and inert_reads (null control)",
-            rc == 0 and "byte-identical" in buf.getvalue(), f"rc={rc}")
-        shrunk = {**good_rec, "files": [script]}
-        c2 = composed_dir(Path(td) / "s", rec=shrunk)
-        with contextlib.redirect_stdout(io.StringIO()):
-            rc = composed_compare(c2, b)
-        pin("composed-compare reddens when the composed read set misses a file",
-            rc == 1, f"rc={rc}")
-        c3 = composed_dir(Path(td) / "n", rec=None)
-        with contextlib.redirect_stdout(io.StringIO()):
-            rc = composed_compare(c3, b)
-        pin("composed-compare reddens on a bare recording with no composed one",
-            rc == 1, f"rc={rc}")
 def _selftest_lane_plan(pin) -> None:
     """The planner's invariants, on synthetic tables, plus the bash runner.
 
@@ -5174,13 +4916,6 @@ def main() -> int:
     pc = sub.add_parser("proof-consume")
     pc.add_argument("--expect-tree", required=True)
     pc.add_argument("--in-dir", required=True)
-    cv = sub.add_parser("composed-verify")
-    cv.add_argument("--expect-tree", required=True)
-    cv.add_argument("--in-dir", required=True)
-    cc = sub.add_parser("composed-compare")
-    cc.add_argument("--composed-dir", required=True)
-    cc.add_argument("--bare-dir", required=True)
-    sub.add_parser("composed-list")
     sub.add_parser("show")
     sub.add_parser("no-copies")
     sub.add_parser("selftest")
@@ -5209,14 +4944,6 @@ def main() -> int:
         return 0
     if a.cmd == "proof-consume":
         return proof_consume(a.expect_tree, Path(a.in_dir))
-    if a.cmd == "composed-verify":
-        return composed_verify(a.expect_tree, Path(a.in_dir))
-    if a.cmd == "composed-compare":
-        return composed_compare(Path(a.composed_dir), Path(a.bare_dir))
-    if a.cmd == "composed-list":
-        for script in composed_scripts():
-            print(script)
-        return 0
     if a.cmd == "not-run":
         return _not_run_cmd(Path(a.workdir))
     if a.cmd == "lane-plan":

@@ -14,26 +14,22 @@ them. **Not one was in a pull-request body.**
 ## 0. Everything in the repository's policy binds you
 
 `CLAUDE.md`'s four rules, every `alwaysApply` rule under `.cursor/rules/`, and
-every role contract here are not instructions you relay. They are instructions
-you follow. Where a rule names "the fixer" or "a seat", read yourself into it
-whenever you are the one acting — and you are acting whenever you write text
-another agent or the owner will treat as established.
+every role contract here are instructions you follow, not relay. Where a rule
+names "the fixer" or "a seat", read yourself into it whenever you are the one
+acting — and you are acting whenever you write text another agent or the owner
+will treat as established.
 
-These sections do not replace the source rules. The turn is `dev/governance/roles/nudge.md`.
+The turn is `dev/governance/roles/nudge.md`.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
-
-Generalised:
 
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
 ran, and what its output would have looked like had the claim been false. If you
 cannot answer the second, you have not measured — you have expected.
 
-- **A sample is not a quantifier.** Five runs checked and reported as "every run"
-  was false.
 - Describing an artifact without opening it is the same defect. A wrong claim
   is corrected under `fixer.md` step 9.
 - **Never print a conclusion beside a command** (`fixer.md` step 3): the
@@ -45,15 +41,13 @@ cannot answer the second, you have not measured — you have expected.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
-**Work a worker can do is dispatched, not performed.** You hold context no seat
-has and authority no seat has — sequencing, merging, the record, the freeze,
-stamps, and speaking to the owner. Everything else is a seat's.
+**Work a worker can do is dispatched, not performed.** You hold context and
+authority no seat has — sequencing, merging, the record, the freeze, stamps,
+and speaking to the owner. Everything else is a seat's.
 
-The reason is **independence**, the same
-principle `fix-review.md` step 2 states for the fixer: *a fixer who measures with
-a harness they wrote is measuring themselves*. Work you perform is work you must
-then review, and you are the one participant who cannot review it — so every task
-you take yourself removes a check.
+The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
+with a harness they wrote is measuring themselves*. Work you perform needs a
+reviewer and you cannot be it, so every task you take yourself removes a check.
 
 - A fix, an investigation, a measurement, a survey, a refutation, a root-cause
   analysis: **dispatch it.**
@@ -83,14 +77,13 @@ merge commit shuts an issue. **GitHub discards the negation**; only the keyword
 and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
-open**", never the negated form. The same applies to roster text, which a seat
-will paraphrase into its own body — a third-hand path to the same outcome, and it
-has occurred.
+open**", never the negated form. Roster text applies too: a seat will
+paraphrase it into its own body.
 
 **Run `tools/pr/preflight.sh` over the merge body before you merge — as a
-filter, not as proof.** It checks **four** reference forms, and **four is not
-all of them** — it names seven further shapes that still pass, and it is
-line-oriented, so a keyword and a number split across a newline are invisible to it.
+filter, not as proof.** It checks **four** reference forms and names seven
+further shapes that still pass; a keyword and a number split across a newline
+are invisible to it.
 
 It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
@@ -101,10 +94,9 @@ printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
 
 It misleads three ways. **Empty stdin prints `clean` and exits 0 having read
 nothing** (a filename argument does this); **held-open stdin blocks silently**
-and reports 143 when killed; neither looks like a failure. And the
-declared-argument escape is **per number, not per occurrence**: declare a number
-once and every armed keyword bound to it passes, including in a body that also
-quotes the incident.
+and reports 143 when killed; neither looks like a failure. The declared-argument
+escape is **per number, not per occurrence**: declare it once and every armed
+keyword bound to it passes, even in a body quoting the incident.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
@@ -115,6 +107,10 @@ exactly that.
 
 ## 5. Before dispatching a seat
 
+- **The soft cap gates only dispatching a new roster group** (tvofi,
+  2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
+  refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
+  Opening or updating a pull request for an owed handoff is never refused by it.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
@@ -123,12 +119,17 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
+- **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
   shape); it binds them (`fixer.md` 17).
+- **An L or XL group with no approved design, pre-study or prototype is
+  designed first** (decision 0014): dispatch `designer.md` when its last
+  predecessor dispatches, `design-review.md` at the design's head, and its
+  fixer only after `Design review: approve <sha>`, read back from
+  `design-verdict/<group>`. The approved note is its architect note.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
   relative one resolves against the seat's cwd, which was yours for three seats.
@@ -159,8 +160,7 @@ request that exists but whose head is an ancestor of the ref is a different
 repair -- `tools/audit/seat/update_pr.sh` -- and dispatching an opener at it
 opens a second pull request for work one already carries; a ref and its pull
 request that have diverged needs your judgement, not a pattern's. `bus.sh
-orphans` answers all of it for every ref at once; this rule is what to do with
-the answer.
+orphans` answers it for every ref at once.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -201,8 +201,7 @@ the bug.**
 
 An issue is what you write when you cannot act. Filing is not neutral: it enters
 the Delivery-status table, needs a disposition, and is read by later seats as
-established fact, with nothing gating it; one filed issue asked for a mechanism
-already in the tree. A real finding you must not touch goes to that stage's brief (section 10).
+established fact, with nothing gating it. A real finding you must not touch goes to that stage's brief (section 10).
 
 ## 9. The record, and the one living handover
 
@@ -210,7 +209,7 @@ already in the tree. A real finding you must not touch goes to that stage's brie
 frozen by the handoff costs a record pull request; that is the price, not zero.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
-Three failure shapes already produced, all yours:
+Failure shapes already produced, all yours:
 
 - **A completeness check over "open" sets is blind to what lands.** Merged pull
   requests leave every open listing the moment they merge; twenty had no
@@ -227,8 +226,7 @@ Three failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request. It binds you
 additionally, because you write the rosters and you decide the merge order.
 
-- **A comment is not propagation** — including yours on #201, which is where you
-  are most tempted to put things.
+- **A comment is not propagation** — including yours on #201.
 - **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
@@ -262,7 +260,7 @@ beside a clean exit by design, the shape that lets a real error be waved through
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
   `defect-root-cause.md`).
-- The merge message passes section 4.
+- The merge message passes section 4; never a custom `--subject`, four readers parse it (#2423).
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
@@ -283,7 +281,7 @@ never by hand or in a branch; rule 4 binds you.
 **An instrument the programme runs is a tracked, self-tested file; a
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
-from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
+from scratch or `~/`.
 
 **Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
 hand-rolled a tick driver, relay, sweep prompt and merge loops beside
@@ -309,11 +307,10 @@ before merging — so open the pull request and surface it.
 - **Do not build an automated gate that clears your own work.** A check you
   wrote, run by you, on text you wrote is three roles this programme separates,
   and `judge.md`'s void rule applies to it: *a finding whose harness does not
-  move under its own perturbation is void, whatever the votes said.* Tools you
-  run are encouraged — `tools/pr/preflight.sh` exists because intentions did
-  not bind and a script bound immediately — but the reviewer stays the authority.
+  move under its own perturbation is void, whatever the votes said.* Run tools,
+  but the reviewer stays the authority.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
-  judgement is yours to make and to state, not to skip.
+  judgement is yours to make and to state.

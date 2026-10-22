@@ -96,11 +96,11 @@ So the writer is a **fourth App, `hpo-ledger`**. What the workflow does with
 it and what the credential itself can do are two different grants, and only
 the second bounds a misuse; both are stated.
 
-**What the workflow does** (`.github/workflows/tests.yml`, pinned in
-`tests/entities.py`):
+**What the workflow does** (`.github/workflows/nightly.yml` since R10-CI-LAYOUT
+PR 1, `tests.yml` before it; pinned in `tests/entities.py`):
 
 - **Reach**: `mutation-ledger` and `mutation-ledger-push` run only when
-  `github.ref` is `refs/heads/main`, on `schedule` or a non-recheck
+  `github.ref` is `refs/heads/main`, on `schedule` or a
   `workflow_dispatch`. A dispatch on any other ref would drive that ref's tree
   and kill rule and push the kills to `main` (#1848 review, B1).
 - **Write set**: new files under `tests/mutation_ledger/killed_by/` and

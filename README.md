@@ -13,6 +13,10 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
 
+[![Buy me a coffee](docs/img/brand/coffee.svg)][coffee]
+
+[coffee]: https://buymeacoffee.com/rpgshcwb2tp
+
 [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
 
 ![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card/card-plan-chart.png)
@@ -393,7 +397,7 @@ flowchart TD
     T --> C{"5 · How do you want to<br/>describe your building?"}
     C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    C -- "Enter thermal values<br/>directly" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
     F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
     H --> I
@@ -1032,6 +1036,10 @@ relevant contract in `dev/governance/roles/`, which describe the required
 evidence in the form the gate checks for. That is a convenience, not a
 requirement, and it does not lower the bar — the evidence is verified
 mechanically either way.
+
+**Developing here** starts at [dev/README.md](dev/README.md): the order the work
+runs in, what a branch owes before it is pushed, the CI shape and the
+orchestration machinery, drawn.
 
 **The limits are real.** Review here is adversarial by design and much of it is
 also performed by models, so this is not a claim that the code is correct — it

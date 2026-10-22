@@ -9,11 +9,16 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S30 each plant one production-line
-mutant in one file -- outside that file's self-test function -- and run only
-the step that names the file: a killed mutant reddens the step, and the same
-step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38,
+and each per-file id (<file>-<n>), plant one production-line mutant in one
+file -- outside that file's self-test function -- and run only the step
+that names the file: a killed mutant reddens the step, and the same step on
+the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
+carry's own mutant (`true`, and `exit 0` for the merge), and the step's
+offline self-test must redden.
 W1..W3 drive
 the wiring step: an unwired self-testing file, a step reduced to a comment
 naming its file, and a trailing comment, each of which must redden it.
@@ -46,6 +51,11 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
+
+# cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
+_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
+_FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 
 # name, file, old (exactly once in the file), new
 MUTANTS = [
@@ -92,16 +102,113 @@ MUTANTS = [
     ("S28", "offline_spy.py", "and bool(URL_RE.search(parts[2])))", "and False)"),
     ("S29", "selftest_wiring.py", 'return [COMMENT_RE.sub("", x) for x in out]', "return out"),
     ("S30", "selftest_wiring.py", "return 1 if unwired else 0", "return 0"),
+    # r10-tick-relay-decouple: the relay runs detached under a lock, and the board never waits on it.
+    ("S31", "tick_loop.sh", '  if kill -0 "$hp" 2>/dev/null; then rrc=running; return 0; fi  # mut:detach\n', ""),
+    ("S32", "tick_loop.sh", "except BlockingIOError: sys.exit(75)\n", "except BlockingIOError: pass\n"),
+    ("S33", "tick_loop.sh",
+     '    [ "$rrc" = rc=holder-76 ] && { relay_reap "$out.relay" late; relay_start "$out.relay" "$relay"; }  # mut:reap\n',
+     ""),
+    # The base's serial relay step (0cc148b2f), the loop the fix replaced.
+    ("S34", "tick_loop.sh",
+     '    relay_start "$out.relay" "$relay"\n    # 76:',
+     '    bash "$relay" pass; rrc=$?\n    [ "$rrc" = 0 ] && rrc=ok || rrc="rc=$rrc"\n    # 76:'),
+    # #2444's fourth forward-carry: the push and merge lines their own
+    # self-tests did not reach. Each mutant is the carry's, verbatim.
+    ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
+     "true  # mut:push-update"),
+    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+     "true  # mut:push-open"),
+    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+    ("S38", "merge_pr.sh",
+     "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+     "exit 0  # mut:merge"),
+    # R10-FLOW-MAIN-GATE (K15): the train's state classifier and its readers.
+    ("merge_train-1", "merge_train.py", "names = [n for n in required if n not in NOT_GATING]",
+     "names = list(required)"),
+    ("merge_train-2", "merge_train.py", '        return "pending"\n', '        return "red"\n'),
+    ("merge_train-3", "merge_train.py", 'return ("red" if red else "wait" if pending else "green")',
+     'return ("wait" if pending else "red" if red else "green")'),
+    ("merge_train-4", "merge_train.py", "    if required is None:\n        raise ValueError(",
+     '    if required is None:\n        return "green", [], []\n        raise ValueError('),
+    ("merge_train-5", "merge_train.py", '            elif state == "red":\n', '            elif state != "green":\n'),
+    ("merge_train-6", "merge_train.py", 'in ("queued", "in_progress") and run_status == "completed"',
+     'in ("queued", "in_progress")'),
+    ("merge_train-7", "merge_train.py", "        self.unstale(h)\n", ""),
+    ("merge_train-8", "merge_train.py", "        if reran:\n            red = self.wait_ci(",
+     "        if False:\n            red = self.wait_ci("),
+    ("merge_train-9", "merge_train.py", "if files and all(f in claim_files for f in files):",
+     "if files and any(f in claim_files for f in files):"),
+    ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
+    ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
+    ("merge_train-12", "merge_train.py",
+     '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
+     '    drivers = []\n'),
+    ("merge_train-13", "merge_train.py",
+     'return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]', "return []"),
+    ("merge_train-14", "merge_train.py", " or (code == 1) != (len(lines) > 1):", ":"),
+    ("merge_train-15", "merge_train.py", "            if m.group(1) not in reran.values():\n",
+     "            if True:\n"),
+    ("merge_train-16", "merge_train.py",
+     '            if runs is None:\n                self.log(f"OVERLAP:',
+     '            if False:\n                self.log(f"OVERLAP:'),
+    ("merge_train-17", "merge_train.py", "    if code not in (0, 1):\n        return None\n    names",
+     "    if False:\n        return None\n    names"),
+    ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
+     "        if False:\n            raise Stop(\"build\""),
+    ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
+    ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
+    ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
+    ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
+     '"absorb main locally with the claimnotes driver" if files else'),
+    ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
+    ("body_patch-1", "body_patch.sh",
+     '[ "$rbok" = 1 ] || die "#$pr could not be read back',
+     '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
+    ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-2", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),
+    ("cloud_relay-3", "cloud_relay.sh", "*[!0-9]*|0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'",
+     "0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'"),
+    ("cloud_relay-4", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if grep -qF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
+    ("cloud_relay-6", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'level_set'),
+    ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
+    # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
+    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
+    ("cloud_relay-10", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'logline OWED "handoff-hold-malformed $(hold_file)"; level_set'),
+    ("cloud_relay-11", "cloud_relay.sh",
+     'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
+     'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
+    # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
+    ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
+    ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+    ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
+    ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
+    ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
+    ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
+     '  true \\\n'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
+# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
+# the mutant drops the delivery_row dispatch, so that tally is never printed.
 WRAPPERS = [
     ("S08", "handoff_push.sh",
-     '[ "${1:-}" = --self-test ] && exec bash "$(dirname -- "$0")/delivery_row.sh" --self-test',
-     '[ "${1:-}" = --self-test ] && exit 0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
+     'r=0; :'),
     ("S12", "open_pr.sh",
      'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
      'exit $r; }'),

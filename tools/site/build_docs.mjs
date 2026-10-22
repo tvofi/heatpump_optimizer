@@ -218,7 +218,7 @@ ${r.html}
 </main>
 ${r.h2.length >= 3 ? `<aside class="toc" aria-label="On this page"><p class="eyebrow">On this page</p><ol>${r.h2.map(([id, t]) => `<li><a href="#${esc(id)}">${esc(t)}</a></li>`).join('')}</ol></aside>` : '<span></span>'}
 </div>
-<footer class="site"><div class="bar"><a class="brand" href="index.html"><svg aria-hidden="true" style="width:24px;height:24px"><use href="#dusk"/></svg><span>Heat Pump Cost Optimizer</span></a><a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="${BLOB}LICENSE">MIT License</a><a href="${disclaimer || BLOB + 'DISCLAIMER.md'}">Disclaimer</a></div></footer>
+<footer class="site"><div class="bar"><a class="brand" href="index.html"><svg aria-hidden="true" style="width:24px;height:24px"><use href="#dusk"/></svg><span>Heat Pump Cost Optimizer</span></a><a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="${BLOB}LICENSE">MIT License</a><a href="${disclaimer || BLOB + 'DISCLAIMER.md'}">Disclaimer</a><a class="bmc" href="https://buymeacoffee.com/rpgshcwb2tp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3c0 1 1 1.5 1 2.5M12 3c0 1 1 1.5 1 2.5"/></svg>Buy me a coffee</a></div></footer>
 <script>${THEME_JS}</script>
 ${mermaidJs(r.mermaid)}
 </body>

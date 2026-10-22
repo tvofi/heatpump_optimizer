@@ -141,9 +141,9 @@ does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
 
 **`nightly-status` and `delivery-status` grade `main`**, so a body owes them no
 answer **unless its diff touches what they read**: their scripts, `tests.yml`,
-`governance.yml`, the plan, `HANDOVER.md` or a row it did not add (the exemption
+`nightly.yml`, `governance.yml`, the plan, `HANDOVER.md` or a row it did not add (the exemption
 in `.claude/workflows/policy_lint.mjs`, from the base). Otherwise their red is
-the orchestrator's on `main`: fix the nightly lane and dispatch Tests on the
+the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
 default branch (its red report carries the call; `web-fragments.md` maps it), or
 drain the overdue rows. A cause outside this repository is named with its owner.
 
