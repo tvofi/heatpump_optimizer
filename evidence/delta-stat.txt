@@ -1,0 +1,14 @@
+ .claude/rules/gate-scoping.md                     |  46 +++---
+ .cursor/rules/gate-scoping.mdc                    |  46 +++---
+ dev/audit/harnesses/r10_seat_selftests_mutants.py |  28 ++++
+ dev/governance/rules/gate-scoping.md              |  46 +++---
+ dev/programme/delivery/2528.md                    |   1 +
+ dev/programme/delivery/2579.md                    |   2 +-
+ dev/programme/delivery/2580.md                    |   1 +
+ dev/programme/delivery/2613.md                    |   2 +-
+ dev/programme/delivery/2614.md                    |   2 +-
+ dev/programme/delivery/2616.md                    |   1 +
+ tools/audit/seat/INSTRUMENTS.md                   |   9 ++
+ tools/audit/seat/cloud_relay.sh                   |  94 ++++++++++-
+ tools/pr/prepr.sh                                 | 185 ++++++++++++++++++++--
+ 13 files changed, 374 insertions(+), 89 deletions(-)

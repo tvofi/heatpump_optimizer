@@ -1,9 +1,0 @@
-origin/main 50808a755ce300fac4b19b7cfe7f89c795b8387b
-c1d4415d2f0f94363d61256cf5a1881df0b79c5b
-100644 4d43d0b78f15313fe0cdda323c7fc202779c2812 1	tools/audit/seat/cloud_relay.sh
-100644 f394ee31f533e7274d64ec25224e2a97f7ca706d 2	tools/audit/seat/cloud_relay.sh
-100644 35231c437485f7feefa50b8276c79a2508df81a5 3	tools/audit/seat/cloud_relay.sh
-
-Auto-merging tools/audit/seat/cloud_relay.sh
-CONFLICT (content): Merge conflict in tools/audit/seat/cloud_relay.sh
-rc=1
