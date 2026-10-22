@@ -1,0 +1,40 @@
+== counts
+108
+144
+{"new":36,"removed":0,"changed":30}
+== null control vs current origin/main and B
+rc=0
+== roster byte-identity handoff vs head
+rc=0
+== merge-tree
+5c47fcb1c97ded7a96362f50589ad8434f6574cb
+rc=0
+== head parents
+ad10fd2153c6c8fe2e1d56c8b0302c5b057cc37a 23cc013fac2d30d76f0a99bdc166a79579a4d741 93e6a63d2855651448a2b8f677b392feddc03c99
+== plan_table
+54 open group(s) of 108; 8 wave(s); critical path: R10-ADVISOR -> R10-SCORES -> R10-LIVESTATE -> R10-PARAMS-OWNER -> R10-HEAT-METER -> R10-COP-GATE -> R10-UX-HEALTH -> R10-ARCH-DOCS (8).
+  title Fix waves; crit = the critical path
+| R10-ROSTER-OPS | IN | 1 | done | #2496 | sonnet/opus | - | roster_edit.py gains set-after <group> <G1,.../-> and drop-carry <group> <index/--match TEXT>, so replans and stale-carry drops go through the load-validate-... |  |
+| R10-CI-RATCHET-RED | IN | 1 | in-progress | - | opus/opus | - | main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-... |  |
+79 open group(s) of 144; 8 wave(s); critical path: R10-NIGHT-FOLDS -> R10-LOOP-CPU -> R10-LIVESTATE -> R10-PARAMS-OWNER -> R10-HEAT-METER -> R10-COP-GATE -> R10-UX-HEALTH -> R10-ARCH-DOCS (8).
+  title Fix waves; crit = the critical path
+| R10-ROSTER-OPS | IN | 1 | done | #2496 | sonnet/opus | - | roster_edit.py gains set-after <group> <G1,.../-> and drop-carry <group> <index/--match TEXT>, so replans and stale-carry drops go through the load-validate-... |  |
+| R10-CI-RATCHET-RED | IN | 1 | done | - | opus/opus | - | main is red on ci-ratchet on most pushes since 2026-10-19 (critical path 58.65 min against the 54.825 budget; script runs 73 against 68; found by the R10-CI-... |  |
+== P22 exit at B and main
+93e6a63d2855651448a2b8f677b392feddc03c99:tools/audit/seat/update_pr.sh:46:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
+93e6a63d2855651448a2b8f677b392feddc03c99:tools/audit/seat/update_pr.sh-47-[ -d $WT ] && git worktree remove --force $WT
+93e6a63d2855651448a2b8f677b392feddc03c99:tools/audit/seat/update_pr.sh-48-git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
+origin/main:tools/audit/seat/update_pr.sh:46:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
+origin/main:tools/audit/seat/update_pr.sh-47-[ -d $WT ] && git worktree remove --force $WT
+origin/main:tools/audit/seat/update_pr.sh-48-git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
+git fetch -q origin "$BR" main
+OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
+  [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
+  git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_refuse "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
+  git -C $o checkout -q --detach
+done
+git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
+[ -d $WT ] && git worktree remove --force $WT
+git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
+== P22 carry text
+6:P22 (assessor decision, s4, mandate 6329234399): update_pr.sh exits 75 (not 1) for 'branch checked out elsewhere' (l.42) and worktree-in-use, as for its lock, so a live train's worktree is no longer read as permanent. The relay (cloud_relay.sh l.229-230) keys cloud-handoff-failed on (topic, handoff sha, body sha) and appends the update log's last refusal line, so a body-only repair re-triggers i
