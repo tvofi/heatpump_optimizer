@@ -48,8 +48,12 @@ MUTANTS = {
     "M9-rc-ignored": ('d.split("py-spy rc=0:", 1)[1]\n        for d in summary["dumps"] if "py-spy rc=0:" in d',
                       'd.split("py-spy rc=", 1)[1]\n        for d in summary["dumps"] if "py-spy rc=" in d'),
     "M10-boot-skips-control": ("    await _async_hb_control(checks)\n", "    pass\n"),
+    "X1-no-rest": ("            await asyncio.sleep(rest)\n", "            pass\n"),
+    "X2-timeout-25": ("PY_SPY_TIMEOUT_S = 5.0", "PY_SPY_TIMEOUT_S = 25.0"),
+    "X3-tries-2": ("HB_CONTROL_TRIES = 3", "HB_CONTROL_TRIES = 2"),
+    "X5-default-30": ("spy_timeout=PY_SPY_TIMEOUT_S,", "spy_timeout=30.0,"),
 }
-HEADER = '''import asyncio, sys, tempfile, threading, inspect as _inspect
+HEADER = '''import asyncio, sys, tempfile, threading, inspect as _inspect, time as _time
 from pathlib import Path
 sys.path[:0] = [{mut!r}, {tests!r}, {stub!r}, {root!r}]
 import nightly_ha as _nightly
