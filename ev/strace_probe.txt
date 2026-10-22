@@ -1,0 +1,12 @@
+committed instrument: closure.strace_files over the recorder's own strace argv (tests/closure.py:1350)
+non-INERT files: 325  INERT files: 1
+tools/audit/seat/orchestrator_tick.py: is_inert=True in_nonINERT_set=False in_INERT_set=False
+tools/audit/seat/record_row.py: is_inert=False in_nonINERT_set=True in_INERT_set=False
+tools/audit/seat/merge_train.py: is_inert=False in_nonINERT_set=True in_INERT_set=False
+tools/audit/seat/roster_lib.py: is_inert=False in_nonINERT_set=True in_INERT_set=False
+tools/audit/seat/queue_pre_flight.py: is_inert=False in_nonINERT_set=False in_INERT_set=False
+tools/audit/seat/tmp_paths.py: is_inert=False in_nonINERT_set=False in_INERT_set=False
+tools/audit/seat/selftest_wiring.py: is_inert=True in_nonINERT_set=False in_INERT_set=False
+INERT tools/audit/seat files read by Python processes: []
+committed inert_reads[tests/entities.py] seat entries: ['tools/audit/seat/merge_train.py', 'tools/audit/seat/queue_pre_flight.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/roster_lib.py', 'tools/audit/seat/selftest_wiring.py', 'tools/audit/seat/tmp_paths.py']
+orchestrator_tick lines in trace (any process): 480

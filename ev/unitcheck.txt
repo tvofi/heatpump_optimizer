@@ -1,0 +1,3 @@
+head:    STATIC rows 225->232 lost 0 gained 0 changed 29 (mapped 29) misplaced 0 rc 0
+plant:   STATIC rows 225->231 lost 1 gained 0 changed 29 (mapped 29) misplaced 0 rc 1  (1 LOST row(s))
+rc=0 secs=.858259939

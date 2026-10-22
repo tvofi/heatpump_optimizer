@@ -1,0 +1,18 @@
+$ python3 -I tools/audit/seat/queue_pre_flight.py --self-test
+ModuleNotFoundError: No module named 'merge_train'
+rc=0
+$ python3 tools/audit/seat/record_row.py --self-test
+record_row self-test: all checks passed
+rc=0
+$ bash tools/audit/seat/ci-watch.sh --self-test
+ci-watch self-test: 8 checks, 0 failed
+rc=0
+$ harness_headers
+ALL 109 HARNESS HEADER CHECKS PASSED
+$ c1_consumers origin/main
+14
+$ seat files
+tracked 55 INERT 45
+inert_reads seat entries ['tools/audit/seat/merge_train.py', 'tools/audit/seat/queue_pre_flight.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/roster_lib.py', 'tools/audit/seat/selftest_wiring.py', 'tools/audit/seat/tmp_paths.py']
+is_inert true for ['tools/audit/seat/selftest_wiring.py']
+orchestrator_tick INERT True listed False

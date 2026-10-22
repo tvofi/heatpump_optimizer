@@ -1,0 +1,4 @@
+PREDICT closures INERT READS tests/entities.py: tools/audit/seat/orchestrator_tick.py (a new file beside 6 it lists)
+CI PREDICT: an INERT READS entry is written with `python3 tools/pr/ci_predict.py --apply-inert` and committed: the entry CI's Linux recording would merge, before the push, where the bot's repair after it costs a red closures run and a commit on the reviewed head
+CI PREDICT: 1 predicted red(s) on closures against 3976515a0822 -- repair before the handoff; `--apply-inert` repairs them
+rc=1

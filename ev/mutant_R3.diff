@@ -1,0 +1,14 @@
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+index c72c6ef31..7e42ed846 100644
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -35,7 +35,8 @@ permissions:
+ # By run id, never cancelled: a nightly or a record beat stopped half way is
+ # worse than two side by side.
+ concurrency:
+-  group: ${{ github.workflow }}-${{ github.run_id }}
++  group: ${{ github.workflow }}
++  cancel-in-progress: true
+   cancel-in-progress: false
+ 
+ jobs:

@@ -1,0 +1,4 @@
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: .github/actions/nightly-ha/action.yml changes the gate itself, so every closure is suspect
+rc=0 secs=.142064990
