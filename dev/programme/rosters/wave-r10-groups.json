@@ -8045,7 +8045,8 @@
     "- R10-ORCH-MACHINERY still has to receive this PR's `ROSTER-APPEND R10-ORCH-MACHINERY` text as one new `carry` entry, landed by the orchestrator with roster_edit.py. The text says the beat's handoff job reads `<state>/cloud-handoff-hold` only through `cloud_relay.sh held <pr>`: rc 0 skip, rc 1 proceed, rc 2 refuse the whole pass. It gives a control, a null control, a malformed control and a mutant. The group is live (`not-started`) on origin/main, at this head and on origin/handoff/audit-r10-roster e5d5c508. Its brief plus carry still holds 0 matches for `cloud_relay\\.sh held|cloud-handoff-hold|malformed`, which is the body's own null control (ev/carry-audit.txt). Carry: R10-ORCH-MACHINERY",
     "R10-ORCH-MACHINERY must register `heartbeat.sh --once` as the beat's heartbeat job and then drop the call from `tick_loop.sh`. Carry: R10-ORCH-MACHINERY",
     "The beat's job table should list `body_patch.sh` as a hosted one-shot (arguments pr, sha, body; success = exit 0 and a last `body_patch: OK` line). Carry: R10-ORCH-MACHINERY",
-    "finding-propagation: unclear: a seam note for FLOW-BODY-PATCH in STUDY K17 names the beat but not the argument shape a hosted job takes, so this seat chose positional arguments and an `OK|REFUSE` last line. Carry: R10-ORCH-MACHINERY"
+    "finding-propagation: unclear: a seam note for FLOW-BODY-PATCH in STUDY K17 names the beat but not the argument shape a hosted job takes, so this seat chose positional arguments and an `OK|REFUSE` last line. Carry: R10-ORCH-MACHINERY",
+    "Triage P-B forward-carry (s4, batch 3, 2026-10-22): beatd.py must report its code SHA against origin/main the same way, since it is launchd-restarted from a fixed checkout. (From the tick_loop.sh staleness finding: tick_loop.sh runs the relay and tick from whatever checkout it started in and never updates, so a running loop kept stale code for 506 commits; the same hazard moves to the beat.)"
    ],
    "model": {
     "fixer": "opus",
