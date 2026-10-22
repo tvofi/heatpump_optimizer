@@ -7315,6 +7315,49 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Owner request 2026-10-21; the last group before the closure stamp."
    }
+  },
+  {
+   "group": "R10-FLY-BUDGET-LEAF",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/pr/prepr.sh"
+   ],
+   "hot_files": [
+    "tools/pr/prepr.sh"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Fix from the root-cause seat on the 'no budget leaf raised' refusals (#2591): prepr's step 7 (body_line) and step 7c (reds_line) reported a refused body check by its count line alone unless the refusal was an unnamed red, and step 7 appended its budget verdict to that line. #2545, #2558 and #2582 were refused within about an hour with 'PR-BODY: N error(s) ... no budget leaf raised', which read as a budget refusal; the real ground was a ## Friction line written as prose, not in the template's <rule_id>: <class>: <evidence> form. One helper, body_refusal, used by both callers, prints the red gate's own sentence when a red went unnamed, else the first ERROR line policy_lint.mjs --pr-body printed, else the count line, followed by the count of error lines. PR #2591 (topic r10-fly-budget-leaf), changes only tools/pr/prepr.sh.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-budget-leaf",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694 for #2591."
+   }
   }
  ]
 }
