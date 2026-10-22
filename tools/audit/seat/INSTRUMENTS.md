@@ -269,6 +269,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   cloud`, and appends `OWED reviewer-fire <pr> <head40> <nonce> <utc>` to the
   log (firing the cloud reviewer stays with the orchestrator). It only updates an
   existing PR, which the soft cap never refuses (it gates only group dispatch).
+  Hold: `cloud-handoff-hold` under the state dir lists PR numbers, one per line
+  (blank and `#` lines allowed); only the orchestrator writes it. A listed PR
+  whose handoff is ahead is not updated and prints `HELD #<pr> <handoff tip>`
+  once per pass, so a frozen PR's head stays put while its handoff branch keeps
+  moving; removing the number resumes it. A missing or empty file holds nothing;
+  a line that is not a plain PR number refuses the whole handoff arm for that
+  pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
+  `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
+  malformed) for a driver that updates PRs itself.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
   update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
   `OWED handoff-update`, and retried only when the handoff moves. An update that
@@ -607,6 +616,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   PR state, under a byte budget. When: a state beat; regenerate rather than
   hand-edit the resume. Refusal: over-budget output refuses with `--out`
   unwritten — archive before regenerating.
+- `review_strength.py` — real-catch blocks per reviewed PR, incidence and
+  first-pass share from the `review/*` bus, over git only (no REST), per
+  window and per stratum: reviewer kind (a probe-ref return is cloud), class,
+  re-review after a merge verdict, and with `--roster` the PR's origin, fixer
+  model, size and product, taken `--as-of` the latest window's until (the
+  verdicts, `--tree` and the roster ref cut there). When: a flow guardrail
+  or a D13 round reads review strength; `dev/audit/rounds/round10/D13/yield-probe.md`
+  is its first use. Refusal: an out-of-grammar subject is its own row,
+  never a verdict.
 - `roster_edit.py` — the safe roster edit: every op loads the whole roster,
   validates, and dumps with the file's own formatting; ops `set-stage`
   (with `--at-sha`), `wire-issue [--field fixes|issues]`, `unwire-issue <group> <N> [--field
