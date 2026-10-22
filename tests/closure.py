@@ -254,6 +254,12 @@ PRODUCERS = {
 #     an inconsistency waiting to be believed.
 INERT = (
     "LICENSE",
+    # R10-CI-LAYOUT-P2a U6-lib: the code-scanning alert lister and its mutant
+    # driver. No gate script opens either; the instrument-self-tests step the
+    # P2a glue adds runs the self-test. U0a's `tools/ci/` GATE_FILES entry
+    # supersedes these two lines when the units are assembled.
+    "tools/ci/alert_list.py",
+    "tools/ci/alert_list_mutants.sh",
     # The private-advisory pointer (#801). GitHub renders it; no gate script
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
