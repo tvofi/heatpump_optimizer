@@ -1,0 +1,15 @@
+M0 (unmutated emission): passed -- review_strength self-test: 76 checks, 0 failed
+DISPOSED L143  load @ out.append(dict(pr=int(m[1]), t=when(t), kind=m[2], head=...: drop or arm ''  [equivalent: cls None and cls '' read alike everywhere: stratum's `or` and the REAL_CATCH membership test]
+DISPOSED L195  pr_facts @ for ln in git(repo, 'diff', '--numstat', mb, head, check=...: test mb -> True  [equivalent: with no merge base the size is '?' and product reads `files`, which a failed `git diff` leaves empty either way]
+DISPOSED L196  pr_facts @ a, d, f = ln.split('\t', 2): 2 -> 3  [equivalent: `git diff --numstat` quotes any path holding a tab, so a line holds exactly two tabs]
+DISPOSED L185  pr_facts @ grp = groups.get(g[1]) if g else None: 1 -> 0  [equivalent: GROUP_RE's one group is its whole match, so g[0] == g[1]]
+DISPOSED L195  pr_facts @ for ln in git(repo, 'diff', '--numstat', mb, head, check=...: drop keyword check= of git  [equivalent: the diff runs only with a merge base, so both commits exist and it cannot exit non-zero]
+DISPOSED L266  guardrail @ return f"GUARDRAIL last {n} PRs (first verdict {first[las...: cdf < ALPHA [op 0: Lt -> LtE]  [equivalent: no binomial CDF lands exactly on 0.05 in floating point (none for N <= 5 on a 1e-5 p0 grid); strict 'below 0.05' is R13's wording]
+DISPOSED L271  main @ ap.add_argument('--repo', default=str(ROOT)): drop keyword default= of ap.add_argument  [unpinned: the default is the checkout the tool runs from; the fixture must pass --repo to be the repository read]
+DISPOSED L273  main @ ap.add_argument('--tree', default='origin/main'): drop keyword default= of ap.add_argument  [unpinned: the default is the real remote's main; the fixture has none and passes --tree]
+DISPOSED L275  main @ ap.add_argument('--window', action='append', default=[], ...: drop keyword default= of ap.add_argument  [equivalent: argparse's append default is None without it, and `not a.window` refuses None and [] alike]
+DISPOSED L273  main @ ap.add_argument('--tree', default='origin/main'): 'origin/main' -> ''  [unpinned: the default is the real remote's main; the fixture has none and passes --tree]
+DISPOSED L306  main @ name, span = w.split('=', 1): 1 -> 2  [equivalent: a window spec holds one '=' (names and ISO stamps hold none)]
+DISPOSED L307  main @ f, u = span.split('..', 1): 1 -> 2  [equivalent: an ISO stamp holds no '..', so a span holds one]
+RESULT mutants=799 killed=787 survived=12 disposed=12 undisposed=0 stale=0
+rc=0
