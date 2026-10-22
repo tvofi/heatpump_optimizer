@@ -55,6 +55,8 @@ So it is kept. Deleting it would let an unverified cache entry stand in for the 
 
 Unless a figure says otherwise, it was re-taken at this head, or at `e4294cde5` where it says so. Every local figure was taken on a Linux cloud seat under `/opt/hpo/venv-ci` (CPython 3.14.7). The critical-path figures and the coverage-step count come from the round-1 CI fetch and are dated there.
 
+The PR head is `e93de8667`, a bot main-merge (`ci: merge main`) of this handoff head with main's #2529 and later merges. It carries no code of this handoff's own, so every figure in this body is the one at the head named above.
+
 ## Mutation proof
 
 Round 2's fix:
@@ -172,7 +174,9 @@ The code-owned files are `.github/workflows/tests.yml`, the new `.github/workflo
 - PR 0 carried this re-record to this PR (roster carry "From PR r10-ci-layout-p0").
 - `_cir_once_count()` in `tests/entities.py` derives 54 from the two instruments' own enumerations and pins the budget equal to it. A planted extra run turns the ratchet red, and exactly 54 does not.
 
-Payments tried, re-examined at `e4294cde5`. All 20 `fast` scripts are also in the closures plan (`## Figures`), so a payment of one run would have to stop one of those 20 being executed twice per push. Each candidate:
+Payments tried: four, none taken (listed below); the count is derived, not chosen (`_cir_once_count()` in `tests/entities.py` reads 54 from the two instruments' enumerations), so a raise is the only sound option once W1 removes the composition.
+
+The four payments, re-examined at `e4294cde5`. All 20 `fast` scripts are also in the closures plan (`## Figures`), so a payment of one run would have to stop one of those 20 being executed twice per push. Each candidate:
 
 1. **Let `closures` consume `coverage`'s recording of `tests/boost_drift_replay.py` again (the 53 state).** This is C1 itself: owner ruling D-4's refused alternative (V2 in DESIGN-P1 2(c)). It keeps two files, a job, a workflow edge and four `closure.py` entry points that W1 deletes. It was not scored, because the owner's ruling already decides it. Not taken.
 2. **Let `closures` consume `coverage`'s recording of a different one of the 20 shared scripts.** This is the same composition mechanism under another name, so the same ruling and the same cost apply. Not taken.
