@@ -1,9 +1,1 @@
-== carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body ev/pr-body.md (at 53f24912)
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-== carry_audit.py --roster-ref origin/main check --body ev/pr-body.md (at 53f24912)
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
-== --roster-ref origin/main at 01cf1398a9cfa3dcae5945221afd0c1dae9cf682
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

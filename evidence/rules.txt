@@ -1,0 +1,17 @@
+      4 alt
+      5 anch
+      9 copy
+     24 del
+      6 flag
+      4 glob
+      1 not
+      1 null
+     45 num
+      3 opnd
+      4 or
+      2 pipe
+      5 quant
+     10 rel
+      2 ret
+      1 src
+      3 word
