@@ -271,11 +271,7 @@ def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int
         return self_test()
     try:
         if a.sweep:
-            try:
-                import sweep
-            except ImportError:
-                print("FAIL sweep-unavailable: tools/ci/sweep.py (U0b) is not in this tree")
-                return 1
+            import sweep                               # tools/ci/sweep.py, bound to this get/post
             return sweep.main(["--run", str(a.run)], get, post)
         ctx = context(env["GITHUB_EVENT_NAME"], json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text()), env)
         if a.refresh:
@@ -398,11 +394,8 @@ def self_test() -> int:
         import types
         calls, saved = [], sys.modules.get("sweep")
         try:
-            sys.modules["sweep"] = None                # an import of None raises ImportError
-            buf = io.StringIO()
-            with contextlib.redirect_stdout(buf):
-                rc = main(["--sweep", "--run", "5"], fake(), None, menv)
-            check("--sweep without sweep.py fails closed", (rc, buf.getvalue().split()[:2]), (1, ["FAIL", "sweep-unavailable:"]))
+            import sweep
+            check("--sweep binds tools/ci/sweep.py", Path(sweep.__file__).resolve(), HERE / "sweep.py")
             sys.modules["sweep"] = types.SimpleNamespace(main=lambda argv, g, p: calls.append((argv, g, p)) or 7)
             g = fake()
             check("--sweep dispatches to sweep.main(argv, get, post)", (main(["--sweep", "--run", "5"], g, "P", menv), calls),

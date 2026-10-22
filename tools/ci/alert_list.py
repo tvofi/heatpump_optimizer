@@ -8,7 +8,8 @@ Pure decision code over JSON: every read goes through an injected
 interface contract, item 2). This module imports no HTTP client, and a
 `RateLimited` raised by `get` propagates unchanged: it is never an empty list.
 `headers` is the one addition to the contract's signature: the SARIF read needs
-`Accept`, and the binding in the P2a glue forwards it.
+`Accept`. `bind` is the P2a glue's binding to ghapi.get, which takes the same
+optional `headers`; this module's paths are relative to repos/<repo>/.
 
   step 4: for each leg S uploaded, the newest entry of
       code-scanning/analyses?ref=R&tool_name=CodeQL (sort and direction pinned,
@@ -118,6 +119,11 @@ def reds(get, ref, sha, legs, base, base_repeats):
         return True, out
     except ReadFailed as e:
         return False, f"FAIL closed: {e}"
+
+
+def bind(get, repo):
+    """ghapi.get as this module calls it: the path under repos/<repo>/, headers forwarded."""
+    return lambda path, params=None, headers=None: get(f"repos/{repo}/{path}", params, headers)
 
 
 def main(argv, get):
@@ -275,6 +281,10 @@ def self_test() -> int:
     check("A  null control: the rejected by_ref reading lists nothing where the analysis reading lists the alert",
           by_ref_reading(rows, M, LEGS) == [] and reds(world([an(14, "python", M2)] + THREE,
           {13: sarif((7, PLANT)), 14: sarif(), **EMPTY}, [alert(7, PLANT, "open")]), R, M, LEGS, BASE, False)[1] != [])
+    calls = []
+    bind(lambda *a: calls.append(a) or (200, {}, {}), "o/r")(f"{LISTING}/13", None, {"Accept": ACCEPT_SARIF})
+    check("B  bind: the path is under repos/<repo>/ and the Accept header is forwarded",
+          calls == [(f"repos/o/r/{LISTING}/13", None, {"Accept": ACCEPT_SARIF})], f" {calls}")
     check("M  main: title without sha= FAILs closed", main(["--ref", R, "--title", "no token", "--base", BASE], None) == 1)
     print(f"alert_list self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
@@ -287,5 +297,9 @@ if __name__ == "__main__":
         print(f"{LISTING} " + " ".join(f"{k}={v}" for k, v in PINS.items()))
         sys.exit(0)
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from ghapi import get as _get                    # U0a's client; bound here only for the command line
-    sys.exit(main(sys.argv[1:], _get))
+    import ghapi                                     # the one REST client; bound here only for the command line
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repo:
+        print("FAIL closed: GITHUB_REPOSITORY is unset")
+        sys.exit(1)
+    sys.exit(main(sys.argv[1:], bind(ghapi.get, repo)))

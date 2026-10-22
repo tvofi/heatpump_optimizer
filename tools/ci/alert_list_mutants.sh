@@ -1,7 +1,8 @@
 #!/bin/sh
 # Each rule of alert_list.py is pinned by its self-test: one mutant per rule, written to a
 # temporary directory, and the self-test must refuse it (a BAD row or a crash).
-# Run from a checkout: sh tools/ci/alert_list_mutants.sh
+# Run from a checkout: sh tools/ci/alert_list_mutants.sh [--self-test]. The flag only names
+# the run for selftest_wiring.py's rule (governance's step passes it); there is no other mode.
 set -u
 src=tools/ci/alert_list.py
 tmp=$(mktemp -d)
@@ -25,4 +26,5 @@ mutant "RateLimited swallowed as a failed read" 'except ReadFailed as e:
         return False, f"FAIL' 'except Exception as e:
         return False, f"FAIL'
 mutant "a failed alert read tolerated" 'f"alert {n}")' 'f"alert {n}") if False else {}'
+mutant "the glue's binding drops the Accept header" 'get(f"repos/{repo}/{path}", params, headers)' 'get(f"repos/{repo}/{path}", params)'
 echo "ALERT-LIST MUTANTS: every mutant refused"

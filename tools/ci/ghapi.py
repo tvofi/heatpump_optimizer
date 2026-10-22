@@ -9,6 +9,8 @@ injected `get`/`post` of exactly these signatures; this is the only module
 there that imports urllib (contract item 2), stdlib only.
 
     get(path, params=None) -> Resp       Resp = (status: int, headers: dict, json)
+    get(path, params, headers)           headers: extra request headers (alert_list's
+                                         SARIF `Accept`); additive, the contract's form stands
     post(path, body=None)  -> Resp
     paginate(path, params) -> list       every item of every page, Link-followed
 
@@ -65,7 +67,7 @@ def _rate_limited(path: str, status: int, headers: dict, raw: bytes) -> None:
         raise RateLimited(path, int(reset), text[:120])
 
 
-def _request(method: str, path: str, params=None, body=None):
+def _request(method: str, path: str, params=None, body=None, headers=None):
     url = path if path.startswith("http") else f"{API}/{path.lstrip('/')}"
     if params:
         url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
@@ -74,6 +76,8 @@ def _request(method: str, path: str, params=None, body=None):
     req.add_header("Accept", "application/vnd.github+json")
     req.add_header("X-GitHub-Api-Version", "2022-11-28")
     req.add_header("User-Agent", "hpo-tools-ci")
+    for k, v in (headers or {}).items():          # replaces a default of the same name
+        req.add_header(k, v)
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
@@ -90,8 +94,8 @@ def _request(method: str, path: str, params=None, body=None):
     return status, headers, doc
 
 
-def get(path: str, params=None):
-    return _request("GET", path, params)
+def get(path: str, params=None, headers=None):
+    return _request("GET", path, params, headers=headers)
 
 
 def post(path: str, body=None):
@@ -171,6 +175,9 @@ def self_test() -> int:
         check("200 parses", get("repos/o/r", {"x": 1}), (200, {}, {"a": 1}))
         check("query string", seen[-1].full_url, f"{API}/repos/o/r?x=1")
         check("token from GH_TOKEN", seen[-1].get_header("Authorization"), "Bearer tok")
+        check("default Accept", seen[-1].get_header("Accept"), "application/vnd.github+json")
+        get("x", None, {"Accept": "application/sarif+json"})
+        check("an extra header replaces the default", seen[-1].get_header("Accept"), "application/sarif+json")
         _open = serve(403, b'{"message": "API rate limit exceeded for installation ID 1"}', {"X-RateLimit-Reset": "1700000000"})
         try:
             get("repos/o/r/pulls/1")
