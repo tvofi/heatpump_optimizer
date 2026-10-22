@@ -16,12 +16,17 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CURRENCY (stage in-progress, branch `handoff/r10-currency`): `git fetch origin handoff/r10-currency && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LOOP-CPU (stage in-progress, branch `handoff/r10-loop-cpu`): `git fetch origin handoff/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SCORES (stage in-progress, branch `handoff/r10-scores`): `git fetch origin handoff/r10-scores && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BRIEFS-FOLD (stage in-progress, branch `handoff/r10-briefs-fold`): `git fetch origin handoff/r10-briefs-fold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CI-LAYOUT-P2 (stage in-progress, branch `handoff/r10-ci-layout-p2`): `git fetch origin handoff/r10-ci-layout-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-PULL (stage in-progress, branch `handoff/r10-flow-pull`): `git fetch origin handoff/r10-flow-pull && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-ARCH-PLANNER (stage in-progress, branch `handoff/r10-flow-arch-planner`): `git fetch origin handoff/r10-flow-arch-planner && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-TOOLKIT-MEASURE (stage in-progress, branch `handoff/r10-flow-toolkit-measure`): `git fetch origin handoff/r10-flow-toolkit-measure && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-DEPGRAPH-STALE (stage in-progress, branch `handoff/r10-fly-depgraph-stale`): `git fetch origin handoff/r10-fly-depgraph-stale && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage in-progress, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
