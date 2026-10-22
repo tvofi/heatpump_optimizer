@@ -132,7 +132,8 @@ ok   with exactly 4 calls to that read
 ok   REFUSE: a 404 on the pull-request read
 ok   after exactly 1 call: no retry masks a refusal
 ok   and no settle
-ok   naming the error gh gave
+ok   naming the error gh gave, with no attempt count after one call
+ok   and the read's stderr file is gone
 ok   and nothing was minted or posted
 ok   REFUSE: a permission 403 on the files read
 ok   after exactly 1 call
@@ -145,9 +146,20 @@ ok   and no settle
 ok   a readable answer with no verdict refuses after exactly 1 read
 ok   REFUSE: four transient failures spend the budget
 ok   after exactly 4 calls
+ok   the fifth queued failure was never read
 ok   settling 5/15/45 s between them
 ok   naming the last error
 ok   and nothing was minted or posted
+ok   and the read's stderr file is gone
+ok   REFUSE: a read whose stderr file cannot be made
+ok   naming that, not a parse of an empty answer
+ok   and gh was never called
+ok   REFUSE: a read failing with nothing on stderr
+ok   after exactly 1 call
+ok   saying gh left no error
+ok   every queued stderr line classifies as its arm needs (production gh_transient)
+ok   (the census covers every fail-* file an arm made)
+ok   (and holds both classes)
 ok   a 502 on the review POST refuses: a write is never retried
 ok   after exactly 1 POST
 ok   and no settle
@@ -204,8 +216,5 @@ ok   REFUSE: the verdict at V does not carry to a head one byte away (null contr
 ok   saying why
 ok   and nothing was minted or posted
 ok   REFUSE: a carried verdict whose evidence names neither head
-app_approve self-test: 206 checks, 0 failed
-
-real	0m23.533s
-user	0m16.835s
-sys	0m6.394s
+app_approve self-test: 218 checks, 0 failed
+rc=0

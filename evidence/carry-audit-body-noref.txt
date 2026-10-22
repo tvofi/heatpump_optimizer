@@ -1,2 +1,0 @@
-BAD-DEST body item 0e5922c7: R10-FLY-GH-READ-RETRY: R10-FLY-GH-READ-RETRY is not a group of the roster
-CARRY-AUDIT: 2 finding item(s): 1 routed, 0 unrouted, 1 bad destination(s)

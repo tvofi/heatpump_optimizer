@@ -1,20 +1,21 @@
     if _out=$10
-== structure
+## structure
 
 STRUCTURE RATCHET PASSED
-== archscore
-Architecture score: dS +0.0000 NULL
-== closure select
-  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
-== policy budgets
 rc=0
-== st count
-112
-88
->/dev/null 2>&1 \
-  gh_read comments --paginate "repos/$repo/issues/$pr/comments?per_page=100" \
-    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
-  gh_read owners "repos/$repo/contents/.github/CODEOWNERS?ref=main" \
+## archscore
+Architecture score: dS +0.0000 NULL
+## closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+## policy_lint
+rc=0
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 3976515a0822
+## harness_headers
+ALL 109 HARNESS HEADER CHECKS PASSED
+=main" \
   gh_read files --paginate "repos/$repo/pulls/$pr/files?per_page=100" \
   inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
   curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \

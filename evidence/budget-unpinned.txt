@@ -1,9 +1,0 @@
-RESULT mutant='R1 budget -gt (5 reads)' rc=0 206 checks, 0 failed
-RESULT mutant='R11 unbounded: -ge 999' rc=0 206 checks, 0 failed
-
-gh_transient classification of the rspent fixture lines:
-transient: gh: Server Error (HTTP 500)
-transient: Get "https://api.github.com/repos/o/r/pulls/7": net/http: TLS handshake timeout
-transient: gh: HTTP 502
-refuse:    gh: Service Unavailable (HTTP 503) the-last-one
-transient: gh: Service Unavailable (HTTP 503)
