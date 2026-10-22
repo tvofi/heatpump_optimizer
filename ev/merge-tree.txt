@@ -1,0 +1,11 @@
+origin/main=b787c7d45951243a05b6522437b60a01288f0dfd
+3d62282d0b09c71744eafc76b66c92dbc00506d6
+rc=0
+origin/main is ancestor of head
+
+== re-read 2026-10-22T08:19:56Z: origin/main=01cf1398a9cfa3dcae5945221afd0c1dae9cf682 (PR #2598 merged 2026-10-22T08:09:18Z)
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (816 entries)
+  re-run the gate that owns this file before pushing
+62ceb6501ba1ba9da738a3b6f4a3ed59489a1f03
+rc=0
