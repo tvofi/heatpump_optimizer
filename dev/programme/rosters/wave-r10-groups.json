@@ -1143,9 +1143,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 25; before you: R10-SAV-BASELINE, R10-SAV-REASONS; next: R10-SCORES, R10-LIVESTATE); heatpump-optimizer-card.js (position 3 of 5; before you: R10-DEEPLINK, R10-UX-SETUP; next: R10-SCORES, R10-UX-HEALTH). Owning seam in this group: the advisor what-if and its card section. Shape: a horizon-averaged delta with a sign check before render. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-advisor",
-    "commit": null,
+    "commit": "f24895c0c0c3c74b8349f63991851b8cf4c52da9",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "cloud fixer dispatched 2026-10-21 (session cse_01RtZ1JhkPNzg4WqGuqGKj9f) at main 6961f066; returns on handoff-body/r10-advisor"
