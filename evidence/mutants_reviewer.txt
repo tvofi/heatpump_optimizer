@@ -1,6 +1,0 @@
-RV1 build ignores text_merge drivers (keeps the None stop): merge_train rc=1 ['merge_train self-test: 219 checks, 1 failed'] fails=1 | tick rc=0 ['orchestrator_tick self-test: 186 checks, 0 failed'] fails=0
-RV2 text_merge driver resolves everything (true): merge_train rc=1 ['merge_train self-test: 219 checks, 2 failed'] fails=2 | tick rc=1 ['orchestrator_tick self-test: 186 checks, 2 failed'] fails=2
-RV3 text_merge regex matches nothing: merge_train rc=1 ['merge_train self-test: 219 checks, 2 failed'] fails=2 | tick rc=1 ['orchestrator_tick self-test: 186 checks, 3 failed'] fails=3
-RV4 conflicts accepts any rc: merge_train rc=0 ['merge_train self-test: 219 checks, 0 failed'] fails=0 | tick rc=0 ['orchestrator_tick self-test: 186 checks, 0 failed'] fails=0
-RV5 overlap unreadable arm logs nothing: merge_train rc=1 ['merge_train self-test: 219 checks, 1 failed'] fails=1 | tick rc=0 ['orchestrator_tick self-test: 186 checks, 0 failed'] fails=0
-RV6 text_merge treats rc 1 as unreadable: merge_train rc=1 ['TypeError: can only join an iterable'] fails=3 | tick rc=1 ['orchestrator_tick self-test: 186 checks, 3 failed'] fails=3

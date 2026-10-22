@@ -1,8 +1,39 @@
-check-runs API (get_check_runs, PR #2584 head bf10abe62926bc8d93be779ae859a985e5365aa6), read ~19:40Z 2026-10-21, 46 runs:
-  failure: nightly-status (job 119435825623, run 39661625674)
-  in_progress: closures (119440800360), Analyze (python) (119435987406)
-  everything else: success / skipped / neutral (CodeQL) -- incl. pr-contract x2 success, instrument-self-tests success, mutation success, fast (3.14) success, typing success
-nightly-status inputs: tests.yml job `nightly-status` (if: pull_request) runs tests/nightly_status.py restored from the base (PINNED, -I -S) and reads the last
-concluded scheduled run of tests.yml. Latest scheduled run 39563978649 on main c77f89dc619c: slow=failure (step 8 "Replay recorded days through the real coordinator"),
-mutation-nightly=failure (step 6 "Drive the table over the whole package"); matches the body's ## Red checks.
-Diff (ev/changed_files.txt) touches neither .github/workflows/tests.yml nor tests/nightly_status.py nor custom_components/.
+coverage-ratchet	completed	success
+graders-head-copy	completed	success
+lane-proofs	completed	success
+claims-autofix	completed	skipped
+CodeQL	completed	success
+mutation-autofix	completed	skipped
+mutation-pins	completed	skipped
+pr-contract	completed	success
+Analyze (javascript-typescript)	completed	success
+Analyze (actions)	completed	success
+Analyze (python)	completed	success
+nightly-ha	completed	skipped
+fast (3.14)	completed	success
+typing	completed	success
+browser	completed	success
+closures	in_progress	
+coverage	completed	success
+delivery-status-publish	completed	skipped
+record	completed	skipped
+kernel-points (${{ matrix.coretype }})	completed	skipped
+validate-hacs	completed	success
+arch-score	completed	success
+nightly-status	completed	failure
+mutation	completed	success
+budget-raise-gate	completed	success
+briefs	completed	success
+closure-scope	completed	success
+delivery-status	completed	success
+policy-docs	completed	success
+wave-script	completed	success
+instrument-self-tests	completed	success
+cancel-superseded	completed	success
+env-matrix	completed	success
+budget-raise-gate	completed	success
+hassfest	completed	success
+scope	completed	success
+cancel-superseded	completed	success
+pr-contract	completed	success
+arch-score	completed	success
