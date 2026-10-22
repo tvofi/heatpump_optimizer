@@ -19335,6 +19335,117 @@ R.check(
     "request heads before the umbrella replaces it",
 )
 
+# --- the umbrella engine's pins (R10-CI-LAYOUT P2a glue) ---------------------
+#
+# REQUIRED. `tools/ci/gate.py`'s `REQUIRED` (contract item 4, keyed by event
+# class) is what the one required check `gate` demands; the fixture's
+# `gate_required` is the list the ruleset and the seat readers will key on. The
+# check reads the module itself (loaded by path, as stamp.py is above), never a
+# copy, and pins its sorted union equal to the fixture list, which must hold no
+# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
+# red check, not a truncated run.
+_CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
+import importlib.util as _cig_util
+try:
+    _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
+    _cig = _cig_util.module_from_spec(_cig_spec)
+    _cig_spec.loader.exec_module(_cig)
+    _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
+except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
+    _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
+_CIG_FIXTURE = json.loads((_closure.ROOT / "tools" / "policy" / "fixtures"
+                           / "required-contexts.json").read_text())
+
+
+def _cig_mismatch(required: "dict[str, tuple[str, ...]]", fixture: dict) -> "list[str]":
+    union = sorted({n for names in required.values() for n in names})
+    listed = list(fixture.get("gate_required") or [])
+    out = []
+    if not union:
+        out.append("REQUIRED is empty")
+    if listed != sorted(set(listed)):
+        out.append("gate_required is not sorted and duplicate-free")
+    out += [f"only in REQUIRED: {n}" for n in union if n not in listed]
+    out += [f"only in gate_required: {n}" for n in listed if n not in union]
+    if len(fixture.get("contexts") or []) != 17:
+        out.append(f"contexts holds {len(fixture.get('contexts') or [])}, not the 17")
+    return out
+
+
+_CIG_DEFECTS = _cig_mismatch(_cig_required, _CIG_FIXTURE)
+# Null controls: a name dropped from every class, a name added to the fixture,
+# and a duplicated fixture entry must each be named, so a reader that compares
+# nothing fails.
+_cig_listed = list(_CIG_FIXTURE.get("gate_required") or [])
+_CIG_PLANTS = {
+    "REQUIRED loses a name": (
+        {k: tuple(n for n in v if n not in _cig_listed[:1])
+         for k, v in _cig_required.items()}, _CIG_FIXTURE),
+    "the fixture gains a name": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + ["zz / planted"])}),
+    "a duplicated fixture entry": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + _cig_listed[:1])}),
+}
+_CIG_PLANT_MISSED = sorted(k for k, (req, fx) in _CIG_PLANTS.items() if not _cig_mismatch(req, fx))
+R.check(
+    "tools/ci/gate.py's REQUIRED union equals required-contexts.json's "
+    "gate_required, and contexts stays the 17 (P2a)",
+    not _cig_err and not _CIG_DEFECTS and not _CIG_PLANT_MISSED,
+    f"load={_cig_err or 'ok'} defects={_CIG_DEFECTS} plants the reader missed="
+    f"{_CIG_PLANT_MISSED}; the gate and the ruleset would demand different checks",
+)
+
+# Forgery (DESIGN-P2 2.1, rev1 item 12(b)), the half that needs no umbrella:
+# no workflow but ci.yml defines a job whose id or `name:` can render `gate`
+# (a `${{ }}` in a name matches any text), and no workflow grants `checks:
+# write` -- neither at the top nor in a job, and never through `write-all`.
+# Every workflow declares a top-level `permissions:`, so no job falls back to
+# the repository's default token, which the tree cannot read. The other half,
+# "exactly one job in ci.yml carries `gate`", is P2b's: the stub has none.
+def _forgery_defects(docs: "dict[str, dict]") -> "list[str]":
+    out = []
+    for name, doc in docs.items():
+        if "permissions" not in doc:
+            out.append(f"{name}: no top-level permissions (the default token)")
+        grants = [("top", doc.get("permissions"))]
+        for jid, job in (doc.get("jobs") or {}).items():
+            job = job or {}
+            label = str(job.get("name") or jid)
+            pat = ".+".join(re.escape(p) for p in re.split(r"\$\{\{.*?\}\}", label))
+            if name != "ci.yml" and (jid == "gate" or re.fullmatch(pat, "gate")):
+                out.append(f"{name}: job {jid} can report as `gate`")
+            grants.append((jid, job.get("permissions")))
+        for where, perm in grants:
+            if perm == "write-all" or (isinstance(perm, dict) and perm.get("checks") == "write"):
+                out.append(f"{name}: {where} grants checks: write")
+    return out
+
+
+_FORGERY_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
+                 for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
+_FORGERY_DEFECTS = _forgery_defects(_FORGERY_DOCS)
+_fg_tests = _FORGERY_DOCS.get("tests.yml") or {}
+_fg_jobs = _fg_tests.get("jobs") or {}
+_FORGERY_PLANTS = {
+    "a gate job id": {"jobs": {**_fg_jobs, "gate": {"runs-on": "x"}}},
+    "a job named by an expression": {"jobs": {**_fg_jobs, "x": {"name": "${{ inputs.n }}"}}},
+    "a job grant": {"jobs": {**_fg_jobs, "x": {"permissions": {"checks": "write"}}}},
+    "write-all": {"permissions": "write-all"},
+    "no top-level permissions": None,
+}
+_FORGERY_PLANT_MISSED = sorted(
+    k for k, over in _FORGERY_PLANTS.items()
+    if not _forgery_defects({"tests.yml": (
+        {k2: v for k2, v in _fg_tests.items() if k2 != "permissions"} if over is None
+        else {**_fg_tests, **over})}))
+R.check(
+    "forgery: no workflow but ci.yml defines a `gate` job, none grants "
+    "checks: write, and every workflow declares its top-level permissions",
+    bool(_FORGERY_DOCS) and not _FORGERY_DEFECTS and not _FORGERY_PLANT_MISSED,
+    f"defects={_FORGERY_DEFECTS} plants the reader missed={_FORGERY_PLANT_MISSED}; "
+    "a second producer of `gate` could write a newer green at a PR head",
+)
+
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
