@@ -219,8 +219,7 @@ That is the orchestrator's call; this seat pushes only its handoff refs.
 none. The one later stage this changes is every dispatched seat, and its
 destination is `tools/audit/seat/cloud_dispatch.py`'s prompt, which this diff
 changes itself.
-
-  Carry: dismissed: the destination, cloud_dispatch.py's prompt, is changed by this diff itself, so no later stage is owed
+Carry: dismissed: the destination, cloud_dispatch.py's prompt, is changed by this diff itself, so no later stage is owed
 
 ## Friction
 
