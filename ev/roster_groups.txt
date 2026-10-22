@@ -1,0 +1,5 @@
+== origin/handoff/audit-r10-roster
+{"group":"R10-ORCH-MACHINERY","stage":null,"status":null,"carry":"[\"Instrument defect, observed 2026-10-20 (orchestrator): tools/audit/worktree_gc.sh collected the roster worktree while it held an unpushed commit on the roster branch, and deleted the branch with it. The tool's own header promises a worktree with unpushed work is left alone. What happened: roster_e"}
+{"group":"R10-FLOW-YIELD-PROBE","stage":null,"status":null,"carry":"[\"Owner ruling: investigate the 0.52 to 0.15 fall first (R13).\",\"Pre-study: the Lean flow pre-study, guardrail baselines (classes and enumerator).\"]"}
+== origin/main
+{"group":"R10-ORCH-MACHINERY","stage":null,"status":null,"carry":"[\"Instrument defect, observed 2026-10-20 (orchestrator): tools/audit/worktree_gc.sh collected the roster worktree while it held an unpushed commit on the roster branch, and deleted the branch with it. The tool's own header promises a worktree with unpushed work is left alone. What happened: roster_e"}

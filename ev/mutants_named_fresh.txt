@@ -1,0 +1,56 @@
+N2: rc=1 KILLED | review_strength self-test: 76 checks, 2 failed
+     FAIL: size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+N4: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: guardrail: a PR first reviewed exactly at until (7, 03:00) is outside; the bounds print [0] and [-1]
+N6: rc=1 KILLED | review_strength self-test: 76 checks, 2 failed
+     FAIL: origin: a group listing findings alone is finding (8, R1-FINDS)
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+N7: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: as of: a verdict exactly at T is after T (6's 10-05T01 head is not read at 10-05T01)
+N8: rc=1 KILLED | review_strength self-test: 76 checks, 2 failed
+     FAIL: product: blueprints/ is product (11), docs/ is not (12)
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+N9: rc=1 KILLED | review_strength self-test: 76 checks, 3 failed
+     FAIL: size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600
+     FAIL: merge join: only a two-parent PR merge is a merge; an octopus naming 10 and a one-parent 12 are not
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F1 blueprint prefix typo: rc=1 KILLED | review_strength self-test: 76 checks, 2 failed
+     FAIL: product: blueprints/ is product (11), docs/ is not (12)
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F2 delivery prefix widened: rc=0 SURVIVED | review_strength self-test: 76 checks, 0 failed
+F3 resume -pr suffix: rc=1 KILLED | review_strength self-test: 76 checks, 3 failed
+     FAIL: join: merge branch fix/r1-fix-pr, -pr stripped, finds R1-FIX's resume.branch (fixer haiku)
+     FAIL: origin: a group listing fixes alone is finding
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F4 cloud prefix shortened: rc=0 SURVIVED | review_strength self-test: 76 checks, 0 failed
+F5 REAL word typo: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: REAL_CATCH is the study record's real-catch list, word for word
+F6 merges keep oldest: rc=1 KILLED | review_strength self-test: 76 checks, 2 failed
+     FAIL: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F7 first-pass in-window only: rc=0 SURVIVED | review_strength self-test: 76 checks, 0 failed
+F8 binary counted as 1: rc=1 KILLED | review_strength self-test: 76 checks, 3 failed
+     FAIL: size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600
+     FAIL: merge join: only a two-parent PR merge is a merge; an octopus naming 10 and a one-parent 12 are not
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F9 merge head parent index: rc=1 KILLED | review_strength self-test: 76 checks, 4 failed
+     FAIL: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)
+     FAIL: product: 5 touches custom_components/, 6 only docs/
+     FAIL: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F10 unreviewed label: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: main --as-of takes the facts at T, not at the latest until; a PR first reviewed after T is its own row
+F11 roster not as of until: rc=1 KILLED | review_strength self-test: 76 checks, 3 failed
+     FAIL: origin: a group listing issues is finding, one listing none is group
+     FAIL: facts print the tree and roster resolved at T, 12 hex each
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+F12 cloud suffix: rc=1 KILLED | review_strength self-test: 76 checks, 3 failed
+     FAIL: bus-confirmed *-cloud id marks the verdict cloud
+     FAIL: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+     FAIL: main --fetch reads the remote's review, probe and verdict refs (13 back, and 12 and 13 now cloud)
+F13 guardrail tie reversed: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: guardrail: a first-verdict tie (9 and 10 at 10-05T02) breaks on PR number, so 10 is the latest
+F14 window lower bound open: rc=1 KILLED | review_strength self-test: 76 checks, 1 failed
+     FAIL: window: [from, until) includes a verdict exactly at from (3's block at 10-02T01)
+restored identical: True
