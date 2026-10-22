@@ -1,30 +1,20 @@
-$ structure.py
-STRUCTURE RATCHET PASSED
-rc=0
-$ score.py --diff 1602f934261958321b6e7dfaceb749188705c7b5 HEAD
-Architecture score: dS +0.0000 NULL
-$ closure select
+== closure select
   MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-  closure. The claim is re-checked by the FULL unscoped suite that runs
-  gate. Set GATE_SCOPE=full to run everything here and now.
-$ policy_lint --budgets
+== NONE-TOUCHED
+NONE-TOUCHED
+== structure
+STRUCTURE RATCHET PASSED
+== policy_lint --budgets
 rc=0
-$ policy_lint
-TOTAL: 0 error(s) across 43 policy file(s)
+== policy_lint
+
 FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-$ tmp_paths
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 1602f9342619
-$ harness_headers
-ModuleNotFoundError: No module named 'voluptuous'
-$ closure selftest
-ALL 124 closure shrink pins PASSED
-$ layout
-layout self-test: ok
-$ env_drift --claims-only 1602f934261958321b6e7dfaceb749188705c7b5
-claims hygiene: 1602f934261958321b6e7dfaceb749188705c7b5 ok
-$ harness_headers (venv-ci)
-ALL 109 HARNESS HEADER CHECKS PASSED
-$ ci_predict
-CI PREDICT: no closures or fast red predicted against 1602f9342619 (a data-file read is not seen)
-$ entities.py (venv-ci)
-ALL 2382 ENTITY CHECKS PASSED
+== pr-body
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+PR-BODY: 0 error(s) in ../ev/pr-body.md
+== tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since b787c7d45951
+== seams
+10
+CI PREDICT: no closures or fast red predicted against b787c7d45951 (a data-file read is not seen)

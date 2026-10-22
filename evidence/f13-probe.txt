@@ -1,7 +1,0 @@
-# F13 probe: 403 phrase grep on the whole stderr (orig) vs the last line (m13)
-## orig
-transient	gh: You have exceeded a secondary rate limit.\ngh: Forbidden (HTTP 403)
-transient	gh: Resource not accessible by integration (HTTP 403)\nsee secondary rate limit docs
-## m13
-refuse	gh: You have exceeded a secondary rate limit.\ngh: Forbidden (HTTP 403)
-transient	gh: Resource not accessible by integration (HTTP 403)\nsee secondary rate limit docs

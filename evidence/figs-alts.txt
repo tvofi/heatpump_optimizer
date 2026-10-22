@@ -1,5 +1,4 @@
-$ ALTS rule
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p
 5??
 429
 403
@@ -7,24 +6,3 @@ secondary rate limit
 ?*
 ^Get "https?://[^"]*": 
 ^error connecting to 
-8
-$ rows per alternative
-      1 403	refuse
-      1 403	transient
-      2 429	refuse
-      1 429	transient
-      1 5??	refuse
-      3 5??	transient
-      5 ?*	refuse
-      1 ?*	transient
-      4 ^Get "https?://[^"]*": 	refuse
-      2 ^Get "https?://[^"]*": 	transient
-      2 ^error connecting to 	refuse
-      1 ^error connecting to 	transient
-      2 default	refuse
-      1 default	transient
-      5 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse
-      6 s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient
-      4 secondary rate limit	refuse
-      1 secondary rate limit	transient
-43

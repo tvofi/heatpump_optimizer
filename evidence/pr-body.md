@@ -46,7 +46,7 @@ https://claude.ai/code/session_013tC9Y1rUeYSc7kdayWDLao
 
 ## Head
 
-`74a18df941939cd87c11280ec216531148015b46` merges the authored code head `37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1` and then merges origin/main `1602f9342` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`53f24912dee67629b3bc383f91031627c995d520` merges the authored code head `9b9770b34a7bbeaa64abb805b445bfb497474659` and then merges origin/main `b787c7d45` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1`. The branch's commits, oldest first:
 
@@ -239,4 +239,3 @@ Control: dev/audit/harnesses/r10_gh_read_retry_mutants.py at fd1e3f6c gives 17 s
 ## Friction
 
 none
-

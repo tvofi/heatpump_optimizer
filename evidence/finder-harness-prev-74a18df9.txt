@@ -31,7 +31,7 @@ X5 every 403 transient: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
      FAIL REFUSE: a permission 403 on the files read (got '0', want '1')
      FAIL after exactly 1 call (got '2', want '1')
      FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
-     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '5', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '4', want '0')
 X6 403 branch deleted: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
      FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
      FAIL with exactly 2 calls to that read (got '1', want '2')
