@@ -4,6 +4,8 @@ Owner ruling R13 (#201, 2026-10-21) asked two things before any guardrail
 relies on review strength. First, explain the fall from 0.52 real-catch blocks
 per reviewed pull request (round 10's first six days, 112 PRs) to 0.15 (the
 48 h before the flow plan's adoption, 47 PRs). Second, recommend a threshold.
+This record answers the first. The threshold is R10-ORCH-MACHINERY's, which
+owns the guardrail (its roster carry, item b8b28b28).
 This file is a measurement record. Every figure in it was taken over git from
 the `review/*`, `verdict/*` and `probe/*` refs and the `archive/probe/*` tags,
 using the tool and windows below. No REST call was made.
@@ -163,7 +165,7 @@ Null control: if fixer quality is the cause, first-pass share also rises for a
 fixed reviewer kind. Cloud reviewers' first-pass share was 8/25 in P2 and 9/20
 in L1, so it does rise. The bus cannot separate better fixers from weaker
 reviewers. Both raise first-pass share and lower real catches together. Only
-a planted defect can separate them (see the recommendation).
+a planted defect can separate them (R10-ORCH-MACHINERY's calibration).
 
 ### 4. Verdict carries that replace re-reviews
 
@@ -238,41 +240,11 @@ support no figure above.
 4. **The remaining trough is L1's local seats, at 0/20.** In the same hours,
    cloud seats on a similar mix found 7/24 (extended list). At the
    post-cloud incidence of 0.28 (24/85, 10-18 08:00Z → 10-21 15:15Z), the
-   chance of 0 in 20 is 0.0014. The model behind those seats is unrecorded.
+   chance of 0 in 20 is (1 − 0.28)^20 = 0.0014. The model behind those seats is unrecorded.
 5. **Carries are not the cause.** Bookkeeping blocks rose from 0.17 to 0.92
    per PR at P2, which is when `carry_audit.py` (O11, 10-18) landed:
    `carry-missing` went from 3 to 15. That moved the bookkeeping rate, not the
    real-catch rate.
-
-## The recommended threshold for the review-strength guardrail
-
-- **Measure incidence, not blocks per PR.** Blocks per PR counts one PR's
-  repeated rounds.
-- **Count the study's list plus the nine words above,** and route any untaught
-  word to a row that needs classifying, never to bookkeeping.
-- **Use the last 30 reviewed PRs by first verdict,** with baseline
-  p0 = 0.28 (24/85, the post-cloud regime).
-- **Trip at P(X ≤ k | 30, 0.28) < 0.05**, which means 3 or fewer of the 30
-  PRs (P = 0.017). At 4, P = 0.050, so 4 is the line.
-- **Add a second arm for each seat family** (cloud or local; the model when
-  the dispatch records it): the last 20 PRs that family reviewed, tripping at
-  1 or fewer (P = 0.012). Only this arm would have caught L1's local trough.
-
-Back-test of the first arm (`--guardrail 30 --p0 0.28`, with `--real-extra`
-set to the nine words, at ten cut points from 10-17 00:00Z to 10-21 15:15Z):
-
-- lowest point: 5/30 at 10-21 06:00Z and 13:00Z (P = 0.116);
-- highest point: 19/30 at 10-18 08:00Z.
-
-It would have tripped at no cut point.
-
-A trip means: audit the last N reviews with a planted defect. It does not mean
-the reviewers are weak. Incidence is the supply of defects times the review's
-detection, and the bus cannot split the two (candidate 3). The calibration
-that can split them is a planted defect of a known class in a reviewed head,
-caught or missed. It is owed to whoever builds the guardrail
-(FUTURE-STATE.md §9). Until the owner adopts a threshold, R13 stands: the
-guardrail reports and trips on nothing.
 
 ## D13's required outputs, where they apply
 

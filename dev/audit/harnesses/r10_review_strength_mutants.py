@@ -22,7 +22,9 @@ operator class below yields one mutant per site and per replacement:
     literals    every string literal, f-string part and format spec (so every path
                 prefix, ref pattern, regex and class word) -> '', its first or last
                 character dropped, cut before and after each separator (`/-_:. =`)
-                keeping either side, and each numeral in it moved by one; every
+                keeping either side, and each numeral in it moved by one; a
+                regex literal (the pattern argument of an `re.` call) also has
+                each single character dropped, one mutant per position; every
                 element of a tuple, list or set literal dropped (so each REAL_CATCH
                 word and each product prefix is its own mutant). Human text is
                 skipped: the docstrings and everything under `help=`, `metavar=`,
@@ -63,7 +65,8 @@ M0 is the unmutated emission, which must pass first, or nothing is run.
 
 DISPOSED below names every survivor this harness accepts, keyed on the
 function, the statement and the mutant, each an equivalent mutant with the
-reason it changes nothing. Prints one line per survivor (and per
+reason it changes nothing: on every input, or, where it says "equivalent on the
+bus's inputs", on the bus's and with the input that separates the two named. Prints one line per survivor (and per
 killed mutant with --show-killed), then
 `RESULT mutants=<n> killed=<k> survived=<s> disposed=<d> undisposed=<u> stale=<x>`;
 exit 1 when M0 fails, any survivor is undisposed, or a DISPOSED key matched
@@ -113,13 +116,15 @@ CMP = {ast.Lt: (ast.LtE, ast.Gt), ast.LtE: (ast.Lt, ast.GtE), ast.Gt: (ast.GtE, 
        ast.In: (ast.NotIn,), ast.NotIn: (ast.In,), ast.Is: (ast.IsNot,), ast.IsNot: (ast.Is,)}
 BIN = {ast.Add: ast.Sub, ast.Sub: ast.Add, ast.Mult: ast.Div, ast.Div: ast.Mult, ast.Pow: ast.Mult}
 PRINTERS: set[str] = set()  # filled per parse by `_sites`
+REGEXES: set[int] = set()  # ids of the pattern literals of `re.` calls, filled per parse by `_sites`
 SWAP_CALL = {"max": "min", "min": "max", "any": "all", "all": "any", "sorted": "list"}
 
 # Survivors the self-test cannot see because they change nothing, keyed "<function> @ <statement>: <mutant>".
-# Every entry is an equivalent mutant and says why.
+# Every entry is an equivalent mutant and says why; one equivalent only on the bus's inputs names the input separating it.
 DISPOSED = {
     "NONCE_RE @ NONCE_RE = re.compile('^bus-nonce:\\\\s*([0-9a-f]{32})', re.M): '^bus-nonce:\\\\s*([0-9a-f]{32})' -> '^bus-nonce:\\\\s*([0-9a-f]{31})'":
-        'equivalent: only nonce[:8] is ever read, and a 32-hex nonce matches {31} at the same start',
+        "equivalent on the bus's inputs (every bus nonce is 32 hex, and only nonce[:8] is read); "
+        "separated by a VERDICT.md holding a 31-hex bus-nonce, which the tool leaves unread and the mutant reads",
     "when @ return datetime.fromisoformat(s.replace('Z', '+00:00')).a...: '+00:00' -> '+00'":
         'equivalent: datetime.fromisoformat reads +00 and +00:00 alike (3.11+)',
     "load @ for r in refs(repo, f'refs/remotes/{remote}/review/'):: swap if not m: with the next statement":
@@ -132,8 +137,6 @@ DISPOSED = {
         "equivalent: for-each-ref matches refs/remotes/<r>/review at a whole component, as with the '/'",
     "load @ for r in refs(repo, f'refs/remotes/{remote}/probe/') + re...: '/probe/' -> '/probe'":
         "equivalent: for-each-ref matches refs/remotes/<r>/probe at a whole component, as with the '/'",
-    "load @ out.append(dict(pr=int(m[1]), t=when(t), kind=m[2], head=...: drop or arm ''":
-        "equivalent: cls None and cls '' read alike everywhere: stratum's `or` and the REAL_CATCH membership test",
     'pr_facts @ for pr, head in last.items():: swap files.append(f) with the next statement':
         'equivalent: `files` feeds only product, whose prefixes no delivery row matches, so where its append sits beside the delivery test moves nothing',
     "pr_facts @ for pr, head in last.items():: move 1 statement(s) before into if not f.startswith('dev/programme/de...":
@@ -146,6 +149,10 @@ DISPOSED = {
         'equivalent: `git diff --numstat` quotes any path holding a tab, so a line holds exactly two tabs',
     "pr_facts @ a, d, f = ln.split('\\t', 2): 2 -> 3":
         'equivalent: `git diff --numstat` quotes any path holding a tab, so a line holds exactly two tabs',
+    "GROUP_RE @ GROUP_RE = re.compile('\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-...: '\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\\\\b' -> '\\\\b(R\\\\d+-[A-Z0-9[A-Z0-9-]*[A-Z0-9])\\\\b'":
+        "equivalent on the bus's inputs (all 150 roster groups and every delivery row's group token hold two or more "
+        "characters after the dash); separated by a one-character group such as R1-X, which the tool reads as no group "
+        "and the mutant as R1-X",
     'pr_facts @ grp = groups.get(g[1]) if g else None: 1 -> 0':
         "equivalent: GROUP_RE's one group is its whole match, so g[0] == g[1]",
     "pr_facts @ base, head, branch = (merges[pr][0] + '^1', merges[pr][1]...: '^1' -> '^'":
@@ -168,8 +175,6 @@ DISPOSED = {
         'equivalent: load sets real only on a blocked verdict',
     "tally @ if a <= v['t'] < b:: swap o['real' if v['real'] else ... with the next statement":
         "equivalent: o['real'|'book'] and o['caught'] are different keys; the swap is generated only because the former key is computed",
-    'guardrail @ return f"GUARDRAIL last {n} PRs (first verdict {first[las...: cdf < ALPHA [op 0: Lt -> LtE]':
-        "equivalent: no binomial CDF lands exactly on 0.05 in floating point (none for N <= 5 on a 1e-5 p0 grid); strict 'below 0.05' is R13's wording",
     "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--repo', d... with the next statement":
         'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
     "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--remote',... with the next statement":
@@ -186,10 +191,6 @@ DISPOSED = {
         'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
     "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--as-of', ... with the next statement":
         'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
-    "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--guardrai... with the next statement":
-        'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
-    "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--p0', typ... with the next statement":
-        'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
     "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--real-ext... with the next statement":
         'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
     "parser @ ap.add_argument('--window', action='append', default=[], ...: drop keyword default= of ap.add_argument":
@@ -199,7 +200,8 @@ DISPOSED = {
     "main @ git(repo, 'fetch', '-q', '--tags', a.remote, *(f'+refs/he...: drop argument 2 '-q' of git":
         "equivalent: git() captures the fetch's output, and -q changes only that",
     "main @ name, span = w.split('=', 1): split -> rsplit in w.split('=', 1)":
-        "equivalent: a window spec holds one '=' (names and ISO stamps hold none)",
+        "equivalent on the bus's inputs (a window name and an ISO stamp hold no '='); separated by "
+        "--window A=B=<from>..<until>, which the tool refuses with a ValueError and the mutant prints as window A=B",
     "main @ name, span = w.split('=', 1): drop argument 1 1 of w.split":
         "equivalent: a window spec holds one '=' (names and ISO stamps hold none)",
     "main @ f, u = span.split('..', 1): split -> rsplit in span.split('..', 1)":
@@ -241,10 +243,13 @@ def _is_str(node: ast.AST) -> bool:
     return isinstance(node, ast.Constant) and isinstance(node.value, str)
 
 
-def _str_edits(v: str) -> list[str]:
+def _str_edits(v: str, regex: bool = False) -> list[str]:
     """Every edit of the literal class rule: '', each end character dropped, each prefix and suffix
-    cut at a separator (with and without it), and each numeral moved by one."""
+    cut at a separator (with and without it), each numeral moved by one, and in a regex each
+    single character dropped."""
     out = ["", v[1:], v[:-1]]
+    if regex:
+        out += [v[:i] + v[i + 1:] for i in range(1, len(v) - 1)]
     for i, ch in enumerate(v):
         if ch in SEPS and 0 < i < len(v) - 1:
             out += [v[:i], v[:i + 1], v[i:], v[i + 1:]]
@@ -287,6 +292,10 @@ def _sites(tree: ast.Module):
     """Yield (top, node, key, edit) for every mutant; `edit(node)` returns the replacement node."""
     PRINTERS.clear()
     PRINTERS.update(_printers(tree))
+    REGEXES.clear()
+    REGEXES.update(id(n.args[0]) for n in ast.walk(tree) if isinstance(n, ast.Call) and n.args
+                   and isinstance(n.func, ast.Attribute) and isinstance(n.func.value, ast.Name)
+                   and n.func.value.id == "re" and _is_str(n.args[0]))
     text = _text_ids(tree)
     inert = _annotation_ids(tree)
     for top in tree.body:
@@ -342,7 +351,7 @@ def _node_mutants(node, text):
             for k in (0.5, 2.0):
                 yield node, f"{v} -> {v * k}", lambda n, k=k: ast.Constant(n.value * k)
         elif isinstance(v, str) and v:
-            for e in _str_edits(v):
+            for e in _str_edits(v, id(node) in REGEXES):
                 yield node, f"{_short(node, 50)} -> {e!r}", lambda n, e=e: ast.Constant(e)
     elif isinstance(node, (ast.Tuple, ast.List, ast.Set)) and isinstance(getattr(node, "ctx", ast.Load()), ast.Load) \
             and len(node.elts) >= 2:
