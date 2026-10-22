@@ -15,7 +15,7 @@ Alternatives considered:
 
 ## Head
 
-d8fe765384ddee5c548b4a95187aebf8c78e2a3f. It is a merge of origin/main 500668757 into 8d7f5bb6f, the one-commit `CLAUDE.md` row fix on PR head bb9f93e8. It was never rebased. The merge's only conflict was `tests/closures.json`, which the `LEDGER-MERGE` driver resolved.
+e4f021a5feb25503025f6e09ae63f866fa5d2025. It is the PR head: a merge of origin/main into c97b6745b, which merged the handoff code d8fe765384ddee5c548b4a95187aebf8c78e2a3f. Against d8fe7653 the head differs only in three `dev/programme/delivery/` rows (2527, 2581, 2583). The code d8fe7653 is a merge of origin/main 500668757 into 8d7f5bb6f, the one-commit `CLAUDE.md` row fix on PR head bb9f93e8. It was never rebased. The merge's only conflict was `tests/closures.json`, which the `LEDGER-MERGE` driver resolved. `policy_lint --budgets` and `score.py --diff origin/main` were re-run at e4f021a5 for this repair: corpus ~62891 (cap 62892), `Architecture score: dS +0.0000 NULL`.
 
 ## Mutation proof
 
@@ -46,7 +46,9 @@ All at d8fe7653 unless a line says otherwise.
 
 ## Raise justification
 
-This is unchanged from round 2, and this round moves no budget. The raise is `corpus_tokens` 61026 → 62892, plus two new per-file entries, `designer.md` 60 / 878 and `design-review.md` 53 / 778. Each cap was re-recorded to the value measured in round 2, and the owner's ruling R19 approves it. Payments tried:
+This is unchanged from round 2, and this round moves no budget. The raise is `corpus_tokens` 61026 → 62892, plus two new per-file entries, `designer.md` 60 / 878 and `design-review.md` 53 / 778. Each cap was re-recorded to the value measured in round 2, and the owner's ruling R19 approves it.
+
+Payments tried: shortened the pin's added sections (220 → 191 and 295 → 281 in bytes/4); no trim of any other policy file was tried, because the edits to `orchestrator.md`, `fixer.md` and `fix-review.md` are paid inside each file, so their per-file caps do not move, and the raise is the two new contracts the ruling adopts.
 - **Shorten the pin's added sections.** Taken (220 → 191 and 295 → 281 in bytes/4).
 - **Cite the carry grammar across contracts.** Not taken: the brief puts it in both contracts.
 - **Move prose into an uncapped file.** Not a payment: `corpus_tokens` does not move.
