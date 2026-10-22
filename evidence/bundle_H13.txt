@@ -1,101 +1,101 @@
 facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6
-verdicts on the bus: 380; outside the grammar: 0
+verdicts on the bus: 395; outside the grammar: 0
 ## all
   all                      E      PRs 83 verdicts 200 real 57 (0.69/PR) book 44 (0.53/PR) incidence 35/83 (0.42) first-pass 30/83
-  all                      L      PRs 47 verdicts 84 real 7 (0.15/PR) book 30 (0.64/PR) incidence 6/47 (0.13) first-pass 22/47
+  all                      L      PRs 47 verdicts 84 real 7 (0.15/PR) book 30 (0.64/PR) incidence 6/47 (0.13) first-pass 20/44
   all                      P1     PRs 48 verdicts 102 real 43 (0.90/PR) book 8 (0.17/PR) incidence 25/48 (0.52) first-pass 20/48
-  all                      P2     PRs 39 verdicts 98 real 14 (0.36/PR) book 36 (0.92/PR) incidence 10/39 (0.26) first-pass 13/39
-  all                      L1     PRs 39 verdicts 68 real 3 (0.08/PR) book 25 (0.64/PR) incidence 3/39 (0.08) first-pass 19/39
-  all                      S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  all                      P2     PRs 39 verdicts 98 real 14 (0.36/PR) book 36 (0.92/PR) incidence 10/39 (0.26) first-pass 10/35
+  all                      L1     PRs 39 verdicts 68 real 3 (0.08/PR) book 25 (0.64/PR) incidence 3/39 (0.08) first-pass 17/36
+  all                      S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
 ## kind
   cloud                    E      PRs 31 verdicts 70 real 6 (0.19/PR) book 28 (0.90/PR) incidence 5/31 (0.16) first-pass 8/25
-  cloud                    L      PRs 32 verdicts 51 real 7 (0.22/PR) book 20 (0.62/PR) incidence 6/32 (0.19) first-pass 14/31
+  cloud                    L      PRs 32 verdicts 51 real 7 (0.22/PR) book 20 (0.62/PR) incidence 6/32 (0.19) first-pass 12/28
   cloud                    P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud                    P2     PRs 31 verdicts 70 real 6 (0.19/PR) book 28 (0.90/PR) incidence 5/31 (0.16) first-pass 8/25
-  cloud                    L1     PRs 24 verdicts 35 real 3 (0.12/PR) book 15 (0.62/PR) incidence 3/24 (0.12) first-pass 11/23
-  cloud                    S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  cloud                    L1     PRs 24 verdicts 35 real 3 (0.12/PR) book 15 (0.62/PR) incidence 3/24 (0.12) first-pass 9/20
+  cloud                    S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
   local                    E      PRs 58 verdicts 130 real 51 (0.88/PR) book 16 (0.28/PR) incidence 31/58 (0.53) first-pass 22/58
   local                    L      PRs 20 verdicts 33 real 0 (0.00/PR) book 10 (0.50/PR) incidence 0/20 (0.00) first-pass 8/16
   local                    P1     PRs 48 verdicts 102 real 43 (0.90/PR) book 8 (0.17/PR) incidence 25/48 (0.52) first-pass 20/48
-  local                    P2     PRs 14 verdicts 28 real 8 (0.57/PR) book 8 (0.57/PR) incidence 6/14 (0.43) first-pass 5/14
+  local                    P2     PRs 14 verdicts 28 real 8 (0.57/PR) book 8 (0.57/PR) incidence 6/14 (0.43) first-pass 2/10
   local                    L1     PRs 20 verdicts 33 real 0 (0.00/PR) book 10 (0.50/PR) incidence 0/20 (0.00) first-pass 8/16
   local                    S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
 ## prior-merge
   after-a-merge-verdict    E      PRs 17 verdicts 22 real 0 (0.00/PR) book 1 (0.06/PR) incidence 0/17 (0.00) first-pass 0/0
-  after-a-merge-verdict    L      PRs 8 verdicts 12 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 2/2
+  after-a-merge-verdict    L      PRs 8 verdicts 12 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 0/0
   after-a-merge-verdict    P1     PRs 8 verdicts 9 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/8 (0.00) first-pass 0/0
-  after-a-merge-verdict    P2     PRs 9 verdicts 13 real 0 (0.00/PR) book 1 (0.11/PR) incidence 0/9 (0.00) first-pass 1/1
-  after-a-merge-verdict    L1     PRs 8 verdicts 12 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 2/2
+  after-a-merge-verdict    P2     PRs 9 verdicts 13 real 0 (0.00/PR) book 1 (0.11/PR) incidence 0/9 (0.00) first-pass 0/0
+  after-a-merge-verdict    L1     PRs 8 verdicts 12 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 0/0
   after-a-merge-verdict    S      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 0/0
   no-merge-yet             E      PRs 83 verdicts 178 real 57 (0.69/PR) book 43 (0.52/PR) incidence 35/83 (0.42) first-pass 30/83
-  no-merge-yet             L      PRs 45 verdicts 72 real 7 (0.16/PR) book 28 (0.62/PR) incidence 6/45 (0.13) first-pass 20/45
+  no-merge-yet             L      PRs 45 verdicts 72 real 7 (0.16/PR) book 28 (0.62/PR) incidence 6/45 (0.13) first-pass 20/44
   no-merge-yet             P1     PRs 48 verdicts 93 real 43 (0.90/PR) book 8 (0.17/PR) incidence 25/48 (0.52) first-pass 20/48
-  no-merge-yet             P2     PRs 38 verdicts 85 real 14 (0.37/PR) book 35 (0.92/PR) incidence 10/38 (0.26) first-pass 12/38
-  no-merge-yet             L1     PRs 37 verdicts 56 real 3 (0.08/PR) book 23 (0.62/PR) incidence 3/37 (0.08) first-pass 17/37
-  no-merge-yet             S      PRs 14 verdicts 19 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  no-merge-yet             P2     PRs 38 verdicts 85 real 14 (0.37/PR) book 35 (0.92/PR) incidence 10/38 (0.26) first-pass 10/35
+  no-merge-yet             L1     PRs 37 verdicts 56 real 3 (0.08/PR) book 23 (0.62/PR) incidence 3/37 (0.08) first-pass 17/36
+  no-merge-yet             S      PRs 14 verdicts 19 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
 ## origin
   finding                  E      PRs 50 verdicts 127 real 45 (0.90/PR) book 22 (0.44/PR) incidence 26/50 (0.52) first-pass 13/50
-  finding                  L      PRs 13 verdicts 20 real 1 (0.08/PR) book 3 (0.23/PR) incidence 1/13 (0.08) first-pass 10/13
+  finding                  L      PRs 13 verdicts 20 real 1 (0.08/PR) book 3 (0.23/PR) incidence 1/13 (0.08) first-pass 8/11
   finding                  P1     PRs 37 verdicts 83 real 40 (1.08/PR) book 8 (0.22/PR) incidence 22/37 (0.59) first-pass 12/37
-  finding                  P2     PRs 17 verdicts 44 real 5 (0.29/PR) book 14 (0.82/PR) incidence 4/17 (0.24) first-pass 4/17
-  finding                  L1     PRs 13 verdicts 20 real 1 (0.08/PR) book 3 (0.23/PR) incidence 1/13 (0.08) first-pass 10/13
+  finding                  P2     PRs 17 verdicts 44 real 5 (0.29/PR) book 14 (0.82/PR) incidence 4/17 (0.24) first-pass 1/13
+  finding                  L1     PRs 13 verdicts 20 real 1 (0.08/PR) book 3 (0.23/PR) incidence 1/13 (0.08) first-pass 8/11
   finding                  S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   group                    E      PRs 4 verdicts 10 real 1 (0.25/PR) book 6 (1.50/PR) incidence 1/4 (0.25) first-pass 1/4
-  group                    L      PRs 6 verdicts 13 real 0 (0.00/PR) book 5 (0.83/PR) incidence 0/6 (0.00) first-pass 2/6
+  group                    L      PRs 6 verdicts 13 real 0 (0.00/PR) book 5 (0.83/PR) incidence 0/6 (0.00) first-pass 2/5
   group                    P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   group                    P2     PRs 4 verdicts 10 real 1 (0.25/PR) book 6 (1.50/PR) incidence 1/4 (0.25) first-pass 1/4
-  group                    L1     PRs 6 verdicts 13 real 0 (0.00/PR) book 5 (0.83/PR) incidence 0/6 (0.00) first-pass 2/6
+  group                    L1     PRs 6 verdicts 13 real 0 (0.00/PR) book 5 (0.83/PR) incidence 0/6 (0.00) first-pass 2/5
   group                    S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   none                     E      PRs 29 verdicts 63 real 11 (0.38/PR) book 16 (0.55/PR) incidence 8/29 (0.28) first-pass 16/29
   none                     L      PRs 28 verdicts 51 real 6 (0.21/PR) book 22 (0.79/PR) incidence 5/28 (0.18) first-pass 10/28
   none                     P1     PRs 11 verdicts 19 real 3 (0.27/PR) book 0 (0.00/PR) incidence 3/11 (0.27) first-pass 8/11
   none                     P2     PRs 18 verdicts 44 real 8 (0.44/PR) book 16 (0.89/PR) incidence 5/18 (0.28) first-pass 8/18
   none                     L1     PRs 20 verdicts 35 real 2 (0.10/PR) book 17 (0.85/PR) incidence 2/20 (0.10) first-pass 7/20
-  none                     S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  none                     S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
 ## size
   L>=600                   E      PRs 32 verdicts 94 real 33 (1.03/PR) book 25 (0.78/PR) incidence 19/32 (0.59) first-pass 7/32
-  L>=600                   L      PRs 15 verdicts 30 real 1 (0.07/PR) book 15 (1.00/PR) incidence 1/15 (0.07) first-pass 5/15
+  L>=600                   L      PRs 15 verdicts 30 real 1 (0.07/PR) book 15 (1.00/PR) incidence 1/15 (0.07) first-pass 4/13
   L>=600                   P1     PRs 20 verdicts 44 real 22 (1.10/PR) book 4 (0.20/PR) incidence 12/20 (0.60) first-pass 6/20
-  L>=600                   P2     PRs 16 verdicts 50 real 11 (0.69/PR) book 21 (1.31/PR) incidence 7/16 (0.44) first-pass 4/16
-  L>=600                   L1     PRs 13 verdicts 24 real 1 (0.08/PR) book 10 (0.77/PR) incidence 1/13 (0.08) first-pass 5/13
+  L>=600                   P2     PRs 16 verdicts 50 real 11 (0.69/PR) book 21 (1.31/PR) incidence 7/16 (0.44) first-pass 1/12
+  L>=600                   L1     PRs 13 verdicts 24 real 1 (0.08/PR) book 10 (0.77/PR) incidence 1/13 (0.08) first-pass 4/11
   L>=600                   S      PRs 2 verdicts 7 real 0 (0.00/PR) book 5 (2.50/PR) incidence 0/2 (0.00) first-pass 0/2
   M<600                    E      PRs 25 verdicts 60 real 19 (0.76/PR) book 13 (0.52/PR) incidence 11/25 (0.44) first-pass 6/25
   M<600                    L      PRs 18 verdicts 33 real 6 (0.33/PR) book 8 (0.44/PR) incidence 5/18 (0.28) first-pass 10/18
   M<600                    P1     PRs 13 verdicts 33 real 17 (1.31/PR) book 4 (0.31/PR) incidence 9/13 (0.69) first-pass 3/13
   M<600                    P2     PRs 12 verdicts 27 real 2 (0.17/PR) book 9 (0.75/PR) incidence 2/12 (0.17) first-pass 3/12
   M<600                    L1     PRs 13 verdicts 25 real 2 (0.15/PR) book 8 (0.62/PR) incidence 2/13 (0.15) first-pass 8/13
-  M<600                    S      PRs 9 verdicts 10 real 5 (0.56/PR) book 0 (0.00/PR) incidence 4/9 (0.44) first-pass 5/9
+  M<600                    S      PRs 9 verdicts 10 real 5 (0.56/PR) book 0 (0.00/PR) incidence 4/9 (0.44) first-pass 3/7
   S<150                    E      PRs 26 verdicts 46 real 5 (0.19/PR) book 6 (0.23/PR) incidence 5/26 (0.19) first-pass 17/26
-  S<150                    L      PRs 14 verdicts 21 real 0 (0.00/PR) book 7 (0.50/PR) incidence 0/14 (0.00) first-pass 7/14
+  S<150                    L      PRs 14 verdicts 21 real 0 (0.00/PR) book 7 (0.50/PR) incidence 0/14 (0.00) first-pass 6/13
   S<150                    P1     PRs 15 verdicts 25 real 4 (0.27/PR) book 0 (0.00/PR) incidence 4/15 (0.27) first-pass 11/15
   S<150                    P2     PRs 11 verdicts 21 real 1 (0.09/PR) book 6 (0.55/PR) incidence 1/11 (0.09) first-pass 6/11
-  S<150                    L1     PRs 13 verdicts 19 real 0 (0.00/PR) book 7 (0.54/PR) incidence 0/13 (0.00) first-pass 6/13
-  S<150                    S      PRs 3 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/3 (0.00) first-pass 3/3
+  S<150                    L1     PRs 13 verdicts 19 real 0 (0.00/PR) book 7 (0.54/PR) incidence 0/13 (0.00) first-pass 5/12
+  S<150                    S      PRs 3 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/3 (0.00) first-pass 1/1
 ## product
   False                    E      PRs 63 verdicts 145 real 38 (0.60/PR) book 32 (0.51/PR) incidence 24/63 (0.38) first-pass 27/63
-  False                    L      PRs 38 verdicts 66 real 6 (0.16/PR) book 25 (0.66/PR) incidence 5/38 (0.13) first-pass 16/38
+  False                    L      PRs 38 verdicts 66 real 6 (0.16/PR) book 25 (0.66/PR) incidence 5/38 (0.13) first-pass 15/36
   False                    P1     PRs 34 verdicts 68 real 26 (0.76/PR) book 3 (0.09/PR) incidence 15/34 (0.44) first-pass 17/34
-  False                    P2     PRs 30 verdicts 77 real 12 (0.40/PR) book 29 (0.97/PR) incidence 9/30 (0.30) first-pass 10/30
-  False                    L1     PRs 32 verdicts 53 real 2 (0.06/PR) book 21 (0.66/PR) incidence 2/32 (0.06) first-pass 14/32
-  False                    S      PRs 11 verdicts 17 real 5 (0.45/PR) book 4 (0.36/PR) incidence 4/11 (0.36) first-pass 6/11
+  False                    P2     PRs 30 verdicts 77 real 12 (0.40/PR) book 29 (0.97/PR) incidence 9/30 (0.30) first-pass 10/29
+  False                    L1     PRs 32 verdicts 53 real 2 (0.06/PR) book 21 (0.66/PR) incidence 2/32 (0.06) first-pass 13/30
+  False                    S      PRs 11 verdicts 17 real 5 (0.45/PR) book 4 (0.36/PR) incidence 4/11 (0.36) first-pass 3/8
   True                     E      PRs 20 verdicts 55 real 19 (0.95/PR) book 12 (0.60/PR) incidence 11/20 (0.55) first-pass 3/20
-  True                     L      PRs 9 verdicts 18 real 1 (0.11/PR) book 5 (0.56/PR) incidence 1/9 (0.11) first-pass 6/9
+  True                     L      PRs 9 verdicts 18 real 1 (0.11/PR) book 5 (0.56/PR) incidence 1/9 (0.11) first-pass 5/8
   True                     P1     PRs 14 verdicts 34 real 17 (1.21/PR) book 5 (0.36/PR) incidence 10/14 (0.71) first-pass 3/14
-  True                     P2     PRs 9 verdicts 21 real 2 (0.22/PR) book 7 (0.78/PR) incidence 1/9 (0.11) first-pass 3/9
-  True                     L1     PRs 7 verdicts 15 real 1 (0.14/PR) book 4 (0.57/PR) incidence 1/7 (0.14) first-pass 5/7
-  True                     S      PRs 3 verdicts 3 real 0 (0.00/PR) book 1 (0.33/PR) incidence 0/3 (0.00) first-pass 2/3
+  True                     P2     PRs 9 verdicts 21 real 2 (0.22/PR) book 7 (0.78/PR) incidence 1/9 (0.11) first-pass 0/6
+  True                     L1     PRs 7 verdicts 15 real 1 (0.14/PR) book 4 (0.57/PR) incidence 1/7 (0.14) first-pass 4/6
+  True                     S      PRs 3 verdicts 3 real 0 (0.00/PR) book 1 (0.33/PR) incidence 0/3 (0.00) first-pass 1/2
 ## fixer
   none                     E      PRs 29 verdicts 63 real 11 (0.38/PR) book 16 (0.55/PR) incidence 8/29 (0.28) first-pass 16/29
   none                     L      PRs 31 verdicts 55 real 6 (0.19/PR) book 23 (0.74/PR) incidence 5/31 (0.16) first-pass 12/31
   none                     P1     PRs 11 verdicts 19 real 3 (0.27/PR) book 0 (0.00/PR) incidence 3/11 (0.27) first-pass 8/11
   none                     P2     PRs 18 verdicts 44 real 8 (0.44/PR) book 16 (0.89/PR) incidence 5/18 (0.28) first-pass 8/18
   none                     L1     PRs 23 verdicts 39 real 2 (0.09/PR) book 18 (0.78/PR) incidence 2/23 (0.09) first-pass 9/23
-  none                     S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  none                     S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
   opus                     E      PRs 36 verdicts 94 real 28 (0.78/PR) book 22 (0.61/PR) incidence 17/36 (0.47) first-pass 9/36
-  opus                     L      PRs 10 verdicts 17 real 1 (0.10/PR) book 3 (0.30/PR) incidence 1/10 (0.10) first-pass 7/10
+  opus                     L      PRs 10 verdicts 17 real 1 (0.10/PR) book 3 (0.30/PR) incidence 1/10 (0.10) first-pass 5/7
   opus                     P1     PRs 22 verdicts 48 real 22 (1.00/PR) book 7 (0.32/PR) incidence 12/22 (0.55) first-pass 7/22
-  opus                     P2     PRs 18 verdicts 46 real 6 (0.33/PR) book 15 (0.83/PR) incidence 5/18 (0.28) first-pass 5/18
-  opus                     L1     PRs 10 verdicts 17 real 1 (0.10/PR) book 3 (0.30/PR) incidence 1/10 (0.10) first-pass 7/10
+  opus                     P2     PRs 18 verdicts 46 real 6 (0.33/PR) book 15 (0.83/PR) incidence 5/18 (0.28) first-pass 2/14
+  opus                     L1     PRs 10 verdicts 17 real 1 (0.10/PR) book 3 (0.30/PR) incidence 1/10 (0.10) first-pass 5/7
   opus                     S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   sonnet                   E      PRs 18 verdicts 43 real 18 (1.00/PR) book 6 (0.33/PR) incidence 10/18 (0.56) first-pass 5/18
   sonnet                   L      PRs 6 verdicts 12 real 0 (0.00/PR) book 4 (0.67/PR) incidence 0/6 (0.00) first-pass 3/6
@@ -105,11 +105,11 @@ verdicts on the bus: 380; outside the grammar: 0
   sonnet                   S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
 ## class
   (merge)                  E      PRs 78 verdicts 99 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/78 (0.00) first-pass 30/30
-  (merge)                  L      PRs 39 verdicts 47 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/39 (0.00) first-pass 22/22
+  (merge)                  L      PRs 39 verdicts 47 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/39 (0.00) first-pass 20/20
   (merge)                  P1     PRs 42 verdicts 51 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/42 (0.00) first-pass 20/20
-  (merge)                  P2     PRs 37 verdicts 48 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/37 (0.00) first-pass 13/13
-  (merge)                  L1     PRs 32 verdicts 40 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/32 (0.00) first-pass 19/19
-  (merge)                  S      PRs 9 verdicts 10 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/9 (0.00) first-pass 8/8
+  (merge)                  P2     PRs 37 verdicts 48 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/37 (0.00) first-pass 10/10
+  (merge)                  L1     PRs 32 verdicts 40 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/32 (0.00) first-pass 17/17
+  (merge)                  S      PRs 9 verdicts 10 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/9 (0.00) first-pass 4/4
   architecture-unsound     E      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/0
   architecture-unsound     L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   architecture-unsound     P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
@@ -239,7 +239,7 @@ verdicts on the bus: 380; outside the grammar: 0
   harness                  E      PRs 17 verdicts 28 real 28 (1.65/PR) book 0 (0.00/PR) incidence 17/17 (1.00) first-pass 0/15
   harness                  L      PRs 3 verdicts 3 real 3 (1.00/PR) book 0 (0.00/PR) incidence 3/3 (1.00) first-pass 0/2
   harness                  P1     PRs 14 verdicts 25 real 25 (1.79/PR) book 0 (0.00/PR) incidence 14/14 (1.00) first-pass 0/13
-  harness                  P2     PRs 3 verdicts 3 real 3 (1.00/PR) book 0 (0.00/PR) incidence 3/3 (1.00) first-pass 0/3
+  harness                  P2     PRs 3 verdicts 3 real 3 (1.00/PR) book 0 (0.00/PR) incidence 3/3 (1.00) first-pass 0/2
   harness                  L1     PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/1
   harness                  S      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2
   head-moved               E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
@@ -333,10 +333,10 @@ verdicts on the bus: 380; outside the grammar: 0
   root-cause-detectable    L1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   root-cause-detectable    S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   root-cause-unanswered    E      PRs 4 verdicts 6 real 0 (0.00/PR) book 6 (1.50/PR) incidence 0/4 (0.00) first-pass 0/1
-  root-cause-unanswered    L      PRs 4 verdicts 4 real 0 (0.00/PR) book 4 (1.00/PR) incidence 0/4 (0.00) first-pass 0/4
+  root-cause-unanswered    L      PRs 4 verdicts 4 real 0 (0.00/PR) book 4 (1.00/PR) incidence 0/4 (0.00) first-pass 0/3
   root-cause-unanswered    P1     PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
   root-cause-unanswered    P2     PRs 3 verdicts 5 real 0 (0.00/PR) book 5 (1.67/PR) incidence 0/3 (0.00) first-pass 0/1
-  root-cause-unanswered    L1     PRs 4 verdicts 4 real 0 (0.00/PR) book 4 (1.00/PR) incidence 0/4 (0.00) first-pass 0/4
+  root-cause-unanswered    L1     PRs 4 verdicts 4 real 0 (0.00/PR) book 4 (1.00/PR) incidence 0/4 (0.00) first-pass 0/3
   root-cause-unanswered    S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   rule-dropped             E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   rule-dropped             L      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
@@ -370,27 +370,27 @@ verdicts on the bus: 380; outside the grammar: 0
   vacuous-test             S      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
 ## kind+origin
   cloud+finding            E      PRs 13 verdicts 29 real 3 (0.23/PR) book 9 (0.69/PR) incidence 2/13 (0.15) first-pass 0/9
-  cloud+finding            L      PRs 6 verdicts 9 real 1 (0.17/PR) book 1 (0.17/PR) incidence 1/6 (0.17) first-pass 5/6
+  cloud+finding            L      PRs 6 verdicts 9 real 1 (0.17/PR) book 1 (0.17/PR) incidence 1/6 (0.17) first-pass 3/4
   cloud+finding            P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud+finding            P2     PRs 13 verdicts 29 real 3 (0.23/PR) book 9 (0.69/PR) incidence 2/13 (0.15) first-pass 0/9
-  cloud+finding            L1     PRs 6 verdicts 9 real 1 (0.17/PR) book 1 (0.17/PR) incidence 1/6 (0.17) first-pass 5/6
+  cloud+finding            L1     PRs 6 verdicts 9 real 1 (0.17/PR) book 1 (0.17/PR) incidence 1/6 (0.17) first-pass 3/4
   cloud+finding            S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud+group              E      PRs 4 verdicts 10 real 1 (0.25/PR) book 6 (1.50/PR) incidence 1/4 (0.25) first-pass 1/4
-  cloud+group              L      PRs 4 verdicts 6 real 0 (0.00/PR) book 2 (0.50/PR) incidence 0/4 (0.00) first-pass 2/4
+  cloud+group              L      PRs 4 verdicts 6 real 0 (0.00/PR) book 2 (0.50/PR) incidence 0/4 (0.00) first-pass 2/3
   cloud+group              P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud+group              P2     PRs 4 verdicts 10 real 1 (0.25/PR) book 6 (1.50/PR) incidence 1/4 (0.25) first-pass 1/4
-  cloud+group              L1     PRs 4 verdicts 6 real 0 (0.00/PR) book 2 (0.50/PR) incidence 0/4 (0.00) first-pass 2/4
+  cloud+group              L1     PRs 4 verdicts 6 real 0 (0.00/PR) book 2 (0.50/PR) incidence 0/4 (0.00) first-pass 2/3
   cloud+group              S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud+none               E      PRs 14 verdicts 31 real 2 (0.14/PR) book 13 (0.93/PR) incidence 2/14 (0.14) first-pass 7/12
   cloud+none               L      PRs 22 verdicts 36 real 6 (0.27/PR) book 17 (0.77/PR) incidence 5/22 (0.23) first-pass 7/21
   cloud+none               P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   cloud+none               P2     PRs 14 verdicts 31 real 2 (0.14/PR) book 13 (0.93/PR) incidence 2/14 (0.14) first-pass 7/12
   cloud+none               L1     PRs 14 verdicts 20 real 2 (0.14/PR) book 12 (0.86/PR) incidence 2/14 (0.14) first-pass 4/13
-  cloud+none               S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 8/14
+  cloud+none               S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
   local+finding            E      PRs 41 verdicts 98 real 42 (1.02/PR) book 13 (0.32/PR) incidence 24/41 (0.59) first-pass 13/41
   local+finding            L      PRs 8 verdicts 11 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 5/7
   local+finding            P1     PRs 37 verdicts 83 real 40 (1.08/PR) book 8 (0.22/PR) incidence 22/37 (0.59) first-pass 12/37
-  local+finding            P2     PRs 8 verdicts 15 real 2 (0.25/PR) book 5 (0.62/PR) incidence 2/8 (0.25) first-pass 4/8
+  local+finding            P2     PRs 8 verdicts 15 real 2 (0.25/PR) book 5 (0.62/PR) incidence 2/8 (0.25) first-pass 1/4
   local+finding            L1     PRs 8 verdicts 11 real 0 (0.00/PR) book 2 (0.25/PR) incidence 0/8 (0.00) first-pass 5/7
   local+finding            S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
   local+group              E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
