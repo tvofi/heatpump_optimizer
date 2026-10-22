@@ -1,0 +1,8 @@
+H1-rest-const-0 rc=0 SURVIVED (519s) last: ALL 2397 ENTITY CHECKS PASSED
+H2-ctrl-default-tries-1 rc=1 KILLED (514s) last: 5 of 2397 ENTITY CHECKS FAILED
+H3-break-on-any rc=1 KILLED (512s) last: 5 of 2397 ENTITY CHECKS FAILED
+H4-boot-tries-1-kw rc=1 KILLED (516s) last: 1 of 2397 ENTITY CHECKS FAILED
+X1-no-rest rc=1 KILLED (530s) last: 1 of 2397 ENTITY CHECKS FAILED
+X2-timeout-25 rc=1 KILLED (536s) last: 1 of 2397 ENTITY CHECKS FAILED
+X3-tries-2 rc=1 KILLED (535s) last: 1 of 2397 ENTITY CHECKS FAILED
+X5-default-30 rc=1 KILLED (533s) last: 1 of 2397 ENTITY CHECKS FAILED
