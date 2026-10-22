@@ -7840,7 +7840,7 @@
    "architect_note": "",
    "brief": "Root-cause countermeasure for the recurring class of fixer bodies refused at prepr by the pr-body lint (#2524 twice, R10-CURRENCY three times, P2a once; 36 of 519 handoff-body pushes over 22 topics fail it offline, 2-12 a day 10-15..10-22). Cause: body_push.sh ran only ci_predict, never the body lint, and the Friction trailer drop predates the cloud session-link line. Countermeasure: prepr.sh --body-check runs step 7 offline; body_push.sh lints when handoff/<topic> is HEAD and refuses a mismatched head; the session link joins the trailer drop. Record dev/audit/rca/R10-RCA-BODY-LINT.md and class N-body-lint-bounce. Code at handoff/r10-rca-body-lint 5b27a11aa.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    }
   }
