@@ -5126,7 +5126,8 @@
     "R10-ORCH-MACHINERY must register `heartbeat.sh --once` as the beat's heartbeat job and then drop the call from `tick_loop.sh`. Carry: R10-ORCH-MACHINERY",
     "The beat's job table should list `body_patch.sh` as a hosted one-shot (arguments pr, sha, body; success = exit 0 and a last `body_patch: OK` line). Carry: R10-ORCH-MACHINERY",
     "finding-propagation: unclear: a seam note for FLOW-BODY-PATCH in STUDY K17 names the beat but not the argument shape a hosted job takes, so this seat chose positional arguments and an `OK|REFUSE` last line. Carry: R10-ORCH-MACHINERY",
-    "Seam with R10-ORCH-MACHINERY (K17): dispatch through `bus.sh dispatch` and the worker registry are that group's. Carry: R10-ORCH-MACHINERY (item 92bca45d)"
+    "Seam with R10-ORCH-MACHINERY (K17): dispatch through `bus.sh dispatch` and the worker registry are that group's. Carry: R10-ORCH-MACHINERY (item 92bca45d)",
+    "From the R10-BRIEFS-FOLD body (handoff-body/r10-briefs-fold at 0a1c1f12ad43) Friction, fixer-env: cost, a third instance beside #2572 and #2554: the cloud seat's toolchain under /opt/hpo was not on PATH in the seat's shell; sourcing /etc/profile.d/hpo-toolchain.sh puts it there. The first harness run on the system python had no numpy and gave a different I5 base reading, discarded and re-taken. The cloud dispatch prompt (or cloud-setup.sh's profile note) should source the profile or state the step."
    ],
    "model": {
     "fixer": "opus",
