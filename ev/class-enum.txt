@@ -1,0 +1,53 @@
+457:         printf '%s\n' "$out" | tail -1; return "$r" ;;
+458:    *) echo "the predictor did not run: $(printf '%s\n' "$out" | tail -1)"; return 1 ;;
+497:  if [ "$r" -eq 0 ]; then tail -1 "$out"
+690:    echo "the base's budget_raise_gate.py answered without a readable RESULT line ($(printf '%s\n' "$out" | tail -1)), so the raises are UNREAD"
+703:body_refusal() { # policy_lint output file -> one line
+705:  l=$(grep -m1 'does not name it' "$1") || l=$(grep -m1 'ERROR' "$1") || l=$(tail -1 "$1")
+729:  if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
+730:  else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
+747:  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+748:  echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
+763:  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+764:  echo "$(printf '%s\n' "$out" | grep -m1 '^REFUSE\|^STALE ALLOW' || printf '%s\n' "$out" | tail -1) -- build it with tests/throwaway_git.py (throwaway_git_init / throwaway_git_clone, or the .sh twin), or governance.yml refuses it"
+778:  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+1042:    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
+1320:  st $? 1 "a body that does not name its red check is refused"
+1343:  [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
+1357:    [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
+1484:  case "$got" in *'fast (3.14)'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming the check";; *) st 0 1 "and the refusal is the red gate's own, naming the check";; esac
+1510:  case "$got" in *'fast (3.14)'*'does not name it'*'(2 error line(s) in all)') st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
+1563:  case "$got" in *'budget-raise-gate'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming budget-raise-gate";; *) st 0 1 "and the refusal is the red gate's own, naming budget-raise-gate";; esac
+1583:  case "$got" in *'budget-raise-gate'*'does not name it'*'(2 error line(s) in all)'*) st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
+1601:  case "$got" in *'`mutation`'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming mutation";; *) st 0 1 "and the refusal is the red gate's own, naming mutation";; esac
+2127:  [ "$(tail -1 "$CLM/pylog")" = "$FB/state/venv-ci/bin/python3" ]
+2176:  got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
+2260:  st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
+2463:  root=$(printf '%s\n' "$got" | tail -1)
+2608:    say ok "heavy slot" "$(tail -1 "$slot_stderr")"
+2615:    say WARN "heavy slot" "$(tail -1 "$slot_stderr") -- running with the cap unenforced"
+2658:step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
+2664:step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
+2669:step "fragments" $? "$(tail -1 /tmp/prepr-frag.$$)"
+2674:step "hooks" $? "$(grep -E '^  (SELF-TEST FAILED|MISSING|NOT WIRED|UNREADABLE) ' /tmp/prepr-hooks.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-hooks.$$)"
+2693:  step "brief_lint" $? "$(tail -1 /tmp/prepr-briefs.$$)"
+2703:step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
+2720:step "field coverage" $? "$(grep -E '^  (BLIND|DEAD|REFUSED) ' /tmp/prepr-fc.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-fc.$$)"
+2738:step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
+2755:step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
+2764:step "temp paths" $? "$(tail -1 /tmp/prepr-tp.$$)"
+2778:  step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
+2810:  step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
+2934:    step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
+2945:  step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
+---
+tools/pr/app_push.sh:231:# contract (`policy_lint.mjs --pr-body`) and the carry check
+tools/pr/app_push.sh:249:    GH_TOKEN=$tok node "$lint" --pr-body "$2" --head "$3" --title "$4" --paths-file "$p" --existing-file "$e"; rc=$?
+tools/pr/app_push.sh:452:    || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
+tools/pr/app_push.sh:975:st "$(grep -c "^node tools/policy/policy_lint.mjs --pr-body $W/ook/body.md --head $SHA --title the title --paths-file .* --existing-file " "$W/ook/log")" 1 "the body contract ran in its place, pr-contract's command at the head, with the pull request's own title"
+tools/pr/app_push.sh:1056:# HEADING, read by the reader pr-contract runs (policy_lint.mjs --pr-body).
+tools/pr/app_push.sh:1062:  node "$(dirname -- "$SELF")/../policy/policy_lint.mjs" --pr-body "$1" --head "$2" 2>&1 \
+tools/pr/push.sh:122:# `policy_lint --pr-body` requires a `## Approval` section on EITHER of two
+tools/pr/push.sh:179:# `policy_lint --pr-body --head` tests the section with `includes`, a substring,
+tools/pr/push.sh:393:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:397:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi

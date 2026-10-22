@@ -1,0 +1,28 @@
+== m2: 310 passed, 7 failed
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+== m4: 305 passed, 12 failed
+>   FAIL and the refusal is the red gate's own, naming the check
+>   FAIL and the refusal prints the error, not only its count
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red gate's own, naming budget-raise-gate
+>   FAIL and the refusal prints the error ahead of the budget verdict
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red gate's own, naming mutation
+== m5: 310 passed, 7 failed
+>   FAIL and the refusal prints the error, not only its count
+>   FAIL and the refusal prints the error ahead of the budget verdict
+== m6: 310 passed, 7 failed
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+== m7: 305 passed, 12 failed
+>   FAIL and the refusal is the red gate's own, naming the check
+>   FAIL and the refusal prints the error, not only its count
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red gate's own, naming budget-raise-gate
+>   FAIL and the refusal prints the error ahead of the budget verdict
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red gate's own, naming mutation
+== m3: 310 passed, 7 failed
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted
+>   FAIL and the refusal is the red's sentence, not the earlier Friction error, with both counted

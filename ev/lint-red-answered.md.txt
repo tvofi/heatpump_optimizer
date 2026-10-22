@@ -1,0 +1,3 @@
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/red-answered.md

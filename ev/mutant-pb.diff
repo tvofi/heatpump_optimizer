@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index fda293504..39b8b5671 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -702,7 +702,7 @@ PY
+ # prose `## Friction` line read as a budget refusal (R10-FLY-BUDGET-LEAF).
+ body_refusal() { # policy_lint output file -> one line
+   local l
+-  l=$(grep -m1 'does not name it' "$1") || l=$(grep -m1 'ERROR' "$1") || l=$(tail -1 "$1")
++  l=$(grep -m1 'does not name it' "$1") || l=$(tail -1 "$1")
+   printf '%s (%s error line(s) in all)' "${l#"${l%%[! ]*}"}" "$(grep -c 'ERROR' "$1")"
+ }
+ 
