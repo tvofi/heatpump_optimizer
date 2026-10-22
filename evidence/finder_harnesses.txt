@@ -1,0 +1,37 @@
+### base fef4a1351db3e8e328d714e84299284c6876eecb
+RESULT retired_key_claims=2 count
+RESULT claims_that_hold=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.51
+RESULT swapins=na
+RESULT stale_F3=7 count
+RESULT stale_F5=3 count
+RESULT stale_W1=0 count
+RESULT stale_W2=2 count
+RESULT stale_W3=1 count
+RESULT seams_wide=32 seams_census_refused=2 count
+RESULT stale_total=13 count
+### wt 8b33d02131529b27f2ea9848fe33d8270f8f14d0
+RESULT retired_key_claims=0 count
+RESULT claims_that_hold=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.83
+RESULT swapins=na
+RESULT stale_F3=7 count
+RESULT stale_W1=0 count
+RESULT stale_W2=1 count
+RESULT stale_W3=0 count
+RESULT seams_wide=30 seams_census_refused=2 count
+RESULT stale_total=8 count
+### replant at base
+RESULT arm=base literal_clone_copies=186 verdict=NULL
+RESULT arm=expr literal_clone_copies=185 verdict=IMPROVES
+RESULT arm=cls literal_clone_copies=185 verdict=IMPROVES
+### ratio base
+RESULT D2.r1.600.adopted_eff_vs_truth=-0.0007  (admit True reason 'adopted'; scale 0.9993 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 244.0 W/K)
+RESULT D2.r1.000.adopted_eff_vs_truth=-0.0008  (admit True reason 'adopted'; scale 0.9992 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 190.0 W/K)
+RESULT D2.r1.000.adopted_eff_vs_truth=-0.0008  (admit True reason 'adopted'; scale 0.9992 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 190.0 W/K)
+RESULT D2.r1.000.adopted_eff_vs_truth=-0.0008  (admit True reason 'adopted'; scale 0.9992 vs true 1.0; fit heat_loss_kw_per_c 189.9 W/K; true effective 190.0 W/K)
+### score diff
+Architecture score: dS +0.0000 NULL
+DONE
