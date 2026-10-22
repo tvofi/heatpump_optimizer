@@ -14,6 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CURRENCY (stage in-progress, branch `handoff/r10-currency`): `git fetch origin handoff/r10-currency && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-LOOP-CPU (stage in-progress, branch `handoff/r10-loop-cpu`): `git fetch origin handoff/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SCORES (stage in-progress, branch `handoff/r10-scores`): `git fetch origin handoff/r10-scores && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
@@ -24,7 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-GH-READ-RETRY (stage in-progress, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RECORD-API-BUDGET (stage queued, branch `handoff/r10-record-api-budget`): `git fetch origin handoff/r10-record-api-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RECORD-API-BUDGET (stage in-progress, branch `handoff/r10-record-api-budget`): `git fetch origin handoff/r10-record-api-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-BODY-LINT (stage in-progress, branch `fix/r10-rca-body-lint`): `git fetch origin fix/r10-rca-body-lint && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-ABSENT-NEW (stage in-progress): no branch pushed yet, so nothing to fetch
