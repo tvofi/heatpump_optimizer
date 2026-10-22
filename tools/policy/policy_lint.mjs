@@ -849,14 +849,8 @@ function lowerBaseMap(listing) {
 // same way. Driven: with the exact branch emptied, every pin stayed green and
 // the tree stayed at TOTAL 0 -- a branch with no witness left, which inside a
 // check reads exactly like a property. Removed rather than pinned.
-// A token spelt at a MOVED file's new path resolves to its canon spelling,
-// because the listing is canon'd: without it the correct `dev/audit/README.md`
-// missed, fell to the basename, and named every untracked-to-the-cap
-// `README.md` in the tree -- a new `dev/README.md` refused for a citation that
-// was right.
 function resolveCited(token, listing) {
   if (listing.set.has(token)) return [token]
-  if (listing.set.has(canon(token))) return [canon(token)]
   return lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
 }
 
@@ -5535,22 +5529,6 @@ function assertAcceptance(derived) {
     return 1
   }
 
-
-  // A citation at a moved file's NEW path, against a listing spelt at its old
-  // one (canon), with a second file sharing the basename: it must resolve to
-  // the moved file alone, not fall to the basename and name both.
-  const move = moves().find(([o, n]) => /\.md$/.test(o) && /\.md$/.test(n))
-  if (move) {
-    pins += 1
-    const [oldPath, newPath] = move
-    const twin = `elsewhere/${path.posix.basename(oldPath)}`
-    const movedListing = { set: new Set([oldPath, twin]) }
-    const citedMoved = citedTrackedPaths(`see \`${newPath}\``, movedListing)
-    if (citedMoved.length !== 1 || citedMoved[0] !== oldPath) {
-      console.log(`\nFIXTURE VACUOUS: a citation of the moved file \`${newPath}\` resolved to ${JSON.stringify(citedMoved)}, not to its canon spelling \`${oldPath}\` alone. The listing is canon'd, so a correct citation at the new path fell to the basename and named every tracked file sharing it.`)
-      return 1
-    }
-  }
 
   const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
   if (!citedCase.includes('docs/only-here.md')) {

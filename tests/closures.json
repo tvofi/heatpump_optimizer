@@ -1212,6 +1212,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/layout.py",
    "tests/plan_view.py",
    "tests/profiles.py",
    "tests/stress.py",
