@@ -34,6 +34,10 @@ each single-quoted sed/grep pattern of the region:
   pipe  every `| tail -N` -> `| head -N`, and deleted
   src   every `"$(cat "$F")"` argument -> `"$V"`, for each V the region
         assigns from `< "$F"` (classify the folded GH_ERR, not gh's stderr)
+  copy  which copy of stderr each sed/grep reads: every `printf '%s\n' "$V" |`
+        feeding one gets ` | tail -1` and ` | head -1` inserted after "$V",
+        and "$V" -> each other such operand of the region (`"$1"` <->
+        `"$status"`: the 403 phrase read on all of stderr, not the status line)
 
 so a bound, budget or classification branch added to the region is swept the
 day it lands, with no edit here. M0 is the unmutated head and must pass.
@@ -71,9 +75,11 @@ TARGET = "tools/pr/app_approve.sh"
 
 # Survivors no self-test can kill, each keyed on (line text, mutated text).
 NONZERO = "every caller tests zero against non-zero only (`|| die`, `if !`)"
+ONELINE = "status is one line by construction: the `| tail -1` that assigns it"
+PHRASE = """    403) printf '%s\\n' "$status" | grep -qi 'secondary rate limit'; return ;;"""
 EQUIVALENT: dict[tuple[str, str], str] = {
     ('GH_ERR=""', ""): "its one reader is a caller's die after gh_read returned 1, and every return-1 path assigns GH_ERR first",
-    ("  local code", ""): "scope only: no other line of the file names a variable `code` (grep -nw code)",
+    ("  local status", ""): "scope only: no other line of the file assigns a variable `status` (grep -nw status)",
     ("    ?*) return 1 ;;", "    ?*) return 2 ;;"): NONZERO,
     ("    ?*) return 1 ;;", "    ?*) return 999 ;;"): NONZERO,
     ('  _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }',
@@ -85,6 +91,8 @@ EQUIVALENT: dict[tuple[str, str], str] = {
         "_try starts at 1 and steps by 1, so it equals READ_TRIES (>= 1) before it can exceed it",
     ('      [ "$_try" -eq 1 ] || GH_ERR="$GH_ERR (after $_try attempts)"',
      '      [ "$_try" -le 1 ] || GH_ERR="$GH_ERR (after $_try attempts)"'): "_try is never below 1",
+    (PHRASE, PHRASE.replace('"$status" |', '"$status" | tail -1 |')): ONELINE,
+    (PHRASE, PHRASE.replace('"$status" |', '"$status" | head -1 |')): ONELINE,
     ("      return 1", "      return 2"): NONZERO,
     ("      return 1", "      return 999"): NONZERO,
 }
@@ -94,6 +102,7 @@ NUM = re.compile(r"(?<![\w$\\.&-])(\d+)(?![\w>])")
 REL = ["-ge", "-gt", "-le", "-lt", "-eq", "-ne"]
 LABEL = re.compile(r"^(\s*)([^ ()]+)\)")
 PATTERN = re.compile(r"\b(sed|grep) -([a-zA-Z]+) '([^']*)'")
+FEED = re.compile(r"""printf '%s\\n' ("\$\w+") \| (?:sed|grep) """)
 PRECONDITION = ("(the table keys exactly the alternatives gh_transient's source holds)",
                 "(and every alternative holds both a transient input and a refused near-miss)",
                 "(nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default)")
@@ -147,7 +156,7 @@ def mutants(lines: list[str]) -> list[tuple[int, str, str]]:
 
 
 def classifier(lines: list[str], i: int, line: str) -> list[tuple[int, str, str]]:
-    """The alt, glob, anch, quant, word, flag, pipe and src rules on one line."""
+    """The alt, glob, anch, quant, word, flag, pipe, src and copy rules on one line."""
     out: list[tuple[int, str, str]] = []
     orig = lines[i]
 
@@ -196,6 +205,14 @@ def classifier(lines: list[str], i: int, line: str) -> list[tuple[int, str, str]
                          if f'< "{c.group(1)}"' in l
                          for m2 in [re.match(r"\s*(\w+)=", l)] if m2}):
             put(f"src ->${v}", c.start(), c.end(), f'"${v}"')
+    operands = sorted({m2.group(1) for l in lines[region(lines).start:region(lines).stop]
+                       for m2 in FEED.finditer(code(l))})
+    for f in FEED.finditer(line):
+        for cut in ("tail -1", "head -1"):
+            put(f"copy +{cut}", f.end(1), f.end(1), f" | {cut}")
+        for v in operands:
+            if v != f.group(1):
+                put(f"copy ->{v}", f.start(1), f.end(1), v)
     return out
 
 

@@ -104,8 +104,9 @@ while True:
 # wait: one read, no retry, and gh's stderr discarded so the failure's class
 # was lost. A read whose failure a later read can ride out -- a transport error
 # (Go's `Get "https://...": ...`, or gh's `error connecting to`), HTTP 5xx, 429,
-# or a 403 that names the secondary rate limit -- settles and reads again on
-# app_push.sh's read-back rule: 4 reads, settling READ_SLEEP * 3^(n-1), 5/15/45 s.
+# or a 403 whose status line names the secondary rate limit -- settles and
+# reads again on app_push.sh's read-back rule: 4 reads, settling
+# READ_SLEEP * 3^(n-1), 5/15/45 s.
 # Every other failure -- 401, a permission 403, 404, 422, an unclassified
 # stderr -- refuses after its one call, as before, and so does a read that
 # answers but answers wrong (head moved, no verdict, an owned path): those are
@@ -117,11 +118,13 @@ READ_SLEEP=5
 GH_ERR=""
 
 gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
-  local code
-  code=$(printf '%s\n' "$1" | sed -nE 's/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p' | tail -1)
-  case "$code" in
+  local status
+  # The last whole status line, as `<code> <line>`: it is the response gh read
+  # last, and a 403's secondary-limit phrase is read on that line alone.
+  status=$(printf '%s\n' "$1" | sed -nE 's/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p' | tail -1)
+  case "${status%% *}" in
     5??|429) return 0 ;;
-    403) printf '%s\n' "$1" | grep -qi 'secondary rate limit'; return ;;
+    403) printf '%s\n' "$status" | grep -qi 'secondary rate limit'; return ;;
     ?*) return 1 ;;
   esac
   printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
@@ -1204,10 +1207,12 @@ st "$(calls rhint 'gh api repos/o/r/pulls/7$')" 3 "after one retry of the pull-r
 # `|`-separated alternative of each `case` label, and of each single-quoted
 # sed/grep pattern -- plus `default`, the fall-through no rule matches, and
 # the table below must key exactly that set, each key holding both classes.
-# Three rows are design choices: of two status lines the LAST decides (it is
+# Four design choices are rows: of two status lines the LAST decides (it is
 # the response gh read last), and only a whole line is a status line; a status
-# decides even beside a transport line; and a `secondary rate limit` phrase
-# rescues a 403 only, on its whole phrase.
+# decides even beside a transport line; a transport line counts on any line of
+# stderr; and a `secondary rate limit` phrase rescues a 403 only, as the whole
+# phrase in any case and any inflection (`limits`), and only on the deciding
+# status line: not on a line before it, and not on a later hint line.
 ALTS=$( { sed -n '/^gh_transient() {/,/^}/p' "$SELF" | grep -v '^ *#' \
   | grep -oE "^ +[^ ()]+\)|(sed|grep) -[a-zA-Z]+ '[^']*'" \
   | sed -E "s/^ +//; s/\)$//; s/^[a-z]+ -[a-zA-Z]+ '(.*)'$/\1/" | tr '|' '\n'; echo default; } | sort -u)
@@ -1221,7 +1226,11 @@ cat > "$W/alts" <<'ALT'
 429	refuse	gh: Request Header Fields Too Large (HTTP 431)
 403	transient	gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)
 403	refuse	gh: Resource not accessible by integration (HTTP 403)
+403	transient	gh: You have exceeded a secondary rate limit. (HTTP 403)\nRetry the request in a few minutes.
+403	refuse	gh: Resource not accessible by integration (HTTP 403)\nsee the secondary rate limit docs
+403	refuse	gh: You have exceeded a secondary rate limit.\ngh: Forbidden (HTTP 403)
 secondary rate limit	transient	gh: You have exceeded a Secondary Rate Limit (HTTP 403)
+secondary rate limit	transient	gh: Request blocked by secondary rate limits (HTTP 403)
 secondary rate limit	refuse	gh: API rate limit exceeded for installation ID 1. (HTTP 403)
 secondary rate limit	refuse	gh: secondary rate exceeded (HTTP 403)
 secondary rate limit	refuse	gh: secondary limit reached (HTTP 403)
@@ -1232,19 +1241,20 @@ secondary rate limit	refuse	gh: secondary rate limit (HTTP 404)
 ?*	refuse	gh: Validation Failed (HTTP 422)
 ?*	transient	error connecting to api.github.com
 ?*	refuse	gh: Not Found (HTTP 404)\nerror connecting to api.github.com
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: HTTP 502
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Server Error (HTTP 502)\nRetry the request in a few minutes.
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Not Found (HTTP 404)\ngh: Bad Gateway (HTTP 502)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 502) after 3 pages
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404) see the docs
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	transient	gh: Bad Gateway (HTTP 502)\nwarning: gh: Not Found (HTTP 404)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	warning: gh: Bad Gateway (HTTP 502)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	Bad Gateway (HTTP 502)
-s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p	refuse	gh: Bad Gateway (HTTP 5020)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: HTTP 502
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: Server Error (HTTP 502)\nRetry the request in a few minutes.
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: Not Found (HTTP 404)\ngh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	refuse	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	refuse	gh: Bad Gateway (HTTP 502) after 3 pages
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: Bad Gateway (HTTP 502)\ngh: Not Found (HTTP 404) see the docs
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	transient	gh: Bad Gateway (HTTP 502)\nwarning: gh: Not Found (HTTP 404)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	refuse	warning: gh: Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	refuse	Bad Gateway (HTTP 502)
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p	refuse	gh: Bad Gateway (HTTP 5020)
 ^Get "https?://[^"]*": 	transient	Get "https://api.github.com/repos/o/r/pulls/7": net/http: TLS handshake timeout
 ^Get "https?://[^"]*": 	transient	Get "http://127.0.0.1:1/x": dial tcp 127.0.0.1:1: connect: connection refused
+^Get "https?://[^"]*": 	transient	A new release of gh is available: 2.40.0 -> 2.62.0\nGet "https://api.github.com/x": EOF
 ^Get "https?://[^"]*": 	refuse	post-step: Get "https://api.github.com/x": EOF
 ^Get "https?://[^"]*": 	refuse	Get "https://api.github.com/x" EOF
 ^Get "https?://[^"]*": 	refuse	Get https://api.github.com/x: EOF
