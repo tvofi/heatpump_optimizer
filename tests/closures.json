@@ -1552,11 +1552,13 @@
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/plan_table.py",
+   "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/ref_privacy.py",
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/state_docs.py",
+   "tools/audit/seat/tmp_paths.py",
    "tools/coverage/composed_proof.sh",
    "tools/coverage/coverage_tree.sh",
    "tools/merge/ledger_merge.py",
@@ -3427,8 +3429,13 @@
   "tests/entities.py": [
    "LICENSE",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
+   "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/selftest_wiring.py",
+   "tools/audit/seat/tmp_paths.py",
    "tools/coverage/composed_proof.sh",
    "tools/policy/figure_lint.mjs"
   ],
@@ -3491,6 +3498,7 @@
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_structure_blind.py",
    "dev/audit/harnesses/r10_tick_drivers.py",
+   "dev/audit/harnesses/r10_tick_owed_level.py",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
@@ -4289,7 +4297,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 670.4
+   "seconds": 2033.6
   },
   "tests/env_drift.py": {
    "rc": 0,

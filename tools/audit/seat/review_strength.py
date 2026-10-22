@@ -397,6 +397,8 @@ def self_test() -> int:
         check("--real-extra moves a word from bookkeeping to real, and only that word",
               (ex["real"], ex["book"]) == (2, 1))
         check("binomial: P(X<=0|20,0.15) = 0.039", abs(binom_cdf(0, 20, 0.15) - 0.0388) < 1e-3)
+        check("window: [from, until) excludes a verdict at until (PR 2's block at 04:00)",
+              tally(vlist, a, when("2026-10-01T04:00Z"), lambda v: "all")["all"]["verdicts"] == 3)
         check("guardrail: 3 PRs < N=5 is insufficient, never a trip",
               "insufficient" in guardrail(vlist, c, 5, 0.18))
         check("guardrail: 2/3 at p0=0.5 is ok (P(X<=2) = 0.875)",
@@ -416,9 +418,11 @@ def self_test() -> int:
 
         lines = lambda n: "".join(f"{i}\n" for i in range(n))
         grp = lambda name, issues, fixer: dict(group=name, issues=issues, model=dict(fixer=fixer))
-        r1 = mk(None, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet")]))},
+        # R1-FIX lists fixes alone and is joined only on its resume.branch (PR 7 has no row).
+        fix = dict(group="R1-FIX", issues=[], fixes=["f1"], model=dict(fixer="haiku"), resume=dict(branch="fix/r1-fix"))
+        r1 = mk(None, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet"), fix]))},
                 "roster", "2026-10-01T00:00:00Z")
-        r2 = mk(r1, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet")]))},
+        r2 = mk(r1, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet"), fix]))},
                 "roster: R1-FIND loses its issues", "2026-10-05T12:00:00Z")
         g("update-ref", "refs/remotes/origin/roster", r2)
         m0 = g("rev-parse", "main")
@@ -428,13 +432,32 @@ def self_test() -> int:
         m2 = mk(f"{m1} {c2}", {"custom_components/x.py": lines(160)},
                 "Merge pull request #5 from tvofi/fix/r1-find", "2026-10-03T00:00:00Z")
         m3 = mk(m2, {"dev/programme/delivery/5.md": "| 5 | R1-FIND |\n"}, "row 5", "2026-10-03T01:00:00Z")
-        g("update-ref", "refs/heads/main", m3)
-        d1 = mk(m1, {"docs/y.md": lines(20)}, "pr 6 first", "2026-10-02T01:00:00Z")
+        # PR 7, from branch fix/r1-fix-pr, merged twice: 20 lines, then 700 more.
+        e1 = mk(m1, {"docs/a.md": lines(20)}, "pr 7 first", "2026-10-02T02:30:00Z")
+        e2 = mk(e1, {"docs/b.md": lines(700)}, "pr 7 second", "2026-10-03T01:30:00Z")
+        m4 = mk(f"{m3} {e1}", {"docs/a.md": lines(20)},
+                "Merge pull request #7 from tvofi/fix/r1-fix-pr", "2026-10-03T02:00:00Z")
+        m5 = mk(f"{m4} {e2}", {"docs/b.md": lines(700)},
+                "Merge pull request #7 from tvofi/fix/r1-fix-pr", "2026-10-03T03:00:00Z")
+        g("update-ref", "refs/heads/main", m5)
+        # PR 6's own delivery row (200 lines) is excluded from its size.
+        d1 = mk(m1, {"docs/y.md": lines(20), "dev/programme/delivery/6.md": "| 6 | R1-GRP |\n" + lines(200)},
+                "pr 6 first", "2026-10-02T01:00:00Z")
         d2 = mk(d1, {"custom_components/z.py": lines(5)}, "pr 6 second", "2026-10-05T00:00:00Z")
         verdict(rv(5), f"verdict: #5 Fix review: merge {c1}", N[9], "2026-10-02T02:00:00Z")
         verdict(rv(6), f"verdict: #6 Fix review: blocked {d1} harness: x", N[9], "2026-10-02T02:00:00Z")
         verdict(rv(6), f"verdict: #6 Fix review: merge {d2}", N[9], "2026-10-05T01:00:00Z")
+        s7 = verdict(rv(7), f"verdict: #7 Fix review: merge {e1}", N[9], "2026-10-02T03:00:00Z")
+        vs = g("commit-tree", g("write-tree"), "-m", f"verdict: #7\n\nbus-confirmed: seat-7-cloud (review/7 at {s7})")
+        g("update-ref", "refs/remotes/origin/verdict/7", vs)
         fv = load(R, "origin")[0]
+        check("bus-confirmed *-cloud id marks the verdict cloud",
+              [v["reviewer"] for v in fv if v["pr"] == 7] == ["cloud"])
+        check("guardrail: the LATEST N by first verdict (5, 6, 7: 1/3), not the oldest (1, 2, 3: 2/3)",
+              guardrail(fv, when("2026-10-04T00Z"), 3, 0.5).endswith(
+                  "incidence 1/3; P(X<=1|3,0.5) = 0.500 -> ok (report-only)"))
+        check("as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T",
+              as_of(R, "main", when("2026-10-02T12:00Z")) == m1)
         f4 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-04T00:00Z"))
         f6 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-06T00:00Z"))
         fb = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-02T12:00Z"))
@@ -448,6 +471,10 @@ def self_test() -> int:
               (f4[5]["product"], f4[6]["product"]) == (True, False))
         check("as of: a verdict after T moves no fact (6's later head is product, read only after it)",
               f6[6]["product"] is True and f4[6]["product"] is False)
+        check("size: PR 7 merged twice reads its newest merge (700 lines, L>=600)", f4[7]["size"] == "L>=600")
+        check("join: merge branch fix/r1-fix-pr, -pr stripped, finds R1-FIX's resume.branch (fixer haiku)",
+              f4[7]["fixer"] == "haiku")
+        check("origin: a group listing fixes alone is finding", f4[7]["origin"] == "finding")
         check("as of: the roster is read at T (R1-FIND loses its issues after 10-05T12)",
               f6[5]["origin"] == "group")
         check("as of: --tree is read at T (before the merge, 5 reads its verdict head and no row)",
