@@ -33,7 +33,7 @@ probe return, a ref `probe/rev-<pr>-<nonce[:8]>` or tag
 `verdict/<pr>` copy's `bus-confirmed:` id starts with `cloud` or ends in
 `-cloud`; `local` otherwise. prior-merge: the PR already had a `merge`
 verdict on the bus (a re-review a carry could replace). class: the raw class
-word. origin, fixer: from the roster file at `--roster REF:PATH`, joined on
+word, `(merge)` for a merge verdict, `(no class)` for a block naming none. origin, fixer: from the roster file at `--roster REF:PATH`, joined on
 the first `R<n>-...` group token of `dev/programme/delivery/<pr>.md` at
 `--tree`, else on the roster `resume.branch`; origin is `finding` when the
 group lists issues, findings or fixes, `group` when it lists none, `none`
@@ -46,13 +46,15 @@ AS OF (`--as-of T`, default the latest window's until). The four fact strata
 are taken as of T, so a verdict, merge or roster edit after T moves none of
 them: the last verdict is the last one before T, and `--tree` and the roster
 REF are each resolved to their last first-parent commit dated at or before
-T (both printed). Every figure is then a function of the bus, the two refs
+T (both printed). A PR with no verdict before T reads `(unreviewed at T)`
+in every fact stratum. Every figure is then a function of the bus, the two refs
 and T, not of a tip's position when it is run.
 first-pass m/n: of the PRs whose FIRST bus verdict falls in the window, the
 m whose first verdict is `merge`.
 
 GUARDRAIL (`--guardrail N --p0 P`). The last N reviewed PRs by first verdict
-time before the last window's `until`, their incidence k/N, and the binomial
+time before the last window's `until` (a tie broken by PR number, in any
+input order), their incidence k/N, and the binomial
 P(X <= k | N, P). It prints `would-trip` when that is below 0.05, else `ok`;
 it decides nothing (R13: the guardrail reports and trips on nothing until
 the owner adopts a threshold).
@@ -60,11 +62,15 @@ the owner adopts a threshold).
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from math import comb
@@ -136,7 +142,7 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
             out.append(dict(pr=int(m[1]), t=when(t), kind=m[2], head=m[3],
                             cls=m[4] or "", real=m[2] == "blocked" and m[4] in real,
                             reviewer="cloud" if cloud else "local"))
-    out.sort(key=lambda v: (v["t"], v["pr"]))
+    out.sort(key=lambda v: v["t"])
     merged = set()
     for v in out:
         v["prior_merge"] = v["pr"] in merged
@@ -207,10 +213,10 @@ def stratum(by: str, v: dict, facts: dict[int, dict]) -> str:
     if by == "kind":
         return v["reviewer"]
     if by == "class":
-        return v["cls"] or "(merge)"
+        return v["cls"] or ("(merge)" if v["kind"] == "merge" else "(no class)")
     if by == "prior-merge":
         return "after-a-merge-verdict" if v["prior_merge"] else "no-merge-yet"
-    return str(facts[v["pr"]][by])
+    return str(facts[v["pr"]][by]) if v["pr"] in facts else "(unreviewed at T)"
 
 
 def tally(verdicts: list[dict], a: datetime, b: datetime, key) -> dict[str, dict]:
@@ -248,10 +254,10 @@ def guardrail(verdicts: list[dict], until: datetime, n: int, p0: float) -> str:
     first, caught = {}, set()
     for v in verdicts:
         if v["t"] < until:
-            first.setdefault(v["pr"], v["t"])
+            first[v["pr"]] = min(first.get(v["pr"], v["t"]), v["t"])
             if v["real"]:
                 caught.add(v["pr"])
-    last = sorted(first, key=lambda p: first[p])[-n:]
+    last = sorted(first, key=lambda p: (first[p], p))[-n:]
     if len(last) < n:
         return f"GUARDRAIL insufficient: {len(last)} reviewed PRs < N={n}"
     k = sum(p in caught for p in last)
@@ -364,7 +370,7 @@ def self_test() -> int:
         vs = g("commit-tree", g("write-tree"), "-m", f"verdict: #3\n\nbus-confirmed: cloud-rev-3 (review/3 at {s3})")
         g("update-ref", "refs/remotes/origin/verdict/3", vs)
         # PR 4: a subject shaped outside the grammar, and the same commit reachable from two refs.
-        s4 = verdict(rv(4), f"verdict: #4 Fix review: PASS merge {H}", N[7], "2026-10-02T02:00:00Z")
+        s4 = verdict(rv(4), f"verdict: #4 Fix review: PASS\tmerge {H}", N[7], "2026-10-02T02:00:00Z")
         g("update-ref", rv(44), s4)
         vlist, outside = load(R, "origin")
         a, b, c = when("2026-10-01T00:00Z"), when("2026-10-02T00:00Z"), when("2026-10-03T00:00Z")
@@ -420,13 +426,20 @@ def self_test() -> int:
         grp = lambda name, issues, fixer: dict(group=name, issues=issues, model=dict(fixer=fixer))
         # R1-FIX lists fixes alone and is joined only on its resume.branch (PR 7 has no row).
         fix = dict(group="R1-FIX", issues=[], fixes=["f1"], model=dict(fixer="haiku"), resume=dict(branch="fix/r1-fix"))
-        r1 = mk(None, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet"), fix]))},
+        # R1-FINDS lists findings alone (PR 8's row); R1-RES is joined on a resume.branch that keeps
+        # its -pr (PR 14); R1-EMPTY's empty resume.branch must join no unmerged, unrowed PR.
+        more = [dict(group="R1-FINDS", issues=[], findings=["x1"], model=dict(fixer="opus")),
+                dict(group="R1-RES", issues=[], model=dict(fixer="gpt"), resume=dict(branch="fix/r1-res-pr")),
+                dict(group="R1-EMPTY", issues=[], model=dict(fixer="empty"), resume=dict(branch=""))]
+        RP = "ro:ster.json"  # a colon in the path: the roster splits REF:PATH at the first one
+        r1 = mk(None, {RP: json.dumps(dict(groups=[grp("R1-FIND", [7], "opus"), grp("R1-GRP", [], "sonnet"), fix, *more]))},
                 "roster", "2026-10-01T00:00:00Z")
-        r2 = mk(r1, {"roster.json": json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet"), fix]))},
+        r2 = mk(r1, {RP: json.dumps(dict(groups=[grp("R1-FIND", [], "opus"), grp("R1-GRP", [], "sonnet"), fix, *more]))},
                 "roster: R1-FIND loses its issues", "2026-10-05T12:00:00Z")
         g("update-ref", "refs/remotes/origin/roster", r2)
         m0 = g("rev-parse", "main")
-        m1 = mk(m0, {"dev/programme/delivery/6.md": "| 6 | R1-GRP |\n"}, "row 6", "2026-10-01T12:00:00Z")
+        m1 = mk(m0, {"dev/programme/delivery/6.md": "| 6 | R1-GRP |\n", "dev/programme/delivery/8.md": "| 8 | R1-FINDS |\n",
+                     "docs/base.md": lines(300)}, "row 6", "2026-10-01T12:00:00Z")
         c1 = mk(m1, {"custom_components/x.py": lines(20)}, "pr 5 first", "2026-10-02T01:00:00Z")
         c2 = mk(c1, {"custom_components/x.py": lines(160)}, "pr 5 second", "2026-10-02T03:00:00Z")
         m2 = mk(f"{m1} {c2}", {"custom_components/x.py": lines(160)},
@@ -450,6 +463,39 @@ def self_test() -> int:
         s7 = verdict(rv(7), f"verdict: #7 Fix review: merge {e1}", N[9], "2026-10-02T03:00:00Z")
         vs = g("commit-tree", g("write-tree"), "-m", f"verdict: #7\n\nbus-confirmed: seat-7-cloud (review/7 at {s7})")
         g("update-ref", "refs/remotes/origin/verdict/7", vs)
+        # PR 8: reviewed FIRST (09-30) though numbered after 1..7, blocked real; its head is no commit.
+        verdict(rv(8), f"verdict: #8 Fix review: blocked {H} harness: x", N[1], "2026-09-30T00:00:00Z")
+        # PRs 10-13, unmerged, each on one side of a size cut: 149 lines and a binary file, 150 and a
+        # binary file under blueprints/, 599, and 300 deleted plus 300 added. PR 9 ties PR 10's first verdict.
+        h10 = mk(m1, {"docs/s10.md": lines(149), "docs/b.bin": "\0bin"}, "pr 10", "2026-10-05T01:00:00Z")
+        h11 = mk(m1, {"blueprints/x.yaml": lines(150), "blueprints/x.bin": "\0bin"}, "pr 11", "2026-10-05T01:00:00Z")
+        h12 = mk(m1, {"docs/s12.md": lines(599)}, "pr 12", "2026-10-05T01:00:00Z")
+        h13 = mk(m1, {"docs/base.md": "".join(f"x{i}\n" for i in range(300))}, "pr 13", "2026-10-05T01:00:00Z")
+        h14 = mk(m1, {"docs/s14.md": lines(145)}, "pr 14", "2026-10-05T01:00:00Z")
+        verdict(rv(9), f"verdict: #9 Fix review: merge {H}", N[2], "2026-10-05T02:00:00Z")
+        verdict(rv(10), f"verdict: #10 Fix review: blocked {h10} harness: x", N[2], "2026-10-05T02:00:00Z")
+        s11 = verdict(rv(11), f"verdict: #11 Fix review: merge {h11} harness: a class on a merge", N[3], "2026-10-05T03:00:00Z")
+        g("tag", f"archive/probe/rev-11-{N[3][:8]}", s11)
+        g("update-ref", "refs/remotes/origin/probe/not-a-return", s11)
+        g("update-ref", rv(12), mk(None, {"NOTE.md": "x"}, "note: a review-ref commit that is no verdict",
+                                   "2026-10-05T03:30:00Z"))
+        verdict(rv(12), f"verdict: #12 Fix review: merge {h12}", N[4], "2026-10-05T04:00:00Z")
+        verdict(rv(13), f"verdict: #13 Fix review: merge {h13}", N[5], "2026-10-05T05:00:00Z")
+        # PR 14's verdict commit carries no VERDICT.md (so no nonce).
+        g("update-ref", rv(14), mk(None, {}, f"verdict: #14 Fix review: merge {h14}", "2026-10-05T06:00:00Z"))
+        # main grows: PR 14 merged from fix/r1-res-pr with 10 lines the merge itself adds; an octopus
+        # merge naming PR 10 (700 lines on its side x1); a two-parent merge whose subject holds a tab;
+        # a one-parent commit subject-shaped like a PR merge (12).
+        m6 = mk(f"{m5} {h14}", {"docs/s14.md": lines(145), "docs/resolution.md": lines(10)},
+                "Merge pull request #14 from tvofi/fix/r1-res-pr", "2026-10-05T06:30:00Z")
+        x1 = mk(m1, {"docs/oct.md": lines(700)}, "x1", "2026-10-05T01:00:00Z")
+        x2 = mk(m1, {"docs/oct2.md": lines(1)}, "x2", "2026-10-05T01:00:00Z")
+        m7 = mk(f"{m6} {x1} {x2}", {"docs/oct.md": lines(700), "docs/oct2.md": lines(1)},
+                "Merge pull request #10 from tvofi/fix/octopus", "2026-10-05T07:00:00Z")
+        y1 = mk(m1, {"docs/y1.md": lines(1)}, "y1", "2026-10-05T01:00:00Z")
+        m8 = mk(f"{m7} {y1}", {"docs/y1.md": lines(1)}, "Merge branch\t'y1'", "2026-10-05T07:30:00Z")
+        m9 = mk(m8, {"docs/z.md": lines(1)}, "Merge pull request #12 from tvofi/fix/one-parent", "2026-10-05T08:00:00Z")
+        g("update-ref", "refs/heads/main", m9)
         fv = load(R, "origin")[0]
         check("bus-confirmed *-cloud id marks the verdict cloud",
               [v["reviewer"] for v in fv if v["pr"] == 7] == ["cloud"])
@@ -458,9 +504,9 @@ def self_test() -> int:
                   "incidence 1/3; P(X<=1|3,0.5) = 0.500 -> ok (report-only)"))
         check("as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T",
               as_of(R, "main", when("2026-10-02T12:00Z")) == m1)
-        f4 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-04T00:00Z"))
-        f6 = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-06T00:00Z"))
-        fb = pr_facts(R, "main", "refs/remotes/origin/roster:roster.json", fv, when("2026-10-02T12:00Z"))
+        f4 = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", fv, when("2026-10-04T00:00Z"))
+        f6 = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", fv, when("2026-10-06T00:00Z"))
+        fb = pr_facts(R, "main", f"refs/remotes/origin/roster:{RP}", fv, when("2026-10-02T12:00Z"))
         check("origin: a group listing issues is finding, one listing none is group",
               (f4[5]["origin"], f4[6]["origin"]) == ("finding", "group"))
         check("fixer: the joined group's model.fixer, opus for 5 and sonnet for 6",
@@ -479,8 +525,228 @@ def self_test() -> int:
               f6[5]["origin"] == "group")
         check("as of: --tree is read at T (before the merge, 5 reads its verdict head and no row)",
               (fb[5]["size"], fb[5]["origin"]) == ("S<150", "none"))
+
+        # The sweep's cases (dev/audit/harnesses/r10_review_strength_mutants.py): each pins one
+        # ordering, branch or threshold a one-node mutant moved while every check above passed.
+        T6 = when("2026-10-06T00:00Z")
+        RR = f"refs/remotes/origin/roster:{RP}"
+        quiet = io.StringIO()
+        with contextlib.redirect_stdout(quiet):
+            f6 = pr_facts(R, "main", RR, fv, T6)
+            f5 = pr_facts(R, "main", RR, fv, when("2026-10-05T01:00Z"))
+            fn = pr_facts(R, "main", None, fv, T6)
+        check("guardrail orders by FIRST VERDICT, not PR number: PR 8 (first, real) is not among the latest 3",
+              guardrail(fv, when("2026-10-04T00Z"), 3, 0.5)
+              == "GUARDRAIL last 3 PRs (first verdict 10-02T02:00Z..10-02T03:00Z): incidence 1/3; "
+                 "P(X<=1|3,0.5) = 0.500 -> ok (report-only)")
+        check("guardrail: a PR first reviewed exactly at until (7, 03:00) is outside; the bounds print [0] and [-1]",
+              guardrail(fv, when("2026-10-02T03:00Z"), 3, 0.5)
+              == "GUARDRAIL last 3 PRs (first verdict 10-02T01:00Z..10-02T02:00Z): incidence 2/3; "
+                 "P(X<=2|3,0.5) = 0.875 -> ok (report-only)")
+        check("guardrail: a first-verdict tie (9 and 10 at 10-05T02) breaks on PR number, so 10 is the latest",
+              "incidence 1/1;" in guardrail([v for v in fv if v["pr"] <= 10], T6, 1, 0.5))
+        check("guardrail: a PR's FIRST verdict places it, not its latest (6 at 10-02T02, though re-reviewed 10-05T01)",
+              guardrail(fv, T6, 8, 0.5).startswith("GUARDRAIL last 8 PRs (first verdict 10-02T02:00Z..10-05T06:00Z)"))
+        check("guardrail: the input's order moves nothing (the bus reversed reads the same)",
+              all(guardrail(fv[::-1], t, 3, 0.5) == guardrail(fv, t, 3, 0.5)
+                  for t in (when("2026-10-02T03:00Z"), when("2026-10-04T00:00Z"), T6)))
+        check("guardrail: ALPHA is 0.05: P = 0.038 would trip (not at 0.025), P = 0.087 is ok (not at 0.1)",
+              guardrail(vlist, c, 3, 0.987).endswith("= 0.038 -> would-trip (report-only)")
+              and guardrail(vlist, c, 3, 0.97).endswith("= 0.087 -> ok (report-only)"))
+        check("size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600",
+              [f6[p]["size"] for p in (10, 11, 12, 13)] == ["S<150", "M<600", "M<600", "L>=600"])
+        check("size: a head that is no commit is '?'", f6[8]["size"] == "?")
+        check("product: blueprints/ is product (11), docs/ is not (12)", (f6[11]["product"], f6[12]["product"]) == (True, False))
+        check("origin: a group listing findings alone is finding (8, R1-FINDS)", f6[8]["origin"] == "finding")
+        check("merge join: only a two-parent PR merge is a merge; an octopus naming 10 and a one-parent 12 are not",
+              (f6[10]["size"], f6[12]["size"]) == ("S<150", "M<600"))
+        check("size: a merged PR reads its branch's diff, not the 10 lines its merge commit adds (14: 145, S<150)",
+              f6[14]["size"] == "S<150")
+        check("join: merge branch fix/r1-res-pr matches a resume.branch that keeps its -pr (14: fixer gpt)",
+              f6[14]["fixer"] == "gpt")
+        check("join: an empty resume.branch joins no unmerged PR (1: origin none)", f6[1]["origin"] == "none")
+        check("as of: a verdict exactly at T is after T (6's 10-05T01 head is not read at 10-05T01)",
+              f5[6]["product"] is False)
+        check("no roster: every origin is none, the fixer none, and the roster prints '-'",
+              {x["origin"] for x in fn.values()} == {"none"} and {x["fixer"] for x in fn.values()} == {"none"}
+              and quiet.getvalue().splitlines()[2] == f"facts as of 2026-10-06T00:00Z: tree {m9[:12]} roster -")
+        check("facts print the tree and roster resolved at T, 12 hex each",
+              quiet.getvalue().splitlines()[0]
+              == f"facts as of 2026-10-06T00:00Z: tree {m9[:12]} roster {r2[:12]}")
+        try:
+            pr_facts(R, "main", "refs/remotes/origin/roster:missing.json", fv, T6)
+            check("a roster path that is not in the roster ref refuses", False)
+        except subprocess.CalledProcessError:
+            check("a roster path that is not in the roster ref refuses", True)
+        try:
+            as_of(R, "main", when("2000-01-01T00:00Z"))
+            check("as of: a ref with no commit at or before T refuses", False)
+        except SystemExit as exc:
+            check("as of: a ref with no commit at or before T refuses", "has no commit" in str(exc))
+        vv = {(v["pr"], v["kind"]): v for v in fv}
+        check("cloud: an archive/probe tag marks the verdict cloud (11)", vv[(11, "merge")]["reviewer"] == "cloud")
+        check("real: a class word on a MERGE verdict is never a real block (11)", vv[(11, "merge")]["real"] is False)
+        check("a verdict commit without VERDICT.md is still read (14, no nonce)", (14, "merge") in vv)
+        check("a review-ref commit that is no verdict and a non-return probe ref leave the outside row alone",
+              len(load(R, "origin")[1]) == 1)
+        check("window: [from, until) includes a verdict exactly at from (3's block at 10-02T01)",
+              tally(vlist, when("2026-10-02T01:00Z"), c, lambda v: "all")["all"]["real"] == 1)
+        tz = os.environ.get("TZ")
+        os.environ["TZ"] = "EST+5"
+        time.tzset()
+        try:
+            check("a Z stamp is UTC whatever the local zone", when("2026-10-01T00:00Z").hour == 0)
+        finally:
+            os.environ.pop("TZ") if tz is None else os.environ.__setitem__("TZ", tz)
+            time.tzset()
+        study = (ROOT / "dev/audit/rounds/round10/D13/yield-probe.md").read_text()
+        listed = re.search(r"^- The real-catch list: (.*?)\.$", study, re.M | re.S)
+        check("REAL_CATCH is the study record's real-catch list, word for word",
+              listed is not None and set(re.findall(r"`([^`]+)`", listed[1])) == set(REAL_CATCH))
+        _self_test_main(R, d, m9, r2, RP, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) -> None:
+    """main() end to end over self_test's fixture: its printed rows, each stratum alone, refusals, --fetch."""
+    err = io.StringIO()
+
+    def run(*argv: str) -> tuple[int, str]:
+        out = io.StringIO()
+        err.truncate(0)
+        err.seek(0)
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                rc = main(["--repo", d, "--tree", "main", *argv])
+            except SystemExit as exc:
+                rc = exc.code
+        return rc, out.getvalue()
+
+    wins = ("--window", "E=2026-09-29T00:00Z..2026-10-02T00:00Z", "--window", "L=2026-10-02T00:00Z..2026-10-06T00:00Z")
+    rr = ("--roster", f"refs/remotes/origin/roster:{path}")
+    rc, text = run(*wins, *(x for s in STRATA for x in ("--by", s)), "--by", "kind+origin", *rr,
+                   "--guardrail", "3", "--p0", "0.5")
+    expected = (
+        f"facts as of 2026-10-06T00:00Z: tree {tip[:12]} roster {roster[:12]}\n"
+        "verdicts on the bus: 18; outside the grammar: 1\n"
+        "  outside: verdict: #4 Fix review: PASS\tmerge aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        "## all\n"
+        "  all                      E      PRs 3 verdicts 7 real 2 (0.67/PR) book 2 (0.67/PR) incidence 2/3 (0.67) first-pass 0/3\n"
+        "  all                      L      PRs 10 verdicts 11 real 3 (0.30/PR) book 0 (0.00/PR) incidence 3/10 (0.30) first-pass 7/10\n"
+        "## kind\n"
+        "  cloud                    E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1\n"
+        "  cloud                    L      PRs 3 verdicts 3 real 1 (0.33/PR) book 0 (0.00/PR) incidence 1/3 (0.33) first-pass 2/3\n"
+        "  local                    E      PRs 3 verdicts 6 real 2 (0.67/PR) book 1 (0.33/PR) incidence 2/3 (0.67) first-pass 0/2\n"
+        "  local                    L      PRs 7 verdicts 8 real 2 (0.29/PR) book 0 (0.00/PR) incidence 2/7 (0.29) first-pass 5/7\n"
+        "## class\n"
+        "  (merge)                  E      PRs 2 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/2 (0.00) first-pass 0/0\n"
+        "  (merge)                  L      PRs 7 verdicts 7 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/7 (0.00) first-pass 6/6\n"
+        "  (no class)               E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0\n"
+        "  (no class)               L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  carry-missing            E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1\n"
+        "  carry-missing            L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  harness                  E      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
+        "  harness                  L      PRs 3 verdicts 3 real 2 (0.67/PR) book 0 (0.00/PR) incidence 2/3 (0.67) first-pass 1/3\n"
+        "  mutation-survivor        E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  mutation-survivor        L      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "## prior-merge\n"
+        "  after-a-merge-verdict    E      PRs 2 verdicts 2 real 0 (0.00/PR) book 1 (0.50/PR) incidence 0/2 (0.00) first-pass 0/0\n"
+        "  after-a-merge-verdict    L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  no-merge-yet             E      PRs 3 verdicts 5 real 2 (0.67/PR) book 1 (0.33/PR) incidence 2/3 (0.67) first-pass 0/3\n"
+        "  no-merge-yet             L      PRs 10 verdicts 11 real 3 (0.30/PR) book 0 (0.00/PR) incidence 3/10 (0.30) first-pass 7/10\n"
+        "## origin\n"
+        "  finding                  E      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "  finding                  L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+        "  group                    E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  group                    L      PRs 3 verdicts 4 real 1 (0.33/PR) book 0 (0.00/PR) incidence 1/3 (0.33) first-pass 2/3\n"
+        "  none                     E      PRs 2 verdicts 6 real 1 (0.50/PR) book 2 (1.00/PR) incidence 1/2 (0.50) first-pass 0/2\n"
+        "  none                     L      PRs 6 verdicts 6 real 2 (0.33/PR) book 0 (0.00/PR) incidence 2/6 (0.33) first-pass 4/6\n"
+        "## size\n"
+        "  ?                        E      PRs 3 verdicts 7 real 2 (0.67/PR) book 2 (0.67/PR) incidence 2/3 (0.67) first-pass 0/3\n"
+        "  ?                        L      PRs 2 verdicts 2 real 1 (0.50/PR) book 0 (0.00/PR) incidence 1/2 (0.50) first-pass 1/2\n"
+        "  L>=600                   E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  L>=600                   L      PRs 2 verdicts 2 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/2 (0.00) first-pass 2/2\n"
+        "  M<600                    E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  M<600                    L      PRs 3 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/3 (0.00) first-pass 3/3\n"
+        "  S<150                    E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  S<150                    L      PRs 3 verdicts 4 real 2 (0.67/PR) book 0 (0.00/PR) incidence 2/3 (0.67) first-pass 1/3\n"
+        "## product\n"
+        "  False                    E      PRs 3 verdicts 7 real 2 (0.67/PR) book 2 (0.67/PR) incidence 2/3 (0.67) first-pass 0/3\n"
+        "  False                    L      PRs 7 verdicts 7 real 2 (0.29/PR) book 0 (0.00/PR) incidence 2/7 (0.29) first-pass 5/7\n"
+        "  True                     E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  True                     L      PRs 3 verdicts 4 real 1 (0.33/PR) book 0 (0.00/PR) incidence 1/3 (0.33) first-pass 2/3\n"
+        "## fixer\n"
+        "  gpt                      E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  gpt                      L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+        "  haiku                    E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  haiku                    L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+        "  none                     E      PRs 2 verdicts 6 real 1 (0.50/PR) book 2 (1.00/PR) incidence 1/2 (0.50) first-pass 0/2\n"
+        "  none                     L      PRs 6 verdicts 6 real 2 (0.33/PR) book 0 (0.00/PR) incidence 2/6 (0.33) first-pass 4/6\n"
+        "  opus                     E      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "  opus                     L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+        "  sonnet                   E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  sonnet                   L      PRs 1 verdicts 2 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "## kind+origin\n"
+        "  cloud+finding            E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  cloud+finding            L      PRs 1 verdicts 1 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/1 (0.00) first-pass 1/1\n"
+        "  cloud+none               E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1\n"
+        "  cloud+none               L      PRs 2 verdicts 2 real 1 (0.50/PR) book 0 (0.00/PR) incidence 1/2 (0.50) first-pass 1/2\n"
+        "  local+finding            E      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        "  local+finding            L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  local+group              E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  local+group              L      PRs 3 verdicts 4 real 1 (0.33/PR) book 0 (0.00/PR) incidence 1/3 (0.33) first-pass 2/3\n"
+        "  local+none               E      PRs 2 verdicts 5 real 1 (0.50/PR) book 1 (0.50/PR) incidence 1/2 (0.50) first-pass 0/1\n"
+        "  local+none               L      PRs 4 verdicts 4 real 1 (0.25/PR) book 0 (0.00/PR) incidence 1/4 (0.25) first-pass 3/4\n"
+        "GUARDRAIL last 3 PRs (first verdict 10-05T04:00Z..10-05T06:00Z): incidence 0/3; P(X<=0|3,0.5) = 0.125 -> ok (report-only)\n"
+    )
+    check("main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)",
+          rc == 0 and text == expected)
+    sections = dict(x.split("\n", 1) for x in text.split("## ")[1:])
+    for s in STRATA:
+        rc1, alone = run(*wins, "--by", s, *rr)
+        check(f"main --by {s} alone prints the same {s} rows", rc1 == 0 and alone.split(f"## {s}\n")[-1] == sections[s])
+    rc, text = run(*wins, "--real-extra", "zeta,carry-missing,omega,beta,kappa,delta")
+    check("main --real-extra names the words, sorted, and moves PR 2's block to real (E: real 3, book 1)",
+          text.startswith("REAL = the study's list + beta, carry-missing, delta, kappa, omega, zeta\n") and " E      PRs 3 verdicts 7 real 3 " in text
+          and "book 1 (0.33/PR)" in text)
+    rc, text = run(*wins, "--by", "size", "--as-of", "2026-10-04T00:00Z")
+    check("main --as-of takes the facts at T, not at the latest until; a PR first reviewed after T is its own row",
+          text.startswith("facts as of 2026-10-04T00:00Z: ")
+          and "  (unreviewed at T)        L      PRs 6 verdicts 6 real 1 " in text)
+    rc, text = run("--window", "A=2026-10-03T00:00Z..2026-10-05T00:00Z", *wins, "--by", "size",
+                   "--guardrail", "3", "--p0", "0.5")
+    check("main: the facts default to the LATEST until of any window, the guardrail to the LAST named's",
+          text.startswith("facts as of 2026-10-06T00:00Z: ")
+          and "GUARDRAIL last 3 PRs (first verdict 10-05T04:00Z..10-05T06:00Z)" in text)
+    check("main: no fact stratum asked, no facts taken (the bus line comes first)",
+          run(*wins, "--by", "kind")[1].startswith("verdicts on the bus: "))
+    for why, argv in (("no window", ()), ("an unknown stratum", (*wins, "--by", "nope")),
+                      ("origin without --roster", (*wins, "--by", "kind+origin")),
+                      ("fixer without --roster", (*wins, "--by", "fixer")),
+                      ("--guardrail without --p0", (*wins, "--guardrail", "3"))):
+        check(f"main refuses {why} (exit 2)", run(*argv)[0] == 2)
+    run(*wins, "--by", "nope+aa+zz+mm+bb+kk")
+    check("main names the unknown strata sorted",
+          "unknown stratum ['aa', 'bb', 'kk', 'mm', 'nope', 'zz']" in err.getvalue())
+    # --fetch reads the remote's refs/heads/review/* into refs/remotes/<remote>/review/*.
+    from throwaway_git import throwaway_git_env
+    env = throwaway_git_env()
+    g = lambda *x: subprocess.run(["git", "-C", d, *x], capture_output=True, text=True, check=True,
+                                  env=env).stdout.strip()
+    g("remote", "add", "origin", d)
+    s13, s12 = g("rev-parse", "refs/remotes/origin/review/13"), g("rev-parse", "refs/remotes/origin/review/12")
+    g("update-ref", "refs/heads/review/15", s13)
+    g("update-ref", "-d", "refs/remotes/origin/review/13")
+    nonce = NONCE_RE.search(g("show", f"{s13}:VERDICT.md"))[1]
+    g("update-ref", f"refs/heads/probe/rev-13-{nonce[:8]}", s13)
+    g("update-ref", "refs/heads/verdict/12", g("commit-tree", g("rev-parse", f"{s12}^{{tree}}"), "-m",
+                                               f"verdict: #12\n\nbus-confirmed: cloud-12 (review/12 at {s12})"))
+    before = run(*wins, "--by", "kind")[1]
+    after = run(*wins, "--by", "kind", "--fetch")[1]
+    check("main --fetch reads the remote's review, probe and verdict refs (13 back, and 12 and 13 now cloud)",
+          "verdicts on the bus: 17;" in before and "verdicts on the bus: 18;" in after
+          and "  cloud                    L      PRs 3 " in before and "  cloud                    L      PRs 5 " in after)
 
 
 if __name__ == "__main__":

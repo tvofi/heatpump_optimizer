@@ -29,6 +29,10 @@ move a verdict from cloud to local.
   once, by committer time.
 - A blocked verdict is real when its class is in the study's real-catch list
   (STUDY.md, "Guardrail baselines"). Every other block is bookkeeping.
+- The real-catch list: `harness`, `class-open`, `test-vacuous`, `vacuous-test`,
+  `vacuous-check`, `mutation-vacuous`, `mutant-survives`, `mutation-survivor`,
+  `mutation-untriaged`, `mutation`, `architecture-unsound`, `metric-gamed`,
+  `defect`, `product-tradeoff-regression`, `policy-regression`, `figures-false`.
 - **real/PR** is real blocks divided by reviewed PRs. **incidence** is the
   number of PRs with at least one real block, divided by reviewed PRs.
   **first-pass m/n** counts the PRs whose first bus verdict falls in the
