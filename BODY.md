@@ -27,6 +27,10 @@ This round clears the review of f44296a6, which was blocked on the forward-carry
 
 ## Head
 
+`0e4558f438c1febcbe1f5943e001790eeea4dc26` merges origin/main `49018a8bec8d03fd2df52874b9021d25ab93741a` (after #2584) into `187cec730` by hand, resolving one content conflict (see `## Main absorb`, third absorb). The PR's own code is unchanged. `git diff --stat $(git merge-base origin/main HEAD)...HEAD` gives 4 files, +130/-2. Measured 2026-10-22T16:40Z.
+
+`187cec730000ae37c4191d642cf22c0422c7797e` merges main `738d950` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
 `25a22a315ed8d19b82f171e535c9dfcbb1d830f5` merges main `543c808` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
 
 `b8c6d6d5571614f5897413d77bf1476022830583` merges main `6c8903a` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
@@ -63,6 +67,13 @@ Re-taken at `808137a94` with origin/main at `8a4c438e7` on 2026-10-22:
 - The full mutants harness, with no names: `M0: 0 seat step(s) red` and `RESULT survivors=0`, exit 0. `grep -c ': KILLED'` gives 60, the 59 above plus main's `body_patch-1`, which fails 3 of 62 checks.
 - `cloud_relay.sh --self-test`: `189 checks, 0 failed`. `selftest_wiring.py --check`: `77 self-testing, 77 wired, 0 unwired`.
 - Gate scope: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, with `PREPR_SKIP_CLOSURES=1`. For run_always, `env_drift.py --claims-only 8a4c438e7` printed `ok`, `closure.py selftest` printed `ALL 112 closure shrink pins PASSED`, `layout.py` printed `ok` and `harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`. `structure.py` printed `STRUCTURE RATCHET PASSED`.
+
+Third absorb, `0e4558f438c1febcbe1f5943e001790eeea4dc26`. `git merge origin/main` (49018a8be) into `187cec730` conflicted in the same file's docstring only: #2584 reworded the id sentence to `S01..S38, and each per-file id (<file>-<n>)`, and this head's text listed `body_patch-1, cloud_relay-N, tick_loop-N, heartbeat-N`. I took main's wording, which covers every per-file id, so the list is not carried. The `MUTANTS` list merged without a conflict: main's `merge_train-1`..`-14` sit with this PR's `cloud_relay-1`..`-11`, and `grep -oE '^    \("[A-Za-z0-9_-]+"' <harness> | sort | uniq -d` prints nothing, so no id repeats.
+
+Re-taken at `0e4558f438c1febcbe1f5943e001790eeea4dc26` with origin/main at `49018a8be` on 2026-10-22, with `/opt/hpo/venv-ci/bin` first on PATH (the default `python3` has no numpy):
+- The full mutants harness, no names: `RESULT survivors=0`, exit 0, every `M0` row `rc=0`, no `NOT RUN`. `grep -c KILLED` gives 83, covering `S01`..`S38`, `S04U`, the W rows and every per-file id of both sides.
+- `cloud_relay.sh --self-test`: `189 checks, 0 failed`. `selftest_wiring.py --check`: `77 self-testing, 77 wired, 0 unwired`. `tmp_paths.py --check`: `0 refused`.
+- Gate scope: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, with `PREPR_SKIP_CLOSURES=1`. For run_always, `env_drift.py --claims-only 49018a8be` printed `ok`, `closure.py selftest` printed `ALL 112 closure shrink pins PASSED`, `layout.py` printed `ok`, `harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`, `entities.py` printed `ALL 2388 ENTITY CHECKS PASSED` and `structure.py` printed `STRUCTURE RATCHET PASSED`.
 
 Every figure below that this section does not name is still the one measured at its stated head.
 
@@ -128,7 +139,7 @@ The finder's harness was run at the head with no names, so every mutant ran: `py
 
 ## Red checks
 
-Read from the check-runs API, per commit, for this PR's commits. f78491bb2 has not run CI, because this seat pushes only `handoff/` refs.
+Read from the check-runs API, per commit, for this PR's commits. `0e4558f43` has not run CI, because this seat pushes only `handoff/` refs. The history below is unchanged by the merge.
 
 - Commits with no check-runs (`total_count` 0): cfa89d24f, 71a85d660, 255883803, ce4d12085, 47a40f71f, 929ee1607 and a43f68813. These are intermediate commits that were never a PR head.
 - At a54aed8b9, ed13f9a4f, bc313e7ca and f44296a61 there were 32 success, 16 skipped and 1 failure. a8a2778e1 had 29 success, 16 skipped and 1 failure. The failure was `nightly-status` each time.
