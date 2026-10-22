@@ -1,5 +1,5 @@
 unmutated: cloud_relay self-test: 189 checks, 0 failed
-R1 (grammar accepts leading zero):  1 file changed, 1 insertion(+), 1 deletion(-) => cloud_relay self-test: 189 checks, 14 failed
-R2 (held: substring match):  1 file changed, 1 insertion(+), 1 deletion(-) => cloud_relay self-test: 189 checks, 1 failed
-R3 (well-formed pass does not clear level):  1 file changed, 1 insertion(+), 1 deletion(-) => cloud_relay self-test: 189 checks, 1 failed
-restored: git status --short => []
+R1 held-continue dropped: cloud_relay self-test: 189 checks, 3 failed
+R2 substring: cloud_relay self-test: 189 checks, 1 failed
+R3 inverted held: cloud_relay self-test: 189 checks, 7 failed
+0
