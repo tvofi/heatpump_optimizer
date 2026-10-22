@@ -1,2 +1,0 @@
-BAD-DEST body item 71822b95: R10-NO-SUCH-GROUP: R10-NO-SUCH-GROUP is not a group of the roster
-CARRY-AUDIT: 2 finding item(s): 1 routed, 0 unrouted, 1 bad destination(s)

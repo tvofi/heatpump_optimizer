@@ -27,11 +27,25 @@ This round clears the review of f44296a6, which was blocked on the forward-carry
 
 ## Head
 
+`caac2c8dfb338b316803b94ba1df13aff02647e0` merges origin/main `16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab` into the previous head `056776d87`. The fixer seat made this merge by hand, resolving one content conflict (see `## Main absorb`). The PR's own code is unchanged.
+
 `056776d8754930075a030426dd807208e0fd2bc3` merges the authored code head `f78491bb28138e6318524da43f04abcdb1f3190b` and then merges origin/main `3976515a0` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 f78491bb28138e6318524da43f04abcdb1f3190b. It is f44296a61f42250b23c0f557a54c6295ab991dac (the reviewed head) with origin/main 93e6a63d2855651448a2b8f677b392feddc03c99 (`Merge pull request #2557`) merged in. That is a merge, never a rebase, with no conflict. It adds no commit of this PR's own. The PR's own diff against the merge base is unchanged: 4 files, +133/-3, by `git diff --stat $(git merge-base origin/main HEAD)...HEAD`. Every figure below was taken at this head, or at origin/main 93e6a63d2 where marked. `git merge-base --is-ancestor origin/main HEAD` held. Measured 2026-10-22T01:49Z.
 
 The PR's commits, oldest first, excluding main's: cfa89d24f, 0ddbc0c21, a8a2778e1, 71a85d660, 255883803, ce4d12085, a54aed8b9, ed13f9a4f, bc313e7ca, 47a40f71f, 929ee1607, a43f68813, f44296a61, and new in this round f78491bb2 (the origin/main merge).
+
+## Main absorb
+
+`git merge origin/main` (16a8240f1) into `056776d87` conflicted in one file, `dev/audit/harnesses/r10_seat_selftests_mutants.py`, in the `MUTANTS` tail after `S38`. This PR adds `cloud_relay-1`..`cloud_relay-11`. Main's r10-flow-andon adds `tick_loop-1`, `tick_loop-2` and `heartbeat-1`..`heartbeat-4`. Choice: keep both sides' tuples unchanged, this PR's first. The docstring merged without a conflict and read `S01..S38 and the per-file ids (tick_loop-N, heartbeat-N)`. I added `cloud_relay-N` to that list so that it is true of the merged list. `cloud_relay.sh`, `INSTRUMENTS.md` and the delivery row merged without a conflict.
+
+Re-taken at `caac2c8df` with origin/main at `16a8240f1` on 2026-10-22, using the seat venv shims:
+- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` with no names, so every mutant ran: M0 printed `0 seat step(s) red` and `RESULT survivors=0`, exit 0. `grep -c ': KILLED'` gives 59, which is the 53 above plus main's six new per-file mutants. A run of only the 17 per-file ids (`cloud_relay-1`..`-11`, `tick_loop-1`..`-2`, `heartbeat-1`..`-4`) killed each one. Each mutant's null control is the same step run on the unmutated file, and it passed first, because the harness prints `NOT RUN` otherwise.
+- `cloud_relay.sh --self-test`: `189 checks, 0 failed`. `selftest_wiring.py --check`: `76 self-testing, 76 wired, 0 unwired`.
+- `tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, with `PREPR_SKIP_CLOSURES=1`.
+- `run_always`: `env_drift.py --claims-only <merge-base>`, `closure.py selftest`, `layout.py`, `harness_headers.py` and `structure.py` all exit 0.
+
+Every figure below that this section does not name is still the one measured at its stated head.
 
 ## Mutation proof
 
@@ -148,4 +162,5 @@ none
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_01QDEyGCKxQsek7nsYMNPJfd
+
 

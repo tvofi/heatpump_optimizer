@@ -1,2 +1,0 @@
-BAD-DEST body item 5eb7818a: R10-FLOW-ROSTER-FREEZE: R10-FLOW-ROSTER-FREEZE is not a group of the roster
-CARRY-AUDIT: 2 finding item(s): 1 routed, 0 unrouted, 1 bad destination(s)
