@@ -7589,6 +7589,57 @@
     "next_step": "dispatch a fixer",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted."
    }
+  },
+  {
+   "group": "R10-ARCH-DOCS-FIRST",
+   "lane": "DOCS",
+   "kind": "feature",
+   "issues": [
+    2395
+   ],
+   "fixes": [
+    2395
+   ],
+   "findings": [
+    "#2395"
+   ],
+   "class": "docs",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "files": [
+    "docs/architecture.md",
+    "README.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Owner (2026-10-21): next to the CI shape, document and draw the orchestration machinery's shape, as built at this stage's merge base. In the developer onboarding, beside the CI shape: (a) the components: the beat and its jobs, the obligations ledger and its event kinds, the review and verdict bus refs, the relay's handoff arm, the merge train and its pitch, dispatch records, the heartbeat and its watcher, the hold list, the roster branch, the plan page and the flow toolkit; which run detached (daemonize.py) and which are seats; (b) one handoff's path: handoff, pull request, reviewable head, review, verdict read back, train, merge, record, stamp, with the ledger obligation each step opens or closes; (c) where a person or an agent decides and where a script does. Draw (a) and (b) as mermaid diagrams in the same visual language as the CI diagrams, and check every box and arrow against the tree: the job and event-kind tables R10-ORCH-MACHINERY lands, read at the merge base, never the design ref alone. The approved design is handoff/orch-machinery 09174d94e; the Lean flow study's ORCHESTRATOR-PROMPT names the rules the shape must show.",
+    "Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approved note becomes the group's architect note. Contracts: the designer's and design reviewer's, in dev/governance/roles/ once R10-FLOW-DESIGN-POLICY merges, the study's pinned drafts until then."
+   ],
+   "architect_note": "",
+   "brief": "R10-ARCH-DOCS-FIRST, rescheduled to ASAP by the owner (tvofi, 2026-10-22) as the FIRST delivery of round 10's architecture, CI-shape and development-shape documentation and visualisation. R10-ARCH-DOCS stays the round's last stage, rescoped to verify, adjust and wiring-test what this group lands.\n\nWhat it writes:\n- docs/architecture.md: the architecture, in words and diagrams.\n- The developer README/onboarding: the agentic coding process, its requirements, the CI shape, and the orchestration machinery's shape, as the carries below specify.\n\nBoth deliverables describe the PROTECTED FINAL SHAPE AT PROGRAMME END: the shape the tree will hold once every open round-10 group has merged. That shape is the documented target. Derive it at this group's merge base:\n- Study the remaining plan and roster. That is every group in dev/programme/rosters/wave-r10-groups.json whose resume.stage is not done: its brief, after-edges, carries and architect note. It also covers the approved design refs those name, for example handoff/orch-machinery 09174d94e, R10-CI-LAYOUT-P2's target layout, R10-ROUND-PLAYBOOK, and the flow groups. The plan page is the other input.\n- Describe what is already on origin/main from the tree.\n- Describe everything not yet landed from the plan.\n- Mark each element not yet on main with a target marker that names the group which lands it, in one grammar R10-ARCH-DOCS can resolve mechanically.\n- Where two roster briefs disagree about the final shape, do not pick one silently. Route a carry to the owning group (finding-propagation.md) and draw the shape the owning group's brief states.\n\nDiagrams:\n- Format: mermaid that renders on GitHub, or committed SVGs generated in-tree.\n- Visual language: take it from origin/main at the merge base (docs/img/brand/*.svg, docs/site/docs.css, docs/index.html, the card's CSS tokens). Read it from the tree, never hand-copied, in light and dark.\n- Coverage: draw the CI shape, the orchestration machinery and one handoff's path.\n\nAlso:\n- Seeds: branches fix/r10-arch-doc (4305cd109) and fix/r10-dev-onboard (0edd7fa66).\n- Fold the harnesses README (O9).\n- Issue #2395. Part of #201.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-arch-docs-first",
+    "commit": null,
+    "last_step": null,
+    "next_step": "design, then design review, then fixer (owner ASAP 2026-10-22)",
+    "note": null
+   }
   }
  ]
 }
