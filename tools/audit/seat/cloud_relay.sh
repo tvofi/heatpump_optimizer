@@ -3,6 +3,7 @@
 # cloud_relay.sh --watch [--interval N] [--once] [--confirm] [--log FILE]
 # cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]
 # cloud_relay.sh dispose [--log FILE] <ref> <sha40>                    record an OWED ref handled
+# cloud_relay.sh held <pr>                                             rc 0 held, 1 not held, 2 malformed hold file
 # cloud_relay.sh --self-test
 #
 # WHY. A cloud reviewer cannot run `bus.sh push-verdict`: the dispatch record
@@ -77,6 +78,17 @@
 #     topic has no open PR is `OWED <utc> handoff-no-pr <ref> <sha>` in
 #     <log>.level, rewritten every pass, until disposed; a failed PR listing
 #     leaves those lines as they were. The log itself holds events only.
+#     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
+#     lines and `#` lines allowed); only the orchestrator writes or edits it.
+#     A listed PR whose handoff is ahead is NOT updated and prints
+#       cloud_relay: HELD #<pr> <handoff tip>
+#     once per pass; removing the number resumes it. A missing or empty file
+#     holds nothing. A line that is not a plain PR number (or a file that is
+#     not readable) refuses the whole handoff arm that pass (rc 2, and
+#     `OWED <utc> handoff-hold-malformed <file> -` in <log>.level until a pass
+#     reads the file well-formed): never hold-all, never hold-none.
+#     `held <pr>` answers from the same file, for a driver that updates PRs
+#     itself (the beat's handoff job reads it unchanged).
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
 # `--loop` repeats a pass every --interval seconds (default 120); without it a
@@ -199,9 +211,23 @@ watch() { # [--interval N] [--once]
   while :; do probe_arm; [ -n "$once" ] && return 0; sleep "$every"; done
 }
 
+hold_file() { echo "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-handoff-hold"; }
+hold_list() { # the held PR numbers, one per line; rc 2 when the hold file is malformed. No file = no hold.
+  local f l; f=$(hold_file); [ -e "$f" ] || return 0
+  [ -f "$f" ] && [ -r "$f" ] || { echo "cloud_relay: refused: malformed hold file $f (not a readable file)" >&2; return 2; }
+  while IFS= read -r l || [ -n "$l" ]; do
+    case $l in ''|'#'*) ;; *[!0-9]*|0*) echo "cloud_relay: refused: malformed hold file $f: '$l' is not a PR number" >&2; return 2;; *) printf '%s\n' "$l";; esac
+  done < "$f"
+}
+held() { # held <pr>: rc 0 listed in the hold file, 1 not listed, 2 malformed file or argument. The orchestrator writes the file.
+  local l; case ${1:-} in ''|*[!0-9]*|0*) die "'${1:-}' is not a PR number"; return;; esac
+  l=$(hold_list) || return 2; grep -qxF "$1" <<< "$l"; }
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc upd
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs upd
   f=$state/cloud-handoff-failed; mkdir -p "$state"
+  : > "$state/cloud-level-hold.$$"   # the refusal is a level: owed while the file is malformed, gone once it is not
+  held_prs=$(hold_list) || { level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
+  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"
   { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
@@ -217,6 +243,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git fetch -q origin "refs/heads/handoff/$topic" "refs/heads/$br" 2>/dev/null
     git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
     git merge-base --is-ancestor "$hs" "$head" && continue
+    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
     if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi
     # The body goes in a directory of this run's own, under the state dir: a file directly in a
     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
@@ -438,13 +465,75 @@ self_test() {
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$NEW" > "$prs"; rm -f "$t/updated"
   handoff_arm >/dev/null 2>&1
   chk "a handoff already merged into its PR does nothing (null control)" 0 test ! -e "$t/updated"
+  # the hold file: a listed PR is skipped with one HELD line per pass; a malformed file refuses the pass
+  hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$hu"; HPO_RELAY_UPDATE=$hu
+  printf '41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a held PR whose handoff is already in its head prints no HELD (nothing to hold)" 1 grep -q HELD <<< "$ho"
+  rm -f "$t/updated" "$t/hupdated" "$t/state/cloud-handoff-failed"; : > "$LOG"
+  git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+  printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a held PR whose handoff is ahead is not updated" 0 test ! -e "$t/hupdated"
+  chk "and prints HELD with the handoff tip it did not apply" 0 grep -q "HELD #41 $HS\$" <<< "$ho"
+  chk "the HELD line is printed once per pass" 0 test "$(grep -c '^cloud_relay: HELD ' <<< "$ho")" = 1
+  chk "and the held pass dispatches no reviewer" 1 grep -q "reviewer-fire" "$LOG"
+  hc held-moved; mkref handoff/topic-a; HS2=$(git -C "$t/pr" rev-parse HEAD)
+  ho=$(handoff_arm 2>&1)
+  chk "a held PR whose handoff tip moved is still not updated" 0 test ! -e "$t/hupdated"
+  chk "and HELD names the moved tip" 0 grep -q "HELD #41 $HS2\$" <<< "$ho"
+  echo "topic-a $HS2" > "$t/state/cloud-handoff-failed"; ho=$(handoff_arm 2>&1)
+  chk "a hold outranks a recorded failed update: still HELD" 0 grep -q "HELD #41 $HS2\$" <<< "$ho"
+  rm -f "$t/state/cloud-handoff-failed"
+  printf '99\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "an unheld PR is updated as before (null control)" 0 grep -q "^fix/topic-a-pr $HS2\$" "$t/hupdated"
+  chk "and prints no HELD" 1 grep -q HELD <<< "$ho"
+  printf '141\n' > "$hf"; rm -f "$t/hupdated"; ho=$(handoff_arm 2>&1)
+  chk "a held #141 does not hold #41 (whole-line match)" 0 test -e "$t/hupdated"
+  chk "and prints no HELD" 1 grep -q HELD <<< "$ho"
+  : > "$hf"; rm -f "$t/hupdated"; handoff_arm >/dev/null 2>&1
+  chk "an empty hold file holds nothing" 0 test -e "$t/hupdated"
+  printf '# held: roster freeze\n\n99\n' > "$hf"; rm -f "$t/hupdated"; handoff_arm >/dev/null 2>&1
+  chk "comments and blank lines are allowed and hold nothing" 0 test -e "$t/hupdated"
+  rm -f "$hf" "$t/hupdated"; handoff_arm >/dev/null 2>&1
+  chk "no hold file holds nothing" 0 test -e "$t/hupdated"
+  printf '41\n' > "$hf"
+  chk "held <pr> says held (rc 0) for a listed PR" 0 held 41
+  chk "held <pr> says not held (rc 1) for an unlisted PR" 1 held 42
+  chk "held <pr> matches the whole line (#4 is not #41)" 1 held 4
+  chk "held refuses a non-number" 2 held 4x
+  chk "the CLI 'cloud_relay.sh held' says held (rc 0)" 0 bash "$HERE/cloud_relay.sh" held 41
+  chk "the CLI 'cloud_relay.sh held' says not held (rc 1)" 1 bash "$HERE/cloud_relay.sh" held 42
+  chk "a well-formed hold file owes no refusal (null control)" 1 grep -q handoff-hold-malformed "$LOG.level"
+  for hb in '41 99' 'abc' '41x' '0' '-1' '041' '41,99' ' 41' '41 # c'; do
+    printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; : > "$LOG"; ho=$(handoff_arm 2>&1)
+    chk "a malformed hold file ('$hb') refuses the pass (rc 2)" 2 handoff_arm
+    chk "and holds none: the PR is not updated" 0 test ! -e "$t/hupdated"
+    chk "and holds all: no HELD line" 1 grep -q HELD <<< "$ho"
+    chk "and names the refusal" 0 grep -q "refused: malformed hold file" <<< "$ho"
+    # a refusal repeats every pass while the file stays malformed: a level, as #2547 made every such line
+    chk "and owes handoff-hold-malformed in the level file" 0 grep -q "^OWED .* handoff-hold-malformed $hf -\$" "$LOG.level"
+    chk "once after two passes (rewritten, never appended)" 0 test "$(grep -c handoff-hold-malformed "$LOG.level")" = 1
+    chk "and the event log carries no refusal line" 1 grep -q handoff-hold-malformed "$LOG"
+    chk "and held refuses it too" 2 held 41
+    chk "and the CLI 'cloud_relay.sh held' refuses it (rc 2)" 2 bash "$HERE/cloud_relay.sh" held 41
+  done
+  # the held number is the unterminated last line, so the check fails when that line is dropped
+  printf '99\n41' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "a pass that reads the file well-formed drops the refusal from the level" 1 grep -q handoff-hold-malformed "$LOG.level"
+  chk "a last line without a newline is read: it holds #41" 0 grep -q "HELD #41 " <<< "$ho"
+  chk "and held says held for it" 0 held 41
+  printf '41' > "$hf"
+  chk "a one-line file without a newline holds #41" 0 held 41
+  printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+  chk "the same file newline-terminated holds #41 (null control)" 0 grep -q "HELD #41 " <<< "$ho"
+  rm -f "$hf" "$t/hupdated"; HPO_RELAY_UPDATE=$ustub
+  rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
   # a failing update is noted once and not retried
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
   fu=$t/fu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 1\n' "$t" > "$fu"; chmod +x "$fu"; HPO_RELAY_UPDATE=$fu
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a failed update is tried once" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 1
-  chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS" "$LOG"
+  chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS2" "$LOG"
   # a BUSY update (75: another update_pr.sh holds the branch's worktree) is no failure: not recorded, retried next pass
   rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"
   bu=$t/bu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 75\n' "$t" > "$bu"; chmod +x "$bu"; HPO_RELAY_UPDATE=$bu
@@ -516,6 +605,7 @@ self_test() {
 
 case ${1:-} in
   --self-test) self_test; exit $?;;
+  held) shift; held "$@"; exit $?;;
   --watch) shift; watch "$@"; exit $?;;
   pass) shift; pass "$@"; exit $?;;
   dispose) shift; [ "${1:-}" = --log ] && { LOG=${2:-}; shift 2; }; dispose "$@"; exit $?;;
