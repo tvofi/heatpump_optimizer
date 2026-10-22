@@ -14,7 +14,7 @@ M = [
  ("M0 null (no mutation)", DC, None, None),
  ("M1 (a) path resolution never fires", DC, "if tok not in tree and tok.rstrip(\"/\") + \"/\" not in dirs and not marked:", "if False:"),
  ("M2 (a) marker exemption dropped", DC, "if tok not in tree and tok.rstrip(\"/\") + \"/\" not in dirs and not marked:", "if tok not in tree and tok.rstrip(\"/\") + \"/\" not in dirs:"),
- ("M3 (b) unknown group passes", DC, "                if g not in stages:\n", "                if False:\n"),
+ ("M3 (b) unknown group passes", DC, "out.append(f\"{name}: [{kind}: {g}] names no group in the roster\")", "pass"),
  ("M4 (b) malformed marker passes", DC, "            if not g:\n                out.append(f\"{name}: malformed marker", "            if not g:\n                continue\n                out.append(f\"{name}: malformed marker"),
  ("M5 (c) refuses a done group", DC, "                    notes.append(f\"{name}: [{kind}: {g}] names a done group", "                    out.append(f\"{name}: [{kind}: {g}] names a done group"),
  ("M6 N1 roster read unconditionally", DC, "    if groups:\n        stages = roster()", "    stages = roster()\n    if groups:"),
@@ -43,6 +43,8 @@ for name, f, old, new in M:
         r = subprocess.run([sys.executable, DC], cwd=root, env=env, capture_output=True, text=True)
         fails = [l.strip()[5:].split("  [")[0] for l in r.stdout.splitlines() if l.strip().startswith("FAIL ")]
         print(f"== {name}: rc={r.returncode}, {len(fails)} FAIL")
+        if r.returncode and not fails:
+            print("     CRASH " + (r.stderr.strip().splitlines() or ["(no stderr)"])[-1])
         for x in fails:
             print(f"     FAIL {x}")
     finally:
