@@ -1,0 +1,9 @@
+
+202 passed, 0 failed
+rc=0
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+  pair entity-names: 2 readers, 121 items, 0 divergent
+  discovery: 386 governance code files, 1682 distinct grammars, 27 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.3
+AGREEMENT ok
+rc=0
