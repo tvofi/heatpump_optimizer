@@ -48,6 +48,13 @@
    ]
   },
   {
+   "name": "dev",
+   "why": "the developer onboarding: what lives under dev/, the governing documents, the work in order, the CI shape and the orchestration machinery",
+   "globs": [
+    "dev/README.md"
+   ]
+  },
+  {
    "name": "dev/governance",
    "why": "policy that binds every seat: canonical rules (D1), role contracts, dimension briefs, ADRs, policy-lint config",
    "globs": [
