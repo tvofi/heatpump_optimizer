@@ -1,49 +1,26 @@
-Fix review: merge c818b4677192d9476555d6001a1b5d5d8842ea35
+Fix review: merge d000df136403d7d80ed8247a395bbaa74088e600
 
-bus-nonce: 6470be1239e37bd641f0ad413de0ff8d
+bus-nonce: 5f7d6c8659406948d077759369bd81fe
 
-## Round
-
-Round 1 for PR #2600 (R10-ROSTER, branch fix/audit-r10-roster-9). I measured head c818b4677192d9476555d6001a1b5d5d8842ea35 from a detached worktree. That is still refs/pull/2600/head at verdict time, and origin/main is 01cf1398a9cfa3dcae5945221afd0c1dae9cf682. dev/governance/roles/ shows no diff between the merge base and origin/main, so the contract I followed is current.
+Reviewed head d000df136403d7d80ed8247a395bbaa74088e600 (roster tip b93ece169acfa8c97b469bbb18df06267aa14f6f, origin/main 8a4c438e7). Roster-only PR, so steps 1 to 5 and 14 have no production line to mutate; I planted roster mutants instead. This is a later round than the superseded review at c818b467.
 
 ## Findings
 
-None. Every carry lands with its source verdict's text, and nothing is handed on.
+- Non-blocking: R10-ORCH-MACHINERY's existing carry "Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ..." still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. Carry: R10-ORCH-MACHINERY
 
 ## Evidence
 
-- Scope: `git diff origin/main c818b4677` changes two files, 9 insertions and 3 deletions. The first is dev/programme/delivery/2600.md, one new line: the PR's own `open` row for R10-ROSTER. The second is dev/programme/rosters/wave-r10-groups.json, where the only change is to the `carry` arrays of exactly three groups. Each existing prefix is kept byte-identical:
-  - R10-ORCH-MACHINERY goes from 30 to 31 entries.
-  - R10-FLOW-ROSTER-FREEZE goes from 3 to 4 entries.
-  - R10-RCA-FRICTION-RESIDUE goes from 0 to 2 entries.
-  - The 3 deleted lines are the comma re-terminations of the previous last entries, plus `"carry": []`.
-  - No group is added or removed: 147 groups on both sides.
-  - These are exactly the four append-carry ops 3093279db, c4e214691, 844c6c694 and 8da941ac3. The roster at the head equals 8da941ac3 (0 diff lines).
-  - Evidence: ev/diff-main-head.txt, ev/figures.txt, ev/carry_texts.txt.
-- Carry texts against their source verdicts:
-  - The R10-ORCH-MACHINERY entry is byte-equal to line 11 of review/2580 VERDICT.md.
-  - The R10-FLOW-ROSTER-FREEZE entry is byte-equal to line 12 of review/2580 VERDICT.md.
-  - In #2580's posted verdict, comment 6335670563 by hpo-approver[bot], the first line is `Fix review: merge caac2c8d...`.
-  - The two R10-RCA-FRICTION-RESIDUE entries are review/2598's two `## Findings` bullets verbatim. The only edit is that the leading `- ` and the trailing ` Carry: R10-RCA-FRICTION-RESIDUE` are replaced by ` (from #2598 verdict, bus 15d0bf56)`.
-  - 15d0bf56ae0f is the verdict commit `verdict: #2598 Fix review: merge 35dd3965...` on origin/verdict/2598.
-- Destination groups are live on origin/main's roster:
-  - R10-ORCH-MACHINERY is `not-started`.
-  - R10-FLOW-ROSTER-FREEZE is `not-started`.
-  - R10-RCA-FRICTION-RESIDUE is `queued`.
-- Figures re-derived at this head. Every figure in the body reproduces:
-  - The merge base of 8da941ac3 with origin/main is 4da10dbae84c7915488ce9fcd29240fc14750eb0.
-  - The null control `git diff --exit-code origin/main 4da10dbae -- roster` gives rc 0.
-  - The roster diff is 8 insertions and 3 deletions over 4 commits.
-  - The body's jq program prints 147/147, removed [], new [], and changed [R10-FLOW-ROSTER-FREEZE, R10-ORCH-MACHINERY, R10-RCA-FRICTION-RESIDUE].
-  - Carry counts afterwards are 4, 31 and 2.
-  - bfc609664 is the merge of 01cf1398a into 8da941ac3, and c818b4677 adds only dev/programme/delivery/2600.md.
-- RESULT brief_lint: `node tools/policy/brief_lint.mjs` at the head prints `TOTAL: 0 error(s) across 47 file(s)`. The non-zero counts after that line are its fixture self-tests, each reporting `ok` (ev/brief_lint.txt).
-- RESULT carry_audit: `carry_audit.py check --body` on the PR body at the head prints `0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` (ev/carry_audit_body.txt, ev/body_full.md). CI's pr-contract printed the same line.
-- RESULT merge-tree: `git merge-tree --write-tree origin/main c818b4677` exits 0 with tree 1755eff9102b, which equals the head's own tree. That is clean, and no claim-file driver was invoked (ev/merge-tree.txt).
-- Mutation proof, class rule, claim files and metric moves do not apply. The diff writes no production or test line, moves no budget, closure, golden or claim file, and touches neither VERSION nor the manifest or notes heading. pr-contract confirms `no version edit`.
-- CI at this head: 40 check runs, all concluded (ev/check-runs-c818b467.tsv, ev/ci-logs.txt).
-  - Every one is success, skipped or neutral (CodeQL), except nightly-status.
-  - nightly-status failed with `NIGHTLY ABSENT: no scheduled run of the workflow was found at all`, pinned to main 01cf1398a. It grades main's nightly schedule, which a roster-only diff cannot reach. It is not a required check on main-protect and does not block.
-  - pr-contract started at 08:21:50Z, after nightly-status concluded red at 08:16:11Z, read the body and passed (`clean no refusal`).
-  - The body's `## Red checks` section reports main's tip as read before that run concluded. pr-contract accepted it, and that section is not what this verdict judges.
-- Figures I could not re-derive: none.
+- RESULT head: ev/HEAD.txt holds d000df136403d7d80ed8247a395bbaa74088e600. The PR head is d000df136403d7d80ed8247a395bbaa74088e600 at read time.
+- RESULT eleven ops: the diff is exactly the eleven ops the body lists and nothing else (ev/ops_check.txt). Burst 3: 3093279db and c4e214691 equal the #2580 verdict items (review/2580, round 7) and 844c6c694 and 8da941ac3 equal #2598's verdict findings 1 and 2 (review/2598), compared as strings against the fetched verdicts (ev/review2580_VERDICT.md, ev/review2598_VERDICT.md). Burst 4: 3dbe4574b, 8b3eddaed, ae62ce74e, 3c366ff99, 4b3f68f21, 0cf8c7848 and b93ece169 are as the brief describes; the other 33 after-edges and wave 27 are unchanged. The only other file is the PR's own delivery row, dev/programme/delivery/2600.md.
+- RESULT group census: 147 to 148 groups, none removed, one new, five changed, as the body prints (jq program from the body, re-run).
+- RESULT R10-CI-LAYOUT-P1 done at fae523a14: fae523a14 is the merge of #2585 and an ancestor of origin/main. The group is PR 1 only. Its checklist holds on main: the stale GITHUB_TOKEN-push comment grep over tests.yml prints nothing, and selftest_wiring --check reads 77 self-testing, 77 wired, 0 unwired. Its next_step text still reads the pre-dispatch wording; R10-CI-LAYOUT and R10-RCA-FRICTION, both done, keep the same style of resume text, so this follows the roster's practice.
+- RESULT replan against the owner's ruling (quoted in the body): R10-ARCH-DOCS-FIRST's brief says the work is rescheduled to ASAP, describes the PROTECTED FINAL SHAPE AT PROGRAMME END, tells the seat to derive it from the remaining plan and roster (every group not done, their briefs, after-edges, carries, architect notes and approved design refs), to mark each not-yet-landed element with a target marker naming the landing group, and to cover the CI shape, the orchestration machinery and one handoff's path. It sits at wave 1 with no predecessors, queued. R10-ARCH-DOCS keeps wave 27, the last wave, gains the edge on R10-ARCH-DOCS-FIRST, and its brief is rescoped to verification, adjustments and the wiring test (red on a rename fixture, green on a null control, no unresolved target marker on main), plus P40. No mismatch with the ruling.
+- RESULT brief_lint: node tools/policy/brief_lint.mjs at the head prints TOTAL: 0 error(s) across 47 file(s) (ev/brief_lint_full.txt) and 0 across 1 file on the roster (ev/brief_lint_roster.txt). Mutant 1 (delete R10-ARCH-DOCS-FIRST, leaving the edge and carries naming it): TOTAL: 1 error(s). Mutant 2 (dangling after edge on R10-ARCH-DOCS): TOTAL: 1 error(s). Null control (unmutated): 0 errors. ev/mutant_drop_first.txt, ev/mutant_dangling_after.txt, ev/null_control.txt.
+- RESULT merge: git merge-tree --write-tree origin/main d000df136403d7d80ed8247a395bbaa74088e600 exits 0, tree 706d369cd3ff25f6b83085903dd23df798dfab75 (ev/merge_tree.txt). origin/main is the merge base, so the head is 0 commits behind.
+- RESULT contract files: git diff of dev/governance/roles/ between the merge base and origin/main is empty, so the role file I read is current.
+- RESULT version: VERSION, the manifest and RELEASE_NOTES.md are not in the diff (2 files changed).
+- RESULT CI at the head (check-runs API): pr-contract success, briefs success, delivery-status success, policy-docs success, fast (3.14) success, mutation success, closures success (it was in progress at first read and concluded success), arch-score success, env-matrix success, CodeQL neutral, other lanes skipped. nightly-status failure: its log prints the nightly red notice and it grades main's last scheduled run, not this diff, which touches no workflow or code. The check is not a required check for this diff and does not block. No API rate-limit log was involved.
+- RESULT carry_audit: the PR body routes nothing (Forward-carry none), and pr-contract, which runs carry_audit over the body, is success at this head. Over this verdict, carry_audit check reports in ev/carry_audit_verdict.txt. The Carry destination R10-ORCH-MACHINERY is a live group (not-started) on main's roster.
+- RESULT body figures: every figure in the body re-derived at this head: 147/148, the removed/new/changed lists, 1 file, 65 insertions and 9 deletions over 11 commits from merge base 4da10dba to the code head (ev/shortstat.txt), and the null control rc 0 (roster on main equals the body's merge base).
+- RESULT forward-carry: the body states none, and its carries are the roster ops themselves, all present at the head.
+- RESULT paths: no macOS home or private-tmp path appears in this file or ev/.

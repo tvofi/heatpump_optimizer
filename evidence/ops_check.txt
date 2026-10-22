@@ -1,0 +1,7 @@
+RESULT roster b93ece169 == roster at head d000df136 (git diff b93ece169 d000df136 -- wave-r10-groups.json is empty)
+RESULT jq census (body's program): nb 147 nh 148 removed [] new [R10-ARCH-DOCS-FIRST] changed [R10-ARCH-DOCS R10-CI-LAYOUT-P1 R10-FLOW-ROSTER-FREEZE R10-ORCH-MACHINERY R10-RCA-FRICTION-RESIDUE]
+RESULT diff origin/main..head: 2 files (roster, delivery/2600.md); changed fields: ARCH-DOCS {after,carry,brief}; CI-LAYOUT-P1 {resume}; others {carry}
+RESULT 4 new carry texts equal the #2580/#2598 verdict items verbatim (suffix 'Carry: X' / '(from #2598 verdict, bus 15d0bf56)' aside)
+RESULT ARCH-DOCS-FIRST fields == ARCH-DOCS fields except group, wave (1 vs 27), after ([]), resume (queued, handoff/r10-arch-docs-first), brief; carry list == ARCH-DOCS former carries
+RESULT ARCH-DOCS after: 33 -> 34, only +R10-ARCH-DOCS-FIRST; wave 27 (max wave, nothing depends on it)
+RESULT fae523a14 = 'Merge pull request #2585' ancestor of origin/main; on main grep GITHUB_TOKEN push (triggers no|leaves no|creates no) pull_request run in tests.yml prints nothing; selftest_wiring --check: 77 self-testing, 77 wired, 0 unwired

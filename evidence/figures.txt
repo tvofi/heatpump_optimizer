@@ -1,6 +1,0 @@
-merge-base(origin/main, 8da941ac3) = 4da10dbae84c7915488ce9fcd29240fc14750eb0
-null control git diff --exit-code main 4da10dbae -- roster: rc=0
-numstat 4da10dbae..8da941ac3: 8	3	dev/programme/rosters/wave-r10-groups.json
-commits: 4
-{"nb":147,"nh":147,"removed":[],"new":[],"changed":["R10-FLOW-ROSTER-FREEZE","R10-ORCH-MACHINERY","R10-RCA-FRICTION-RESIDUE"]}
-roster at head vs 8da941ac3: 0 diff lines
