@@ -1,5 +1,5 @@
 facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6
-verdicts on the bus: 395; outside the grammar: 0
+verdicts on the bus: 407; outside the grammar: 0
 ## all
   all                      E      PRs 83 verdicts 200 real 57 (0.69/PR) book 44 (0.53/PR) incidence 35/83 (0.42) first-pass 30/83
   all                      L      PRs 47 verdicts 84 real 7 (0.15/PR) book 30 (0.64/PR) incidence 6/47 (0.13) first-pass 20/44
