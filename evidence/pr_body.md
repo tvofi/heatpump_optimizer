@@ -4,66 +4,56 @@ Pinned pack file: `dev/programme/flow-study/roster/groups/R10-FLOW-YIELD-PROBE.j
 
 R10-FLOW-YIELD-PROBE (owner ruling R13) explains why real-catch blocks per reviewed PR fell from 0.52 to 0.15. The record is `dev/audit/rounds/round10/D13/yield-probe.md`, and every figure in it comes from `tools/audit/seat/review_strength.py`, which reads the verdict bus over git only. No production code, budget, `VERSION`, manifest or claim file is touched.
 
-Round 6 follows the orchestrator's split decision (O-3) on the round-5 block:
+Round 6 split the guardrail out to R10-ORCH-MACHINERY (item b8b28b28), killed H1, H9 and H5 by fixtures, extended the sweep's literal class to regex characters, and registered the `--fetch` fixture's push in `ref_privacy.py`'s `PUSHERS`.
 
-- **The guardrail is split out.** The record's threshold, arms and back-test, and the tool's `--guardrail` path with `ALPHA` and `binom_cdf`, are removed. They are R10-ORCH-MACHINERY's carry (item b8b28b28). The record now answers only why the rate fell. Its one binomial figure is stated as a formula: (1 − 0.28)^20 = 0.0014.
-- **H1 and H9 are killed by fixtures.** PR 18's delivery row names `R10-FLOW-YIELD-PROBE`. PR 16 adds `tests/t16.py` and `tools/t16.py`, which are top-level directories outside the product, and keeps its 150 lines.
-- **The sweep's literal class drops each single character of a regex literal** (the pattern argument of an `re.` call), one mutant per inner position. Its first run found 9 undisposed survivors. Eight are killed by fixtures:
-  - group `R1-555` puts a digit inside each range of GROUP_RE;
-  - PR 21 pins the class word up to its own colon;
-  - PRs 22 and 23 carry a nonce and a confirmation with no space after the colon;
-  - `--fetch` with `--by origin` and no `--roster` is refused before the fetch.
+Round 7 answers the round-6 block (review/2579 f7a6bdf0c) with exactly the two edits the reviewer named, and nothing else:
 
-  The ninth, the drop of GROUP_RE's first `]`, is disposed as equivalent on the bus's inputs. All 150 roster groups hold two or more characters after the dash. A one-character group such as `R1-X` separates the tool from the mutant.
-- **Committer time is pinned.** PR 20's verdict was authored a month before it was committed, and the window reads it by its committer time.
-- **The `--fetch` fixture's push is registered** in `ref_privacy.py`'s `PUSHERS` as `fixture`.
-- **DISPOSED entries (a) and (c)** now say "equivalent on the bus's inputs" and name the input that separates each one. Entry (b), `cdf < ALPHA`, left with the guardrail.
+- **The probe-slice survivor is killed.** PR 16's fixture nonce was `"09abcdef" * 4`, so its first, second and last 8 hex were one string, and `load`'s probe match survived `nonce[:8]` → `nonce[-8:]` and → `nonce[8:16]`. It is now `09abcdef1234567876543210fedcba98`, whose first 8 hex recur nowhere in it.
+- **The GROUP_RE disposition carries no count.** It now reads "every roster group and every delivery row's group token holds two or more characters after the dash". The roster at origin/main holds 151 groups, the shortest with 2 characters after the dash, so the equivalence still holds.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_011FQcopbARzxDhthavMrv7v
+https://claude.ai/code/session_01LAMi8aEnSdjgc3vbMjxMrM
 
 ## Head
 
-`45754ede263322459d69936f5898d26fe64654f4` merges the authored code head `218b0af4c3176a671207a2253ada97ca248a726d` and then merges origin/main `543c8087c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`632d2fe261b5293e718363485cd816909bf3290c` merges the authored code head `8a01caf2eaad3955fa0ddc40b05603430c49e88b` and then merges origin/main `738d950aa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-Code head `218b0af4c3176a671207a2253ada97ca248a726d`. It merges `origin/main` at `cd4aaed44` (v7.0.3) into the reviewed head `6ad8089c14b50de2f6408ef6948a7d86ca4c52c2`, and adds three commits on top. The sweep ran at `29110ab18`. Its last commit drops the one DISPOSED entry that run reported stale, and nothing else changes: `cmp list_before.txt list_after.txt && echo MUTANT-LIST-IDENTICAL` over the harness's `--list` prints `MUTANT-LIST-IDENTICAL`.
+Code head `8a01caf2eaad3955fa0ddc40b05603430c49e88b`: one commit on the reviewed head `45754ede263322459d69936f5898d26fe64654f4`, touching two lines of fixture and comment in `_self_test_seams` and one string in the harness's `DISPOSED`. `git diff -U0 45754ede2 8a01caf2e | grep '^@@'` names hunks at `DISPOSED` and `_self_test_seams` only, so no line `load` or the bundle runs has changed. The head is not merged with origin/main (`47147487ba2b` at 2026-10-22T13:42Z, 3 commits ahead): the handoff froze the branch.
 
 ## Mutation proof
 
-The class rule is the command `python3 dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4`. Its header states the classes and BOUNDS. At `29110ab18` it prints `RESULT mutants=2350 killed=2306 survived=44 disposed=44 undisposed=0 stale=1`. The stale entry is `cls`'s `or ''` arm, which PR 21's no-class block now kills, so the head drops it. Each survivor is keyed and reasoned in the harness's `DISPOSED`.
+The reviewer's two survivors, applied one at a time to `load` in this worktree and restored identical:
 
-The verdict's hand mutants were applied in a scratch root at the head. Each fails exactly one check:
+- `(int(m[1]), nonce[:8]) in probes` → `nonce[-8:]`: `FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)`, `review_strength self-test: 87 checks, 1 failed`, rc=1.
+- `nonce[:8]` → `nonce[8:16]`: the same `FAIL` line, `87 checks, 1 failed`, rc=1.
 
-- H1 (`[A-Z0-9-]*` → `[A-Z0-9]*` in GROUP_RE): `FAIL: group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)`.
-- H9 (`"tests/"` added to the product prefixes): `FAIL: product: tests/, tools/, custom_components.md and blueprints.md are not under the product prefixes (16)`.
-- H5 (`%cI` → `%aI`): `FAIL: a verdict counts at its committer time, not its author time (20: in 10-05T09:46..09:48)`.
+The class rule is the command `python3 dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4`. Its header states the classes and BOUNDS. At the code head it prints `RESULT mutants=2350 killed=2306 survived=44 disposed=44 undisposed=0 stale=0`, rc=0. Each survivor is keyed and reasoned in the harness's `DISPOSED`.
 
 ## Null control
 
-- **M0.** The unmutated emission passes (`review_strength self-test: 87 checks, 0 failed`) before any mutant runs.
-- **No figure moves.** The study bundle (the record's command) was printed by the `6ad8089c` tool and by the code head's tool over the same fetched bus. `diff old.txt new.txt && echo BUNDLE-IDENTICAL` prints `BUNDLE-IDENTICAL` (2026-10-22T11:51Z, 403 verdicts on the bus, `facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6`).
+- **M0.** With the fixture changed and `load` unmutated, `python3 -I tools/audit/seat/review_strength.py --self-test` prints `review_strength self-test: 87 checks, 0 failed`, and so does the sweep's M0 run. The same two mutants on the old fixture passed 87/0 (the round-6 verdict, ev/hand_mutants.txt X2 and X2b), so the fixture is what now separates them.
+- **The sweep's mutant set is unchanged.** `cmp list_before.txt list_after.txt && echo MUTANT-LIST-IDENTICAL` over `--list` at `45754ede2` (a `git archive` copy) and at the code head prints `MUTANT-LIST-IDENTICAL` (2351 lines each).
+- **No bundle figure moves.** The diff touches no line the bundle runs (Head), so the record's figures and the round-6 bundle null control (`BUNDLE-IDENTICAL`) stand unchanged.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/review_strength.py --self-test` prints `review_strength self-test: 87 checks, 0 failed`.
-- `python3 dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4` prints `RESULT mutants=2350 killed=2306 survived=44 disposed=44 undisposed=0 stale=1` at `29110ab18`. The stale entry is removed at the head (see Head).
-- `python3 -I tools/audit/seat/ref_privacy.py --check` prints `0 refused`.
-- The finder's harness is the tool on the real bus after `--fetch`, with both ends at the brief's quoted rates:
-  - `python3 tools/audit/seat/review_strength.py --window A=2026-10-15T12:37Z..2026-10-21T11:00Z` prints `PRs 112 verdicts 257 real 58 (0.52/PR)`.
-  - The record's bundle prints `all L PRs 47 verdicts 84 real 7 (0.15/PR)`.
-  - Every window closes by 2026-10-21T15:15Z.
+- `python3 -I tools/audit/seat/review_strength.py --self-test` prints `review_strength self-test: 87 checks, 0 failed` at the code head (Python 3.11).
+- `python3 dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4` prints `RESULT mutants=2350 killed=2306 survived=44 disposed=44 undisposed=0 stale=0`, rc=0 at the code head (2026-10-22T13:41Z to 14:22Z).
+- `python3 -I tools/audit/seat/ref_privacy.py --check` prints `0 refused`, and `tmp_paths.py --check` prints `0 refused`.
+- Roster group count, rule: `len(groups)` of `dev/programme/rosters/wave-r10-groups.json` at origin/main `47147487ba2b`, and the minimum length after the first dash: 151 groups, minimum 2.
 
 ## Red checks
 
 - **`instrument-self-tests`** was red at `6ad8089c`: `ref_privacy: REFUSE tools/audit/seat/review_strength.py:854`. It is fixed by the `PUSHERS` entry. The cheaper detector is `python3 -I tools/audit/seat/ref_privacy.py --check`, which takes seconds and was not run before the push. It now prints 0 refused.
 - **`pr-contract`** was red at 10:12Z on `6ad8089c`: `check instrument-self-tests is red and ## Red checks does not name it`. It follows from the red above, because the body was written before that check concluded. The cheaper detector is `policy_lint.mjs --pr-body <body> --red <name>`, run once every check on the head has concluded. This body names the red.
-- **`nightly-status`** grades main's scheduled run, not this diff, which touches nothing it reads. Carry: dismissed: grades main, not this diff
-- **Local**, with `PYTHONPATH=tests/hastub` and `PREPR_SKIP_CLOSURES=1`: `tests/closure.py select` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. Both pass at the code head (3.13): `ALL 2388 ENTITY CHECKS PASSED` and `ALL 109 HARNESS HEADER CHECKS PASSED`. `tests/structure.py` prints `STRUCTURE RATCHET PASSED`, and `tmp_paths.py --check` prints 0 refused.
+- **`nightly-status`** was red at `81d617cec`, `468781122`, `816b1e20f`, `eb9f7e89d`, `6ad8089c1` and `45754ede2`. It grades main's scheduled run, not this diff, which touches nothing it reads. Carry: dismissed: grades main, not this diff
+- The 13 `cancelled` runs at `81d617cec` were superseded by the next push within a minute. None failed.
+- **Local**, with `PYTHONPATH=tests/hastub` and `PREPR_SKIP_CLOSURES=1`: `tests/closure.py select` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. At 3.13 with `tests/requirements-ci.txt`, both pass at the code head: `ALL 2388 ENTITY CHECKS PASSED` and `ALL 109 HARNESS HEADER CHECKS PASSED`. `tests/structure.py` prints `STRUCTURE RATCHET PASSED`, and `tests/closure.py selftest` prints `ALL 112 closure shrink pins PASSED`.
 
 ## Forward-carry
 
-- The guardrail (threshold, arms, back-test, planted-defect calibration and the tool's `--guardrail` path) is split out of this PR. The owner group gets two corrected points. First, P(X ≤ 4 | 30, 0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer, not 3. Second, the round-5 finding that `ALPHA` is unpinned between 0.05 and 0.0526 is moot here, but the seat-family arm's k = 2 of 20 gives P = 0.0526, so any `ALPHA` the guardrail adopts needs a check at that P. Destination: `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY (item b8b28b28)
+- The guardrail is split out of this PR to R10-ORCH-MACHINERY. The orchestrator wrote its two corrected points into that group's brief: commit `c98fb4c27` on `handoff/audit-r10-roster` ("roster_edit append-carry R10-ORCH-MACHINERY") appends a carry citing review/2579 f7a6bdf0c. It states (1) P(X ≤ 4 | n = 30, p = 0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer, and (2) any `ALPHA` the guardrail adopts must be checked at P = 0.0526 (k = 2 of 20). This PR does not edit the roster. Destination: `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY (item b8b28b28)
 
 ## Friction
 

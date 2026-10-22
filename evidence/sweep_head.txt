@@ -1,7 +1,6 @@
-Thu Oct 22 12:32:01 UTC 2026
 M0 (unmutated emission): passed -- review_strength self-test: 87 checks, 0 failed
 DISPOSED L82   NONCE_RE @ NONCE_RE = re.compile('^bus-nonce:\\s*([0-9a-f]{32})', re.M): '^bus-nonce:\\s*([0-9a-f]{32})' -> '^bus-nonce:\\s*([0-9a-f]{31})'  [equivalent on the bus's inputs (every bus nonce is 32 hex, and only nonce[:8] is read); separated by a VERDICT.md holding a 31-hex bus-nonce, which the tool leaves unread and the mutant reads]
-DISPOSED L85   GROUP_RE @ GROUP_RE = re.compile('\\b(R\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-...: '\\b(R\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\\b' -> '\\b(R\\d+-[A-Z0-9[A-Z0-9-]*[A-Z0-9])\\b'  [equivalent on the bus's inputs (all 150 roster groups and every delivery row's group token hold two or more characters after the dash); separated by a one-character group such as R1-X, which the tool reads as no group and the mutant as R1-X]
+DISPOSED L85   GROUP_RE @ GROUP_RE = re.compile('\\b(R\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-...: '\\b(R\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\\b' -> '\\b(R\\d+-[A-Z0-9[A-Z0-9-]*[A-Z0-9])\\b'  [equivalent on the bus's inputs (every roster group and every delivery row's group token holds two or more characters after the dash); separated by a one-character group such as R1-X, which the tool reads as no group and the mutant as R1-X]
 DISPOSED L97   when @ return datetime.fromisoformat(s.replace('Z', '+00:00')).a...: '+00:00' -> '+00'  [equivalent: datetime.fromisoformat reads +00 and +00:00 alike (3.11+)]
 DISPOSED L117  load @ for r in refs(repo, f'refs/remotes/{remote}/review/'):: swap if not m: with the next statement  [equivalent: the swapped `body = git(show ...)` is a read whose result only the lines after the `continue` use]
 DISPOSED L107  load @ for r in refs(repo, f'refs/remotes/{remote}/probe/') + re...: 'refs/tags/archive/probe/' -> 'refs/tags/archive/probe'  [equivalent: for-each-ref matches a pattern without its trailing '/' only at a whole path component, so archive/probe-x is not read either way]
@@ -46,4 +45,3 @@ DISPOSED L277  main @ name, span = w.split('=', 1): 1 -> 2  [equivalent: a windo
 DISPOSED L278  main @ f, u = span.split('..', 1): 1 -> 2  [equivalent: an ISO stamp holds no '..', so a span holds one]
 RESULT mutants=2350 killed=2306 survived=44 disposed=44 undisposed=0 stale=0
 rc=0
-Thu Oct 22 13:04:00 UTC 2026

@@ -1,7 +1,0 @@
-H1 KILLED rc=1 FAIL: group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)
-H9 KILLED rc=1 FAIL: product: tests/, tools/, custom_components.md and blueprints.md are not under the product prefixes (16)
-H5 KILLED rc=1 FAIL: a verdict counts at its committer time, not its author time (20: in 10-05T09:46..09:48)
-X2b SURVIVED (review_strength self-test: 87 checks, 0 failed); bundle diff lines: 96
-X2c KILLED rc=1 FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
-X19 KILLED rc=1 FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
-source restored identical

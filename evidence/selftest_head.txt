@@ -1,3 +1,92 @@
+ok: window E: 2 PRs, 5 verdicts, 1 real, 1 bookkeeping
+ok: incidence counts a PR once: 1 of 2
+ok: window L: [from, until) excludes E's verdicts
+ok: an out-of-grammar subject is its own row, never a verdict
+ok: a commit on two refs is read once
+ok: probe ref rev-<pr>-<nonce8> marks the verdict cloud
+ok: bus-confirmed cloud-* id marks the verdict cloud
+ok: no probe and no cloud id reads local
+ok: one re-review after a merge verdict
+ok: first-pass: PR 1 opened blocked, PR 2 blocked -> 0 of 2 in E
+ok: crossed strata key on both: local+after-a-merge-verdict holds PR 1's re-review
+ok: a class word without its colon is a block of class '' (bookkeeping), not real
+ok: --real-extra moves a word from bookkeeping to real, and only that word
+ok: window: [from, until) excludes a verdict at until (PR 2's block at 04:00)
+ok: bus-confirmed *-cloud id marks the verdict cloud
+ok: as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T
+facts as of 2026-10-04T00:00Z: tree f43fcb0221a1 roster cd191f558fd3
+facts as of 2026-10-06T00:00Z: tree af6cc1c5026c roster c7b560b009d4
+facts as of 2026-10-02T12:00Z: tree 3b37f6a4ddea roster cd191f558fd3
+ok: origin: a group listing issues is finding, one listing none is group
+ok: fixer: the joined group's model.fixer, opus for 5 and sonnet for 6
+ok: size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150)
+ok: product: 5 touches custom_components/, 6 only docs/
+ok: as of: a verdict after T moves no fact (6's later head is product, read only after it)
+ok: size: PR 7 merged twice reads its newest merge (700 lines, L>=600)
+ok: join: merge branch fix/r1-fix-pr, -pr stripped, finds R1-FIX's resume.branch (fixer haiku)
+ok: origin: a group listing fixes alone is finding
+ok: as of: the roster is read at T (R1-FIND loses its issues after 10-05T12)
+ok: as of: --tree is read at T (before the merge, 5 reads its verdict head and no row)
+ok: size: 149 lines plus a binary file is S<150, 150 plus one is M<600, 599 is M<600, 300+300 changed is L>=600
+ok: size: a head that is no commit is '?'
+ok: product: blueprints/ is product (11), docs/ is not (12)
+ok: origin: a group listing findings alone is finding (8, R1-FINDS)
+ok: merge join: only a two-parent PR merge is a merge; an octopus naming 10 and a one-parent 12 are not
+ok: size: a merged PR reads its branch's diff, not the 10 lines its merge commit adds (14: 145, S<150)
+ok: join: merge branch fix/r1-res-pr matches a resume.branch that keeps its -pr (14: fixer gpt)
+ok: join: an empty resume.branch joins no unmerged PR (1: origin none)
+ok: as of: a verdict exactly at T is after T (6's 10-05T01 head is not read at 10-05T01)
+ok: no roster: every origin is none, the fixer none, and the roster prints '-'
+ok: facts print the tree and roster resolved at T, 12 hex each
+ok: a roster path that is not in the roster ref refuses
+ok: as of: a ref with no commit at or before T refuses
+ok: cloud: an archive/probe tag marks the verdict cloud (11)
+ok: real: a class word on a MERGE verdict is never a real block (11)
+ok: a verdict commit without VERDICT.md is still read (14, no nonce)
+ok: a review-ref commit that is no verdict and a non-return probe ref leave the outside row alone
+ok: window: [from, until) includes a verdict exactly at from (3's block at 10-02T01)
+ok: a Z stamp is UTC whatever the local zone
+ok: REAL_CATCH is the study record's real-catch list, word for word
+ok: main: every row of the bundle over the fixture, as printed (hand-derived from the fixture's verdicts)
+ok: main --by kind alone prints the same kind rows
+ok: main --by class alone prints the same class rows
+ok: main --by prior-merge alone prints the same prior-merge rows
+ok: main --by origin alone prints the same origin rows
+ok: main --by size alone prints the same size rows
+ok: main --by product alone prints the same product rows
+ok: main --by fixer alone prints the same fixer rows
+ok: main --real-extra names the words, sorted, and moves PR 2's block to real (E: real 3, book 1)
+ok: main --as-of takes the facts at T, not at the latest until; a PR first reviewed after T is its own row
+ok: main: the facts default to the LATEST until of any window, not the last named's (A, 10-05)
+ok: main: no fact stratum asked, no facts taken (the bus line comes first)
+ok: main refuses no window (exit 2)
+ok: main refuses an unknown stratum (exit 2)
+ok: main refuses origin without --roster (exit 2)
+ok: main refuses fixer without --roster (exit 2)
+ok: main names the unknown strata sorted
+ok: main: an unknown stratum is refused before a missing --roster
+ok: main --fetch refuses a missing window, an unknown stratum and a missing --roster before it fetches
+ok: main --fetch reads the remote's review, probe and verdict refs and its tags (13 back; 12, 13 and 5 now cloud)
+ok: defaults: --repo is the checkout the tool runs from, --tree origin/main, --remote origin
+ok: first-pass: a PR whose first verdict precedes the window is no first pass in it (6's merge alone)
+ok: defaults: --remote is the option's name
+ok: tally: a verdict outside the window keys no row (10-05T03:30..04:30 holds 12's merge alone)
+ok: size: delivery rows are excluded at their '/', other dev/programme/ files count (16: 150, M<600)
+ok: product: tests/, tools/, custom_components.md and blueprints.md are not under the product prefixes (16)
+ok: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
+ok: cloud: no decoy marks 17 (id clou9-xcloud, a mid-line confirmation, dev-/-old/archive-other probe names, a ref outside verdict/ and probe/)
+ok: only review/ and verdict/ refs are read: the ref outside them adds no verdict for 18 and no cloud id
+ok: a subject that only CONTAINS the grammar is no verdict and not outside (19)
+ok: outside: the prefix 'Fix review:' exactly, and the shape matched from the start (19 twice)
+ok: a verdict counts at its committer time, not its author time (20: in 10-05T09:46..09:48)
+ok: merge walk: first-parent only; 17's side-branch merge is not its merge (17: 5 lines, S<150)
+ok: merge subject: a tab inside it leaves the parents field whole (18 merged: 700, L>=600)
+ok: merge subject: a two-parent commit naming a PR merge after a prefix is no merge (16 stays M<600)
+ok: group regex: 0 and 9 at every position (16 R1-0909 fixer g0, 17 R1-9090 fixer g9)
+ok: group regex: a digit inside the ranges at every position (20 R1-555 fixer g5)
+ok: cloud: a nonce and a confirmation with no space after the colon are read (22, 23)
+ok: class: the word up to its own colon, none when the first word has none (21: '' and harness)
 ok: group regex: a group's inner dashes are part of it (18 R10-FLOW-YIELD-PROBE, not R10-FLOW)
 ok: main prints the bus line once and each outside subject cut at 100
 review_strength self-test: 87 checks, 0 failed
+rc=0

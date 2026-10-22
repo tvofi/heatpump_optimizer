@@ -1,21 +1,360 @@
-81d617cec	lane-proofs	cancelled	2026-10-21T16:45:46Z	119352550956
-81d617cec	closures-autofix	cancelled	2026-10-21T16:45:36Z	119352467377
-81d617cec	ci-ratchet	cancelled	2026-10-21T16:45:36Z	119352467297
-81d617cec	composed-proof	cancelled	2026-10-21T16:45:36Z	119352467229
-81d617cec	coverage-ratchet	cancelled	2026-10-21T16:45:36Z	119352466931
-81d617cec	closures	cancelled	2026-10-21T16:45:36Z	119352465515
-81d617cec	graders-head-copy	cancelled	2026-10-21T16:45:36Z	119352465261
-81d617cec	claims-autofix	cancelled	2026-10-21T16:45:25Z	119352356505
-81d617cec	Analyze (python)	cancelled	2026-10-21T16:45:59Z	119350693613
-81d617cec	browser	cancelled	2026-10-21T16:45:45Z	119350606054
-81d617cec	coverage	cancelled	2026-10-21T16:45:36Z	119350605732
-81d617cec	fast (3.14)	cancelled	2026-10-21T16:45:24Z	119350605554
-81d617cec	instrument-self-tests	cancelled	2026-10-21T16:45:15Z	119350403360
-81d617cec	nightly-status	failure	2026-10-21T16:42:08Z	119350400710
-468781122	nightly-status	failure	2026-10-21T16:46:02Z	119352554741
-816b1e20f	nightly-status	failure	2026-10-21T21:44:55Z	119503931071
-eb9f7e89d	nightly-status	failure	2026-10-22T00:34:38Z	119568265170
-6ad8089c1	pr-contract	failure	2026-10-22T10:12:11Z	119765661538
-6ad8089c1	nightly-status	failure	2026-10-22T09:35:09Z	119749733560
-6ad8089c1	instrument-self-tests	failure	2026-10-22T09:41:10Z	119749731967
-45754ede2	nightly-status	failure	2026-10-22T12:30:13Z	119824429311
+81d617cec	lane-proofs	completed	cancelled	2026-10-21T16:45:46Z
+81d617cec	closures-autofix	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	ci-ratchet	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	composed-proof	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	coverage-ratchet	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	closures	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	graders-head-copy	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	claims-autofix	completed	cancelled	2026-10-21T16:45:25Z
+81d617cec	CodeQL	completed	neutral	2026-10-21T16:43:07Z
+81d617cec	pr-contract	completed	success	2026-10-21T16:43:12Z
+81d617cec	mutation-autofix	completed	skipped	2026-10-21T16:42:33Z
+81d617cec	mutation-pins	completed	skipped	2026-10-21T16:42:33Z
+81d617cec	mutation-pin-plan	completed	skipped	2026-10-21T16:42:32Z
+81d617cec	Analyze (python)	completed	cancelled	2026-10-21T16:45:59Z
+81d617cec	Analyze (javascript-typescript)	completed	success	2026-10-21T16:44:28Z
+81d617cec	Analyze (actions)	completed	success	2026-10-21T16:43:14Z
+81d617cec	nightly-ha	completed	skipped	2026-10-21T16:42:13Z
+81d617cec	browser	completed	cancelled	2026-10-21T16:45:45Z
+81d617cec	coverage	completed	cancelled	2026-10-21T16:45:36Z
+81d617cec	typing	completed	success	2026-10-21T16:44:32Z
+81d617cec	fast (3.14)	completed	cancelled	2026-10-21T16:45:24Z
+81d617cec	record-autofix	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	arch-score	completed	success	2026-10-21T16:43:09Z
+81d617cec	budget-raise-gate	completed	success	2026-10-21T16:42:32Z
+81d617cec	record	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	delivery-status-publish	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	mutation-ledger-push	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	policy-docs	completed	success	2026-10-21T16:44:47Z
+81d617cec	mutation-nightly	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	instrument-self-tests	completed	cancelled	2026-10-21T16:45:15Z
+81d617cec	wave-script	completed	success	2026-10-21T16:42:56Z
+81d617cec	mutation-ledger	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	delivery-status	completed	success	2026-10-21T16:42:43Z
+81d617cec	slow	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	env-matrix	completed	success	2026-10-21T16:44:22Z
+81d617cec	recheck-gate	completed	skipped	2026-10-21T16:41:51Z
+81d617cec	briefs	completed	success	2026-10-21T16:42:24Z
+81d617cec	mutation	completed	success	2026-10-21T16:42:32Z
+81d617cec	cancel-superseded	completed	success	2026-10-21T16:42:03Z
+81d617cec	closure-scope	completed	success	2026-10-21T16:42:13Z
+81d617cec	nightly-status	completed	failure	2026-10-21T16:42:08Z
+81d617cec	scope	completed	success	2026-10-21T16:42:23Z
+81d617cec	pr-contract	completed	success	2026-10-21T16:42:36Z
+81d617cec	validate-hacs	completed	success	2026-10-21T16:42:46Z
+81d617cec	hassfest	completed	success	2026-10-21T16:42:26Z
+81d617cec	cancel-superseded	completed	success	2026-10-21T16:42:02Z
+81d617cec	budget-raise-gate	completed	success	2026-10-21T16:42:11Z
+81d617cec	arch-score	completed	success	2026-10-21T16:42:58Z
+468781122	pr-contract	completed	success	2026-10-21T17:16:01Z
+468781122	ci-ratchet	completed	skipped	2026-10-21T17:08:56Z
+468781122	closures-autofix	completed	skipped	2026-10-21T17:08:56Z
+468781122	composed-proof	completed	success	2026-10-21T17:12:29Z
+468781122	claims-autofix	completed	skipped	2026-10-21T16:57:32Z
+468781122	lane-proofs	completed	success	2026-10-21T16:57:43Z
+468781122	graders-head-copy	completed	success	2026-10-21T16:57:09Z
+468781122	coverage-ratchet	completed	success	2026-10-21T16:57:01Z
+468781122	closures	completed	success	2026-10-21T17:08:56Z
+468781122	CodeQL	completed	success	2026-10-21T16:47:05Z
+468781122	mutation-autofix	completed	skipped	2026-10-21T16:46:26Z
+468781122	mutation-pins	completed	skipped	2026-10-21T16:46:26Z
+468781122	mutation-pin-plan	completed	skipped	2026-10-21T16:46:26Z
+468781122	Analyze (actions)	completed	success	2026-10-21T16:47:12Z
+468781122	Analyze (javascript-typescript)	completed	success	2026-10-21T16:47:26Z
+468781122	Analyze (python)	completed	success	2026-10-21T17:15:07Z
+468781122	nightly-ha	completed	skipped	2026-10-21T16:46:12Z
+468781122	coverage	completed	success	2026-10-21T16:56:50Z
+468781122	fast (3.14)	completed	success	2026-10-21T16:57:32Z
+468781122	browser	completed	success	2026-10-21T16:50:11Z
+468781122	typing	completed	success	2026-10-21T16:47:20Z
+468781122	scope	completed	success	2026-10-21T16:46:16Z
+468781122	cancel-superseded	completed	success	2026-10-21T16:46:13Z
+468781122	record-autofix	completed	skipped	2026-10-21T16:45:46Z
+468781122	recheck-gate	completed	skipped	2026-10-21T16:45:46Z
+468781122	mutation-ledger-push	completed	skipped	2026-10-21T16:45:46Z
+468781122	slow	completed	skipped	2026-10-21T16:45:46Z
+468781122	mutation-ledger	completed	skipped	2026-10-21T16:45:46Z
+468781122	mutation-nightly	completed	skipped	2026-10-21T16:45:46Z
+468781122	mutation	completed	success	2026-10-21T16:46:26Z
+468781122	closure-scope	completed	success	2026-10-21T16:46:12Z
+468781122	briefs	completed	success	2026-10-21T16:46:23Z
+468781122	cancel-superseded	completed	success	2026-10-21T16:46:00Z
+468781122	nightly-status	completed	failure	2026-10-21T16:46:02Z
+468781122	policy-docs	completed	success	2026-10-21T16:48:24Z
+468781122	instrument-self-tests	completed	success	2026-10-21T16:50:59Z
+468781122	env-matrix	completed	success	2026-10-21T16:48:46Z
+468781122	delivery-status	completed	success	2026-10-21T16:45:43Z
+468781122	wave-script	completed	success	2026-10-21T16:45:48Z
+468781122	record	completed	skipped	2026-10-21T16:45:19Z
+468781122	delivery-status-publish	completed	skipped	2026-10-21T16:45:19Z
+468781122	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-21T16:44:51Z
+468781122	hassfest	completed	success	2026-10-21T16:45:16Z
+468781122	budget-raise-gate	completed	success	2026-10-21T16:45:17Z
+468781122	arch-score	completed	success	2026-10-21T16:46:02Z
+468781122	validate-hacs	completed	success	2026-10-21T16:45:45Z
+468781122	arch-score	completed	success	2026-10-21T16:45:38Z
+468781122	pr-contract	completed	success	2026-10-21T16:45:13Z
+468781122	budget-raise-gate	completed	success	2026-10-21T16:45:13Z
+816b1e20f	pr-contract	completed	success	2026-10-21T22:16:51Z
+816b1e20f	closures-autofix	completed	skipped	2026-10-21T22:13:25Z
+816b1e20f	ci-ratchet	completed	skipped	2026-10-21T22:13:25Z
+816b1e20f	composed-proof	completed	success	2026-10-21T22:14:10Z
+816b1e20f	graders-head-copy	completed	success	2026-10-21T21:58:50Z
+816b1e20f	coverage-ratchet	completed	success	2026-10-21T21:58:36Z
+816b1e20f	closures	completed	success	2026-10-21T22:13:25Z
+816b1e20f	lane-proofs	completed	success	2026-10-21T21:58:31Z
+816b1e20f	claims-autofix	completed	skipped	2026-10-21T21:56:23Z
+816b1e20f	CodeQL	completed	success	2026-10-21T21:45:43Z
+816b1e20f	mutation-autofix	completed	skipped	2026-10-21T21:45:18Z
+816b1e20f	mutation-pins	completed	skipped	2026-10-21T21:45:18Z
+816b1e20f	mutation-pin-plan	completed	skipped	2026-10-21T21:45:18Z
+816b1e20f	nightly-ha	completed	skipped	2026-10-21T21:45:17Z
+816b1e20f	coverage	completed	success	2026-10-21T21:58:05Z
+816b1e20f	fast (3.14)	completed	success	2026-10-21T21:56:23Z
+816b1e20f	browser	completed	success	2026-10-21T21:49:18Z
+816b1e20f	typing	completed	success	2026-10-21T21:46:44Z
+816b1e20f	Analyze (python)	completed	success	2026-10-21T22:03:22Z
+816b1e20f	Analyze (javascript-typescript)	completed	success	2026-10-21T21:46:31Z
+816b1e20f	Analyze (actions)	completed	success	2026-10-21T21:45:51Z
+816b1e20f	mutation-ledger-push	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	mutation-ledger	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	slow	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	arch-score	completed	success	2026-10-21T21:46:06Z
+816b1e20f	budget-raise-gate	completed	success	2026-10-21T21:45:18Z
+816b1e20f	mutation-nightly	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	record-autofix	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	recheck-gate	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	briefs	completed	success	2026-10-21T21:45:35Z
+816b1e20f	cancel-superseded	completed	success	2026-10-21T21:44:56Z
+816b1e20f	closure-scope	completed	success	2026-10-21T21:45:17Z
+816b1e20f	mutation	completed	success	2026-10-21T21:45:18Z
+816b1e20f	record	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	nightly-status	completed	failure	2026-10-21T21:44:55Z
+816b1e20f	delivery-status-publish	completed	skipped	2026-10-21T21:44:42Z
+816b1e20f	cancel-superseded	completed	success	2026-10-21T21:44:55Z
+816b1e20f	hassfest	completed	success	2026-10-21T21:45:15Z
+816b1e20f	scope	completed	success	2026-10-21T21:44:58Z
+816b1e20f	policy-docs	completed	success	2026-10-21T21:46:27Z
+816b1e20f	env-matrix	completed	success	2026-10-21T21:47:57Z
+816b1e20f	arch-score	completed	success	2026-10-21T21:45:37Z
+816b1e20f	wave-script	completed	success	2026-10-21T21:45:07Z
+816b1e20f	delivery-status	completed	success	2026-10-21T21:45:02Z
+816b1e20f	instrument-self-tests	completed	success	2026-10-21T21:50:54Z
+816b1e20f	pr-contract	completed	success	2026-10-21T21:45:14Z
+816b1e20f	budget-raise-gate	completed	success	2026-10-21T21:45:05Z
+816b1e20f	validate-hacs	completed	success	2026-10-21T21:45:23Z
+eb9f7e89d	pr-contract	completed	success	2026-10-22T01:21:47Z
+eb9f7e89d	ci-ratchet	completed	skipped	2026-10-22T01:20:42Z
+eb9f7e89d	closures-autofix	completed	skipped	2026-10-22T01:20:42Z
+eb9f7e89d	composed-proof	completed	success	2026-10-22T01:21:06Z
+eb9f7e89d	lane-proofs	completed	success	2026-10-22T00:48:56Z
+eb9f7e89d	coverage-ratchet	completed	success	2026-10-22T00:49:00Z
+eb9f7e89d	closures	completed	success	2026-10-22T01:20:42Z
+eb9f7e89d	graders-head-copy	completed	success	2026-10-22T00:49:06Z
+eb9f7e89d	claims-autofix	completed	skipped	2026-10-22T00:47:02Z
+eb9f7e89d	CodeQL	completed	success	2026-10-22T00:35:31Z
+eb9f7e89d	mutation-autofix	completed	skipped	2026-10-22T00:35:09Z
+eb9f7e89d	mutation-pins	completed	skipped	2026-10-22T00:35:09Z
+eb9f7e89d	mutation-pin-plan	completed	skipped	2026-10-22T00:35:09Z
+eb9f7e89d	nightly-ha	completed	skipped	2026-10-22T00:34:50Z
+eb9f7e89d	fast (3.14)	completed	success	2026-10-22T00:47:02Z
+eb9f7e89d	typing	completed	success	2026-10-22T00:37:00Z
+eb9f7e89d	coverage	completed	success	2026-10-22T00:48:47Z
+eb9f7e89d	browser	completed	success	2026-10-22T00:39:26Z
+eb9f7e89d	Analyze (javascript-typescript)	completed	success	2026-10-22T00:36:21Z
+eb9f7e89d	Analyze (actions)	completed	success	2026-10-22T00:35:38Z
+eb9f7e89d	Analyze (python)	completed	success	2026-10-22T01:04:17Z
+eb9f7e89d	mutation-ledger-push	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	slow	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	briefs	completed	success	2026-10-22T00:35:42Z
+eb9f7e89d	mutation-nightly	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	mutation-ledger	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	record-autofix	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	recheck-gate	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	cancel-superseded	completed	success	2026-10-22T00:34:54Z
+eb9f7e89d	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	delivery-status-publish	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	record	completed	skipped	2026-10-22T00:34:25Z
+eb9f7e89d	mutation	completed	success	2026-10-22T00:35:09Z
+eb9f7e89d	closure-scope	completed	success	2026-10-22T00:34:50Z
+eb9f7e89d	nightly-status	completed	failure	2026-10-22T00:34:38Z
+eb9f7e89d	arch-score	completed	success	2026-10-22T00:35:33Z
+eb9f7e89d	cancel-superseded	completed	success	2026-10-22T00:34:37Z
+eb9f7e89d	budget-raise-gate	completed	success	2026-10-22T00:34:43Z
+eb9f7e89d	delivery-status	completed	success	2026-10-22T00:34:51Z
+eb9f7e89d	policy-docs	completed	success	2026-10-22T00:37:23Z
+eb9f7e89d	scope	completed	success	2026-10-22T00:34:45Z
+eb9f7e89d	instrument-self-tests	completed	success	2026-10-22T00:40:14Z
+eb9f7e89d	env-matrix	completed	success	2026-10-22T00:38:04Z
+eb9f7e89d	wave-script	completed	success	2026-10-22T00:34:57Z
+eb9f7e89d	hassfest	completed	success	2026-10-22T00:34:50Z
+eb9f7e89d	validate-hacs	completed	success	2026-10-22T00:35:15Z
+eb9f7e89d	budget-raise-gate	completed	success	2026-10-22T00:34:47Z
+eb9f7e89d	pr-contract	completed	success	2026-10-22T00:34:54Z
+eb9f7e89d	arch-score	completed	success	2026-10-22T00:35:40Z
+e53fee367	closure-scope	completed	success	2026-10-22T04:37:05Z
+e53fee367	composed-proof	completed	success	2026-10-22T05:22:38Z
+e53fee367	closures-autofix	completed	skipped	2026-10-22T05:22:18Z
+e53fee367	ci-ratchet	completed	skipped	2026-10-22T05:22:18Z
+e53fee367	mutation-autofix	completed	skipped	2026-10-22T04:37:18Z
+e53fee367	mutation-pins	completed	skipped	2026-10-22T04:37:18Z
+e53fee367	mutation-ledger-push	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	graders-head-copy	completed	success	2026-10-22T04:50:06Z
+e53fee367	mutation-pin-plan	completed	skipped	2026-10-22T04:37:18Z
+e53fee367	lane-proofs	completed	success	2026-10-22T04:49:54Z
+e53fee367	closures	completed	success	2026-10-22T05:22:18Z
+e53fee367	coverage-ratchet	completed	success	2026-10-22T04:49:59Z
+e53fee367	claims-autofix	completed	skipped	2026-10-22T04:47:02Z
+e53fee367	typing	completed	success	2026-10-22T04:38:42Z
+e53fee367	browser	completed	success	2026-10-22T04:40:58Z
+e53fee367	nightly-ha	completed	skipped	2026-10-22T04:37:05Z
+e53fee367	briefs	completed	success	2026-10-22T04:37:06Z
+e53fee367	mutation	completed	success	2026-10-22T04:37:17Z
+e53fee367	fast (3.14)	completed	success	2026-10-22T04:47:01Z
+e53fee367	coverage	completed	success	2026-10-22T04:49:46Z
+e53fee367	mutation-ledger	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	recheck-gate	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	mutation-nightly	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	record-autofix	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	slow	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	cancel-superseded	completed	success	2026-10-22T04:36:51Z
+e53fee367	nightly-status	completed	success	2026-10-22T07:05:45Z
+e53fee367	pr-contract	completed	success	2026-10-22T05:23:21Z
+e53fee367	CodeQL	completed	success	2026-10-22T04:37:45Z
+e53fee367	Analyze (javascript-typescript)	completed	success	2026-10-22T04:38:21Z
+e53fee367	Analyze (python)	completed	success	2026-10-22T05:05:05Z
+e53fee367	Analyze (actions)	completed	success	2026-10-22T04:37:53Z
+e53fee367	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-22T04:36:39Z
+e53fee367	record	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	delivery-status-publish	completed	skipped	2026-10-22T04:36:40Z
+e53fee367	env-matrix	completed	success	2026-10-22T04:40:22Z
+e53fee367	delivery-status	completed	success	2026-10-22T04:37:01Z
+e53fee367	wave-script	completed	success	2026-10-22T04:37:07Z
+e53fee367	instrument-self-tests	completed	success	2026-10-22T04:43:06Z
+e53fee367	validate-hacs	completed	success	2026-10-22T04:37:25Z
+e53fee367	policy-docs	completed	success	2026-10-22T04:39:34Z
+e53fee367	scope	completed	success	2026-10-22T04:36:58Z
+e53fee367	hassfest	completed	success	2026-10-22T04:37:11Z
+e53fee367	arch-score	completed	success	2026-10-22T04:37:49Z
+e53fee367	cancel-superseded	completed	success	2026-10-22T04:36:52Z
+e53fee367	budget-raise-gate	completed	success	2026-10-22T04:37:01Z
+e53fee367	budget-raise-gate	completed	success	2026-10-22T04:37:00Z
+e53fee367	arch-score	completed	success	2026-10-22T04:37:50Z
+e53fee367	pr-contract	completed	success	2026-10-22T04:37:08Z
+6ad8089c1	pr-contract	completed	failure	2026-10-22T10:12:11Z
+6ad8089c1	ci-ratchet	completed	skipped	2026-10-22T10:11:20Z
+6ad8089c1	closures-autofix	completed	skipped	2026-10-22T10:11:20Z
+6ad8089c1	coverage-ratchet	completed	success	2026-10-22T09:51:43Z
+6ad8089c1	lane-proofs	completed	success	2026-10-22T09:51:38Z
+6ad8089c1	graders-head-copy	completed	success	2026-10-22T09:51:50Z
+6ad8089c1	claims-autofix	completed	skipped	2026-10-22T09:44:50Z
+6ad8089c1	CodeQL	completed	success	2026-10-22T09:35:54Z
+6ad8089c1	mutation-autofix	completed	skipped	2026-10-22T09:35:27Z
+6ad8089c1	mutation-pins	completed	skipped	2026-10-22T09:35:27Z
+6ad8089c1	closures	completed	success	2026-10-22T10:11:20Z
+6ad8089c1	nightly-ha	completed	skipped	2026-10-22T09:35:06Z
+6ad8089c1	fast (3.14)	completed	success	2026-10-22T09:44:50Z
+6ad8089c1	typing	completed	success	2026-10-22T09:36:20Z
+6ad8089c1	browser	completed	success	2026-10-22T09:39:11Z
+6ad8089c1	coverage	completed	success	2026-10-22T09:51:31Z
+6ad8089c1	Analyze (actions)	completed	success	2026-10-22T09:35:59Z
+6ad8089c1	Analyze (javascript-typescript)	completed	success	2026-10-22T09:36:09Z
+6ad8089c1	Analyze (python)	completed	success	2026-10-22T10:05:32Z
+6ad8089c1	record	completed	skipped	2026-10-22T09:34:44Z
+6ad8089c1	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-22T09:34:44Z
+6ad8089c1	cancel-superseded	completed	success	2026-10-22T09:34:58Z
+6ad8089c1	mutation	completed	success	2026-10-22T09:35:26Z
+6ad8089c1	briefs	completed	success	2026-10-22T09:35:21Z
+6ad8089c1	closure-scope	completed	success	2026-10-22T09:35:06Z
+6ad8089c1	nightly-status	completed	failure	2026-10-22T09:35:09Z
+6ad8089c1	delivery-status-publish	completed	skipped	2026-10-22T09:34:44Z
+6ad8089c1	cancel-superseded	completed	success	2026-10-22T09:34:56Z
+6ad8089c1	scope	completed	success	2026-10-22T09:35:01Z
+6ad8089c1	instrument-self-tests	completed	failure	2026-10-22T09:41:10Z
+6ad8089c1	validate-hacs	completed	success	2026-10-22T09:35:32Z
+6ad8089c1	policy-docs	completed	success	2026-10-22T09:37:05Z
+6ad8089c1	env-matrix	completed	success	2026-10-22T09:36:46Z
+6ad8089c1	delivery-status	completed	success	2026-10-22T09:35:02Z
+6ad8089c1	wave-script	completed	success	2026-10-22T09:35:16Z
+6ad8089c1	arch-score	completed	success	2026-10-22T09:35:51Z
+6ad8089c1	hassfest	completed	success	2026-10-22T09:35:13Z
+6ad8089c1	budget-raise-gate	completed	success	2026-10-22T09:35:03Z
+6ad8089c1	arch-score	completed	success	2026-10-22T09:35:51Z
+6ad8089c1	budget-raise-gate	completed	success	2026-10-22T09:35:02Z
+6ad8089c1	pr-contract	completed	success	2026-10-22T09:35:21Z
+45754ede2	pr-contract	completed	success	2026-10-22T13:06:14Z
+45754ede2	closures-autofix	completed	skipped	2026-10-22T13:05:02Z
+45754ede2	ci-ratchet	completed	skipped	2026-10-22T13:05:02Z
+45754ede2	coverage-ratchet	completed	success	2026-10-22T12:47:17Z
+45754ede2	lane-proofs	completed	success	2026-10-22T12:47:14Z
+45754ede2	graders-head-copy	completed	success	2026-10-22T12:47:23Z
+45754ede2	claims-autofix	completed	skipped	2026-10-22T12:41:23Z
+45754ede2	CodeQL	completed	success	2026-10-22T12:30:54Z
+45754ede2	mutation-autofix	completed	skipped	2026-10-22T12:30:22Z
+45754ede2	mutation-pins	completed	skipped	2026-10-22T12:30:22Z
+45754ede2	nightly-ha	completed	skipped	2026-10-22T12:30:08Z
+45754ede2	typing	completed	success	2026-10-22T12:31:20Z
+45754ede2	fast (3.14)	completed	success	2026-10-22T12:41:23Z
+45754ede2	closures	completed	success	2026-10-22T13:05:01Z
+45754ede2	coverage	completed	success	2026-10-22T12:47:06Z
+45754ede2	browser	completed	success	2026-10-22T12:34:11Z
+45754ede2	Analyze (actions)	completed	success	2026-10-22T12:30:59Z
+45754ede2	Analyze (python)	completed	success	2026-10-22T12:58:55Z
+45754ede2	Analyze (javascript-typescript)	completed	success	2026-10-22T12:31:06Z
+45754ede2	delivery-status-publish	completed	skipped	2026-10-22T12:29:41Z
+45754ede2	kernel-points (${{ matrix.coretype }})	completed	skipped	2026-10-22T12:29:41Z
+45754ede2	record	completed	skipped	2026-10-22T12:29:41Z
+45754ede2	mutation	completed	success	2026-10-22T12:30:22Z
+45754ede2	cancel-superseded	completed	success	2026-10-22T12:29:52Z
+45754ede2	nightly-status	completed	failure	2026-10-22T12:30:13Z
+45754ede2	briefs	completed	success	2026-10-22T12:30:15Z
+45754ede2	cancel-superseded	completed	success	2026-10-22T12:29:53Z
+45754ede2	validate-hacs	completed	success	2026-10-22T12:30:32Z
+45754ede2	closure-scope	completed	success	2026-10-22T12:30:07Z
+45754ede2	policy-docs	completed	success	2026-10-22T12:32:35Z
+45754ede2	env-matrix	completed	success	2026-10-22T12:33:14Z
+45754ede2	wave-script	completed	success	2026-10-22T12:30:12Z
+45754ede2	scope	completed	success	2026-10-22T12:30:00Z
+45754ede2	delivery-status	completed	success	2026-10-22T12:30:01Z
+45754ede2	instrument-self-tests	completed	success	2026-10-22T12:36:27Z
+45754ede2	budget-raise-gate	completed	success	2026-10-22T12:29:57Z
+45754ede2	arch-score	completed	success	2026-10-22T12:30:50Z
+45754ede2	budget-raise-gate	completed	success	2026-10-22T12:30:00Z
+45754ede2	hassfest	completed	success	2026-10-22T12:30:10Z
+45754ede2	pr-contract	completed	success	2026-10-22T12:30:38Z
+45754ede2	arch-score	completed	success	2026-10-22T12:30:27Z
+632d2fe26	nightly-ha	completed	skipped	2026-10-22T14:27:29Z
+632d2fe26	mutation-pins	completed	skipped	2026-10-22T14:27:48Z
+632d2fe26	arch-score	queued	-	-
+632d2fe26	budget-raise-gate	queued	-	-
+632d2fe26	pr-contract	queued	-	-
+632d2fe26	CodeQL	completed	neutral	2026-10-22T14:28:16Z
+632d2fe26	pr-contract	in_progress	-	-
+632d2fe26	closures	queued	-	-
+632d2fe26	fast (3.14)	queued	-	-
+632d2fe26	typing	in_progress	-	-
+632d2fe26	coverage	queued	-	-
+632d2fe26	browser	queued	-	-
+632d2fe26	Analyze (javascript-typescript)	queued	-	-
+632d2fe26	Analyze (python)	queued	-	-
+632d2fe26	Analyze (actions)	in_progress	-	-
+632d2fe26	arch-score	queued	-	-
+632d2fe26	nightly-status	completed	failure	2026-10-22T14:27:36Z
+632d2fe26	instrument-self-tests	queued	-	-
+632d2fe26	mutation	completed	success	2026-10-22T14:27:48Z
+632d2fe26	delivery-status	in_progress	-	-
+632d2fe26	wave-script	in_progress	-	-
+632d2fe26	closure-scope	in_progress	-	-
+632d2fe26	scope	queued	-	-
+632d2fe26	env-matrix	queued	-	-
+632d2fe26	briefs	queued	-	-
+632d2fe26	policy-docs	queued	-	-
+632d2fe26	cancel-superseded	queued	-	-
+632d2fe26	cancel-superseded	in_progress	-	-
+632d2fe26	arch-score	in_progress	-	-
+632d2fe26	budget-raise-gate	queued	-	-
+632d2fe26	validate-hacs	in_progress	-	-
+632d2fe26	pr-contract	queued	-	-
+632d2fe26	budget-raise-gate	queued	-	-
+632d2fe26	hassfest	queued	-	-
