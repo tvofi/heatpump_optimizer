@@ -249,7 +249,15 @@ if [ -f "$pidfile" ]; then
   echo "train.sh: stale pidfile ($held), taking over" >&2
 fi
 echo $$ > "$pidfile"
-trap 'rm -f "$pidfile"' EXIT
+# A stopped train ends its whole tree, and frees the state dir only after
+# (R10-PUSHER-REAP): pr_args.sh's EXIT trap runs when TERM, INT or HUP end this
+# shell, TERMs merge_train.py first as the lead -- its own stop TERMs the tool it
+# runs and releases the train's hold -- then reaps whatever is left, and only
+# then removes the pidfile. A bare `rm` trap removed it at once, while the
+# child, which no signal reached, went on pushing.
+. "$(dirname -- "$0")/pr_args.sh"
+PR_AFTER_REAP='rm -f "$pidfile"'
+pr_exit_trap
 
 # The pinned seat interpreter first: the checks merge_train drives through
 # prepr and no-copies need the repo's 3.14, not an ambient 3.11. There is no
@@ -276,7 +284,7 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
 (
   cd "$checkout" || exit 2
   # shellcheck disable=SC2086 # minruns is a plain integer
-  python3 -u tools/audit/seat/merge_train.py batch "$queue" \
+  exec python3 -u tools/audit/seat/merge_train.py batch "$queue" \
     --repo "$repo" \
     --state-dir "$state" \
     --min-runs "$minruns" \
@@ -285,8 +293,11 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
     ${overlap:+--overlap} \
     ${mandate:+--mandate "$mandate"} \
     ${opts[@]+"${opts[@]}"}
-) >> "$log" 2>&1
-rc=$?
+) >> "$log" 2>&1 &
+# Asynchronous, then `wait`: a stop signal interrupts the wait, where it would
+# wait behind a foreground child. The exec makes this pid merge_train.py itself.
+PR_REAP_LEAD=$!
+rc=0; wait "$PR_REAP_LEAD" || rc=$?
 echo "TRAIN_RC=$rc end=$(date -u +%FT%TZ)" >> "$log"
 echo "$rc" > "$state/rc"
 exit "$rc"

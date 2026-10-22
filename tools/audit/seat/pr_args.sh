@@ -123,6 +123,22 @@ pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never 
   case $2 in ''|0|1|*[!0-9]*) return 0 ;; esac
   kill -"$1" "$2" 2>/dev/null || :  # mut:stop
 }
+# A runner whose child is itself a runner names that child PR_REAP_LEAD. The lead
+# stops its own tree in its own order -- update_pr.sh frees its branch lock only
+# after its push has ended, merge_train.py TERMs its tool and runs its `finally`
+# -- so it is TERMed alone and given PR_REAP_LEAD_TENTHS to end. A reap that
+# TERMed the whole tree at once would end a lock holder beside the push it
+# guards. The walk is taken first, while the tree is still attached: whatever
+# the lead leaves, orphans included, is reaped after it by those pids. Only a
+# lead the walk returned is signalled: a stale PR_REAP_LEAD, whose pid a later
+# process may hold, is never one.
+pr_lead_stop() { # TERM the lead alone, if the walk returned it, and wait for it at most PR_REAP_LEAD_TENTHS
+  local n=0
+  [ -n "${PR_REAP_LEAD:-}" ] || return 0
+  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) return 0 ;; esac
+  pr_kill TERM "$PR_REAP_LEAD"
+  while [ "$n" -lt "${PR_REAP_LEAD_TENTHS:-300}" ] && kill -0 "$PR_REAP_LEAD" 2>/dev/null; do sleep 0.1; n=$((n + 1)); done
+}
 pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a bounded grace
   local p alive n=0
   # A second stop signal must not end the shell mid-reap, before the KILL below.
@@ -130,6 +146,7 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   PR_REAP_PIDS=()
   pr_descendants $$
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
+  pr_lead_stop  # mut:lead
   for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done
   while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
     alive=()
@@ -486,6 +503,26 @@ STUB
   ck "  mutant mut:grace (the KILL line deleted): the TERM-proof child survives" "$(survived)"
   stubborn sigign
   ck "  mutant mut:sigign (its line deleted): the second TERM ends the host mid-reap and the child survives" "$(survived)"
+  # The lead (train.sh's merge_train.py, cloud_relay.sh's update_pr.sh) stops its own tree
+  # first. The lead's child G stands for update_pr.sh's lock holder: G marks a TERM it gets;
+  # the lead, TERMed, waits 0.5 s and writes "early" when G was TERMed beside it, then ends G.
+  printf '. "$1"; pr_exit_trap\nbash "$0.lead" & PR_REAP_LEAD=$!\nwait $!\n' > "$t/lhost.sh"
+  printf 'echo $$ >> "$REAP_DIR/pids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "$REAP_DIR/marks" & g=$!; echo $g >> "$REAP_DIR/pids"\ntrap '"'"'sleep 0.5; grep -q G "$REAP_DIR/marks" && echo early >> "$REAP_DIR/marks"; kill $g; wait $g; exit 143'"'"' TERM\nwait\n' > "$t/lhost.sh.lead"
+  leadrun() { # <mutant>
+    local hp k=0
+    : > "$REAP_DIR/pids"; : > "$REAP_DIR/marks"; copyin "$1"
+    bash "$t/lhost.sh" "$m/tools/audit/seat/pr_args.sh" & hp=$!
+    while [ "$(wc -l < "$REAP_DIR/pids")" -lt 2 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    kill -TERM "$hp"; wait "$hp" 2>/dev/null
+    ralive "$REAP_DIR/pids" > "$t/survivors"
+    for k in $(cat "$REAP_DIR/pids"); do case $k in ''|*[!0-9]*) ;; *) kill -KILL "$k" 2>/dev/null ;; esac; done
+  }
+  leadrun -
+  ck "a lead (PR_REAP_LEAD) is TERMed alone and stops its own child first; nothing of its tree survives" \
+     "$( [ "$(cat "$t/survivors")" = 0 ] && grep -qx G "$REAP_DIR/marks" && ! grep -q early "$REAP_DIR/marks" && echo 0 || echo 1 )"
+  leadrun lead
+  ck "  mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead" \
+     "$( grep -q early "$REAP_DIR/marks" && echo 0 || echo 1 )"
   # The census (the class rule): every path the rule returns is dispositioned and
   # every runner reaps. Its own null control is a scratch tree holding copies of
   # the entries plus one seam the census must refuse.
