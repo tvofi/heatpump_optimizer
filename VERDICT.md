@@ -1,45 +1,83 @@
-Fix review: blocked 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb mutation-survivor: three one-line mutants of review_strength.py pass all 24 self-test checks yet move body figures (L>=600 size cut, guardrail last-N slice, as_of --first-parent)
+Fix review: blocked 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2 mutation-survivor: hand mutants outside the sweep's classes (GROUP_RE's inner '-' dropped, a tests/ product prefix added) pass all 96 checks and move the origin and product figures; the record's guardrail line misstates its own trip count; instrument-self-tests is red on this PR's push site
 
-bus-nonce: 3ddb34983bc5ca859b30239720409717
+bus-nonce: fabf465ca534b864017249d81a9bbb57
 
-Round 2 of PR #2579 (R10-FLOW-YIELD-PROBE). Measured head 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb (code head ce0d6d261, then an automatic merge of origin/main 1ebc737e7 whose resolution delta against 618ab3d3f is three delivery rows only). Roles diff of dev/governance/roles/ from the merge base to origin/main: empty, so this contract is current. The head was still 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb at 22:09Z.
+This is **round 5** of PR #2579 (R10-FLOW-YIELD-PROBE). `fixer.md` owes a re-cut from round 4, and this round is one: a class sweep replaced pinning mutants one at a time. I measured head 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2 from a detached worktree. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so this contract is current. `git ls-remote` showed the branch still at 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2 at 2026-10-22T09:48Z (ev/head_structure.txt).
 
 ## Block
 
-- **mutation-survivor (steps 1 and 14).** Round 1 blocked because pr_facts was unpinned (the 150-line cut survived). The fixer pinned what round 1 named, but the same class is still open next to it. Each of the following mutants passes `review_strength self-test: 24 checks, 0 failed` (ev/mutants.txt), and each moves figures the body quotes when the body's own bundle command is re-run (ev/mutant_figures.txt, ev/diff_R*.txt):
-  - R2: the 600-line cut changed to 100000, so no PR is ever `L>=600`. The size rows the body quotes (`L ≥ 600 1.10 (22/20), 0.69 (11/16), 0.08 (1/13)`) disappear, and the 0.89 size re-weight changes. The fixture has a 160-line and a 20-line PR but none at 600 or more. Carry: R10-FLOW-YIELD-PROBE (item a1f0c2e1)
-  - R4: the guardrail's `[-n:]` changed to `[:n]`, so it takes the oldest N PRs instead of the latest. All ten back-test lines change, including the body's "lowest was 5/30, P = 0.116". The self-test's guardrail cases never hold more than N PRs, so they cannot tell the two slices apart. This is the slice the recommended trip rule rests on. Carry: R10-FLOW-YIELD-PROBE (item b72d4e93)
-  - R5: `--first-parent` removed from `as_of`. The resolved tree moves from e7c664856776 to 795b8befd25a, and origin's finding row in L/L1 moves from 1/13 to 1/12 (the body quotes "0.08 (1/13) in L1"). The as-of rule is this round's own fix. P6 pins "resolved at all" but not "first parent". Carry: R10-FLOW-YIELD-PROBE (item c3e85a07)
+- **mutation-survivor (steps 1, 6 and 14): GROUP_RE's inner `-` dropped.** The body's class rule only generates three kinds of literal edit: end characters dropped, cuts at a separator, and a numeral moved. It never deletes a character inside a regex. `\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b` → `\b(R\d+-[A-Z0-9][A-Z0-9]*[A-Z0-9])\b` is not among the sweep's 2333 mutants (ev/sweep_list.txt, 0 matches). It passes `review_strength self-test: 96 checks, 0 failed`, because every fixture group (`R1-FIX`, `R1-RES`, ...) has a single dash. On the real bus, every multi-dash group (`R10-FLOW-YIELD-PROBE`) then reads as `R10-FLOW`, and the origin stratum collapses (ev/bundle_diff_H1.txt):
+  - finding-fix P1 1.08 (40/37) → 1.38 (11/8), P2 0.29 (5/17) → 0.00 (0/2), L1 0.08 (1/13) → 0.17 (1/6);
+  - none P1 0.27 (3/11) → 0.80 (32/40), and with it the origin re-weight 0.50 and the "about half of the fall" conclusion.
 
-  Fix: add fixture cases that kill R2, R4 and R5. A merged PR of 600 or more lines; a guardrail call with more than N PRs, where the oldest and the latest N differ in incidence; and a side-branch commit dated before T whose first-parent ancestor is older.
+  The body says the self-test pins "the group regex's digit classes". It pins those classes but not the group shape the bus actually uses.
+- **mutation-survivor: a `tests/` product prefix added.** `("custom_components/", "blueprints/")` → `("custom_components/", "blueprints/", "tests/")` passes 96/0. The fixture's non-product PRs touch no `tests/` file. The mutant moves the product table: True P1 1.21 (17/14) → 1.19 (37/31), P2 0.22 (2/9) → 0.52 (11/21), L1 0.14 (1/7) → 0.09 (2/23). It moves the instrument row and the product re-weight 0.85 too (ev/bundle_diff_H9.txt). The BOUNDS exclude "replace a literal with an unrelated one", but an added element is the same open shape: the product predicate is pinned only against the prefixes the fixture happens to hold.
+- **figures-false: the threshold sentence in `dev/audit/rounds/round10/D13/yield-probe.md`.** "Trip at P(X ≤ k | 30, 0.28) < 0.05, which means 3 or fewer of the 30 PRs (P = 0.017). At 4, P = 0.050, so 4 is the line." But P(X ≤ 4 | 30, 0.28) = 0.04954, which is below 0.05. The tool's own `guardrail` prints `incidence 4/30; P(X<=4|30,0.28) = 0.050 -> would-trip` (ev/guardrail_k4.txt, ev/g4.py). The arm trips at 4 or fewer, not 3. This sentence is the threshold carried to R10-ORCH-MACHINERY. The seat-family arm's "1 or fewer (P = 0.012)" is right, since k=2 gives 0.0526.
+- **A red gate check: `instrument-self-tests` failed on this head.** Its log: `ref_privacy: REFUSE tools/audit/seat/review_strength.py:854: a push site in a file PUSHERS does not name` (ev/instrument_self_tests_excerpt.txt). Line 854 is the `g("push", ...)` this round's new `--fetch` fixture adds. The e53fee3 tool has no push site, and `python3 -I tools/audit/seat/ref_privacy.py --check` at the head reproduces the refusal (ev/ref_privacy_check.txt). This is not external: no rate-limit or unreachable line causes it. The body's `## Red checks` ran no `ref_privacy --check`, a seconds-long local detector, and the check does not name it. Not every workflow on the head had concluded, so I do not post `root-cause-unanswered`. The body still owes that answer (fix-review step 11).
+
+What to fix, and what to split out (the third-round rule):
+- Add a multi-dash fixture group, and a non-product PR touching `tests/` (or any non-product top-level directory).
+- Extend the literal class to drop each single character of a regex literal. That is bounded by the literal's length.
+- Fix the threshold sentence.
+- Register the push site in PUSHERS, or guard it.
+- **Split the guardrail recommendation out of this PR.** Its threshold, arms and back-test are already R10-ORCH-MACHINERY's carry (roster item b8b28b28). This PR then owes only the explanation of the fall, and the tool's `--guardrail` path with ALPHA leaves the figures it must defend.
 
 ## Findings
 
-- R2, R4 and R5 above: each is a self-test case the fixer owes this PR in round 3. Carry: R10-FLOW-YIELD-PROBE (item d4a96b18)
-- Six further mutants survive the self-test but move no quoted figure on the real bus: R7 (the `dev/programme/delivery/` exclusion in size), R8 (the newest-merge-wins dedupe in `merges`), R9 (the `-cloud` suffix arm of the reviewer kind), R13 (`fixes` in the origin predicate), R14 (`-pr` suffix stripping in the branch join), and R15 (an inclusive window upper bound). The same round-3 fixture should pin them, because none is tested. Carry: R10-FLOW-YIELD-PROBE (item e58b7c24)
-- A `pr-contract` run (39681234360, job 119504172159) is red at this head. Its "Read the body off the API" step got non-JSON from `gh api` ("invalid character 'S' looking for beginning of value"), and every later body step then failed on a missing /tmp/pr-body.md. A sibling pr-contract run started a second earlier (39681233356) passed. The body's `## Red checks` predates CI ("CI has not run on this head") and does not name it. Root-cause-unanswered is not posted here because `closures` was still in progress. The next round's body owes an answer. Carry: R10-FLOW-YIELD-PROBE (item f6093d35)
+- GROUP_RE (H1), the product prefix (H9), the threshold sentence and the ref_privacy refusal, stated under Block, are each owed by this PR's next round, not a later stage. Carry: dismissed: owed by this pull request's next round, stated under Block
+- **ALPHA is unpinned between 0.05 and 0.0526.** `ALPHA = 0.05` → `0.06` passes 96/0 (ev/hand_mutants.txt, H18). It moves no bundle or back-test figure, because the lowest back-test P is 0.116. It would flip the seat-family arm's line, though: k=2 of 20 at p0 0.28 gives 0.0526, so that arm trips at 2 or fewer under 0.06. If the guardrail stays in this PR, a check at that P is owed. Carry: dismissed: moot if the guardrail is split out as Block asks, else owed by this pull request's next round
+- **Three DISPOSED entries are not equivalent on every input.** Each holds on the real bus and moves no figure:
+  - (a) `nonce {32} → {31}`: a VERDICT.md holding a 31-hex `bus-nonce:` reads local in the tool and cloud under the mutant. ev/dispositions_check.txt shows the mutant matching `aaaaaaaa`. The real bus holds 395 nonces, all 32-hex (ev/bus_nonce_shapes.txt).
+  - (b) `cdf < ALPHA → <=`: a CDF of exactly 0.05 exists. For example, n=3, k=0, p0=0.6315968501359613 flips `ok` to `would-trip`. I found 67 such (n, k, p0) for N ≤ 40 (ev/dispositions_check.txt). The entry's own reason scopes it to "N ≤ 5 on a 1e-5 p0 grid", and the body's table drops that scope.
+  - (c) `w.split('=', 1) → rsplit`: `--window A=B=2026-10-20T00:00Z..2026-10-21T00:00Z` raises ValueError in the tool, but the mutant prints a window named `A=B` (ev/window_rsplit.txt).
+
+  The reasons should say "equivalent on the bus's inputs" and name the input that separates the two, or a check should pin them. Carry: dismissed: no figure moves on the real bus; the reasons' wording is owed by this pull request's next round
+- **Author time is unpinned.** `%cI` → `%aI` (H5) passes 96/0 and moves nothing on today's bus (empty bundle diff). The record's rule is "by committer time", and no fixture verdict has different author and committer dates. Carry: dismissed: equivalent on the real bus; a rebased verdict commit would separate them, owed as a fixture in the next round if the rule stays
+- **The body is longer than its content needs (third-round rule).** The `## Head` section walks eight commits and four main merges, which the head's merge structure already shows. The 19-row DISPOSED table restates the harness's own `DISPOSED` reasons. The `## Red checks` list reports runs at intermediate commits. The next body can quote the code head, the sweep's RESULT line and point at `DISPOSED`, at under half its present 14.4k characters. Carry: dismissed: owed by this pull request's next round
 
 ## Evidence
 
-- Forward-carry (brief item 1, step 10): at origin/handoff/audit-r10-roster c9140d299f9c, R10-ORCH-MACHINERY's carry holds "From #2579 (item b8b28b28): the yield-probe guardrail ... Control: a planted defect of each class must trip the guardrail, and a null window must not." (ev/roster_carry.txt). The round-1 carry-missing block is resolved. The model-in-dispatch control the body names is not yet on the roster line; the body discloses this and routes it to the same group.
-- `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body` over the PR body: `3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`, exit 0 (ev/carry_audit_body.txt).
-- Self-test at head: 24 checks, 0 failed. Wiring: `39 self-testing, 39 wired, 0 unwired` (ev/wiring.txt).
-- These of my mutants are killed: R1 (first-pass forced), R3 (nonce read at 7 characters), R6 (product without custom_components/), R10 (binomial range), R11 (guardrail counts every PR as caught) and R12 (merge base taken at the merge commit, not ^1). Every file was restored and cmp-checked (ev/mutants.txt). The fixer's M1–M8 and P1–P7 were not re-run individually; my own set covers the same predicates.
-- Figures re-measured by the body's bundle at this head (ev/bundle_head.txt), as of 15:15Z, tree e7c664856776, roster 2c76c3128bf6. Every quoted figure reproduced:
-  - Baselines: 112 / 0.52 (58) / 0.58 (65); 47 / 0.15 (7) / 0.64 (30); 35 / 0.06 (2).
-  - L13: PRs 11, verdicts 16, real 4.
-  - Windows: P1 43/48, P2 14/39, L1 3/39, S 5/14, with incidence 25/48, 10/39, 3/39, 4/14.
-  - Strata: origin 40/37, 5/17, 1/13; L>=600 22/20, 11/16, 1/13; product 17/14, 2/9, 1/7.
-  - Reviewer kind: cloud 6/31, 3/24, 5/14; local 43/48, 8/14, 0/20. kind+origin P2: 3/13 and 2/8.
-  - Fixer first-pass: opus 7/22, 2/14, 5/7; sonnet 5/15, 0/3, 3/6.
-  - Prior-merge: 0 real, 22 PRs and 33 verdicts in A, 22 in E, 12 in L. Classes: harness 25/3/2, carry-missing 3/15/7.
-  - Extended list: P2 19/39, L1 8/39, cloud incidence 8/31, 7/24, 4/14, local L1 0/20, POST 24/85.
-- Re-weights recomputed from the bundle rows: origin 19.51/39 = 0.50, size 34.77/39 = 0.89, product 32.97/39 = 0.85 (ev/reweight.txt).
-- Binomials: 0/20 = 0.0014, ≤3/30 = 0.0166, ≤1/20 = 0.0123, ≤5/30 = 0.1161 (ev/binom.txt).
-- Back-test: re-run at ten until points over 10-20T01:00Z..10-21T13:00Z. The minimum is 5/30, P = 0.116, and none tripped. The body's maximum, 19/30, lies at earlier cut points I did not sweep, so it is not re-derived here.
-- Class words: 46 over the whole bus to 15:15Z, which matches the body. The live bus at 21:00Z holds 49; the extra three are after the closed window (ev/classwords.txt). The masked-catch counts and the 18 ledger models were not re-derived, as the body itself discloses.
-- Null controls: the instrument null (the study's hand-taken 112/0.52 and 47/0.15 reproduce) holds. The per-stratum nulls are the strata rows above. The as-of null at the stale --tree 49c222280d46 was not re-run.
-- `git merge-tree --write-tree origin/main 816b1e20fdfd0a4b99bcc2b81361b70bd3007acb` (origin/main 295c874e8): clean, exit 0, tree 6a6f1899791e. VERSION, the manifest version and RELEASE_NOTES are untouched (`git diff 1ebc737e7...816b1e20fdfd0a4b99bcc2b81361b70bd3007acb`). The diff touches no budget, claim or closure file.
-- CI at this head, 46 check-runs as of 22:09Z (ev/check_runs.tsv). `closures` was still in progress. `nightly-status` is red; it grades main's scheduled run, this diff touches nothing it reads, and the body answers it. `pr-contract` is red in one of its two runs (see Findings). Everything else concluded success or skipped, including instrument-self-tests, mutation, the sibling pr-contract run, arch-score and budget-raise-gate.
+- **Self-test at the head (3.11):** `review_strength self-test: 96 checks, 0 failed` (ev/selftest_head.txt).
+- **The sweep, re-run** at the head with `python3 dev/audit/harnesses/r10_review_strength_mutants.py --jobs 4` (ev/sweep_head.txt) prints `RESULT mutants=2333 killed=2286 survived=47 disposed=47 undisposed=0 stale=0`, rc=0, in 35 min. That is the body's figure, re-derived. It holds only within the rule's classes: see Block. `--list` enumerates 2333 mutants (ev/sweep_list.txt), the body's count. M0 passed, `review_strength self-test: 96 checks, 0 failed`; that is the sweep's null control.
+- **Hand mutants outside the stated classes** (ev/muts.py, ev/run.py, ev/hand_mutants.txt). I wrote 30; the runner skipped none and restored the file identical.
+  - 18 killed: H2 (MERGE_RE made greedy), H3 (additions-only size), H4 (PRs by head), H8 (the first head), H10, H16a-d (150 → 100/200, 600 → 500/800), H17, H24, H25, H26, H30, H31, H32, H33 and H35.
+  - 12 survived. 2 move quoted figures: H1 and H9, under Block. H19 is my own error: it is a no-op rewrite. The other 9 have an empty bundle diff on the real bus: H5, H6, H7, H13, H18, H27, H28, H29 and H34. H27 (`== 'merge'` → `!= 'blocked'`) is equivalent, since a kind is one of the two.
+- **The DISPOSED entries, each checked.** I checked each against the tool's code. Equivalent on every input I could construct:
+  - fromisoformat `+00`, re-run on five spec shapes in ev/dispositions_check.txt;
+  - the four ref patterns: for-each-ref matches a pattern at a whole component;
+  - `^1` → `^`, `g[1]` → `g[0]`, and the `or ''` arm;
+  - the numstat ones (git quotes a path holding a tab), the `mb` ones and `check=`;
+  - the stratum, tally, `files.append`, parser, fetch `-q`, `--tag` and `default=` ones;
+  - the `..`-split ones: a span holding a second `..` fails `fromisoformat` either way.
 
-RESULT selftest=24/0 own_mutants=15 killed=6 survived=9 survived_moving_body_figures=3(R2,R4,R5) body_figures_reproduced=all_quoted carry_on_roster=present(c9140d299) carry_audit_body=0_unrouted merge_tree=clean ci=closures_pending,nightly-status_red(main),pr-contract_red(1_of_2,api_read)
+  Not equivalent on every input: (a) to (c) under Findings.
+- **Finder's harness (step 2).** Both ends are the brief's quoted rates. The tool does not exist at the merge base, so the baseline is the hand count. At the head after `--fetch`:
+  - `--window A=2026-10-15T12:37Z..2026-10-21T11:00Z` prints `PRs 112 verdicts 257 real 58 (0.52/PR)`;
+  - the bundle's `all L` row prints `PRs 47 verdicts 84 real 7 (0.15/PR)` (ev/figures_extra.txt, ev/bundle_head.txt).
+
+  The bundle reads `facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6`, with 395 verdicts on the bus and 0 outside the grammar.
+- **Null control (step 3).** The e53fee3 tool and the head's tool, run over the same fetched bus with the body's bundle arguments, print byte-identical output: `BUNDLE-IDENTICAL` (ev/null_bundle.txt, ev/bundle_e53fee3.txt). So the tool changes move no figure, as the body claims. I did not re-run the body's baseline-end sweep against the e53fee3 tool (`undisposed=128`). That figure is not re-derived here.
+- **Figures in yield-probe.md re-derived at the head** (ev/bundle_head.txt, ev/figures_extra.txt, ev/figures_record.txt). All match except the threshold sentence under Block:
+  - baselines: 112 / 0.52 (58) / 0.58 (65) / 36/112; 47 / 0.15 / 0.64 / 6/47; 35 / 0.06 (2); L13 real 4;
+  - P1, P2, L1 and S rows;
+  - every origin, size and product cell;
+  - the re-weights 0.50, 0.89 and 0.85, recomputed;
+  - kind and kind+origin cells;
+  - fixer first-pass and real/PR, and cloud first-pass 8/25, 9/20;
+  - after-a-merge E 22/17, L 12/8, the 6-day 33/22, all 0 real;
+  - `harness` 25/3/2 and `carry-missing` 3/15;
+  - the nine words 0/5/5;
+  - the extended list: P2 19/39 (13/39), L1 8/39 (7/39), S 5/14, cloud 9/31 (8/31), 8/24 (7/24), local L1 0/20, POST 24/85;
+  - 0-in-20 P = 0.0014;
+  - P = 0.017 and 0.012.
+
+  Back-test, at my own ten cut points: lowest 5/30 at 10-21 06:00Z and 13:00Z (P = 0.116), highest 19/30 at 10-18 08:00Z, no trip. Not re-derived: the "46 class words" (the bus-wide count), the 15-minute end-time sweep, and the ledger counts the record already marks as hand-read.
+- **Steps 4, 5 and 7.** The three-dot diff from the merge base lists 7 files: no VERSION, no manifest, no RELEASE_NOTES.md and no claim file. `## Head` names 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2, which is the head I measured. 6ad8089c1 merges 384a0e8cd into e53fee367, with an empty diff from 384a0e8cd. `SWEEP-INPUTS-IDENTICAL` re-prints between dc422d6f2 and 384a0e8cd (ev/head_structure.txt).
+- **Merge-tree (step 13).** `git merge-tree --write-tree origin/main 6ad8089c14b50de2f6408ef6948a7d86ca4c52c2`, with origin/main at c409c9b18, is clean: exit 0, tree d600c028b870 (ev/merge_tree.txt).
+- **Carry audit over the body.** `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body` prints `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`, rc=0, at roster 33138bc2f49b (ev/carry_audit_body.txt). R10-ORCH-MACHINERY and R10-FLOW-YIELD-PROBE are both groups on origin/main's roster (ev/roster_groups.txt). The b8b28b28 carry states its control as a precondition (step 10).
+- **CI on this head (step 11).** I read 36 check-runs at 09:46Z (ev/check_runs.tsv):
+  - 23 success, 7 skipped, 1 neutral (CodeQL), and 3 in progress (`Analyze (python)`, `closures`, `coverage`);
+  - both `pr-contract` runs succeeded;
+  - 2 failed: `instrument-self-tests`, which is this PR's (under Block), and `nightly-status`. `nightly-status` grades main's scheduled run and is not this PR's. The body answers it, it is not a required check, and it does not block.
+
+RESULT selftest=96/0 sweep=2333/2286/47_disposed/0_undisposed hand_mutants=30 killed=18 survived=12 survived_moving_quoted_figures=2(H1_GROUP_RE,H9_product_prefix) disposed_checked=47 not_equivalent_on_all_inputs=3(nonce31,cdf<=,window_rsplit) record_figures=all_but_threshold_sentence(4/30_trips) null_bundle=identical carry_audit_body=0_unrouted merge_tree=clean ci=instrument-self-tests_red(ref_privacy:review_strength.py:854),nightly-status_red(main),3_in_progress round=5
