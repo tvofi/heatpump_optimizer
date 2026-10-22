@@ -1,0 +1,6 @@
+X1-no-rest SURVIVED
+X2-timeout-25 SURVIVED
+X3-tries-2 SURVIVED
+X4-no-break KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted
+X5-dump-default-30 SURVIVED
+X6-control-check-last-only SURVIVED
