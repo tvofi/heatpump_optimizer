@@ -7883,6 +7883,49 @@
     "stage": "in-progress",
     "branch": null
    }
+  },
+  {
+   "group": "R10-FLY-PRUNE-REFS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [
+    "prune_refs per-ref API writes",
+    "prune_refs deletes live session and design refs"
+   ],
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "after": [],
+   "files": [
+    "tools/audit/seat/prune_refs.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "brief": "Fly-in from the s4 branch-pruning seat (owner request, tvofi 2026-10-22): two defects in tools/audit/seat/prune_refs.py, which no roster group owned. Fix both in one PR, with the fixtures and controls in the carries; self-test through tests/throwaway_git.py, never a hand-built git init. Spare the API.",
+   "carry": [
+    "Carry (i), prune seat s4 2026-10-22: prune_refs.apply_plan makes one REST write per tag and per delete (704 for 352 refs) against the shared GITHUB_TOKEN/App budget (dev/audit/rca/install-ratelimit.md). Add a batched git-push arm: tags first as `<sha>:refs/tags/archive/<name>` refspecs in chunks of about 100, verify, then `git push --delete` in the same chunks, aborting on the first refusal. Fixture: a synthetic plan run through the push arm with `gh` stubbed to fail on any call, asserting 0 `gh api` writes and tags-before-deletes order. Null control: the old gh-api arm on the same plan shows 2N writes. Measured: the s4 prune (352 refs, branches 1467 -> 1115) ran the tool's own plan by batched git push in 4+4 chunks, with 0 API writes and 352 tags verified at the same SHA.",
+    "Carry (ii), prune seat s4: classify/plan would delete (a) live claude/* session branches (the orchestrator's own claude/audit-round-10-orchestrator-f39e64 was rated delete-merged-into-main because its tip is in main) and (b) design/ and design-verdict/ refs of roster groups that are not done (residue-no-pr). Add keep rules for claude/* and for design/ and design-verdict/ refs whose group is not done in the roster (via a --roster-file), plus guards for a tip younger than 6 h and a dispatch/* younger than 24 h. Controls: a claude/* ref with a main-reachable tip is kept; a design/ ref of a not-started group is kept, while the same ref of a done group is still deleted."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
