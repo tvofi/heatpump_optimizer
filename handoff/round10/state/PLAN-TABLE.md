@@ -282,7 +282,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-NIGHTLY-PYSPY-RETRY | F | 1 | queued | - | opus/opus | - | Build countermeasure A of dev/audit/rca/nightly-ha-pyspy-timeout.md (#2479) in tests/nightly_ha.py: retry the py-spy sample with a per-attempt timeout so one... |  |
 | R10-TRAIN-OVERLAP-GRADE | F | 1 | queued | - | opus/opus | - | Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the... |  |
 | R10-ARCH-DOCS-FIRST | DOCS | 1 | queued | **#2395** | opus/opus | - | R10-ARCH-DOCS-FIRST, rescheduled to ASAP by the owner (tvofi, 2026-10-22) as the FIRST delivery of round 10's architecture, CI-shape and development-shape do... |  |
-| R10-RCA-INSTALL-RATELIMIT | IN | 1 | in-review | - | opus/opus | - | Root-cause record for the recurring 'API rate limit exceeded for installation' reds on required checks (2026-10-22 06:27Z, 08:40Z, 09:44Z). |  |
+| R10-RCA-INSTALL-RATELIMIT | IN | 1 | in-progress | - | opus/opus | - | Root-cause record for the recurring 'API rate limit exceeded for installation' reds on required checks (2026-10-22 06:27Z, 08:40Z, 09:44Z). |  |
 | R10-RECORD-API-BUDGET | IN | 2 | queued | - | opus/opus | - | Countermeasure of dev/audit/rca/install-ratelimit.md (the record is at handoff/r10-rca-install-ratelimit 0a8c4523a). |  |
 | R10-NIGHTLY-HB-RESPAWN | F | 2 | queued | - | opus/opus | - | Owner of the residual left by R10-NIGHTLY-PYSPY-RETRY (#2605; verdict review/2605 f00094d17, finding 2). |  |
 

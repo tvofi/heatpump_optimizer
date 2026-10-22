@@ -26,7 +26,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NIGHTLY-PYSPY-RETRY (stage queued, branch `handoff/r10-nightly-pyspy-retry`): `git fetch origin handoff/r10-nightly-pyspy-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARCH-DOCS-FIRST (stage queued, branch `handoff/r10-arch-docs-first`): `git fetch origin handoff/r10-arch-docs-first && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RCA-INSTALL-RATELIMIT (stage in-review, branch `handoff/r10-rca-install-ratelimit`): `git fetch origin handoff/r10-rca-install-ratelimit && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RCA-INSTALL-RATELIMIT (stage in-progress, branch `handoff/r10-rca-install-ratelimit`): `git fetch origin handoff/r10-rca-install-ratelimit && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RECORD-API-BUDGET (stage queued, branch `handoff/r10-record-api-budget`): `git fetch origin handoff/r10-record-api-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
