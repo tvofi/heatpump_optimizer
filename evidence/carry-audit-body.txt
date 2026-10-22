@@ -1,5 +1,1 @@
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-== against origin/main 543c8087c57973ee58033a0c62520b5ec3a58621 (#2608 merged)
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-R10-NIGHTLY-PYSPY-RETRY queued [] power-precondition: False
-R10-NIGHTLY-HB-RESPAWN queued ['R10-NIGHTLY-PYSPY-RETRY'] power-precondition: True

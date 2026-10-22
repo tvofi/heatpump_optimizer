@@ -1,0 +1,22 @@
+$ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-0trfw4lg/config:/config -v /tmp/nightly-ha-0trfw4lg/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0
+$ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-a3e-nk_9jdfg/config:/config -v /tmp/nightly-ha-a3e-nk_9jdfg/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --a3e-only
+$ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-hb-hfmf8sge/config:/config -v /tmp/nightly-ha-hb-hfmf8sge/opt:/opt/hpo:ro --cap-add SYS_PTRACE --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --heartbeat-only
+  FAIL run:driver_reported  [0 result markers in the container's output]
+--- inside the container ---
+  FAIL run:exit_status  [checks never ran: ['a10:no_credential', 'a10:no_precise_location', 'a11:invalid', 'a11:no_entry', 'a11:run_failed', 'a12:migrates', 'a13:currency', 'a16:debug_capped', 'a16:debug_inline', 'a3:device_class_state_class', 'a3:finite', 'a3:no_constructor_defaults', 'a3:orjson', 'a3:roster', 'a4:buttons', 'a4:failed', 'a4:no_stale', 'a4:recovered', 'a4:unavailable', 'a5:byte_unchanged', 'a5:pages_ok', 'a5:service_bounds', 'a5:service_examples', 'a6:list', 'a6:loaded', 'a6:number', 'a6:string', 'a8:already_configured', 'a8:deregister', 'a8:register_once', 'a9:no_growth', 'a9:reload_loaded', 'a9:roster_unchanged', 'contract:probes_agree', 'contract:real_provider', 'contract:stub_provider', 'entities:coordinator_healthy', 'entities:none_unavailable_by_coordinator', 'entities:registered', 'entry:loaded', 'ha:core_running', 'ha:home_assistant_is_real', 'hb:changed_save', 'hb:menu_saves', 'hb:positive_control', 'hb:untouched_exit', 'plan:current_action_published', 'plan:last_optimization_published', 'plan:no_solve_repair', 'plan:optimization_result', 'plan:setpoints_non_empty', 'shape:inherited_pythonpath_cannot_mask', 'shape:no_tests_sibling', 'shape:package_at_config_path']]
+  ok   log:no_module_not_found  [0 line(s)]
+  ok   log:no_worker_exit  [0 line(s)]
+  ok   log:no_integration_traceback  [0 traceback(s) naming heatpump_optimizer]
+  ok   log:blocking_report_parsed  [0 report(s) blame this package, 0 unparsed]
+  ok   log:no_new_blocking_call  [0 offender(s) seen; new: []]
+  ok   log:blocking_pin_not_stale  [0 pinned; fixed but still pinned: []]
+  FAIL log:blocking_positive_control  [lane regex saw nothing inside the probe window; cannot tell no-blocking-call from cannot-see (#588)]
+  FAIL run:all_checks_ran  [10 of 64 ran; missing: ['a10:no_credential', 'a10:no_precise_location', 'a11:invalid', 'a11:no_entry', 'a11:run_failed', 'a12:migrates', 'a13:currency', 'a16:debug_capped', 'a16:debug_inline', 'a3:device_class_state_class', 'a3:finite', 'a3:no_constructor_defaults', 'a3:orjson', 'a3:roster', 'a4:buttons', 'a4:failed', 'a4:no_stale', 'a4:recovered', 'a4:unavailable', 'a5:byte_unchanged', 'a5:pages_ok', 'a5:service_bounds', 'a5:service_examples', 'a6:list', 'a6:loaded', 'a6:number', 'a6:string', 'a8:already_configured', 'a8:deregister', 'a8:register_once', 'a9:no_growth', 'a9:reload_loaded', 'a9:roster_unchanged', 'contract:probes_agree', 'contract:real_provider', 'contract:stub_provider', 'entities:coordinator_healthy', 'entities:none_unavailable_by_coordinator', 'entities:registered', 'entry:loaded', 'ha:core_running', 'ha:home_assistant_is_real', 'hb:changed_save', 'hb:menu_saves', 'hb:positive_control', 'hb:untouched_exit', 'plan:current_action_published', 'plan:last_optimization_published', 'plan:no_solve_repair', 'plan:optimization_result', 'plan:setpoints_non_empty', 'shape:inherited_pythonpath_cannot_mask', 'shape:no_tests_sibling', 'shape:package_at_config_path']; undeclared: []]
+
+--- container output ---
+
+failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /var/run/docker.sock: connect: no such file or directory
+
+
+FAILED: 4 of 10 checks: ['run:driver_reported', 'run:exit_status', 'log:blocking_positive_control', 'run:all_checks_ran']
+rc=1
