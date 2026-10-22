@@ -290,6 +290,9 @@ def self_test() -> int:
           got[:2] == ("ok", None) and n == 2 and sleeps == [30])
     got, n, sleeps, _ = run([hterr(429, "", **{"Retry-After": "2"})], urllib_wait)
     check("a 429 naming less than the schedule settles the schedule's 5 s", n == 2 and sleeps == [5])
+    got, n, sleeps, _ = run([hterr(429, "", **{"Retry-After": "45"})], urllib_wait)
+    check("a 429 naming exactly the 45 s cap is waited out, not refused (the cap is inclusive)",
+          got[:2] == ("ok", None) and n == 2 and sleeps == [45])
     got, n, sleeps, _ = run([hterr(429, "", **{"Retry-After": "3600"})], urllib_wait)
     check("a 429 naming an hour refuses at once, naming the wait (never sleeps it out)",
           n == 1 and sleeps == [] and "3600 s wait, past the 45 s cap" in got[3])
@@ -349,6 +352,7 @@ def self_test() -> int:
         (G, True, "HTTP 404: Not Found (https://api.github.com/graphql)\nHTTP 502: Bad Gateway (http://x/graphql)"),
         (G, False, "HTTP 502: Bad Gateway (https://api.github.com/graphql)\ngh: Not Found (HTTP 404)"),
         (G, False, "HTTP 502: Bad Gateway"), (G, False, "x HTTP 502: Bad Gateway (https://a/b)"),
+        (G, False, "HTTP 502: Bad Gateway (https://api.github.com/graphql) after 3 pages"),
         (G, False, "HTTP 5020: Bad Gateway (https://a/b)"), (G, False, "HTTP 502: Bad Gateway (ftp://a/b)"),
         (G, False, "HTTP 502: Bad Gateway (https://a b)"), (G, False, "HTTP 502 Bad Gateway (https://a/b)"),
         (TR1, True, 'Get "https://api.github.com/x": EOF'),
