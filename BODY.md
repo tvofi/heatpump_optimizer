@@ -23,7 +23,7 @@ Two jq programs over the roster at the base and the head (`B=93e6a63d2855651448a
 - Stage changes, all `in-progress` to `done` with `resume.commit` set to the merge commit on main: `R10-CI-RATCHET-RED` d7121f32b, `R10-REPLAY-CAP` 290712ec0, `R10-I5-DOCS` 92b5bf442, `R10-FREQ-DEFROST` 4b36dc730, `R10-TICK-OWED-LEVEL` 295c874e8, `R10-CI-LAYOUT` 5a755f53e, `R10-HANDOVER-REFRESH` 302f66571 (#2566), `R10-ROSTER-PUSH-RACE` 3a9c6f849 (#2569), `R10-ADVISOR` f24895c0c, `R10-RCA-ORCH-CONTINUITY` 93e6a63d2. Read with `git show $B:$R | jq -c '.groups[]|select(.group==G)|.resume'` against the same at `$H`.
 - `R10-FLOW-RECHAIN` is registered already `done`: its substance merged as #2576 (500668757). Its `resume.commit` is null and its `next_step` is stale ("dispatch a fixer once every after group is done"); the roster is frozen for this round, so it is left as is and named for the roster seat (an optional edit; no group can take it, since the group is done).
 - Waves and path: `python3 tools/audit/seat/plan_table.py --roster-ref origin/main` and `--roster-ref $H` both print `8 wave(s)` and a critical path of length 8. The path differs: main's starts `R10-ADVISOR -> R10-SCORES`, the head's starts `R10-NIGHT-FOLDS -> R10-LOOP-CPU`; the last six nodes (`R10-LIVESTATE` to `R10-ARCH-DOCS`) are identical. `R10-ADVISOR` is `done` at the head and `in-progress` on main.
-- Carry routing: `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>` prints `0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)`; `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster sweep` prints the same counts.
+- Carry routing: `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>` prints `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`; the two items are this body's own `## Forward-carry` bullets. Separately, `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster sweep` prints `0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` and `CARRY-SWEEP: 0 pull request(s)`. Re-run on this edited body, the `check` command prints the line above (0 unrouted, 0 bad), and `node tools/policy/policy_lint.mjs --pr-body` with pr-contract's arguments (`--head` the full head SHA, `--author hpo-author[bot]`, `--red nightly-status`, the two changed paths) prints `PR-BODY: 0 error(s)`.
 
 ## Red checks
 
@@ -36,9 +36,10 @@ State at ad10fd21 from `gh api repos/tvofi/heatpump_optimizer/commits/ad10fd2153
 
 ## Forward-carry
 
-- The `R10-FLOW-BODY-ONLY` P22 carry cites `update_pr.sh` "l.42", which at main is the unpushed-worktree refusal; the 75 exit for "branch checked out elsewhere" is at `update_pr.sh:46` at `93e6a63d2`. Its "28 permanent (topic, handoff-sha) entries ... 17 / 6 / 5" counts come from the relay's out-of-tree state and are not tree-derivable. The fixer locates the exit by its message text and re-measures the counts at its own start. Carry: R10-FLOW-BODY-ONLY
+- The `R10-FLOW-BODY-ONLY` P22 carry cites `update_pr.sh` "l.42", which at main is the unpushed-worktree refusal. The "checked out elsewhere" exit is at `tools/audit/seat/update_pr.sh:46` at `93e6a63d2` and is `exit 1` there; changing it to 75 is what P22 prescribes, not the current code. The fixer locates the exit by its message text ("checked out elsewhere") and changes `exit 1` to 75 there. The carry's counts (28 entries, 17 / 6 / 5) come from the relay's out-of-tree state, not the tree; the fixer must re-measure them at its own start. Carry: R10-FLOW-BODY-ONLY
 - `brief_lint`'s `METRIC_LITERAL_RE` catches only the comparator form of a metric literal; a prose literal ("The class_excess_loc budget is N.") lints clean. Dismissed: the rule enforces #411 class 4 as defined, no stage depends on widening it, and this PR adds no such literal. Carry: dismissed: the rule enforces #411 class 4 as defined and no stage depends on widening it.
 
 ## Friction
 
 none
+
