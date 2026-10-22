@@ -286,15 +286,20 @@ HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
 # A healthy sample returned in at most 0.15 s on all 710 in-image samples the
 # RCA took, so 5 s is over 30x that, and a hung one costs 5 s instead of 30.
 PY_SPY_TIMEOUT_S = 5.0
-# So the control tries a FRESH spin, sampled once, up to this many times. Not
-# the same spin sampled again: on real HA one held spin had 3 of 3 samples hang
-# (R10-NIGHTLY-PYSPY-RETRY), so whatever hangs py-spy outlives a retry inside it.
+# The control tries a fresh spin, sampled once, up to this many times. On real
+# HA this was measured NOT to rescue a hang: in every hung run the hang held for
+# the life of the HA process, across retries inside one held spin and across
+# fresh spins 1 s apart (R10-NIGHTLY-PYSPY-RETRY, F6 and F7); a container
+# respawn is R10-NIGHTLY-HB-RESPAWN's. The retry is kept because it bounds what
+# a red costs, and because a try whose sample came back late, missed the spin
+# or answered rc!=0 is retried rather than failed.
 HB_CONTROL_TRIES = 3
-HB_CONTROL_REST_S = 1.0  # the loop runs between tries, so the next spin is a new state
+HB_CONTROL_REST_S = 1.0  # loop time between tries, so each spin starts afresh
 # Each spin outlasts HB_CONTROL_S until its sample has returned, so a slow but
-# healthy sample still finds it; bounded by the sample's own timeout, far
-# under HB_HANG_S. Worst case for the whole control, every try hung:
-# HB_CONTROL_TRIES * (HB_CONTROL_HOLD_S + HB_CONTROL_REST_S), about 22 s.
+# healthy sample still finds it; bounded by the sample's own timeout, under
+# HB_HANG_S. Worst case for the whole control, every try hung:
+# HB_CONTROL_TRIES * (HB_CONTROL_HOLD_S + HB_CONTROL_REST_S) = 21.75 s, which
+# tests/entities.py pins under 22 s.
 HB_CONTROL_HOLD_S = HB_DUMP_S + PY_SPY_TIMEOUT_S + 1.0
 HB_SETTLE_S = 120.0  # wait for the last reload's first solve to finish
 # Every scenario stays measured this long after its last action, before any
