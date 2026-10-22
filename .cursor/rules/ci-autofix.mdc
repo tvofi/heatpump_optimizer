@@ -73,8 +73,8 @@ Those subjects are loop guards. The job dispatches Tests/Hassfest/Validate and C
 `GITHUB_TOKEN` push's `pull_request` runs are held `action_required` (since 2026-10-15; run
 38781421410), so the contexts only that event writes are ABSENT at a bot head until one is
 approved: all three approve them, fail-soft while their secrets are absent, when an App push or
-body edit cures it. Absent is not green (`orchestrator.md` section 11). `recheck-gate` treats
-`ci:` as PR-like (not `slow`).
+body edit cures it. Absent is not green (`orchestrator.md` section 11). Every Tests dispatch is
+PR-like.
 
 When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is

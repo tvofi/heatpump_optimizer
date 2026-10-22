@@ -164,8 +164,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `fixer` or `probe` seat from the PR, the 40-hex head, the bus nonce and an
   optional brief file. The environment id, model and repository come from a
   flag, an overlay JSON (`--overlay` / `$HPO_CLOUD_OVERLAY`) or `HPO_CLOUD_*`,
-  never from the tree. When: dispatching a seat to the cloud runner; paste
-  the printed JSON as the trigger update. The measured shape of a cloud seat:
+  never from the tree. `--role R --group G --model M` is the one-call path
+  (`dispatch_group()` for a host such as the beat): the brief, topic and
+  repository come from the roster at `--roster-ref` (default the round's roster
+  branch, `roster_lib.default_roster_ref`); the head is `--head`, else
+  `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
+  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
+  it renders through the same `render` (the payload is the flag path's byte
+  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
+  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
+  render refusal pushes nothing) and prints that ref name, the one line a
+  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+  re-runs its mutants. When: dispatching a seat to the cloud runner;
+  paste the printed JSON as the trigger update, or fire the standing trigger
+  with the printed ref. The measured shape of a cloud seat:
   every trigger update resends the full ccr and then `run`s it, never a
   patch; the brief is snapshotted at `run`, so it is inlined at render time,
   an edit afterwards reaches no running seat, and overlapping runs are fine;
