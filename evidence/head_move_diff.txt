@@ -1,0 +1,24 @@
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.BOOLOP.cddbb8d3.json b/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.BOOLOP.cddbb8d3.json
+new file mode 100644
+index 000000000..9c3d169d4
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.BOOLOP.cddbb8d3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_run BOOLOP cddbb8d3",
++  "killed_by": "tests/features.py",
++  "old": "    if fused is not None and _bounds_supported_by_batch(bounds):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 49018a8bec8d03fd2df52874b9021d25ab93741a: BOOLOP (`if fused is not None or _bounds_supported_by_batch(bounds):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.GUARD_OFF.cddbb8d3.json b/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.GUARD_OFF.cddbb8d3.json
+new file mode 100644
+index 000000000..ddf628ce8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/optimizer.py/_lbfgsb_run.GUARD_OFF.cddbb8d3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_run GUARD_OFF cddbb8d3",
++  "killed_by": "tests/structure.py",
++  "old": "    if fused is not None and _bounds_supported_by_batch(bounds):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 49018a8bec8d03fd2df52874b9021d25ab93741a: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
++}
