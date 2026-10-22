@@ -1,3 +1,0 @@
- tools/audit/seat/train.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag)

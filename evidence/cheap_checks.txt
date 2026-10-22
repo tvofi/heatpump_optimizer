@@ -1,14 +1,13 @@
-merge-base(origin/main,HEAD)=dcf12f4904ce5aab5d8af8fac8bc982d95a7f545
+== rule 3/4
+rc=1
+== structure
 
 STRUCTURE RATCHET PASSED
-Architecture score: dS +0.0000 NULL
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since dcf12f4904ce
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+== closure select
   MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-tests/entities.py
-rule3/4 grep: 0
- 10 files changed, 734 insertions(+), 77 deletions(-)
-0
-CI PREDICT: no closures or fast red predicted against dcf12f4904ce (a data-file read is not seen)
-
-FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+== pushers
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+== merge-tree
+ed3bc9490e2c37a44410eecdde08018e020ed240
+rc=0

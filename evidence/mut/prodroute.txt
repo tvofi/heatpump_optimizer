@@ -1,9 +1,0 @@
-HEAD: cloud_relay self-test: 83 checks, 0 failed 
-HEAD: cloud_relay self-test: 83 checks, 0 failed 
-HEAD: cloud_relay self-test: 83 checks, 0 failed 
-F-CR-ELSEFG:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
-F-CR-ELSEFG:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
-F-CR-ELSEFG:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
-F-CR-ELSELEAD:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
-F-CR-ELSELEAD:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
-F-CR-ELSELEAD:   FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0) cloud_relay self-test: 83 checks, 1 failed 
