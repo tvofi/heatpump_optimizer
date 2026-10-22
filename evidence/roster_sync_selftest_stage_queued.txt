@@ -1,1 +1,0 @@
-roster_sync self-test: 53 checks, 0 failed

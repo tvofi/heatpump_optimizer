@@ -1,0 +1,4 @@
+pushed edit-r9 at e002bedd08f689cb5e4f3838cfdda3aed9271a65
+roster_edit self-test: 106 checks, 0 failed
+roster_lib self-test: 24 checks, 0 failed
+roster_sync self-test: 53 checks, 0 failed
