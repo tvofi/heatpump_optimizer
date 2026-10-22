@@ -1,3 +1,0 @@
-  ok   a real pass moves heartbeat/orchestrator on the remote
-  ok   null control: a refused push is printed with its reason and the pass still completes
-tick_loop self-test: 12 checks, 0 failed

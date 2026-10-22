@@ -1,0 +1,6 @@
+main=35 branch=37 head=41 union=41 missing_from_head=[] extra_in_head=[] order_tail=['S35', 'S36', 'S37', 'S38', 'tick_loop-1', 'tick_loop-2', 'heartbeat-1', 'heartbeat-2', 'heartbeat-3', 'heartbeat-4']
+rc=0
+main=35 branch=37 head=35 union=41 missing_from_head=['heartbeat-1', 'heartbeat-2', 'heartbeat-3', 'heartbeat-4', 'tick_loop-1', 'tick_loop-2'] extra_in_head=[] order_tail=['S29', 'S30', 'S31', 'S32', 'S33', 'S34', 'S35', 'S36', 'S37', 'S38']
+rc=1
+main=35 branch=37 head=37 union=41 missing_from_head=['S35', 'S36', 'S37', 'S38'] extra_in_head=[] order_tail=['S31', 'S32', 'S33', 'S34', 'tick_loop-1', 'tick_loop-2', 'heartbeat-1', 'heartbeat-2', 'heartbeat-3', 'heartbeat-4']
+rc=1

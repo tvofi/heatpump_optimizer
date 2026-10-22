@@ -1,5 +1,0 @@
-  FAIL each pass calls the heartbeat once, with the pass line (no --out path)
-  FAIL a failing heartbeat is printed, never silent, and the loop still exits cleanly
-  FAIL a real pass moves heartbeat/orchestrator on the remote
-  FAIL null control: a refused push is printed with its reason and the pass still completes
-tick_loop self-test: 12 checks, 4 failed
