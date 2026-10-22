@@ -29,7 +29,7 @@ M = [
  ("M15 button: SVG token compare off", DC, "if not want or not got or got.group(1).strip().lower() != want.lower():", "if False:"),
  ("P1 production: button gone from build_docs.mjs footer", "tools/site/build_docs.mjs", "<a class=\"bmc\" href=\"https://buymeacoffee.com/rpgshcwb2tp\">", "<a class=\"bmc\" href=\"#\">"),
  ("P2 production: button gone from docs/index.html footer", "docs/index.html", "<a class=\"bmc\" href=\"https://buymeacoffee.com/rpgshcwb2tp\">", "<a class=\"bmc\" href=\"#\">"),
- ("P3 production: button gone from README top", "README.md", "[![Buy me a coffee](docs/img/brand/coffee.svg)](https://buymeacoffee.com/rpgshcwb2tp)\n", ""),
+ ("P3 production: button gone from README top", "README.md", "[coffee]: https://buymeacoffee.com/rpgshcwb2tp\n", ""),
  ("P4 production: a marker dropped from dev/README.md", "dev/README.md", "- `.github/workflows/gate-sweep.yml`, which re-runs a stale `gate` at a pull request's live head [target: R10-CI-LAYOUT-P2]", "- `.github/workflows/gate-sweep.yml`, which re-runs a stale `gate` at a pull request's live head"),
 ]
 env = dict(os.environ, PYTHONPATH="tests/hastub:tests:custom_components")

@@ -3188,7 +3188,9 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
 
 COFFEE = "https://buymeacoffee.com/rpgshcwb2tp"
 COFFEE_SVG = "docs/img/brand/coffee.svg"
-_COFFEE_MD = re.compile(r"\[!\[[^\]]+\]\(([^)\s]+)\)\]\(" + re.escape(COFFEE) + r"\)")
+# inline, or by reference: the image stays inline and its line carries no '://', which HACS's README image rewriter
+# needs (tests/entities.py pins that rewriter's rule)
+_COFFEE_MD = re.compile(r"\[!\[[^\]]+\]\(([^)\s]+)\)\](?:\(" + re.escape(COFFEE) + r"\)|\[([\w-]+)\])")
 _COFFEE_A = re.compile(r'<a\b[^>]*\bclass="bmc"[^>]*\bhref="' + re.escape(COFFEE) + r'"', re.S)
 
 
@@ -3207,6 +3209,8 @@ def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], 
     out = []
     top = readme.split("\n## ", 1)[0]
     m = _COFFEE_MD.search(top)
+    if m and m.group(2) and not re.search(r"^\[" + re.escape(m.group(2)) + r"\]:\s*" + re.escape(COFFEE) + r"\s*$", readme, re.M | re.I):
+        m = None
     if not m:
         out.append("README.md: no button linking " + COFFEE + " above the first section")
     elif m.group(1) not in tree:

@@ -13,7 +13,9 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
 
-[![Buy me a coffee](docs/img/brand/coffee.svg)](https://buymeacoffee.com/rpgshcwb2tp)
+[![Buy me a coffee](docs/img/brand/coffee.svg)][coffee]
+
+[coffee]: https://buymeacoffee.com/rpgshcwb2tp
 
 [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
 
