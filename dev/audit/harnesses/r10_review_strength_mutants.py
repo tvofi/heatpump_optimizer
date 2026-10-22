@@ -137,8 +137,6 @@ DISPOSED = {
         "equivalent: for-each-ref matches refs/remotes/<r>/review at a whole component, as with the '/'",
     "load @ for r in refs(repo, f'refs/remotes/{remote}/probe/') + re...: '/probe/' -> '/probe'":
         "equivalent: for-each-ref matches refs/remotes/<r>/probe at a whole component, as with the '/'",
-    "load @ out.append(dict(pr=int(m[1]), t=when(t), kind=m[2], head=...: drop or arm ''":
-        "equivalent: cls None and cls '' read alike everywhere: stratum's `or` and the REAL_CATCH membership test",
     'pr_facts @ for pr, head in last.items():: swap files.append(f) with the next statement':
         'equivalent: `files` feeds only product, whose prefixes no delivery row matches, so where its append sits beside the delivery test moves nothing',
     "pr_facts @ for pr, head in last.items():: move 1 statement(s) before into if not f.startswith('dev/programme/de...":
