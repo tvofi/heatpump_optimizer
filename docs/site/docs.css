@@ -117,4 +117,7 @@ nav.pn span { font-size: .8rem; color: var(--ink-2) }
 p.src { margin-top: 20px; font-size: .88rem; color: var(--ink-2) }
 footer.site { border-top: 1px solid var(--line); background: var(--surface); margin-top: 56px }
 footer.site .bar { max-width: 90rem; margin: 0 auto; padding: 24px 20px 32px; display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: .9rem; color: var(--ink-2) }
+.bmc { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 8px 14px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font: 600 .95rem var(--f-body); text-decoration: none }
+.bmc svg { width: 18px; height: 18px; flex: none }
+.bmc:hover { background: color-mix(in srgb, var(--accent) 85%, var(--ink)) }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth } }

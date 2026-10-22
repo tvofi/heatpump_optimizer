@@ -1,3 +1,17 @@
+## v7.0.4
+
+**Round-10 docs stamp: the architecture, CI shape and development shape at programme end.** This is the stamp the owner asked for right after the docs delivery merges.
+
+User-visible changes:
+
+- Documentation: `docs/architecture.md` shows how the pieces fit, with the four-region diagram, and adds the shape at programme end. A new `dev/README.md` gives developers the `dev/` layout, the work order, the CI job graph and the orchestration machinery, with mermaid figures. `README.md` points developers to it (R10-ARCH-DOCS-FIRST, #2609).
+- A Buy Me a Coffee button sits at the top of `README.md` and in the footer of every documentation page, and it follows the site theme (#2609).
+
+Engineering and audit programme (round 10):
+
+- Roster: registrations, carries and queued operations (#2603, #2608), including the rate-limit RCA, record API budget and nightly heartbeat respawn groups.
+- Delivery record: delivery-status rows recorded by the record autofix job (#2607).
+
 # Heat Pump Cost Optimizer — Release Notes
 
 ## v7.0.3
