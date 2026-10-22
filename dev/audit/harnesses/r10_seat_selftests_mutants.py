@@ -167,6 +167,12 @@ MUTANTS = [
     ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
     ("ci_probe-3", "ci_probe.py", "if login != OWNER:", 'if login == "":'),
     ("ci_probe-4", "ci_probe.py", "if repo != REPO:", "if False:"),
+    # route B (P2a): git owns the SHA shape; the exact-name test and review's re-check after the fetch.
+    ("ci_probe-5", "ci_probe.py", "return r.returncode == 0 and r.stdout.strip() == sha", "return r.returncode == 0"),
+    ("ci_probe-6", "ci_probe.py", "            self.fetch(self.remote, self.num(pr))\n        if not self.commit(sha):\n",
+     "            self.fetch(self.remote, self.num(pr))\n        if False:\n"),
+    ("ci_probe-7", "ci_probe.py", "        if not self.commit(sha):\n            raise Refuse(f\"'{sha}' is not the full SHA",
+     "        if False:\n            raise Refuse(f\"'{sha}' is not the full SHA"),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',

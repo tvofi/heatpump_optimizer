@@ -9,7 +9,7 @@
         label <pr> (--add|--remove) <name>
         retarget <pr> <base>
         close <pr>                          PATCH state=closed (the seat token is hpo-author's)
-        review <pr> --approve --sha <40hex>             owner account only
+        review <pr> --approve --sha <sha>               owner account only
         dismiss-review <pr> <review-id> --message TEXT  owner account only
     python3 -I tools/audit/seat/ci_probe.py --self-test
 
@@ -35,6 +35,11 @@ latter). The ref and the log line go through ref_privacy.refusal. A `ci-probe/*`
 ref is invisible to cloud_relay.sh's probe arm (it lists `probe/*`) and to
 bus.sh orphans (it fetches main, handoff, handoff-body, fix); --self-test plants
 one and compares both outputs, with a `probe/foo` null that cloud_relay reports.
+
+A COMMIT is what git says it is: `push` and `review` take a SHA only when
+`git rev-parse --verify <sha>^{commit}` prints exactly that SHA, so a short,
+upper-case or unknown name refuses before any API write. `review` first fetches
+`refs/pull/<pr>/head` when the commit is not local, and refuses if it still is not.
 
 `review` and `dismiss-review` act as the OWNER (decision 6): the orchestrator
 runs them, never an App, and the tool refuses when `gh api user` is not tvofi.
@@ -63,7 +68,6 @@ OWNER = "tvofi"
 PROBE_NS = "ci-probe/"
 MIN_REMAINING = 0.20
 MIN_POLL_S = 60
-SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 REF_RE = re.compile(r"^ci-probe/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$")
 
 
@@ -89,6 +93,17 @@ def gh_api(method: str, path: str, fields: dict | None = None) -> tuple[int, str
     return r.returncode, (r.stdout if r.returncode == 0 else r.stderr).strip()
 
 
+def git_commit(sha: str) -> bool:
+    """True when `sha` is the full name git gives a local commit -- git owns the SHA shape."""
+    r = subprocess.run(["git", "rev-parse", "--verify", "--quiet", "--end-of-options", f"{sha}^{{commit}}"],
+                       capture_output=True, text=True)
+    return r.returncode == 0 and r.stdout.strip() == sha
+
+
+def git_fetch_pr(remote: str, pr: int) -> None:
+    subprocess.run(["git", "fetch", "-q", remote, f"refs/pull/{pr}/head"], capture_output=True, text=True)
+
+
 def git_push(remote: str, sha: str, ref: str) -> tuple[int, str]:
     r = subprocess.run(["git", "push", "-q", remote, f"{sha}:refs/heads/{ref}"],
                        capture_output=True, text=True)
@@ -97,13 +112,13 @@ def git_push(remote: str, sha: str, ref: str) -> tuple[int, str]:
 
 class Probe:
     def __init__(self, repo: str, log: str, dry_run: bool, api=gh_api, push=git_push,
-                 remote: str = "origin", now=None):
+                 remote: str = "origin", now=None, commit=git_commit, fetch=git_fetch_pr):
         if repo != REPO:
             raise Refuse(f"--repo {REPO} is required, spelled out; got '{repo}'")
         if not log:
             raise Refuse("--log is required: one line per write")
         self.repo, self.log, self.dry, self.api, self.push = repo, log, dry_run, api, push
-        self.remote = remote
+        self.remote, self.commit, self.fetch = remote, commit, fetch
         self.now = now or (lambda: datetime.datetime.now(datetime.timezone.utc).strftime("%FT%TZ"))
         self.rate_ok = False
 
@@ -160,8 +175,8 @@ class Probe:
 
     def do_push(self, ref: str, sha: str) -> str:
         short = probe_ref(ref)
-        if not SHA_RE.match(sha):
-            raise Refuse("sha must be 40 lowercase hex")
+        if not self.commit(sha):
+            raise Refuse(f"'{sha}' is not the full SHA of a local commit (git rev-parse --verify)")
         why = ref_privacy.refusal(short)
         if why:
             raise Refuse(f"the push would publish this host: {why}")
@@ -207,8 +222,11 @@ class Probe:
                           {"state": "closed"})
 
     def do_review(self, pr: str, sha: str) -> str:
-        if not SHA_RE.match(sha):
-            raise Refuse("--sha must be 40 lowercase hex: an approval names one tree")
+        if not self.commit(sha):
+            self.fetch(self.remote, self.num(pr))
+        if not self.commit(sha):
+            raise Refuse(f"--sha '{sha}' is not the full SHA of a commit at refs/pull/{self.num(pr)}/head or "
+                         "local: an approval names one tree")
         return self.write("review", f"#{self.num(pr)}@{sha[:12]}", "POST", self.r(f"pulls/{self.num(pr)}/reviews"),
                           {"event": "APPROVE", "commit_id": sha}, owner=True)
 
@@ -342,7 +360,7 @@ def self_test() -> int:
 
         def mk(fake=None, dry=False):
             f = fake or Fake()
-            return Probe(REPO, log, dry, api=f, push=lambda *x: (0, "")), f
+            return Probe(REPO, log, dry, api=f, push=lambda *x: (0, ""), commit=lambda s: s == sha), f
 
         # the explicit --repo
         ck("refuses a missing --repo", refused(Probe, "", log, False))
@@ -383,6 +401,15 @@ def self_test() -> int:
            f.calls == [("POST", f"/repos/{REPO}/pulls/3/reviews", {"event": "APPROVE", "commit_id": sha}),
                        ("PUT", f"/repos/{REPO}/pulls/3/reviews/9/dismissals", {"message": "stale head"})])
         ck("review refuses a short sha", refused(p.do_review, "3", "abc"))
+        fetched, known = [], {sha}
+        f = Fake()
+        p = Probe(REPO, log, False, api=f, push=lambda *x: (0, ""), commit=known.__contains__,
+                  fetch=lambda remote, pr: fetched.append((remote, pr)))
+        ck("review of an unknown full sha fetches the PR head, then refuses before any API write",
+           refused(p.do_review, "3", "b" * 40) and fetched == [("origin", 3)] and not f.calls)
+        p.fetch = lambda remote, pr: (fetched.append((remote, pr)), known.add("c" * 40))
+        ck("null: a head the fetch brings in is reviewed",
+           refused(p.do_review, "3", "c" * 40) is None and f.calls[-1][2] == {"event": "APPROVE", "commit_id": "c" * 40})
 
         # dry run and the log
         p, f = mk(dry=True)
@@ -414,6 +441,12 @@ def self_test() -> int:
         cwd = os.getcwd()
         os.chdir(work)
         try:
+            ck("push refuses a short sha", refused(p.do_push, "ci-probe/z", head[:12]))
+            ck("push refuses an upper-case sha", refused(p.do_push, "ci-probe/z", head.upper()))
+            f0 = len(p.api.calls)
+            ck("push refuses an unknown full sha before any API write",
+               refused(p.do_push, "ci-probe/z", "f" * 40) and len(p.api.calls) == f0 and not p.rate_ok)
+            ck("null: an existing local commit passes git's check", git_commit(head))
             ck("push to ci-probe/x lands", refused(p.do_push, "ci-probe/x", head) is None)
             ck("push accepts the refs/heads/ spelling", refused(p.do_push, "refs/heads/ci-probe/y", head) is None)
             for bad in ("main", "probe/foo", "handoff/x", "ci-probe/", "ci-probe/../main", "refs/heads/main", "ci-probe", "xci-probe/a"):

@@ -357,7 +357,6 @@ const SHARED_GRAMMARS = {
   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
-  "[0-9a-f]{40}": "not-a-concept:the full git commit SHA shape, git's grammar not ours (policy_lint.mjs, ci_probe.py)",
   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
   "\\*\\*(\\d+)\\xb7([^*]+?)\\.?\\*\\*": "identical:the README flow-diagram bold-step grammar, doc_claims.py and entities.py",
   "[^a-z0-9 ]": "identical:the README table-label normaliser, doc_claims.py and entities.py",
