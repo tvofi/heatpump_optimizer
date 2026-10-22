@@ -1,8 +1,0 @@
-head 922640dcd6ca515040d18a12a0a4e74aaa5eb8fb
-merge-base 46e3681276f99e8d3e4d12e9d316a46946f666d7
-groups base: 108 head: 144
-new: 36  of which R10-FLOW-*: 23
-changed existing: 29
-added carry entries on existing groups: 47
-roster bytes at head == at 2ce05426: yes; == origin/handoff/audit-r10-roster (743463c6): no
-git diff merge-base...origin/main -- dev/governance/roles/: empty
