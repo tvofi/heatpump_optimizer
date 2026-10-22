@@ -7359,6 +7359,92 @@
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694 for #2591."
    }
+  },
+  {
+   "group": "R10-FLY-STAMP-CHECK-NOTES",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/release/stamp.py"
+   ],
+   "hot_files": [
+    "tools/release/stamp.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "stamp.py --check-notes FILE [--bump patch|minor|major] derives the last v* tag and the next version as main() does, runs rule 4 alone (rule4_problem over parse_window of the last tag..origin/main; no rule 1, no rule 2, no writes), prints `rule 4: OK` or the problem, and exits 0 or 2. main() runs rule 4 only after rule 1 (HEAD equals origin/main and clean) and rule 2 (gate green), so --dry-run cannot check a draft notes section before it is written into a main checkout. Delete the out-of-tree notes-check helper in the orchestrator seat's stamp directory (it hard-codes v7.0.2 and 7.0.3) once this lands. Null control in the self-test: a notes section naming every PR in the window gives OK; the same with one PR dropped is refused naming it; --check-notes writes nothing and makes no commit, even on a dirty tree. tools/release/stamp.py is code-owned, approved under mandate 6329234399. R10-STAMP is done.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-stamp-check-notes",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (s4) under mandate 6329234399, assessor decision P21."
+   }
+  },
+  {
+   "group": "R10-FLY-MANDATE-REVOKE-GUARD",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tools/pr/gh_comment.py"
+   ],
+   "hot_files": [
+    "tools/pr/gh_comment.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "tools/pr/gh_comment.py imports its revoke pattern and MANDATE_GRAMMAR from tools/policy/budget_raise_gate.py (one definition, not a copy) and refuses an owner-account post to tvofi/heatpump_optimizer#201 whose body matches `revok` and names the id of a #201 comment carrying the MANDATE grammar, unless `--withdraw-mandate <id>` names that id. budget_raise_gate.py voids a mandate on any later owner-account #201 comment with `revok` plus the id as a whole number (case-insensitive, deliberately loose: over-revoking fails safe); a seat's prose posted as tvofi cost about 6 h of frozen mandated raises plus a new mandate. Null control in the self-test, five cases: 'decision 0012 is revoked; mandate 6175172275 still binds' is refused; the same with --withdraw-mandate 6175172275 posts; a body with `revok` and no mandate id posts; a mandate id with no `revok` posts; a non-#201 target posts. Stated gap, not built: a raw `gh issue comment` or `gh api` post bypasses the guard; comment-readback.md already makes gh_comment.py the posting instrument. Not code-owned (CODEOWNERS l.31).",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-mandate-revoke-guard",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "note": "Fly-in registered by the orchestrator (s4) under mandate 6329234399, assessor decision P23."
+   }
   }
  ]
 }
