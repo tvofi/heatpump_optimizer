@@ -81,8 +81,8 @@ None. This head has no CI yet.
   - So a branch that edits a pinned grader can pass prepr and go red in CI. P2a hit this.
   - The fix shape is `raise_red`'s (line 697): run the base's copy offline, beside the branch's.
   - It is recorded in `dev/audit/rca/R10-RCA-BODY-LINT.md` section 7. It is not counted as an `N-body-lint-bounce` instance, because the mechanism differs: the check ran, but on another copy.
-  - It lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY
-- Prepr step 7a, `figure_lint.mjs --pr-body`, has the same shape as this class: a pure function of the body, first run at the open. 6 of 152 handoff-body tips fail it in `origin/main`'s tree. This is not measured at each head and not built here. It lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY
+  - It lands in `dev/programme/rosters/wave-r10-groups.json`, where triage P3/Q3 (s4) gives it to R10-FLOW-JIDOKA (`tools/pr/prepr.sh`). Carry: R10-FLOW-JIDOKA
+- Prepr step 7a, `figure_lint.mjs --pr-body`, has the same shape as this class: a pure function of the body, first run at the open. 6 of 152 handoff-body tips fail it in `origin/main`'s tree. This is not measured at each head and not built here. It lands in `dev/programme/rosters/wave-r10-groups.json` with the prepr group (`tools/pr/prepr.sh`). Carry: R10-FLOW-JIDOKA
 
 ## Friction
 
