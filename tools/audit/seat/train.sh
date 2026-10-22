@@ -194,6 +194,19 @@ if [ "$selftest" = 1 ]; then
     *"|--min-runs|1|") : ;;
     *) die "self-test: a bare launch passed flags it was not given: $flags" ;;
   esac
+  # 8b. the child's exit status is the train's: it reaches TRAIN_RC, $state/rc and
+  #     train.sh's own exit through the asynchronous launch's `wait` (a `|| :`
+  #     there passed every other arm, #2524's round-4 review).
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nexit 3\n' > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" >/dev/null 2>&1; rc=$?
+  src=$(cat "$st/state/rc" 2>/dev/null); lrc=$(grep -o 'TRAIN_RC=[0-9]*' "$st/state/train.log" 2>/dev/null)
+  rm -rf "$st"
+  [ "$rc $src $lrc" = "3 3 TRAIN_RC=3" ] \
+    || die "self-test: a child exiting 3 left train.sh rc $rc, state/rc '$src', log '$lrc'"
   # 9. a stopped train ends its whole tree (R10-PUSHER-REAP): TERM or HUP to the pid
   #    in train.pid reaches the merge_train.py child, the tree under it is reaped,
   #    and the pidfile goes only once that tree is gone -- a pidfile removed while
@@ -252,7 +265,7 @@ if [ "$selftest" = 1 ]; then
   rm -rf "$st"
   [ "$live $marks$pf" = "0 G removed" ] \
     || die "self-test: a TERMed train did not stop merge_train.py first (alive $live, marks '$marks', pidfile $pf)"
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree, merge_train.py first)"
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first)"
   exit 0
 fi
 

@@ -38,6 +38,7 @@ row F-CR-ELSEFG CR tools/audit/seat/cloud_relay.sh 'else bash "$HERE/update_pr.s
 row F-CR-ELSELEAD CR tools/audit/seat/cloud_relay.sh 'PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?' 'u=$!; [ -z "${HPO_RELAY_UPDATE:-}" ] || PR_REAP_LEAD=$u; wait "$u" || urc=$?'
 row TR-FG TR tools/audit/seat/train.sh ') >> "$log" 2>&1 &' ') >> "$log" 2>&1'
 row TR-LEAD TR tools/audit/seat/train.sh 'PR_REAP_LEAD=$!' 'TRL=$!' 'wait "$PR_REAP_LEAD"' 'wait "$TRL"'
+row TR-RC TR tools/audit/seat/train.sh 'rc=0; wait "$PR_REAP_LEAD" || rc=$?' 'rc=0; wait "$PR_REAP_LEAD" || :'
 row OP-FG1 PA tools/audit/seat/open_pr.sh '> $D/p1.log 2>&1 &' '> $D/p1.log 2>&1'
 row OP-FG2 PA tools/audit/seat/open_pr.sh '> $D/p2.log 2>&1 &' '> $D/p2.log 2>&1'
 row UP-FG PA tools/audit/seat/update_pr.sh '> $WT.log 2>&1 &' '> $WT.log 2>&1'
