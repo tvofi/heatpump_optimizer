@@ -28,6 +28,9 @@ row() { local IFS=$'\x1f'; ROWS+=("$*"); }
 row M0 'CR;TR;PA;AP;MT'
 # cloud_relay.sh's update launch: one line for the stub and the production route
 row CR-FG CR tools/audit/seat/cloud_relay.sh '"${upd[@]}" "$br" "$hs" "$body" $iss >&2 &' '"${upd[@]}" "$br" "$hs" "$body" $iss >&2'
+# the same with $! still bound (a trivial job after it): the foreground mutant above
+# also unbinds $! under set -u, which ends the relay before any stop arm can judge it
+row CR-FG-BOUND CR tools/audit/seat/cloud_relay.sh '"${upd[@]}" "$br" "$hs" "$body" $iss >&2 &' '"${upd[@]}" "$br" "$hs" "$body" $iss >&2; : &'
 row CR-LEADNAME CR tools/audit/seat/cloud_relay.sh 'PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?' 'crl=$!; wait "$crl" || urc=$?'
 row CR-PRODPATH CR tools/audit/seat/cloud_relay.sh 'upd=(bash "$HERE/update_pr.sh")' 'upd=(bash "$HERE/update_pr.missing")'
 # the review's two mutants of a01627177715's split launch (its production branch); they apply only there
