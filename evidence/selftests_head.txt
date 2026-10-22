@@ -1,164 +1,45 @@
-### bash tools/audit/seat/open_pr.sh --self-test
-  ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
-  ok   update_pr: TERM reaps the whole descendant tree, and the pusher is gone
-  ok   update_pr: the lock is held while the push runs
-  ok   update_pr: after the stop the lock is free, so the next run takes it
-  ok     mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives
-  ok     mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)
-  ok   update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it
-  ok     mutant afterreap (pr_exit_trap's order reversed by sed: the lock freed before the reap): the holder is gone while the push still runs
-tools/audit/seat/pr_args.sh: line 607:  7989 Killed                  HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1
-  ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
-  ok     mutant mut:watch (the holder's wait line deleted): the holder exits at once, so it is not held during the push
-  ok   null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start
-  ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
-  ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
-  ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
-  ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
-  ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
-  ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
-  ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
-  ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
-  ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha 'a01f910' passes every check, and its failed push names its log
+== bash tools/audit/seat/open_pr.sh --self-test
+  ok   null control: update_pr with code sha '6f732cc' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 86 checks, 0 failed
-rc=0 secs=77
-### bash tools/audit/seat/update_pr.sh --self-test
-  ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
-  ok   update_pr: TERM reaps the whole descendant tree, and the pusher is gone
-  ok   update_pr: the lock is held while the push runs
-  ok   update_pr: after the stop the lock is free, so the next run takes it
-  ok     mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives
-  ok     mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)
-  ok   update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it
-  ok     mutant afterreap (pr_exit_trap's order reversed by sed: the lock freed before the reap): the holder is gone while the push still runs
-tools/audit/seat/pr_args.sh: line 607: 17581 Killed                  HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1
-  ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
-  ok     mutant mut:watch (the holder's wait line deleted): the holder exits at once, so it is not held during the push
-  ok   null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start
-  ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
-  ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
-  ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
-  ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
-  ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
-  ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
-  ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
-  ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
-  ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha '9bcf098' passes every check, and its failed push names its log
+pr_args self-test: 90 checks, 0 failed
+rc=0
+== bash tools/audit/seat/update_pr.sh --self-test
+  ok   null control: update_pr with code sha '8f477fb' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 86 checks, 0 failed
-rc=0 secs=77
-### bash tools/audit/seat/handoff_push.sh --self-test
-  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
-  ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
-  ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
-  ok   no group writes no empty parentheses
-  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+pr_args self-test: 90 checks, 0 failed
+rc=0
+== bash tools/audit/seat/handoff_push.sh --self-test
 delivery_row self-test: 5 checks, 0 failed
   ok   null control: the open path pushes the pull request, then its row
   ok   null control: the update path pushes its head once
 handoff_push self-test: 2 checks, 0 failed
-rc=0 secs=1
-### bash tools/pr/app_push.sh --self-test
-ok   with its OWN wording, so a race is told from a wedge
-ok   and it is NOT reported as a refused read
-ok   and no success line
-ok   after the whole budget of reads and settles
-ok   and the settles GROW: 1s then 3s (the exponential 5s/15s/45s shape at the injected scale)
-ok   and the refusal names the real settle total, the geometric sum
-ok   the token is revoked, the private directory gone, nothing leaked
-ok   read-back refused: it exits non-zero
-ok   with the refused wording, distinct from the not-visible one
-ok   and it is NOT reported as a race
-ok   and no success line
-ok   the budget spent one settle and the token was revoked
-ok   read-back transport failure (a 502 on the first read): retried with backoff and confirmed
-ok   and prints the read-back success line
-ok   at the SECOND read (the first answered 502)
-ok   naming the transport detail and the first backoff step
-ok   and no second settle: read 2 confirmed
-ok   the token is revoked, the private directory gone, nothing leaked
-ok   a body mismatch refuses on the FIRST read: zero retries, zero settles
-ok   a completed read answering state=closed refuses at once (a mismatch, never retried)
-ok   naming the state the read answered
+rc=0
+== bash tools/pr/app_push.sh --self-test
 ok   zero retries, zero settles: one read, no sleeping
 ok   and no success line
 ok   the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)
 app_push self-test: 186 checks, 0 failed
-rc=0 secs=38
-### bash tools/audit/seat/cloud_relay.sh --self-test
-  ok   the body update_pr gets passes prepr's body-path check (not directly in a shared root)
-  ok   and that body's directory is removed after the update
-  ok   held runs are approved on the branch
-  ok   dispatch runs at the NEW head
-  ok   OWED reviewer-fire is logged with pr, head and nonce
-  ok   a handoff already merged into its PR does nothing (null control)
-  ok   a failed update is tried once
-  ok   and logs OWED handoff-update
-  ok   a busy update is tried again on the next pass
-  ok   and is not recorded failed
-  ok   nor logged OWED
-  ok   a handoff ref with no open PR is OWED in the level file
-  ok   a handoff ref with an open PR is not (null control)
-  ok   nor its handoff-body ref (null control)
-  ok   after three passes the no-PR ref is owed once (rewritten, never appended)
-  ok   the event log carries no level line
-  ok   a handoff-body ref with no open PR is OWED
-  ok   disposed no-PR refs are not owed
-  ok   a disposed no-PR ref that moved is OWED again
-  ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
-  ok   pass --loop is the only loop (a bad interval is refused)
-  ok   pass runs both arms once and returns
+rc=0
+== bash tools/audit/seat/cloud_relay.sh --self-test
   ok   the pass fired the handoff arm
   ok   a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)
-cloud_relay self-test: 82 checks, 0 failed
-rc=0 secs=7
-### python3 tools/audit/seat/merge_train.py --self-test
-  ok   governance.yml is in this tree and takes workflow_dispatch
-  ok   codeql.yml is in this tree and takes workflow_dispatch
-  ok   hassfest.yml is in this tree and takes workflow_dispatch
-  ok   validate.yml is in this tree and takes workflow_dispatch
-  ok   --overlap: every serial entry is re-carried UP FRONT -- both recarries happen before the first merge, and the entries still land in queue order
-  ok   the recarry worktrees the batch made in the real clone are gone when it ends (the next run's pre-flight finds no train worktree holding a branch)
-  ok   --overlap: each up-front recarry announces itself before it runs, so the 5-15 min of app_push prepr per entry is visible mid-flight
-  ok   without --overlap the serial path is byte-for-byte today's: the first recarry happens only after the earlier entries merged (recarry one, wait, merge, next)
-  ok   --overlap never jumps the queue: #2's contexts were green from the start, yet still-pending #1 merged first, after waiting a poll for its own
-  ok   --overlap does not wait on main's CI: a red base at step 0 is logged, not fatal
-  ok   --overlap starts the batch while main's fresh push run is still in progress: the pre-admission read is ONE pass, logged, never a completion wait (R9-ADMIT-REQ)
-  ok   --overlap leaves a bot-routed head out of the up-front recarry (main has not moved, so none is possible); it recarries at its turn, after the earlier merges, and lands
-  ok   THE WIRE: under --overlap main_green never invokes the looping wait_ci at main's tip (zero reads; the pre-fix code invoked it once and wedged there); without the flag the blocking wait is called exactly once (R9-ADMIT-REQ)
-  ok   ... and without --overlap the same pending main is still waited to completion, which stops it
-  ok   --overlap's at_head wait concludes while a non-required lane stays in_progress at the head (the composed-proof class): the serial landing waits the required set only (R9-ADMIT-REQ)
-  ok   the CLI defaults keep today's train but for the main-moved recovery: none of --skip-bad, --overlap, --approval-carry, --bot-prs, --pre-flight or --free-holders is on until the flag says so; --main-moved-tries is 3 unless given (0 is today's stop)
-  ok   record_row.py takes every option the bot sweep passes, and the record beat merges behind the same --automerge-check ... --head ... --require-green guard
-  ok   --approval-carry is a run flag too, and off by default
-  ok   --skip-bad: a queue of [good, bad, good] merges the two goods, reports the bad, and rc is non-zero -- the queue ran to its end with an entry left behind
-  ok   a skip carries its block class in the line and in skipped.json
-  ok   without --skip-bad the same bad entry still stops the train before anything merges (the default did not change)
+  ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
+cloud_relay self-test: 83 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/merge_train.py --self-test
   ok   --skip-bad: a red main still stops everything -- at step 0 and through the merge guard's re-read, both outside the per-entry skip
   ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
   ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
 merge_train self-test: 200 checks, 0 failed
-rc=0 secs=34
-### bash tools/audit/seat/pr_args.sh --pushers HEAD
-ok   tools/audit/seat/handoff_push.sh runner
-ok   tools/audit/seat/handover_prompt.py mention:
-ok   tools/audit/seat/merge_train.py runner-py
-ok   tools/audit/seat/open_pr.sh runner
-ok   tools/audit/seat/pr_args.sh mention:
-ok   tools/audit/seat/ref_privacy.py mention:
-ok   tools/audit/seat/remerge_main.sh runner
-ok   tools/audit/seat/update_pr.sh runner
-ok   tools/policy/check-wave-script.mjs mention:
-ok   tools/policy/friction_issues.mjs mention:
-ok   tools/policy/policy_lint.mjs mention:
-ok   tools/pr/app_approve.sh mention:
-ok   tools/pr/app_push.sh runner
-ok   tools/pr/approve_held_runs.sh mention:
-ok   tools/pr/head_note.py mention:
-ok   tools/pr/push.sh retired
-rc=0 secs=1
+rc=0
+== bash tools/audit/seat/train.sh --self-test
+train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree, merge_train.py first)
+rc=0
+== bash tools/audit/seat/tick_loop.sh --self-test
+  ok   the in-flight relay was left to finish after its loop exited, never killed
+  ok   null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+  ok   a non-numeric --interval refuses
+tick_loop self-test: 8 checks, 0 failed
+rc=0

@@ -1,0 +1,21 @@
+MUTANT PA-LEADWALK in tools/audit/seat/pr_args.sh
+  old: *) return 0 ;; esac  # mut:leadwalk
+  new: *) ;; esac  # mut:leadwalk
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index b97a9e4af..1529a81d3 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -135,7 +135,7 @@ pr_kill() { # <signal> <pid>: one numeric pid above 1 -- never a pattern, never
+ pr_lead_stop() { # TERM the lead alone, if the walk returned it, and wait for it at most PR_REAP_LEAD_TENTHS
+   local n=0
+   [ -n "${PR_REAP_LEAD:-}" ] || return 0
+-  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) return 0 ;; esac  # mut:leadwalk
++  case " ${PR_REAP_PIDS[*]} " in *" $PR_REAP_LEAD "*) ;; *) ;; esac  # mut:leadwalk
+   pr_kill TERM "$PR_REAP_LEAD"
+   while [ "$n" -lt "${PR_REAP_LEAD_TENTHS:-300}" ] && kill -0 "$PR_REAP_LEAD" 2>/dev/null; do sleep 0.1; n=$((n + 1)); done
+ }
+== bash tools/audit/seat/pr_args.sh --self-test
+  FAIL a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
+pr_args self-test: 90 checks, 1 failed
+rc=1
+RESULT PA-LEADWALK: 0 of 1 self-tests rc 0

@@ -1,0 +1,22 @@
+MUTANT TR-AFTER in tools/audit/seat/train.sh
+  old: PR_AFTER_REAP='rm -f "$pidfile"'
+
+  new: 
+
+diff --git a/tools/audit/seat/train.sh b/tools/audit/seat/train.sh
+index feb493172..3db806873 100755
+--- a/tools/audit/seat/train.sh
++++ b/tools/audit/seat/train.sh
+@@ -277,7 +277,7 @@ echo $$ > "$pidfile"
+ # then removes the pidfile. A bare `rm` trap removed it at once, while the
+ # child, which no signal reached, went on pushing.
+ . "$(dirname -- "$0")/pr_args.sh"
+-PR_AFTER_REAP='rm -f "$pidfile"'
++
+ pr_exit_trap
+ 
+ # The pinned seat interpreter first: the checks merge_train drives through
+== bash tools/audit/seat/train.sh --self-test
+train.sh: REFUSE: self-test: TERM to the train (pid 19113, launcher 19113) left 0 of 5 pids of its tree alive (pidfile present, none)
+rc=2
+RESULT TR-AFTER: 0 of 1 self-tests rc 0

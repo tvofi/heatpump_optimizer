@@ -1,0 +1,9 @@
+policy_lint at head: TOTAL: 0 error(s) across 43 policy file(s) rc=0
+parents a01627177715d6f363eee2f8add5b19f7a97945d: d8af5fcb6bea04f4b55a4d4856fdf58b5e7b3ef9 dcf12f4904ce5aab5d8af8fac8bc982d95a7f545
+parents d8af5fcb6: 9629ae174f1099e11c6b17f80fe935ae6cba698b f1e7b88956f6da2407f0cadcf7c6cac1fa340e87
+parents f1e7b8895: 174333c88f8af0e57a17d842c489c1e457a67ee3 07fcbee2ed9e38e71d8ca497e1b2470b16baf09f
+parents 8cd8c89a2: 7d732e31d38a32e5914757e5105c192160d0eda7 3976515a08228598ea3863f4f36dc4c7c4846865
+diff --quiet 7d732e31d 8cd8c89a2 -- <PR files + fixtures>: rc=0
+diff --quiet 174333c88 f1e7b8895 -- <PR files + fixtures>: rc=0
+code head f1e7b88 vs head, PR's 10 files:
+rc=0

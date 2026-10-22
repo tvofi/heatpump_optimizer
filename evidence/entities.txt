@@ -1,3 +1,0 @@
-    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
-                                             ^^^^^^
-SyntaxError: f-string: f-string: expecting '}'

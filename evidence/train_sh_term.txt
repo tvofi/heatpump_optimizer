@@ -1,3 +1,0 @@
-RESULT train.sh TERM(pidfile pid 3384 == launcher 3384: yes) tree=5 launcher=gone pidfile=removed survivors=5/5
-RESULT train.sh TERM(pidfile pid 3429 == launcher 3429: yes) tree=5 launcher=gone pidfile=removed survivors=5/5
-RESULT train.sh TERM(pidfile pid 3474 == launcher 3474: yes) tree=5 launcher=gone pidfile=removed survivors=5/5

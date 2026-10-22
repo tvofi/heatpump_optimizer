@@ -1,0 +1,6 @@
+train.sh: REFUSE: self-test: TERM to the train (pid 1199, launcher 1199) left 5 of 5 pids of its tree alive (pidfile removed, early)
+rc=0
+train.sh: REFUSE: self-test: TERM to the train (pid 4427, launcher 4427) left 5 of 5 pids of its tree alive (pidfile removed, early)
+rc=0
+train.sh: REFUSE: self-test: TERM to the train (pid 7263, launcher 7263) left 5 of 5 pids of its tree alive (pidfile removed, early)
+rc=0
