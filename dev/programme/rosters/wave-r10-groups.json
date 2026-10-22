@@ -7737,6 +7737,49 @@
     "note": null
    },
    "priority": "high"
+  },
+  {
+   "group": "R10-NIGHTLY-HB-RESPAWN",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tests/nightly_ha.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-NIGHTLY-PYSPY-RETRY"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Owner of the residual left by R10-NIGHTLY-PYSPY-RETRY (#2605; verdict review/2605 f00094d17, finding 2). Real Home Assistant's py-spy hang is per process, not per sample. A held spin hung 3 of 3 tries, and a fresh-spin retry rescued 0 of 2 (F7). So the heartbeat lane's `stable` false-red rate stays at about 6.7 % per dev/audit/rca/nightly-ha-pyspy-timeout.md. Decision O-4 (orchestrator, mandate 6329234399): build option (b). When every control try times out in py-spy, restart the heartbeat HA container once (a fresh process) and re-run the control. Do not make a timeout inconclusive: that changes what the check asserts. Option (c), a longer non-blocking timeout, is the fallback only if (b) is measured not to rescue. Keep the check's power: a stub that never answers, or answers without naming the spin, still fails hb:positive_control after the respawn. Measure the false-red rate before and after over the nightly history, with a flat null control.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-nightly-hb-respawn",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   }
   }
  ]
 }
