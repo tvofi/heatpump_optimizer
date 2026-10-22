@@ -1213,7 +1213,7 @@
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
    },
-   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10293) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge. R10-DEEPLINK-HANDLERS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it; every `addEventListener` call site must register a listener the census drives on one of its fixtures (the five pages, or a variant in the census's `FIXTURES` list), so a handler added in a state no fixture renders is red on `the census drove a listener from every addEventListener site in the card` until the same pull request adds a fixture that renders it, and a handler wired as an `on<event>` property or attribute is refused outright; a mention of a `NAV_SURFACE` name (`href`, `location`, `pushState`, `replaceState`, `open`, `navigation`, `formaction`, `submit`, `requestSubmit`, `hass-more-info`, `hass-action`) in the card's code outside `navigateTo` is red at once, in code or in a string, so an identifier that carries one is refused too -- name a fold boolean `foldOpen`, not `open`; and every way out a render or a drive reaches -- a history member, a form or its action, an anchor anywhere in the document (its body, the card host, any shadow root, or a detached element the document made) -- is recorded by the dynamic arm whatever spelling wrote it. Not covered (the census's Residual paragraph): code no fixture or drive reaches, where only those names are refused, and markup written through a DOM member the stub does not implement (`insertAdjacentHTML`, `outerHTML`, `cloneNode`; the driver's RD8 and Y1 are those witnesses, green) -- write no navigation there. Control, re-measured at your merge base: `python3 tools/audit/seat/r10_deeplink_mutants.py RV1_history_bracket_back_in_undriven_keydown RD8_insert_adjacent_html_built_href_driven_residual` reads RV1 red and RD8 green. Every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press or a drive reaches it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
+   "brief": "Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, because no evidence becomes 0 in the sensor or card; it must render a dash / N/A with a reason, and every score shares one rule, None means no evidence and is never 0. (2) The house score reads 0 on an averagely insulated house with new windows; it is the time constant (room thermal mass over heat-loss coefficient times the learned `house_heat_loss_scale`) mapped from 20-100 h to 0-100. Measure it on the owner's bundle stores; fix the envelope grade to use whole-house UA (both zones) and its confidence; show a dash while the heat-loss learner converges or drifts; once fixed it agrees with the Health tab's figure. (3) One message everywhere: the scores must not contradict Savings, Advisor and Health; one view model and a consistency test that walks every card surface for each score input. Start the card side from ARCH2-s5 patch C3 (reading rules) at 3930b421a.\n\nForward-carried (finding-propagation.md): (1) Suspected causes to measure, not assume: the learned scale drifted about 2.6 times in autumn (the RESEED drift lead), two-zone UA ignored, and an uncalibrated absolute band. (2) R10-SAV-BASELINE precedes you through R10-ADVISOR; read its savings figures, do not recompute them. (3) The card rendering of the dash states joins R10-UX-HEALTH. (4) From R10-RATIO-SITES (#2239), measured rather than suspected: the envelope score's loss term reads `thermal_params.heat_loss_coefficient` (coordinator.py:10309) times the learned `house_heat_loss_scale`. On a preset-configured two-zone house that coefficient is the configured zone total, and the learned lower-floor split the dynamics apply through `lower_floor_heat_loss_learned` is absent from it, so the graded time constant is inflated by (upper_floor_heat_loss + lower_floor_heat_loss x ratio) over (upper_floor_heat_loss + lower_floor_heat_loss) whenever the stored split has left 1; `_effective_house_heat_loss` is the model's own figure and is what the Health tab publishes. Re-measure both at the stored split and at split 1.0, the null arm where the two agree -- that arm is also what separates this from a scale-only drift.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 17 of 24; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge. R10-DEEPLINK-HANDLERS's link census in `tests/card.mjs` refuses what a card change here can add: a new `data-act` row or `act` branch is red until the census's `ACTS` declaration and its own fixture render and press a row that drives it; every `addEventListener` call site must register a listener the census drives on one of its fixtures (the five pages, or a variant in the census's `FIXTURES` list), so a handler added in a state no fixture renders is red on `the census drove a listener from every addEventListener site in the card` until the same pull request adds a fixture that renders it, and a handler wired as an `on<event>` property or attribute is refused outright; a mention of a `NAV_SURFACE` name (`href`, `location`, `pushState`, `replaceState`, `open`, `navigation`, `formaction`, `submit`, `requestSubmit`, `hass-more-info`, `hass-action`) in the card's code outside `navigateTo` is red at once, in code or in a string, so an identifier that carries one is refused too -- name a fold boolean `foldOpen`, not `open`; and every way out a render or a drive reaches -- a history member, a form or its action, an anchor anywhere in the document (its body, the card host, any shadow root, or a detached element the document made) -- is recorded by the dynamic arm whatever spelling wrote it. Not covered (the census's Residual paragraph): code no fixture or drive reaches, where only those names are refused, and markup written through a DOM member the stub does not implement (`insertAdjacentHTML`, `outerHTML`, `cloneNode`; the driver's RD8 and Y1 are those witnesses, green) -- write no navigation there. Control, re-measured at your merge base: `python3 tools/audit/seat/r10_deeplink_mutants.py RV1_history_bracket_back_in_undriven_keydown RD8_insert_adjacent_html_built_href_driven_residual` reads RV1 red and RD8 green. Every new `navigateTo`/`openHaLink` mention must be a call site the census reaches -- a press or a drive reaches it -- so a row converted in code no press reaches is red. Extend that census in the pull request that adds the row, and delete that stage's row from the census's `PENDING` table as it converts the link."
   },
   {
    "group": "R10-REGISTRY-LEAK",
@@ -3396,12 +3396,7 @@
    "issues": [
     2331,
     2353,
-    2409,
-    2428,
-    2429,
-    2436,
-    2437,
-    2438
+    2409
    ],
    "fixes": [
     2331
@@ -3439,9 +3434,9 @@
    "architect_note": "",
    "brief": "# Fixer brief O10-rca-friction: land the finished RCA for #2331 and #2353 (finding sweep L19)\nState found: the RCA is DONE but unpublished. Seat dir ~/hpo-seats/r10s3/rca-harness-friction (worktree wt/, branch rca/r10-harness-friction at d5e17d06b). The three commits (3145aeff detector, 99636a0e fix, d5e17d06 record) exist only on that local branch and on refs/remotes/origin/wip-sync/ext-wt-1e092393 (a snapshot ref, reachable from no handoff ref: the orphaned-handoff class). No handoff ref, no PR. Ledger line 24 (rcafric a8209d4ea54f9b5c3) shows it QUEUED since 10-17 and never resumed.\nWhat #2331 (key harness, 9 PRs) and #2353 (key class-open, 3 PRs) need: (1) push the three commits as handoff/r10-rca-harness-friction (tools/audit/seat/handoff_push.sh from a worktree that has the branch checked out) and the body via body_push.sh; (2) re-take the figures at the current merge base (origin/main moved: the window now has more merges; both issues' counts moved; #2353 is 4 in the window now); (3) check the detector still fires only on fix-review.md:29 at the new base (node tools/policy/check-wave-script.mjs, expect the planted failure at 3145aeff alone and rc 0 at the head); (4) the PR is policy (dev/governance/roles/fix-review.md step 6 spelling: blocked <sha> class-open: <seam>): put ## Approval in the body, \"tvofi approves at merge under mandate 6175172275\"; (5) closing keyword Closes #2331 only; #2353 is disposed by the RCA record and the orchestrator closes it by hand after merge. Part of #201.\nOrdering constraint: dev/governance/roles/fix-review.md is also edited by R10-BRIEFS-FOLD (step 11 root-cause words, not started): this RCA must merge BEFORE BRIEFS-FOLD, and the BRIEFS-FOLD fixer re-reads step 6. fix-review.md has zero headroom: the one-example edit is line-neutral. The refused fixer.md step-8 alignment in the RCA's section 6 goes to O10-policy-fixer-md.\nModel: sonnet (the work exists; this is publish + re-take). Identity: refs only (handoff/r10-rca-harness-friction + body_push.sh r10-rca-harness-friction).",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-harness-friction",
-    "commit": "d1611efe6b7d7bd0d6fdb1651924d015aed3f74d",
+    "commit": "3976515a08228598ea3863f4f36dc4c7c4846865",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Handoff handoff/r10-rca-harness-friction at d1611efe is this group's work: 9 commits over 10 files, the RCA records plus edits to the fix-review and orchestrator role contracts (policy, so the owner approves at merge). Owed: merge current main, re-take the body and open the pull request."
@@ -5098,14 +5093,15 @@
     "Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds (each self-test asserts the code matches it), so the diagram is checked against the tree, not against the design.",
     "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22).",
     "Design step (owner ruling 2026-10-21): not needed; this group already has an approved design, pre-study or prototype, which serves as its design note.",
-    "From the #2584 fix review (comment 6325163760): the beat, the sweep, record_row.py, ci-watch.sh and proof_watch.py read merge_train.classify; no third red rule is written.",
     "From the #2584 fix review (comment 6325163760): the pre-dispatch check is `merge_train.py classify <head>`, which must exit 0 or 3.",
     "Fold (s4, assessor decision on P16): the REVIEW OWED level line is a ledger kind review-owed here: a level line 'REVIEW OWED: #N <head12>' per open non-draft PR whose head has no 'Fix review:' comment naming it and no live dispatch; the tick-seat prompt echoes flagged lines as a level. orchestrator_tick.py joins this group's files; after-edges R10-TICK-OWED-LEVEL (#2547), R10-FLOW-MAIN-GATE (#2584) and R10-CI-LAYOUT-P1 (#2585). Control: fixture PR set (reviewed, dispatched, neither) -> exactly one line.",
     "From #2554 (item b1ecb708, #2554): design 6.4 predicate 1, gate coverage, was assigned to R10-ROSTER-OPS (done at 929275e8) and not built there. owner_gate becomes structured {class, mandate, paths}, and readiness is class x in-force mandate scope, read from tools/policy/budget_raise_gate.py's own constants: code-owned <- code-owned|all, budget <- budget-raise|all, policy <- all only. It prints GATE-READY or GATE-OWNER <class>. Control: the run that prints the live roster's gate set at the mandate's scope returns every covered group ready and none blocked on the owner. Its consumer is the tick's owner-gated count (R10-ROSTER-OPS carry[0] and the design's PLAN section); it changes the roster's owner_gate schema, so #2554 did not build it in roster_sync.py.",
     "From #2554 (item b1ecb708, #2554): design 6.4 predicate 2, absorbed-edge closure. resume.stage absorbed with absorbed_into <group> joins roster_lib.DONE_STAGES only when every after edge of the absorbed group is on the absorbing group or its transitive closure; otherwise ABSORB-EDGE-MISSING and the stage stays open. Control: a deliberately absorbed group missing one edge is refused. The fail-safe half already holds (absorbed is outside DONE_STAGES); the rest changes DONE_STAGES, which pr_cap.py, prune_refs.py, handover_prompt.py and the tick all read. The live roster has 0 absorbed groups.",
     "From #2554 (item b1ecb708, #2554): R10-ROSTER-OPS carry[4] (from #2545), the brief pinned at handoff. Pin a group's brief at handoff (its hash beside resume) and compare it on each later pass, printing a brief that moved after its handoff (design section 3(d), carried from #2545). Control: a brief edited after its pin is reported on the next pass, and an unedited one is not. The handoff is the dispatcher's event and no pull-request read observes it, so the pin belongs where the handoff is written.",
     "From #2554 (item 4c5f0868, #2554) Friction: cloud_dispatch: stale: the payload says \"the toolchain (venv python, node, gh) is on PATH\". In this seat python3 was the system 3.11 without voluptuous, and `gh auth status` printed `Failed to log in to github.com using token (GH_TOKEN)`. The reviewer built a 3.13 venv from tests/requirements-ci.txt for the gate runs.",
-    "Tick diagnosis (2026-10-22, mandate 6329234399): bus() in orchestrator_tick.py (about l.304) discards stderr, so \"bus.sh orphans unavailable (exit 1, no summary line)\" loses bus.sh's die message. It happened twice, at 00:19Z and 00:25Z, and the cause is unrecoverable. Fix shape: append the first stderr line to the unavailable finding, and retry once on rc 1 with no summary. Control: a stub bus.sh that dies with a message, whose message must appear on the board."
+    "Tick diagnosis (2026-10-22, mandate 6329234399): bus() in orchestrator_tick.py (about l.304) discards stderr, so \"bus.sh orphans unavailable (exit 1, no summary line)\" loses bus.sh's die message. It happened twice, at 00:19Z and 00:25Z, and the cause is unrecoverable. Fix shape: append the first stderr line to the unavailable finding, and retry once on rc 1 with no summary. Control: a stub bus.sh that dies with a message, whose message must appear on the board.",
+    "From the #2584 fix review (comment 6325163760, round-2 verdict review/2584): the beat, the sweep, record_row.py (failed_required, not_green), ci-watch.sh and proof_watch.py read merge_train.classify, or `merge_train.py classify <sha>` from shell; no third red rule is written. Control, a precondition of the build: the e7c66485 replay (dev/audit/harnesses/r10_main_gate_replay.py, landed by #2584) is run through each reader with `--pending mutation typing closures`, where it must read a wait (\"is still running ...: a wait, not red\"), and with no `--pending`, the null control, which must print only END.",
+    "- The body's Forward-carry and Friction lines route \"list `body_patch.sh` as a hosted one-shot (args pr, sha, body; success = exit 0 and a last `body_patch: OK` line)\" to R10-ORCH-MACHINERY. Round 3 also carried this as a finding. That group's brief and its 29 carries on handoff/audit-r10-roster at 5620151813e03a5916c375554dd57c977f6d8097 still contain no `body_patch` (ev/roster_carries.txt). K17 item (3) covers the body-only path only indirectly, through R10-FLOW-BODY-ONLY. The line is owed to the group's roster carry with its control (the `--self-test` and the `body_patch: OK|REFUSE` last-line contract) before this PR merges. This is the orchestrator's roster write, not a change to the PR. Carry: R10-ORCH-MACHINERY"
    ],
    "model": {
     "fixer": "opus",
@@ -5773,7 +5769,8 @@
     "Pre-study: the Lean flow pre-study, section K1 (shadow plan).",
     "Seam: R10-PLAN-ARTIFACT builds the plan page; share its model, do not build a second one.",
     "Seam with R10-ORCH-MACHINERY part (3) and R10-PLAN-ARTIFACT: one plan model; the flow board is a section of that page, not a third page.",
-    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22)."
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22).",
+    "orchestrator_tick.py owner-gate count flags gates whose only text is 'mandated approval under <id>'; count such a gate as cleared while a mandate in force (scope all) covers it -- option A, test-first (2026-10-22 decision)"
    ],
    "architect_note": "",
    "brief": "Flow board (Lean study K1). Today nothing measures throughput against the owner's demand of one roster group merged per hour, so no flow change can show it worked. Extend tools/audit/merge_throughput.py with a flow subcommand rather than adding a file: read the first-parent log of origin/main, the review and verdict bus refs (tools/audit/seat/bus.sh publishes one commit per verdict, subject 'verdict: #N Fix review: merge|blocked <sha> <class>: ...'), and the roster through tools/audit/seat/roster_lib.py. Print per rolling hour and per 24 h: roster groups closed against takt 1.0; fly-ins closed; main moves split into group-carrying, record, roster-edit and fly-in; work in progress by flow lane (A critical path, B product, C process, F fly-in); first-pass yield of fix review and the blocked-class mix; lead time per size. Add it to tools/audit/seat/state_docs.py's generator list so the beat publishes it beside the plan table, and print UNAVAILABLE, never zeros, when a source is unreadable. Wire its self-test into governance.yml's instrument-self-tests job. Controls: a fixture with one merge, one blocked then merged verdict and one record merge gives exact counts; a null control (an unchanged fixture) reads identical before and after; its mutants fail named arms.",
@@ -5876,9 +5873,9 @@
    "architect_note": "",
    "brief": "Land the two design seats in the policy corpus (owner ruling, 2026-10-21: decision 0012's moratorium is void; L/XL groups gain a pipelined design and design review). (1) Two role contracts under dev/governance/roles/, the designer's and the design reviewer's, from the Lean flow study's drafts (design-seats directory on the study branch, at the pack commit the dispatch names); keep them to the drafts' scope and shorten where COMMON.md or fixer.md already says it. (2) orchestrator.md: for an L or XL group with no approved design, pre-study or prototype, dispatch the designer when the group's last predecessor dispatches, the design reviewer at the design's head, and the fixer only after 'Design review: approve'; the approved design note is the group's architect note. (3) fixer.md step 17: follow the approved design note; a departure is raised, not made. (4) fix-review.md step 15: judge the diff against the approved design note. (5) CLAUDE.md names both contracts in its role table. (6) A decision record under dev/governance/decisions/ states the owner's ruling voiding 0012's moratorium and the rationale (fewer future architecture-dimension findings), and 0012 points to it. The corpus caps in policy_budgets.json rise by what the new files cost: record the payments tried in the body's Raise justification; the owner's ruling is the authority, and the owner's approving review merges it (code-owned paths).",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-design-policy",
-    "commit": null,
+    "commit": "6077bf70e",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -6675,7 +6672,8 @@
     "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists.",
     "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22).",
     "P22 (assessor decision, s4, mandate 6329234399): update_pr.sh exits 75 (not 1) for 'branch checked out elsewhere' (l.42) and worktree-in-use, as for its lock, so a live train's worktree is no longer read as permanent. The relay (cloud_relay.sh l.229-230) keys cloud-handoff-failed on (topic, handoff sha, body sha) and appends the update log's last refusal line, so a body-only repair re-triggers it and the reason is kept. Only content refusals (prepr REFUSE) stay recorded failed, and become an OWED line with that reason. Measured: 28 permanent (topic, handoff-sha) entries, reason unrecoverable for all 28; 17 topics' branches gone, 6 landed another way, 5 still behind. Null control: a stub update_pr returning 75 for checked-out-elsewhere is retried next pass and never recorded; a prepr refusal is recorded once with its reason, and a new handoff-body sha re-triggers it.",
-    "Tick diagnosis (2026-10-22, mandate 6329234399): cloud_relay.sh writes `<relay_log>.level` (via level_set) only at the end of handoff_arm (about l.255) and probe_arm (about l.188), so a slow serial update_pr loop leaves the level unwritten for a whole pass. The tick (relay_owed in orchestrator_tick.py, about l.697-741, commit b38c6431a) meanwhile skips the log's no-PR OWED lines, so owed handoff-no-pr and probe-ref work vanishes from the board. Measured 2026-10-22T00:31Z: ~/.local/state/hpo/cloud-relay.log.level absent and 3,280 lines skipped. Fix shape: compute and write both levels before the serial update loop. Also, the tick prints a GAP warning when the log has no-PR OWED lines but no .level file exists. Control: a fake slow update_pr while the level is still published."
+    "Tick diagnosis (2026-10-22, mandate 6329234399): cloud_relay.sh writes `<relay_log>.level` (via level_set) only at the end of handoff_arm (about l.255) and probe_arm (about l.188), so a slow serial update_pr loop leaves the level unwritten for a whole pass. The tick (relay_owed in orchestrator_tick.py, about l.697-741, commit b38c6431a) meanwhile skips the log's no-PR OWED lines, so owed handoff-no-pr and probe-ref work vanishes from the board. Measured 2026-10-22T00:31Z: ~/.local/state/hpo/cloud-relay.log.level absent and 3,280 lines skipped. Fix shape: compute and write both levels before the serial update loop. Also, the tick prints a GAP warning when the log has no-PR OWED lines but no .level file exists. Control: a fake slow update_pr while the level is still published.",
+    "- The contract arm runs `carry_audit.py check --body` without `--roster-ref` (body_patch.sh:98), against the group brief's revision 8. Round 3 carried this to R10-FLOW-BODY-ONLY, but that group's brief and carries at 5620151813e0 contain no `roster-ref` (ev/roster_carries.txt). It is still owed, as one argument naming the freshly fetched round roster branch. Its control is a fixture whose worktree roster holds a carry the roster ref lacks, which must refuse. Carry: R10-FLOW-BODY-ONLY"
    ],
    "architect_note": "",
    "brief": "Make ruling R4 true in the tool (Lean flow study K12). update_pr.sh merges origin/main into the head unconditionally, in the step after it takes the handoff code head, and has no flag to skip it; app_push.sh has no body-only mode. So every body fix moves a clean head: observed 2026-10-21 on #2513, #2544, #2548, #2529 and #2549, each then carried by app_approve.sh --carry or re-reviewed. Change: (a) merge origin/main only when the pull request is DIRTY or git merge-tree --write-tree origin/main HEAD reports a conflict; (b) a body-only mode, taken when the code sha argument is the dash and the pull request head already contains the handoff tip: no worktree commit, no delivery-row commit when the row exists, and the body handed to R10-FLOW-BODY-PATCH's instrument, which runs the body contract at the unchanged head and PATCHes without a push; (c) cloud_relay.sh's handoff arm, which today skips any topic whose code tip the head already contains and so never propagates a body-only move, calls the body-only mode when the handoff-body tip changed. pr-contract re-runs on the edited event, so the body is re-gated without a push. Controls: with main ahead and a clean merge-tree, the head sha is identical before and after; a DIRTY fixture still absorbs; a body-only run on a moved head refuses; the relay fixture calls body-only exactly once per body move; each rule has a mutant. Sequence with the open row-only change #2567 and #2560 (update_pr lock), which touch the same script.",
@@ -7252,7 +7250,8 @@
    ],
    "carry": [
     "Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-contract's \"Read the body off the API\" step got non-JSON from `gh api` (\"invalid character 'S'\"); a sibling run a second earlier passed. Decision (orchestrator s4): workflow-side reads are in scope for the barrier as a third PR of this group, PR 3 = .github/workflows/pr-contract.yml's body read (code-owned, mandated approval under 6319294694), ordered after R10-CI-LAYOUT-P2 because that group consolidates the same workflow files; it is a separate PR so PR 1 and PR 2 do not wait on it. Same rule: retry reads only, 5/15/45 s, transport errors and 5xx and non-JSON bodies from a transient failure, refuse any other class at once. Control: a stub `gh api` answering non-JSON once then JSON passes with 2 calls; a stub answering a valid JSON refusal (404) refuses after 1 call.",
-    "From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installation, and the carry path's `git fetch` of refs/pull/$pr/head, are GitHub reads of the same class and are left single-shot in PR 1 (the brief scopes it to the four gh reads in tools/pr/app_approve.sh). They are read in PR 2, beside merge_train.py's and record_row.py's reads. `curl -f` gives exit 22 for every HTTP status of 400 and over, so classifying it needs its own `-w '%{http_code}'` read."
+    "From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installation, and the carry path's `git fetch` of refs/pull/$pr/head, are GitHub reads of the same class and are left single-shot in PR 1 (the brief scopes it to the four gh reads in tools/pr/app_approve.sh). They are read in PR 2, beside merge_train.py's and record_row.py's reads. `curl -f` gives exit 22 for every HTTP status of 400 and over, so classifying it needs its own `-w '%{http_code}'` read.",
+    "From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop and for the classifier that feeds it:\n(a) a spent-budget fixture whose queued failures are all transient, with one more queued than the budget, so only the budget can stop it;\n(b) a census sending every fixture line through the production classifier;\n(c) every alternative of the classifier, derived from its source by a written rule rather than listed by hand, pinned from both sides by an input it must retry and a near-miss it must refuse, with the derived set and both-classes-per-key asserted as preconditions;\n(d) a rule-generated sweep of the retry loop AND the classifier (alternatives, anchors, quantifiers, glob narrowing, phrase words, grep/sed flags, tail/head, and which copy of stderr is classified), in which a mutant killed only by a source-text precondition counts as surviving.\nControl: dev/audit/harnesses/r10_gh_read_retry_mutants.py at fd1e3f6c gives 17 survivors and at 37cffb09 gives 0. A hand-picked mutant list missed exactly the budget branch in round 1 and the classifier's branches in round 2."
    ],
    "architect_note": "",
    "brief": "Third instance of the class one unretried GitHub read kills an instrument, together with P7's record_row.py HTTP 500: an audit-class barrier. adopt as an audit-class barrier in new fly-in R10-FLY-GH-READ-RETRY (S, lane F, priority HIGH: it sits on the merge path), in two PRs ordered by file overlap. Do not fold into R10-FLOW-AUTOTRAIN, which is unregistered and a much larger mechanisation. (1) Third instance of the class \"one unretried GitHub read kills an instrument\", measured. Across every train log since 2026-10-20 there are 11 TRAIN STOPPED lines, and 2 are transient reads: train 8's `approve: ... could not read pull request #2547` (train2547/state8, 21:50:38Z, after waiting t+2667 s for CI, with 7 entries released) and `ci: the head commit at <sha> could not be read: Get \"https://api.github.com/...\": net/http...` in merge_train.py's own read. Add P7's record_row.py `HTTP Error 500` on main's push run, whose revisit trigger (\"a second 5xx instance\") is now met. The remaining 9 stops are content refusals (red CI 3, HOLDER worktree 4, stale carry 1, ledger merge 1), so 18% of train stops are pure transport. (2) The cause and the precedent. app_approve.sh l.104 `js=$(gh api \"repos/$1/pulls/$2\") || die` has three sibling reads (l.271 comments, l.406 CODEOWNERS, l.408 files), all single-shot, discarding stderr so the failure class is lost. app_push.sh already holds the house pattern (l.188-251: bounded RB_SLEEP*3^(n-1), 5/15/45 s, transport refusals distinguished from a genuine refusal, never retry-forever). Reuse that rule rather than inventing 10/30/60. (3) Classification, so it cannot mask a refusal. Retry only network/transport errors, HTTP 5xx, and 429 or a secondary-rate-limit 403 (honouring Retry-After). Anything else (401, 403-permission, 404, 422, or a body that parses but is wrong: head moved, no verdict, owned path) refuses at once, as today. After the budget it refuses with the last error text kept. Mutation-write calls (review POST, merge) are never retried by this rule; they keep their own guarded paths. (4) Ordering. PR 1, app_approve.sh's four reads plus self-test arms: no open PR or live handoff touches tools/pr/app_approve.sh, so dispatch now, ahead of R10-FLY-CARRY-DOC-CONTEXT (P17, same file), which gains an after-edge on it. PR 2, merge_train.py's GitHub reads and record_row.py's urlopen: after #2585 (CI-LAYOUT-P1: merge_train.py, record_row.py), #2584 (MAIN-GATE: merge_train.py) and #2524 (PUSHER-REAP: merge_train.py). Cost: ~25 lines in bash, ~20 in python, one shared rule stated once in INSTRUMENTS.md. Benefit: about 45 min of CI wait plus a relaunch for each transient stop (2 in about 30 h of trains), and one red main push run per 5xx. (5) Null control, in each self-test: a stub `gh` failing once with a transport error then answering passes, with exactly 2 calls logged. A stub answering 404, or a head mismatch, refuses after exactly 1 call (no retry masks a refusal). A stub failing 4 times refuses after the budget, naming the last error. A stub answering 500 to record_row twice then 200 records. Brief addition: \"bounded retry of GitHub READS only, app_push.sh's 5/15/45 s rule, retrying transport errors, 5xx, 429 and secondary-limit 403 and nothing else; fixtures: one transient then success (2 calls), 404 and a wrong head (1 call, immediate refuse), budget exhausted (refuse with the last error); PR 1 is app_approve.sh, PR 2 is merge_train.py and record_row.py after #2585, #2584 and #2524\".",
@@ -7446,6 +7445,144 @@
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (s4) under mandate 6329234399, assessor decision P23."
+   }
+  },
+  {
+   "group": "R10-RCA-FRICTION-RESIDUE",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "issues": [
+    2428,
+    2429,
+    2436,
+    2437,
+    2438,
+    2593,
+    2597
+   ],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "dev/audit/rca/harness-friction/blocked_rounds.tsv"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Root-cause record for the five recurring-friction keys that #2561's record (R10-RCA-HARNESS-FRICTION) left unmeasured: carry-missing #2428 (12/15), other #2436 (3/3; literal `other:` verdicts #2294, #2404, #2406), root-cause-unanswered #2437 (7 blocks, 4 checks, none on 3 or more PRs), and the PR-body friction rule ids ci-autofix #2429 and finding-propagation #2438, which the verdict enumeration does not read. Per root-cause.md, each key owes a named cause, a process state, a cost test, and a countermeasure or a recorded refusal. Re-measure at its merge base with `blocked_rounds.tsv` / `rounds.py --stats`, not from #2561's numbers. Source: PR #2561's body, the Ownership-after-this-merge item.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-rca-friction-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a root-cause seat",
+    "note": "Registered by the orchestrator (s4) under mandate 6329234399 when R10-RCA-FRICTION went done (#2561)."
+   },
+   "role": "root-cause"
+  },
+  {
+   "group": "R10-NIGHTLY-PYSPY-RETRY",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tests/nightly_ha.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Build countermeasure A of dev/audit/rca/nightly-ha-pyspy-timeout.md (#2479) in tests/nightly_ha.py: retry the py-spy sample with a per-attempt timeout so one racy dump cannot fail hb:positive_control. Owed since R10-RCA-NIGHTLY-PYSPY (done) left it a fixer's change, not built there. The cost changed: the failure is about 7% of nightly runs, and a red nightly now blocks every PR through pr-contract (train 16, 2026-10-22: nightly-status red from run 39681119764 blocked all 9 cars). Control: a stub sampler that times out once then answers passes with 2 attempts; a stub that never answers still fails the check after the last attempt, so the positive control keeps its power.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-nightly-pyspy-retry",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T05:35Z; dispatch as soon as the roster unfreezes."
+   }
+  },
+  {
+   "group": "R10-TRAIN-OVERLAP-GRADE",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "M",
+   "wave": 4,
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "From #2595 (root cause owed for the red main at merge 6077bf70e): a semantic merge of two edits to a capped policy file, each green alone (#2561 took orchestrator.md to 4506 tokens, #2586's branch to 4511, the merge summed them to 4515 against a 4513 cap with no headroom band). The countermeasure is this group's barrier: grade the would-be merge tree before a car whose base moved by the batch's own merges is merged. Re-routed here from R10-POLICY-LINT-FAMILY, where #2595's body named it.",
+    "merge_train.py retries a car 8 times on \"base branch policy prohibits the merge\" when the cause is a missing code-owner approval at the (recarried) head (#2577, train 17: 8 refusals then a recarry). Check for an approving review at the live head before the merge attempt and park the car with that reason, not retry."
+   ],
+   "architect_note": "",
+   "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-train-overlap-grade",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted."
    }
   }
  ]
