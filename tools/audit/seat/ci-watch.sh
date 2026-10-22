@@ -109,8 +109,8 @@ validate-hacs'
   F=$TMP/w1; mkfix "$F" 63084989bot MERGEABLE <<EOF
 $PRESENT12
 claims-autofix
-recheck-gate
-slow
+graders-head-copy
+nightly-status
 EOF
   O=$(watch "$F" "$TMP/s1"); rc=$?
   n_absent=1
@@ -125,8 +125,8 @@ EOF
   F=$TMP/w2; mkfix "$F" 386b7e2fapp MERGEABLE <<EOF
 $REQ17
 claims-autofix
-recheck-gate
-slow
+graders-head-copy
+nightly-status
 EOF
   O=$(watch "$F" "$TMP/s2"); rc=$?
   ck "W2 settled all-present green head: exit 0 and no alert (null control for W1)" \
