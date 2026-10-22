@@ -1,27 +1,14 @@
-$ closure.py select
-########## scoped gate ##########
+closure select: ########## scoped gate ##########
   MODE: SCOPED -- 1 script(s) run, 32 scoped out.
   changed files (6), measured against the recorded closures in tests/closures.json:
-$ harness_headers
-ALL 109 HARNESS HEADER CHECKS PASSED
-$ env_drift claims
-claims hygiene: origin/main ok
-$ closure selftest
-ALL 124 closure shrink pins PASSED
-$ layout
-layout self-test: ok
-$ structure
-STRUCTURE RATCHET PASSED
-$ archscore
-Architecture score: dS +0.0000 NULL
-$ ref_privacy
-ref_privacy --check at HEAD: 19 file(s) with a push site, 10 guarded, 364 line(s) added since 5a755f53efda judged, 0 refused
-$ tmp_paths
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 5a755f53efda
-$ throwaway_git
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
-$ ci_predict
-CI PREDICT: no closures or fast red predicted against 5a755f53efda (a data-file read is not seen)
-$ three-dot stat
- 6 files changed, 399 insertions(+), 15 deletions(-)
-(versions/goldens list above; empty=untouched)
+harness_headers: ALL 109 HARNESS HEADER CHECKS PASSED
+env_drift: claims hygiene: origin/main ok
+closure selftest: ALL 124 closure shrink pins PASSED
+layout: layout self-test: ok
+structure: STRUCTURE RATCHET PASSED
+archscore: Architecture score: dS +0.0000 NULL
+ref_privacy: ref_privacy --check at HEAD: 19 file(s) with a push site, 10 guarded, 393 line(s) added since 46e3681276f9 judged, 0 refused
+tmp_paths: tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 46e3681276f9
+throwaway_git: throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+ci_predict: CI PREDICT: no closures or fast red predicted against 46e3681276f9 (a data-file read is not seen)
+harness lint (brief_lint/harness headers covered above)

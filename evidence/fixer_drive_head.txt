@@ -11,8 +11,9 @@ RESULT mutant=brief-drop failed=7 verdict=killed
     FAIL an explicit roster ref is read, not the round's roster branch
     FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=parent-drop failed=-1 verdict=CRASHED
-RESULT mutant=nonce-altered failed=1 verdict=killed
+RESULT mutant=nonce-altered failed=2 verdict=killed
     FAIL the printed line round-trips to a payload byte-identical to today's flag path
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=topic-to-id failed=-1 verdict=CRASHED
     FAIL a group dispatch prints one short line, the ref name
     FAIL a reviewer dispatch with pr and nonce renders
@@ -28,16 +29,18 @@ RESULT mutant=head-ignored failed=3 verdict=killed
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
     FAIL the --group CLI passes --head and --roster-ref through
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutant=prompt-wrong failed=6 verdict=killed
+RESULT mutant=prompt-wrong failed=7 verdict=killed
     FAIL the ref carries the prompt the payload carries
     FAIL a changed brief fast-forwards the ref
     FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
     FAIL an explicit roster ref is read, not the round's roster branch
     FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=roster-repo-ignored failed=-1 verdict=CRASHED
-RESULT mutant=roster-ref-main failed=1 verdict=killed
+RESULT mutant=roster-ref-main failed=2 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
 RESULT mutant=head-from-roster-ref failed=1 verdict=killed
     FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
 RESULT mutant=reviewer-head-off failed=1 verdict=killed
@@ -45,11 +48,26 @@ RESULT mutant=reviewer-head-off failed=1 verdict=killed
 RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
     FAIL an explicit roster ref is read, not the round's roster branch
     FAIL the --group CLI passes --head and --roster-ref through
-RESULT mutant=cli-head-dropped failed=2 verdict=killed
+RESULT mutant=cli-head-dropped failed=3 verdict=killed
     FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
 RESULT mutant=cli-roster-ref-dropped failed=1 verdict=killed
     FAIL the --group CLI passes --head and --roster-ref through
 RESULT mutant=fetch-skipped failed=1 verdict=killed
     FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutants=17 survived=0
+RESULT mutant=cli-role-fixed failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-pr-dropped failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-nonce-dropped failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-group-fixed failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-model-fixed failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-overlay-dropped failed=3 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutants=23 survived=0

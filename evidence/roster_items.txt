@@ -1,9 +1,0 @@
-== 92bca45d
-origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:5097:    "From #2577 (item 92bca45d, #2577): the K17 seam. Dispatch goes through bus.sh dispatch so the ledger's reviewer-fire close is written, and the seat is added to the worker registry the seats job reads. dispatch_group takes pr and nonce for a reviewer but mints neither. Control: a dispatch through dispatch_group leaves a reviewer-fire close in the ledger.",
-== b87aa9e4
-origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:6073:    "Carry item b87aa9e4 (from #2577, #2577): the reviewer-refusal arm. R10-FLOW-MAIN-GATE builds it after its classifier lands on main, reading that classifier: dispatch refuses a reviewer dispatch at a head where a required context's latest run concluded failure. #2577 merges without it; the arm is deferred to this group. Control: a reviewer dispatch against a head whose main is red-classified must refuse, and the same dispatch against a green-classified main must pass; pin both in the self-test."
-== 1fb1501b
-92bca45d -> ['groups', 93, 'carry', 17]
-b87aa9e4 -> ['groups', 115, 'carry', 4]
-93 R10-ORCH-MACHINERY
-115 R10-FLOW-MAIN-GATE
