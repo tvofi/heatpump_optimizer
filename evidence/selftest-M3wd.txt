@@ -48,6 +48,10 @@
   ok   and the refusal is the red gate's own, naming the check
   ok   the same ancestry with a body that names the red passes (null control)
   ok   and the ok line names what was answered
+  ok   an answered red with a prose ## Friction line is refused
+  ok   and the refusal prints the error, not only its count
+  ok   an unnamed red AND a prose ## Friction line is refused
+  ok   and the refusal is the red's sentence, not the earlier Friction error, with both counted
   ok   an ancestry whose only failure is pr-contract's own run passes (the exclusion key)
   ok   and the ok line says no red stands, so green was measured, not assumed
   ok   an ancestry no commit of which carries any check run skips, never refuses
@@ -65,6 +69,10 @@
   ok   a budget re-recorded down owes no answer
   ok   and the ok line says no raise was found, so the gate ran
   ok   a diff touching no budget file passes
+  ok   a body with a prose ## Friction line is refused before the push
+  ok   and the refusal prints the error ahead of the budget verdict
+  ok   a raise with a body silent on it AND a prose ## Friction line is refused
+  ok   and the refusal is the red's sentence, not the earlier Friction error, with both counted
   ok   a merge base with no gate skips the arm and says so
   ok   and the body check still runs, fed nothing (skip, never refuse)
   ok   an unpinned site with a body whose ## Red checks omits mutation is refused before the push
@@ -200,9 +208,9 @@
   ok   and the full case's line is byte-identical to the one it printed before the platform decision
   ok   and a skip-case diff still skips
   ok   and the skip case's line is byte-identical too
-  ok   a KILL to the prepr leaves no recorder running behind it (the orphan the watchdog closes)
-  FAIL a TERM to the prepr alone ends it and its recorder at once, not when the recording finishes (got alive:alive, wanted gone:gone)
-  FAIL a TERM to the prepr's process group ends it and its recorder (got alive:alive, wanted gone:gone)
+  FAIL a KILL to the prepr leaves no recorder or recorder lane running behind it (the orphan the watchdog closes) (got gone:alive:alive, wanted gone:gone:gone)
+  FAIL a TERM to the prepr alone ends it, its recorder and the recorder's lane at once, not when the recording finishes (got gone:alive:alive, wanted gone:gone:gone)
+  FAIL a TERM to the prepr's process group ends it, its recorder and the recorder's lane (got gone:alive:alive, wanted gone:gone:gone)
   ok   6b drives the scoped set through the --scripts-from lane runner
   ok   and makes no serial --single call beside it (the merge-base arm's failure)
   ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
@@ -219,6 +227,8 @@
   ok   and it writes the table in the layout closure.layout_errors accepts
   ok   --apply-inert leaves the table byte-identical where nothing is predicted (null control)
   ok   and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS
+  ok   6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)
+  ok   and predicts it from three listed INERT siblings, the same plant otherwise (null control)
   ok   6d refuses an INERT READS a new top-level import adds (the import-edge arm)
   ok   --apply-inert writes the import-edge arm's entry too, and the prediction then clears
   ok   an UNDER-SCOPED prediction names --single for its scripts, not ci-autofix.md's wait (M3)
@@ -334,4 +344,4 @@ AssertionError: queue-base
   ok   gate_priority.py's derived-default self-test passes
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-321 passed, 2 failed
+330 passed, 3 failed
