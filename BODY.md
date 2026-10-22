@@ -84,7 +84,7 @@ None locally at `aba00fbf2` (`PYTHONPATH=tests/hastub`, `PREPR_SKIP_CLOSURES=1`,
 
 ## Forward-carry
 
-- The guardrail threshold, extended class list, seat-family arm and planted-defect calibration are on R10-ORCH-MACHINERY's roster carry (round 2, confirmed by the reviewer at `c9140d299f9c`); the reviewer-model-in-dispatch control is routed to the same group. Carry: R10-ORCH-MACHINERY (item b8b28b28)
+- The guardrail threshold, extended class list, seat-family arm and planted-defect calibration are on R10-ORCH-MACHINERY's roster carry (round 2, confirmed by the reviewer at `c9140d299f9c`); the reviewer-model-in-dispatch control is routed to the same group. Destination: `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY (item b8b28b28)
 
 ## Friction
 
