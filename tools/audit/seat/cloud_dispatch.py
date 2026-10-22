@@ -419,6 +419,26 @@ def _group_checks(check) -> None:
         check("the --group CLI passes --head and --roster-ref through",
               rc == 0 and out.getvalue() == line + "\n" and first in msg and main_tip not in msg
               and "Changed." in msg and "On the branch." not in msg)
+        # Every other input distinct from any call above (a second group, a model, a pr and a nonce
+        # nothing published), so each value on the ref is this call's.
+        roster.write_text(json.dumps({"repo": "owner/name", "groups": [
+            {**grp, "brief": "On the branch.\n"}, {**grp, "group": "R10-Y", "resume": {"branch": "handoff/r10-y"}}]}))
+        git(work, "commit", "-q", "-am", "second group")
+        git(work, "push", "-q", str(origin), "HEAD:refs/heads/handoff/audit-r10-roster")
+        git(work, "fetch", "-q", str(origin), "+handoff/audit-r10-roster:refs/remotes/origin/handoff/audit-r10-roster")
+        out = io.StringIO()
+        with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", first,
+                       "--pr", "8", "--nonce", "def456", "--overlay", str(overlay)])
+        try:  # a wrong role or group publishes no reviewer-r10-y ref: the check, not a crash, says so
+            msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
+            model = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"][
+                "session_context"]["model"]
+        except subprocess.CalledProcessError:
+            msg = model = ""
+        check("the --group CLI passes --role, --group, --model, --pr and --nonce through",
+              rc == 0 and out.getvalue() == "dispatch/reviewer-r10-y\n" and msg.startswith("CLOUD REVIEWER")
+              and "PR #8 " in msg and "Bus nonce: def456." in msg and model == "m-9")
         # A clone of main alone (--no-local: a local clone copies every object) holds none of the
         # dispatch ref's objects, so it must fetch the tip it extends.
         tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
