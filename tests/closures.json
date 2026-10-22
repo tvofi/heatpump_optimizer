@@ -461,6 +461,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/price_tiles.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
@@ -4331,7 +4332,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 752.2
+   "seconds": 340.3
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -4367,7 +4368,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 2033.6
+   "seconds": 867.9
   },
   "tests/env_drift.py": {
    "rc": 0,
