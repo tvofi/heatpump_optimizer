@@ -117,9 +117,8 @@ whenever you merge.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
-- **Give it the constraints that already exist** rather than letting it
-  re-derive them: findings carried into its stage, the numbers it must
-  re-measure rather than trust, and the destination its own carry must reach.
+- **Give it the constraints that already exist**: findings carried into its
+  stage, the numbers it must re-measure, and the destination its carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
 - **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
@@ -127,7 +126,10 @@ whenever you merge.
   (a relay, a delivery row) the cheapest model that does it.
 - **Concurrent fixes sharing a concern push only after an architect note**
   you dispatch into each group's roster brief (owning module, each fix's
-  shape); it binds them (`fixer.md` 17).
+  shape); it binds them (`fixer.md` 17). A serial chain orders groups whose
+  owning seams overlap, not groups that share a file.
+- **A round's scope freezes at its register**: a mid-round finding goes to the
+  next round's unless it is expedite or a size-S fly-in.
 - **An L or XL group with no approved design, pre-study or prototype is
   designed first** (decision 0014): dispatch `designer.md` when its last
   predecessor dispatches, `design-review.md` at the design's head, and its
@@ -155,7 +157,8 @@ it: reconstruct both parents and read the merged result back, confirming each
 side's clauses are present. Run `git merge-tree --write-tree origin/main HEAD`
 before believing any conflict is real — `mergeStateStatus: DIRTY` is computed by
 GitHub, which cannot run this repository's `claimnotes` driver, and a `DIRTY`
-pull request never queues Tests at all.
+pull request never queues Tests at all. That, or a merge-tree conflict, is the
+one reason to absorb `main` into a head (`nudge.md` 9).
 
 ## 7. You hold the freeze
 
@@ -222,8 +225,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
 
 ## 11. Before you merge
 
-- Every gate lane **ran**. Absent is not green, and a `DIRTY` pull request never
-  queues Tests.
+- Every gate lane **ran**. Absent is not green.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>

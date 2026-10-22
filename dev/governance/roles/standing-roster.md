@@ -15,11 +15,11 @@ line asks (`orchestrator.md` section 10).
 ## `brief-citations.md` binds every op
 
 `tools/policy/brief_lint.mjs` reads the roster and the carry files and never
-the plan, the handover or `dev/governance/`, so a load-bearing citation left
-only in markdown is unchecked, and putting one there is not carrying it. The
-remedies for a symbol that does not exist yet are that rule's; a tag citation
-is no reflex fix. Read the **exit code and the error lines**: `FIXTURE ok: N
-error(s)` prints beside a clean exit by design.
+`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a
+load-bearing citation left only in markdown is unchecked, and putting one there
+is not carrying it. A symbol that does not exist yet has that rule's remedies.
+Read the **exit code and the error lines**: `FIXTURE ok: N error(s)` prints
+beside a clean exit by design, the shape that lets a real error be waved through.
 
 **Report:** `roster: <op> <group> pushed <sha>` or `refused <reason>`.
 **You never** choose an op, edit the roster by hand, or push past a refusal.
