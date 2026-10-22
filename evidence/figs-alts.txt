@@ -1,0 +1,8 @@
+s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p
+5??
+429
+403
+secondary rate limit
+?*
+^Get "https?://[^"]*": 
+^error connecting to 

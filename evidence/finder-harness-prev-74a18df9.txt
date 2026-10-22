@@ -1,0 +1,97 @@
+X0 null: rc=0 app_approve self-test: 225 checks, 0 failed SURVIVED
+X1 unbounded: budget test -> false: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
+     FAIL REFUSE: four transient failures spend the budget (got '0', want '1')
+     FAIL after exactly 4 calls (got '7', want '4')
+     FAIL the fifth queued failure was never read (got '', want 'gh: Gateway Timeout (HTTP 504)')
+     FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 15 sleep 45 sleep 135 sleep 405 ', want 'sleep 5 sleep 15 sleep 45 ')
+X2 READ_TRIES=4 -> 5: rc=1 app_approve self-test: 225 checks, 5 failed KILLED
+     FAIL and the settle is printed, never implied (got '0', want '1')
+     FAIL after exactly 4 calls (got '5', want '4')
+     FAIL the fifth queued failure was never read (got '', want 'gh: Gateway Timeout (HTTP 504)')
+     FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 15 sleep 45 sleep 135 ', want 'sleep 5 sleep 15 sleep 45 ')
+X2b READ_TRIES=4 -> 3: rc=1 app_approve self-test: 225 checks, 7 failed KILLED
+     FAIL and the settle is printed, never implied (got '0', want '1')
+     FAIL three transient failures and an answer on the fourth read, the budget's last, are approved (got '1', want '0')
+     FAIL with exactly 4 calls to that read (got '3', want '4')
+     FAIL after exactly 4 calls (got '3', want '4')
+X3 429 not transient: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
+     FAIL a 429 on the CODEOWNERS read, then an answer, is approved (got '1', want '0')
+     FAIL with exactly 2 calls to that read (got '1', want '2')
+     FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+X4 5xx not transient: rc=1 app_approve self-test: 225 checks, 16 failed KILLED
+     FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+     FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+     FAIL after one settle of 5 s (got '0', want '1')
+     FAIL and the settle is printed, never implied (got '0', want '1')
+X4b only 50x transient: rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|50?|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+X5 every 403 transient: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
+     FAIL REFUSE: a permission 403 on the files read (got '0', want '1')
+     FAIL after exactly 1 call (got '2', want '1')
+     FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '4', want '0')
+X6 403 branch deleted: rc=1 app_approve self-test: 225 checks, 6 failed KILLED
+     FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
+     FAIL with exactly 2 calls to that read (got '1', want '2')
+     FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+X7 drop 'error connecting to' alternative: rc=1 app_approve self-test: 225 checks, 3 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*": |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+     FAIL (nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default) (got '8', want '9')
+X8 drop Go Get alternative: rc=1 app_approve self-test: 225 checks, 10 failed KILLED
+     FAIL a transport error on the comments read, then an answer, is approved (got '1', want '0')
+     FAIL with exactly 2 calls to that read (got '1', want '2')
+     FAIL after exactly 4 calls (got '2', want '4')
+     FAIL the fifth queued failure was never read (got 'gh: HTTP 502
+X9 sed requires a message: rc=1 app_approve self-test: 225 checks, 9 failed KILLED
+     FAIL three transient failures and an answer on the fourth read, the budget's last, are approved (got '1', want '0')
+     FAIL with exactly 4 calls to that read (got '1', want '4')
+     FAIL after exactly 4 calls (got '3', want '4')
+     FAIL the fifth queued failure was never read (got 'gh: Service Unavailable (HTTP 503)
+X10 no backoff (sleep 5 always): rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 5 sleep 5 ', want 'sleep 5 sleep 15 sleep 45 ')
+X11 backoff x2: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL settling 5/15/45 s between them (got 'sleep 5 sleep 10 sleep 20 ', want 'sleep 5 sleep 15 sleep 45 ')
+X12 READ_SLEEP=1: rc=1 app_approve self-test: 225 checks, 3 failed KILLED
+     FAIL after one settle of 5 s (got '0', want '1')
+     FAIL and the settle is printed, never implied (got '0', want '1')
+     FAIL settling 5/15/45 s between them (got 'sleep 1 sleep 3 sleep 9 ', want 'sleep 5 sleep 15 sleep 45 ')
+X13 tail -1 -> head -1: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+X14 secondary grep case-sensitive: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+X15 transport grep matches anything: rc=1 app_approve self-test: 225 checks, 8 failed KILLED
+     FAIL and it was asked for at ref=main (got '4', want '1')
+     FAIL REFUSE: a read failing with nothing on stderr (got '0', want '1')
+     FAIL after exactly 1 call (got '2', want '1')
+     FAIL saying gh left no error (got '0', want '1')
+X16 success path keeps stderr file: rc=1 app_approve self-test: 225 checks, 3 failed KILLED
+     FAIL the private directory is gone after a success (got '5', want '0')
+     FAIL and the private directory is gone, token and all (got '5', want '0')
+     FAIL the private directory is gone after the failed POST (got '5', want '0')
+X17 classify GH_ERR not file: rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL a 502 followed by a second stderr line, then an answer, is approved (got '1', want '0')
+     FAIL after one retry of the pull-request read (got '1', want '3')
+X18 sleep deleted: rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL after one settle of 5 s (got '0', want '1')
+     FAIL settling 5/15/45 s between them (got '', want 'sleep 5 sleep 15 sleep 45 ')
+X19 check_pr bypasses gh_read: rc=1 app_approve self-test: 225 checks, 13 failed KILLED
+     FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+     FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+     FAIL after one settle of 5 s (got '0', want '1')
+     FAIL and the settle is printed, never implied (got '0', want '1')
+X20 secondary grep any 'rate limit': rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|rate limit|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|')
+X21 loop retries non-transient (drop !): rc=1 app_approve self-test: 225 checks, 33 failed KILLED
+     FAIL and it was asked for at ref=main (got '4', want '1')
+     FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+     FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+     FAIL after one settle of 5 s (got '0', want '1')
+X22 transport anchor dropped: rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|Get "https?://[^"]*": |default|error connecting to |s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+rc=0
