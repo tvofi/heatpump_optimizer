@@ -1495,6 +1495,19 @@ EOS
     reds_line "$RA/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 1 "an answered red with a prose ## Friction line is refused"
   case "$got" in *'`## Friction` line does not parse'*) st 1 1 "and the refusal prints the error, not only its count";; *) st 0 1 "and the refusal prints the error, not only its count";; esac
+  # BOTH GROUNDS IN ONE BODY: body_refusal's precedence, pinned. Each pair of
+  # its three alternatives (the red's sentence, the first ERROR, the count
+  # line) gets a body carrying both, asserting which one wins: red over count
+  # and ERROR over count are the two rows above; this is red over ERROR. The
+  # plant is unnamed-red.md with its Friction line turned to prose, so
+  # policy_lint prints the Friction ERROR FIRST and only the precedence makes
+  # the red's sentence win. The count suffix is the one sign a second error
+  # exists, so the row reads it too. The single-error rows above are its null.
+  sed '$ s/^none$/The scoped scripts need the seat venv./' "$DABS/unnamed-red.md" >"$RA/both-grounds.md"
+  got=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    reds_line "$RA/both-grounds.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 1 "an unnamed red AND a prose ## Friction line is refused"
+  case "$got" in *'fast (3.14)'*'does not name it'*'(2 error line(s) in all)') st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
   got=$(ra green red-answered.md)
   st "${got%%:*}" 0 "an ancestry whose only failure is pr-contract's own run passes (the exclusion key)"
   case "$got" in *'no red check run stands'*) st 1 1 "and the ok line says no red stands, so green was measured, not assumed";; *) st 0 1 "and the ok line says no red stands, so green was measured, not assumed";; esac
@@ -1563,6 +1576,11 @@ EOS
   got=$(GIT_DIR="$BR/.git" body_line "$BR/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" base docs)
   st $? 1 "a body with a prose ## Friction line is refused before the push"
   case "$got" in *'`## Friction` line does not parse'*'no budget leaf raised'*) st 1 1 "and the refusal prints the error ahead of the budget verdict";; *) st 0 1 "and the refusal prints the error ahead of the budget verdict";; esac
+  # Red over ERROR through step 7 (the pair rule above, at body_line's call
+  # site): a raise makes budget-raise-gate a red the prose body also omits.
+  got=$(GIT_DIR="$BR/.git" body_line "$BR/friction-prose.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" base raise)
+  st $? 1 "a raise with a body silent on it AND a prose ## Friction line is refused"
+  case "$got" in *'budget-raise-gate'*'does not name it'*'(2 error line(s) in all)'*) st 1 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; *) st 0 1 "and the refusal is the red's sentence, not the earlier Friction error, with both counted";; esac
   got=$(bl nogate raise unnamed-red.md)
   case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
