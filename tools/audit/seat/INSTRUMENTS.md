@@ -24,6 +24,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
+  Its GitHub reads retry on `app_push.sh`'s read-back rule (4 reads, settling
+  5/15/45 s) only on a transport error, 5xx, 429 or a secondary-rate-limit
+  403, and refuse with the last error once spent; any other failure, a wrong
+  answer and the review POST are never retried.
 - `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
   and reads the posted comment back byte-identical. When: a reviewer seat
   delivers a verdict. Refusal: a read-back that differs from what it meant to
@@ -322,7 +326,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--mandate <comment-id>` and reads that #201 mandate live; `--ready` marks a
   draft ready. Refusal: a verdict or head mismatch stops the merge before the
   merge API call; a draft without `--ready`, or owner mode with no mandate in
-  force, refuses before anything posts. `--self-test` also drives the whole
+  force, refuses before anything posts. Before its CI wait it runs
+  `merge_train.py unstale` (below) at the head. `--self-test` also drives the whole
   script offline over a scratch clone and a fake `gh`, so the `gh pr merge …
   --match-head-commit` line is pinned: replaced by `exit 0` it records no
   merge and the null control reddens (#2444).
@@ -362,6 +367,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Residual: a proved pair's second merge does not wait for main's run on the
   first; the proof graded the tree both make. A `batch/` branch the remote
   will not delete is logged `NOT deleted`, for deletion by hand.
+  It owns the state classifier (Lean flow study K15) the tick also imports,
+  judged on the latest run of each required context (`main-protect-checks`,
+  read live; `record`, `record-autofix`, `nightly-status` and
+  `delivery-status` never count): a queued or in-progress run is a wait,
+  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  or still running, by that rule. Before a merge attempt a check-run still
+  queued or in progress over a completed workflow run is stale: its run is
+  re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
+  to a root-cause seat), and re-read. `unstale <sha>` runs that step alone;
+  `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
+  request's required contexts (`--main`: less the PR-only ones), rc 2 when
+  unreadable — a head is reviewable unless RED.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the
@@ -400,10 +417,15 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   that measures the whole board — train liveness, stale queue entries, log/rc
   tail, prepr slots; per open PR the latest check-run per name, reds unanswered
   in `## Red checks`, missing delivery rows, moved verdicts with no carry,
-  DIRTY/BLOCKED, zero-run heads, absent required contexts, twin heads, claim
+  BLOCKED, DIRTY with the conflicted files `git merge-tree` names under
+  GitHub's merge, no local driver run (the
+  claimnotes repair only when all are claim files; a content conflict goes
+  back to its fixer), NOT REVIEWABLE at a head whose required context
+  concluded red, zero-run heads, absent required contexts, twin heads, claim
   stamps, staleness behind main; worker seats judged from the work they were
   dispatched for; roster groups newly unblocked or blocked; main's tip, its
-  required contexts re-read live, the mandate through `budget_raise_gate`'s
+  required contexts re-read live and judged by `merge_train.py`'s classifier,
+  the mandate through `budget_raise_gate`'s
   own reader, action-pin drift. When: run BY a watcher seat on a ~4-minute
   loop — never inline in the orchestrator's turn, whose cron firings skip
   while a turn runs (measured: ticks skipped for hours during one diagnosis
