@@ -9,36 +9,59 @@ trigger (three or more instances) is met for the second consecutive round: R9 re
 
 ## 1. Named cause
 
-An obligation was recorded as a **level over append-only history**, under a key no
-closer can match. `cloud_relay.sh` appends OWED rows to its log; `orchestrator_tick.py`'s
-`relay_owed`, the log's one reader, reads the whole log and keys each row on `f[2]`,
-while a `POSTED` row keys on a PR number. The rule that reaches every case is the
+As main stood at `1ebc737e7`, an obligation was recorded as a **level over append-only
+history**, under a key no closer could match. `cloud_relay.sh` appended OWED rows to its
+log; `orchestrator_tick.py`'s `relay_owed`, the log's one reader, read the whole log and
+keyed each row on `f[2]`, while a `POSTED` row keyed on a PR number. The paragraphs below
+describe that tree; what `b38c6431a` changed follows them. The rule that reaches every case is the
 writer set: every line of `cloud_relay.sh` that appends an OWED row (`logline OWED`, a
-call of `owed`, or a literal `printf 'OWED ...'`). It returns ten writers in two
-grammars:
+call of `owed`, or a literal `printf 'OWED ...'`). At `1ebc737e7` it returned ten
+writers in two grammars:
 
 - **PR-keyed, cleared by `POSTED`**: the three `owed` calls of the verdict relay
   (`OWED <utc> <pr> <sha|-> <why>`) and `reviewer-fire` (`OWED reviewer-fire <pr> <sha>
   <nonce> <utc>`, written without `logline`, so its `f[2]` is the PR as well).
-- **Kind-keyed, never cleared**: `logline OWED "<kind> ..."` puts the kind token at
-  `f[2]`, for five kinds. Two are **levels**, re-appended every pass until disposed:
+- **Kind-keyed, never cleared** at `1ebc737e7`: `logline OWED "<kind> ..."` puts the
+  kind token at `f[2]`, for five kinds. Two are **levels**, re-appended every pass until disposed:
   `probe-ref` (`probe_arm`) and `handoff-no-pr` (`handoff_arm`'s last loop); the board
   replays their history. Three are **one-shot events** inside `handoff_arm`'s update
   path: `handoff-update`, `approve-held-runs` and `dispatch` (two writers); each stays
   OWED forever, even after the PR's own `POSTED`.
 
 `dev/audit/harnesses/r10_relay_owed_class_reach.py` builds one row per writer from the
-writer's own text, writes the level kinds twice and a `POSTED` for every PR, and runs the
-production `relay_owed` unmodified over it: of the 10 writers, the 4 PR-keyed print 0
-lines (the null control) and the 5 kind-keyed kinds print 8. The search for other
+writer's own text, simulates two passes and a `POSTED` for every PR, and runs the
+production `relay_owed` unmodified over it, classifying each row by what that tick does
+with it. At `1ebc737e7`: of 8 event writers, 4 are cleared by their PR's `POSTED` (the
+three `owed` calls and `reviewer-fire`, the null control) and 4 lines stay uncleared
+(`handoff-update`, `approve-held-runs`, `dispatch` twice); the 2 levels print 4 lines for
+2 items. The search for other
 readers of the same log, every `*.py`, `*.sh` and `*.mjs` naming `cloud-relay.log` or
-`relay_log`, returns only `cloud_relay.sh` and `orchestrator_tick.py`; the cause has no
-third site. The cause therefore reaches every kind-keyed kind, levels and events alike,
-not only `handoff-no-pr`. For `handoff-no-pr` the board printed **31,303 `-> OWED:`
+`relay_log`, returns only `cloud_relay.sh` and `orchestrator_tick.py` outside
+`dev/audit/harnesses/` (whose two harnesses replay it), at `1ebc737e7` and at this
+record's head; the cause has no third site. At `1ebc737e7` the cause therefore reached every
+kind-keyed kind, levels and events alike, not only `handoff-no-pr`. For `handoff-no-pr` the board printed **31,303 `-> OWED:`
 lines over 236 refs** at 18:18Z, of which **179 refs already had a pull request**; a
 merged and disposed ref (`r10-trust-relative`, #2435) still printed 144. The live
-obligation was 12. The orchestrator could not read a queue in a level that grows by a
+obligation was 12. The orchestrator could not read a queue in a level that grew by a
 pass's worth of history every pass.
+
+**Landed at the merge base: `b38c6431a`** (group `R10-TICK-OWED-LEVEL`, #2547, merged by
+`295c874e8`). The levels moved to `<log>.level`, which each relay pass rewrites per kind
+through `level_set` (a disposal drops its line at once), and `relay_owed` prints that
+file as is. Log events are keyed on their PR, the first all-digit field of `f[1:4]`, so
+the three one-shot kinds are now cleared by their PR's `POSTED`; an OWED naming no PR is
+an older writer's level copy, skipped and counted. The same harness at this record's
+merge base and head: 8 of 8 events cleared, 0 uncleared, and the 2 levels print 2 lines
+for 2 items. The one-shot keying and the replay are therefore closed in the tree this
+record merges into.
+
+**What remains of the first cause** is the level's closer set. `handoff_arm` drops a
+`handoff-no-pr` line only when the ref's topic is in the open-PR list (`gh pr list
+--state open`), when the ref is disposed at its sha, or when the ref is gone from
+`ls-remote`. A topic whose PR merged or closed, a tip already inside `main`, and a
+change `main` carries by content all stay owed until someone disposes them. That is
+group `R10-FLY-ORPHANS-REWRITTEN`'s brief, which measured 5 merged handoffs reported
+OWED until archived.
 
 The second cause is an **availability defect**: `orchestrator_tick.py`'s earlier `orphans`
 arm treated `bus.sh orphans`' exit 1 — the instrument's contract for "a stranded ref
@@ -194,8 +217,9 @@ different states and are not averaged in:
 - `cost(countermeasure, recurring)`: the machinery design §6.8 prices the obligations
   ledger at **~5 s per pass** (~300 lines). At the tick's 300 s nominal cadence that is
   5 s x 12/h = 60 s/h, or **2.4 h over a six-day round**; at the measured achieved
-  cadence (198 passes/24 h) it is **1.65 h**. It also replaces the 4,073,591-byte board
-  write each pass: 4.07 MB x 8.25/h ≈ 34 MB/h, about 0.81 GB/day.
+  cadence (198 passes/24 h) it is **1.65 h**. The 4,073,591-byte board write each pass
+  (4.07 MB x 8.25/h ≈ 34 MB/h, about 0.81 GB/day) was the defect's cost at `1ebc737e7`;
+  `b38c6431a` already removed the replay behind it, so the ledger is not credited with it.
 - `cost(defect)`: **5.13 seat-hours**, quoted, not verified. The R9 RCA
   (`dev/audit/rca/R9-ORPHAN-HANDOFF.md`) takes it from its brief: a fresh opus seat spent
   `duration_ms` 18482463 re-implementing `r9-ux-10` before finding the orphan. That record
@@ -218,19 +242,19 @@ design already specifies.
 
 This extends the machinery design's §6.3 obligations ledger; it is **not a second
 ledger**. Every relay OWED kind becomes a derived or keyed obligation, never an
-accumulated row. The extension:
+accumulated row. `b38c6431a` landed that for the relay's own kinds (§1): the events are
+keyed on their PR and the levels are a rewritten file. The extension's still-owed parts:
 
-1. **Derive the open set, not the history, for every kind §1's writer set returns.** The
-   two levels are derived each pass from the live world: for each `handoff/<topic>` and
+1. **Close the level from the live world.** The level is already a rewritten set
+   (`b38c6431a`); its closers are not yet complete. For each `handoff/<topic>` and
    `handoff-body/<topic>` subject (`handoff-no-pr`), the closer is a pull request at
-   `fix/<topic>` or `fix/<topic>-pr`, the tip inside `main` or a live `fix/` head, a
-   disposition at the current sha, or `subject-absent`; for each non-`rev-` `probe/*` ref
-   (`probe-ref`), a disposition at the current sha or `subject-absent`. The three one-shot
-   kinds (`handoff-update`, `approve-held-runs`, `dispatch`) are events keyed on their PR,
-   closed by that PR's next successful update, held-run approval or dispatch, or by the PR
-   closing. The PR-keyed `owed` rows and `reviewer-fire` keep the grammar they have. The
-   31,303-line history collapses to the live set (12 `handoff-no-pr` at 18:00Z). This is
-   §6.3's own fix for S1, applied to every kind rather than one.
+   `fix/<topic>` or `fix/<topic>-pr` in any state, the tip inside `main` or a live `fix/`
+   head, a disposition at the current sha, or `subject-absent`; the relay today closes
+   only on an open pull request, a disposition or a vanished ref (§1). For each non-`rev-`
+   `probe/*` ref (`probe-ref`), a disposition at the current sha or `subject-absent`,
+   which the relay already does. The events keep `b38c6431a`'s grammar, keyed on their PR
+   and closed by its `POSTED`; the ledger that replaces the relay's log scan must keep
+   that grammar.
 2. **Age and escalate.** Each derived obligation carries `age_h` (from the tip's commit
    time, which `bus.sh`'s ORPHAN line already prints), `deadline`, `repair` and `group`.
    At **24 h or more** the board prints `DISPATCH: <group> <ref> opener`, oldest first —
@@ -306,20 +330,19 @@ countermeasure, not an addition to it.
 - The class's `rca` citation in `dev/audit/config/bugclasses.json` now names this record
   beside `R9-ORPHAN-HANDOFF`, with an `_rca` entry `N-orphaned-handoff` whose
   `in_tree_home` is this file (the change that lands it).
-- §1's first cause is owned by roster group `R10-TICK-OWED-LEVEL`, whose brief states the
-  level/event split for `handoff-no-pr` and `probe-ref`; that the three one-shot kinds are
-  keyed on the kind token and never cleared by their PR's `POSTED` is the part the
-  brief does not yet state, and the pull request of this record lists it for the
-  orchestrator to carry there. The ledger in §5 supersedes it when built, and the two must
-  agree on the grammar.
+- §1's first cause was closed for the events and the replay by `b38c6431a`
+  (`R10-TICK-OWED-LEVEL`, done, #2547), including the three one-shot kinds; nothing is
+  carried for them. The level's remaining closers (§1, §5.1) are the brief of
+  `R10-FLY-ORPHANS-REWRITTEN`, and the ledger in §5 must keep the landed grammar when it
+  replaces the relay's log scan.
 - The machinery design (`dev/audit/design/orch-machinery/DESIGN.md` at `09174d94`, §6.3
-  and §6.4) is the destination for §5.1–§5.3 and §5.6; §5.5 is a new kind the design
-  must add, and §5.4 is a `bus.sh` content-arm defect it must fix. Group
-  `R10-ORCH-MACHINERY`'s brief carries the extension ("Ledger extension owed").
-- §3's (d) observation belongs to the §6.4 record verifier, the roster-sync step
-  `R10-ORCH-MACHINERY` builds: pin the brief at handoff and compare it on a later pass.
-  It was carried to `R10-ROSTER-OPS`, which is done (#2513) and dispatches nothing; the
-  pull request of this record lists it for the orchestrator to re-carry to
-  `R10-ORCH-MACHINERY`, since the roster is the orchestrator's to write.
+  and §6.4) is the destination for §5.2, §5.3 and §5.6, and §5.5 is a new kind the design
+  must add. Group `R10-ORCH-MACHINERY`'s brief carries the extension ("Ledger extension
+  owed"). §5.1's remaining closers and §5.4's content-covered close are
+  `R10-FLY-ORPHANS-REWRITTEN`'s brief: the relay takes `bus.sh orphans`' classifier for
+  `handoff-no-pr`, and that classifier's M arm stops requiring a byte-identical file.
+- §3's (d) observation belongs to the §6.4 record verifier: pin the brief at handoff and
+  compare it on a later pass. It is in `R10-ORCH-MACHINERY`'s carry (re-carried from
+  `R10-ROSTER-OPS` by #2554).
 - The 24 h and 48 h thresholds are tvofi's; this record names the state they address and
   does not set them.
