@@ -77,12 +77,12 @@ def _tight(*a, **kw):
 
 
 def winner(objective, candidates, bounds, args=(), maxiter=300,
-           batch_objective=None, fd_eps=1e-4, **kw):
+           batch_objective=None, **kw):
     best = REAL_MS(objective, candidates, bounds, args, maxiter,
-                   batch_objective, fd_eps, **kw)
-    memo = OM._memoized_value_and_gradient(batch_objective, bounds, fd_eps, {})
+                   batch_objective, **kw)
     with mock.patch.object(OM, "_scoped_minimize", _tight):
-        out = OM._lbfgsb_restart(best, objective, bounds, args, maxiter, memo)
+        out = OM._lbfgsb_restart(best, objective, bounds, args, maxiter,
+                                 batch_objective, {})
     STAT["polish"] += 1
     STAT["adopted"] += out is not best
     return out
