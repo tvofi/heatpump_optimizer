@@ -8218,6 +8218,43 @@
     "branch": null
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. worktree_gc.sh must leave alone a worktree holding an unpushed commit, as its header promises (the carry has the instance). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
+  },
+  {
+   "group": "R10-FLY-DAEMONIZE-ARGV",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "XS",
+   "issues": [
+    2505
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/daemonize.py"
+   ],
+   "carry": [
+    "From #2524: `tools/audit/seat/daemonize.py` runs its own self-test when `--self-test` appears anywhere in argv (`if \"--self-test\" in sys.argv[1:]`), silently skipping the wrapped command. Restrict it to `argv[1]` and pin it with a self-test arm."
+   ],
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   },
+   "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. daemonize.py runs its self-test when --self-test appears anywhere in argv; restrict it to argv[1] and pin it. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   }
  ]
 }
