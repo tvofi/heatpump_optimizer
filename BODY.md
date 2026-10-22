@@ -42,6 +42,16 @@ Part of #2495. Group R10-CI-LAYOUT-P2, sub-PR **P2a, "umbrella engine, inert"** 
 - `r10_ci_gate_core.py replay --no-b3-fill` gives `rc 1; output DIFFERS`: exactly the two push rows go BAD. `b3 --plant` gives `parity RED`. So the IDENTICAL comparison can fail.
 - Each entities pin carries in-file plants: three for the REQUIRED pin and five for the forgery pin. A reader that compares nothing fails its own check.
 
+## Decisions
+
+Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
+1. `ghapi.get(path, params=None, headers=None)`: the `headers` argument is additive, and the contract's two-argument form stands. `alert_list.bind` forwards the SARIF `Accept` header through it.
+2. `gate.py --sweep` imports `tools/ci/sweep.py` directly, and the `sweep-unavailable` fallback is removed. Mutant `gate-3` is re-targeted to delete the bound dispatch.
+3. alert_list's mutants stay in `tools/ci/alert_list_mutants.sh`, wired as their own `instrument-self-tests` step, and are not duplicated into `r10_seat_selftests_mutants.py`.
+4. `tools/audit/seat/tmp_paths.py` gains an `ALLOW` entry for `ci_probe.py`'s self-test fixture, the scratch path its dismissal check must refuse.
+5. `tests/closure.py` drops the per-file lines under `tools/ci/` (U0b's and U9c's `GATE_FILES` lines and U6-lib's `INERT` lines), because U0a's `tools/ci/` prefix classifies them.
+6. The forgery pin also requires every workflow to declare top-level `permissions:`, so no job falls back to the repository's default token.
+
 ## Figures
 
 - Self-tests, each `python3 -I <file> --self-test` with the 3.14.7 seat venv:
