@@ -1,4 +1,0 @@
-PR #2608 head 63ca4f334fb53de641058dd9139be57021604e92 (fix/audit-r10-roster-12), open
-aa38bdd5f is ancestor of #2608 head
-1
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

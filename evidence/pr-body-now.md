@@ -56,9 +56,9 @@ https://claude.ai/code/session_019vzytMQit4jU5q31MVSTRF
 
 ## Head
 
-`5a3c5d2395043b7ce9f82b383be350356c9d5864` merges the authored code head `7bd9c8f3e7f909413f052a29dff4ec1ff094d4a6` and then merges origin/main `6c8903a44` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`4eed14bd8a6b0691235d2c9ce601aba465c93a1d` merges origin/main `543c8087c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`e0725a9ede5b282b7097e8f0d31fbfc58ab72415` merges the authored code head `7bd9c8f3e7f909413f052a29dff4ec1ff094d4a6` and then merges origin/main `6c8903a44` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`5a3c5d2395043b7ce9f82b383be350356c9d5864` merges the authored code head `7bd9c8f3e7f909413f052a29dff4ec1ff094d4a6` and then merges origin/main `6c8903a44` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head. The pushed head is that commit plus one further base merge of origin/main (no code change), applied with this body.
 
 `7bd9c8f3e7f909413f052a29dff4ec1ff094d4a6`. Its first parent is `75910213b`, a merge of `origin/main` at `cd4aaed44b9000057aeff01ee3df9f80dbec8aad` (v7.0.3; tip read 2026-10-22T10:42Z) into the round-1 code head `6712698aeaf98cca27402f7ab96fef3dd95415b1`. That merge brought only the stamp: `VERSION`, the manifest, `RELEASE_NOTES.md`, the claim files, the card and the D6 claims.
 
@@ -128,7 +128,17 @@ X1 through X5 are the reviewer's surviving mutants from round 1, with their subs
 
 ## Red checks
 
-`none` at this head: the handoff opens no pull request, so no CI has run on it. `nightly-status` grades `main`'s newest nightly run. Under F7 the `stable` lane will keep going red at about the RCA's rate after this merges, until R10-NIGHTLY-HB-RESPAWN lands.
+At head `5a3c5d2395043b7ce9f82b383be350356c9d5864`, two checks are red. Under F7 the `stable` lane will keep going red at about the RCA's rate after this merges, until R10-NIGHTLY-HB-RESPAWN lands.
+
+- `pr-contract`, jobs 119788366283 (11:06:41Z), 119788564469 (11:07:12Z) and 119800865122 (11:36:33Z). Log line: `BAD-DEST ... R10-NIGHTLY-HB-RESPAWN is not a group of the roster`.
+  - Cause: `pr-contract` reads the roster from the PR tree, and the group reached main only with #2608 (`543c8087c`, 11:33:58Z). The third job (11:36:33Z) ran on a tree that still lacked it.
+  - Cheaper detector: `python3 -I tools/audit/carry_audit.py check --body <file>` run against the head tree before the push. Standing cost: about 0.1 s per run. F13 ran it against main's roster and found this destination bad, and the route was left open on purpose rather than worked around.
+  - Resolution: the base merge of origin/main that the orchestrator applies with this body brings the roster that carries the group.
+  - Carry: dismissed: resolved by #2608 plus this base merge; no remaining work.
+- `nightly-status`, job 119788368909. Log line: `NIGHTLY ABSENT: no scheduled run of the workflow was found at all.`
+  - Cause: the check grades `main`'s nightly lanes, and the log says the schedule did not fire (GitHub disables schedules on repositories with no recent activity). This diff changes `tests/nightly_ha.py` and its pins and reaches nothing the check reads. It is not a required context on `main-protect`, and its own log says a cause outside this repository is answered by naming the cause and its owner, which is done here. I ran no `workflow_dispatch` on `main`, so no run id is named.
+  - Cheaper detector: none is owed for a check that reads repository-wide schedule state. Reading its log is the detector, about one API call.
+  - Carry: dismissed: the schedule not firing is GitHub's repository-activity rule and the owner's to re-enable; this diff does not reach what the check reads.
 
 ## Unpinned sites
 
