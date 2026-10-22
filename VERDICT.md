@@ -1,79 +1,72 @@
-Fix review: blocked 7651b942166e994a29d4b2178ba551ac43565b73 mutation-vacuous: the real lane's 5 s py-spy cut is unpinned, LoopHeartbeat spy_timeout default set to 30.0 passes all 2394 entity checks
+Fix review: merge 5a3c5d2395043b7ce9f82b383be350356c9d5864
 
-bus-nonce: 8e37448d9ee66b51b88aa5a9afe4b92e
+bus-nonce: 8cb0599cdfd5ab2d2f2c84e292448039
 
-Round 1 (first review) of PR #2605, group R10-NIGHTLY-PYSPY-RETRY, measured at head `7651b942166e994a29d4b2178ba551ac43565b73`. I re-read that head on the remote just before writing this verdict. The role contract under `dev/governance/roles/` is current: the diff of the merge base against origin/main there is empty.
+This is round 2, the first re-review, of PR #2605, group R10-NIGHTLY-PYSPY-RETRY. I measured head `5a3c5d2395043b7ce9f82b383be350356c9d5864`, whose code head is `7bd9c8f3e`. Round 1 was `blocked mutation-vacuous` at `7651b942`.
 
-## Block
-
-- The body's first claim is "`py-spy dump --nonblocking` is cut at `PY_SPY_TIMEOUT_S` = 5 s instead of 30 s". The brief's second required mutant is "timeout removed must go red". The body's M2 mutates the `subprocess.run(... timeout=self.spy_timeout)` plumbing, and that mutant is killed. It is killed only because the stub tests pass `spy_timeout=0.5` explicitly, and M2 ignores that value.
-- The real heartbeat boot passes no `spy_timeout`: `_async_check_hb` calls `_async_hb_control(checks)`, which calls `_async_hb_measure` and then `LoopHeartbeat(...)`. So the production cut is the constructor default at `tests/nightly_ha.py:1901`, `spy_timeout=PY_SPY_TIMEOUT_S`.
-- Mutant X5 changes that default to `spy_timeout=30.0`. That puts the real lane's cut back at the base's 30 s. **The full `tests/entities.py` still prints `ALL 2394 ENTITY CHECKS PASSED`, rc=0** (`ev/entities-x5.txt`). The PR's own mutant harness, rerun with my substitution, says the same: `X5-dump-default-30 SURVIVED` (`ev/mutants-reviewer.txt`).
-- With X5 in place, the body's worst-case figures are no longer true for the real lane. A hung episode would cost up to 3 × 30 s of sampling, not ≈ 22 s, and every check stays green. Mutant X2, `PY_SPY_TIMEOUT_S = 25.0`, also survives, because `entities.py` pins only `PY_SPY_TIMEOUT_S < 30`. Under X2 the whole-control bound becomes 3 × (26.25 + 1) ≈ 82 s, and nothing fails.
-- Repair, small and local:
-  - Pin the constructor default to the constant, for example `inspect.signature(LoopHeartbeat).parameters["spy_timeout"].default is PY_SPY_TIMEOUT_S`, or drive one stub try with no `spy_timeout` passed.
-  - Pin the body's stated whole-control bound `HB_CONTROL_TRIES * (HB_CONTROL_HOLD_S + HB_CONTROL_REST_S)` under the base's 30 s, or under whatever figure the body states.
-  - Then re-run the mutant harness with X2 and X5 added as named mutants.
+I re-read the remote `refs/heads/fix/r10-nightly-pyspy-retry` just before writing, and it is still this SHA. The role contract is current: the diff of the merge base against origin/main is empty under `dev/governance/roles/`, both at `6c8903a44` and at the new main `543c8087c`.
 
 ## Findings
 
-- Mutation-vacuous: the real lane's py-spy timeout is unpinned. X5 (the `LoopHeartbeat` default `spy_timeout=30.0`) and X2 (`PY_SPY_TIMEOUT_S = 25.0`) survive every check, as set out under Block. The fixer pins the default and the stated worst case on this PR, then re-runs steps 2 to 8. Carry: R10-NIGHTLY-PYSPY-RETRY
-- Residual without a durable owner. The per-process py-spy hang still leaves the `stable` false-red rate where it was, ≈ 6.7 % per the RCA. The body measures this and discloses it (F6, F7, F10). Its Forward-carry routes it to R10-NIGHTLY-PYSPY-RETRY, the group this PR closes. `carry_audit` accepts that only because the group is open now; at merge the orchestrator would record it done and the residual would have no owner.
-  - The group's resume must not go to `done` at this merge. It must be re-scoped as a design call among (a) inconclusive-on-timeout, which changes what the check asserts and so is the owner's call, (b) re-run the heartbeat container on a py-spy timeout, and (c) a longer non-blocking timeout.
-  - Alternatively, the orchestrator registers a new design group and moves this carry there before the merge.
-  - The red still blocks every PR through `nightly-status` and `pr-contract` (train 16).
+- **`pr-contract` stays red until the branch carries main's roster.** Roster PR #2608 merged at 11:33:58Z as `543c8087c`. Against that main, `carry_audit.py check` over the body prints `3 routed, 0 unrouted, 0 bad destination(s)`. But all three `pr-contract` runs at this head, including the one at 11:36:01Z after #2608 merged, read the roster from this head's tree. Each fails `BAD-DEST … R10-NIGHTLY-HB-RESPAWN is not a group of the roster` (`ev/ci-red.txt`). The fix is a base merge of origin/main into the branch. That merge is clean: `merge-tree` exits 0 with tree `7e5048d0…`. It is the orchestrator's resolution delta under the carry predicate, after which `pr-contract` runs again. Carry: R10-NIGHTLY-PYSPY-RETRY
+- **The body's `## Red checks` section is stale.** It says "`none` at this head … no CI has run on it". In fact three `pr-contract` runs and `nightly-status` are red at this head.
+  - The `pr-contract` red is answered in substance under F13. It names the BAD-DEST, its cause (the group exists only on the roster branch), the cheaper detector (local `carry_audit.py`, run before the push, about 0.1 s), and that the merge must follow the roster. So I do not return `root-cause-unanswered`.
+  - The section should name the check. The orchestrator can correct that line in the body when it merges main.
   - Carry: R10-NIGHTLY-PYSPY-RETRY
-- The code comment at `tests/nightly_ha.py:289-291` overstates the mechanism. It says the control tries a FRESH spin because "whatever hangs py-spy outlives a retry inside it". A reader would infer that a fresh-spin retry does rescue. This PR's own F7 measured fresh-spin retries rescuing 0 of the 2 further samples in their episode, and the body says the retry "does not lower the ≈ 7 % false-red rate". The comment should state that the retry was measured not to rescue a real-HA hang, and what it is kept for (cost per red, slow-but-healthy samples). Carry: R10-NIGHTLY-PYSPY-RETRY
-- Two more constants are unpinned, both surviving mutants:
-  - X1: `await asyncio.sleep(rest)` replaced with `pass`, so there is no rest between tries.
-  - X3: `HB_CONTROL_TRIES = 2`, because the checks compare calls to the constant and require only `>= 2`.
-  - The body says "every new constant and branch is pinned by a mutant above (M1 to M10)", which is not true for these two. Pin them in the same push, or state in the body why their values are free.
-  - Carry: R10-NIGHTLY-PYSPY-RETRY
-- The body's "Every bound is under `HB_HANG_S` = 60 s, which `entities.py` pins" holds only for the per-spin hold: `HB_DUMP_S + PY_SPY_TIMEOUT_S <= HB_CONTROL_HOLD_S < HB_HANG_S`. The ≈ 22 s whole-control figure is not pinned. The pin in the first finding settles this; otherwise the sentence needs rewording. Carry: R10-NIGHTLY-PYSPY-RETRY
+- **Hand mutant H1 survives: `HB_CONTROL_REST_S = 1.0` → `0.0` passes every check.** The full `tests/entities.py` prints `ALL 2397 ENTITY CHECKS PASSED`, rc=0 (`ev/full/res-H1-rest-const-0.txt`). The rest pin drives `_async_hb_control(rest=1.0)` explicitly, so it pins the code path and not the lane's value. With a 0 rest, the production lane has no rest between tries. The body says "only that a rest happens is pinned". That is true of the code path, not of the lane. The body also states the length is free because F7 measured that no rest length rescues a hang, and that reason covers 0 too. No measured cost follows from a zero rest. Carry: dismissed: the body's stated reason (F7, no rest length rescues a real-HA hang) covers 0 s, and a zero rest moves no bound upward
+- **The X1 pin's power under load is not unconditional.** The body says host load "can only lengthen a run … never pass a mutant that skips the rest". The second half does not follow: load lengthens a no-rest run too, and a run lengthened to ≥ 2.2 s would let X1 pass. I measured the margin: under 4 concurrent full suites plus my null driver, X1's two tries still took 1.61 s against the 2.2 s floor (`ev/full/res-X1-no-rest.txt`). So a 0.59 s margin held at this host's heaviest load in this session. Carry: dismissed: the margin was measured to hold at 4-way load, and a false survival would show in the mutant table, not as a false red on the head
+- **The body's `## Head` section has a stale paragraph.** It names `e0725a9ede5b…`, which is not an ancestor of the head. That commit has the same tree as the head (`eccb9aed…`, `ev/head-chain.txt`), so nothing it describes differs from what I measured. Carry: dismissed: same tree as the reviewed head; the body also names the reviewed head correctly
 
 ## Evidence
 
-- Head: `ev/HEAD.txt` = `7651b942166e994a29d4b2178ba551ac43565b73`. Remote `refs/heads/fix/r10-nightly-pyspy-retry` read at that SHA just before writing.
-- Merge: `git merge-tree --write-tree origin/main 7651b942166e994a29d4b2178ba551ac43565b73` exits 0 against origin/main `04c1dd77990b97ae144e48cd29655853783532f2` and again against `cd4aaed44b9000057aeff01ee3df9f80dbec8aad`. Both write tree `00639ecc…`, there are no conflicting paths, and no claim-file driver was invoked (`ev/merge-tree.txt`).
-- `VERSION`, the manifest version, `RELEASE_NOTES.md` and `tests/golden/` are untouched by the three-dot diff. No claim file moved, so step 4 has nothing to compare.
-- `carry_audit.py check --body` over the PR body: `CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)` (`ev/carry-audit-body.txt`). The routing is valid at this moment. Whether its destination survives the merge is the second finding.
-- Mutation proof (step 1), from the PR's own harness at the head: `SUMMARY killed=10 survived=0 null=ok`, rc=0 (`ev/mutants-head.txt`). The brief's three named mutants:
-  - one attempt only: M1, KILLED;
-  - timeout removed: M2, KILLED at the plumbing, but X5 SURVIVED at the production default (see Block);
-  - any non-empty output accepted: M3, KILLED.
-- Reviewer's own mutants, run through the same harness's `block()`/`run()` (`ev/mutants-reviewer.txt`):
-  - X1 no rest: SURVIVED.
-  - X2 timeout 25: SURVIVED.
-  - X3 tries 2: SURVIVED.
-  - X4 no break: KILLED.
-  - X5 default 30: SURVIVED, and confirmed against the full `entities.py`.
-  - X6, the check reading only the last try: SURVIVED. X6 is equivalent, so it is not a finding: the loop breaks on the first all-true try, so in production the passing try is always the last one.
-- F2, failing test first, re-derived in process with my own driver at both ends; the hang-once stub hangs on call 1 (`ev/f2.txt`):
-  - base: `pass=False calls=1 elapsed=30.3s … py-spy rc=0 names it: False`;
-  - head: `pass=True calls=2 elapsed=7.1s … try 2 of 2 (at most 3)`.
-  - This matches the body's 30.4 s, 1 call / pass with 2 calls.
-- Null control, never-answer stub at the real constants, head (`ev/never-head.txt`): `pass=False calls=3 elapsed=17.9s … try 3 of 3`. The power to fail is kept: a sampler that never answers fails after exactly `HB_CONTROL_TRIES` calls. An answer without the spin (`idle`) and an answer naming it only at rc=1 (`torn`) are pinned by the committed checks, and M3, M6 and M9 show those pins bite.
-- F5, re-derived with my own runs of the PR's container harness (`dev/audit/harnesses/r10_nightly_pyspy_retry.py`). I used the RCA's image digest `sha256:33afb0659d78…` plus a `threadpoolctl` 3.6.0 layer, and the hash-verified py-spy 0.4.2 wheel (sha256 `aeb03234…`, matching `tests/requirements-nightly-ha.txt`) (`ev/container-runs.txt`):
-  - base `hang-once --runs 3`: `ok=0 fail=3`, each at `timed out after 30 seconds`;
-  - head: `ok=3 fail=0`, each at `try 2 of 2`.
-  - This matches the body.
-- Real py-spy, my reduced sample: head `--runs 10` gave `ok=10 fail=0`, all `try 1 of 1`; base `--runs 10` gave `ok=10 fail=0`. This is not a re-derivation of F6 (20 runs), F7 (60), F8 (20) or F9 (80). I did not repeat those counts, and F6 and F9 measure code that is not at this head. At a ≈ 2 % local hang rate, 10 runs separates nothing; the body says the same of its own runs.
-- Blobs: the base and the body's before-base share `tests/nightly_ha.py` blob `30f8263e…`, and the head blob is `91164340…`, matching the body (`ev/blobs.txt`).
-- Worst-case bounds, from the head's constants (`HB_DUMP_S` 0.25, `PY_SPY_TIMEOUT_S` 5, so `HB_CONTROL_HOLD_S` 6.25):
-  - The formula 3 × (6.25 + 1) = 21.75 s gives the body's "≈ 22 s". The control rests only between tries, so the tighter bound is 3 × 6.25 + 2 × 1 = 20.75 s. The never-answer run measured 17.9 s.
-  - "3 × 5 s" is `HB_MAX_DUMPS` × `PY_SPY_TIMEOUT_S`, derived and not measured.
-  - Both figures hold only while the default is wired, which is the Block.
-- F10 arithmetic re-derived: 0.07² = 0.0049, so P ≈ 0.005 per episode; 0.07⁴ = 2.4e-5; 0.93²⁰ = 0.234, so P ≈ 0.23; and 3/140 = 2.1 %. All match the body. The rule (an episode is a run whose first sample timed out) is stated, and I applied it to the body's own counts. I could not re-observe the episodes.
-- 710/710 and ≤ 0.15 s are the RCA's figures (`dev/audit/rca/nightly-ha-pyspy-timeout.md`, the synthetic self-dump in the image), quoted correctly. They come from a small synthetic process, not real HA. Real-HA first samples under 5 s: the body's 59 green F7 runs, my 10, and CI's stable lane at this head all returned within the cut.
-- Harness: the group brief names no finder harness. The RCA's "Reproduce" section is a prose recipe. The fixer turned it into `r10_nightly_pyspy_retry.py`, disclosed it as their own reconstruction, and it lands in the tree. I used it for F5 and the real runs, and my own in-process driver for F2 and the null control.
-- Class (step 6): `LoopHeartbeat.dump` is the only py-spy call site in the lane (grep over `*.py`, `*.yml`, `*.sh` outside `dev/audit` and `entities.py`), so the class is one seam.
-- CI at this head (`ev/check-runs.tsv`, 40 runs): every concluded run passed, was skipped or neutral, except `nightly-status`, and `closures` was still in progress when read.
-  - `nightly-status` is red with `NIGHTLY ABSENT: no scheduled run of the workflow was found at all` (`ev/ci-nightly-status.txt`). That check is not a required context and does not block. It grades main's nightly, not this PR's diff.
-  - `nightly-ha (stable)` at this head ran the new control: `ok hb:positive_control [… try 1 of 1 (at most 3)]`, `ALL 64 checks PASSED` (`ev/ci-nightly-stable-control.txt`).
-  - `mutation` is green, but the diff writes no production line, so that lane evaluated no mutant here.
-  - I did not re-run the heavy gate. I cite the scope reported by CI's `closure-scope` run, which is green.
-- Architecture score: CI's `arch-score` is green and the body states dS +0.0000. No budget file moved.
-- Judgement on soundness, given for the re-review:
-  - Merging a change that cannot clear the red does not mask it. The check keeps its power (null controls above), the body discloses the per-process hang in full, and the CI lane still fails on a per-process hang exactly as before.
-  - The change is sound to merge once the Block is repaired and the second finding is settled.
-- Load disclosure: the PR's mutant harness, F2 and the never-answer run ran alongside the container runs on one host.
+- Head: `ev/HEAD.txt` = `5a3c5d2395043b7ce9f82b383be350356c9d5864`. Head chain (`ev/head-chain.txt`):
+  - `a3d3c1c50` merges code head `7bd9c8f3e` into round 1's `7651b942`, and adds only the `dev/programme/delivery/2605.md` row.
+  - `5a3c5d239` then merges origin/main `6c8903a44`.
+- Round-1 Block, settled. X5 (the `LoopHeartbeat` default `spy_timeout=30.0`) and X2 (`PY_SPY_TIMEOUT_S = 25.0`) each go red in the **full** `tests/entities.py`, `1 of 2397 ENTITY CHECKS FAILED`, rc=1. The failing check is the one the body names, "the real lane cuts py-spy at PY_SPY_TIMEOUT_S, and the whole control, every try hung, is bounded under 22 s":
+  - X5 fails it with `[default spy_timeout=30.0; whole control 21.75s]`;
+  - X2 fails it with `[default spy_timeout=25.0; whole control 81.75s]`.
+  - Source: `ev/full/res-X2-timeout-25.txt` and `ev/full/res-X5-default-30.txt`.
+- Round-1 finding X1/X3, settled. X1 (`await asyncio.sleep(rest)` → `pass`) fails only "the control rests between tries…" with `[two tries took 1.61s against a 1.0s rest]`. X3 (`HB_CONTROL_TRIES = 2`) fails only "the control survives two hung samples…" with `pass=False calls=2`. Both are full-suite runs, rc=1.
+- In those runs, the indented `FAIL a3:…`, `hb:changed_save` and `hb:positive_control` lines are the suite's own negative-control output. The same lines print on the unmutated head (`ev/entities-head.txt`).
+- The PR's mutant harness at this head: `SUMMARY killed=14 survived=0 null=ok`, rc=0, `M0-null all checks pass` (`ev/mutants-head.txt`). This matches the body's table.
+- My own hand mutants, outside the PR's list, each run against the full `tests/entities.py` in its own worktree at this head (`ev/reviewer_mutants_driver.py`, `ev/mutants-summary.txt`):
+  - H2: `_async_hb_control` default `tries: int = 1`. KILLED, 5 checks.
+  - H3: `if all(hb_control_reading(...))` → `any`. KILLED, 5 checks.
+  - H4: the boot calls `_async_hb_control(checks, tries=1)`. KILLED by "the real heartbeat boot runs the retried control".
+  - H1: rest constant 0.0. SURVIVED, see Findings.
+- The whole-control bound matches the body: 3 × (0.25 + 5 + 1 + 1) = 21.75 s < 22, as printed by X5's detail at the real constants.
+  - The tighter figure 3 × 6.25 + 2 × 1 = 20.75 s is re-derived.
+  - Under the pin, PY_SPY_TIMEOUT_S ≤ 5.08 s: 3 × (t + 2.25) < 22 gives t < 5.083.
+  - 4 tries would be 4 × 7.25 = 29 s, which the pin refuses.
+- Comment (F7), settled. `tests/nightly_ha.py:289-295` at this head reads "On real HA this was measured NOT to rescue a hang … across retries inside one held spin and across fresh spins 1 s apart (R10-NIGHTLY-PYSPY-RETRY, F6 and F7)". It names R10-NIGHTLY-HB-RESPAWN for the respawn, and says what the retry is kept for.
+- The whole-control comment now states 21.75 s and names the pin.
+- F11 re-derived: `AST IDENTICAL` for blob `91164340…` against `de2bcb89…`. Round 2 changed only comments in `nightly_ha.py`, so the container figures F5 to F9 carry over (`ev/blobs-ast-version.txt`).
+- Power is kept. My own driver runs the real `_async_hb_control` at its production defaults, passing no `spy_timeout` and no `rest`, against stub py-spys (`ev/null_ctrl_driver.py`, `ev/null-control-head.txt`):
+  - never answers: `pass=False calls=3 elapsed=17.9s`, with the 5 s cut visible as a 5320 ms gap;
+  - answers rc=0 without naming the spin: `pass=False calls=3`;
+  - names it only at rc=1: `pass=False calls=3`;
+  - hang, hang, spin: `pass=True calls=3`.
+  - The committed null-control check is also green at the head and red under H2 and H3.
+- Full suite at this head: `ALL 2397 ENTITY CHECKS PASSED`, rc=0 (`ev/entities-head.txt`). That is 2394 + 3 added checks, as the body says.
+- Merge: `git merge-tree --write-tree` exits 0 against origin/main `6c8903a44` (tree `eccb9aed…`, equal to the head's tree) and against the newer main `543c8087c` (tree `7e5048d0…`). No conflicting paths, and no claim driver invoked (`ev/merge-tree.txt`). The 15 commits main gained touch only `dev/programme/rosters/wave-r10-groups.json` among this PR's surroundings.
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched three-dot. CI's `pr-contract` prints "no version edit". No claim file moved.
+- Carry (`ev/carry-audit-body.txt`, `ev/roster-2608.txt`):
+  - `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body` (`aa38bdd5f`) prints `3 routed, 0 unrouted, 0 bad destination(s)`.
+  - The same holds against #2608's head `63ca4f33`, which contains `aa38bdd5f`, and against main `543c8087c` now that #2608 has merged.
+  - Against the old main it prints `2 routed, 0 unrouted, 1 bad destination(s)`, as F13 states.
+  - R10-NIGHTLY-HB-RESPAWN is on main's roster as queued and `after` R10-NIGHTLY-PYSPY-RETRY. Its brief states the control as a precondition: "a stub that never answers, or answers without naming the spin, still fails hb:positive_control after the respawn".
+  - The Forward-carry line names the roster path and #2608.
+- CI on this head (`ev/check-runs.tsv`, 42 runs, read 11:48Z): 39 success or skipped, and every workflow has concluded. These are green: `arch-score`, `closures`, `closure-scope`, `mutation`, `nightly-ha (stable)`, `nightly-ha (2025.2.0)` and `budget-raise-gate`.
+  - The three `pr-contract` reds are the BAD-DEST in the first finding.
+  - `nightly-status` is red, `NIGHTLY ABSENT: no scheduled run of the workflow was found at all`. Per its own log it is not a required context and does not block. It grades main's schedule, not this diff (`ev/ci-red.txt`).
+  - I did not re-run the heavy gate or the mutation table. I cite CI.
+- Figures re-derived here:
+  - 14/0 mutants, 2397 checks, 21.75 s, 20.75 s, 5.08 s, 29 s;
+  - blob identities and the AST;
+  - F13's two carry lines;
+  - F2's and F10's arithmetic (round 1);
+  - X1's margin: 1.61 s here against the body's 1.603 s.
+- Figures I could not re-derive: the body's unmutated `late=2.604` s (F12). The suite prints no detail on an `ok` line, so I verified the floor only by the head passing it.
+- Figures not re-taken this round: F5 to F9, container runs at round 1's blob, which has an AST identical to this head's. Round 1 reproduced F5 at both ends, and the real-py-spy counts F6, F7, F8 and F9 are the fixer's.
+- Load disclosure: the eight full-suite mutant runs ran four at a time on a 4-core host. My null driver ran alongside the first four.
+- Environment: this seat's `python3` resolved to `/usr/local/bin/python3` without numpy. I prefixed `/opt/hpo/venv-ci/bin`, as the fixer reported.

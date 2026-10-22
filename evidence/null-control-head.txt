@@ -1,0 +1,4 @@
+RESULT never-answers(real 5s cut): pass=False calls=3 elapsed=17.9s detail='a 600 ms spin read as 5320.0 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+RESULT answers-without-spin: pass=False calls=3 elapsed=4.4s detail='a 600 ms spin read as 600.3 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+RESULT rc1-only: pass=False calls=3 elapsed=4.4s detail='a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)'
+RESULT hang-hang-spin: pass=True calls=3 elapsed=13.4s detail='a 600 ms spin read as 600.3 ms; dump names the spin: True; py-spy rc=0 names it: True; try 3 of 3 (at most 3)'

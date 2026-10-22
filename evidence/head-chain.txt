@@ -1,0 +1,14 @@
+e0725a9ede5b282b7097e8f0d31fbfc58ab72415 a9aa27c6d0da9ddd518b919466166d273e91c351 6c8903a44ca294bb5c59e440d163eacf13128eab Merge remote-tracking branch 'origin/main' into fix/r10-nightly-pyspy-retry
+e0725a9e NOT ancestor of head
+tree(e0725a9e)=eccb9aedfbe9e584375dab04581c68c231cbf071 tree(head)=eccb9aedfbe9e584375dab04581c68c231cbf071
+diff 7bd9c8f3e..a3d3c1c50 (resolution inside code head merge):
+ dev/programme/delivery/2605.md | 1 +
+ 1 file changed, 1 insertion(+)
+diff a3d3c1c50..5a3c5d239 restricted to PR paths:
+ dev/audit/harnesses/r10_nightly_pyspy_retry.py     |  94 +++++++++++++++
+ .../harnesses/r10_nightly_pyspy_retry_mutants.py   | 110 +++++++++++++++++
+ dev/programme/delivery/2605.md                     |   1 +
+ tests/closures.json                                |   2 +
+ tests/entities.py                                  | 130 ++++++++++++++++++++-
+ tests/nightly_ha.py                                | 111 ++++++++++++++----
+ 6 files changed, 422 insertions(+), 26 deletions(-)
