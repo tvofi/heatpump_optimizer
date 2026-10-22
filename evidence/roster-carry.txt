@@ -1,0 +1,5 @@
+== origin/main 1602f934261958321b6e7dfaceb749188705c7b5
+== origin/handoff/audit-r10-roster 306a96d5f21f7876070d48c194fd4be99b64022c
+{"stage":"not-started","carry":["Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-contract's \"Read the body off th","From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installation, and the carry path's `gi"],"census_or_alternative":false}
+== origin/fix/audit-r10-roster-pr ad10fd2153c6c8fe2e1d56c8b0302c5b057cc37a
+{"stage":"not-started","carry":["Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-contract's \"Read the body off th","From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installation, and the carry path's `gi"],"census_or_alternative":false}

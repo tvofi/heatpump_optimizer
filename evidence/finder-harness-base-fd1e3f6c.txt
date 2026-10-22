@@ -24,9 +24,7 @@ X4 5xx not transient: rc=1 app_approve self-test: 218 checks, 11 failed KILLED
      FAIL after one settle of 5 s (got '0', want '1')
      FAIL and the settle is printed, never implied (got '0', want '1')
 X4b only 50x transient: rc=0 app_approve self-test: 218 checks, 0 failed SURVIVED
-X5 every 403 transient: rc=1 app_approve self-test: 218 checks, 3 failed KILLED
-     FAIL REFUSE: a permission 403 on the files read (got '0', want '1')
-     FAIL after exactly 1 call (got '2', want '1')
+X5 every 403 transient: rc=1 app_approve self-test: 218 checks, 1 failed KILLED
      FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
 X6 403 branch deleted: rc=1 app_approve self-test: 218 checks, 3 failed KILLED
      FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
@@ -78,3 +76,4 @@ X21 loop retries non-transient (drop !): rc=1 app_approve self-test: 218 checks,
      FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
      FAIL after one settle of 5 s (got '0', want '1')
 X22 transport anchor dropped: rc=0 app_approve self-test: 218 checks, 0 failed SURVIVED
+rc=0
