@@ -116,6 +116,11 @@ MUTANTS = [
     ("S38", "merge_pr.sh",
      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
      "exit 0  # mut:merge"),
+    # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
+    ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
+    ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
+    ("ci_probe-3", "ci_probe.py", "if login != OWNER:", 'if login == "":'),
+    ("ci_probe-4", "ci_probe.py", "if repo != REPO:", "if False:"),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',

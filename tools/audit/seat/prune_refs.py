@@ -89,17 +89,19 @@ SELF = "tools/audit/seat/prune_refs.py"
 ARCHIVE_PREFIX = "archive/"
 HANDOFF_PREFIX = "handoff/"
 VERDICT_PREFIX = "verdict/"
+CI_PROBE_PREFIX = "ci-probe/"
 MAIN_REF = "main"
 
 # Every rule label the classifier can return, and the action each maps to.
 KEEP = "keep"
 DELETE_MERGED = "delete-merged-into-main"
 DELETE_HANDOFF_PR = "delete-handoff-pr-merged"
+DELETE_CI_PROBE = "delete-ci-probe"
 RESIDUE_CLOSED = "residue-closed-pr"
 RESIDUE_NONE = "residue-no-pr"
 
 _KEEP_RULES = {KEEP}
-_DELETE_RULES = {DELETE_MERGED, DELETE_HANDOFF_PR}
+_DELETE_RULES = {DELETE_MERGED, DELETE_HANDOFF_PR, DELETE_CI_PROBE}
 _RESIDUE_RULES = {RESIDUE_CLOSED, RESIDUE_NONE}
 
 
@@ -215,12 +217,18 @@ def classify(name: str, sha: str, prs: dict, main_reachable: set,
     the ref being the branch of a roster group the roster records as done --
     the head that merged superseded it even when the PR rode another branch.
     `done_branches` carries the second, from `--roster-file`.
+
+    A `ci-probe/*` ref (ci_probe.py's namespace) is deletable once no open pull
+    request has it as its head, whatever its tip: the open-PR keep above is the
+    only thing that holds one.
     """
     if name == MAIN_REF:
         return KEEP
     slot = prs.get(name) or {}
     if slot.get("open"):
         return KEEP
+    if name.startswith(CI_PROBE_PREFIX):
+        return DELETE_CI_PROBE
     if sha in main_reachable:
         return DELETE_MERGED
     if name.startswith(HANDOFF_PREFIX) and (slot.get("merged")
@@ -260,13 +268,17 @@ def plan(refs: dict, prs: dict, main_reachable: set, *, archive_scope: str,
         rows.append((name, refs[name], family_of(name), rule, action))
 
     tags, deletes = [], []
-    for name, sha, _fam, _rule, action in rows:
+    for name, sha, _fam, rule, action in rows:
         if action != "archive-delete":
             continue
         # A deletion is safe only once its tip is preserved: as a tag (all /
         # orphans) or because the tip already lives in main. `none` archives
         # nothing and therefore deletes nothing -- it is the preview arm.
         if archive_scope == "none":
+            continue
+        if rule == DELETE_CI_PROBE:
+            # a probe ref is throwaway, cited by no brief: deleted without a tag
+            deletes.append(("delete", name, sha))
             continue
         if archive_scope == "all" or sha not in main_reachable:
             # A tag is permanent: one naming this host is refused, plan and all,
@@ -420,6 +432,22 @@ def self_test() -> int:
                      keep_residue=True, verdicts_drained=True)
     _check("keep-residue keeps a no-PR ref",
            "verdict/1" not in {a[1] for a in plan_keep["actions"]}, results)
+
+    # the ci-probe/ family: deletable unless an open PR has it as head
+    _check("a ci-probe ref with no PR deletes",
+           classify("ci-probe/a", orphan_sha, {}, reachable) == DELETE_CI_PROBE, results)
+    _check("a ci-probe ref with a closed PR deletes",
+           classify("ci-probe/a", orphan_sha, {"ci-probe/a": {"open": [], "merged": [], "closed": [4]}},
+                    reachable) == DELETE_CI_PROBE, results)
+    _check("null: a ci-probe ref that is an open PR's head keeps",
+           classify("ci-probe/a", orphan_sha, {"ci-probe/a": {"open": [4], "merged": [], "closed": []}},
+                    reachable) == KEEP, results)
+    _check("null: a probe/ ref (cloud_relay's) is not the ci-probe family",
+           classify("probe/a", orphan_sha, {}, reachable) == RESIDUE_NONE, results)
+    plan_probe = plan({"ci-probe/a": orphan_sha, "ci-probe/b": orphan_sha}, {"ci-probe/b": {"open": [4]}},
+                      reachable, archive_scope="all", keep_residue=True, verdicts_drained=False)
+    _check("the planner deletes the closed probe ref untagged and keeps the open one, even with --keep-residue",
+           plan_probe["actions"] == [("delete", "ci-probe/a", orphan_sha)], results)
 
     # refusal arm: a verdict ref not drained
     raised = False
