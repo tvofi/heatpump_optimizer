@@ -33,6 +33,7 @@ import os
 import string
 import sys
 import tempfile
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -17964,7 +17965,7 @@ _HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nigh
 def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
     c = _nightly.Checks()
     _nightly.check_hb_positive_control(
-        c, {"max_gap": gap, "ticks": 9, "dumps": [dump]}
+        c, [{"max_gap": gap, "ticks": 9, "dumps": [dump]}]
     )
     return "hb:positive_control" not in c.failures()
 
@@ -17977,6 +17978,133 @@ R.check(
     and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
     and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
     "check_hb_positive_control arms",
+)
+
+
+def _hb_tries(*tries: tuple[float, str]) -> bool:
+    c = _nightly.Checks()
+    _nightly.check_hb_positive_control(
+        c, [{"max_gap": gap, "ticks": 9, "dumps": [dump]} for gap, dump in tries]
+    )
+    return "hb:positive_control" not in c.failures()
+
+
+_HB_SPIED_ONLY = "py-spy rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
+R.check(
+    "hb:positive_control passes on any one try that reads all three, and never "
+    "on three readings split across tries",
+    _hb_tries((_HB_C, "py-spy did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
+    and not _hb_tries((_HB_C, "in _hb_spin\n"), (_HB_C - 0.1, _HB_SPIED_ONLY))
+    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\npy-spy rc=1:\n")),
+    "check_hb_positive_control over tries",
+)
+
+# Countermeasure A of dev/audit/rca/nightly-ha-pyspy-timeout.md (#2479): one
+# py-spy sample that hangs must not fail the control, and samples that never
+# answer, or answer without the spin, still must. The real control runs on a
+# real loop against a stub py-spy whose k-th call answers ``answers[k]`` (the
+# last repeats); the stub counts its calls.
+_HB_SPY_T = 0.5  # the stubs' per-sample timeout; a hang outlasts it
+_HB_SPY_SAYS = {
+    "hang": "exec sleep 60",
+    "spin": "printf 'Thread 1 (active+gil)\\n    _hb_spin (nightly_ha.py:1)\\n'",
+    "idle": "printf 'Thread 1 (idle)\\n'",
+    "torn": "printf '    _hb_spin (nightly_ha.py:1)\\n'; exit 1",
+}
+
+
+def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], int, str, float]:
+    """``_async_hb_control`` against a stub py-spy: (passed, tries, calls, detail, seconds)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
+        cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        stub.write_text(
+            f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}") in\n{cases}'
+            f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
+        )
+        stub.chmod(0o755)
+        c = _nightly.Checks()
+        began = _time.monotonic()
+        tries = asyncio.run(_nightly._async_hb_control(
+            c, rest=rest, py_spy=str(stub), spy_timeout=_HB_SPY_T, dump_after=0.2,
+        ))
+        took = _time.monotonic() - began
+        made = len(calls.read_text().splitlines()) if calls.exists() else 0
+    return ("hb:positive_control" not in c.failures(), tries, made,
+            c.results["hb:positive_control"][1], took)
+
+
+_hb_once = _hb_spy_run("hang", "spin")
+_HB_REST = 1.0  # long enough that a control which skips its rest reads short
+_hb_late = _hb_spy_run("idle", "spin", rest=_HB_REST)
+_hb_twice = _hb_spy_run("hang", "hang", "spin")
+_hb_torn = _hb_spy_run("torn", "spin")
+_hb_never = _hb_spy_run("hang")
+_hb_blind = _hb_spy_run("idle")
+R.check(
+    "hb:positive_control survives one hung py-spy sample: a fresh spin answers on "
+    "try 2, the hang cut at the sample's timeout with the spin held across it",
+    _hb_once[0] and _hb_once[2] == 2 and len(_hb_once[1]) == 2
+    and "try 2 of 2" in _hb_once[3]
+    and f"timed out after {_HB_SPY_T} seconds" in "".join(_hb_once[1][0]["dumps"])
+    and 0.2 + _HB_SPY_T <= _hb_once[1][0]["max_gap"] < _nightly.HB_CONTROL_HOLD_S,
+    f"pass={_hb_once[0]} calls={_hb_once[2]} "
+    f"gaps={[round(t['max_gap'], 3) for t in _hb_once[1]]}; {_hb_once[3]}",
+)
+R.check(
+    "and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted",
+    _hb_late[0] and _hb_late[2] == 2 and _hb_torn[0] and _hb_torn[2] == 2,
+    f"idle first: pass={_hb_late[0]} calls={_hb_late[2]}; "
+    f"rc=1 first: pass={_hb_torn[0]} calls={_hb_torn[2]}",
+)
+R.check(
+    "the control rests between tries: two tries with a 1 s rest take at least the "
+    "rest plus both spins",
+    _hb_late[4] >= _HB_REST + 2 * _nightly.HB_CONTROL_S,
+    f"two tries took {_hb_late[4]:.2f}s against a {_HB_REST}s rest",
+)
+R.check(
+    "the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES "
+    "is at least 3",
+    _hb_twice[0] and _hb_twice[2] == 3 and "try 3 of 3" in _hb_twice[3],
+    f"pass={_hb_twice[0]} calls={_hb_twice[2]}; {_hb_twice[3]}",
+)
+R.check(
+    "null control: py-spy that never answers, or never names the spin, still fails "
+    "hb:positive_control after the last try",
+    not _hb_never[0] and _hb_never[2] == _nightly.HB_CONTROL_TRIES
+    and not _hb_blind[0] and _hb_blind[2] == _nightly.HB_CONTROL_TRIES,
+    f"never: pass={_hb_never[0]} calls={_hb_never[2]}; "
+    f"blind: pass={_hb_blind[0]} calls={_hb_blind[2]}",
+)
+R.check(
+    "the real heartbeat boot runs the retried control",
+    "await _async_hb_control(checks)" in _inspect.getsource(_nightly._async_check_hb),
+    "_async_check_hb no longer runs _async_hb_control",
+)
+R.check(
+    "the control's retry is bounded: each sample cut short of the old 30 s, each "
+    "spin held at most one sample's timeout, under the hang bound",
+    _nightly.HB_CONTROL_TRIES >= 2
+    and _nightly.PY_SPY_TIMEOUT_S < 30
+    and _nightly.HB_DUMP_S + _nightly.PY_SPY_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
+    < _nightly.HB_HANG_S,
+    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.PY_SPY_TIMEOUT_S}s "
+    f"hold={_nightly.HB_CONTROL_HOLD_S}s hang={_nightly.HB_HANG_S}s",
+)
+# The real boot passes no spy_timeout (pinned above), so the lane's cut is the
+# constructor default: a default of 30 s would put the base's cost back.
+_hb_whole = _nightly.HB_CONTROL_TRIES * (_nightly.HB_CONTROL_HOLD_S + _nightly.HB_CONTROL_REST_S)
+R.check(
+    "the real lane cuts py-spy at PY_SPY_TIMEOUT_S, and the whole control, every "
+    "try hung, is bounded under 22 s",
+    _inspect.signature(_nightly.LoopHeartbeat).parameters["spy_timeout"].default
+    is _nightly.PY_SPY_TIMEOUT_S
+    and "spy_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
+    and _hb_whole < 22.0,
+    f"default spy_timeout="
+    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['spy_timeout'].default}; "
+    f"whole control {_hb_whole:.2f}s",
 )
 _hb_cmd = _nightly.docker_command(
     "img", Path("/c"), Path("/d"), 9.0, ["--heartbeat-only"], caps=("SYS_PTRACE",)

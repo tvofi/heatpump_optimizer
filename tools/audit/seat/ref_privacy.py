@@ -340,6 +340,8 @@ PUSHERS = {
     ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
                                       "record/autofix or main (nightly kills), moved out of tests.yml"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
+    "tools/audit/seat/review_strength.py": ("fixture", "its one push is the --fetch self-test's, into a temp "
+                                            "bare repository; the tool itself only fetches"),
     "tools/audit/seat/pr_args.sh": ("fixture", "its self-test's stub app_push.sh pushes the branch it is given "
                                     "into a scratch origin repository; the file pushes nothing else"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
