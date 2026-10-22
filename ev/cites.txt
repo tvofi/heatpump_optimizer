@@ -1,0 +1,19 @@
+b38c6431a on main
+== tick
+304:    def bus(self) -> "tuple[int, list[str]]":
+696:    def relay_owed(self, S: str) -> None:
+283:        return r.returncode, r.stdout + r.stderr
+290:        return r.returncode, r.stdout + r.stderr
+304:    def bus(self) -> "tuple[int, list[str]]":
+307:        (rc, stdout lines): stderr is never data -- a subcommand this tree's
+336:        return r.returncode, [l.rstrip() for l in (r.stdout + r.stderr).splitlines()
+696:    def relay_owed(self, S: str) -> None:
+== relay
+98:# file of its own, then level_set makes them the whole of <kind> in <log>.level, which the
+101:level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level become that file's
+168:probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sha, any other is OWED until disposed
+188:  level_set probe-ref "$state/cloud-level-probe.$$"
+199:handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
+255:  level_set handoff-no-pr "$state/cloud-level-handoff.$$"
+== update_pr
+46:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
