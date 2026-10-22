@@ -2,89 +2,147 @@ Group: R10-FLOW-YIELD-PROBE
 
 Pinned pack file: `dev/programme/flow-study/roster/groups/R10-FLOW-YIELD-PROBE.json` at pack commit 78117030 on branch `claude/dazzling-gauss-7l3u2b`.
 
-R10-FLOW-YIELD-PROBE (owner ruling R13, expedite): why real-catch blocks per reviewed PR fell from 0.52 to 0.15, and a recommended threshold for the review-strength guardrail. The study record is `dev/audit/rounds/round10/D13/yield-probe.md`; the enumerator behind every figure is `tools/audit/seat/review_strength.py` (bus read over git only, fact strata taken `--as-of` the latest window's until, self-tested and wired into `governance.yml` `instrument-self-tests`). No production code, budget, `VERSION`, manifest or claim file is touched.
+R10-FLOW-YIELD-PROBE (owner ruling R13, expedite) asks two things: why real-catch blocks per reviewed PR fell from 0.52 to 0.15, and what threshold to recommend for the review-strength guardrail. The study record is `dev/audit/rounds/round10/D13/yield-probe.md`. Every figure in it comes from `tools/audit/seat/review_strength.py`, which reads the bus over git only, takes its fact strata `--as-of` the latest window's until, and is self-tested and wired into `governance.yml` `instrument-self-tests`. No production code, budget, `VERSION`, manifest or claim file is touched.
 
-Round 3 body, re-cut minimal under the three-round rule: the diff, the figures and the mutation table.
+This is a round-4 re-cut under fixer.md's three-round rule. The round-3 verdict blocked on a class: one-line mutants of `review_strength.py` that pass every self-test check. This round closes the class by enumeration rather than by instance:
 
-**This round's diff** (`git diff 889c39e59 573d5cbff`, `tools/audit/seat/review_strength.py` self-test only, +27 lines): seven fixture checks, 24 → 31. Plus `tests/closures.json` +1 line (commit `aba00fbf2`): the `INERT READS` entry for `tools/audit/seat/review_strength.py` under `tests/entities.py`, written by `python3 tools/pr/ci_predict.py --base origin/main --apply-inert` after the predictor predicted a `closures` red for it against `5a755f53efda`; afterwards it prints `CI PREDICT: no closures or fast red predicted against 5a755f53efda`.
-
-- PR 7 merged twice (20 lines, then 700 more) from branch `fix/r1-fix-pr`: its size reads the newest merge, `L>=600`.
-- PR 7 joins, with `-pr` stripped, to roster group R1-FIX, which lists `fixes` alone: fixer `haiku`, origin `finding`.
-- PR 7's verdict is confirmed on `verdict/7` by id `seat-7-cloud`: reviewer `cloud`.
-- A guardrail at N=3 over six PRs: the latest three (5, 6, 7) read 1/3, the oldest three (1, 2, 3) would read 2/3.
-- `as_of(main, 10-02T12Z)` resolves to first-parent `m1`, never side-branch `c2` (10-02T03Z), which is dated nearer T.
-- PR 6's branch adds 200 lines to its own delivery row: excluded, so its size stays `S<150`.
-- A verdict exactly at a window's until (PR 2's block at 04:00) is excluded.
+- **The enumerator.** `dev/audit/harnesses/r10_review_strength_mutants.py` parses the file with `ast` and yields one mutant per site per replacement, across these operator classes: ordering, comparison, branch, threshold, class word, arithmetic, statement deletion and keyword deletion. Its header states each rule. It runs every mutant against `--self-test` and exits 1 on any survivor that has no written disposition, and on any disposition that matches no survivor.
+- **The self-test.** It grows from 31 to 76 checks. The new fixture cases cover:
+  - the guardrail's ordering, ties and boundaries;
+  - a findings-only group;
+  - PRs of 149, 150, 599 and 600 lines, with binary files;
+  - `blueprints/`;
+  - an octopus merge, a one-parent merge and an evil merge;
+  - `-pr` and empty resume branches;
+  - a nonce-less verdict and archive probe tags;
+  - `main()` end to end against a hand-derived golden, plus each stratum alone, the refusals and `--fetch`.
+- **Two tool defects the sweep surfaced, now fixed.**
+  - `--as-of` earlier than a window's verdicts raised `KeyError`. Those PRs now print as their own `(unreviewed at T)` row.
+  - A block that names no class was labelled `(merge)`. It is now `(no class)`.
+- **Guardrail input order.** The guardrail now takes each PR's earliest verdict whatever order its input arrives in, and breaks ties by PR number.
+- **The real-catch list.** The study record now states the list in full, and the self-test pins `REAL_CATCH` to it.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_015LvCRXFLR1MXCcuxXZfV6R
+https://claude.ai/code/session_01DGdWepKSLE5G9a1v3Lviac
 
 ## Head
 
-The code head is `aba00fbf2f367b134c73d7404c344dc673859c88` (self-test commit `573d5cbff`, then the closures entry). It merges `origin/main` at `5a755f53efda8c099af7d6a98fb0b22828a0593c` into the reviewed head `816b1e20fdfd0a4b99bcc2b81361b70bd3007acb` (merge `889c39e59`, never a rebase; one conflict in `.github/workflows/governance.yml`, resolved by keeping both main's new step and this PR's review-strength step). Measured 2026-10-21T22:30Z (`date -u`).
+The code head is `80b4f2760` (full SHA in `git rev-parse handoff/r10-flow-yield-probe`). It has three commits on top of the reviewed head `eb9f7e89d0b258ca66a8d9757df0156a776b7332`:
+
+- `7f251a783` merges `origin/main` at `93e6a63d2855651448a2b8f677b392feddc03c99` (a merge, never a rebase, and clean).
+- `4a64049e0` adds the self-test cases, the two tool fixes, the sweep harness and the real-catch list line.
+- `80b4f2760` adds the `tests/closures.json` INERT READS entry for the new harness under `tests/harness_headers.py`. `python3 tools/pr/ci_predict.py --base origin/main --apply-inert` wrote it, after which the predictor prints `no closures or fast red predicted against 93e6a63d2855`.
+
+Measured 2026-10-22T02:44Z–03:30Z (`date -u`), with `origin/main` at `93e6a63d2855` and `origin/handoff/audit-r10-roster` at `306a96d5f21f`.
 
 The fix review's items:
 
-- R2, the 600-line cut: killed by the PR 7 size check. Carry: dismissed: fixed in this pull request (item a1f0c2e1)
-- R4, the guardrail's last-N slice: killed by the six-PR guardrail check. Carry: dismissed: fixed in this pull request (item b72d4e93)
-- R5, `--first-parent` in `as_of`: killed by the `m1`/`c2` check. Carry: dismissed: fixed in this pull request (item c3e85a07)
-- The self-test cases R2, R4 and R5 owed in round 3: landed. Carry: dismissed: fixed in this pull request (item d4a96b18)
-- The six figure-neutral survivors R7, R8, R9, R13, R14, R15: each pinned by a case, none dismissed (table below). Carry: dismissed: fixed in this pull request (item e58b7c24)
-- The `pr-contract` red at 816b1e20 (run 39681234360): answered under Red checks. Carry: R10-FLY-GH-READ-RETRY (item f6093d35)
+- N3, the guardrail ordered by PR number, is killed by four checks (see Mutation proof). Carry: dismissed: fixed in this pull request (item 7a3c91e2)
+- N6, the origin predicate without `findings`, is killed by the R1-FINDS check and the golden. Carry: dismissed: fixed in this pull request (item 8b4d02f3)
+- N1 and N2, the 600-line cut moved to 700 or 650, are killed by the 599/600 size check and the golden. Carry: dismissed: fixed in this pull request (item 9c5e13a4)
+- The round-4 self-test cases for N3, N6, N1 and N2 have landed. Carry: dismissed: fixed in this pull request (item ad6f24b5)
+- N4, N7, N8 and N9 are each killed by a named check (see Mutation proof). Carry: dismissed: fixed in this pull request (item be7035c6)
 
 ## Mutation proof
 
-Each mutant edits one predicate of `review_strength.py` by an exact one-occurrence string replacement, runs `python3 tools/audit/seat/review_strength.py --self-test`, and restores; after all of them the file is `filecmp`-identical to a saved copy (`restored identical: True`). Unmutated (M0): `review_strength self-test: 31 checks, 0 failed`.
+**The class rule.** `python3 dev/audit/harnesses/r10_review_strength_mutants.py` is the command that enumerates the class's seams. Its header lists the operator classes:
 
-| mutant | edit | result | failing check |
+- every `sorted`/`max`/`min`/`any`/`all` swap and slice bound (ordering);
+- every comparison operator (comparison);
+- every `and`/`or` arm, `not`, and `if`/conditional test, forced either way (branch);
+- every int as n±1 and every float as ×½ or ×2 (threshold);
+- every string literal emptied and every tuple, list or set element dropped (class words, which covers each `REAL_CATCH` word and each product prefix);
+- every `+ - * / **` (arithmetic);
+- every statement replaced by `pass`, and every keyword argument dropped.
+
+It skips the docstring, the imports, `ROOT`, the self-test functions, type annotations and human-readable text (`help=`, `metavar=`, and the arguments of `print`, `.error` and `SystemExit`).
+
+At the head, under `/opt/hpo/venv-ci/bin/python` (3.14), it prints `RESULT mutants=799 killed=787 survived=12 disposed=12 undisposed=0 stale=0` (rc=0). Every surviving seam and its disposition:
+
+| survivor | disposition |
+|---|---|
+| `load`: `m[4] or ''` loses its `''` arm | equivalent: `cls` None and `''` read alike (stratum's `or`, the REAL_CATCH test) |
+| `pr_facts`: `if mb else []` forced True | equivalent: with no merge base the size is `?`, and `files` stays empty either way |
+| `pr_facts`: drop `check=` on the numstat `git diff` | equivalent: the diff runs only with a merge base, so it cannot exit non-zero |
+| `pr_facts`: numstat `split('\t', 2)` → 3 | equivalent: numstat quotes any path holding a tab |
+| `pr_facts`: `g[1]` → `g[0]` | equivalent: GROUP_RE's one group is its whole match |
+| `guardrail`: `cdf < ALPHA` → `<=` | equivalent: no binomial CDF equals 0.05 in floating point (none for N ≤ 5 on a 1e-5 p0 grid); "below 0.05" is R13's wording |
+| `main`: `--repo` default dropped | unpinned: the default is the running checkout; the fixture must pass `--repo` |
+| `main`: `--tree` default dropped, or `'origin/main'` → `''` (2 mutants) | unpinned: the fixture has no `origin/main` and passes `--tree` |
+| `main`: `--window` default dropped | equivalent: `not a.window` refuses None and `[]` alike |
+| `main`: `split('=', 1)` → 2, and `split('..', 1)` → 2 | equivalent: a window spec holds one `=`, and an ISO stamp holds no `..` |
+
+**The verdict's named mutants**, each applied by exact replacement in a scratch root and run with `--self-test`. The runner is a scratch probe, and the sweep above enumerates a superset of them. Unmutated: `review_strength self-test: 76 checks, 0 failed`.
+
+| mutant | at eb9f7e89 | at head | failing checks at head |
 |---|---|---|---|
-| R2 | `lines < 600` → `lines < 100000` | 1 failed | size: PR 7 merged twice reads its newest merge (700 lines, L>=600) |
-| R4 | guardrail `[-n:]` → `[:n]` | 1 failed | guardrail: the LATEST N by first verdict (5, 6, 7: 1/3), not the oldest (1, 2, 3: 2/3) |
-| R5 | `--first-parent` removed from `as_of` | 1 failed | as of: --tree resolves to its first-parent commit (m1), never side-branch c2 dated nearer T |
-| R7 | delivery-row exclusion → `if True:` | 1 failed | size: merged PR 5 reads its merge diff (160 lines, M<600); unmerged 6 its verdict head (20, S<150) |
-| R8 | `and int(m[1]) not in merges` removed (oldest merge wins) | 1 failed | size: PR 7 merged twice reads its newest merge (700 lines, L>=600) |
-| R9 | `or rid.endswith("-cloud")` removed | 1 failed | bus-confirmed *-cloud id marks the verdict cloud |
-| R13 | `or grp.get("fixes")` removed | 1 failed | origin: a group listing fixes alone is finding |
-| R14 | `branch.removesuffix("-pr")` removed | 2 failed | join: merge branch fix/r1-fix-pr, -pr stripped, finds R1-FIX's resume.branch (fixer haiku); origin: a group listing fixes alone is finding |
-| R15 | window `< b` → `<= b` | 1 failed | window: [from, until) excludes a verdict at until (PR 2's block at 04:00) |
-
-The earlier rounds' mutants (M1–M8, P1–P7, and the reviewer's killed R1, R3, R6, R10, R11, R12) touch predicates this diff does not change; their checks are all among the 31 and pass at M0.
+| N1 `lines < 600` → `< 700` | survived (31, 0 failed) | 2 failed | size: 149+binary S, 150+binary M, 599 M, 300+300 L; main golden |
+| N2 `lines < 600` → `< 650` | survived | 2 failed | the same two |
+| N3 guardrail `sorted(first, key=…)` → `sorted(first)` | survived | 4 failed | guardrail LATEST N; orders by FIRST VERDICT, not PR number; PR first reviewed at until; first-verdict tie |
+| N4 guardrail `v["t"] < until` → `<=` | survived | 1 failed | guardrail: a PR first reviewed exactly at until (7, 03:00) is outside |
+| N6 drop `or grp.get("findings")` | survived | 2 failed | origin: a group listing findings alone is finding; main golden |
+| N7 pr_facts `v["t"] < until` → `<=` | survived | 1 failed | as of: a verdict exactly at T is after T |
+| N8 drop `"blueprints/"` | survived | 2 failed | product: blueprints/ is product; main golden |
+| N9 `len(parents.split()) == 2` → `>= 2` | survived | 3 failed | size 599/600 check; merge join: octopus and one-parent are not merges; main golden |
 
 ## Null control
 
-- The mutation table's null is M0: the same runner over the unmutated file prints `31 checks, 0 failed`, so each failure above is the mutant's.
-- Each new case's null is the mutant it kills: a case that did not separate the two predicates would have printed `0 failed` for that mutant, as R2, R4 and R5 did at 816b1e20 (`24 checks, 0 failed`).
-- The figures' null is unchanged: the tool reproduces the study's hand-taken baselines, 112 PRs / 0.52 (58) and 47 PRs / 0.15 (7), below.
+- **The sweep's null is M0.** The unmutated module, re-emitted by `ast.unparse`, prints `review_strength self-test: 76 checks, 0 failed` before any mutant runs. A harness that killed everything would fail M0.
+- **The sweep's baseline end.** The same harness, run at `eb9f7e89` with the head's study record beside it, prints `RESULT mutants=786 killed=484 survived=302 disposed=12 undisposed=290`, so the 31-check self-test left 290 undisposed seams open. The 12 dispositions match the same 12 equivalent or unpinned seams at both ends.
+- **The named-mutant null.** At eb9f7e89 all eight print `31 checks, 0 failed` (see the table), as the verdict found.
+- **No figure moves.** The study bundle (Figures) printed by the eb9f7e89 tool and by the head's tool over the same fetched bus is byte-identical: `diff bundle_old bundle_new && echo BUNDLE-IDENTICAL` prints `BUNDLE-IDENTICAL`. The ten back-test guardrail lines are identical too (`BACKTEST-IDENTICAL`). The real bus has no PR first reviewed after the as-of time, no classless block shown as `(merge)` in any window, and no first-verdict tie at a slice edge. The new `(no class)` and `(unreviewed at T)` rows print in none of them (`grep` finds neither in the bundle).
+- **The fixture golden's null.** Every row was checked by hand against the fixture's 18 verdicts before it was frozen. The N1, N2, N6, N8 and N9 mutants each turn it red.
 
 ## Figures
 
-Every figure re-measured at `573d5cbff` (the closures commit after it changes no file the tool reads) between 22:20Z and 22:30Z. The bundle: `python3 tools/audit/seat/review_strength.py --fetch --window E=2026-10-15T12:37Z..2026-10-19T14:50Z --window L=2026-10-19T14:50Z..2026-10-21T14:50Z --window P1=2026-10-15T12:37Z..2026-10-18T08:00Z --window P2=2026-10-18T08:00Z..2026-10-19T14:50Z --window L1=2026-10-19T14:50Z..2026-10-21T13:00Z --window S=2026-10-21T13:00Z..2026-10-21T15:15Z --by kind --by prior-merge --by origin --by size --by product --by fixer --by class --by kind+origin --roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`. It prints `facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6` (unchanged: both refs are resolved at 15:15Z, so neither main's nor the roster's later commits move them).
+The finder's harness is the bundle, re-run at the head after `--fetch` at 02:44Z. The bundle command: `python3 tools/audit/seat/review_strength.py --fetch --window E=2026-10-15T12:37Z..2026-10-19T14:50Z --window L=2026-10-19T14:50Z..2026-10-21T14:50Z --window P1=2026-10-15T12:37Z..2026-10-18T08:00Z --window P2=2026-10-18T08:00Z..2026-10-19T14:50Z --window L1=2026-10-19T14:50Z..2026-10-21T13:00Z --window S=2026-10-21T13:00Z..2026-10-21T15:15Z --by kind --by prior-merge --by origin --by size --by product --by fixer --by class --by kind+origin --roster origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
 
-- Baselines: `--window A=2026-10-15T12:37Z..2026-10-21T11:00Z` prints `PRs 112 ... real 58 (0.52/PR) book 65 (0.58/PR)`; the bundle's `all L` row `PRs 47 ... real 7 (0.15/PR) book 30 (0.64/PR)`; `--window A=2026-10-19T11:00Z..2026-10-21T11:00Z` prints `PRs 35 ... real 2 (0.06/PR)`.
-- `--window L13=2026-10-21T13:00Z..2026-10-21T14:50Z`: `PRs 11 verdicts 16 real 4`.
-- `all` rows: P1 0.90 (43/48), P2 0.36 (14/39), L1 0.08 (3/39), S 0.36 (5/14); incidence 25/48, 10/39, 3/39, 4/14.
-- Strata (P1 / P2 / L1): finding 1.08 (40/37), 0.29 (5/17), 0.08 (1/13); `L>=600` 1.10 (22/20), 0.69 (11/16), 0.08 (1/13); product True 1.21 (17/14), 0.22 (2/9), 0.14 (1/7).
-- Re-weights 0.50, 0.89, 0.85: L1's per-stratum PR counts times P1's per-stratum real/PR over 39, from those rows (the rows are unchanged, so the products are).
-- Reviewer kind real/PR: cloud 6/31 (P2), 3/24 (L1), 5/14 (S); local 43/48 (P1), 8/14 (P2), 0/20 (L1). P2 cloud+finding 3/13, local+finding 2/8.
+It prints `facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6`. Both refs are resolved at 15:15Z, so later commits on main and the roster move neither. The bus count is printed on the tool's `verdicts on the bus` line and grows as reviews land; no figure below depends on it, because every window ends by 15:15Z.
+
+- Baselines:
+  - `--window A=2026-10-15T12:37Z..2026-10-21T11:00Z` prints `PRs 112 verdicts 257 real 58 (0.52/PR) book 65 (0.58/PR)`.
+  - The bundle's `all L` row prints `PRs 47 ... real 7 (0.15/PR) book 30 (0.64/PR)`.
+  - `--window A=2026-10-19T11:00Z..2026-10-21T11:00Z` prints `PRs 35 ... real 2 (0.06/PR)`.
+- `--window L13=2026-10-21T13:00Z..2026-10-21T14:50Z` prints `PRs 11 verdicts 16 real 4`.
+- `all` rows (P1 / P2 / L1 / S), real/PR: 0.90 (43/48), 0.36 (14/39), 0.08 (3/39), 0.36 (5/14). Incidence: 25/48, 10/39, 3/39, 4/14.
+- Strata (P1 / P2 / L1), real/PR:
+  - finding: 1.08 (40/37), 0.29 (5/17), 0.08 (1/13);
+  - `L>=600`: 1.10 (22/20), 0.69 (11/16), 0.08 (1/13);
+  - product True: 1.21 (17/14), 0.22 (2/9), 0.14 (1/7).
+- Re-weights 0.50, 0.89, 0.85: L1's per-stratum PR counts times P1's per-stratum real/PR, over 39, from those rows.
+- Reviewer kind, real/PR:
+  - cloud: 6/31 (P2), 3/24 (L1), 5/14 (S);
+  - local: 43/48 (P1), 8/14 (P2), 0/20 (L1);
+  - P2 cloud+finding 3/13, local+finding 2/8.
 - Fixer first-pass (P1 / P2 / L1): opus 7/22, 2/14, 5/7; sonnet 5/15, 0/3, 3/6.
-- Prior-merge: `after-a-merge-verdict` 0 real in every window; 22 verdicts in E, 12 in L; `--window A=2026-10-15T12:37Z..2026-10-21T11:00Z --by prior-merge` prints `after-a-merge-verdict A PRs 22 verdicts 33 real 0`.
+- Prior-merge: `after-a-merge-verdict` reads 0 real in every window, with 22 verdicts in E and 12 in L. `--window A=2026-10-15T12:37Z..2026-10-21T11:00Z --by prior-merge` prints `after-a-merge-verdict A PRs 22 verdicts 33 real 0`.
 - Classes (P1 / P2 / L1): `harness` 25 / 3 / 2; `carry-missing` 3 / 15 / 7.
-- Extended list (`--real-extra regression,flaky-arm,claim-false,control-failed,claim-refuted,rule-dropped,null-control-false,red-at-head,tests-red`, windows P1, P2, L1, S, POST=2026-10-18T08:00Z..2026-10-21T15:15Z, `--by kind`): P2 0.49 (19/39), L1 0.21 (8/39); cloud incidence 8/31, 7/24, 4/14; local L1 0/20; POST incidence 24/85.
-- Back-test: the extended list with `--guardrail 30 --p0 0.28` at ten `until` points, 2026-10-20T01:00Z to 2026-10-21T13:00Z in 4-hour steps (W from 2026-10-15T12:37Z): incidence 8, 8, 8, 8, 7, 7, 6, 5, 5, 5 of 30; every line `ok`, the lowest 5/30 at P = 0.116. (Round 2's maximum 19/30 lay at earlier cut points not swept here, so it is not quoted.)
-- Self-test: `review_strength self-test: 31 checks, 0 failed`. Wiring: see Red checks.
+- Extended list: `--real-extra regression,flaky-arm,claim-false,control-failed,claim-refuted,rule-dropped,null-control-false,red-at-head,tests-red` over windows P1, P2, L1, S and POST=2026-10-18T08:00Z..2026-10-21T15:15Z, `--by kind`.
+  - P2 0.49 (19/39), L1 0.21 (8/39).
+  - Cloud incidence 8/31, 7/24, 4/14.
+  - Local L1 0/20.
+  - POST incidence 24/85.
+- Back-test: the extended list with `--guardrail 30 --p0 0.28` at ten `until` points, from 2026-10-20T01:00Z to 2026-10-21T13:00Z in 4-hour steps (W from 2026-10-15T12:37Z). Incidence is 8, 8, 8, 8, 7, 7, 6, 5, 5, 5 of 30. Every line reads `ok`, the lowest being 5/30 at P = 0.116.
+- Self-test: `python3 -I tools/audit/seat/review_strength.py --self-test` prints `review_strength self-test: 76 checks, 0 failed` (3.11 and 3.14).
+- Sweep: `python3 dev/audit/harnesses/r10_review_strength_mutants.py` prints `RESULT mutants=799 killed=787 survived=12 disposed=12 undisposed=0 stale=0`.
 
 ## Red checks
 
-None locally at `aba00fbf2` (`PYTHONPATH=tests/hastub`, `PREPR_SKIP_CLOSURES=1`, the CI venv interpreter). `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/harness_headers.py`): `ALL 2382 ENTITY CHECKS PASSED`, `ALL 109 HARNESS HEADER CHECKS PASSED`. Also `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/closure.py selftest` `ALL 124 closure shrink pins PASSED`; `tests/env_drift.py --claims-only <merge base>` rc=0; `tmp_paths.py --check` 0 refused; `selftest_wiring.py --check` `73 self-testing, 73 wired, 0 unwired`; `ci_predict.py --base origin/main` no predicted red. CI has not run on this head: the orchestrator pushes it to the PR.
-
-- **`pr-contract` at 816b1e20 (run 39681234360, job 119504172159).** Its "Read the body off the API" step got non-JSON from `gh api` ("invalid character 'S' looking for beginning of value"), and every later body step failed on the missing body file; the sibling run 39681233356, a second earlier on the same head and body, passed. It is a transient read, not this diff: the diff touches no `pr-contract` reader. The cheaper detector is a retry around that read, the class owned by R10-FLY-GH-READ-RETRY. No run exists yet at `aba00fbf2` to read against; the orchestrator's push starts one. Carry: R10-FLY-GH-READ-RETRY (item f6093d35)
-- **`nightly-status`** grades `main`'s scheduled run, not this diff, which touches nothing it reads. Carry: dismissed: grades main, not this diff (item 2579n1)
-- **`ci-ratchet` on main** is runner-speed variance. Carry: R10-CI-LAYOUT (item 2579c1)
+- **Local runs at `80b4f2760`.** All with `PYTHONPATH=tests/hastub`, `PREPR_SKIP_CLOSURES=1` and `/opt/hpo/venv-ci/bin/python`:
+  - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/harness_headers.py`).
+  - `ALL 2382 ENTITY CHECKS PASSED`; `ALL 109 HARNESS HEADER CHECKS PASSED`.
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `tmp_paths.py --check`: 0 refused.
+  - `selftest_wiring.py --check`: `74 self-testing, 74 wired, 0 unwired`.
+  - `ci_predict.py --base origin/main`: no closures or fast red predicted.
+- **Check-runs API at the reviewed head `eb9f7e89` (49 check-runs).** Every gate check is success or skipped, `pr-contract` included (twice). The one failure is `nightly-status`.
+- **The three new commits** carry no check-runs yet. The orchestrator's push starts them.
+- **`nightly-status`** grades `main`'s scheduled run. This diff touches nothing it reads, so it is not this pull request's. Carry: dismissed: grades main, not this diff (item 2579n1)
 
 ## Forward-carry
 
-- The guardrail threshold, extended class list, seat-family arm and planted-defect calibration are on R10-ORCH-MACHINERY's roster carry (round 2, confirmed by the reviewer at `c9140d299f9c`); the reviewer-model-in-dispatch control is routed to the same group. Destination: `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY (item b8b28b28)
+- The guardrail threshold, the extended class list, the seat-family arm and the planted-defect calibration are on R10-ORCH-MACHINERY's roster carry, and the reviewer-model-in-dispatch control is routed to the same group. Destination: `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-MACHINERY (item b8b28b28)
 
 ## Friction
 
