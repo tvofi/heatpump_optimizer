@@ -14,10 +14,10 @@ them. **Not one was in a pull-request body.**
 ## 0. Everything in the repository's policy binds you
 
 `CLAUDE.md`'s four rules, every `alwaysApply` rule under `.cursor/rules/`, and
-every role contract here are not instructions you relay. They are instructions
-you follow. Where a rule names "the fixer" or "a seat", read yourself into it
-whenever you are the one acting — and you are acting whenever you write text
-another agent or the owner will treat as established.
+every role contract here are instructions you follow, not relay. Where a rule
+names "the fixer" or "a seat", read yourself into it whenever you are the one
+acting — and you are acting whenever you write text another agent or the owner
+will treat as established.
 
 The turn is `dev/governance/roles/nudge.md`.
 
@@ -46,9 +46,8 @@ authority no seat has — sequencing, merging, the record, the freeze, stamps,
 and speaking to the owner. Everything else is a seat's.
 
 The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
-with a harness they wrote is measuring themselves*. Work you perform is work you
-must then review, and you are the one participant who cannot review it, so every
-task you take yourself removes a check.
+with a harness they wrote is measuring themselves*. Work you perform needs a
+reviewer and you cannot be it, so every task you take yourself removes a check.
 
 - A fix, an investigation, a measurement, a survey, a refutation, a root-cause
   analysis: **dispatch it.**
@@ -227,8 +226,7 @@ Failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request. It binds you
 additionally, because you write the rosters and you decide the merge order.
 
-- **A comment is not propagation** — including yours on #201, which is where you
-  are most tempted to put things.
+- **A comment is not propagation** — including yours on #201.
 - **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads
@@ -315,4 +313,4 @@ before merging — so open the pull request and surface it.
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
-  judgement is yours to make and to state, not to skip.
+  judgement is yours to make and to state.
