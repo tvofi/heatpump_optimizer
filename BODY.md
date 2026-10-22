@@ -27,18 +27,18 @@ Part of #2495. Group R10-CI-LAYOUT-P2, sub-PR **P2a, "umbrella engine, inert"** 
 
 ## Head
 
-`782963c3f5473486869b9d7a4858818a3a5ea503`, merge base `49018a8bec8d` (origin/main, 2026-10-22). The `governance.yml` `instrument-self-tests` steps (one per new self-test) are **not** in this head. They land after #2579 merges, and `## Head` is re-taken then.
+`0e066014d8d31e690b2ee5ddd5fae76bb3015a04`, merge base `a9db47846647` (origin/main after #2579, 2026-10-22). The head adds the nine `governance.yml` `instrument-self-tests` steps: one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Each asserts its tally line.
 
 ## Mutation proof
 
-- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run in a detached worktree at the head with the nine steps applied uncommitted to `governance.yml`, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 90 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
+- **Seat mutants**: `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py`, run at the head, gave `RESULT survivors=0`: M0 `0 seat step(s) red`, 90 `KILLED`, no `SURVIVED` and no `NOT RUN` or `PATTERN FOUND` lines, and W1-W3 killed. P2a's ids are `gate-1..3`, `ghapi-1..3`, `prelude-1..2`, `sweep_driver-1..3`, `ruleset_cutover-1..3` and `ci_probe-1..4`. `gate-3` now deletes the bound dispatch; `ghapi-3` deletes the header forwarding.
 - **Alert-list mutants**: `sh tools/ci/alert_list_mutants.sh --self-test` refused 9 of 9, including the glue's case "the binding drops the Accept header".
 - **Gate predicate**: `r10_ci_gate_core.py mutants`, 16 of 16 killed at U0a's head. The predicate is unchanged here, because the glue touches only `main()`'s `--sweep` arm.
 - **Entities pins**: each pin was run against a mutated copy of the tree, through its own block. Dropping `ci-ratchet` from `PUSH_ONLY` gave `only in gate_required: tests / ci-ratchet`. Cutting `contexts` to 16 gave `contexts holds 16`. A `gate` job in `tests.yml` gave `tests.yml: job gate can report as gate`. `checks: write` in `hassfest.yml` gave `top grants checks: write`.
 
 ## Null control
 
-- `selftest_wiring.py --check` reads `86 self-testing, 77 wired, 9 unwired`, rc 1, at this head without the steps. With the nine steps it reads `86, 86, 0`, rc 0.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check` reads `87 self-testing, 87 wired, 0 unwired`, rc 0, at the head. At the merge commit before the steps it read `87, 78, 9 unwired`, rc 1.
 - `r10_ci_gate_core.py replay --no-b3-fill` gives `rc 1; output DIFFERS`: exactly the two push rows go BAD. `b3 --plant` gives `parity RED`. So the IDENTICAL comparison can fail.
 - Each entities pin carries in-file plants: three for the REQUIRED pin and five for the forgery pin. A reader that compares nothing fails its own check.
 
@@ -68,7 +68,7 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `replay`: `rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt`, and `replay --model` reads the same;
   - `sim`: `GATE-SIM rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt`, which holds the 42 sequences at END-BAD 0 and the 7 planted defects refused;
   - `b3`: `parity GREEN`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2390 ENTITY CHECKS PASSED`. That is 2388 plus the two new pins.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY CHECKS FAILED`. The same command at `origin/main` a9db47846 reads `4 of 2397 ENTITY CHECKS FAILED`, with the same four py-spy heartbeat-control checks. The two new pins read `ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget raised.
 - Other checks:
   - `python3 tests/throwaway_git.py --check`: 0 refused;
@@ -77,20 +77,19 @@ Confirmed by the orchestrator under mandate 6329234399 (2026-10-22):
   - `tests/layout.py`: `GUARD: 0 refusal(s)`;
   - `tools/pr/ci_predict.py --base origin/main`: no closures or fast red predicted.
 - `python3 -I tests/harness_headers.py` fails at import here, because `-I` drops `PYTHONPATH=tests/hastub`, as U9c reported. The suite's own run is in the gate line below.
-- Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=49018a8bec8d PYTHONPATH=tests/hastub ./tests/run.sh` printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `3 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`); everything else was `ok`, `entities.py` and `harness_headers.py` included. All three are environmental and not caused by this diff; see `## Red checks`.
-- Line counts, from `git diff --stat origin/main...HEAD`: 25 files, 3619 insertions, 4 deletions. Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
+- Gate: `PREPR_SKIP_CLOSURES=1 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a9db47846647 PYTHONPATH=tests/hastub ./tests/run.sh` printed `MODE: FULL`, because `tests/closure.py` and `tools/ci/` are gate files. Result: `4 TEST SCRIPT(S) FAILED` (`optimality.py`, `card.mjs`, `stress.py`, `entities.py`); everything else was `ok`, `harness_headers.py` included (`ALL 109 HARNESS HEADER CHECKS PASSED`). All four are environmental or main's and not caused by this diff; see `## Red checks`.
+- Line counts, from `git diff --stat origin/main...HEAD`: 26 files, 3686 insertions, 4 deletions (`governance.yml` +67). Production lines by each unit's own rule (in its body): U0a 450, U0b 317, U6-lib about 140, U9c 309, UP about 310. File totals:
   - `tools/ci/`: `gate` 419, `ghapi` 225, `prelude` 281, `sweep` 167, `alert_list` 305, `ruleset_cutover` 510, each self-test included;
   - `tools/audit/seat/`: `ci_probe` 466 and `sweep_driver` 150.
 
 ## Red checks
 
 - **nightly-status**: red on main's ancestry, not this diff's. It reports the nightly lanes' latest result on main. The diff touches no nightly lane: `git diff --name-only origin/main...HEAD | grep -E 'nightly|rolling|mutation_table|nightly_ha'` matches nothing. No cheaper detector is owed here.
-- **instrument-self-tests** (`selftest_wiring.py --check`): red at this head by design, with 9 unwired, until the glue steps land after #2579 (see `## Head`). The detector is that same check, which takes seconds.
-- **Local `optimality.py`, `stress.py`, `card.mjs`**: none of the three scripts' measured closures in `tests/closures.json` holds a changed file. The `optimality.py` red (`1 of 84 OPTIMALITY CHECKS FAILED`, a closed claim still recorded) and the `stress.py` red (`shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`) read the same at `origin/main` 49018a8bec8d in a detached worktree. `card.mjs` died with a Node 20 `JavaScript heap out of memory` on this host. CI owns these three. No cheaper detector is owed by this diff.
+- **Local `entities.py`, four py-spy heartbeat-control checks** (`hb:positive_control` retries, the rest between tries, the hung-sample arms): these are main's, not this diff's. The same four fail at `origin/main` a9db47846 on this host (4 of 2397). The diff touches no heartbeat or py-spy code. CI owns them.
+- **Local `optimality.py`, `stress.py`, `card.mjs`**: none of the three scripts' measured closures in `tests/closures.json` holds a changed file. The `optimality.py` red (`1 of 84 OPTIMALITY CHECKS FAILED`, a closed claim still recorded) and the `stress.py` red (`shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`) read the same at the earlier base `origin/main` 49018a8bec8d in a detached worktree (both scripts' closures are untouched by the #2579 merge's delta too). `card.mjs` died with a Node 20 `JavaScript heap out of memory` on this host. CI owns these three. No cheaper detector is owed by this diff.
 
 ## Forward-carry
 
-- **The `governance.yml` steps**: nine `instrument-self-tests` steps, one each for `ghapi`, `prelude`, `gate`, `sweep`, `alert_list`, `ruleset_cutover`, `sweep_driver` and `ci_probe`, plus `alert_list_mutants.sh --self-test`. Carry: this PR after #2579 merges (integration seat, resumed).
 - **The sweep's exit code**: `gate.py --sweep`'s exit code is `sweep.main`'s. A rate limit prints `RATE-LIMITED` (contract item 3's word) but exits 1, not the gate's 3. A non-200 run read raises out of `sweep.main` (exit 1, traceback), which fails closed. `gate-sweep.yml` must key on the stdout word, not on the exit code. Carry: P2b brief (U8+U10, U0c).
 - **The two-part `get` signature**: `ghapi.get(path, params=None, headers=None)` is now the signature both CI-run modules use. Any further `tools/ci/` reader that needs a media type binds through it. Carry: P2b brief (U6, U9d).
 - **The rest of the forgery rule**: "exactly one job in `ci.yml` reports `gate`" needs the real `ci.yml`. Carry: P2b brief (U0c entities pins).
