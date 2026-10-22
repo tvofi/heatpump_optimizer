@@ -1,0 +1,13 @@
+MUTANT M0 in tools/audit/seat/train.sh
+  old: x
+  new: x
+== bash tools/audit/seat/train.sh --self-test
+train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree, merge_train.py first)
+rc=0
+== bash tools/audit/seat/cloud_relay.sh --self-test
+cloud_relay self-test: 83 checks, 0 failed
+rc=0
+== bash tools/audit/seat/pr_args.sh --self-test
+pr_args self-test: 90 checks, 0 failed
+rc=0
+RESULT M0: 3 of 3 self-tests rc 0

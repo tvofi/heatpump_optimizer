@@ -1,0 +1,21 @@
+MUTANT CR-LEAD in tools/audit/seat/cloud_relay.sh
+  old: PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
+  new: wait $! || urc=$?
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index cf21cdbc6..9287d7fc0 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -232,7 +232,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+     urc=0
+     if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss >&2 &
+     else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2 & fi
+-    PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
++    wait $! || urc=$?
+     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
+     # a failure, so it is not recorded and the next pass retries once that run has ended.
+     if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
+== bash tools/audit/seat/cloud_relay.sh --self-test
+  FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0)
+cloud_relay self-test: 83 checks, 1 failed
+rc=1
+RESULT CR-LEAD: 0 of 1 self-tests rc 0

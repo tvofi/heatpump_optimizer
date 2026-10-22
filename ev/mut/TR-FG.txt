@@ -1,0 +1,22 @@
+MUTANT TR-FG in tools/audit/seat/train.sh
+  old: ) >> "$log" 2>&1 &
+
+  new: ) >> "$log" 2>&1
+
+diff --git a/tools/audit/seat/train.sh b/tools/audit/seat/train.sh
+index feb493172..2aae44ea6 100755
+--- a/tools/audit/seat/train.sh
++++ b/tools/audit/seat/train.sh
+@@ -314,7 +314,7 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
+     ${overlap:+--overlap} \
+     ${mandate:+--mandate "$mandate"} \
+     ${opts[@]+"${opts[@]}"}
+-) >> "$log" 2>&1 &
++) >> "$log" 2>&1
+ # Asynchronous, then `wait`: a stop signal interrupts the wait, where it would
+ # wait behind a foreground child. The exec makes this pid merge_train.py itself.
+ PR_REAP_LEAD=$!
+== bash tools/audit/seat/train.sh --self-test
+train.sh: REFUSE: self-test: the stubbed --ignore-red run did not succeed
+rc=2
+RESULT TR-FG: 0 of 1 self-tests rc 0
