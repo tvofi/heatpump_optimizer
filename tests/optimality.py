@@ -758,7 +758,6 @@ def _cert_capture(o, pr, ot, wi, ra, so, st):
         cap["args"] = tuple(kw.get("args", a[0] if a else ()))
         cap["maxiter"] = kw.get("maxiter")
         cap["batch_objective"] = kw.get("batch_objective")
-        cap["fd_eps"] = kw.get("fd_eps", 1e-4)
         return real_ms(objective, candidates, bounds, *a, **kw)
 
     def rec_restart(*a, **kw):
@@ -812,7 +811,7 @@ def _cert_gaps(r, cap, pr, ub, name):
         def _jac(xx, *a):
             return _kb_mod._batch_fd_gradient(
                 cap["batch_objective"], a, xx, float(obj(xx, *a)),
-                cap["fd_eps"], bounds)
+                _kb_mod._LBFGSB_FD_EPS, bounds)
     pol = _kb_mod._scoped_minimize(
         obj, x, args=args, jac=_jac, method="L-BFGS-B", bounds=bounds,
         options={"maxiter": 500, "ftol": 1e-8, "eps": 1e-4})
@@ -827,8 +826,7 @@ def _cert_gaps(r, cap, pr, ub, name):
         for f in _cert_ladder(name)]
     res = _kb_mod._multi_start_minimize(
         obj, cap["candidates"] + seeds, bounds, args=args,
-        maxiter=cap["maxiter"], batch_objective=cap["batch_objective"],
-        fd_eps=cap["fd_eps"])
+        maxiter=cap["maxiter"], batch_objective=cap["batch_objective"])
     best = float(obj(np.asarray(res.x, float), *args))
     gap_ladder = (f0 - best) / abs(f0) if f0 else 0.0
     return f0, gap_polish, gap_ladder
