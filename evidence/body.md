@@ -1,0 +1,70 @@
+Main is red at `07fcbee2e`: `policy_lint` refuses `tools/audit/briefs/orchestrator.md` (canonical path of `dev/governance/roles/orchestrator.md`) at about 4515 tokens against its `files_tokens` cap of 4513. This pays the cap by cutting redundant wording from four sentences of that file; no budget is raised or re-recorded, and no obligation changes.
+
+The red is a semantic merge. From merge base `93e6a63d2` (4502 tokens), #2561 grew the file to 4506 and #2586's branch to 4511, each under the cap alone; merge `6077bf70e` (#2586) carried both growths and reached 4515. No conflict, no failing check on either branch.
+
+What was cut (each sentence still states its rule):
+
+- section 0: "are not instructions you relay. They are instructions you follow" becomes "are instructions you follow, not relay" (paragraph re-wrapped).
+- section 2: "Work you perform is work you must then review, and you are the one participant who cannot review it" becomes "Work you perform needs a reviewer and you cannot be it".
+- section 10: drops "which is where you are most tempted to put things" after "including yours on #201"; the rule (a #201 comment is not propagation) stays.
+- section 14: drops "not to skip" from "That judgement is yours to make and to state".
+
+The cap stays at its recorded value. Re-recording it to the measured value would leave zero headroom, which is the condition that let two in-cap edits redden main. `ratchet-budgets.md` allows lowering a per-file cap but does not require it.
+
+## Head
+
+`a95b50b17ab10277b578de0e2d93602d31a87005` merges origin/main `07fcbee2e` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head, and then adds one commit containing only this PR's own row, `dev/programme/delivery/2595.md`.
+
+`d0f9c95b891fe9eebddbb495546e25b180614a52` merges origin/main `07fcbee2e` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head, and then adds one commit containing only this PR's own row, `dev/programme/delivery/2595.md`.
+
+a8f339d9ae65f71b4661be47c0f2ce157a431e5b
+
+## Mutation proof
+
+Restore the removed text (`git show origin/main:dev/governance/roles/orchestrator.md > dev/governance/roles/orchestrator.md`), then run `node tools/policy/policy_lint.mjs`:
+
+```
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: about 4515 tokens across its lines exceeds its cap of 4513 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 43 policy file(s)
+rc=1
+```
+
+Restored with `git checkout -- dev/governance/roles/orchestrator.md`. At the head, the same command prints `TOTAL: 0 error(s) across 43 policy file(s)`, rc=0.
+
+## Null control
+
+The unmodified tree (`origin/main` at `07fcbee2e`) is the red one: `node tools/policy/policy_lint.mjs` prints `TOTAL: 1 error(s) across 43 policy file(s)` and exits 1 (the one error is the `[budgets]` line above). The same command at the head exits 0. Only `dev/governance/roles/orchestrator.md` differs (`git diff --stat origin/main...HEAD`).
+
+## Figures
+
+- orchestrator.md tokens: before 4515, after 4481. The cap is unchanged at 4513, so headroom goes from -2 to 32 tokens. Command: `node tools/policy/policy_lint.mjs --budgets` (the `tools/audit/briefs/orchestrator.md` row, `~tokens` and `cap` columns). The tool estimates tokens as round(bytes / 4); `wc -c dev/governance/roles/orchestrator.md` prints 18061 at `origin/main` and 17925 at the head.
+- policy_lint TOTAL: before `1 error(s) across 43 policy file(s)`, after `0 error(s) across 43 policy file(s)`. Command: `node tools/policy/policy_lint.mjs`.
+- the merge interaction: 4502 at merge base `93e6a63d2`, 4506 at `6077bf70e^1`, 4511 at `6077bf70e^2`, 4515 at `6077bf70e`. Command, for each ref: `git show <ref>:dev/governance/roles/orchestrator.md | wc -c`, divided by 4.
+- generated rules: `node tools/policy/rules_sync.mjs --check` prints `RULES-SYNC ok: every generated rule is the generated form of its source`. A role contract has no `.cursor/rules` counterpart, so nothing is regenerated.
+- scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, naming `tests/entities.py` (left to CI's run on this pull request; see the uncertainty below). The `run_always` lines (`tests/env_drift.py --claims-only origin/main`, `tests/closure.py selftest`, `tests/layout.py`, `tests/harness_headers.py`) exit 0.
+
+## Red checks
+
+The red runs on `main` at `07fcbee2e` (run 39713913609) all come from this one error. The checks are re-run at the head:
+
+- `policy-docs`: `policy_lint.mjs` exits 1 on the `[budgets]` error above. At the head, `node tools/policy/policy_lint.mjs` exits 0.
+- `env-matrix`: all 7 failing outcomes are `policy_lint rc=0` arms, or arms that need it, in the pr, push-main, no-remote and shallow shapes. The shallow arm's log line carries the same `[budgets] ... orchestrator.md` error. Its arms drive the same `policy_lint.mjs` entry point, which exits 0 at the head. A local run of `node tools/policy/policy_lint_envmatrix.mjs` did not finish within 900 s on a loaded seat host, so this lane is left to CI on this pull request rather than claimed here.
+- `instrument-self-tests`: its first step, `policy_lint_mutants.mjs`, prints "MUTANTS: the entry point exited 1 on the corpus as it stands". The second step stops at `node tools/policy/policy_lint.mjs --self-test` on the same `[budgets]` error. The `FAIL D1` and `FAIL D2` lines earlier in that step come from `tools/audit/check_scopes.py --self-test`'s deliberately perturbed arms. That command exits 0 with "SELF-TEST passed (both perturbed scopes refused)", so it is not a separate cause. At the head, `node tools/policy/policy_lint_mutants.mjs` exits 0 ("MUTANTS ok"), `node tools/policy/policy_lint.mjs --self-test` exits 0, and `python3 -I tools/audit/check_scopes.py --self-test --repo .` exits 0.
+
+Root cause, trigger named: a red on main from a semantic merge of two PRs, each green alone, that both touched a ratchet. Here both grew the same capped policy file, each within the per-file cap and together past it. A per-file `files_tokens` cap gets no `_band` (`ratchet-budgets.md`), so two in-cap edits of one file can sum past it with no textual conflict. The cheaper detector would be `policy_lint --budgets` run on the merge result before landing. `merge_train.py batch` proves a batch against main's tree, but a single unproved entry merges and is caught only by main's push run, which is what happened here. The analysis belongs to a root-cause seat, not this fix.
+
+## Forward-carry
+
+- Root cause owed for this red on main: a semantic merge of two edits to a capped policy file, each green alone (#2561 took `orchestrator.md` to 4506 tokens, #2586's branch to 4511, merge 6077bf70e summed them to 4515 against a 4513 cap with no headroom band). The countermeasure belongs with the policy_lint budget family, not with `ci-ratchet` timing (`R10-CI-RATCHET-RED`); a root-cause seat is running beside this fix. Carry: R10-POLICY-LINT-FAMILY
+
+## Friction
+
+none
+
+## Approval
+
+Awaiting approval at the head. This diff changes policy (`dev/governance/roles/orchestrator.md`), so it merges only on an approving review at its head: the orchestrator's under mandate 6329234399 (scope all), or the owner's. The change cuts wording only. No obligation is added or removed, and no budget moves.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+

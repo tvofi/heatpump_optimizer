@@ -1,0 +1,22 @@
+## head a95b50b17
+TOTAL: 0 error(s) across 43 policy file(s)
+## mutant: main's orchestrator.md restored at head
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: about 4515 tokens across its lines exceeds its cap of 4513 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 43 policy file(s)
+## restored
+## bytes
+93e6a63d2    18009
+6077bf70e^1    18025
+6077bf70e^2    18045
+6077bf70e    18061
+07fcbee2e    18061
+a8f339d9a    17924
+HEAD    17924
+## --budgets row
+tools/audit/briefs/orchestrator.md               316  319     4481  4513 
+## merge-tree
+295267445ce7d8c2ceafd2764bb7c4f39573372e
+rc=0
+## origin/main 07fcbee2e clean tree
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: about 4515 tokens across its lines exceeds its cap of 4513 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 43 policy file(s)
