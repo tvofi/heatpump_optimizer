@@ -3131,7 +3131,8 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
     tops = {p.split("/")[0] for p in tree}
     groups: list[tuple[str, str, str]] = []
     for name, text in docs.items():
-        for m in _MARKER_ANY.finditer(text):
+        # a marker quoted in inline code is the grammar being described, not a marker
+        for m in _MARKER_ANY.finditer(re.sub(r"`[^`\n]+`", "", text)):
             g = _MARKER.fullmatch(m.group(0))
             if not g:
                 out.append(f"{name}: malformed marker {m.group(0)!r}")
@@ -3262,7 +3263,7 @@ def check_doc_wiring() -> None:
 
     stub = {"R10-A": "not-started", "R10-B": "done"}
     t = {"tests/a.py", "docs/x.md"}
-    base = ("# T\n\n- `tests/a.py` runs it.\n- `docs/y.md` lands later [target: R10-A]\n\n"
+    base = ("# T\n\nA marker reads `[target: <group>]`.\n\n- `tests/a.py` runs it.\n- `docs/y.md` lands later [target: R10-A]\n\n"
             "```mermaid\nflowchart LR\n    A[a] --> B[\"b\"]\n    A -.->|\"[target: R10-A]\"| B\n```\n\n"
             "```mermaid\nsequenceDiagram\n    participant F as fixer\n    participant O as orchestrator\n"
             "    F->>O: handoff\n    Note over F,O: opens a ledger entry\n```\n")
