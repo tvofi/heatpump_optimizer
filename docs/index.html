@@ -185,6 +185,9 @@ footer { margin-top: 96px; border-top: 1px solid var(--line); background: var(--
 footer .wrap { padding-block: 32px 40px; display: grid; gap: 14px; font-size: .92rem; color: var(--ink-2) }
 footer .row { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center }
 footer .brand { font-size: 1rem }
+.bmc { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 8px 14px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font: 600 .95rem var(--f-body); text-decoration: none }
+.bmc svg { width: 18px; height: 18px; flex: none }
+.bmc:hover { background: color-mix(in srgb, var(--accent) 85%, var(--ink)) }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth } }
 </style>
 </head>
@@ -406,7 +409,8 @@ footer .brand { font-size: 1rem }
 
 <footer><div class="wrap">
   <div class="row"><span class="brand"><svg aria-hidden="true" style="width:26px;height:26px"><use href="#dusk"/></svg>Heat Pump Cost Optimizer</span>
-    <a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE">MIT License</a><a href="disclaimer.html">Disclaimer</a><a href="readme.html">README</a></div>
+    <a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE">MIT License</a><a href="disclaimer.html">Disclaimer</a><a href="readme.html">README</a>
+    <a class="bmc" href="https://buymeacoffee.com/rpgshcwb2tp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3c0 1 1 1.5 1 2.5M12 3c0 1 1 1.5 1 2.5"/></svg>Buy me a coffee</a></div>
   <p data-src="README.md#acknowledgement">This project began as a fork of strutsfarm/heatpump_optimizer at version 2.2.0. <span>Both projects are MIT licensed.</span></p>
   <p data-src="DISCLAIMER.md#disclaimer">This software controls real heating equipment and makes claims about money. <span>Keep your heat pump's own thermostats, limits and safety controls active and correctly configured. They, not this integration, are what protect your home.</span></p>
 </div></footer>
