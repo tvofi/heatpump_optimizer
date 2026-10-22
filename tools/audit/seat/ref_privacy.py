@@ -334,7 +334,9 @@ PUSHERS = {
     "tools/audit/seat/merge_train.py": ("republishes", "deletes merged branches the remote already "
                                         "holds; its other push is the self-test's stub"),
     ".github/workflows/tests.yml": ("republishes", "on a runner, constant-message bot commits onto the "
-                                    "pull request's own branch, record/autofix or main (nightly kills)"),
+                                    "pull request's own branch"),
+    ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
+                                      "record/autofix or main (nightly kills), moved out of tests.yml"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
     "tools/audit/seat/pr_args.sh": ("fixture", "its self-test's stub app_push.sh pushes the branch it is given "
                                     "into a scratch origin repository; the file pushes nothing else"),
@@ -344,9 +346,10 @@ PUSHERS = {
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
-    "tools/audit/seat/cloud_dispatch.py": ("prompt", "a cloud reviewer's prompt naming probe/rev-<pr>-<nonce8> "
-                                           "from a PR number and 8 hex digits, under a constant seat identity; "
-                                           "the script itself pushes nothing"),
+    "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
+                                           "(a roster branch tail), ref_privacy.refusal on the ref and message; "
+                                           "its reviewer prompt names probe/rev-<pr>-<nonce8> from a PR number "
+                                           "and 8 hex digits, under a constant seat identity"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
 }

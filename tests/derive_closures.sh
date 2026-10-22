@@ -140,20 +140,6 @@ trap derive_cleanup EXIT
 
 rec() {
   local script="$1"; shift
-  # C1 (round-9 heavy-script consolidation): a script the closures job
-  # already consumed from this run's composed recording (the coverage job's
-  # traced execution of the same tree, verified by `closure.py
-  # composed-verify`) is not re-recorded bare -- one instrumented execution
-  # yields both artifacts. COMPOSED_CONSUMED is set by the workflow step that
-  # verified the composed record; unset, or a script not on it, records as
-  # before. Fail-closed: the consume step itself refuses on any doubt, so an
-  # entry here means a verified record for THIS tree is already on disk.
-  case " ${COMPOSED_CONSUMED:-} " in
-    *" $script "*)
-      echo "  [$(date +%H:%M:%S)] composed: $script consumed from this run's coverage job; no bare re-record"
-      return 0
-      ;;
-  esac
   echo "  [$(date +%H:%M:%S)] record $script $*"
   $PYTHON tests/closure.py record "$script" --out-dir "$OUTDIR" --args "$@" \
     > "$OUTDIR/$(basename "$script").out" 2>&1
