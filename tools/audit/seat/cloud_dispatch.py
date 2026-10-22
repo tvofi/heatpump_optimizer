@@ -48,8 +48,9 @@ WHAT IT REFUSES (exit 2, nothing printed on stdout):
     prompt may not name the machine it was written on;
   * an unreadable brief;
   * with --group: a group the roster does not name, a roster that cannot be read,
-    a reviewer without --head, and a ref name that would publish the host
-    (ref_privacy.refusal).
+    a reviewer without --head, a ref name that would publish the host
+    (ref_privacy.refusal), and any flag the group path does not consume
+    (--topic, --brief, --repo, --env-id, --out; GROUP_FLAGS gives each its reason).
 """
 from __future__ import annotations
 
@@ -429,7 +430,7 @@ def _group_checks(check) -> None:
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
             rc = main(["--role", "reviewer", "--group", "R10-Y", "--model", "m-9", "--head", first,
-                       "--pr", "8", "--nonce", "def456", "--overlay", str(overlay)])
+                       "--pr", "81", "--nonce", "def456", "--overlay", str(overlay)])
         try:  # a wrong role or group publishes no reviewer-r10-y ref: the check, not a crash, says so
             msg = fetched("dispatch/reviewer-r10-y", "PROMPT.md")
             model = json.loads(fetched("dispatch/reviewer-r10-y", "PAYLOAD.json"))["job_config"]["ccr"][
@@ -438,7 +439,7 @@ def _group_checks(check) -> None:
             msg = model = ""
         check("the --group CLI passes --role, --group, --model, --pr and --nonce through",
               rc == 0 and out.getvalue() == "dispatch/reviewer-r10-y\n" and msg.startswith("CLOUD REVIEWER")
-              and "PR #8 " in msg and "Bus nonce: def456." in msg and model == "m-9")
+              and "PR #81 " in msg and "Bus nonce: def456." in msg and model == "m-9")
         # A clone of main alone (--no-local: a local clone copies every object) holds none of the
         # dispatch ref's objects, so it must fetch the tip it extends.
         tip_before = git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
@@ -455,6 +456,40 @@ def _group_checks(check) -> None:
               again == line and git(work, "rev-parse", "FETCH_HEAD^").strip() == tip_before)
 
 
+
+
+def _flag_checks(check) -> None:
+    """Every flag the parser accepts is either forwarded or refused on the --group path.
+
+    Table-driven from the parser itself, so a flag added without a GROUP_FLAGS
+    entry fails here. `dispatch_group` is stubbed to record its call: a
+    forwarded flag's distinct value must reach it, a refused flag must exit 2
+    without calling it."""
+    import contextlib
+    import io
+    dests = {a.dest for a in _parser()._actions if a.dest != "help"}
+    check("every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other",
+          dests == set(GROUP_FLAGS))
+    calls: list = []
+    real = globals()["dispatch_group"]
+    globals()["dispatch_group"] = lambda *a, **kw: calls.append((a, kw)) or "dispatch/stub"
+    try:
+        for dest in sorted(dests):
+            base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
+            value = "probe" if dest == "role" else f"value-of-{dest}"
+            argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
+            calls.clear()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                rc = main(argv)
+            if GROUP_FLAGS.get(dest):
+                check(f"--group refuses --{dest.replace('_', '-')} (exit 2, nothing dispatched)",
+                      rc == 2 and not calls)
+            else:
+                sent = [*calls[0][0], *calls[0][1].values()] if len(calls) == 1 else []
+                check(f"--group forwards --{dest.replace('_', '-')} to dispatch_group",
+                      rc == 0 and value in sent)
+    finally:
+        globals()["dispatch_group"] = real
 
 
 def self_test() -> int:
@@ -530,14 +565,27 @@ def self_test() -> int:
           "FIND-ME" in render("fixer", head, **base, topic="t", brief="FIND-ME")["job_config"]["ccr"]
           ["events"][0]["data"]["message"]["content"])
     check("the rendered text carries no home directory", HOME.search(json.dumps(ok)) is None)
+    _flag_checks(check)
     _group_checks(check)
     print(f"cloud_dispatch self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
 
-def main(argv: list[str]) -> int:
-    if argv == ["--self-test"]:
-        return self_test()
+#: Every flag `_parser()` accepts, and what the --group path does with it: None
+#: when main() forwards it to `dispatch_group`, else the refusal's reason. The
+#: self-test drives each entry through main() and refuses a flag missing here.
+GROUP_FLAGS = {
+    "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
+    "pr": None, "nonce": None, "overlay": None,
+    "topic": "the roster gives the topic (the group's branch)",
+    "brief": "the roster gives the brief",
+    "repo": "the roster gives the repository",
+    "env_id": "the environment id comes from the overlay or $HPO_CLOUD_ENV_ID",
+    "out": "--group publishes the payload to its ref and prints the ref name",
+}
+
+
+def _parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="cloud_dispatch.py", description=__doc__.split("\n")[0])
     ap.add_argument("--role", required=True, choices=ROLES)
     ap.add_argument("--head")
@@ -553,9 +601,19 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--repo")
     ap.add_argument("--overlay")
     ap.add_argument("--out")
+    return ap
+
+
+def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        return self_test()
+    ap = _parser()
     args = ap.parse_args(argv)
     try:
         if args.group:
+            for dest, why in GROUP_FLAGS.items():
+                if why and getattr(args, dest) != ap.get_default(dest):
+                    raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
             if not args.model:
                 raise Refusal("--group needs --model")
             print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
