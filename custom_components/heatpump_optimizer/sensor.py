@@ -3016,9 +3016,8 @@ class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         advice = self._advice()
-        refit = _mapping(advice.get("refit")).get("scale")
-        scale = refit if refit is not None else advice.get("current_scale")
-        return None if scale is None else float(scale)
+        refit = _as_float(_mapping(advice.get("refit")).get("scale"))
+        return refit if refit is not None else _as_float(advice.get("current_scale"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
