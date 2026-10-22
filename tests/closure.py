@@ -787,6 +787,13 @@ INERT_EXCEPT = (
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",
+    # #2554: state_docs.py imports roster_sync.py, the roster-sync step
+    # `beat --apply` runs, and roster_sync imports roster_edit.py and
+    # carry_audit.py, so entities.py's load of the beat reads all three.
+    # closures run 119202770035 was UNDER-SCOPED on exactly these.
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/carry_audit.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
     # governance restore lists, passed to git on the arm's planted diff.
     # Six path parts, so `_is_header_corpus` does not reach it and the
