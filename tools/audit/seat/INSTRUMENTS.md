@@ -24,6 +24,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
+  Its GitHub reads retry on `app_push.sh`'s read-back rule (4 reads, settling
+  5/15/45 s) only on a transport error, 5xx, 429 or a secondary-rate-limit
+  403, and refuse with the last error once spent; any other failure, a wrong
+  answer and the review POST are never retried.
 - `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
   and reads the posted comment back byte-identical. When: a reviewer seat
   delivers a verdict. Refusal: a read-back that differs from what it meant to
