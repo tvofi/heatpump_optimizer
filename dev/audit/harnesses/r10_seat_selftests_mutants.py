@@ -9,10 +9,11 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (body_patch-1, tick_loop-N, heartbeat-N) each plant one production-line
-mutant in one file -- outside that file's self-test function -- and run only
-the step that names the file: a killed mutant reddens the step, and the same
-step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38,
+and each per-file id (<file>-<n>), plant one production-line mutant in one
+file -- outside that file's self-test function -- and run only the step
+that names the file: a killed mutant reddens the step, and the same step on
+the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
 unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
@@ -50,6 +51,11 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
+
+# cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
+_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
+_FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 
 # name, file, old (exactly once in the file), new
 MUTANTS = [
@@ -116,10 +122,73 @@ MUTANTS = [
     ("S38", "merge_pr.sh",
      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
      "exit 0  # mut:merge"),
+    # R10-FLOW-MAIN-GATE (K15): the train's state classifier and its readers.
+    ("merge_train-1", "merge_train.py", "names = [n for n in required if n not in NOT_GATING]",
+     "names = list(required)"),
+    ("merge_train-2", "merge_train.py", '        return "pending"\n', '        return "red"\n'),
+    ("merge_train-3", "merge_train.py", 'return ("red" if red else "wait" if pending else "green")',
+     'return ("wait" if pending else "red" if red else "green")'),
+    ("merge_train-4", "merge_train.py", "    if required is None:\n        raise ValueError(",
+     '    if required is None:\n        return "green", [], []\n        raise ValueError('),
+    ("merge_train-5", "merge_train.py", '            elif state == "red":\n', '            elif state != "green":\n'),
+    ("merge_train-6", "merge_train.py", 'in ("queued", "in_progress") and run_status == "completed"',
+     'in ("queued", "in_progress")'),
+    ("merge_train-7", "merge_train.py", "        self.unstale(h)\n", ""),
+    ("merge_train-8", "merge_train.py", "        if reran:\n            red = self.wait_ci(",
+     "        if False:\n            red = self.wait_ci("),
+    ("merge_train-9", "merge_train.py", "if files and all(f in claim_files for f in files):",
+     "if files and any(f in claim_files for f in files):"),
+    ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
+    ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
+    ("merge_train-12", "merge_train.py",
+     '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
+     '    drivers = []\n'),
+    ("merge_train-13", "merge_train.py",
+     'return [x for n in names for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]', "return []"),
+    ("merge_train-14", "merge_train.py", " or (code == 1) != (len(lines) > 1):", ":"),
+    ("merge_train-15", "merge_train.py", "            if m.group(1) not in reran.values():\n",
+     "            if True:\n"),
+    ("merge_train-16", "merge_train.py",
+     '            if runs is None:\n                self.log(f"OVERLAP:',
+     '            if False:\n                self.log(f"OVERLAP:'),
+    ("merge_train-17", "merge_train.py", "    if code not in (0, 1):\n        return None\n    names",
+     "    if False:\n        return None\n    names"),
+    ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
+     "        if False:\n            raise Stop(\"build\""),
+    ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
+    ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
+    ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
+    ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
+     '"absorb main locally with the claimnotes driver" if files else'),
+    ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
+    ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if ! grep -qxF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-2", "cloud_relay.sh", 'held_prs=$(hold_list) || {', 'held_prs=$(hold_list || true) || {'),
+    ("cloud_relay-3", "cloud_relay.sh", "*[!0-9]*|0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'",
+     "0*) echo \"cloud_relay: refused: malformed hold file $f: '$l'"),
+    ("cloud_relay-4", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
+     'if grep -qF "$pr" <<< "$held_prs"; then'),
+    ("cloud_relay-5", "cloud_relay.sh", 'while IFS= read -r l || [ -n "$l" ]; do', 'while IFS= read -r l; do'),
+    ("cloud_relay-6", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'level_set'),
+    ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
+    # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
+    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
+    ("cloud_relay-10", "cloud_relay.sh",
+     'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
+     'logline OWED "handoff-hold-malformed $(hold_file)"; level_set'),
+    ("cloud_relay-11", "cloud_relay.sh",
+     'return 2; }\n  level_set handoff-hold-malformed "$state/cloud-level-hold.$$"\n',
+     'return 2; }\n  rm -f "$state/cloud-level-hold.$$"\n'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
