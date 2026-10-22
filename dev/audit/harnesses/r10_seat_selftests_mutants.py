@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
 
 M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
 does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (body_patch-1, tick_loop-N, heartbeat-N) each plant one production-line
+HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (body_patch-1, tick_loop-N, heartbeat-N, ruleset_cutover-N) each plant one production-line
 mutant in one file -- outside that file's self-test function -- and run only
 the step that names the file: a killed mutant reddens the step, and the same
 step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
@@ -120,6 +120,15 @@ MUTANTS = [
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
      '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+    # r10-ci-layout P2a U9c: the ruleset cut-over instrument lives in tools/ci/,
+    # so its file is named from the repository root. -1 skips the read-back's
+    # second half, -2 its first, -3 the staged-hash precondition.
+    ("ruleset_cutover-1", "tools/ci/ruleset_cutover.py",
+     "    if without_checks(after) != without_checks(six(rollback)):", "    if False:"),
+    ("ruleset_cutover-2", "tools/ci/ruleset_cutover.py",
+     "    if put != want or contexts(after) != NEW_CHECKS:", "    if False:"),
+    ("ruleset_cutover-3", "tools/ci/ruleset_cutover.py",
+     'out.append(("staged-hash", a == b,', 'out.append(("staged-hash", True,'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
@@ -167,8 +176,13 @@ def steps() -> list[tuple[str, str]]:
     return out
 
 
+def seat_path(file: str) -> str:
+    """A bare name is a seat instrument's; a path is from the repository root."""
+    return file if "/" in file else f"{SEAT}/{file}"
+
+
 def step_for(file: str) -> tuple[str, str]:
-    pat = re.compile(re.escape(f"{SEAT}/{file}") + r" --self-test")
+    pat = re.compile(re.escape(seat_path(file)) + r" --self-test")
     hits = [s for s in steps() if pat.search(s[1])]
     assert len(hits) == 1, f"{file}: {len(hits)} steps"
     return hits[0]
@@ -231,7 +245,7 @@ def main(want: list[str]) -> int:
     for name, file, old, new, extra in plan:
         if not pick(name):
             continue
-        path = ROOT / SEAT / file
+        path = ROOT / seat_path(file)
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2

@@ -113,7 +113,8 @@
     "tools/release/**",
     "tools/merge/**",
     "tools/replay/**",
-    "tools/site/**"
+    "tools/site/**",
+    "tools/ci/**"
    ]
   },
   {
