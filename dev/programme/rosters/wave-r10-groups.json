@@ -2687,9 +2687,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-prepr-cap",
-    "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
+    "commit": "f0724675ff079895f7af8756b342165137a344ed",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "Reopened 2026-10-20: tvofi ruled that prepr runs its closures step only on Linux, with an opt-in for a lane that needs a first-green head; the local re-record duplicated CI required closures context plus closures-autofix and cost 10-25 min per handoff. CORRECTION 2026-10-21: the figure first recorded here (108 ok, 0 FAIL, 12 skip, read as never having refused) was WRONG. The step line format is REFUSE, not FAIL, and the filter could not see the word. Re-counted over the same logs: 108 ok, 13 skip, 3 REFUSE, and 10 REFUSE lines in a looser pass; the fixer measured 15 in its own corpus. So the step does catch under-scoped closures locally and the ruling cost side is not zero. Recommendation on record: keep the skip as the default and force the local check with PREPR_RECORD_CLOSURES=1 on diffs touching tests/closures.json, tests/closure.py, or adding a read of an INERT file - the class that actually refused. Same change makes closures_line reap its recorder on TERM: stopped preprs left derive_closures reparented to launchd for 20-38 min. Fixer on handoff/r10-prepr-closures."
