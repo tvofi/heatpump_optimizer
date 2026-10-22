@@ -65,6 +65,22 @@ def _ready_from_doc(text: str) -> list:
     return re.findall(r"^- (R9-\S+)", sec.group(1), re.M)
 
 
+def pickup(g: str, r: dict) -> str:
+    """One in-flight group's restart line, naming only the resume fields the
+    roster carries: a group dispatched before its first push has no branch to
+    fetch, and a round whose roster keeps no note file has none to read."""
+    branch, note = r.get("branch"), r.get("note_file")
+    line = f"- {g} (stage {r.get('stage')}"
+    if not branch:
+        return line + "): no branch pushed yet, so nothing to fetch"
+    line += f", branch `{branch}`" + (f", note `{note}`" if note else "")
+    line += (f"): `git fetch origin {branch} && git worktree add --detach "
+             f"$SEAT/wt FETCH_HEAD`")
+    if note:
+        line += "; read the note file and check its commit equals the fetched head"
+    return line
+
+
 def render(roster: dict, source: str, resume_path: str, resume_text: str,
            date: str, roster_rel: str) -> str:
     repo = roster.get("repo") or "<repo>"
@@ -87,12 +103,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
         L += ["", "Worktrees in flight (a crashed seat restarts from its "
                   "branch and note, never from scratch):"]
         for g, gr in inflight:
-            r = gr.get("resume") or {}
-            L += [f"- {g} (stage {r.get('stage')}, branch `{r.get('branch')}`, "
-                  f"note `{r.get('note_file')}`): `git fetch origin "
-                  f"{r.get('branch')} && git worktree add --detach "
-                  f"$SEAT/wt FETCH_HEAD`; read the note file and check its "
-                  f"commit equals the fetched head"]
+            L.append(pickup(g, gr.get("resume") or {}))
     ready = (_ready_from_doc(resume_text) if resume_text else
              [g for _, g in ready_next(roster)])
     if resume_path:
@@ -214,6 +225,19 @@ def _self_test() -> int:
           and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
     check("not-started group has no pickup", "handoff/r9-c" not in text)
     check("done group has no pickup", "handoff/r9-a" not in text)
+    # an in-flight group with no branch pushed yet, or no note file, names
+    # neither (#201 comment 6310616463: `git fetch origin None`).
+    bare = _fixture_roster()
+    bare["groups"][1]["resume"].update(branch=None, note_file=None)
+    bare_text = render(bare, "fixture", "", "", "2026-10-04", R10)
+    check("in-flight group without branch or note names neither",
+          "None" not in bare_text and "R9-B (stage in-review" in bare_text
+          and "git worktree add" not in bare_text, bare_text)
+    bare["groups"][1]["resume"]["branch"] = "handoff/r9-b"
+    bare_text = render(bare, "fixture", "", "", "2026-10-04", R10)
+    check("in-flight group with a branch and no note fetches it, names no note",
+          "None" not in bare_text and "git fetch origin handoff/r9-b" in bare_text
+          and "read the note file" not in bare_text, bare_text)
     # ready-next taken from the resume doc when given.
     check("ready from resume doc", "Ready next" in text
           and "R9-C" in text[text.find("Ready next"):])
