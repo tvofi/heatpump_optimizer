@@ -1,12 +1,17 @@
-## VERSION/manifest/notes
-(empty = untouched)
-## claims
-(empty = no claim files)
-claims hygiene: 6961f06637964001a2ed544e495ea0312eeefa37 ok
-## closure select
-  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
 ## structure
 
 STRUCTURE RATCHET PASSED
 ## tmp_paths
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 6961f0663796
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 93e6a63d2855
+## throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## archscore
+Architecture score: dS +0.0000 NULL
+## closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+tests/entities.py
+## rule3/4
+rc=1
+ 9 files changed, 588 insertions(+), 72 deletions(-)
+## git init/clone added
+rc=1

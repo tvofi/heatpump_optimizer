@@ -1,0 +1,13 @@
+diff --git a/tools/pr/app_push.sh b/tools/pr/app_push.sh
+index 95446dc21..40dc398de 100644
+--- a/tools/pr/app_push.sh
++++ b/tools/pr/app_push.sh
+@@ -143,7 +143,7 @@ cleanup() {
+   rm -rf "$PRIV"
+ }
+ PRIV=""
+-pr_exit_trap cleanup
++trap cleanup EXIT
+ 
+ # push.sh's classification, over a JSON listing: `[]` POSITIVELY means no
+ # pull request is open, an array naming a number names one, and anything

@@ -1,0 +1,2 @@
+MUTANT A_apppush_trapcleanup rc=1 secs=37 :: app_push self-test: 186 checks, 1 failed  :: FAILS: 1
+FAIL and leaves none of prepr's tree alive (R10-PUSHER-REAP) (got '3', want '0')

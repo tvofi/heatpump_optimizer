@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/remerge_main.sh b/tools/audit/seat/remerge_main.sh
+index 7404e864b..3d627457d 100755
+--- a/tools/audit/seat/remerge_main.sh
++++ b/tools/audit/seat/remerge_main.sh
+@@ -26,7 +26,7 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
+ # line and does not name the prepr step; the step line is the one before it.
+ # tail -1 | cut -c1-120 kept only the die (measured on #1974 and #1975).
+ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+-PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1 &
++PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1
+ wait $! || :; push_out=$(cat "$PL")
+ printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED' || true
+ sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
