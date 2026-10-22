@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented='7.0.2' measured='7.0.2'",
+  "result": "documented='7.0.4' measured='7.0.4'",
   "verdict": "true",
   "truth": ""
  },
@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (81 links)",
+  "claim": "every relative link resolves (84 links)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "81 links, broken=[], of which removed-by-the-export=[]",
+  "result": "84 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -983,9 +983,9 @@
  {
   "id": "C110",
   "source": "README.md + docs/*.md",
-  "claim": "every image the documentation embeds exists (21 images)",
+  "claim": "every image the documentation embeds exists (22 images)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "21 images, missing=[]",
+  "result": "22 images, missing=[]",
   "verdict": "true",
   "truth": ""
  },

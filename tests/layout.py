@@ -54,6 +54,17 @@ ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = "tests/layout.json"
 ARMS = ("category", "retired", "reference", "dead")
 SHOWN = 10  # findings printed per arm without --verbose
+# A repository-path-shaped token: slash-joined name segments, an optional
+# trailing slash. The one definition of the shape; `repo_path` adds the
+# first-segment test both readers apply (entities.py's path-literal census,
+# doc_claims.py's doc-wiring predicate (a)).
+PATH_TOKEN = re.compile(r"[\w.-]+(?:/[\w.-]+)+/?")
+
+
+def repo_path(tok: str, tops) -> bool:
+    """True when `tok` has the path shape and its first segment is in `tops`,
+    the top-level names of the tracked tree."""
+    return bool(PATH_TOKEN.fullmatch(tok)) and tok.split("/")[0] in tops
 
 
 def glob_re(glob: str) -> re.Pattern[str]:
