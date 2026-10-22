@@ -1,8 +1,8 @@
-Roster for round 10, fourteenth landing (after #2613). It records three groups whose pull requests merged and marks one group in-progress while its fixer's second round is out. Part of #201. It closes nothing by keyword and leaves #201 open.
+Roster for round 10, fifteenth landing (after #2613's batch 14). It records one group done (R10-SOLVER), three groups appended or re-anchored since batch 14 (R10-RCA-BODY-LINT, R10-NIGHTLY-ABSENT-NEW, R10-SCORES), one fly-in group, two carries on R10-FLOW-ARCH-PLANNER and one stale carry dropped from R10-FLOW-JIDOKA. Part of #201. It closes nothing by keyword and leaves #201 open.
 
 ## Head
 
-The authored code head is `324b6d312fe337f9a3766d3d0adca6722e5b9bf3`, the tip of `handoff/audit-r10-roster`. Its merge base with `origin/main` `4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b` is `d7e1f9fc06d02945c95ce6c14fcd17435ba45b24`, the roster as #2613 landed it. The diff against that base is one file, `dev/programme/rosters/wave-r10-groups.json`, 7 insertions and 7 deletions (`git diff --stat origin/main...324b6d312` prints them) over 4 commits (`git rev-list --count origin/main..324b6d312` prints 4), each pushed by `roster_edit.py --push` after its lint gate printed `TOTAL: 0 error(s)`.
+The authored code head is `ca48ff790b804d7d30c6d93d26ad05d3ead879ba`, the tip of `handoff/audit-r10-roster`. Its merge base with `origin/main` `de69745ffcab66b566b3e75aee0b572023f80857` is `008ad15bbba4df3dc6cb3afaee4ef7120557739d` (#2612's merge, the branch's last merge of main). The diff against that base is one file, `dev/programme/rosters/wave-r10-groups.json`, 131 insertions and 5 deletions (`git diff --stat origin/main...ca48ff790` prints them) over 14 commits (`git rev-list --count origin/main..ca48ff790` prints 14, one of them the merge `525b20241` of main), each pushed by `roster_edit.py --push` after its lint gate printed `TOTAL: 0 error(s)`.
 
 ## Mutation proof
 
@@ -10,24 +10,29 @@ n/a: roster state only; no production or test code.
 
 ## Null control
 
-`git diff --exit-code 4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b d7e1f9fc06d02945c95ce6c14fcd17435ba45b24 -- dev/programme/rosters/wave-r10-groups.json` has rc 0: the roster on main equals the merge base, so nothing main wrote is overwritten. The `removed` list below is empty.
+`git diff --exit-code de69745ffcab66b566b3e75aee0b572023f80857 008ad15bbba4df3dc6cb3afaee4ef7120557739d -- dev/programme/rosters/wave-r10-groups.json` has rc 0: the roster on main equals the merge base, so nothing main wrote since is overwritten (main's later commits are delivery rows). The `removed` list below is empty.
 
 ## Figures
 
-The 4 ops, by commit:
+The ops, by commit (`git log --format='%h %s' origin/main..ca48ff790` prints them):
 
-- `2d755baab` `R10-FLOW-YIELD-PROBE` done at `a9db47846647a516fbdb544c55c59a416875309f` (#2579).
-- `b767bae8a` `R10-FLOW-RELAY-HOLD` done at `50808a755ce300fac4b19b7cfe7f89c795b8387b` (#2580).
-- `33f76c39d` `R10-PREPR-CAP` done at `f0724675ff079895f7af8756b342165137a344ed` (#2528).
-- `324b6d312` `R10-CURRENCY` in-progress, not done: its fixer's round 2 is out.
+- `d82bfefce`, `91108ea13`, `26645ca88` `R10-RCA-BODY-LINT` appended, set in-progress, branch set.
+- `a332e09e3`, `9c6d30a5a` `R10-SCORES` brief pins re-anchored to `coordinator.py` :1081 then :1083 after #2612.
+- `1946d3e31`, `805a8915f` `R10-NIGHTLY-ABSENT-NEW` appended, set in-progress.
+- `525b20241` merge of `origin/main` (line pins track main's tree).
+- `1a3921ae1` `R10-NIGHTLY-ABSENT-NEW` brief: the bare token for GitHub's inactivity-disabled workflow state read as a symbol missing from the tree and refused the lint gate; it is reworded as prose, nothing else in the brief changes.
+- `89ad8e416` `R10-SOLVER` done at `008ad15bbba4df3dc6cb3afaee4ef7120557739d` (#2612).
+- `96b14cbea`, `054621bc3` two carries appended to `R10-FLOW-ARCH-PLANNER` (the owner's 2026-10-22 critical-path cap exemption; the four standing seats as role contracts).
+- `c8c7ae046` `R10-FLOW-JIDOKA` first carry dropped (its decision-0012 ruling is moot, 0014 having revoked 0012); the one entry matching was the one dropped.
+- `ca48ff790` `R10-FLY-PRUNE-REFS` appended, stage not-started.
 
-Each merge commit is an ancestor of `origin/main` (`git merge-base --is-ancestor <sha> origin/main` prints rc 0 for all three). Before each group was set done, its brief and carries were read for an owed further pull request ("PR 2/2", "P2b", a follow-up): `R10-FLOW-YIELD-PROBE` (2 carries), `R10-FLOW-RELAY-HOLD` (3) and `R10-PREPR-CAP` (1) name none, and each has `after` empty. The done-before-reroute check read the bodies of the open pull requests #2612, #2524 and #2617 for the three group names: none carries to any of them (#2617's body is empty; the `Carry:` lines in #2612 and #2524 route to other groups).
+`R10-SOLVER`: its brief and 4 carries name no owed pull request. #2612 closes #2240 as a re-measured duplicate of the owner's refusals #1293 and #1294 and fixes #2250; its forward-carries route to `R10-BRIEFS-FOLD`. The group's `after` groups are done.
 
-Measured with `B=origin/main`, `H=324b6d312`, `R=dev/programme/rosters/wave-r10-groups.json`: `jq -n --slurpfile b <(git show $B:$R) --slurpfile h <(git show $H:$R) '($b[0].groups|map({(.group):.})|add) as $B|($h[0].groups|map({(.group):.})|add) as $H|{nb:($B|length),nh:($H|length),removed:[$B|keys[]|select($H[.]==null)],new:[$H|keys[]|select($B[.]==null)],changed:[$H|keys[]|select($B[.]!=null and $B[.]!=$H[.])]}'` prints 151 and 151 groups, none removed, none new, and 4 changed (`R10-CURRENCY`, `R10-FLOW-RELAY-HOLD`, `R10-FLOW-YIELD-PROBE`, `R10-PREPR-CAP`). Groups by `resume.stage`, main then this head: done 73 then 76, in-progress 8 then 8 (`R10-CURRENCY` enters, `R10-PREPR-CAP` leaves), not-started 63 then 60, queued 7 then 7. `node tools/policy/brief_lint.mjs` on the roster at `H` prints `TOTAL: 0 error(s) across 47 file(s)`.
+Measured with `B=origin/main`, `H=ca48ff790`, `R=dev/programme/rosters/wave-r10-groups.json`: `jq -n --slurpfile b <(git show $B:$R) --slurpfile h <(git show $H:$R) '($b[0].groups|map({(.group):.})|add) as $B|($h[0].groups|map({(.group):.})|add) as $H|{nb:($B|length),nh:($H|length),removed:[$B|keys[]|select($H[.]==null)],new:[$H|keys[]|select($B[.]==null)],changed:[$H|keys[]|select($B[.]!=null and $B[.]!=$H[.])]}'` prints 151 and 154 groups, none removed, 3 new (`R10-FLY-PRUNE-REFS`, `R10-NIGHTLY-ABSENT-NEW`, `R10-RCA-BODY-LINT`) and 4 changed (`R10-FLOW-ARCH-PLANNER`, `R10-FLOW-JIDOKA`, `R10-SCORES`, `R10-SOLVER`). Groups by `resume.stage`, main then this head: done 76 then 77, in-progress 8 then 9, not-started 60 then 61, queued 7 then 7. `node tools/policy/brief_lint.mjs` on the roster at `H` prints `TOTAL: 0 error(s) across 1 file(s)`.
 
 ## Red checks
 
-Read 2026-10-22 from `repos/tvofi/heatpump_optimizer/commits/4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b/check-runs` (main's tip, 55 runs), failures, cancellations and timeouts only: 6 runs of `rerun-stale-contract`, all `cancelled`. That workflow (`.github/workflows/pr-contract-rerun.yml`) shares one concurrency group per head with `cancel-in-progress: true`, so a superseded run at a head is cancelled by design (R10-FOLLOWER-DEBOUNCE, its header comment); none of the six is a failure of a required check. Checks at this PR's own head are read by CI; this diff changes only the roster and one delivery row.
+Read 2026-10-22 from `repos/tvofi/heatpump_optimizer/commits/de69745ffcab66b566b3e75aee0b572023f80857/check-runs` (main's tip, 59 runs), failures, cancellations and timeouts only: 10 runs of `rerun-stale-contract`, all `cancelled`. That workflow (`.github/workflows/pr-contract-rerun.yml`) shares one concurrency group per head with `cancel-in-progress: true`, so a superseded run at a head is cancelled by design (R10-FOLLOWER-DEBOUNCE, its header comment); none of the ten is a failure of a required check. 4 further runs (`Analyze (python)`, `closures`, `coverage`, `fast (3.14)`) were still in progress at the read and have no conclusion yet. Checks at this PR's own head are read by CI; this diff changes only the roster and one delivery row.
 
 ## Forward-carry
 
