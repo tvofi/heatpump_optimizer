@@ -46,7 +46,8 @@ row HP-FG PA tools/audit/seat/handoff_push.sh '> "$B.push.log" 2>&1 &' '> "$B.pu
 row RM-FG PA tools/audit/seat/remerge_main.sh '> "$PL" 2>&1 &' '> "$PL" 2>&1'
 row AP-FG AP tools/pr/app_push.sh '( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!' '( cd "$wt" && bash "$prepr" "$body" "$@" ) || prepr_rc=$?' \
   '    wait "$prepr_pid" || prepr_rc=$?' '    :'
-row MT-KILL MT tools/audit/seat/merge_train.py 'p.terminate()' 'p.kill()'
+# the tool's stop in Train._run (16-space indent: the self-test driver's own terminate() has 12)
+row MT-KILL MT tools/audit/seat/merge_train.py '                p.terminate()' '                p.kill()'
 
 mutate() { # <file> <anchor> <replacement> [...]: exact-once, or exit 3
   python3 -I - "$@" <<'PY'

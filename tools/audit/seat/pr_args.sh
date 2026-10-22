@@ -467,6 +467,8 @@ STUB
   }
   reaphandoff -
   ck "handoff_push: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  STOPSIG=INT reaphandoff -
+  ck "handoff_push: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
   reaphandoff exitreap
   ck "  mutant mut:exitreap: handoff_push dies and its tree survives" "$(survived)"
   reapremerge() { # <mutant>: TERM remerge_main.sh mid-push
@@ -479,6 +481,8 @@ STUB
   }
   reapremerge -
   ck "remerge_main: TERM reaps the whole descendant tree, and the pusher is gone" "$(reaped)"
+  STOPSIG=INT reapremerge -
+  ck "remerge_main: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
   reapremerge exitreap
   ck "  mutant mut:exitreap: remerge_main dies and its tree survives" "$(survived)"
   rm -f "$m/tools/pr/app_push.sh"
@@ -666,7 +670,9 @@ STUB
     rm -f "$REAP_DIR/started" "$REAP_DIR/fast" "$REAP_DIR/ok" "$t/out2" "$t/out3"; : > "$REAP_DIR/pids"
     copyin "$1"
     cp "$t/body.md" "$t/b1.md"  # run 1 is update_pr.sh itself, so the signal reaches it, not a subshell
-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
+    # The exec resets the INT a background job starts with ignored (stopreap's why).
+    HPO_STATE_DIR=$sd python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$m/tools/audit/seat/update_pr.sh" fix/t - "$t/b1.md" > "$t/out1" 2>&1 & up=$!
     while [ "$(wc -l < "$REAP_DIR/pids")" -lt 4 ] && [ $k -lt 600 ]; do sleep 0.05; k=$((k + 1)); done
     wc -l < "$REAP_DIR/pids" | tr -d ' ' > "$t/treen"
     hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-t.lock" 2>/dev/null || :)
@@ -688,6 +694,8 @@ STUB
      "$( [ "$(cat "$t/held")" = 1 ] && echo 0 || echo 1 )"
   ck "update_pr: after the stop the lock is free, so the next run takes it" \
      "$( ! grep -qF "update_pr: BUSY" "$t/out2" && took_lock && echo 0 || echo 1 )"
+  stoprun - INT
+  ck "update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it" "$(reaped)"
   stoprun stop TERM
   ck "  mutant mut:stop (the reap's kill line deleted): the pusher dies and its tree survives" "$(survived)"
   ck "  mutant mut:stop: and the lock is freed while that push still runs (the next run is not BUSY)" \

@@ -101,10 +101,11 @@ cd $M
 # #2444's seam): the live pusher, behind the pre-move location a checkout may
 # still carry (tests/layout.json maps that path to this one).
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-push_app() { # <tail count>: the push, asynchronously into its log, filtered to its REFUSE/PUSHED lines
+push_app() { # <tail count>: the push, asynchronously into its log; its REFUSE/PUSHED lines, printed and in PUSH_OUT
   PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} > "$B.push.log" 2>&1 &
   wait $! || :  # a stop signal interrupts the wait; the EXIT trap reaps the push (R10-PUSHER-REAP)
-  grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -"$1" | cut -c1-200
+  PUSH_OUT=$(grep -E 'REFUSE|PUSHED' "$B.push.log" | tail -"$1" | cut -c1-200)
+  [ -z "$PUSH_OUT" ] || printf '%s\n' "$PUSH_OUT"
 }
 git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
@@ -177,7 +178,8 @@ s=prefix(s,"`%s` merges origin/main `%s` into the authored head `%s`, with no ha
 open(p,'w').write(s)
 E2
 fi
-out=$(push_app 2)  # mut:push-open
+# Never `$(push_app ...)`: the shell would wait on that subshell in the foreground, and an INT behind it.
+push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open
 echo "$out" | cut -c1-200
 N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
 gh pr edit $N --title "$TITLE" >/dev/null

@@ -826,6 +826,20 @@ kill -TERM "$ap"; wait "$ap"; st $? 143 "app_push TERMed mid-prepr exits 143"
 st "$(alive_of "$W/stopped/pids")" 0 "and leaves none of prepr's tree alive (R10-PUSHER-REAP)"
 st "$(calls stopped curl)" 0 "and minted nothing"
 for p in $(cat "$W/stopped/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+# ... and INT too: prepr runs asynchronously, so the INT does not wait behind it.
+# A background job starts with INT ignored, which bash cannot undo; the exec resets it.
+mkcase stoppedint; : > "$W/stoppedint/prepr-tree"; : > "$W/stoppedint/pids"
+( export STUB="$W/stoppedint" PATH="$W/bin:$PATH" TMPDIR="$W/stoppedint/tmp" HPO_IDENTITY_DIR="$W/id"
+  exec python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+    bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stoppedint/out" 2> "$W/stoppedint/err" ) & ap=$!
+k=0; while [ "$(wc -l < "$W/stoppedint/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+st "$(wc -l < "$W/stoppedint/pids" | tr -d ' ')" 3 "the INT case's prepr tree started (three pids)"
+kill -INT "$ap"; k=0
+while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push INTed mid-prepr ends within 4 s, not behind prepr"
+st "$(alive_of "$W/stoppedint/pids")" 0 "and leaves none of prepr's tree alive"
+kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
+for p in $(cat "$W/stoppedint/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
 
 mkcase leaky; : > "$W/leaky/leaky-log"
 run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"
