@@ -1,0 +1,20 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (7), measured against the recorded closures in tests/closures.json:
+      .github/workflows/governance.yml
+      dev/audit/harnesses/r10_seat_selftests_mutants.py
+      dev/programme/delivery/2578.md
+      tools/audit/seat/INSTRUMENTS.md
+      tools/audit/seat/body_patch.sh
+      tools/pr/app_mint.sh
+      tools/pr/app_push.sh
+      RUN   tests/entities.py
+      RUN   tests/harness_headers.py
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 124 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 90 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 88 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 94 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 97 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 126 files, no changed file is in its measured closure)
+      SKIP  tests/debug_collect.py  (closure: 99 files, no changed file is in its measured closure)
