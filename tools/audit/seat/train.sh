@@ -194,7 +194,44 @@ if [ "$selftest" = 1 ]; then
     *"|--min-runs|1|") : ;;
     *) die "self-test: a bare launch passed flags it was not given: $flags" ;;
   esac
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag)"
+  # 9. a stopped train ends its whole tree (R10-PUSHER-REAP): TERM or HUP to the pid
+  #    in train.pid reaches the merge_train.py child, the tree under it is reaped,
+  #    and the pidfile goes only once that tree is gone -- a pidfile removed while
+  #    the train still runs lets a second train start on the same state dir. The
+  #    child is a stub running a two-level tree (5 pids, the review's harness);
+  #    the seat venv's python3 is the ambient one. "early": the pidfile was gone
+  #    while a pid of the tree was still alive.
+  for sig in TERM HUP; do
+    st=$(mktemp -d)
+    mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+    ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+    printf '#!/bin/bash\necho $$ >> "%s/pids"\nbash -c '"'"'sleep 30; :'"'"' & echo $! >> "%s/pids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/pids" & echo $! >> "%s/pids"\nwait\n' \
+      "$st" "$st" "$st" "$st" > "$st/tree.sh"
+    printf 'import os, subprocess\nopen("%s", "a").write("%%d\\n" %% os.getpid())\nsubprocess.Popen(["bash", "%s"]).wait()\n' \
+      "$st/pids" "$st/tree.sh" > "$st/C/tools/audit/seat/merge_train.py"
+    : > "$st/queue.json"; : > "$st/pids"
+    HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --checkout "$st/C" >/dev/null 2>&1 &
+    lp=$!; k=0
+    while [ "$(wc -l < "$st/pids")" -lt 5 ] && [ $k -lt 200 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$st/pids" | tr -d ' '); held=$(cat "$st/state/train.pid" 2>/dev/null)
+    tlive() { live=0; for p in $(cat "$st/pids"); do
+      kill -0 "$p" 2>/dev/null && [ "$(ps -o stat= -p "$p" | cut -c1)" != Z ] && live=$((live + 1)); done; }
+    kill -"$sig" "$held" 2>/dev/null; early=none; k=0
+    while [ $k -lt 100 ]; do
+      [ -f "$st/state/train.pid" ] && pf=1 || pf=0
+      tlive
+      [ "$pf" = 0 ] && [ "$live" -gt 0 ] && early=early
+      [ "$pf" = 0 ] && [ "$live" = 0 ] && ! kill -0 "$lp" 2>/dev/null && break
+      sleep 0.05; k=$((k + 1))
+    done
+    wait "$lp" 2>/dev/null; tlive
+    for p in $(cat "$st/pids"); do kill -KILL "$p" 2>/dev/null; done
+    pf=$([ -f "$st/state/train.pid" ] && echo present || echo removed)
+    rm -rf "$st"
+    [ "$tn $held $live $pf $early" = "5 $lp 0 removed none" ] \
+      || die "self-test: $sig to the train (pid $held, launcher $lp) left $live of $tn pids of its tree alive (pidfile $pf, $early)"
+  done
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, a stop reaps the tree)"
   exit 0
 fi
 
