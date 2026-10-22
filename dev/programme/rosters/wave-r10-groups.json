@@ -506,7 +506,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2620
    },
    "brief": "A money figure is resolved by divergent currency precedence on different surfaces: D14-s3-01 (medium, verified; D14-s2-01 merged) finds 1 of 14 money seams mismatched, at `_narrative_view` in custom_components/heatpump_optimizer/coordinator.py. One owner resolves the currency (custom_components/heatpump_optimizer/currency.py) and every surface reads it. Also take D5-s3-01 (#2222): the price-units comment in the coordinator names a currency symbol the code no longer has; correct the comment in the same hunk.\n\nForward-carried (finding-propagation.md): (1) Null control: the reintroduce arm of the finder's harness reads 14 and the clean arm 0 (`dev/audit/rounds/round10/D14/s3/p8_replay_currency.py` at d23205d13); both must hold after the fix.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: none). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
@@ -1679,9 +1680,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-sensor-payload",
-    "commit": null,
+    "commit": "5756f2b1578198b7e6f7f62ea33153f2506a7bd3",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": "D8-s1-01 owned by R10-ARCH-SHAPES per #2379; #2242 closed by #2379"
@@ -5113,7 +5114,17 @@
     "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)",
     "roster_edit append-group/set-stage must refuse a stage outside the classified set that roster_sync's self-test checks; the cause was the 'in-review' stage in roster PR 12, CI job 119785082787.",
     "From #2579's round-6 review (review/2579 f7a6bdf0c), the R10-FLOW-YIELD-PROBE measurement: two corrected points bind the yield-probe guardrail that this group owns (item b8b28b28).\n(1) P(X <= 4 | n=30, p=0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer first-pass merges, not 3.\n(2) Any ALPHA the guardrail adopts must be checked at P = 0.0526 (k = 2 of 20) for the 20-PR arm.\nRe-derive both figures from dev/audit/rounds/round10/D13/yield-probe.md at this group's merge base before adopting them. The control is the one already carried: a planted defect of each class trips the guardrail, and a null window does not.",
-    "From #2609's post-merge delta review (review/2609 db41f8581): env-matrix (job 119862131576) went red at 97ac438d6 on the no-remote arm only (`no-remote / policy_lint rc=0 -- rc=1`; `no-remote / the lane reports NOT MEASURED rather than failing -- rc=1`; 14 held, 2 did not). The pr, push-main and shallow arms held, and the same driver run locally at that head held 16 of 16. The two-file delta (the D6 claims files) cannot reach policy_lint, so this reads as a CI-environment arm that flakes. Owed: reproduce the no-remote arm in CI's shape, name its cause, and either fix the arm or record why it is not deterministic. Null control: the arm holds on a head whose diff cannot reach policy_lint."
+    "From #2609's post-merge delta review (review/2609 db41f8581): env-matrix (job 119862131576) went red at 97ac438d6 on the no-remote arm only (`no-remote / policy_lint rc=0 -- rc=1`; `no-remote / the lane reports NOT MEASURED rather than failing -- rc=1`; 14 held, 2 did not). The pr, push-main and shallow arms held, and the same driver run locally at that head held 16 of 16. The two-file delta (the D6 claims files) cannot reach policy_lint, so this reads as a CI-environment arm that flakes. Owed: reproduce the no-remote arm in CI's shape, name its cause, and either fix the arm or record why it is not deterministic. Null control: the arm holds on a head whose diff cannot reach policy_lint.",
+    "\u00a71's remaining cause, the `handoff-no-pr` level closed only by an open PR, a disposition or a vanished ref, is stated in `R10-FLY-ORPHANS-REWRITTEN`'s brief on `origin/handoff/audit-r10-roster` `743463c61` (\"cloud_relay.sh classifies handoff-no-pr from its own rules\"). `R10-ORCH-MACHINERY`'s obligations ledger replaces the relay's log scan and the tick's OWED scan, so it must keep the grammar `b38c6431a` landed. That group is the destination here because `R10-FLY-ORPHANS-REWRITTEN` is not yet on main's roster, which pr-contract's carry step reads. Carry text for the orchestrator to land: \"The relay's event keying and level file landed by b38c6431a (events keyed on their PR and cleared by its POSTED; levels a rewritten <log>.level) must survive the ledger. Control: `python3 -I dev/audit/harnesses/r10_relay_owed_class_reach.py` prints `events_uncleared=0` and `level_lines` equal to `level_items` before and after; reverting either half moves it (`events_uncleared=4`, or `level_lines=4` for 2 items). (from #2545, dev/audit/rca/N-orphaned-handoff.md \u00a71, \u00a75.1)\" Carry: R10-ORCH-MACHINERY",
+    "\u00a75's ledger-extension controls (the `ecaf178c` content-covered close with a positive case and a null case, and the \u00a75.6 exit-code red case) are landed in `R10-ORCH-MACHINERY`'s carry at `743463c61`. Carry: R10-ORCH-MACHINERY (item 3985dac8)",
+    "\u00a73's (d) observation, the brief pinned at handoff, is landed in `R10-ORCH-MACHINERY`'s carry at `743463c61`, re-carried from `R10-ROSTER-OPS` by #2554. Carry: R10-ORCH-MACHINERY",
+    "`finding-propagation.md`: contradiction: the rule counts a roster carry as landed once it is on `handoff/audit-r10-roster`, but `pr-contract`'s carry step reads main's roster. Six pr-contract runs on this PR refused routings to groups the roster branch already held (`## Red checks`). The roster-sync step is `R10-ORCH-MACHINERY`'s. Carry text for the orchestrator to land: \"pr-contract's carry step and the rule must read the same roster; prepr or body_push should run carry_audit against the roster the check will read. (from #2545)\" Carry: R10-ORCH-MACHINERY",
+    "R10-ORCH-MACHINERY's item (3), \"the plan page as a tree instrument sharing one model builder with `plan_table.py`, driven by `state_docs.py` ... failing to an explicit UNAVAILABLE page\", is partly landed here, and its premise changed: - The page exists as `tools/audit/seat/plan_page.py`. - Its model is the schedule `replan.py` writes, not `plan_table.py`'s dependency-depth waves. The page cannot share one model builder with `plan_table.py` without one of them computing a schedule the other does not hold. - It refuses a stale, violating or model-less plan with exit 1 and writes nothing, rather than writing a page of zeros. Each refusal is pinned (see `## Mutation proof`). - What remains for that stage: driving it from `state_docs.py`; an UNAVAILABLE page in place of no page, if the design still wants one; and the five generator-defect fixtures. - Precondition (the control): before building on this, that stage re-measures `python3 -I tools/audit/seat/plan_page.py --self-test` at its own merge base and expects 0 failed. - Roster: the orchestrator landed this carry, and this seat did not edit the roster. It is on `origin/handoff/audit-r10-roster` at `7213e761ea5a47f6aa9bace1b03620e650b1cd3c` (`roster_edit append-carry R10-ORCH-MACHINERY`, 2026-10-21T21:35:40Z). It is still present at the tip I re-fetched in round 3, `d3f27e05db3410fe38e10afea47866b82645e4fa` (`git grep -c 'From #2558'` on `dev/programme/rosters/wave-r10-groups.json`: 1). The carry entry reads \"From #2558 (R10-PLAN-ARTIFACT; verdict at origin/probe/rev-2558-e98d4b97): item (3)'s premise changed. ... Also retire the out-of-tree gen.py/tpl.html. Control: plan_page.py --self-test re-measured at that stage's merge base, as a precondition.\" The group's `brief` text for (3) is unchanged, so the carry is what records the change. - The STUDY K17 carry at `8162c672d99d15d7cb5e11e8a6d2ba51ddc30138` agrees with it. Its item (6) reads \"if R10-PLAN-ARTIFACT (#2558) merges first, part (3) extracts plan_model() from its code rather than building a second page\". Carry: R10-ORCH-MACHINERY (item 3)",
+    "The orchestrator's out-of-tree `gen.py` / `tpl.html` are retired once this merges, since the page they drew is now this instrument's output. Same precondition: `plan_page.py --self-test` re-measured at that stage's merge base. Carry: R10-ORCH-MACHINERY (item 3)",
+    "R10-ORCH-MACHINERY must register `heartbeat.sh --once` as the beat's heartbeat job and then drop the call from `tick_loop.sh`. Carry: R10-ORCH-MACHINERY",
+    "The beat's job table should list `body_patch.sh` as a hosted one-shot (arguments pr, sha, body; success = exit 0 and a last `body_patch: OK` line). Carry: R10-ORCH-MACHINERY",
+    "finding-propagation: unclear: a seam note for FLOW-BODY-PATCH in STUDY K17 names the beat but not the argument shape a hosted job takes, so this seat chose positional arguments and an `OK|REFUSE` last line. Carry: R10-ORCH-MACHINERY",
+    "Seam with R10-ORCH-MACHINERY (K17): dispatch through `bus.sh dispatch` and the worker registry are that group's. Carry: R10-ORCH-MACHINERY (item 92bca45d)"
    ],
    "model": {
     "fixer": "opus",
@@ -5383,9 +5394,9 @@
    "architect_note": "",
    "brief": "The root-cause analysis for the orphaned-handoff class (handoffs no pull request carried): one new record under dev/audit/rca, already handed off on handoff/r10-rca-handoff-slip and awaiting its pull request. Review checks the four products root-cause.md requires: the named cause, the process state, the cost test with numbers, and the countermeasure or recorded refusal.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-handoff-slip",
-    "commit": null,
+    "commit": "f35a5a373a3a11140cf39d32f4cd7a1cd57a4a4e",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": null
@@ -5556,9 +5567,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-plan-artifact",
-    "commit": null,
+    "commit": "383bca2be2c35f83e62dff586f26a5758682b16f",
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-21",
     "note": null
@@ -5734,9 +5745,9 @@
    "architect_note": "",
    "brief": "Make an orchestrator stop visible within 20 minutes (Lean study K8). In round 10, two stops went unnoticed for 6 h and 16 h (R10-RCA-ORCH-CONTINUITY). No loop writes a liveness signal anyone outside the host can read: tick_loop.sh writes a local board, state_docs.py's beat pushes only when main moves, and wt_sync.sh only when a tree is dirty. Each tick pass updates one ref, heartbeat/orchestrator, to a commit whose message carries the pass time and the relay and tick return codes, pushed with the seat's existing credential. A watcher outside the host (an owner-scheduled cloud task) reads the ref's committer date and alerts the owner when it is older than 20 minutes. Controls: the loop's self-test shows a pass moves the ref and a failed push is printed, never silent; a stale-ref fixture makes the watcher command alert and a fresh one does not.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-andon",
-    "commit": null,
+    "commit": "fea3d3ca6171e255711e7642579e5cfdbe085c3b",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -5839,9 +5850,9 @@
    "architect_note": "",
    "brief": "Repair a pull request's body without moving its head (Lean flow study K14; expedite, it repairs the line). Ruling R4 forbids moving a clean head, and update_pr.sh merges main on every run, but no tool PATCHes a body alone: app_push.sh mints, pushes, then PATCHes, and has no body-only flag. Bodies that pr-contract or carry_audit refuse therefore stay red or get a head move. (#2560's 111 to 113 figure, cited in revision 3, was not a live case: the live body already said 113 from the round-3 recount; corrected in revision 4.) Add one seat instrument that takes a pull request number, the expected head sha and a body file; refuses unless the live head equals the expected sha; runs the body contract offline at that head (the policy_lint.mjs --pr-body arm prepr runs, and carry_audit.py check --body); PATCHes the body as the hpo-author App through the same mint app_push.sh uses, factored out rather than copied; reads the body back byte-identical; and re-reads the head to show it did not move. pr-contract re-runs on the edited event. Controls: a fixture where the head moved refuses before any write; a body the contract refuses is never sent; a dry-run prints the exact request; mutants for the head check, the contract arm and the read-back. Revision 8: run only the body contract, never the full prepr (the interim dry run through app_push.sh costs about 3 min because prepr runs; target under 30 s); and run carry_audit.py with --roster-ref naming the freshly fetched round roster branch, because an offline check reads the roster from the worktree and passes a carry that is not on the roster branch, which only fix-review step 10 would catch.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-body-patch",
-    "commit": null,
+    "commit": "8a4c438e7d9a6e2c492a1733d658d96b7b1eedcf",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -5986,9 +5997,9 @@
    "architect_note": "",
    "brief": "One call per cloud seat (Lean flow study K16; expedite since revision 4: the repo half has no dependency on any other flow group, and its cost recurs for every seat). Today each cloud seat costs a rendered payload plus two trigger bodies pasted whole, and the renderer needs environment, model and repo flags and refuses host paths. Make cloud_dispatch.py take only role, group and model, derive the rest from the roster and the seat environment it already knows, write the rendered brief to a ref the seat fetches, and print the one short line the trigger needs (the ref name), so a standing trigger per role can be fired with that line alone. Whether the trigger tool can take a file or a ref is the owner's harness, not this repo; the group builds the repo half. Controls: a fixture dispatch renders the same payload as today's three-step path, byte for byte; a host path still refuses; the printed line round-trips to the brief. The dispatcher refuses a reviewer dispatch for a head where a required context's latest run has concluded failure (revision 7: #2563 was dispatched for review at 9851d39d with two required checks red), reading R10-FLOW-MAIN-GATE's classifier.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-flow-dispatch",
-    "commit": null,
+    "commit": "b980e2fa0ff80e1ba96923de8475c160addc1939",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -7375,9 +7386,9 @@
    "architect_note": "",
    "brief": "Fix from the root-cause seat on the 'no budget leaf raised' refusals (#2591): prepr's step 7 (body_line) and step 7c (reds_line) reported a refused body check by its count line alone unless the refusal was an unnamed red, and step 7 appended its budget verdict to that line. #2545, #2558 and #2582 were refused within about an hour with 'PR-BODY: N error(s) ... no budget leaf raised', which read as a budget refusal; the real ground was a ## Friction line written as prose, not in the template's <rule_id>: <class>: <evidence> form. One helper, body_refusal, used by both callers, prints the red gate's own sentence when a red went unnamed, else the first ERROR line policy_lint.mjs --pr-body printed, else the count line, followed by the count of error lines. PR #2591 (topic r10-fly-budget-leaf), changes only tools/pr/prepr.sh.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-fly-budget-leaf",
-    "commit": null,
+    "commit": "1787ffd08979dd21d525258cfc9ebd30c4455f72",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694 for #2591."
@@ -7842,7 +7853,8 @@
    "brief": "Root-cause countermeasure for the recurring class of fixer bodies refused at prepr by the pr-body lint (#2524 twice, R10-CURRENCY three times, P2a once; 36 of 519 handoff-body pushes over 22 topics fail it offline, 2-12 a day 10-15..10-22). Cause: body_push.sh ran only ci_predict, never the body lint, and the Friction trailer drop predates the cloud session-link line. Countermeasure: prepr.sh --body-check runs step 7 offline; body_push.sh lints when handoff/<topic> is HEAD and refuses a mismatched head; the session link joins the trailer drop. Record dev/audit/rca/R10-RCA-BODY-LINT.md and class N-body-lint-bounce. Code at handoff/r10-rca-body-lint 5b27a11aa.",
    "resume": {
     "stage": "in-progress",
-    "branch": "fix/r10-rca-body-lint"
+    "branch": "fix/r10-rca-body-lint",
+    "pr": 2625
    }
   },
   {
