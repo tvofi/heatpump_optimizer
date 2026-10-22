@@ -1,0 +1,4 @@
+MUTANT F-CR-ELSEFG: CR rc=1 cloud_relay self-test: 84 checks, 1 failed
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)
+MUTANT F-CR-ELSELEAD: CR rc=1 cloud_relay self-test: 84 checks, 1 failed
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)

@@ -1,0 +1,78 @@
+MUTANT M0: CR rc=0 cloud_relay self-test: 84 checks, 0 failed
+MUTANT M0: TR rc=0 train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first)
+MUTANT M0: PA rc=0 pr_args self-test: 93 checks, 0 failed
+MUTANT M0: AP rc=0 app_push self-test: 197 checks, 0 failed
+MUTANT M0: MT rc=0 merge_train self-test: 221 checks, 0 failed
+MUTANT CR-FG: CR rc=1 <no summary line>
+MUTANT CR-FG-BOUND: CR rc=1 cloud_relay self-test: 84 checks, 4 failed
+    FAIL a failed update is tried once (rc=1, want 0)
+    FAIL and logs OWED handoff-update (rc=1, want 0)
+    FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0)
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)
+MUTANT CR-LEADNAME: CR rc=1 cloud_relay self-test: 84 checks, 2 failed
+    FAIL a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does (rc=1, want 0)
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)
+MUTANT CR-PRODPATH: CR rc=1 cloud_relay self-test: 84 checks, 1 failed
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)
+anchor occurs 0 times in tools/audit/seat/cloud_relay.sh: else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2 & fi
+MUTANT F-CR-ELSEFG: NOT APPLIED at HEAD
+MUTANT F-CR-ELSELEAD: CR rc=1 cloud_relay self-test: 84 checks, 1 failed
+    FAIL with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order (rc=1, want 0)
+MUTANT TR-FG: TR rc=2 train.sh: REFUSE: self-test: the stubbed --ignore-red run did not succeed
+MUTANT TR-LEAD: TR rc=2 train.sh: REFUSE: self-test: a TERMed train did not stop merge_train.py first (alive 0, marks 'G early ', pidfile removed)
+MUTANT TR-RC: TR rc=2 train.sh: REFUSE: self-test: a child exiting 3 left train.sh rc 0, state/rc '0', log 'TRAIN_RC=0'
+MUTANT OP-FG1: PA rc=124 <no summary line>
+    FAIL open_pr: twenty open pull requests do not stop an open; the count is information
+    FAIL open_pr: --over-cap is still accepted, and says it is advisory
+    FAIL open_pr: an open count gh cannot read says so and still opens
+    FAIL open_pr: a record: title and another bot's pull request are not in the open count
+    FAIL open_pr: the same board, the bot pull request uncounted
+    FAIL null control: open_pr with the code sha passes every check, and its failed push names its log
+    FAIL open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+    FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+    FAIL   the census on the scratch copy passes as it does on the tree
+MUTANT OP-FG2: PA rc=1 pr_args self-test: 93 checks, 3 failed
+    FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+    FAIL   the census on the scratch copy passes as it does on the tree
+    FAIL   mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+MUTANT UP-FG: PA rc=124 <no summary line>
+    FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+    FAIL   the census on the scratch copy passes as it does on the tree
+    FAIL null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
+    FAIL update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+    FAIL update_pr: after the stop the lock is free, so the next run takes it
+    FAIL update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+    FAIL update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+MUTANT HP-FG: PA rc=1 pr_args self-test: 93 checks, 3 failed
+    FAIL handoff_push: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+    FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+    FAIL   the census on the scratch copy passes as it does on the tree
+MUTANT RM-FG: PA rc=1 pr_args self-test: 93 checks, 3 failed
+    FAIL remerge_main: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+    FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+    FAIL   the census on the scratch copy passes as it does on the tree
+MUTANT AP-FG: AP rc=1 app_push self-test: 197 checks, 2 failed
+    FAIL app_push INTed mid-prepr ends within 4 s, not behind prepr (got 'alive', want 'gone')
+    FAIL and leaves none of prepr's tree alive (got '3', want '0')
+MUTANT AP-PUSHFG: AP rc=1 app_push self-test: 197 checks, 16 failed
+    FAIL app_push INTed mid-push, after the mint, ends within 4 s (got 'alive', want 'gone')
+    FAIL and leaves none of the push's tree alive (got '3', want '0')
+    FAIL and revokes the token it minted (got '0', want '1')
+    FAIL a refused push exits non-zero (got '0', want '1')
+    FAIL with the refused wording on the push itself (the read-back is never reached for a refused push) (got '0', want '1')
+    FAIL and no pull request was created or re-bodied (got '1', want '0')
+    FAIL --branch-only pushes a batch/ branch without a body (got '1', want '0')
+    FAIL --recarry: a clean 2-parent merge of the live head and main, live body: pushed (prepr-fails set, so a prepr call would refuse it) (got '1', want '0')
+    FAIL the PATCHed body names the new head, and main by parent 2's sha, under ## Head, which pr-contract requires (got '', want '1')
+    FAIL and nothing else in it moved: less the note, it is the live body (got '', want 'True')
+    FAIL and the open pull request is re-bodied, not duplicated (got '0', want '1')
+    FAIL (null control: a --recarry whose head is already current confirms on the FIRST read and prints no settle) (got '0', want '01')
+    FAIL a recarry of a body whose prose quotes `## Head` pushes (got '1', want '0')
+    FAIL and a second recarry of the body the first PATCHed pushes (got '1', want '0')
+    FAIL and the prose above the heading is untouched (got '', want 'Round 2: update_pr.sh takes its output to word the `## Head` note.')
+    FAIL (null control: a single recarry of a body with no prose `## Head` names its head, and the body's own) (got '1namednamed', want '0namednamed')
+MUTANT AP-MINTTRAP: AP rc=1 app_push self-test: 197 checks, 2 failed
+    FAIL and leaves none of the push's tree alive (got '3', want '0')
+    FAIL and leaves none of the push's tree alive (got '3', want '0')
+MUTANT MT-KILL: MT rc=1 merge_train self-test: 221 checks, 1 failed
+    FAIL a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)

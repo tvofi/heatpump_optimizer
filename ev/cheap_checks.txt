@@ -1,0 +1,13 @@
+== rule 3/4
+rc=1
+== structure
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+== pushers
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+== merge-tree
+ed3bc9490e2c37a44410eecdde08018e020ed240
+rc=0
