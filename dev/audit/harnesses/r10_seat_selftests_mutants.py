@@ -128,6 +128,10 @@ MUTANTS = [
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
     ("heartbeat-4", "heartbeat.sh", '  python3 -I "$HERE/ref_privacy.py" guard --ref "$REF" --message "$msg" >/dev/null 2>&1 \\\n',
      '  true \\\n'),
+    # r10-ci-layout-p2a-u0b: the sweep driver's own block (per-file ids; the step is the glue's).
+    ("sweep_driver-1", "sweep_driver.py", "if n > 1 and not self.chain:", "if n > 1 and self.chain:"),
+    ("sweep_driver-2", "sweep_driver.py", "if status in (403, 429):\n            reset", "if status in (429,):\n            reset"),
+    ("sweep_driver-3", "sweep_driver.py", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.20", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.0"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
