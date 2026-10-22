@@ -1,0 +1,8 @@
+cloud_dispatch: refused: --topic does not apply with --group: the roster gives the topic (the group's branch)
+rc 2 stdout 
+forwarded []
+value env_OTHER DROPPED
+value /nonexistent/brief.md DROPPED
+value t-other DROPPED
+value other/repo DROPPED
+value /nonexistent/out.json DROPPED

@@ -1,0 +1,4 @@
+9720cda1e parents=1060a1f03 9dcdfe948 Merge commit '9dcdfe948c13a44aed6b700e91862d071112da11' into fix/r10-flow-dispatch
+9dcdfe948 parents=e96aaeff2 docs(seat): INSTRUMENTS.md names the flags the --group path refuses
+e96aaeff2 parents=fe6080b3e fix(seat): the --group CLI refuses every flag it does not forward
+fe6080b3e parents=1060a1f03 93e6a63d2 Merge remote-tracking branch 'origin/main' into HEAD
