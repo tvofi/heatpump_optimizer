@@ -1,6 +1,4 @@
-head c2c5a8969dc08c548624d5160d5e43482c0ce392 ; prior verdict head 6bee9961fa8bbb90d50392fee75a64ab88a3d8e2
-diff 6bee9961..head: only dev/programme/rosters/wave-r10-groups.json, 3 appends to carry lists, 0 removals, 154 groups before and after
-appended carries equal /private/tmp/claude-501/s4/c2628/{archplanner,autotrain,postmerge}.txt
-brief_lint.mjs rc=0 at head; merge-tree --write-tree origin/main head clean; host-path grep on added lines: 0
-ref_privacy --check: REFUSE ci_probe.py (registered in PUSHERS, no push site) at head and identically at 6bee9961; 0 refused on the merge of head with origin/main
-app_approve --carry refused: head merges 5a762df2e, not on origin/main
+head 9da4dcab96eca8278a81fa4589faa865a69d3803 ; prior verdict head c2c5a8969dc08c548624d5160d5e43482c0ce392 (full review 0d29933dc at 6bee9961)
+delta against merge-tree(origin/main fef4a1351, c2c5a8969): only dev/programme/rosters/wave-r10-groups.json, 3 pure appends to carry lists (R10-CI-LAYOUT-P2, R10-FLOW-JIDOKA x2), prefixes unchanged, 154 groups
+each appended carry equals its source file (carry-cilayout.txt, jidoka1.txt, jidoka2.txt)
+brief_lint rc=0; merge-tree origin/main head clean; host-path grep on added lines: 0
