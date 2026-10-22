@@ -1,0 +1,9 @@
+ dev/audit/harnesses/r10_main_gate_replay.py       |  60 ++++
+ dev/audit/harnesses/r10_seat_selftests_mutants.py |  49 ++-
+ dev/programme/delivery/2584.md                    |   1 +
+ tests/closures.json                               |   2 +
+ tools/audit/seat/INSTRUMENTS.md                   |  24 +-
+ tools/audit/seat/merge_pr.sh                      |  26 ++
+ tools/audit/seat/merge_train.py                   | 386 ++++++++++++++++++++--
+ tools/audit/seat/orchestrator_tick.py             | 157 +++++++--
+ 8 files changed, 652 insertions(+), 53 deletions(-)

@@ -1,0 +1,36 @@
+## closure select
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  changed files (8), measured against the recorded closures in tests/closures.json:
+scope.json
+scope.run
+scope.skip
+scope.txt
+tests/entities.py
+## structure
+STRUCTURE RATCHET PASSED
+## harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+## closure selftest
+ALL 124 closure shrink pins PASSED
+## layout
+layout self-test: ok
+## env_drift claims-only
+claims hygiene: origin/main ok
+## archscore
+Architecture score: dS +0.0000 NULL
+## throwaway_git
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since b787c7d45951
+## ref_privacy
+ref_privacy --check at HEAD: 20 file(s) with a push site, 10 guarded, 578 line(s) added since b787c7d45951 judged, 0 refused
+## untouched
+(empty above = untouched)
+## harness_headers (PYTHONPATH=tests/hastub)
+ModuleNotFoundError: No module named 'voluptuous'
+## harness_headers (venv-ci, PYTHONPATH=tests/hastub)
+ALL 109 HARNESS HEADER CHECKS PASSED

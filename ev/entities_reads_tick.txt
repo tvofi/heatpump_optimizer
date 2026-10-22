@@ -1,0 +1,8 @@
+## strace of tests/entities.py at head (wt2 = 37d1d0d38fd0ef449c55abe49f6c70b0604b8e4b), opens of orchestrator_tick.py by the head tree path
+30852 openat(AT_FDCWD, "$W/wt2/tools/audit/seat/orchestrator_tick.py", O_RDONLY|O_CLOEXEC) = 20
+30852 execve("/opt/node22/bin/node", ["node", "tools/policy/policy_lint.mjs"], 0x2bfff820 /* 163 vars */) = 0
+seat files that process opened: 55
+the other 108 opens use the relative path from other processes (pid 5132, git reset --hard, creates it, which is a checkout); I did not resolve their cwd
+  ok   the disposition refusal can set the record job's conclusion
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)

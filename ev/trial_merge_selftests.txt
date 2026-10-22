@@ -1,0 +1,4 @@
+## trial merge of 37d1d0d38fd0ef449c55abe49f6c70b0604b8e4b into origin/main 8a4c438e7 (local drivers; the mutants harness left conflicted, not resolved): auto-merged files only
+orchestrator_tick self-test: 194 checks, 0 failed
+merge_train self-test: 219 checks, 0 failed
+merge_pr self-test: 18 checks, 0 failed
