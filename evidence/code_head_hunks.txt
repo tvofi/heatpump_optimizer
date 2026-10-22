@@ -1,0 +1,3 @@
+@@ -153 +153 @@ DISPOSED = {
+@@ -563 +563 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str,
+@@ -570 +570,2 @@ def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str,

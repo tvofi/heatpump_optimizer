@@ -1,4 +1,21 @@
-== origin/handoff/audit-r10-roster 229151c282b9
-/groups[93]/carry[10] :: From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.
-== origin/main 47147487ba2b
-/groups[93]/carry[10] :: From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.
+origin/handoff/audit-r10-roster = 2501a0a16e6558a3a24e3f7500069d1efdf261f2
+c98fb4c27 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+c98fb4c27 IS-ANCESTOR of handoff
+groups 151
+min after dash 2
+{
+ "group": "R10-ORCH-MACHINERY",
+ "lane": "IN",
+ "kind": "instrument",
+ "size": "L",
+ "issues": [
+  2505
+ ],
+ "fixes": [],
+ "after": [
+  "R10-ROSTER-OPS",
+  "R10-CI-LAYOUT",
+  "R10-TICK-OWED-LEVEL",
+
+CARRY: "From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not."
+CARRY: "From #2579's round-6 review (review/2579 f7a6bdf0c), the R10-FLOW-YIELD-PROBE measurement: two corrected points bind the yield-probe guardrail that this group owns (item b8b28b28).\n(1) P(X <= 4 | n=30, p=0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer first-pass merges, not 3.\n(2) Any ALPHA the guardrail adopts must be checked at P = 0.0526 (k = 2 of 20) for the 20-PR arm.\nRe-derive both figures from dev/audit/rounds/round10/D13/yield-probe.md at this group's merge base before adopting them. The control is the one already carried: a planted defect of each class trips the guardrail, and a null window does not."

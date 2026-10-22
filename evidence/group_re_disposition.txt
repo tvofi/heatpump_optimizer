@@ -1,0 +1,5 @@
+152:    "GROUP_RE @ GROUP_RE = re.compile('\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-...: '\\\\b(R\\\\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\\\\b' -> '\\\\b(R\\\\d+-[A-Z0-9[A-Z0-9-]*[A-Z0-9])\\\\b'":
+153-        "equivalent on the bus's inputs (every roster group and every delivery row's group token holds two or more "
+154-        "characters after the dash); separated by a one-character group such as R1-X, which the tool reads as no group "
+155-        "and the mutant as R1-X",
+NO-150/151-IN-HARNESS
