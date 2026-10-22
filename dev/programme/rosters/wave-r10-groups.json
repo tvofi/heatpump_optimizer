@@ -5104,7 +5104,8 @@
     "From the #2584 fix review (comment 6325163760, round-2 verdict review/2584): the beat, the sweep, record_row.py (failed_required, not_green), ci-watch.sh and proof_watch.py read merge_train.classify, or `merge_train.py classify <sha>` from shell; no third red rule is written. Control, a precondition of the build: the e7c66485 replay (dev/audit/harnesses/r10_main_gate_replay.py, landed by #2584) is run through each reader with `--pending mutation typing closures`, where it must read a wait (\"is still running ...: a wait, not red\"), and with no `--pending`, the null control, which must print only END.",
     "- The body's Forward-carry and Friction lines route \"list `body_patch.sh` as a hosted one-shot (args pr, sha, body; success = exit 0 and a last `body_patch: OK` line)\" to R10-ORCH-MACHINERY. Round 3 also carried this as a finding. That group's brief and its 29 carries on handoff/audit-r10-roster at 5620151813e03a5916c375554dd57c977f6d8097 still contain no `body_patch` (ev/roster_carries.txt). K17 item (3) covers the body-only path only indirectly, through R10-FLOW-BODY-ONLY. The line is owed to the group's roster carry with its control (the `--self-test` and the `body_patch: OK|REFUSE` last-line contract) before this PR merges. This is the orchestrator's roster write, not a change to the PR. Carry: R10-ORCH-MACHINERY",
     "- R10-ORCH-MACHINERY still has to receive this PR's `ROSTER-APPEND R10-ORCH-MACHINERY` text as one new `carry` entry, landed by the orchestrator with roster_edit.py. The text says the beat's handoff job reads `<state>/cloud-handoff-hold` only through `cloud_relay.sh held <pr>`: rc 0 skip, rc 1 proceed, rc 2 refuse the whole pass. It gives a control, a null control, a malformed control and a mutant. The group is live (`not-started`) on origin/main, at this head and on origin/handoff/audit-r10-roster e5d5c508. Its brief plus carry still holds 0 matches for `cloud_relay\\.sh held|cloud-handoff-hold|malformed`, which is the body's own null control (ev/carry-audit.txt). Carry: R10-ORCH-MACHINERY",
-    "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)"
+    "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)",
+    "roster_edit append-group/set-stage must refuse a stage outside the classified set that roster_sync's self-test checks; the cause was the 'in-review' stage in roster PR 12, CI job 119785082787."
    ],
    "model": {
     "fixer": "opus",
@@ -5667,7 +5668,8 @@
     "Finding propagation (diagnosis seat measurement, 2026-10-21): main's ci-ratchet is red on critical_path_minutes (57.6-58.9 against a budget of 54.825). The ratchet is correct; the cause is runner-speed variance. `fast (3.14)` is the path: tests/arch_score.py plus arch_score_head.py take about 41 of its 58 min on a slow runner (2350-2436 s, +3.6% over 23 h, no lengthening commit). Pay, don't raise: move arch_score/arch_score_head into their own parallel job, or shard them; `fast` then drops to about 17 min and the path becomes the closures chain at about 54 min, or 36-46 min with #2585's W1. The metric is tests/ci_ratchet.py:383-405, the median wall of the last 8 push runs. Evidence runs: 39532528079 (first red, 55.98), 39528164223 (last green, 53.73), 39671291786. Whoever owns the job graph (this group, or the CI-LAYOUT PR that owns it after #2585) must get main's ci-ratchet green by paying; a budget raise is refused while this payment exists.",
     "Design step (owner ruling 2026-10-21): not needed; this group already has an approved design, pre-study or prototype, which serves as its design note.",
     "Lean flow study K9: if the owner adopts GitHub's merge queue after R10-FLOW-MQ-PROBE, the umbrella's one required check must report on merge_group as well as on the pull-request head, or it blocks every merge (HANDOVER: a required context that never reports).",
-    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22)."
+    "Self-test hygiene: (a) a new seat-selftest mutant in dev/audit/harnesses/r10_seat_selftests_mutants.py takes a per-file id (for example cloud_relay-1), never a new S number (the P6 convention), and sits inside the block of the instrument it tests, never appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a content conflict there when main gained tick_loop mutants S31-S34. (b) A self-test builds any git repository through tests/throwaway_git.py, never a hand-built git init (a pusher-reap handoff was refused for exactly that in tools/audit/seat/pr_args.sh); run python3 tests/throwaway_git.py --check before the handoff. (c) Any new git push site is registered in PUSHERS in tools/audit/seat/ref_privacy.py in the same pull request, or ref_privacy refuses it (#2582's heartbeat push did). (d) The body's Red checks section answers every check red on main's ancestry, one line each (today nightly-status), or pr-contract refuses it (standing rule 22).",
+    "From R10-RCA-INSTALL-RATELIMIT (28a20e95): the record job's API budget (M0 to M3) is owned by R10-RECORD-API-BUDGET. CI-LAYOUT-P2 holds it only until that group lands; do not duplicate it."
    ],
    "architect_note": null,
    "resume": {
@@ -7255,7 +7257,8 @@
    "carry": [
     "Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-contract's \"Read the body off the API\" step got non-JSON from `gh api` (\"invalid character 'S'\"); a sibling run a second earlier passed. Decision (orchestrator s4): workflow-side reads are in scope for the barrier as a third PR of this group, PR 3 = .github/workflows/pr-contract.yml's body read (code-owned, mandated approval under 6319294694), ordered after R10-CI-LAYOUT-P2 because that group consolidates the same workflow files; it is a separate PR so PR 1 and PR 2 do not wait on it. Same rule: retry reads only, 5/15/45 s, transport errors and 5xx and non-JSON bodies from a transient failure, refuse any other class at once. Control: a stub `gh api` answering non-JSON once then JSON passes with 2 calls; a stub answering a valid JSON refusal (404) refuses after 1 call.",
     "From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installation, and the carry path's `git fetch` of refs/pull/$pr/head, are GitHub reads of the same class and are left single-shot in PR 1 (the brief scopes it to the four gh reads in tools/pr/app_approve.sh). They are read in PR 2, beside merge_train.py's and record_row.py's reads. `curl -f` gives exit 22 for every HTTP status of 400 and over, so classifying it needs its own `-w '%{http_code}'` read.",
-    "From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop and for the classifier that feeds it:\n(a) a spent-budget fixture whose queued failures are all transient, with one more queued than the budget, so only the budget can stop it;\n(b) a census sending every fixture line through the production classifier;\n(c) every alternative of the classifier, derived from its source by a written rule rather than listed by hand, pinned from both sides by an input it must retry and a near-miss it must refuse, with the derived set and both-classes-per-key asserted as preconditions;\n(d) a rule-generated sweep of the retry loop AND the classifier (alternatives, anchors, quantifiers, glob narrowing, phrase words, grep/sed flags, tail/head, and which copy of stderr is classified), in which a mutant killed only by a source-text precondition counts as surviving.\nControl: dev/audit/harnesses/r10_gh_read_retry_mutants.py at fd1e3f6c gives 17 survivors and at 37cffb09 gives 0. A hand-picked mutant list missed exactly the budget branch in round 1 and the classifier's branches in round 2."
+    "From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop and for the classifier that feeds it:\n(a) a spent-budget fixture whose queued failures are all transient, with one more queued than the budget, so only the budget can stop it;\n(b) a census sending every fixture line through the production classifier;\n(c) every alternative of the classifier, derived from its source by a written rule rather than listed by hand, pinned from both sides by an input it must retry and a near-miss it must refuse, with the derived set and both-classes-per-key asserted as preconditions;\n(d) a rule-generated sweep of the retry loop AND the classifier (alternatives, anchors, quantifiers, glob narrowing, phrase words, grep/sed flags, tail/head, and which copy of stderr is classified), in which a mutant killed only by a source-text precondition counts as surviving.\nControl: dev/audit/harnesses/r10_gh_read_retry_mutants.py at fd1e3f6c gives 17 survivors and at 37cffb09 gives 0. A hand-picked mutant list missed exactly the budget branch in round 1 and the classifier's branches in round 2.",
+    "From the R10-RCA-INSTALL-RATELIMIT record (handoff-body/r10-rca-install-ratelimit 28a20e95): an exhausted hourly bucket returns a 403 that is not transient. A retry must wait until the reset time the 403 names, and never loop."
    ],
    "architect_note": "",
    "brief": "Third instance of the class one unretried GitHub read kills an instrument, together with P7's record_row.py HTTP 500: an audit-class barrier. adopt as an audit-class barrier in new fly-in R10-FLY-GH-READ-RETRY (S, lane F, priority HIGH: it sits on the merge path), in two PRs ordered by file overlap. Do not fold into R10-FLOW-AUTOTRAIN, which is unregistered and a much larger mechanisation. (1) Third instance of the class \"one unretried GitHub read kills an instrument\", measured. Across every train log since 2026-10-20 there are 11 TRAIN STOPPED lines, and 2 are transient reads: train 8's `approve: ... could not read pull request #2547` (train2547/state8, 21:50:38Z, after waiting t+2667 s for CI, with 7 entries released) and `ci: the head commit at <sha> could not be read: Get \"https://api.github.com/...\": net/http...` in merge_train.py's own read. Add P7's record_row.py `HTTP Error 500` on main's push run, whose revisit trigger (\"a second 5xx instance\") is now met. The remaining 9 stops are content refusals (red CI 3, HOLDER worktree 4, stale carry 1, ledger merge 1), so 18% of train stops are pure transport. (2) The cause and the precedent. app_approve.sh l.104 `js=$(gh api \"repos/$1/pulls/$2\") || die` has three sibling reads (l.271 comments, l.406 CODEOWNERS, l.408 files), all single-shot, discarding stderr so the failure class is lost. app_push.sh already holds the house pattern (l.188-251: bounded RB_SLEEP*3^(n-1), 5/15/45 s, transport refusals distinguished from a genuine refusal, never retry-forever). Reuse that rule rather than inventing 10/30/60. (3) Classification, so it cannot mask a refusal. Retry only network/transport errors, HTTP 5xx, and 429 or a secondary-rate-limit 403 (honouring Retry-After). Anything else (401, 403-permission, 404, 422, or a body that parses but is wrong: head moved, no verdict, owned path) refuses at once, as today. After the budget it refuses with the last error text kept. Mutation-write calls (review POST, merge) are never retried by this rule; they keep their own guarded paths. (4) Ordering. PR 1, app_approve.sh's four reads plus self-test arms: no open PR or live handoff touches tools/pr/app_approve.sh, so dispatch now, ahead of R10-FLY-CARRY-DOC-CONTEXT (P17, same file), which gains an after-edge on it. PR 2, merge_train.py's GitHub reads and record_row.py's urlopen: after #2585 (CI-LAYOUT-P1: merge_train.py, record_row.py), #2584 (MAIN-GATE: merge_train.py) and #2524 (PUSHER-REAP: merge_train.py). Cost: ~25 lines in bash, ~20 in python, one shared rule stated once in INSTRUMENTS.md. Benefit: about 45 min of CI wait plus a relaunch for each transient stop (2 in about 30 h of trains), and one red main push run per 5xx. (5) Null control, in each self-test: a stub `gh` failing once with a transport error then answering passes, with exactly 2 calls logged. A stub answering 404, or a head mismatch, refuses after exactly 1 call (no retry masks a refusal). A stub failing 4 times refuses after the budget, naming the last error. A stub answering 500 to record_row twice then 200 records. Brief addition: \"bounded retry of GitHub READS only, app_push.sh's 5/15/45 s rule, retrying transport errors, 5xx, 429 and secondary-limit 403 and nothing else; fixtures: one transient then success (2 calls), 404 and a wrong head (1 call, immediate refuse), budget exhausted (refuse with the last error); PR 1 is app_approve.sh, PR 2 is merge_train.py and record_row.py after #2585, #2584 and #2524\".",
@@ -7643,6 +7646,142 @@
     "commit": null,
     "last_step": null,
     "next_step": "design, then design review, then fixer (owner ASAP 2026-10-22)",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-RCA-INSTALL-RATELIMIT",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/install-ratelimit.md",
+    "dev/audit/harnesses/record_api_calls.sh"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Root-cause record for the recurring 'API rate limit exceeded for installation' reds on required checks (2026-10-22 06:27Z, 08:40Z, 09:44Z). Records only: dev/audit/rca/install-ratelimit.md plus the offline harness dev/audit/harnesses/record_api_calls.sh. Code is at handoff/r10-rca-install-ratelimit 0a8c4523a.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-install-ratelimit",
+    "commit": null,
+    "last_step": null,
+    "next_step": "review, then merge",
+    "note": null
+   }
+  },
+  {
+   "group": "R10-RECORD-API-BUDGET",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "hot_files": [
+    ".github/workflows/governance.yml",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-RCA-INSTALL-RATELIMIT"
+   ],
+   "carry": [
+    "From #2606 review 3f3e5bda1: The harness record_api_calls.sh reads TOTAL 0 silently when origin is not a github remote (subject enumerator), and counts a partial abort (any fetchError other than 'curl failed', e.g. HTTP 403) as the mode's total. It must refuse a zero on a non-empty window and refuse a partial mode, before it is the mutation proof for M1.",
+    "From #2606 review 3f3e5bda1: M1 and M2 pull against each other: M1 cuts the job to about 155 s, so the pending slot drains faster. Replaying the 08Z pushes gives about 5 runs and 1,850 calls, not 3 x 370. Measure the run count after both; do not carry the record's estimate."
+   ],
+   "architect_note": "",
+   "brief": "Countermeasure of dev/audit/rca/install-ratelimit.md (the record is at handoff/r10-rca-install-ratelimit 0a8c4523a). Governance's record job walks <last tag>..origin/main three times per push to main (--record, --stats, --sunset), costing 3W+6P GITHUB_TOKEN calls: 834 at 04c1dd779 against a bucket whose size is unmeasured. M0: print `gh api rate_limit` in the record job. M1: walk the window once and share it across the three modes (834 to 370 or below; the mutation proof is restoring the per-mode fetch, which must read 834 again with the harness). M2: a concurrency group on record. The run count after M1+M2 is MEASURED by the fixer, not asserted: the record's replay of the 08Z burst gives about 5 runs, and that is a figure to measure, not a bar to build to. M3, decision O-1 (orchestrator, mandate 6329234399), CONDITIONAL: build M0 first. Its measured x-ratelimit-limit decides whether M1+M2 suffice. Only if the measured demand after M1+M2 still exceeds the measured limit, move --stats and --sunset off the push arm to the weekly schedule and the stamp; an App installation token is the fallback. The 1,000/hr figure in the record is unmeasured: Governance run 39745228063 served about 3,000 calls in 4 minutes. Correct HANDOVER item 44's 'shared App quota' to the GITHUB_TOKEN bucket at merge.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-record-api-budget",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": null
+   },
+   "priority": "high"
+  },
+  {
+   "group": "R10-NIGHTLY-HB-RESPAWN",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 4,
+   "files": [
+    "tests/nightly_ha.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-NIGHTLY-PYSPY-RETRY"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Owner of the residual left by R10-NIGHTLY-PYSPY-RETRY (#2605; verdict review/2605 f00094d17, finding 2). Real Home Assistant's py-spy hang is per process, not per sample. A held spin hung 3 of 3 tries, and a fresh-spin retry rescued 0 of 2 (F7). So the heartbeat lane's `stable` false-red rate stays at about 6.7 % per dev/audit/rca/nightly-ha-pyspy-timeout.md. Decision O-4 (orchestrator, mandate 6329234399): build option (b). When every control try times out in py-spy, restart the heartbeat HA container once (a fresh process) and re-run the control. Do not make a timeout inconclusive: that changes what the check asserts. Option (c), a longer non-blocking timeout, is the fallback only if (b) is measured not to rescue. Keep the check's power: a stub that never answers, or answers without naming the spin, still fails hb:positive_control after the respawn. Measure the false-red rate before and after over the nightly history, with a flat null control.",
+   "resume": {
+    "stage": "queued",
+    "branch": "handoff/r10-nightly-hb-respawn",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
     "note": null
    }
   }
