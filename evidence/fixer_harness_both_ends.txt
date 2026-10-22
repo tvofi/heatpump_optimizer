@@ -1,0 +1,51 @@
+## fixer harness at head (head's own tick+relay)
+log rows 18 (9 OWED writers, 9 POSTED); printed OWED lines 0
+  cloud_relay.sh:146  owed()             keyed on '2600'           rows 1 after POSTED 2600: 0 still OWED
+  cloud_relay.sh:148  owed()             keyed on '2601'           rows 1 after POSTED 2601: 0 still OWED
+  cloud_relay.sh:149  owed()             keyed on '2602'           rows 1 after POSTED 2602: 0 still OWED
+  cloud_relay.sh:232  handoff-update     keyed on 'handoff-update' rows 1 after POSTED 2603: 0 still OWED
+  cloud_relay.sh:236  approve-held-runs  keyed on 'approve-held-runs' rows 1 after POSTED 2604: 0 still OWED
+  cloud_relay.sh:239  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2605: 0 still OWED
+  cloud_relay.sh:242  reviewer-fire      keyed on '2606'           rows 1 after POSTED 2606: 0 still OWED
+  cloud_relay.sh:244  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2607: 0 still OWED
+  cloud_relay.sh:376  2026-01-01T00:00:00Z keyed on 'handoff-no-pr'  rows 1 after POSTED 2608: 0 still OWED
+RESULT writers=9 kinds_on_kind_token=4 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0
+kinds keyed on the kind token: 2026-01-01T00:00:00Z approve-held-runs dispatch handoff-update
+## at 1ebc737e7
+log rows 22 (10 OWED writers, 10 POSTED); printed OWED lines 8
+  cloud_relay.sh:132  owed()             keyed on '2600'           rows 1 after POSTED 2600: 0 still OWED
+  cloud_relay.sh:134  owed()             keyed on '2601'           rows 1 after POSTED 2601: 0 still OWED
+  cloud_relay.sh:135  owed()             keyed on '2602'           rows 1 after POSTED 2602: 0 still OWED
+  cloud_relay.sh:158  probe-ref          keyed on 'probe-ref'      rows 2 after POSTED 2603: 2 still OWED
+  cloud_relay.sh:212  handoff-update     keyed on 'handoff-update' rows 1 after POSTED 2604: 1 still OWED
+  cloud_relay.sh:216  approve-held-runs  keyed on 'approve-held-runs' rows 1 after POSTED 2605: 1 still OWED
+  cloud_relay.sh:219  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2606: 1 still OWED
+  cloud_relay.sh:222  reviewer-fire      keyed on '2607'           rows 1 after POSTED 2607: 0 still OWED
+  cloud_relay.sh:224  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2608: 1 still OWED
+  cloud_relay.sh:232  handoff-no-pr      keyed on 'handoff-no-pr'  rows 2 after POSTED 2609: 2 still OWED
+RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=8 pr_keyed_writers=4 pr_keyed_lines=0
+kinds keyed on the kind token: approve-held-runs dispatch handoff-no-pr handoff-update probe-ref
+## at 6e12aeb5
+RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=8 pr_keyed_writers=4 pr_keyed_lines=0
+## perturbation: 1ebc tick + isdigit
+714c714
+<             if len(f) >= 3 and f[0] == "OWED":
+---
+>             if len(f) >= 3 and f[0] == "OWED" and f[2].isdigit():
+RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0
+## my replay on perturbed
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_pert.py uncleared_after_POSTED=0 kinds=[]
+## mixed: head tick + 1ebc relay (isolates tick fix)
+log rows 22 (10 OWED writers, 10 POSTED); printed OWED lines 0
+  cloud_relay.sh:132  owed()             keyed on '2600'           rows 1 after POSTED 2600: 0 still OWED
+  cloud_relay.sh:134  owed()             keyed on '2601'           rows 1 after POSTED 2601: 0 still OWED
+  cloud_relay.sh:135  owed()             keyed on '2602'           rows 1 after POSTED 2602: 0 still OWED
+  cloud_relay.sh:158  probe-ref          keyed on 'probe-ref'      rows 2 after POSTED 2603: 0 still OWED
+  cloud_relay.sh:212  handoff-update     keyed on 'handoff-update' rows 1 after POSTED 2604: 0 still OWED
+  cloud_relay.sh:216  approve-held-runs  keyed on 'approve-held-runs' rows 1 after POSTED 2605: 0 still OWED
+  cloud_relay.sh:219  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2606: 0 still OWED
+  cloud_relay.sh:222  reviewer-fire      keyed on '2607'           rows 1 after POSTED 2607: 0 still OWED
+  cloud_relay.sh:224  dispatch           keyed on 'dispatch'       rows 1 after POSTED 2608: 0 still OWED
+  cloud_relay.sh:232  handoff-no-pr      keyed on 'handoff-no-pr'  rows 2 after POSTED 2609: 0 still OWED
+RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0
+kinds keyed on the kind token: approve-held-runs dispatch handoff-no-pr handoff-update probe-ref
