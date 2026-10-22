@@ -1117,7 +1117,7 @@ def predicted_next_room_temp(coord: Any) -> float | None:
 
 def restart_advice(
     ring: SnapshotRing | None,
-    scale: float | None,
+    scale: float,
     params: ThermalParameters,
     tracker: AccuracyTracker,
     dt_hours: float,
@@ -1165,7 +1165,7 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
     ctx = getattr(coord, "_ctx", coord)
     return restart_advice(
         getattr(coord, "_snapshot_ring", None),
-        getattr(coord, "_house_heat_loss_scale", None),
+        coord._house_heat_loss_scale,
         ctx._thermal_params,
         coord._accuracy,
         ctx._config.optimization_interval / 60.0,
