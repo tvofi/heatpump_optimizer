@@ -3003,6 +3003,334 @@ def check_image_dimensions() -> None:
                 n == 2 and len(got) == 1 and "10x30" in got[0], repr((n, got)))
 
 
+# ---------------------------------------------------------------------------
+# Arm W -- doc wiring: paths, target markers, mermaid blocks (R10-ARCH-DOCS-FIRST,
+# #2395), and the Buy Me a Coffee button in its three places (owner, 2026-10-22)
+# ---------------------------------------------------------------------------
+#
+# The architecture page and the developer onboarding describe the shape at
+# programme end, so some of what they name is not on main yet. Such an element
+# carries a marker naming the roster group that lands it; the grammar is the
+# approved design note's (dev/programme/designs/R10-ARCH-DOCS-FIRST.md, section 3).
+# Every predicate here holds before and after a named group lands: none reads a
+# group's stage except (c), which only prints. Resolving the markers is
+# R10-ARCH-DOCS's end-of-round check, not this one.
+
+WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
+# (e) reads every reader doc that draws a mermaid block, plus the onboarding.
+MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
+                      "docs/setup.md", "dev/README.md")
+ROSTER = ROOT / "dev" / "programme" / "rosters" / "wave-r10-groups.json"
+_MARKER = re.compile(r"\[(target|retired-by): (R10-[A-Z0-9-]+(?:, R10-[A-Z0-9-]+)*)(; owner step)?\]")
+_MARKER_ANY = re.compile(r"\[(?:target|retired-by)\b[^\]\n]*\]?")
+_FENCE = re.compile(r"^```([^\n]*)\n(.*?)^```", re.M | re.S)
+_DIAGRAMS = ("flowchart", "graph", "sequenceDiagram")
+_SHAPES = (("([", "])"), ("[(", ")]"), ("((", "))"), ("{{", "}}"), ("[[", "]]"), ("[", "]"), ("(", ")"), ("{", "}"))
+_HEX = re.compile(r"(?:fill|stroke|color|background)[\w-]*\s*:\s*#[0-9a-fA-F]{3,8}\b|^\s*(?:style|classDef|linkStyle)\b.*#[0-9a-fA-F]{3,8}\b", re.M)
+
+
+def roster_stages(path: pathlib.Path = ROSTER) -> dict[str, str] | None:
+    """group -> resume.stage from the roster on this tree, or None when the file is absent (archived)."""
+    if not path.is_file():
+        return None
+    return {g["group"]: (g.get("resume") or {}).get("stage", "") for g in json.loads(path.read_text())["groups"]}
+
+
+def _units(text: str) -> list[tuple[str, bool]]:
+    """(unit, under a marked heading) for prose outside fences: a list item, a table row, a heading or a paragraph."""
+    out: list[tuple[str, bool]] = []
+    heads: list[tuple[int, bool]] = []
+    cur: list[str] = []
+
+    def flush() -> None:
+        if cur:
+            out.append(("\n".join(cur), any(m for _, m in heads)))
+            cur.clear()
+
+    for line in _FENCE.sub("", text).splitlines():
+        h = re.match(r"(#+)\s", line)
+        if h:
+            flush()
+            heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), bool(_MARKER.search(line)))]
+            out.append((line, any(m for _, m in heads)))
+        elif not line.strip():
+            flush()
+        elif line.lstrip().startswith("|") or re.match(r"\s*(?:[-*+]|\d+\.)\s", line):
+            flush()
+            cur.append(line)
+        else:
+            cur.append(line)
+    flush()
+    return out
+
+
+def _flowchart_findings(name: str, body: list[str]) -> list[str]:
+    """A bare node id used exactly once and never given a shape is a typo'd endpoint (section 6 (d)).
+
+    Declared: the id appears with a shape at least once, or is a subgraph id. Edge labels (`|...|`, quoted) are skipped.
+    """
+    shaped: set[str] = set()
+    seen: dict[str, int] = {}
+    ident = re.compile(r"[A-Za-z_]\w*")
+    for line in body:
+        s = line.strip()
+        if re.match(r"(?:end|direction|classDef|class|style|linkStyle|click)\b", s):
+            continue
+        sub = re.match(r"subgraph\s+([A-Za-z_]\w*)", s)
+        if sub:
+            shaped.add(sub.group(1))
+            continue
+        i = 0
+        while i < len(s):
+            c = s[i]
+            if c in '"|':
+                i = s.find(c, i + 1) + 1 or len(s)
+                continue
+            m = ident.match(s, i)
+            if not m or (i and re.match(r"[\w-]", s[i - 1])):
+                i += 1
+                continue
+            j = m.end()
+            shape = next(((o, cl) for o, cl in _SHAPES if s.startswith(o, j)), None)
+            if shape:
+                k = j + len(shape[0])
+                if s[k:k + 1] == '"':
+                    k = s.find('"', k + 1) + 1
+                k = s.find(shape[1], k) if k else -1
+                if k < 0:
+                    return [f"{name}: unclosed shape in {s!r}"]
+                shaped.add(m.group(0))
+                i = k + len(shape[1])
+            else:
+                seen[m.group(0)] = seen.get(m.group(0), 0) + 1
+                i = j
+    return [f"{name}: node {t!r} appears once and is never declared with a shape" for t, n in seen.items()
+            if n == 1 and t not in shaped]
+
+
+def _sequence_findings(name: str, body: list[str]) -> list[str]:
+    """Every message and note endpoint is a declared participant or actor (section 6 (d), item T3)."""
+    declared = {m.group(1) for line in body if (m := re.match(r"\s*(?:participant|actor)\s+(\w+)", line))}
+    out = []
+    for line in body:
+        m = re.match(r"\s*(\w+)\s*(?:<<)?-{1,2}(?:>>|>|x|\))\s*[+-]?\s*(\w+)\s*:", line)
+        n = re.match(r"\s*[Nn]ote\s+(?:over|left of|right of)\s+([\w ,]+?)\s*:", line)
+        for who in (m.groups() if m else ()) + (tuple(w.strip() for w in n.group(1).split(",")) if n else ()):
+            if who not in declared:
+                out.append(f"{name}: {who!r} is not a declared participant")
+    return out
+
+
+def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs: dict[str, str] | None = None
+                        ) -> tuple[list[str], list[str]]:
+    """(findings, notes) for the marked documents. `roster` is called only when a marker is present (N1)."""
+    from layout import repo_path
+
+    out: list[str] = []
+    notes: list[str] = []
+    dirs = {p[:i + 1] for p in tree for i in range(len(p)) if p[i] == "/"}
+    tops = {p.split("/")[0] for p in tree}
+    groups: list[tuple[str, str, str]] = []
+    for name, text in docs.items():
+        # a marker quoted in inline code is the grammar being described, not a marker
+        for m in _MARKER_ANY.finditer(re.sub(r"`[^`\n]+`", "", text)):
+            g = _MARKER.fullmatch(m.group(0))
+            if not g:
+                out.append(f"{name}: malformed marker {m.group(0)!r}")
+            elif g.group(1) == "retired-by" and ("," in g.group(2) or g.group(3)):
+                out.append(f"{name}: a retired-by marker names one group and no owner step: {m.group(0)!r}")
+            else:
+                groups += [(name, g.group(1), x) for x in g.group(2).split(", ")]
+        # (a) every backticked repository path resolves, or its unit carries a marker
+        for unit, covered in _units(text):
+            marked = covered or bool(_MARKER.search(unit))
+            for span in re.findall(r"`([^`\n]+)`", unit):
+                for tok in span.split():
+                    tok = re.sub(r":\d+(?:-\d+)?$", "", tok)
+                    if not repo_path(tok, tops) or re.search(r"[<>*{}$]", span):
+                        continue
+                    if tok not in tree and tok.rstrip("/") + "/" not in dirs and not marked:
+                        out.append(f"{name}: `{tok}` is not in the tree and carries no marker")
+        # (d) every mermaid block opens with a known diagram type and names only declared nodes
+        for info, body in _FENCE.findall(text):
+            if info.strip() != "mermaid":
+                continue
+            lines = [l for l in body.splitlines() if l.strip() and not l.strip().startswith("%%")]
+            kind = lines[0].split()[0] if lines else ""
+            if kind not in _DIAGRAMS:
+                out.append(f"{name}: a mermaid block opens with {kind!r}, not one of {', '.join(_DIAGRAMS)}")
+            elif kind == "sequenceDiagram":
+                out += _sequence_findings(name, lines[1:])
+            else:
+                out += _flowchart_findings(name, lines[1:])
+    # (b) every marker names a group in this tree's roster; read only when a marker exists
+    if groups:
+        stages = roster()
+        if stages is None:
+            out.append(f"{len(groups)} marker(s) present and no roster to resolve them against")
+        else:
+            for name, kind, g in groups:
+                if g not in stages:
+                    out.append(f"{name}: [{kind}: {g}] names no group in the roster")
+                elif stages[g] == "done":
+                    # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
+                    notes.append(f"{name}: [{kind}: {g}] names a done group; R10-ARCH-DOCS resolves it")
+    # (e) no hex colour and no init directive inside a mermaid block
+    for name, text in {**(style_docs or {}), **docs}.items():
+        for info, body in _FENCE.findall(text):
+            if info.strip() == "mermaid":
+                if _HEX.search(body):
+                    out.append(f"{name}: a mermaid block carries a hex colour")
+                if "%%{init" in body:
+                    out.append(f"{name}: a mermaid block carries an %%{{init}} directive")
+    return out, notes
+
+
+COFFEE = "https://buymeacoffee.com/rpgshcwb2tp"
+COFFEE_SVG = "docs/img/brand/coffee.svg"
+# inline, or by reference: the image stays inline and its line carries no '://', which HACS's README image rewriter
+# needs (tests/entities.py pins that rewriter's rule)
+_COFFEE_MD = re.compile(r"\[!\[[^\]]+\]\(([^)\s]+)\)\](?:\(" + re.escape(COFFEE) + r"\)|\[([\w-]+)\])")
+_COFFEE_A = re.compile(r'<a\b[^>]*\bclass="bmc"[^>]*\bhref="' + re.escape(COFFEE) + r'"', re.S)
+
+
+def _css_vars(block: str) -> dict[str, str]:
+    return dict(re.findall(r"(--[\w-]+):\s*([^;}]+?)\s*[;}]", block))
+
+
+def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], tree: set[str],
+                           svg: str | None, css: str) -> list[str]:
+    """The owner's button in its three places, drawn from in-tree assets in the docs.css tokens, light and dark.
+
+    1. README.md, above its first `## ` heading: an image link to COFFEE whose image is a tracked file.
+    2. docs/index.html's own <footer>, and 3. the shared footer of every page tools/site/build_docs.mjs renders: an
+    <a class="bmc"> to COFFEE, whose `.bmc` rule colours it from the page's own tokens.
+    """
+    out = []
+    top = readme.split("\n## ", 1)[0]
+    m = _COFFEE_MD.search(top)
+    if m and m.group(2) and not re.search(r"^\[" + re.escape(m.group(2)) + r"\]:\s*" + re.escape(COFFEE) + r"\s*$", readme, re.M | re.I):
+        m = None
+    if not m:
+        out.append("README.md: no button linking " + COFFEE + " above the first section")
+    elif m.group(1) not in tree:
+        out.append(f"README.md: the button's image {m.group(1)} is not a tracked file")
+    foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
+    if not (foot and _COFFEE_A.search(foot.group(0))):
+        out.append("docs/index.html: its <footer> has no button linking " + COFFEE)
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", index_html):
+        out.append("docs/index.html: no .bmc rule drawn from var(--accent)")
+    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", css):
+        out.append("docs/site/docs.css: no .bmc rule drawn from var(--accent)")
+    if not built:
+        out.append("the docs build produced no page to look for the shared footer in")
+    for page, html in sorted(built.items()):
+        foot = re.search(r'<footer class="site">.*?</footer>', html, re.S)
+        if not (foot and _COFFEE_A.search(foot.group(0))):
+            out.append(f"{page}: the shared footer has no button linking {COFFEE}")
+    # the README image cannot read CSS variables, so its colours are the tokens' values, compared here
+    if svg is None:
+        out.append(f"{COFFEE_SVG} is absent")
+    else:
+        light = _css_vars(css.split("@media", 1)[0])
+        dark = _css_vars(css.split(':root[data-theme="dark"]', 1)[-1].split("}", 1)[0])
+        sl, _, sd = svg.partition("@media")
+        for cls, var in ((".bg", "--accent"), (".fg", "--accent-ink")):
+            for where, part, want in (("light", sl, light.get(var)), ("dark", sd, dark.get(var))):
+                got = re.search(re.escape(cls) + r"\s*\{\s*fill:\s*([^;}]+)", part)
+                if not want or not got or got.group(1).strip().lower() != want.lower():
+                    out.append(f"{COFFEE_SVG}: {cls} in {where} is {got and got.group(1)!r}, docs.css {var} is {want!r}")
+    return out
+
+
+def _tracked(root: pathlib.Path = ROOT) -> set[str]:
+    return set(subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True, check=True).stdout.split("\n")) - {""}
+
+
+def check_doc_wiring() -> None:
+    R.section("doc wiring: paths, target markers and mermaid blocks (R10-ARCH-DOCS-FIRST)")
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    R.check("docs/architecture.md, README.md and dev/README.md exist (anchor)", len(docs) == len(WIRING_DOCS),
+            ", ".join(sorted(set(WIRING_DOCS) - set(docs))))
+    style = {p: (ROOT / p).read_text() for p in MERMAID_STYLE_DOCS if (ROOT / p).is_file()}
+    tree = _tracked()
+    errs, notes = doc_wiring_findings(docs, tree, roster_stages, style)
+    blocks = sum(1 for t in docs.values() for i, _ in _FENCE.findall(t) if i.strip() == "mermaid")
+    marks = sum(len(_MARKER.findall(t)) for t in docs.values())
+    R.check("the marked documents draw mermaid blocks and carry markers (anchor)", blocks > 0 and marks > 0,
+            f"{blocks} block(s), {marks} marker(s)")
+    R.check("every path resolves or is marked, every marker names a roster group, every block is well formed",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    for n in notes:
+        print(f"       note: {n}")
+    print(f"       ({blocks} mermaid block(s), {marks} marker(s), {len(notes)} note(s))")
+
+    stub = {"R10-A": "not-started", "R10-B": "done"}
+    t = {"tests/a.py", "docs/x.md"}
+    base = ("# T\n\nA marker reads `[target: <group>]`.\n\n- `tests/a.py` runs it.\n- `docs/y.md` lands later [target: R10-A]\n\n"
+            "```mermaid\nflowchart LR\n    A[a] --> B[\"b\"]\n    A -.->|\"[target: R10-A]\"| B\n```\n\n"
+            "```mermaid\nsequenceDiagram\n    participant F as fixer\n    participant O as orchestrator\n"
+            "    F->>O: handoff\n    Note over F,O: opens a ledger entry\n```\n")
+    calls = []
+
+    def ro():
+        calls.append(1)
+        return stub
+    clean, cn = doc_wiring_findings({"d.md": base}, t, ro)
+    R.check("the clean fixture yields no finding and no note (null control)", not clean and not cn and calls,
+            repr((clean, cn)))
+    plants = (
+        ("a renamed path", base.replace("`tests/a.py`", "`tests/b.py`"), "not in the tree"),
+        ("a marker naming no roster group", base.replace("[target: R10-A]\n\n", "[target: R10-NOPE]\n\n"), "names no group"),
+        ("a malformed marker", base.replace("[target: R10-A]\n\n", "[target R10-A]\n\n"), "malformed"),
+        ("a bare node id used once", base.replace("A -.->", "A --> Bx\n    A -.->"), "'Bx'"),
+        ("a block of an unknown diagram type", base.replace("flowchart LR", "pie"), "'pie'"),
+        ("a hex fill", base.replace("    A -.->", "    style A fill:#ff0000\n    A -.->"), "hex"),
+        ("an init directive", base.replace("flowchart LR\n", "%%{init: {'theme': 'dark'}}%%\nflowchart LR\n"), "init"),
+        ("an undeclared sequence participant", base.replace("F->>O", "F->>X"), "'X'"),
+    )
+    for what, doc, key in plants:
+        got, _ = doc_wiring_findings({"d.md": doc}, t, ro)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    done = base.replace("[target: R10-A]\n\n", "[target: R10-B]\n\n") + "\n- `.github/workflows/gone.yml` [retired-by: R10-B]\n"
+    got, gn = doc_wiring_findings({"d.md": done}, t, ro)
+    R.check("state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes",
+            not got and len(gn) == 2, repr((got, gn)))
+    calls.clear()
+    plain = "# T\n\n- `tests/a.py` runs it.\n"
+    got, gn = doc_wiring_findings({"d.md": plain}, t, lambda: calls.append(1))
+    R.check("no marker: no roster is read, and none needs to exist (null control, N1)", not got and not gn and not calls,
+            repr((got, gn, calls)))
+    got, _ = doc_wiring_findings({"d.md": base}, t, lambda: None)
+    R.check("a marker with no roster file to resolve it is a finding", any("no roster" in g for g in got), repr(got))
+
+
+def check_coffee_button() -> None:
+    R.section("Buy Me a Coffee button in its three places (owner, 2026-10-22)")
+    built = docs_build()["html"]
+    tree = _tracked()
+    css = (ROOT / "docs" / "site" / "docs.css").read_text()
+    svg = (ROOT / COFFEE_SVG).read_text() if (ROOT / COFFEE_SVG).is_file() else None
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    errs = coffee_button_findings(README, page, built, tree, svg, css)
+    R.check("README top, the product page footer and every built page's footer link the button, from in-tree tokens",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    one = next(iter(sorted(built)), None)
+    plants = (
+        ("README.md", (README.replace(COFFEE, "https://example.com/x", 1), page, built)),
+        ("docs/index.html", (README, page.replace(f'href="{COFFEE}"', 'href="#"', 1), built)),
+        (str(one), (README, page, {**built, str(one): built.get(one, "").replace(f'href="{COFFEE}"', 'href="#"')})),
+    )
+    for where, (r, p, b) in plants:
+        got = coffee_button_findings(r, p, b, tree, svg, css)
+        R.check(f"red case: the button removed from {where} is a finding there", any(g.startswith(where) for g in got),
+                repr(got[:3]))
+    if svg:
+        off = svg.replace(".bg{fill:", ".bg{fill:#000000;x:", 1)
+        R.check("red case: an SVG colour that is not the docs.css token is a finding",
+                any(".bg in light" in g for g in coffee_button_findings(README, page, built, tree, off, css)))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -3037,6 +3365,8 @@ def main() -> int:
     check_banner_sample()
     check_service_count_comments()
     check_image_dimensions()
+    check_doc_wiring()
+    check_coffee_button()
     return R.close("checks")
 
 

@@ -7,55 +7,99 @@ integration does rather than how it is built, start with
 The shape is a thin Home Assistant layer wrapped around a much larger core that
 knows nothing about Home Assistant: 81 modules, of which 28 import the
 `homeassistant` package at module level, one more touches it inside a single
-function, and the rest take numbers in and give numbers back.
+function, and the rest take numbers in and give numbers back. The glue reads
+entity states, writes actuators and persists learned state. Keeping those two
+apart is what lets the model and the optimizer be driven directly by the test
+suite, with no Home Assistant running.
 
 ## How the pieces fit
 
 ```mermaid
-flowchart LR
-    subgraph inputs["Inputs"]
-        tibber["Tibber API<br/>hourly prices"]
-        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
-        meteo["Open-Meteo<br/>irradiance forecast<br/>+ satellite observation"]
-        ha["Your HA entities<br/>weather forecast, temperatures,<br/>power, presence, humidity"]
+flowchart TB
+    subgraph outside["Outside the integration"]
+        tibber["Tibber or a price entity<br/>published hourly prices"]
+        weather["HA weather entity<br/>temperature, wind, rain,<br/>forecast irradiance"]
+        meteo["Open-Meteo<br/>15-minute irradiance<br/>+ satellite observation"]
+        pump["Heat pump<br/>mode, set-points, power switch"]
+        card["Dashboard card<br/>www/"]
     end
 
-    subgraph brain["Coordinator — every optimization interval"]
-        pm["price_model, tariff, grid_fee<br/>spot + learned tail<br/>+ transfer fees"]
-        tm["thermal_model<br/>house, slab, buffer,<br/>two zones, DHW tank"]
-        opt["optimizer<br/>24 h MPC plan"]
-        guard["Safety and overrides<br/>power_guard, manual_plan,<br/>away, external_heat"]
+    subgraph ha["Home Assistant boundary — side effects live here"]
+        states["Entity states<br/>temperatures, power, tank probes,<br/>presence, humidity"]
+
+        subgraph glue["Integration glue — imports homeassistant"]
+            entities["Entity layer<br/>81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+            ui["config_flow · services · frontend<br/>repairs · diagnostics · notifier"]
+            reader["inputs.py — InputReader<br/>freshness and unit guards"]
+            coord["coordinator.py<br/>HeatPumpOptimizerCoordinator<br/>the orchestration seam"]
+            arbiter["pump_arbiter.py<br/>pump mode and set-points<br/>on opt-in"]
+            store["store.py — QuarantiningStore<br/>the one persistence boundary"]
+        end
     end
 
-    subgraph learn["Self-learning — in the background"]
-        acc["accuracy, diagnosis, drift<br/>predicted vs realised"]
-        learners["Loss scale, COP, defrost,<br/>solar aperture, DHW draws,<br/>comfort weight, heat curve"]
-        snap["snapshots<br/>weekly, last 8 kept"]
+    subgraph core["Pure core — no homeassistant import"]
+        model["thermal_model.py<br/>ThermalModel<br/>house, slab, buffer, DHW tank, COP"]
+        opt["optimizer.py · dhw_planner.py<br/>HeatPumpOptimizer.optimize · DhwPlanner<br/>LP for hot water, L-BFGS-B for space"]
+        prices["price_model · tariff · grid_fee · ledger<br/>spot price, learned tail,<br/>transfer fee, capacity peak"]
+        worker["process_worker.py<br/>one-shot solve interpreter"]
     end
 
-    subgraph out["Outputs"]
-        ent["81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
-        card["Dashboard card<br/>plan chart, editor, setup page"]
-        ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
+    subgraph learn["Learners — called by the coordinator"]
+        learners["accuracy · comfort_learning · curve_learning<br/>defrost · dhw_draws · dhw_learning<br/>drift · snapshots · sysid"]
     end
 
-    tibber --> pm
-    weather --> tm
-    meteo -. "irradiance override" .-> tm
-    ha --> tm
-    ha --> acc
-    pm --> opt
-    tm --> opt
-    opt --> guard
-    guard --> ent
-    guard --> ctl
-    ent --> card
-    card -- "services: apply_manual_plan,<br/>simulate_plan, assign_entity" --> brain
-    acc --> learners
-    learners --> tm
-    learners --> snap
-    snap -- "restore on drift" --> learners
+    states --> reader
+    reader --> coord
+    entities -- "entity actions" --> coord
+    ui -- "services call in" --> coord
+
+    tibber --> coord
+    weather --> coord
+    meteo --> coord
+
+    card -- "services: apply_manual_plan,<br/>simulate_plan, assign_entity" --> ui
+    entities --> card
+
+    coord --> prices
+    coord --> model
+    prices --> opt
+    model --> opt
+    coord -- "SolveInputs" --> worker
+    worker --> opt
+    opt --> coord
+
+    coord -->|"prediction vs realised"| learners
+    learners -->|"learned corrections"| coord
+    learners -. "learner state" .-> store
+    coord -->|"save"| store
+    store -->|"restore"| coord
+
+    coord --> arbiter
+    arbiter --> pump
+    coord --> pump
+    coord --> entities
 ```
+
+Read the diagram as four regions.
+
+- **Outside the integration** are the things the integration talks to: the
+  price source, the weather entity, Open-Meteo, the heat pump's own controls
+  and the dashboard card. Each is reached through a Home Assistant entity or
+  service, never imported.
+- **The Home Assistant boundary** is where side effects live.
+  `inputs.InputReader` performs every entity read;
+  `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
+  calls the core and then writes; `pump_arbiter` writes the pump's mode and
+  set-points and owns the power switch; `store.QuarantiningStore` is the
+  persistence boundary; `open_meteo.py` owns the network client; `issues.py`
+  and `repairs.py` own the repair registry.
+- **The pure core** — the model, the optimizer, the price and tariff
+  arithmetic and the one-shot solve worker — takes plain numbers and returns
+  plain numbers. No module there imports `homeassistant`.
+- **The learners** consume the coordinator's evidence and return corrections.
+  Most are pure; three still import `homeassistant` at module level —
+  `accuracy` and `defrost` for the clock, `dhw_learning` for the clock and the
+  `HomeAssistant` type — so the glue calls them and they never call the glue.
 
 ## The module map
 
@@ -291,6 +335,44 @@ One consequence: config-flow `section()` grouping was rejected in part because
 the floor predated it. At 2025.2.0 that objection is gone. The compatibility
 shims written for older releases are left in place — removing them is a
 separate change.
+
+## Where the architecture is measured
+
+These instruments keep this page honest:
+
+- `tests/entities.py` derives the module count, the importer set, the
+  option-page count, the service count and the entity census from the tree,
+  and fails a page that disagrees. It also checks that the module map lists
+  every module and that the switch and binary-sensor rows name every entity
+  their platforms construct.
+- `tests/doc_claims.py` scans every count of a tree-measurable set across the
+  reader docs, so a stale number here is a red check wherever it is written.
+- `tests/doc_claims.py` also checks this page's wiring: every repository path
+  it names resolves or carries a marker naming the roster group that lands it,
+  and every diagram opens with a known type and names only nodes it declares.
+- [`tools/audit/archscore/ABOUT.md`](../tools/audit/archscore/ABOUT.md)
+  describes the architecture score, `tools/audit/archscore/`. It prices the coordinator and the
+  structures around it; a decomposition elsewhere — the optimizer, for
+  example — reads NULL. It is a review trigger, never a target a seat is
+  rewarded for moving, and it is a required check on a pull request.
+
+## The shape at programme end
+
+The page above describes `main`. The round-10 roster still holds groups that
+change the shape of the code, and each change below is marked with the group
+that lands it, so R10-ARCH-DOCS can resolve every line once its group is done.
+No group in the roster adds a module, so the module map above is already the
+module set at programme end.
+
+- **One owner of the thermal parameters**, copied on write, so a service call cannot publish a torn or unclamped set across its await, and the coordinator context is written once [target: R10-PARAMS-OWNER]
+- **The live state published whole**: the thermal state, the away state and the event callbacks publish a copy, and each collaborator owns its own fields [target: R10-LIVESTATE]
+- **One owner per duplicated shape**: a power reader in `inputs` that refuses a non-finite or out-of-range reading, one hour-clock owner and one finite-float owner [target: R10-ARCH-SHAPES]
+- **Payload mixins on the entity base**: the finite scrub, the value and path mixins and the zone set-point attributes, shared by the sensors that each carried their own guard [target: R10-SENSOR-PAYLOAD]
+- **A delivered-heat meter input**: measured COP from heat over electric energy, split into hot water and space by the pump's mode [target: R10-HEAT-METER]
+- **An honest COP state**: "not measurable here" where no meter makes COP observable [target: R10-COP-GATE]
+- **One rule for scores**: no evidence is a dash with a reason, never zero, and one view model behind the scores, Savings, Advisor and Health [target: R10-SCORES]
+- **Learner progress in the payload**: phase, progress and what each learner waits for [target: R10-LEARNER-ETA]
+- **One options page template** driven by the field registry [target: R10-CONFIGFLOW-PAGES]
 
 ## Where to start reading
 
