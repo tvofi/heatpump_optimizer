@@ -1,0 +1,15 @@
+### bad-friction.md red= rc=1
+base: PR-BODY: 1 error(s) in tools/policy/fixtures/policy-rot/prepr/bad-friction.md
+head: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/bad-friction.md: `## Friction` line does not parse: "the contracts were confusing in places". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`. (1 error line(s) in all)
+### both-grounds.md red=R rc=1
+base: ERROR   [pr-body] $W/ev/both-grounds.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+head: ERROR   [pr-body] $W/ev/both-grounds.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (2 error line(s) in all)
+### unnamed-red.md red=R rc=1
+base: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+head: ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+### good.md red= rc=0
+base: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md
+head: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/good.md (0 error line(s) in all)
+### red-answered.md red=R rc=0
+base: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/red-answered.md
+head: PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/red-answered.md (0 error line(s) in all)

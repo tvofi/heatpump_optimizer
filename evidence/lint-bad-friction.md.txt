@@ -1,0 +1,6 @@
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+tools/policy/fixtures/policy-rot/prepr/bad-friction.md
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/bad-friction.md: `## Friction` line does not parse: "the contracts were confusing in places". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`.
+
+PR-BODY: 1 error(s) in tools/policy/fixtures/policy-rot/prepr/bad-friction.md
