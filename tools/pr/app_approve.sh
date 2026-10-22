@@ -1108,51 +1108,86 @@ st "$(calls postfail 'curl repos/o/r/pulls/7/reviews')" 1 "the refused POST was 
 # (app_push.sh's read-back rule) and is read again. Anything else refuses after
 # one call, and no write is ever retried.
 TRANSPORT='Get "https://api.github.com/repos/o/r/pulls/7": net/http: TLS handshake timeout'
-mkcase r502 open false "$SHA" "$GOOD"; echo 'gh: Server Error (HTTP 502)' > "$W/r502/fail-pulls"
+# queue <case> <read> <class> <stderr line>...: an arm's queued failures, each
+# entered in the census below with the class the arm needs it to carry.
+queue() { local c=$1 r=$2 k=$3 l; shift 3
+  for l; do printf '%s\n' "$l" >> "$W/$c/fail-$r"; printf '%s\t%s\t%s\n' "$k" "$c/fail-$r" "$l" >> "$W/census"; done; }
+mkcase r502 open false "$SHA" "$GOOD"; queue r502 pulls transient 'gh: Server Error (HTTP 502)'
 run r502 o/r 7 "$SHA"; st $? 0 "train 8's shape: a 502 on the pull-request read, then an answer, is approved"
 st "$(calls r502 'gh api repos/o/r/pulls/7$')" 3 "the failed read was retried once (2 calls), then the pre-POST re-read (3)"
 st "$(grep -c '^sleep 5$' "$W/r502/log")" 1 "after one settle of 5 s"
 st "$(grep -c 'read 1/4 of repos/o/r/pulls/7: gh: Server Error (HTTP 502); sleeping 5s' "$W/r502/err")" 1 "and the settle is printed, never implied"
-mkcase rtransport open false "$SHA" "$GOOD"; echo "$TRANSPORT" > "$W/rtransport/fail-comments"
+mkcase rtransport open false "$SHA" "$GOOD"; queue rtransport comments transient "$TRANSPORT"
 run rtransport o/r 7 "$SHA"; st $? 0 "a transport error on the comments read, then an answer, is approved"
 st "$(calls rtransport 'gh api --paginate repos/o/r/issues/7/comments')" 2 "with exactly 2 calls to that read"
-mkcase r429 open false "$SHA" "$GOOD"; echo 'gh: API rate limit exceeded (HTTP 429)' > "$W/r429/fail-codeowners"
+mkcase r429 open false "$SHA" "$GOOD"; queue r429 codeowners transient 'gh: API rate limit exceeded (HTTP 429)'
 run r429 o/r 7 "$SHA"; st $? 0 "a 429 on the CODEOWNERS read, then an answer, is approved"
 st "$(calls r429 'gh api repos/o/r/contents/.github/CODEOWNERS')" 2 "with exactly 2 calls to that read"
 mkcase rsecondary open false "$SHA" "$GOOD"
-echo 'gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)' > "$W/rsecondary/fail-files"
+queue rsecondary files transient 'gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)'
 run rsecondary o/r 7 "$SHA"; st $? 0 "a secondary-rate-limit 403 on the files read, then an answer, is approved"
 st "$(calls rsecondary 'gh api --paginate repos/o/r/pulls/7/files')" 2 "with exactly 2 calls to that read"
-mkcase rlast open false "$SHA" "$GOOD"; printf 'gh: HTTP 502\ngh: HTTP 502\ngh: HTTP 502\n' > "$W/rlast/fail-comments"
+mkcase rlast open false "$SHA" "$GOOD"; queue rlast comments transient 'gh: HTTP 502' 'gh: HTTP 502' 'gh: HTTP 502'
 run rlast o/r 7 "$SHA"; st $? 0 "three transient failures and an answer on the fourth read, the budget's last, are approved"
 st "$(calls rlast 'gh api --paginate repos/o/r/issues/7/comments')" 4 "with exactly 4 calls to that read"
 
-mkcase r404 open false "$SHA" "$GOOD"; echo 'gh: Not Found (HTTP 404)' > "$W/r404/fail-pulls"
+mkcase r404 open false "$SHA" "$GOOD"; queue r404 pulls refuse 'gh: Not Found (HTTP 404)'
 run r404 o/r 7 "$SHA"; st $? 1 "REFUSE: a 404 on the pull-request read"
 st "$(calls r404 'gh api repos/o/r/pulls/7$')" 1 "after exactly 1 call: no retry masks a refusal"
 st "$(grep -c '^sleep' "$W/r404/log")" 0 "and no settle"
-st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Not Found (HTTP 404)' "$W/r404/err")" 1 "naming the error gh gave"
+st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Not Found (HTTP 404)$' "$W/r404/err")" 1 "naming the error gh gave, with no attempt count after one call"
+st "$(leftover r404)" 0 "and the read's stderr file is gone"
 st "$(calls r404 curl)" 0 "and nothing was minted or posted"
-mkcase r403 open false "$SHA" "$GOOD"; echo 'gh: Resource not accessible by integration (HTTP 403)' > "$W/r403/fail-files"
+mkcase r403 open false "$SHA" "$GOOD"; queue r403 files refuse 'gh: Resource not accessible by integration (HTTP 403)'
 run r403 o/r 7 "$SHA"; st $? 1 "REFUSE: a permission 403 on the files read"
 st "$(calls r403 'gh api --paginate repos/o/r/pulls/7/files')" 1 "after exactly 1 call"
-mkcase r401 open false "$SHA" "$GOOD"; echo 'gh: Bad credentials (HTTP 401)' > "$W/r401/fail-comments"
+mkcase r401 open false "$SHA" "$GOOD"; queue r401 comments refuse 'gh: Bad credentials (HTTP 401)'
 run r401 o/r 7 "$SHA"; st $? 1 "REFUSE: a 401 on the comments read"
 st "$(calls r401 'gh api --paginate repos/o/r/issues/7/comments')" 1 "after exactly 1 call"
-mkcase r422 open false "$SHA" "$GOOD"; echo 'gh: Validation Failed (HTTP 422)' > "$W/r422/fail-codeowners"
+mkcase r422 open false "$SHA" "$GOOD"; queue r422 codeowners refuse 'gh: Validation Failed (HTTP 422)'
 run r422 o/r 7 "$SHA"; st $? 1 "REFUSE: a 422 on the CODEOWNERS read"
 st "$(calls r422 'gh api repos/o/r/contents/.github/CODEOWNERS')" 1 "after exactly 1 call"
 st "$(calls moved 'gh api repos/o/r/pulls/7$')" 1 "a readable but wrong head refuses after exactly 1 read"
 st "$(grep -c '^sleep' "$W/moved/log")" 0 "and no settle"
 st "$(calls none 'gh api --paginate repos/o/r/issues/7/comments')" 1 "a readable answer with no verdict refuses after exactly 1 read"
 
+# The spent budget: five transient failures queued, so only the budget can stop
+# the read at four. A fifth read -- a budget of five, or none -- takes the 504
+# and then an answer, and is approved; the census below proves every line is
+# transient, so no line of the queue can refuse in the budget's place.
 mkcase rspent open false "$SHA" "$GOOD"
-printf 'gh: Server Error (HTTP 500)\n%s\ngh: HTTP 502\ngh: Service Unavailable (HTTP 503) the-last-one\n' "$TRANSPORT" > "$W/rspent/fail-pulls"
+queue rspent pulls transient 'gh: Server Error (HTTP 500)' "$TRANSPORT" 'gh: HTTP 502' \
+  'gh: Service Unavailable (HTTP 503)' 'gh: Gateway Timeout (HTTP 504)'
 run rspent o/r 7 "$SHA"; st $? 1 "REFUSE: four transient failures spend the budget"
 st "$(calls rspent 'gh api repos/o/r/pulls/7$')" 4 "after exactly 4 calls"
+st "$(cat "$W/rspent/fail-pulls")" 'gh: Gateway Timeout (HTTP 504)' "the fifth queued failure was never read"
 st "$(grep '^sleep' "$W/rspent/log" | tr '\n' ' ')" "sleep 5 sleep 15 sleep 45 " "settling 5/15/45 s between them"
-st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Service Unavailable (HTTP 503) the-last-one (after 4 attempts)' "$W/rspent/err")" 1 "naming the last error"
+st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: gh: Service Unavailable (HTTP 503) (after 4 attempts)$' "$W/rspent/err")" 1 "naming the last error"
 st "$(calls rspent curl)" 0 "and nothing was minted or posted"
+st "$(leftover rspent)" 0 "and the read's stderr file is gone"
+mkcase rmktemp open false "$SHA" "$GOOD"; rmdir "$W/rmktemp/tmp"
+run rmktemp o/r 7 "$SHA"; st $? 1 "REFUSE: a read whose stderr file cannot be made"
+st "$(grep -c 'REFUSE: could not read pull request #7 on o/r: could not create a temporary file$' "$W/rmktemp/err")" 1 "naming that, not a parse of an empty answer"
+st "$(calls rmktemp gh)" 0 "and gh was never called"
+mkcase rempty open false "$SHA" "$GOOD"; queue rempty comments refuse ''
+run rempty o/r 7 "$SHA"; st $? 1 "REFUSE: a read failing with nothing on stderr"
+st "$(calls rempty 'gh api --paginate repos/o/r/issues/7/comments')" 1 "after exactly 1 call"
+st "$(grep -c 'REFUSE: could not read the comments on #7: gh failed with nothing on stderr$' "$W/rempty/err")" 1 "saying gh left no error"
+
+# The census: every queued stderr line above goes through the production
+# gh_transient, and must carry the class its arm needs -- a retry arm's line
+# transient, a refusal arm's line refuse -- so no arm is stopped by a line it
+# did not mean (the review's shape: an unclassified fourth line refused where
+# the spent budget was meant to). Its precondition: every fail-* file an arm
+# made was entered in it, and both classes are populated.
+census_bad=0
+while IFS=$'\t' read -r k f l; do
+  if gh_transient "$l"; then got=transient; else got=refuse; fi
+  [ "$got" = "$k" ] || { echo "     census: $f line '$l' classifies $got, its arm needs $k"; census_bad=$((census_bad + 1)); }
+done < "$W/census"
+st "$census_bad" 0 "every queued stderr line classifies as its arm needs (production gh_transient)"
+st "$(cut -f2 "$W/census" | sort -u | wc -l | tr -d ' ')" "$(ls "$W"/*/fail-* | wc -l | tr -d ' ')" "(the census covers every fail-* file an arm made)"
+st "$(cut -f1 "$W/census" | sort -u | tr '\n' ' ')" "refuse transient " "(and holds both classes)"
 
 mkcase post502 open false "$SHA" "$GOOD"; echo 'curl: (22) The requested URL returned error: 502' > "$W/post502/refuse-post"
 run post502 o/r 7 "$SHA"; st $? 1 "a 502 on the review POST refuses: a write is never retried"
