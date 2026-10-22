@@ -23,6 +23,9 @@
 #   TICK-RELAY <utc> relay=<ok|rc=N> started=<utc>
 # A failing relay pass is reported and the tick still runs; a failing tick is
 # reported and the loop goes on. The loop drives; the tick itself stays read-only.
+# Then one `heartbeat.sh --once` pushes heartbeat/orchestrator with the pass line
+# (no --out path), so a stop is visible off the host; a failed push prints
+# `HEARTBEAT NOT PUSHED: <reason>` and the loop goes on (HPO_TICK_HEARTBEAT replaces it).
 # --interval defaults to 300 (the five-minute GitHub poll). Run it detached
 # (daemonize.py): a background task dies at two hours. HPO_TICK_RELAY and
 # HPO_TICK_CMD replace the relay script and the tick command (the self-test's stubs).
@@ -69,7 +72,7 @@ relay_start() { # <r> <relay>: start the relay detached, wait for it at most the
 }
 
 tick_pass() { # <out> [tick args...]: one pass; prints the banner
-  local out=$1 relay rrc trc tmp; shift
+  local out=$1 relay rrc trc tmp now; shift
   relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
   mkdir -p "$(dirname -- "$out")"
   if [ -f "$relay" ]; then
@@ -83,7 +86,11 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   if [ -n "${HPO_TICK_CMD:-}" ]; then $HPO_TICK_CMD "$@" > "$tmp" 2>&1; trc=$?
   else python3 "$HERE/orchestrator_tick.py" "$@" > "$tmp" 2>&1; trc=$?; fi
   mv -f "$tmp" "$out"
-  printf 'TICK-PASS %s relay=%s tick=%s out=%s\n' "$(date -u +%FT%TZ)" "$rrc" "$trc" "$out"
+  now=$(date -u +%FT%TZ)
+  printf 'TICK-PASS %s relay=%s tick=%s out=%s\n' "$now" "$rrc" "$trc" "$out"
+  # The andon: one heartbeat push per pass, bounded, its failure printed and never fatal.
+  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat
+  [ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"
 }
 
 tick_loop_self_test() (
@@ -93,6 +100,8 @@ tick_loop_self_test() (
   printf '#!/bin/bash\necho "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" > "$t/relay.sh"
   printf '#!/bin/bash\necho "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" > "$t/tick.sh"
   chmod +x "$t/tick.sh"
+  printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
+  export HPO_TICK_HEARTBEAT=$t/hb.sh
   out=$(HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt" -- --only PRS)
   [ "$(cat "$t/order")" = "relay pass
 tick --only PRS" ] && [ "$(cat "$t/b.txt")" = BOARD ] \
@@ -129,6 +138,27 @@ done" ]
   HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval x --out "$t/b.txt" > "$t/e" 2>&1
   [ $? = 2 ] && grep -q 'interval' "$t/e"
   ck "a non-numeric --interval refuses" $?
+  rm -f "$t/hb"
+  out=$(HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+  [ "$(wc -l < "$t/hb" | tr -d ' ')" = 1 ] \
+    && grep -Eq '^hb --once --message TICK-PASS [0-9T:-]+Z relay=absent tick=0$' "$t/hb"
+  ck "each pass calls the heartbeat once, with the pass line (no --out path)" $?
+  out=$(HB_RC=1 HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt"); rc=$?
+  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED' && printf '%s\n' "$out" | grep -q 'tick=0'
+  ck "a failing heartbeat is printed, never silent, and the loop still exits cleanly" $?
+  # The real script against a bare remote: a pass moves the ref.
+  . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || return 1
+  throwaway_git_init "$t/remote.git" -q --bare && throwaway_git_init "$t/w" -q -b main
+  git -C "$t/w" remote add origin "$t/remote.git"; mkdir -p "$t/w/seat"
+  cp "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/w/seat/"
+  out=$(HPO_TICK_HEARTBEAT=$t/w/seat/heartbeat.sh HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+  git -C "$t/remote.git" log -1 --format=%s heartbeat/orchestrator | grep -Eq '^TICK-PASS [0-9T:-]+Z relay=absent tick=0$' \
+    && ! printf '%s\n' "$out" | grep -q 'NOT PUSHED'
+  ck "a real pass moves heartbeat/orchestrator on the remote" $?
+  git -C "$t/w" remote set-url origin "$t/nowhere.git"
+  out=$(HPO_TICK_HEARTBEAT=$t/w/seat/heartbeat.sh HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+  printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED: ' && printf '%s\n' "$out" | grep -q 'tick=0'
+  ck "null control: a refused push is printed with its reason and the pass still completes" $?
   rm -rf "$t"
   echo "tick_loop self-test: $n checks, $f failed"
   [ "$f" = 0 ]
