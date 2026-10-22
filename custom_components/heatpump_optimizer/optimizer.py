@@ -190,13 +190,8 @@ def _relaxed_starts(
         return cands
     opt._levels_relaxed = True
     try:
-        moved = _scoped_minimize(
-            objective, cands[first], args=args, method="L-BFGS-B",
-            bounds=bounds,
-            jac=(lambda x, *a: _batch_fd_gradient(
-                objective_batch, a, x, float(objective(x, *a)), 1e-4, bounds,
-            )) if _bounds_supported_by_batch(bounds) else None,
-            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        moved = _lbfgsb_run(
+            objective, objective_batch, cands[first], bounds, args, maxiter,
         )
     finally:
         opt._levels_relaxed = False
@@ -733,6 +728,70 @@ def _fused_value_and_gradient(
     return value_and_gradient
 
 
+#: L-BFGS-B's finite-difference step: the ``eps`` option scipy's own
+#: estimate uses, and the step the fused batch gradient must replicate to
+#: keep the iterate path (#97). Read by ``_lbfgsb_run`` alone, for both, so
+#: the two cannot disagree (R10-SOLVER review O2).
+_LBFGSB_FD_EPS = 1e-4
+
+
+def _lbfgsb_run(
+    objective: Callable[..., float],
+    batch_objective: Callable[..., Any] | None,
+    x0: np.ndarray,
+    bounds: list[tuple[float, float]],
+    args: tuple[Any, ...],
+    maxiter: int,
+    memo: dict[bytes, Any] | None = None,
+) -> Any:
+    """One L-BFGS-B run from ``x0``, on the fused batch wherever it can serve.
+
+    The one place a solve's runs are spelled -- the multi-start's starts and
+    polishes, and the two runs that move a start (the relaxed duty-cycle
+    candidate and the two-zone continuation) -- so every one takes its value
+    and gradient from the same batch, with the same stop and the same
+    finite-difference step. ``memo`` is a ``_multi_start_minimize`` call's
+    shared evaluation memo (``_memoized_value_and_gradient``); ``None`` for
+    a run that moves a start, whose objective is not the call's.
+
+    The batched jac (#97, widened by D9-01) serves NON-UNIFORM bounds, which
+    is where the cost actually is: DHW is on by default, and any DHW block or
+    per-step power cap pins the space bounds unevenly, so the old
+    uniform-bounds-only gate left 38 of 39 DHW-enabled golden scenarios on
+    the scalar scipy-FD path (winter_two_zone_dhw: 941,472 simulate_step per
+    solve, x40). ``_batch_fd_gradient`` replicates scipy's own 2-point
+    ``approx_derivative`` (abs_step=eps, the exact settings L-BFGS-B passes)
+    PER VARIABLE, including the one-sided bounds rule and the zero-step
+    fallback, so where it serves a solve the iterate path does not move:
+    asserted per-variable by tests/features.py::_grad_parity (uniform, capped
+    and DHW-pinned-headroom bounds) and raced end-to-end by
+    tests/optimality.py on DHW-enabled solves. A FIXED variable (lb == ub)
+    is served too, since D9-01: it gets an exact 0.0 rather than scipy's 0/0
+    NaN, which is the only entry that ever differs and the only one whose
+    value the bounds already decide. The CI drift gate on Linux is the final
+    arbiter.
+
+    scipy calls the gradient at every trial point, so a supplied jac removes
+    96/97 of ALL evaluations, not just of the gradient's own, and the value
+    rides in the same batch (R9 D9-s1-02), so the run makes no scalar
+    evaluation. The two start-moving runs took the value from the scalar
+    objective twice per gradient -- once as ``fun``, once as the
+    difference's base -- until R10 D9-s1-01; bitwise the batched row, so
+    fusing them moved no iterate.
+    """
+    fun: Callable[..., Any] = objective
+    jac: bool | None = None
+    if batch_objective is not None and _bounds_supported_by_batch(bounds):
+        fun = _memoized_value_and_gradient(
+            batch_objective, bounds, _LBFGSB_FD_EPS, memo,
+        )
+        jac = True
+    return _scoped_minimize(
+        fun, x0, args=args, jac=jac, method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": maxiter, "ftol": 1e-6, "eps": _LBFGSB_FD_EPS},
+    )
+
+
 #: The evaluation memo's LRU bound: most-recent ``x`` points remembered
 #: per ``_multi_start_minimize`` call. Measured, not guessed: the heaviest
 #: stress scenario's repeat reuse distance p99 is 111 evaluations (27 % of
@@ -744,12 +803,12 @@ _EVAL_MEMO_MAX_ENTRIES = 512
 
 
 def _memoized_value_and_gradient(
-    batch_objective: Callable[..., Any] | None,
+    batch_objective: Callable[..., Any],
     bounds: list[tuple[float, float]],
     fd_eps: float,
     memo: dict[bytes, Any] | None,
-) -> Callable[..., Any] | None:
-    """The fused L-BFGS-B ``fun`` with its answers remembered, or ``None``.
+) -> Callable[..., Any]:
+    """The fused L-BFGS-B ``fun``, its answers remembered in ``memo`` if given.
 
     Serves one ``_multi_start_minimize`` call, where the batched objective,
     the bounds and ``fd_eps`` are fixed and the objective is pure in ``x``:
@@ -783,8 +842,6 @@ def _memoized_value_and_gradient(
     back than that: 2 of the #1935 replay's channel-arm 11,311. Evicted
     is the least recently used entry.
     """
-    if batch_objective is None:
-        return None
     plain = _fused_value_and_gradient(batch_objective, bounds, fd_eps)
     if memo is None:
         return plain
@@ -882,28 +939,20 @@ def _lbfgsb_restart(
     bounds: list[tuple[float, float]],
     args: tuple[Any, ...],
     maxiter: int,
-    memo_fun: Callable[..., Any] | None,
+    batch_objective: Callable[..., Any] | None,
+    memo: dict[bytes, Any] | None = None,
 ) -> Any:
     """Restart L-BFGS-B from its own returned point. No new seed (#826).
 
-    ``memo_fun`` is the calling ``_multi_start_minimize``'s memoized fused
-    fun, so a polish that starts where an earlier start or polish already
-    stood revalues nothing.
+    ``memo`` is the calling ``_multi_start_minimize``'s evaluation memo, so
+    a polish that starts where an earlier start or polish already stood
+    revalues nothing.
     """
     _time_mod.sleep(0.002)
-    fun: Callable[..., Any] = objective
-    jac: bool | None = None
-    if memo_fun is not None and _bounds_supported_by_batch(bounds):
-        fun, jac = memo_fun, True
     try:
-        polished = _scoped_minimize(
-            fun,
-            np.asarray(best.x, dtype=float),
-            args=args,
-            jac=jac,
-            method="L-BFGS-B",
-            bounds=bounds,
-            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        polished = _lbfgsb_run(
+            objective, batch_objective, np.asarray(best.x, dtype=float),
+            bounds, args, maxiter, memo,
         )
     except Exception:  # pragma: no cover - solver blow-up
         return best
@@ -939,7 +988,6 @@ def _multi_start_minimize(
     args: tuple[Any, ...] = (),
     maxiter: int = 300,
     batch_objective: Callable[..., Any] | None = None,
-    fd_eps: float = 1e-4,
     move_starts: Callable[[list[np.ndarray], int], list[np.ndarray]] = (
         lambda candidates, maxiter: candidates
     ),
@@ -993,9 +1041,6 @@ def _multi_start_minimize(
     scored.sort(key=lambda item: item[0])
 
     eval_memo: dict[bytes, Any] = {}   # starts+polishes share one fun memo
-    memo_fun = _memoized_value_and_gradient(
-        batch_objective, bounds, fd_eps, eval_memo,
-    )
     best = None
     best_score = np.inf
     last_error: Exception | None = None
@@ -1009,50 +1054,9 @@ def _multi_start_minimize(
             # breathing. No effect on any numerical result.
             _time_mod.sleep(0.002)
         try:
-            fun: Callable[..., Any] = memoized
-            jac: bool | None = None
-            # The batched jac (#97, widened by D9-01) serves NON-UNIFORM
-            # bounds, which is where the cost actually is: DHW is on by
-            # default, and any DHW block or per-step power cap pins the space
-            # bounds unevenly, so the old uniform-bounds-only gate left 38 of
-            # 39 DHW-enabled golden scenarios on the scalar scipy-FD path --
-            # the batched gradient effectively never reached real users
-            # (winter_two_zone_dhw: 941,472 simulate_step per solve, x40).
-            #
-            # ``_batch_fd_gradient`` replicates scipy's own 2-point
-            # ``approx_derivative`` (abs_step=eps, the exact settings
-            # L-BFGS-B passes) PER VARIABLE, including the one-sided bounds
-            # rule and the zero-step fallback, so where it serves a solve the
-            # iterate path does not move: asserted per-variable by
-            # tests/features.py::_grad_parity (uniform, capped and
-            # DHW-pinned-headroom bounds) and raced end-to-end by
-            # tests/optimality.py on DHW-enabled solves. A FIXED variable
-            # (lb == ub) is served too, since D9-01: it gets an exact 0.0
-            # rather than scipy's 0/0 NaN, which is the only entry that ever
-            # differs and the only one whose value the bounds already decide.
-            # It used to disqualify the whole vector, which is what put a
-            # fuse-guarded install on the scalar path at 31.5x. The CI drift
-            # gate on Linux is the final arbiter.
-            can_batch = _bounds_supported_by_batch(bounds)
-            if memo_fun is not None and can_batch:
-                # The batched-FD jac (#97): scipy calls the gradient at
-                # every trial point, so a supplied jac removes 96/97 of
-                # ALL evaluations, not just of the gradient's own. It
-                # reproduces scipy's own 2-point estimate to the bit --
-                # same eps, same bounds rule -- so on bounds with no fixed
-                # variable the iterate path, and therefore the plan, does
-                # not move. The value rides in the same batch (R9
-                # D9-s1-02), so L-BFGS-B makes no scalar evaluation.
-                fun = memo_fun
-                jac = True
-            res = _scoped_minimize(
-                fun,
-                guess,
-                args=args,
-                jac=jac,
-                method="L-BFGS-B",
-                bounds=bounds,
-                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+            res = _lbfgsb_run(
+                memoized, batch_objective, guess, bounds, args, maxiter,
+                eval_memo,
             )
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
@@ -1074,7 +1078,9 @@ def _multi_start_minimize(
         # only the best-scoring candidates, a looser polish ftol -- each of
         # which moves the shipped plan. The cost is what the 1.40% is bought
         # with; the stress gate's per-scenario CPU budgets police it.
-        res = _lbfgsb_restart(res, memoized, bounds, args, maxiter, memo_fun)
+        res = _lbfgsb_restart(
+            res, memoized, bounds, args, maxiter, batch_objective, eval_memo,
+        )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
@@ -4524,13 +4530,9 @@ class HeatPumpOptimizer:
                 return cands
             self._floor_l1_scale = 0.5
             try:
-                cands[first] = np.asarray(_scoped_minimize(
-                    objective, cands[first], method="L-BFGS-B", bounds=bounds,
-                    jac=(lambda x: _batch_fd_gradient(
-                        objective_batch, (), x, float(objective(x)), 1e-4,
-                        bounds,
-                    )) if _bounds_supported_by_batch(bounds) else None,
-                    options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                cands[first] = np.asarray(_lbfgsb_run(
+                    objective, objective_batch, cands[first], bounds, (),
+                    maxiter,
                 ).x, dtype=float)
             finally:
                 self._floor_l1_scale = 1.0
