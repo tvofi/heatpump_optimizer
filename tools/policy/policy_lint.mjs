@@ -2121,11 +2121,13 @@ function fetchPullsBySha(commits) {
 // and the later modes read it back, so the job's cost is one walk.
 //
 // Keyed on the two resolved SHAs, so a file left from another window or another
-// head is ignored rather than trusted. ONLY A COMPLETE READ IS WRITTEN: a failed
-// enumeration or an aborted per-PR fetch leaves the file as it was, and the next
-// mode retries exactly as it did before the cache existed -- every failure
-// marker (`enumSkipLine`, the stats fetch guard, the sunset `no friction data`)
-// keeps its meaning. Without the flag nothing is read or written.
+// head is ignored rather than trusted. ONLY A COMPLETE READ SERVES: a failed
+// enumeration writes nothing and an aborted per-PR fetch carries an empty map,
+// so the next mode retries exactly as it did before the cache existed -- every
+// failure marker (`enumSkipLine`, the stats fetch guard, the sunset `no
+// friction data`) keeps its meaning. Without the flag nothing is read or
+// written. Each mode prints `windowCacheLine`, so the job's log says whether the
+// share happened rather than leaving it to a count of calls nobody sees.
 function windowKey(since) {
   const rev = (r) => git(['rev-parse', '--verify', '--quiet', `${r}^{commit}`], { allowFail: true }).trim()
   return `${rev(since)}..${rev(mainRef())}`
@@ -2151,17 +2153,24 @@ function writeWindowCache(file, since, part) {
 // acceptance drives the cache with a counting stand-in, offline in every clone.
 function pullsByShaShared(commits, since, cacheFile, fetch = fetchPullsBySha) {
   const cached = readWindowCache(cacheFile, since).pullsBySha
-  if (cached) return { ok: true, map: new Map(cached.map), gapShas: cached.gapShas }
+  if (cached) return { ok: true, map: new Map(cached.map), gapShas: cached.gapShas, fromCache: true }
   const fetched = fetch(commits)
   if (fetched.ok) writeWindowCache(cacheFile, since, { pullsBySha: { map: [...fetched.map], gapShas: fetched.gapShas } })
-  return fetched
+  return { ...fetched, fromCache: false }
 }
 
 function mergedPRsFromWindow(since, cacheFile = null) {
   const commits = firstParentCommits(since)
   const fetched = pullsByShaShared(commits, since, cacheFile)
-  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas }
-  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [] }
+  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas, fromCache: fetched.fromCache }
+  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [], fromCache: false }
+}
+
+// What a mode took from the window cache, one line per mode: `parts` is
+// [name, served-by-the-file] for each read the mode makes.
+function windowCacheLine(file, parts) {
+  if (!file) return 'WINDOW_CACHE: off -- no --window-cache, so this mode fetched the window itself'
+  return `WINDOW_CACHE: ${parts.map(([name, hit]) => `${name} ${hit ? 'served by' : 'fetched, not served by'}`).join('; ')} ${file}`
 }
 
 // THE LOUD HALF OF THE ENUMERATION GUARD (#957's dead-fetch discipline; the
@@ -3376,11 +3385,11 @@ export function fetchWindow(prs) {
 function fetchWindowShared(prs, since, cacheFile, fetch = fetchWindow) {
   const cached = readWindowCache(cacheFile, since).prReads
   if (cached && prs.every(({ pr }) => Object.hasOwn(cached, pr))) {
-    return { fetched: new Map(prs.map(({ pr }) => [pr, cached[pr]])), fetchError: null }
+    return { fetched: new Map(prs.map(({ pr }) => [pr, cached[pr]])), fetchError: null, fromCache: true }
   }
   const out = fetch(prs)
-  if (!out.fetchError) writeWindowCache(cacheFile, since, { prReads: Object.fromEntries(out.fetched) })
-  return out
+  writeWindowCache(cacheFile, since, { prReads: Object.fromEntries(out.fetched) })
+  return { ...out, fromCache: false }
 }
 
 // A detector "fires" if the ledger records a defect naming it, or the window's
@@ -4583,13 +4592,13 @@ function assertAcceptance(derived) {
 
   // THE WINDOW CACHE (dev/audit/rca/install-ratelimit.md, M1). The record job's
   // three modes share one walk of the window only while a second read is served
-  // from the file the first wrote; restore the per-mode fetch and every arm
-  // below counts the second fetch. Driven with counting stand-ins for the two
+  // from the file the first wrote; restore the per-mode fetch and the first two
+  // arms count the second fetch. Driven with counting stand-ins for the two
   // fetchers, so it is offline in every clone; `mainRef()..mainRef()` keys a
-  // window that resolves in every shape. Then the WIRING, as a subprocess: a
-  // seeded file whose `gapShas` only a cache read can produce must reach the
-  // `GAP:` line of `--record` and `--stats`, and must not without the flag.
-  pins += 4
+  // window that resolves in every shape. Then the WIRING, as a subprocess per
+  // mode: a seeded file for that window must reach each mode's `WINDOW_CACHE:`
+  // line as served, and without the flag the line must say `off`.
+  pins += 5
   const wcFail = []
   const wcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'policy-lint-window-'))
   try {
@@ -4608,14 +4617,15 @@ function assertAcceptance(derived) {
     if (fetchWindowShared(prs, wcSince, wcFile, badReads).fetchError == null) wcFail.push('a failed per-PR fetch did not reach its caller')
     fetchWindowShared(prs, wcSince, wcFile, okReads)
     const reread = fetchWindowShared(prs, wcSince, wcFile, okReads)
-    if (calls !== 2 || reread.fetched.get('7')?.body !== 'b') wcFail.push(`the per-PR reads were fetched ${calls} time(s) over a failure, a fetch and a re-read, not 2: a failure was cached or the re-read fetched again`)
+    if (calls !== 2 || reread.fetched.get('7')?.body !== 'b') wcFail.push(`the per-PR reads were fetched ${calls} time(s) over a failure, a fetch and a re-read, not 2: a failure served a read or the re-read fetched again`)
     calls = 0
     fetchWindowShared([{ pr: '7' }, { pr: '8' }], wcSince, wcFile, okReads)
     pullsByShaShared(commits, wcSince, null, okPulls)
     if (calls !== 2) wcFail.push('a cache missing a pull request, or no cache file at all, served a read it does not hold (null control)')
     const seeded = path.join(wcDir, 'seeded.json')
-    fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: ['seeded'] } }))
-    for (const mode of ['--record', '--stats']) {
+    fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
+    const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }
+    for (const [mode, parts] of Object.entries(wants)) {
       const run = (extra) => {
         try {
           return execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), mode, '--since', wcSince, ...extra], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, GITHUB_TOKEN: 'acceptance-fixture-not-a-credential' }, stdio: ['pipe', 'pipe', 'pipe'] })
@@ -4623,8 +4633,8 @@ function assertAcceptance(derived) {
           return `${e.stdout || ''}`
         }
       }
-      if (!/^GAP: 1 merge/m.test(run(['--window-cache', seeded]))) wcFail.push(`${mode} --window-cache did not read the window from the file`)
-      if (/^GAP: 1 merge/m.test(run([]))) wcFail.push(`${mode} without --window-cache read a file it was not given (null control)`)
+      if (run(['--window-cache', seeded]).split('\n').find((l) => l.startsWith('WINDOW_CACHE:')) !== windowCacheLine(seeded, parts.map((p) => [p, true]))) wcFail.push(`${mode} --window-cache did not take ${parts.join(' and ')} from the file`)
+      if (!run([]).split('\n').includes(windowCacheLine(null, []))) wcFail.push(`${mode} without --window-cache did not say it fetched the window itself (null control)`)
     }
   } finally {
     fs.rmSync(wcDir, { recursive: true, force: true })
@@ -6937,6 +6947,7 @@ function cmdRecordDispositions(since, cacheFile) {
   const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache]]))
   // The enumeration guard's loud half (#957 discipline -- see enumSkipLine).
   // RECORD_ENUM alone states the MODE, not the confidence: a reader who stops
   // at `TOTAL: 0 error(s)` sees a measured window, and the fallback's zero over
@@ -7032,9 +7043,10 @@ function cmdStats(since, cacheFile) {
   // shape fetchWindow's own any-failure abort exists to prevent.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []`)
-  const { fetched, fetchError } = enumerated.why
-    ? { fetched: new Map(), fetchError: enumerated.why }
+  const { fetched, fetchError, fromCache } = enumerated.why
+    ? { fetched: new Map(), fetchError: enumerated.why, fromCache: false }
     : fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction, rework, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
@@ -7108,7 +7120,8 @@ function cmdSunset(since, cacheFile) {
   const prs = enumerated.prs
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   const classes = verdictClasses()
-  const { fetched, fetchError } = fetchWindowShared(prs, since, cacheFile)
+  const { fetched, fetchError, fromCache } = fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
   const fires = detectorFires(friction)
   const rows = policyFiles().map((f) => ({ file: f, text: read(f) }))
