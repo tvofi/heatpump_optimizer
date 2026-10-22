@@ -125,7 +125,7 @@ set -uo pipefail
 
 # pr_args.sh's reap: a stopped pusher ends the whole tree it started, and prepr
 # below runs asynchronously so an INT does not wait behind it. The one EXIT trap
-# also runs cleanup (below), which is a no-op until $PRIV exists.
+# also runs app_mint.sh's mint_cleanup, which is a no-op until $PRIV exists.
 PR_ARGS=$(cd "$(dirname -- "$0")/../audit/seat" 2>/dev/null && pwd)/pr_args.sh
 [ -f "$PR_ARGS" ] || { printf 'app_push: REFUSE: no pr_args.sh beside this script at %s\n' "$PR_ARGS" >&2; exit 1; }
 . "$PR_ARGS"
@@ -134,16 +134,10 @@ API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 die() { printf 'app_push: REFUSE: %s\n' "$*" >&2; exit 1; }
 
-cleanup() {
-  [ -n "$PRIV" ] || return 0  # before the private directory exists there is nothing to revoke
-  if [ -s "$PRIV/token.h" ]; then
-    curl -fsS -X DELETE -H @"$PRIV/token.h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
-      || printf 'app_push: warning: revoking the installation token failed; it expires within the hour\n' >&2
-  fi
-  rm -rf "$PRIV"
-}
-PRIV=""
-pr_exit_trap cleanup
+MINT_NAME=app_push
+MINT_TRAP=caller  # the EXIT trap is pr_exit_trap's, below: the mint must not replace it
+. "$(dirname -- "$0")/app_mint.sh" # the token mint, shared with seat/body_patch.sh
+pr_exit_trap mint_cleanup  # revokes the token (a no-op before the mint), then reaps the tree
 
 # push.sh's classification, over a JSON listing: `[]` POSITIVELY means no
 # pull request is open, an array naming a number names one, and anything
@@ -404,12 +398,7 @@ push_and_open() {
   [ "$bonly" = 1 ] || [ -f "$body" ] || die "no body file at $body"
   wt=$(cd "$wt" 2>/dev/null && pwd) || die "cannot enter worktree '$wt'"
 
-  local idir="${HPO_IDENTITY_DIR:-$HOME/.zcode}"
-  local appid_f="$idir/hpo-author.appid.txt" key="$idir/hpo-author.pem"
-  [ -s "$appid_f" ] || die "App id file missing or empty: $appid_f (fail closed)"
-  [ -s "$key" ] || die "App private key missing or empty: $key (fail closed)"
-  local appid; appid=$(cat "$appid_f")
-  [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
+  mint_identity
 
   # Is a pull request open on this branch? Read through `gh` before minting,
   # so a query that cannot answer refuses while nothing is minted. The head
@@ -499,27 +488,7 @@ push_and_open() {
     exit 0
   fi
 
-  umask 077
-  PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
-  # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
-  chmod 700 "$PRIV"
-  b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
-  local now h p s inst
-  now=$(date +%s)
-  h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
-  p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$appid" | b64)
-  s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] \
-    || die "signing the App JWT with $key failed"
-  printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$PRIV/jwt.h"
-  inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
-    | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') \
-    || die "the App has no installation on $repo, or its JWT was refused"
-  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
-    | python3 -c 'import sys,json
-t = json.load(sys.stdin)["token"]
-open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" && [ -s "$PRIV/token.h" ] \
-    || die "minting the installation token failed"
-  chmod 600 "$PRIV/token.h" "$PRIV/jwt.h"
+  mint_token "$repo"
 
   # The App's push credential: generated, file-fed, and the only helper. See
   # the header for why a helper rather than extraheader or askpass. `get` is
@@ -592,6 +561,7 @@ trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid" "$W/tool" "$W/tool-wt"
 cp "$SELF" "$W/tool/app_push.sh"
 cp "$(dirname -- "$SELF")/head_note.py" "$W/tool/"
+cp "$(dirname -- "$SELF")/app_mint.sh" "$W/tool/"
 # The real guard, at the path the copy resolves it by (../audit/seat/), and the
 # signal reap it sources from there.
 mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/" \
@@ -666,6 +636,11 @@ case "$*" in
     else printf 'a\037t@t\037t@t\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
+    if [ -f "$STUB/push-tree" ]; then  # a push still running when the pusher is stopped
+      echo $$ >> "$STUB/pids"
+      bash -c 'sleep 30 & echo $! >> "$0"; wait' "$STUB/pids" & echo $! >> "$STUB/pids"
+      wait; exit 1
+    fi
     for a in "$@"; do
       case "$a" in credential.helper=*)
         sh "${a#credential.helper=}" get > "$STUB/credout" 2>&1 ;; esac
@@ -840,6 +815,20 @@ st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && ech
 st "$(alive_of "$W/stoppedint/pids")" 0 "and leaves none of prepr's tree alive"
 kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
 for p in $(cat "$W/stoppedint/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+# ... and stopped after the mint, mid-push: app_mint.sh's own traps would replace the
+# reap's EXIT trap (MINT_TRAP=caller keeps it), so the push would outlive the pusher.
+mkcase stoppedpush; : > "$W/stoppedpush/push-tree"; : > "$W/stoppedpush/pids"
+( export STUB="$W/stoppedpush" PATH="$W/bin:$PATH" TMPDIR="$W/stoppedpush/tmp" HPO_IDENTITY_DIR="$W/id"
+  exec bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stoppedpush/out" 2> "$W/stoppedpush/err" ) & ap=$!
+k=0; while [ "$(wc -l < "$W/stoppedpush/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+st "$(wc -l < "$W/stoppedpush/pids" | tr -d ' ')" 3 "the mid-push case's push tree started (three pids)"
+kill -TERM "$ap"; k=0
+while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push TERMed mid-push, after the mint, ends within 4 s"
+st "$(alive_of "$W/stoppedpush/pids")" 0 "and leaves none of the push's tree alive"
+st "$(grep -c '^curl DELETE installation/token' "$W/stoppedpush/log")" 1 "and revokes the token it minted"
+kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
+for p in $(cat "$W/stoppedpush/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
 
 mkcase leaky; : > "$W/leaky/leaky-log"
 run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"

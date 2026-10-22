@@ -46,6 +46,8 @@ row HP-FG PA tools/audit/seat/handoff_push.sh '> "$B.push.log" 2>&1 &' '> "$B.pu
 row RM-FG PA tools/audit/seat/remerge_main.sh '> "$PL" 2>&1 &' '> "$PL" 2>&1'
 row AP-FG AP tools/pr/app_push.sh '( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!' '( cd "$wt" && bash "$prepr" "$body" "$@" ) || prepr_rc=$?' \
   '    wait "$prepr_pid" || prepr_rc=$?' '    :'
+# app_mint.sh's mint_token, unless told the caller owns the EXIT trap, replaces app_push's reap
+row AP-MINTTRAP AP tools/pr/app_push.sh 'MINT_TRAP=caller  # the EXIT trap' '# MINT_TRAP=caller  # the EXIT trap'
 # the tool's stop in Train._run (16-space indent: the self-test driver's own terminate() has 12)
 row MT-KILL MT tools/audit/seat/merge_train.py '                p.terminate()' '                p.kill()'
 
