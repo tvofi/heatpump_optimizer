@@ -122,7 +122,7 @@ This head has not run in CI. One red is predicted:
   - A copy-then-publish-whole of the away state keeps that guard or an equivalent.
   - Its control is the `features.py` check `D14-s1-01 the away recovery estimate is handed off the loop, and a switch written during its await is not reverted by the resolve's publish`, which reads red with the guard as `if True:`.
   - Re-measure at your merge base.
-  - **Not yet in the roster:** this seat writes only its return refs, and the roster's writer, `roster_edit.py`, pushes to `handoff/audit-r10-roster`. It is owed before this merges: `python3 tools/audit/seat/roster_edit.py append-carry R10-LIVESTATE "<the text above>" --push`.
+  - Landed on `handoff/audit-r10-roster` at `cccbf4fb508cca8ce711dd06add13cc034ac0edb`.
 
   Carry: R10-LIVESTATE
 
