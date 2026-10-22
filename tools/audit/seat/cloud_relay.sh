@@ -482,26 +482,33 @@ self_test() {
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.
   printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/tpids" & echo $! >> "%s/tpids"\nwait\n' "$t" "$t" "$t" > "$t/tree.sh"; chmod +x "$t/tree.sh"
-  rm -f "$t/state/cloud-handoff-failed"; : > "$t/tpids"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   local rp k tn live p
-  HPO_RELAY_UPDATE=$t/tree.sh bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
-  k=0; while [ "$(wc -l < "$t/tpids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
-  tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -TERM "$rp"; wait "$rp"
-  k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
-    { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+  stoprelay() { # <relay script> <pids wanted>: one pass, TERMed once the update's tree is up; sets tn and live
+    rm -f "$t/state/cloud-handoff-failed"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+    bash "$1" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+    k=0; while [ "$(wc -l < "$t/tpids")" -lt "$2" ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+    tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -TERM "$rp"
+    # bounded: a relay waiting behind a foreground update would never end on its TERM
+    k=0; while case $(ps -o stat= -p "$rp" 2>/dev/null | tr -d ' ') in ''|Z*) false;; esac && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
+    kill -KILL "$rp" 2>/dev/null; wait "$rp" 2>/dev/null
+    k=0; while :; do live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); done
+      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+    for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done; }
+  HPO_RELAY_UPDATE=$t/tree.sh stoprelay "$HERE/cloud_relay.sh" 3
   chk "a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)" 0 test "$tn $live" = "3 0"
-  for p in $(cat "$t/tpids"); do kill -KILL "$p" 2>/dev/null; done
   # ... and the update stops first, as the reap's lead: its child G stands for update_pr.sh's
   # lock holder and marks a TERM it gets; the update, TERMed, waits 0.5 s, writes "early" when
   # G was TERMed beside it, then ends G -- so a lock is freed only after the push it guards.
   printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "%s/marks" & g=$!; echo $g >> "%s/tpids"\ntrap '"'"'sleep 0.5; grep -q G "%s/marks" && echo early >> "%s/marks"; kill $g; wait $g; exit 143'"'"' TERM\nwait\n' \
     "$t" "$t" "$t" "$t" "$t" > "$t/lead.sh"; chmod +x "$t/lead.sh"
-  rm -f "$t/state/cloud-handoff-failed"; : > "$t/tpids"; : > "$t/marks"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
-  HPO_RELAY_UPDATE=$t/lead.sh bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
-  k=0; while [ "$(wc -l < "$t/tpids")" -lt 2 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
-  tn=$(wc -l < "$t/tpids" | tr -d ' '); kill -TERM "$rp"; wait "$rp"
-  live=0; for p in $(cat "$t/tpids"); do kill -0 "$p" 2>/dev/null && live=$((live + 1)); kill -KILL "$p" 2>/dev/null; done
+  HPO_RELAY_UPDATE=$t/lead.sh stoprelay "$HERE/cloud_relay.sh" 2
   chk "a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does" \
+    0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
+  # The production route, no HPO_RELAY_UPDATE: a copy of the relay and the real pr_args.sh beside
+  # an update_pr.sh that is the lead stub, so the relay's own `bash "$HERE/update_pr.sh"` runs it.
+  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
+  HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
+  chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
   rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
