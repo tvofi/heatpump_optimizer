@@ -1,4 +1,3 @@
-head 9da4dcab96eca8278a81fa4589faa865a69d3803 ; prior verdict head c2c5a8969dc08c548624d5160d5e43482c0ce392 (full review 0d29933dc at 6bee9961)
-delta against merge-tree(origin/main fef4a1351, c2c5a8969): only dev/programme/rosters/wave-r10-groups.json, 3 pure appends to carry lists (R10-CI-LAYOUT-P2, R10-FLOW-JIDOKA x2), prefixes unchanged, 154 groups
-each appended carry equals its source file (carry-cilayout.txt, jidoka1.txt, jidoka2.txt)
+head 6d9a841e69c91afe6186cbdcb384744c0c44d6d1 ; prior verdict head 9da4dcab96eca8278a81fa4589faa865a69d3803
+delta: only dev/programme/rosters/wave-r10-groups.json, 2 pure appends (R10-FLY-OPENPR-ATOMIC, R10-LIVESTATE), prefixes unchanged, 154 groups; each equals its source carry file
 brief_lint rc=0; merge-tree origin/main head clean; host-path grep on added lines: 0
