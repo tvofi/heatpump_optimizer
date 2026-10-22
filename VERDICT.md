@@ -1,64 +1,74 @@
-Fix review: blocked 2124bc75b245215b2742e2cd30089cf0cb71a895 carry-stale: the one-shot OWED kinds are already PR-keyed and cleared at the merge base by b38c6431a (R10-TICK-OWED-LEVEL), yet the record's §1 and §7, the register entry and the third forward-carry hand that build to R10-ORCH-MACHINERY as still owed
+Fix review: merge 4da469164e865be71478ac1221fbd8aabf0f65db
 
-bus-nonce: b351261712df38a8c9eb2843fd1a12b5
+bus-nonce: 10cda583714b1c6cbcce9a8cf0a62f13
 
 ## Round
 
-Re-review, round 2 (round 1 blocked 6e12aeb5 on harness: class-open). The head I measured is 2124bc75b245215b2742e2cd30089cf0cb71a895, the PR head when I posted. Roles and rules on main are unchanged since the merge base 302f66571, so I read the contract from main.
+This is re-review round 3. Round 1 blocked 6e12aeb5 on `harness: class-open`, and round 2 blocked 2124bc75 on `carry-stale`. I measured head 4da469164e865be71478ac1221fbd8aabf0f65db, which was the PR head when I wrote this verdict. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so I followed the contract as it stands on main. The merge base is origin/main 46e368127. I worked from a detached worktree at the head. My harness was the round-2 reviewer's `evidence/replay.py`, taken from origin/review/2545, not the fixer's.
 
 ## Block
 
-The record describes main as it was at 1ebc737e7, but the PR merges into a main that has already closed most of that cause. b38c6431a ("tools: the relay's OWED level is a rewritten file, not a replayed log", group R10-TICK-OWED-LEVEL, roster stage done) is an ancestor of the merge base 302f66571. In that commit, `relay_owed` keys every log OWED on its PR, "first all-digit field". Its commit message says so: "`OWED <utc> handoff-update <pr>` is now cleared by a later POSTED for that PR like the others". The two levels also moved to a rewritten `<log>.level` file.
+None. The round-2 `carry-stale` block is cleared at this head:
+- §1 now dates the cause to `1ebc737e7` ("As main stood at `1ebc737e7` ... keyed each row on `f[2]`"). It also records that `b38c6431a` (#2547, merged by 295c874e8, an ancestor of the merge base) keys every log event on its PR and makes the levels a rewritten `<log>.level`.
+- §5.1 keeps only the level's live-world closers.
+- §7 says "nothing is carried for" the three one-shot kinds.
+- The register entry `_rca.N-orphaned-handoff` now has `landed` "b38c6431 (#2547): event keying and the level file". Its `countermeasure` is "barrier, in part landed: b38c6431a keys every relay OWED event on its PR, the one-shots included ...". `parts_missing` names only the level closers, the content-covered close, and the ledger parts.
+- The body's old third forward-carry ("Key each event on its PR") is gone. Nothing in the record, the register or the body still calls `handoff-update`, `approve-held-runs` or `dispatch` owed. Its only forward-carry on the relay grammar now asks the ledger to keep the landed grammar, and gives a control that moves.
 
-My own replay is a hand-written log with one row per writer grammar, the levels written twice, and a POSTED for each PR (ev/own_replay.txt):
-- At 1ebc737e7 and 6e12aeb5: `uncleared_after_POSTED=8`, kinds approve-held-runs, dispatch, handoff-no-pr, handoff-update and probe-ref. The round-1 class block is cleared.
-- At 302f66571 (merge base), 2124bc75 (head) and 46e368127 (origin/main): `uncleared_after_POSTED=0`. The 4 kind-less level rows are skipped and counted.
-
-The fixer's own harness confirms this when it is pointed at the head's tick and 1ebc737e7's relay grammar: `uncleared_lines=0` over all 10 writers (ev/fixer_harness_both_ends.txt, "mixed"). The tick's fix alone clears every one-shot kind. Yet at this head:
-- The record's §1 says, in the present tense, that `relay_owed` "keys each row on `f[2]`".
-- §7 says the one-shot part is still to carry.
-- The register entry `_rca.N-orphaned-handoff` has `countermeasure` "proposed ... one-shots keyed on their PR", `landed: null` and `parts_missing` "barrier not built".
-- The body's third forward-carry tells R10-ORCH-MACHINERY to "Key each event on its PR ... must print `uncleared_lines=0` after the fix". Its own figure shows the fix already prints 0 at 5a755f53e.
-
-The body explains that 0 as "not a clean reproduction of the class reach", blaming the writer regex. The mixed run refutes that: the 0 comes from the tick. Landing the carry as written would dispatch a builder to rebuild a landed fix. The record states as owed a countermeasure part that is in the tree it merges into.
-
-Repair:
-- Date §1's cause to 1ebc737e7.
-- Record that b38c6431a landed the event keying and level file, which is §5.1 for the relay kinds, keeping only the derived-from-live-world closer that is still owed.
-- Correct the register's `countermeasure`, `parts_missing` and `landed`.
-- Drop or re-word the third forward-carry.
+The round-2 harness finding is cleared too. The harness now stops at `self_test()`, so the line-376 fixture is no longer read as a writer. It also classifies each row by what the tick under test does with it.
 
 ## Findings
 
-- The record and register present the relay-OWED half of §5.1 as unbuilt, and carry the one-shot keying to R10-ORCH-MACHINERY, when b38c6431a in the merge base already keys every log event on its PR and rewrites the levels. This is the block above. Carry: R10-RCA-HANDOFF-SLIP
-- The harness `dev/audit/harnesses/r10_relay_owed_class_reach.py` mis-measures at any tip after b38c6431a, in two ways:
-  - Its `WRITER` regex matches the selftest fixture `printf 'OWED 2026-01-01T00:00:00Z handoff-no-pr ...' >> "$LV"` at cloud_relay.sh:376 as a writer, which is kind "2026-01-01T00:00:00Z".
-  - `kinds_on_kind_token` classifies by the row's own `f[2]`, not by the key the tick under test uses. At the head it prints `kinds_on_kind_token=4` while every one of those rows is cleared (`uncleared_lines=0`).
-
-  The metric names a defect the tick no longer has. Fix it to classify by what the tick clears, and to skip selftest lines, or date the harness to the 1ebc737e7 grammar. Carry: R10-RCA-HANDOFF-SLIP
-- The finding had no committed harness. The fixer built `r10_relay_owed_class_reach.py` and discloses it as their own. I built an independent replay of a hand-written log (ev/replay.py, out of tree, disclosed here as mine). Both agree at every end. Carry: dismissed: disclosure only, both instruments agree at 1ebc737e7, 6e12aeb5 and the head
+- The finding's original instrument, the round-2 reviewer's `replay.py`, lives only on `origin/review/2545`, out of tree. I reused it as the finder's harness and built nothing of my own. The PR's committed harness `dev/audit/harnesses/r10_relay_owed_class_reach.py` agrees with it at 1ebc737e7, at the merge base, at the head and under P1, so the class has a committed instrument. Carry: dismissed: disclosure only; the committed round harness agrees with the out-of-tree replay at every end and under perturbation
 
 ## Evidence
 
-- Round-1 block 1 (class search) is cleared at the record level. §1 names the 10-writer rule and all five kind-keyed kinds, levels and events. My replay at 1ebc737e7 reproduces 8 uncleared lines over exactly those 5 kinds. The PR-keyed rows (owed ×2 shapes, reviewer-fire) clear: that is the null control, in the same run.
-- Fixer harness at 1ebc737e7, re-derived: `RESULT writers=10 kinds_on_kind_token=5 uncleared_lines=8 pr_keyed_writers=4 pr_keyed_lines=0`. The body's figure matches.
-- Base control at 6e12aeb5, re-derived: identical RESULT. The body's figure matches.
-- Perturbation, re-derived: the 1ebc737e7 tick with `and f[2].isdigit()` on the OWED arm gives `uncleared_lines=0` under the fixer's harness and `uncleared_after_POSTED=0` under mine. The harness moves under its own perturbation.
-- Head figure, re-derived: `RESULT writers=9 kinds_on_kind_token=4 uncleared_lines=0 pr_keyed_writers=4 pr_keyed_lines=0`. The body's figure matches. Its reading of that figure is refuted (Block).
-- Round-1 block 2 is cleared: §4 now says "5.13 seat-hours, quoted, not verified" and quotes R9's provenance, and the register's countermeasure says "(quoted from R9, not verified)".
-- Round-1 block 3 is cleared: no carry in the body names R10-ROSTER-OPS (stage done on origin/handoff/audit-r10-roster). The carries go to R10-ORCH-MACHINERY (not-started).
-- Standing rule 19: `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <PR body>` prints `CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)` (ev/carry_audit_body.txt). My verdict's carries go to R10-RCA-HANDOFF-SLIP, which is in-progress on that roster.
-- Register, re-derived: `fold_ledger.py check` gives 113 rca entries and 0 violations at merge base 302f66571, and 114 rca entries and 0 violations at the head. The body's 113 was at 1ebc737e7; the count is the same at the merge base.
-- Mutation proof: n/a, as the body says. No production or check line changes. The diff is a record, a register entry, a round harness, an inert-read line in tests/closures.json, and the PR's delivery row.
-- Merge: `git merge-tree --write-tree origin/main(46e368127) 2124bc75` exits 0 with tree 4e94a5a1a. It is clean, so no absorb is needed (ev/merge_tree.txt).
-- VERSION, the manifest version and RELEASE_NOTES.md are untouched, three-dot from the merge base.
-- CI at this head, from the check-runs API per run (ev/check_runs_head.txt):
-  - Both pr-contract runs succeeded.
-  - `nightly-status` is a failure. It grades main's scheduled run, and the diff reaches nothing it reads, so it is not this PR's red.
-  - `closures` (119562345800) and `Analyze (python)` were still in_progress at read time.
-  - Every other check succeeded or was skipped.
-  - No gate check this PR owns went red at this head. The body answers pr-contract's red at 6e12aeb5 with a cheaper detector.
-- Not re-derived:
-  - The record's §2/§2a live-host figures (31,303 lines, 236 refs, the 143 passes, the 41.9–48.9 h ages, fold_demo's 22/15/11). They come from the orchestrator's host logs, which are not in the tree.
-  - The cost-test cadence figures (198 passes/24 h, 4,073,591-byte board).
-  - The gate's `MODE: SCOPED -- 1 script(s) run`. I did not run the gate (heavy, cited from CI).
+- Finder's harness (`replay.py`, ev/finder_replay.txt, ev/harness_runs.txt):
+  - `RESULT tick=tick_1ebc737e7.py uncleared_after_POSTED=8`, over kinds approve-held-runs, dispatch, handoff-no-pr, handoff-update and probe-ref.
+  - `RESULT tick=tick_46e368127.py uncleared_after_POSTED=0` (merge base).
+  - `RESULT tick=tick_4da469164e865be71478ac1221fbd8aabf0f65db.py uncleared_after_POSTED=0` (head).
+  - Under P1, the head's tick with `pr = f[2] if len(f) > 2 else None`: `uncleared_after_POSTED=8`. This matches the body ("8 at 1ebc737e7, 0 at this head and 8 under P1").
+  - The tick and the relay are byte-identical between the merge base and the head (`cmp`), so the PR changes no production line.
+- The PR's harness, re-derived by me at both ends (ev/harness_runs.txt):
+  - 1ebc737e7: `RESULT writers=10 events=8 events_cleared=4 events_uncleared=4 events_unreported=0 level_writers=2 level_lines=4 level_items=2`. This matches the body.
+  - Head: `RESULT writers=10 events=8 events_cleared=8 events_uncleared=0 events_unreported=0 level_writers=2 level_lines=2 level_items=2`. This matches the body.
+- Null controls and perturbations, re-derived (ev/harness_runs.txt):
+  - Same run at 1ebc737e7: the 4 PR-keyed writers are cleared beside the 4 uncleared ones.
+  - P1 (event keying reverted): `events_uncleared=4`, against 0 unmodified.
+  - P2 (`level_set`'s `awk -v k="$1" '$3 != k' "$lv"` replaced with `cat "$lv"`): `level_lines=4 level_items=2`, against 2/2.
+  - P3 (the head's tick over 1ebc737e7's relay): `events_cleared=8 events_uncleared=0`.
+  - P4 (1ebc737e7's tick over the head's relay): `events_uncleared=4`.
+  - All of these match the body. The harness moves under each of its own perturbations.
+  - Two of my figures are not in the body, which quotes neither: both mixed runs print `level_lines=0`, because the tick and the relay disagree on where the level lives.
+- Old harness (from 2124bc75b) at 1ebc737e7, the merge base and the head (ev/old_harness.txt): `writers=10 kinds_on_kind_token=5 uncleared_lines=8`, then `writers=9 kinds_on_kind_token=4 uncleared_lines=0` at both later commits. This matches the body.
+- Class rule: outside `dev/audit/harnesses/`, only `cloud_relay.sh` and `orchestrator_tick.py` read the relay log, both at the head and at 1ebc737e7 (ev/relay_log_readers.txt, ev/landed_and_readers.txt). The harness lists all 10 writers at the head, and each one is dispositioned in the body's `## Figures`. Nothing is left open.
+- The record against `defect-root-cause.md` and `root-cause.md`:
+  - The named cause is §1, three causes, dated.
+  - The process state is §3, (c), with the residuals (a) and (d) stated separately.
+  - The cost test is §4: 1.65–2.4 h per round against 5.13 h × 1.0. The 5.13 h is labelled "quoted, not verified". The arithmetic re-derives: 5 s × 12/h × 144 h = 2.4 h, and 5 s × 8.25/h × 144 h = 1.65 h.
+  - The countermeasure is §5, with the still-owed parts routed in §7.
+- Not re-derived (step 8), because they come from the orchestrator's host logs, which are not in the tree:
+  - The live-host figures in §2 and §2a: 31,303 lines, 236 refs, 143 passes, ages of 41.9–96.6 h, and 198 passes in 24 h.
+  - The 4,073,591-byte board.
+  - fold_demo's 22/15/11.
+- Register: `fold_ledger.py check` gives 113 rca entries and 0 violations at the merge base 46e368127, and 114 and 0 at the head (ev/fold_ledger_base.txt, ev/fold_ledger_head.txt). This matches the body.
+- Carry routing: `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <PR body>` prints `CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)` (ev/carry_audit_body.txt).
+- Roster at origin/handoff/audit-r10-roster 743463c61f6af0631f7ac20ca36561232b028b97 (ev/roster_states.txt):
+  - R10-ORCH-MACHINERY and R10-FLY-ORPHANS-REWRITTEN are not-started. Every carry in the body and the record names one of them, and both are live.
+  - R10-RCA-HANDOFF-SLIP is in-progress.
+  - R10-TICK-OWED-LEVEL and R10-ROSTER-OPS are done. Neither is a destination of any carry. The record mentions them only as history: the landed fix, and "re-carried from R10-ROSTER-OPS by #2554".
+  - R10-FLY-ORPHANS-REWRITTEN's brief does carry both halves that §7 assigns it: "cloud_relay.sh classifies handoff-no-pr from its own rules; it uses bus.sh orphans' classifier instead", and the M arm that "requires a byte-identical blob".
+  - R10-ORCH-MACHINERY's carry holds `From #2545 (item 3985dac8)` and the #2554 brief-pin item, which has its control.
+  - My verdict's one Carry is dismissed, so it routes nowhere.
+- Mutation proof: n/a, as the body says. The diff is a record, a register entry, a round harness, one `inert_reads` line in tests/closures.json, and the PR's delivery row.
+- Step 14, the closures.json line: it sits under `inert_reads["tests/harness_headers.py"]`. That is a recording of what harness_headers reads, earned by the new harness file, which harness_headers opens. Its prefix `dev/audit/` is already in `INERT`. Deleting the line leaves `tests/entities.py` at `ALL 2382 ENTITY CHECKS PASSED`, as it is unmodified (ev/inert_mutant.txt, python3.13 venv). So no gate refuses its absence. It only records what is actually read, and nothing moves that the change did not earn. `tests/harness_headers.py` at the head prints `ALL 109 HARNESS HEADER CHECKS PASSED` (ev/harness_headers.txt).
+- VERSION, the manifest version and RELEASE_NOTES.md are untouched, checked three-dot from the merge base (ev/version_untouched.txt).
+- Merge: `git merge-tree --write-tree origin/main(46e3681276f99e8d3e4d12e9d316a46946f666d7) 4da469164e865be71478ac1221fbd8aabf0f65db` gives `ce8521761c9ba7a52d72d9a27f9ca717858baca8`, rc=0. It is clean, and origin/main is the merge base, so no absorb is needed (ev/merge_tree.txt).
+- Gate selection: `closure.py select --diff 46e368127` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` (ev/gate_select.txt). This matches the body. I did not run the gate itself; per step 11 I cite CI for it.
+- Head SHA: the body's `## Head` names 4da469164e865be71478ac1221fbd8aabf0f65db, the head I measured.
+- Red checks, read from the check-runs API per commit, `repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs` (ev/check_runs.txt, ev/check_runs_head.txt):
+  - At this head every workflow had concluded by 01:44Z. The only red is `nightly-status` (119576285158, failure). It grades main's scheduled run, and this diff reaches nothing it reads, so it is not this PR's red (step 11, `defect-root-cause.md`). This is not a required check of this PR and does not block. Main's ci-ratchet variance belongs to R10-CI-LAYOUT.
+  - Every other check at the head succeeded or was skipped, including both `pr-contract` runs, `closures` (119580653722) and `Analyze (python)`.
+  - The authored commits 6a70a8f49 and 0acc2fbc1 carry no check runs.
+  - The earlier reds in the range are the `pr-contract` carry-step reds at 81514b55c, 2cd325bc2 and 6e12aeb5b. The body's `## Red checks` names them and answers them with a cheaper detector (`carry_audit.py --roster-ref origin/main check`, seconds). The cancelled runs at 81514b55c were superseded and are not reds.
+- Re-read before return: `pulls/2545 .head.sha` was still 4da469164e865be71478ac1221fbd8aabf0f65db at 01:44Z, after CI concluded, so the head did not move under this review.
