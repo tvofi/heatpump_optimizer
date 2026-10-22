@@ -56980,10 +56980,16 @@ def _p3_seams(sources: dict[str, str], allowed=None, hits=None) -> list[tuple]:
             for c in _p3_ast.walk(fn):
                 if not isinstance(c, _p3_ast.Call):
                     continue
-                if isinstance(c.func, _p3_ast.Attribute):
-                    callee = c.func.attr
-                elif isinstance(c.func, _p3_ast.Name):
-                    callee = alias.get(c.func.id, c.func.id)
+                target, args = c.func, c.args
+                # ``functools.partial(f, *a, **k)`` is the call of ``f`` a job
+                # handed to the worker makes (R10-LOOP-CPU's interval replay).
+                if (getattr(target, "attr", getattr(target, "id", None)) == "partial"
+                        and args):
+                    target, args = args[0], args[1:]
+                if isinstance(target, _p3_ast.Attribute):
+                    callee = target.attr
+                elif isinstance(target, _p3_ast.Name):
+                    callee = alias.get(target.id, target.id)
                 else:
                     continue
                 if callee not in hum_pos:
@@ -56992,10 +56998,10 @@ def _p3_seams(sources: dict[str, str], allowed=None, hits=None) -> list[tuple]:
                     k.arg is None or (k.arg == "humidity" and not _p3_is_none(k.value))
                     for k in c.keywords
                 ) or any(
-                    i is not None and len(c.args) > i and not _p3_is_none(c.args[i])
+                    i is not None and len(args) > i and not _p3_is_none(args[i])
                     for i in hum_pos[callee]
                 )
-                first = _p3_ast.unparse(c.args[0]) if c.args else ""
+                first = _p3_ast.unparse(args[0]) if args else ""
                 if not passed and hits is not None and (fname, fn.name, callee, first) in allowed:
                     hits.add((fname, fn.name, callee, first))
                 if not passed and (fname, fn.name, callee, first) not in allowed:
@@ -57031,6 +57037,8 @@ _p3_probe = {"probe.py": (
     "def h(self, o, humidity=None):\n    return self.helper(o, humidity=humidity)\n"
     "def helper(self, o, humidity=None):\n    return humidity\n"
     "def unread(self, o, humidity=None):\n    return o\n"
+    "def p(self, o, t):\n    return functools.partial(self.compute_cop_dhw, o, t)\n"
+    "def q(self, o, t, h):\n    return functools.partial(self.compute_cop_dhw, o, t, humidity=h)\n"
     "def compute_cop_dhw(self, o, t, humidity=None):\n    return humidity\n"
     "def marginal_cop(self, o, store, store_temp=None, humidity=None):\n    return humidity\n"
 )}
@@ -57038,9 +57046,11 @@ _p3_probe_found = [(s[1], s[2]) for s in _p3_seams(_p3_probe, set())]
 R.check(
     "and the rule finds every pre-fix shape -- no humidity, an alias, an "
     "explicit None by keyword or position, a dropped pass-through, an unread "
-    "parameter -- and passes the positional and forwarded ones",
+    "parameter, a partial handed on -- and passes the positional, forwarded "
+    "and bound ones",
     sorted(_p3_probe_found) == sorted([
         ("a", "compute_cop_dhw"), ("b", "marginal_cop"), ("c", "compute_cop_dhw"),
+        ("p", "compute_cop_dhw"),
         ("e", "compute_cop_dhw"), ("f", "compute_cop_dhw"), ("g", "helper"),
         ("g", "(unread)"), ("unread", "(unread)"),
     ]),
