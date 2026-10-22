@@ -20,14 +20,15 @@ Roster group R10-NIGHTLY-ABSENT-NEW. `nightly-status` (`tests/nightly_status.py`
 
 ## Head
 
-`66cec3f9b8f8d28c372232c69aad61ad3ab99a6f`, merge base `008ad15bbba4df3dc6cb3afaee4ef7120557739d` (origin/main at dispatch, 2026-10-22). The mutants ran at `af9face2d`, whose two code files are byte-identical to this head's. The only later commit is the roster carry. `entities.py`, `doc_claims.py`, `structure.py` and the agreement lane were re-run at this head.
+`43bc60d2e662f14602e6b57d4f6effd8302d7e1f`, merge base `de69745ffcab66b566b3e75aee0b572023f80857` (origin/main at 2026-10-22T22:05Z). Round 2 adds two commits on round 1's `66cec3f9b`: `f4a3ea954` reverts `dev/programme/rosters/wave-r10-groups.json` to origin/main's bytes (a fixer does not edit the roster in its branch; the forward-carry is now this body's `Carry:` line), and `43bc60d2e` merges origin/main, which brought only three `dev/programme/delivery/` rows. `git diff --quiet af9face2d HEAD -- tests/nightly_status.py tests/entities.py` exits 0, so the code is round 1's. Every check below, the mutants M1 and M2 included, was re-run at `43bc60d2e`; M0 is round 1's record at `af9face2d`.
 
 ## Mutation proof
 
-The full suite was run as `PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached worktree for each mutant:
+The full suite was run as `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` (seat venv, Python 3.14.7) in a detached worktree for each mutant, one at a time:
 - **M0, the base's `tests/nightly_status.py` with this branch's `entities.py`** (failing test first): it fails with `ValueError: not enough values to unpack (expected 4, got 3)` at the `collect()` call. The base reporter has no workflow record. Its classification of the 9 h fixture is the defect itself: `verdict(None, None, [], now)` at the base gives `ABSENT`, exit 1.
-- **M1, the grace bound dropped** (`if now - created < NEW_WINDOW:` changed to `if True:`): `1 of 2400 ENTITY CHECKS FAILED`, which was `FAIL a workflow younger than its first cron slot reads NEW and green, the same one 26 h on with no run reads ABSENT, and a disabled one names its state [9 h -> ('NEW', 0); 26 h -> ('NEW', 0) ...]`.
-- **M2, the state read dropped** (`if state != ACTIVE_STATE:` changed to `if False:`): the same check FAILS with `disabled -> ('NEW', 0)`. That run's second failure, `gate lease priority: concurrency control ... overlaps=1`, is a timing check from running four suites side by side. It is not in M1's list or in the head's, and this diff does not touch the lease.
+- **M1, the grace bound dropped** (`if now - created < NEW_WINDOW:` changed to `if True:`), at `43bc60d2e`: `1 of 2400 ENTITY CHECKS FAILED`, rc 1. The one check is `a workflow younger than its first cron slot reads NEW and green, the same one 26 h on with no run reads ABSENT, and a disabled one names its state [9 h -> ('NEW', 0); 26 h -> ('NEW', 0) ...]`.
+- **M2, the state read dropped** (`if state != ACTIVE_STATE:` changed to `if False:`), at `43bc60d2e`: `1 of 2400 ENTITY CHECKS FAILED`, rc 1, the same check with `disabled -> ('NEW', 0)`.
+- **Null control for "the one check".** The head run printed `ALL 2400 ENTITY CHECKS PASSED`. Its indented `FAIL` lines are self-test sub-cases (a3, a5, a8, hb ...) that print under a passing check. Each mutant's sorted `FAIL` lines were diffed against the head's. The only line not at the head is the check above; the rest are randomised sub-case samples (`a8:register_once`'s duplicate names, `hb:positive_control`'s timings) that differ between any two runs.
 
 ## Unpinned sites
 
@@ -41,30 +42,33 @@ The full suite was run as `PYTHONPATH=tests/hastub python3 tests/entities.py` in
 
 ## Figures
 
-- **The finder's harness, live, both ends.** The reporter ran against the GitHub API at 2026-10-22T21:11Z:
-  - the base copy, `python3 -I -S <git show origin/main:tests/nightly_status.py>`, printed `NIGHTLY ABSENT: no scheduled run of the workflow was found at all.` and `GitHub disables schedules on repositories with no recent activity`, rc 1;
-  - the head copy, `python3 -I -S tests/nightly_status.py`, printed `NIGHTLY NEW: the workflow is active and GitHub registered it 13.1 h ago (2026-10-22T10:05:56+02:00)`, rc 0. That run predates the UTC normalisation, which now prints `08:05:56+00:00`.
+- **The finder's harness, live, both ends.** The reporter ran against the GitHub API at 2026-10-22T22:30Z with the seat venv's `python3 -I -S`:
+  - the base copy, `git show origin/main:tests/nightly_status.py` at `de69745ff`, printed `NIGHTLY ABSENT: no scheduled run of the workflow was found at all.` and `GitHub disables schedules on repositories with no recent activity`, rc 1;
+  - the head copy, `tests/nightly_status.py`, printed `NIGHTLY NEW: the workflow is active and GitHub registered it 14.4 h ago (2026-10-22T08:05:56+00:00); no scheduled run exists yet, and none is owed before its first cron slot.`, rc 0.
   - Both readings hold only until the first scheduled Nightly concludes (due about 2026-10-23T02:17Z). After that, both copies take the run arms and this harness reads flat.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head: `ALL 2400 ENTITY CHECKS PASSED`, with the three new checks `ok`.
+- `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` at this head: `ALL 2400 ENTITY CHECKS PASSED`, rc 0, with the three new checks `ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget touched.
 - `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`.
-- `python3 tests/closure.py select --diff 008ad15bb`: `MODE: SCOPED -- 3 script(s) run, 30 scoped out` (`doc_claims.py`, `entities.py`, `harness_headers.py`):
-  - `doc_claims.py`: `ALL 203 checks PASSED`;
-  - `harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`.
+- `python3 tests/closure.py select --diff de69745ff`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`entities.py`, `harness_headers.py`; changed files `tests/entities.py` and `tests/nightly_status.py`, the roster no longer among them):
+  - `harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`;
+  - `doc_claims.py`, no longer scoped, was run anyway: `ALL 203 checks PASSED`.
 - `run_always`:
   - `env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`;
   - `closure.py selftest`: `ALL 112 closure shrink pins PASSED`;
   - `layout.py`: `layout self-test: ok`.
 - **The agreement lane, both copies:**
-  - Branch copy (`prepr.sh` step 3f4's commands, at this head): `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
-  - Base copy, the way wave-script runs it: governance.yml's `wave-script` steps "Restore the check source from the base commit" and "Refuse two readers of one concept that disagree", extracted with PyYAML and run in a detached worktree at this head with `PINNED=008ad15bb`. The restore reported `1 file(s) differ` (`tests/entities.py`), then `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
+  - Branch copy (`prepr.sh` step 3f4's two commands, `agreement_py.py --out` then `agreement.mjs --py-json`, at this head): `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
+  - Base copy, the way wave-script runs it: governance.yml's `wave-script` steps "Restore the check source from the base commit" and "Refuse two readers of one concept that disagree", extracted with PyYAML and run in a detached worktree at this head with `PINNED=de69745ff`. After the restore, `git status --short` showed only `tests/entities.py` restored from the base, and the lane printed `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`.
   - No `agreement.mjs` concept names the nightly reporter: `grep -n nightly tools/policy/agreement.mjs tools/policy/agreement_py.py` matches nothing.
-- **The class's seams** (fixer.md step 8): the class is a reporter that states a cause it did not read about a scheduled workflow with no run. The rule: `grep -rlI "event=schedule\|actions/workflows/" tests tools .claude .github` returns 8 files.
+- **The class's seams** (fixer.md step 8): the class is a reporter that states a cause it did not read about a scheduled workflow with no run. The rule: `grep -rlI "event=schedule\|actions/workflows/" tests tools .claude .github` returns 9 files.
   - `nightly_status.py`: closed in this diff.
   - `entities.py`: this diff's pins.
   - `budget_raise_gate.py`, `contract_rerun.py`, `cancel_superseded.py`, `run_twins.py`, `autofix_statuses.sh` and `tests.yml`'s ci-ratchet step: each lists runs by PR, head or push event and states no schedule cause. Already outside the class.
-  - `grep -rnI "disables schedule\|no recent activity" --exclude-dir=dev .` matches only this diff's own docstring and comment.
-- Production lines, from `git diff --stat 008ad15bb...HEAD`: `tests/nightly_status.py` +133/-26 (the docstring included), `tests/entities.py` +89/-2, and the roster +2/-1.
+  - `tools/audit/seat/INSTRUMENTS.md`: its one match (also at `008ad15bb`) describes `run_twins.py`'s cached `/actions/workflows/<file>/runs` pages. It is prose, and it states no schedule cause.
+  - `grep -rnI "disables schedule\|no recent activity" --exclude-dir=dev .` matches only this diff's own docstring and comment (`tests/nightly_status.py` and `tests/entities.py`, one line each).
+- `python3 -I tools/audit/seat/ref_privacy.py --check` at this head: `22 file(s) with a push site, 11 guarded, 157 line(s) added since de69745ffcab judged, 0 refused`, rc 0.
+- `python3 tools/audit/carry_audit.py check --body <this body>` against origin/main's roster: `CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`. Round 1's body read `0 routed, 0 unrouted, 3 bad destination(s)` (`R10-CI-LAYOUT is done`, and `R10-NIGHTLY-ABSENT-NEW is not a group of the roster` twice).
+- Production lines, from `git diff --numstat de69745ff...HEAD`: `tests/nightly_status.py` +109/-24 (the docstring included) and `tests/entities.py` +87/-2. Round 1 quoted `--stat`'s changed-line totals (133 and 89) as additions. The roster is not in the diff.
 
 ## Red checks
 
@@ -72,11 +76,9 @@ The full suite was run as `PYTHONPATH=tests/hastub python3 tests/entities.py` in
 
 ## Forward-carry
 
-- **The NEW window's precondition on `nightly.yml`'s schedule.** A second cron, or a non-daily one, turns the period pin red and must re-derive the window. A new scheduled workflow is watched by no reporter until one names it, because `DEFAULT_WORKFLOW` is `nightly.yml` alone. The control and a re-measure instruction are carried with it. Carry: R10-CI-LAYOUT (appended to its `carry` in `dev/programme/rosters/wave-r10-groups.json` in this diff, with `roster_edit.dump`'s canonical bytes)
+- **The NEW window's precondition on `nightly.yml`'s schedule.** `tests/nightly_status.py`'s no-run arm reads NEW (green) for one cron period plus an hour after the workflow's `created_at`, then ABSENT. The period is `SCHEDULE_PERIOD` (one day), and a `tests/entities.py` check refuses it unless `nightly.yml` carries exactly one cron of the daily shape `M H * * *`. So a change to `nightly.yml`'s schedule (a second cron, or a non-daily one) turns that check red and must re-derive the window rather than edit the regex. A new scheduled workflow is watched by no reporter until one names it, because `DEFAULT_WORKFLOW` is `nightly.yml` alone. Control: `verdict(None, None, [], created+26h, workflow={'state': 'active', ...})` reads ABSENT; at `created+9h` it reads NEW. Re-measure at your merge base. Carry: R10-CI-LAYOUT-P2
 
 ## Friction
 
-- `fixer: cost`: the brief names `classify()`, but the function is `verdict()`; the no-run arm is now `never_ran()`. Carry: R10-NIGHTLY-ABSENT-NEW
-- `gate-scoping: cost`: the cloud container's default `python3` is 3.11 and cannot parse `tests/entities.py` (`SyntaxError: f-string`). The seat venv's 3.14 is required, and the dispatch prompt's "venv python is on PATH" was not true for the default shell. Carry: R10-NIGHTLY-ABSENT-NEW
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+- `fixer: cost`: the brief names `classify()`, but the function is `verdict()`; the no-run arm is now `never_ran()`. Carry: dismissed: resolved inside this pull request, which names the real function and owes nothing later
+- `gate-scoping: cost`: the cloud container's default `python3` is 3.11 and cannot parse `tests/entities.py` (`SyntaxError: f-string`). The seat venv's 3.14 is required, and the dispatch prompt's "venv python is on PATH" was not true for the default shell (the venv is on PATH only through `/etc/profile.d/hpo-toolchain.sh`, which a non-login shell does not read). Carry: R10-FLOW-DISPATCH
