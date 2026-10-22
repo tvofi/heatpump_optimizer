@@ -3470,6 +3470,8 @@
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/selftest_wiring.py",
+   "tools/audit/seat/sweep_driver.py",
+   "tools/audit/seat/sweep_driver_selftest.py",
    "tools/audit/seat/tmp_paths.py",
    "tools/policy/figure_lint.mjs"
   ],
@@ -3550,6 +3552,7 @@
    "dev/audit/harnesses/r10_slot_floor_twins.py",
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_structure_blind.py",
+   "dev/audit/harnesses/r10_sweep_driver_arm.py",
    "dev/audit/harnesses/r10_tick_drivers.py",
    "dev/audit/harnesses/r10_tick_owed_level.py",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
