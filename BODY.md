@@ -1,0 +1,99 @@
+R10-RECORD-API-BUDGET: M0, M1 and M2 of `dev/audit/rca/install-ratelimit.md`. M3 is not in this branch: decision O-1 makes it conditional on M0's measured limit, which only a push to main after this merges can print.
+
+Governance's `record` job walked `<last v* tag>..origin/main` three times per push to main on the repository's `GITHUB_TOKEN` bucket: `--record`, `--stats` and `--sunset` each fetched the commit-to-PR map (W reads), and `--stats` and `--sunset` each fetched the per-PR reads (3P). That is 3W + 6P reads where W + 3P carry the same data.
+
+- **M0** (`governance.yml` `record`): `gh api rate_limit` prints the core bucket as `RATE_LIMIT before:` (before the window walk) and `RATE_LIMIT after:` (after it, `always()`). `rate_limit` is not counted against the limit. `|| true` keeps it a log line, never a gate.
+- **M1** (`policy_lint.mjs`): `--window-cache <file>`. The first mode to read a part of the window writes it and the later modes read it back. The file is keyed on the two resolved SHAs, so a file from another window or head is ignored. Only a complete read serves: a failed enumeration writes nothing, and an aborted per-PR fetch carries an empty map that serves no read, so every failure marker keeps its meaning. Each mode prints a `WINDOW_CACHE:` line saying what the file served. The job passes `"$RUNNER_TEMP/window.json"` to all three modes.
+- **M2** (`governance.yml` `record`): `concurrency: {group: governance-record, cancel-in-progress: false}`. One run goes, one waits, and a newer push replaces the waiting one. The run that starts checks out main's newest tip, whose window holds every superseded push's.
+- **Harness** (`dev/audit/harnesses/record_api_calls.sh`, the #2606 review carries): it passes `--window-cache` to a mode only when the job passes it to every invocation of that mode. It refuses (rc 1) a mode that printed a failure marker (enumeration skip, stats fetch guard, sunset `no friction data`, dead curl) and a `--record` zero over a window that holds first-parent commits.
+- **Replay** (`dev/audit/harnesses/record_burst_replay.py`, new): replays a burst of pushes against the before, M1 and M1+M2 shapes. GitHub's group semantics are simulated, and a run measures the tip at its start.
+- HANDOVER item 44 now names the `GITHUB_TOKEN` bucket, not an App quota, and says where its size is printed.
+
+Alternatives (fixer.md step 17):
+- One process running all three modes in memory would merge three steps whose failure semantics differ: `--record`'s exit code is the job's verdict, `--stats` and `--sunset` are `|| true`, and the friction filer runs between them on `stats.txt`.
+- A URL-keyed `ghGet` disk cache would reach every caller of `ghGet`, including `--pr-body`'s red-history walk, which must read live.
+- So: the RCA's `--window-cache`, scoped to the three window modes.
+
+## Head
+
+a3e0d489d592b9800f4fad97c23c6871284275cd. The base is fd9914851f063bc03bb44d4050ad30d6d0052f8d, as dispatched. origin/main was at de69745ff when this was written (2026-10-22T21:28Z) and touches none of this branch's files except an auto-mergeable `tests/closures.json` line.
+
+## Mutation proof
+
+Each mutant was run in the scratch replay clone described under `## Figures`, scored by the head's acceptance (`node tools/policy/policy_lint.mjs`) and by `record_api_calls.sh v7.0.2`:
+
+| mutant | harness TOTAL | acceptance |
+|---|---|---|
+| M-A `readWindowCache` returns `{}` (the per-mode fetch restored) | 834 | rc=1, `FIXTURE VACUOUS: window cache` with 5 arms: map fetched 2 times; per-PR reads fetched 3 times; `--record`, `--stats` and `--sunset --window-cache did not take ... from the file` |
+| M-B a cache missing a pull request serves the read (`if (cached)`) | 370 | rc=1, 2 arms: per-PR reads fetched 1 time; the null control |
+| M-C `cmdStats` enumeration not given the cache | 464 | rc=1, `--stats --window-cache did not take commit-to-PR map and per-PR reads from the file` |
+| M-D `cmdSunset` per-PR reads not given the cache | 646 | rc=1, `--sunset --window-cache did not take ...` |
+| M-E the commit-to-PR map never written | 558 | rc=1, `the commit-to-PR map was fetched 2 time(s) for two reads of one window, not once` |
+
+The fixed tree reads 370 with acceptance rc=0. Removing the job's flag also moves the harness: dropping `--window-cache` from the `--record` invocation reads 464, and from either `--stats` invocation reads 740.
+
+One mutant was equivalent and its code is gone. An earlier draft guarded the per-PR write with `if (!out.fetchError)`, and deleting that guard survived both instruments. The reason: a failed fetch carries an empty map, which serves no read. The guard was dead, so it was removed rather than triaged.
+
+## Null control
+
+- **Empty window:** `record_api_calls.sh origin/main` reads `TOTAL 0` at both ends.
+- **No `--window-cache`:** each mode prints `WINDOW_CACHE: off -- ...` and fetches as before (the acceptance's null-control arms).
+- **Harness carries:** with origin set to a non-GitHub URL, the base harness printed `TOTAL 0` at rc=0, and the head harness refuses with the `merge-enumeration` skip at rc=1. With a stub answering HTTP 403 on `pulls/N`, the head harness refuses `--stats` as partial at rc=1, quoting the fetch guard.
+
+## Figures
+
+- **The window cache, fixed window.** `bash dev/audit/harnesses/record_api_calls.sh v7.0.2` (sha1 ea6faad3f767) reads 834 at the base and 370 at the head. Rule: one line per REST call the stub curl logs, summed over the job's three modes. Run in a scratch clone of this head whose `refs/remotes/origin/main` is pinned to 04c1dd779 (the RCA's measuring point) with a GitHub origin URL. The base row used the base's own harness and `policy_lint.mjs`. Head: `--record 94`, `--stats 276`, `--sunset 0`, so W + 3P = 94 + 3×92. Base: 94 + 370 + 370. The total on today's window is a sliding figure, so it is not stated: re-run the same command at your own main.
+- **Run count after M1+M2.** `python3 dev/audit/harnesses/record_burst_replay.py v7.0.2 2026-10-22T08:00:00Z 2026-10-22T09:00:00Z` (sha1 4113f53a91a3), at this head:
+  - before: 6 runs, 4,599 calls. This reproduces the RCA's ≈ 4,600 and is the replay's control.
+  - M1: 6 runs, 2,040 calls.
+  - M1+M2: 4 runs, 1,364 calls with a run overhead of 30 or 60 s, and 4 runs, 1,368 calls at 120 s. A 240 s overhead gives 3 runs, 1,026 calls.
+  - Rule: a push is a first-parent commit of origin/main timed by committer date. A run costs the W + 3P of the tip at its start and lasts the overhead plus 0.42 s per call; the 0.42 s/call is the RCA's reading of run 39755501453. The overhead is swept because no offline instrument reads it.
+  - The #2606 review's "about 5 runs, 1,850" is not what the replay reads.
+  - Same command for the 06Z hour: before 4,305; M1+M2 4 runs, 1,277 to 1,281 at 30 to 120 s.
+  - Same command for the 09Z hour: 5 runs and 1,810 calls in every row. The pushes there are spaced wider than a run, so the group coalesces nothing. That is the replay's null control: it does not invent coalescing.
+- **The replay agrees with the harness:** its W + 3P at tip 04c1dd779 is 94 + 3×92 = 370, the harness's head total above.
+- **Demand against the limit:** about 1,364 calls in the worst replayed hour after M1+M2, compared with a `GITHUB_TOKEN` limit nobody has measured. Run 39745228063's ≈ 3,000 calls in 4 minutes (the brief) is above 1,000/hr, so the record's 1,000 is not the limit. Whether M3 is owed is O-1's call on M0's first reading, carried below.
+- **Acceptance:** `node tools/policy/policy_lint.mjs`: `FIXTURE ok: 92 error(s) hold 251 pins` at the head, 246 at the base. The 5 new pins are the window-cache block.
+- **Gate scope:** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/entities.py`, `tests/harness_headers.py`).
+  - `tests/entities.py`: `ALL 2397 ENTITY CHECKS PASSED`.
+  - `tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`.
+  - Both ran under Python 3.13 with `PYTHONPATH=tests/hastub`.
+- **run_always:**
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `tests/layout.py`: `layout self-test: ok`.
+  - `tests/closure.py selftest`: `ALL 112 closure shrink pins PASSED`.
+  - `tests/env_drift.py --claims-only <merge base>`: `claims hygiene: ... ok`.
+- **Policy lanes:**
+  - `node tools/policy/policy_lint_envmatrix.mjs "$PWD" <work> HEAD`: `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)`.
+  - `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`.
+  - `node tools/policy/brief_lint.mjs`: `TOTAL: 0 error(s) across 47 file(s)`.
+  - `node tools/policy/rules_sync.mjs --check`: ok.
+  - `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
+  - `python3 tools/audit/archscore/score.py --diff <merge base>`: `dS +0.0000 NULL`, because no Python production file changed.
+- **Agreement lane, both copies** (the dispatch's instruction):
+  - Branch copy: `python3 -I tools/policy/agreement_py.py --out <f>` then `node tools/policy/agreement.mjs --py-json <f>` gave `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`.
+  - Base copy: run in a worktree of this head after restoring wave-script's pinned list from fd9914851, exactly as that job's `Restore the check source from the base commit` step does (2 files differ from the branch: `tools/policy/policy_lint.mjs`, `dev/audit/harnesses/record_api_calls.sh`). `agreement_py --restore` reported `0 missing`. The lane gave `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`; `check-wave-script.mjs` gave `202 passed, 0 failed`; the base copy of `policy_lint.mjs` over this tree gave `TOTAL: 0 error(s)` and `246 pins`.
+
+## Unpinned sites
+
+- M0's two `rate_limit` steps and M2's `concurrency:` block are workflow YAML that no check reads. Disposition: a written triage. M0 is a log line whose deletion changes no verdict, so the RCA calls it a log line, not a gate. M2's effect is measured by the replay above. A pin on the group's text would pin a spelling and not the queueing GitHub does.
+
+## Architecture score
+
+n/a: no Python production file changed (`dS +0.0000 NULL`).
+
+## Red checks
+
+none. No CI run exists at this head yet.
+
+## Forward-carry
+
+- **M3's inputs, for decision O-1:** where M0's limit is read (`RATE_LIMIT before:`/`after:` in the `record` log), how demand after M1+M2 is re-measured (`record_burst_replay.py` at the deciding seat's main), and that the #2606 review's 5-run estimate is not the replay's figure. Carry: `dev/programme/rosters/wave-r10-groups.json`, group R10-RECORD-API-BUDGET, `carry`.
+- **HANDOVER item 44's correction** (the brief's "at merge"). Carry: `dev/programme/HANDOVER.md` item 44, in this diff.
+
+## Friction
+
+- tools/pr/prepr.sh: cost: its agreement lane runs the branch copy only, so the base-copy run the dispatch asked for was hand-built from wave-script's restore step. It took about 5 minutes and one wrong pass, because `governance.yml` holds three `Restore the check source from the base commit` steps and the first match is not wave-script's. Carry: none
+- tools/audit/seat/seat_venv.sh: stale: `uv` has no download for the cpython-3.14.7 the typing census records, so the seat venv cannot build in this container. The gate ran under the system Python 3.13 with `tests/requirements-ci.txt` installed without hashes. Carry: none
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code) — https://claude.ai/code/session_01FkQZmJajsKWipnvUbmtity
