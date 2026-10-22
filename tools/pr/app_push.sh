@@ -505,9 +505,12 @@ HELPER
   # http.postBuffer=64m (bounded): git's 1 MiB default sends a larger push
   # chunked, and the remote hung up on every screenshot branch that hit it
   # (#1267) -- 64 MiB keeps such a push in one Content-Length request.
+  # Asynchronous, as prepr above, so a stop signal interrupts the `wait`.
+  local push_rc=0
   GIT_TERMINAL_PROMPT=0 git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
-    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" \
-    || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
+    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" &
+  wait $! || push_rc=$?
+  [ "$push_rc" = 0 ] || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
   if [ "$bonly" = 1 ]; then
     printf 'app_push: PUSHED %s to %s:%s as the App; --branch-only, no pull request\n' "$head" "$repo" "$br"
     return 0
@@ -817,18 +820,21 @@ kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
 for p in $(cat "$W/stoppedint/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
 # ... and stopped after the mint, mid-push: app_mint.sh's own traps would replace the
 # reap's EXIT trap (MINT_TRAP=caller keeps it), so the push would outlive the pusher.
-mkcase stoppedpush; : > "$W/stoppedpush/push-tree"; : > "$W/stoppedpush/pids"
-( export STUB="$W/stoppedpush" PATH="$W/bin:$PATH" TMPDIR="$W/stoppedpush/tmp" HPO_IDENTITY_DIR="$W/id"
-  exec bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stoppedpush/out" 2> "$W/stoppedpush/err" ) & ap=$!
-k=0; while [ "$(wc -l < "$W/stoppedpush/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
-st "$(wc -l < "$W/stoppedpush/pids" | tr -d ' ')" 3 "the mid-push case's push tree started (three pids)"
-kill -TERM "$ap"; k=0
-while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
-st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push TERMed mid-push, after the mint, ends within 4 s"
-st "$(alive_of "$W/stoppedpush/pids")" 0 "and leaves none of the push's tree alive"
-st "$(grep -c '^curl DELETE installation/token' "$W/stoppedpush/log")" 1 "and revokes the token it minted"
-kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
-for p in $(cat "$W/stoppedpush/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+for sig in TERM INT; do
+  c=stoppedpush$sig; mkcase $c; : > "$W/$c/push-tree"; : > "$W/$c/pids"
+  ( export STUB="$W/$c" PATH="$W/bin:$PATH" TMPDIR="$W/$c/tmp" HPO_IDENTITY_DIR="$W/id"
+    exec python3 -I -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp("bash", sys.argv[1:])' \
+      bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/$c/out" 2> "$W/$c/err" ) & ap=$!
+  k=0; while [ "$(wc -l < "$W/$c/pids")" -lt 3 ] && [ $k -lt 300 ]; do sleep 0.05; k=$((k + 1)); done
+  st "$(wc -l < "$W/$c/pids" | tr -d ' ')" 3 "the mid-push $sig case's push tree started (three pids)"
+  kill -$sig "$ap"; k=0
+  while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+  st "$(ps -o stat= -p "$ap" 2>/dev/null | tr -d ' ' | cut -c1 | grep -qv Z && echo alive || echo gone)" gone "app_push ${sig}ed mid-push, after the mint, ends within 4 s"
+  st "$(alive_of "$W/$c/pids")" 0 "and leaves none of the push's tree alive"
+  st "$(grep -c '^curl DELETE installation/token' "$W/$c/log")" 1 "and revokes the token it minted"
+  kill -KILL "$ap" 2>/dev/null; wait "$ap" 2>/dev/null
+  for p in $(cat "$W/$c/pids"); do case $p in ''|*[!0-9]*) ;; *) kill -KILL "$p" 2>/dev/null ;; esac; done
+done
 
 mkcase leaky; : > "$W/leaky/leaky-log"
 run leaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: a commit message naming a host path (#2310)"
