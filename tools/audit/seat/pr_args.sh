@@ -200,6 +200,8 @@ tools/pr/approve_held_runs.sh mention: comments
 tools/pr/head_note.py mention: its docstring
 tools/policy/check-wave-script.mjs mention: a test title
 tools/policy/friction_issues.mjs mention: comments
+tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_mint.sh and runs no push
+tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
 tools/policy/policy_lint.mjs mention: a refusal message'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
   local root=${1:-$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)} rev=${2:-} f kind txt bad=0
