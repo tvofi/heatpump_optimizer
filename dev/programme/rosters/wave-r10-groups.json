@@ -7645,6 +7645,48 @@
     "next_step": "design, then design review, then fixer (owner ASAP 2026-10-22)",
     "note": null
    }
+  },
+  {
+   "group": "R10-RCA-INSTALL-RATELIMIT",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/install-ratelimit.md",
+    "dev/audit/harnesses/record_api_calls.sh"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Root-cause record for the recurring 'API rate limit exceeded for installation' reds on required checks (2026-10-22 06:27Z, 08:40Z, 09:44Z). Records only: dev/audit/rca/install-ratelimit.md plus the offline harness dev/audit/harnesses/record_api_calls.sh. Code is at handoff/r10-rca-install-ratelimit 0a8c4523a.",
+   "resume": {
+    "stage": "in-review",
+    "branch": "handoff/r10-rca-install-ratelimit",
+    "commit": null,
+    "last_step": null,
+    "next_step": "review, then merge",
+    "note": null
+   }
   }
  ]
 }
