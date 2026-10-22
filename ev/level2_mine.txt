@@ -1,0 +1,31 @@
+HEAD:.claude/workflows/audit-verify.js:284:${fileIssues ? `Filing is on (args.file): run tools/pr/app_push.sh <owner/repo> <worktree> ${branch} <body> as the Mac seat, which checks the body, pushes and opens the pull request as th
+HEAD:tools/audit/seat/cloud_relay.sh:162:  [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
+HEAD:tools/audit/seat/cloud_relay.sh:230:    urc=0; { if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss; else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss; fi; } >&2 &
+HEAD:tools/audit/seat/cloud_relay.sh:398:  chk "dispose --log FILE (the CLI) takes the ref" 0 bash "$HERE/cloud_relay.sh" dispose --log "$X" refs/heads/probe/scan-y "$h"
+HEAD:tools/audit/seat/cloud_relay.sh:483:  HPO_RELAY_UPDATE=$t/tree.sh bash "$HERE/cloud_relay.sh" pass --log "$LOG" >/dev/null 2>&1 & rp=$!
+HEAD:tools/audit/seat/cloud_relay.sh:500:    [ $# = 3 ] || { echo "usage: cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
+HEAD:tools/audit/seat/cloud_relay.sh:502:  *) [ $# = 3 ] || { echo "usage: cloud_relay.sh <pr> <nonce> <head40>" >&2; exit 2; }; relay "$1" "$2" "$3"; exit $?;;
+HEAD:tools/audit/seat/handoff_push.sh:48:    && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
+HEAD:tools/audit/seat/handoff_push.sh:68:      PR_EXISTS=$exists bash "$m/tools/audit/seat/handoff_push.sh" "$topic" "$code" "a title" \
+HEAD:tools/audit/seat/merge_train.py:4:    python3 tools/audit/seat/merge_train.py run <queue.json> [--mandate LABEL]
+HEAD:tools/audit/seat/merge_train.py:7:    python3 tools/audit/seat/merge_train.py batch <queue.json> [run's options]
+HEAD:tools/audit/seat/merge_train.py:9:    python3 tools/audit/seat/merge_train.py wait-ci <40-hex sha> [--min-runs N]
+HEAD:tools/audit/seat/merge_train.py:24:                 `app_push.sh --recarry`, whose prepr skip-or-run line is logged; a conflict
+HEAD:tools/audit/seat/merge_train.py:2526:    check("the recarry announces itself BEFORE remerge_main.sh runs, naming the branch "
+HEAD:tools/audit/seat/open_pr.sh:24:pr_need_args 4 $# "open_pr.sh [--over-cap <reason>] <topic> <code-sha> <title> <group> [intended-issue...]"
+HEAD:tools/audit/seat/orchestrator_tick.py:1728:                                          "merge_train.py", python_only=True):
+HEAD:tools/audit/seat/orchestrator_tick.py:2304:        t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
+HEAD:tools/audit/seat/orchestrator_tick.py:2305:                                        (12, "python3 merge_train.py")])
+HEAD:tools/audit/seat/orchestrator_tick.py:3213:        t = tick(procs=lambda pattern: [(21, "python3 -u merge_train.py run q")],
+HEAD:tools/audit/seat/orchestrator_tick.py:3223:        t = tick(procs=lambda pattern: [(21, "python3 -u merge_train.py run q")],
+HEAD:tools/audit/seat/r9_rc_bus_fetchhead.sh:250:        bash "$W/seat/tools/audit/seat/handoff_push.sh" A "$C" "T")
+HEAD:tools/audit/seat/tmp_paths.py:280:    check("a repo-relative path passes (null control)", one(s, "bash tools/audit/seat/remerge_main.sh") == [])
+HEAD:tools/audit/seat/train.sh:172:    && [ -f "$ran/tools/audit/seat/merge_train.py" ] \
+HEAD:tools/audit/seat/train.sh:242:  python3 -u tools/audit/seat/merge_train.py batch "$queue" \
+HEAD:tools/audit/seat/update_pr.sh:25:pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
+HEAD:tools/policy/agreement.mjs:317:      return { 'budget_raise_gate.py raises_between': (k) => rows[k].gate, 'merge_train.py Train.raise_hold': (k) => rows[k].train }
+HEAD:tools/policy/check-wave-script.mjs:1431:  t('the round record stops with the app_push.sh command unless args.file; with it, the step runs app_push.sh',
+HEAD:tools/pr/app_push.sh:379:    [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
+HEAD:tools/pr/app_push.sh:386:  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry|--row-only] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
+HEAD:tools/pr/app_push.sh:769:    bash "$W/tool/app_push.sh" "$@" > "$d/out" 2> "$d/err" )
+HEAD:tools/pr/app_push.sh:822:  exec bash "$W/tool/app_push.sh" o/r "$W/tool-wt" "$BR" "$W/body.md" > "$W/stopped/out" 2> "$W/stopped/err" ) & ap=$!

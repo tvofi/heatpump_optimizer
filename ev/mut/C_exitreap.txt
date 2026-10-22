@@ -1,0 +1,9 @@
+MUTANT C_exitreap rc=1 secs=76 :: pr_args self-test: 86 checks, 11 failed  :: FAILS: 11
+  FAIL open_pr: TERM reaps the whole descendant tree, and the pusher is gone
+  FAIL open_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+  FAIL handoff_push: TERM reaps the whole descendant tree, and the pusher is gone
+  FAIL remerge_main: TERM reaps the whole descendant tree, and the pusher is gone
+  FAIL the reap KILLs a child that ignores TERM once the grace is spent, through a second TERM; the host exits 143
+  FAIL update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+  FAIL update_pr: the lock holder has exited by the time a run returns
+  FAIL update_pr: TERM reaps the whole descendant tree, and the pusher is gone
