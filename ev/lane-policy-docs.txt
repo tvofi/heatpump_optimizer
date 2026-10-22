@@ -1,0 +1,19 @@
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+RESULT of_which_no_pr_job_runs=70 count
+RESULT uncovered_files=0 count
+rc=0
+
+TOTAL: 0 error(s) across 43 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+rc=0
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0
+RESULT read=69 ignored=25 declared_none=34 blind=0 dead=0 refused=0 runs=145 seconds=141.0
+FIELD COVERAGE ok
+rc=0

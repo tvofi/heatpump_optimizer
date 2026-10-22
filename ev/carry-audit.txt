@@ -1,0 +1,11 @@
+== carry_audit on the live body
+UNROUTED body item 688e9327 (## Forward-carry) [section]: "- Destinations: the orchestrator lands these in the named groups' roster carries (finding-propagation.md)."
+CARRY-AUDIT: 17 finding item(s): 16 routed, 1 unrouted, 0 bad destination(s)
+rc=1
+142c142
+< - Destinations: the orchestrator lands these in the named groups' roster carries (finding-propagation.md).
+---
+> Destinations: the orchestrator lands these in the named groups' roster carries (finding-propagation.md).
+== same body, the Destinations line as prose not a bullet
+CARRY-AUDIT: 16 finding item(s): 16 routed, 0 unrouted, 0 bad destination(s)
+rc=0
