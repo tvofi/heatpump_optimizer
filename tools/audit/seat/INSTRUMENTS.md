@@ -36,7 +36,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the `hpo-author` App, with the body's contract check before the push. When:
   every handoff — pull requests are App-authored (decision 0011); `push.sh`
   is the tvofi-identity predecessor and must not author PRs. Refusal: a body
-  failing the contract check never reaches the remote.
+  failing the contract check never reaches the remote. `--row-only`
+  (`update_pr.sh`'s) replaces prepr with pr-contract's two body checks (the
+  contract, its red history read with prepr 7c's credential, and
+  `carry_audit.py check`) only when the head
+  is the live head plus one commit adding exactly that PR's own open row and
+  the body is the live one under one new `## Head` note; else prepr runs.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -486,6 +491,17 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   dropped unarchived; `--dry-run` (the default) prints the plan and writes
   nothing. `--self-test` drives the classifier, the planner, the precedence and
   the ordering offline (22 checks).
+- `pulse.py` — says whether the programme is still being driven, from origin
+  alone: per consumer, an input an off-host producer already delivered that
+  the consumer's footprint has not answered within a bound — a handoff with no
+  pull request and nothing opened since it arrived (`bus.sh orphans`, invoked),
+  a verdict still at its open pull request's head, a main move the round's
+  state ref has not followed. When: from where the orchestrator's host is not
+  (a scheduled cloud probe seat), and first at any takeover, before the hand
+  survey (R10-RCA-ORCH-CONTINUITY). Refusal: an input it could not read is
+  `UNREADABLE`, exit 2, never ok; a stamp ahead of the clock is never aged.
+  `--dump` keeps the snapshot a `STOPPED` line came from; `--snapshot`
+  re-judges it.
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
@@ -560,6 +576,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   A no-op edit reproduces the roster's bytes exactly and reports `no change`
   instead of an empty commit — the round-trip the self-test pins, because a
   dump that misses the file's formatting rewrites all 7503 lines on any edit.
+  The edit is committed in a detached worktree and pushed as
+  `<sha>:refs/heads/<branch>`, never by a local branch name another run of
+  the same `--checkout` can reset. A push lost to a rival re-applies the op
+  on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
+  `--worktree` whose HEAD is on no origin ref is not reused.
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup), and the one owner of WHICH
   roster: `roster_path` picks the newest `dev/programme/rosters/wave-r<N>-groups.json`
@@ -675,7 +696,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
   origin/main (merge), adds the PR's own delivery row when the head lacks
   it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as
-  `hpo-author`. When: updating a PR after review prep or a main merge.
+  `hpo-author`. With code sha `-` it asks `app_push.sh --row-only`, so a push
+  that only adds the row takes the body contract instead of the full prepr,
+  and prints app_push's `ROW-ONLY:` line naming which ran and why.
+  When: updating a PR after review prep or a main merge.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
   silently; no open PR at the branch stops before any push. Up front, each an
   `update_pr: REFUSE:` line (`pr_args.sh`): fewer than three arguments; a
