@@ -27,9 +27,44 @@ This round clears the review of f44296a6, which was blocked on the forward-carry
 
 ## Head
 
+`25a22a315ed8d19b82f171e535c9dfcbb1d830f5` merges main `543c808` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`b8c6d6d5571614f5897413d77bf1476022830583` merges main `6c8903a` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`3567b14ffa876277878db238aa91c7cd70a83f11` merges main `cd4aaed` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`76bcb1ee313e9d5754f18658192eb81b8b9040cd` merges main `04c1dd7` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`808137a949c2c1ce64acc340cfd72ccfebc7a6b8` merges origin/main `8a4c438e7d9a6e2c492a1733d658d96b7b1eedcf` (after #2578) into the previous head `8aec46775`. The fixer seat made this merge by hand, resolving one content conflict (see `## Main absorb`, second absorb). The PR's own code is unchanged.
+
+`8aec467755b2ec15635430e82c4002f3aea5d611` merges main `c616593` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`caac2c8dfb338b316803b94ba1df13aff02647e0` merges origin/main `16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab` into the previous head `056776d87`. The fixer seat made this merge by hand, resolving one content conflict (see `## Main absorb`). The PR's own code is unchanged.
+
+`056776d8754930075a030426dd807208e0fd2bc3` merges the authored code head `f78491bb28138e6318524da43f04abcdb1f3190b` and then merges origin/main `3976515a0` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 f78491bb28138e6318524da43f04abcdb1f3190b. It is f44296a61f42250b23c0f557a54c6295ab991dac (the reviewed head) with origin/main 93e6a63d2855651448a2b8f677b392feddc03c99 (`Merge pull request #2557`) merged in. That is a merge, never a rebase, with no conflict. It adds no commit of this PR's own. The PR's own diff against the merge base is unchanged: 4 files, +133/-3, by `git diff --stat $(git merge-base origin/main HEAD)...HEAD`. Every figure below was taken at this head, or at origin/main 93e6a63d2 where marked. `git merge-base --is-ancestor origin/main HEAD` held. Measured 2026-10-22T01:49Z.
 
 The PR's commits, oldest first, excluding main's: cfa89d24f, 0ddbc0c21, a8a2778e1, 71a85d660, 255883803, ce4d12085, a54aed8b9, ed13f9a4f, bc313e7ca, 47a40f71f, 929ee1607, a43f68813, f44296a61, and new in this round f78491bb2 (the origin/main merge).
+
+## Main absorb
+
+`git merge origin/main` (16a8240f1) into `056776d87` conflicted in one file, `dev/audit/harnesses/r10_seat_selftests_mutants.py`, in the `MUTANTS` tail after `S38`. This PR adds `cloud_relay-1`..`cloud_relay-11`. Main's r10-flow-andon adds `tick_loop-1`, `tick_loop-2` and `heartbeat-1`..`heartbeat-4`. Choice: keep both sides' tuples unchanged, this PR's first. The docstring merged without a conflict and read `S01..S38 and the per-file ids (tick_loop-N, heartbeat-N)`. I added `cloud_relay-N` to that list so that it is true of the merged list. `cloud_relay.sh`, `INSTRUMENTS.md` and the delivery row merged without a conflict.
+
+Re-taken at `caac2c8df` with origin/main at `16a8240f1` on 2026-10-22, using the seat venv shims:
+- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py` with no names, so every mutant ran: M0 printed `0 seat step(s) red` and `RESULT survivors=0`, exit 0. `grep -c ': KILLED'` gives 59, which is the 53 above plus main's six new per-file mutants. A run of only the 17 per-file ids (`cloud_relay-1`..`-11`, `tick_loop-1`..`-2`, `heartbeat-1`..`-4`) killed each one. Each mutant's null control is the same step run on the unmutated file, and it passed first, because the harness prints `NOT RUN` otherwise.
+- `cloud_relay.sh --self-test`: `189 checks, 0 failed`. `selftest_wiring.py --check`: `76 self-testing, 76 wired, 0 unwired`.
+- `tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, with `PREPR_SKIP_CLOSURES=1`.
+- `run_always`: `env_drift.py --claims-only <merge-base>`, `closure.py selftest`, `layout.py`, `harness_headers.py` and `structure.py` all exit 0.
+
+Second absorb, `808137a94`. `git merge origin/main` (8a4c438e7) into `8aec46775` conflicted in the same file again, because #2578 added `body_patch-1` at the same tail and its own docstring id list. I took the union. `MUTANTS` runs `S38`, then `body_patch-1`, then `cloud_relay-1`..`-11`, then `tick_loop-1`..`-2` and `heartbeat-1`..`-4`, with every tuple unchanged. The docstring now lists `(body_patch-1, cloud_relay-N, tick_loop-N, heartbeat-N)`. Main did not touch `cloud_relay.sh` or the delivery row. `INSTRUMENTS.md` auto-merged, and `git diff --numstat origin/main HEAD` shows it +9/-0, so neither side lost a line.
+
+Re-taken at `808137a94` with origin/main at `8a4c438e7` on 2026-10-22:
+- The full mutants harness, with no names: `M0: 0 seat step(s) red` and `RESULT survivors=0`, exit 0. `grep -c ': KILLED'` gives 60, the 59 above plus main's `body_patch-1`, which fails 3 of 62 checks.
+- `cloud_relay.sh --self-test`: `189 checks, 0 failed`. `selftest_wiring.py --check`: `77 self-testing, 77 wired, 0 unwired`.
+- Gate scope: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, with `PREPR_SKIP_CLOSURES=1`. For run_always, `env_drift.py --claims-only 8a4c438e7` printed `ok`, `closure.py selftest` printed `ALL 112 closure shrink pins PASSED`, `layout.py` printed `ok` and `harness_headers.py` printed `ALL 109 HARNESS HEADER CHECKS PASSED`. `structure.py` printed `STRUCTURE RATCHET PASSED`.
+
+Every figure below that this section does not name is still the one measured at its stated head.
 
 ## Mutation proof
 
@@ -106,6 +141,10 @@ Read from the check-runs API, per commit, for this PR's commits. f78491bb2 has n
   - The mutation cap breach is in production code this PR does not touch. It belongs to the mutation lane's owner.
   - No live roster group's brief or carry names `mutation-nightly`.
   - Cheaper detector: none. Both lanes run only on the runner class they budget against.
+- Three more checks are red in the history, all at `76bcb1ee313e9d5754f18658192eb81b8b9040cd` (the merge of main `04c1dd7`, run 09:43Z), none this diff's. `pr-contract`'s red-history row names them. I read each job's log once. The cause is one: the installation's GitHub API quota, which #2606's RCA records as spent by the record job's burst at the 09Z hour. It is quoted in two jobs and inferred in the third.
+  - **`arch-score`**, job `119753501292` (run 39757613203, 09:44:27Z): the step "Name the pull request and read its body" died on `gh: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID 1400:317D6A:263F6:784DA:6AD9DAFA and timestamp 2026-10-22 09:44:27 UTC. ... (HTTP 403)`, so the scoring step was skipped and no measurement ran. Cheaper detector: none exists for an external quota exhaustion; the budget is owned by R10-RECORD-API-BUDGET. Carry: dismissed: external installation quota, owned by R10-RECORD-API-BUDGET
+  - **`validate-hacs`**, job `119753495288` (run 39757611530, 09:44:07Z): `aiogithubapi.exceptions.GitHubRatelimitException: API rate limit exceeded for installation.` raised from `aiogithubapi/namespaces/repos.py` `get` in the action's HACS validation step. Cheaper detector: none exists for an external quota exhaustion; the budget is owned by R10-RECORD-API-BUDGET. Carry: dismissed: external installation quota, owned by R10-RECORD-API-BUDGET
+  - **`env-matrix`**, job `119753498136` (run 39757611884, 09:46:13Z): one outcome failed of 16, `pr / nothing skipped in a full clone -- skip required-contexts the GitHub API is unreachable (the fixture or the API failed: 1)`. Its log holds no rate-limit line, so the cause is inferred, not quoted: the same installation, two minutes after the two quoted limit failures. The other 15 outcomes held. Cheaper detector: none exists for an external quota exhaustion; the budget is owned by R10-RECORD-API-BUDGET. Carry: dismissed: external installation quota, owned by R10-RECORD-API-BUDGET
 
 ## Forward-carry
 
@@ -146,3 +185,4 @@ none
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_01QDEyGCKxQsek7nsYMNPJfd
+
