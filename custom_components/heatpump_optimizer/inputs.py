@@ -289,7 +289,7 @@ def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
     known = _POLLING_SOURCES.setdefault(owner, set())
     if seen:
         known.add(entity_id)
-    return entity_id in known
+    pass
 
 
 def age_limit_for(
