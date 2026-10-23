@@ -18,10 +18,11 @@ that answers but answers wrong: those are judged by the callers, after a
 COMPLETED read, and never reach this loop. Writes are never retried: `is_read`
 lets only a `gh api` GET and `gh pr view` through.
 
-A failure that names its own wait (Retry-After, or a spent primary bucket's
-`x-ratelimit-reset`) is read again no sooner than that wait, and a named wait
+A failure that names its own wait (Retry-After, or, on a rate-limit response
+-- a 429, or a 403 naming a rate limit -- a spent bucket's `x-ratelimit-reset`) is read again no sooner than that wait, and a named wait
 beyond the schedule's longest settle refuses at once, naming it: a spent hourly
-bucket is not transient, and the loop never sleeps out an hour.
+bucket is not transient, and the loop never sleeps out an hour. Any other
+status refuses or retries by its code alone, whatever bucket it carries.
 
 `tools/pr/app_approve.sh`'s `gh_transient` is this classifier's bash twin;
 its self-test drives both over its alternatives table and compares them.
@@ -50,6 +51,8 @@ GO_STATUS = re.compile(r"^HTTP (?P<code>[0-9]{3})(: .*)? \(https?://[^ ]+\)$")
 #: GraphQL query, a read), or gh's `error connecting to `.
 TRANSPORT = re.compile(r'^(Get|Post) "https?://[^"]*": |^error connecting to ')
 SECONDARY = "secondary rate limit"
+#: What a 403 names when it is a rate-limit response, primary or secondary.
+RATE_LIMIT = "rate limit"
 #: The `gh api` flags that make it POST unless a method says otherwise: a
 #: short one alone or attached (`-fbody=x`), a long one alone or with `=`.
 SHORT_FIELD_FLAGS = ("-f", "-F")
@@ -83,9 +86,18 @@ def gh_wait(text: str) -> float | None:
     return 0.0 if gh_transient(text) else None
 
 
-def named_wait(headers, now: float) -> float | None:
-    """The wait (s) a response names: Retry-After, or a spent primary bucket's
-    reset. One already past is negative, which the schedule's settle outweighs."""
+def rate_limited(code: int, line: str) -> bool:
+    """Whether an HTTP failure is a rate-limit response, given its status line:
+    a 429, or a 403 naming a rate limit, primary or secondary. Only these are
+    read for a bucket: GitHub sends the bucket headers on every response, so a
+    404 that spends the last request carries `remaining: 0` as well."""
+    return code == 429 or (code == 403 and RATE_LIMIT in line.lower())
+
+
+def named_wait(headers, now: float, spent: bool) -> float | None:
+    """The wait (s) a response names: Retry-After, or, when `spent` (a
+    rate-limit response with no request left), the bucket's reset. One already
+    past is negative, which the schedule's settle outweighs."""
     after = headers.get("Retry-After") or ""
     if after.isdigit():
         return float(after)
@@ -94,24 +106,27 @@ def named_wait(headers, now: float) -> float | None:
     except ValueError:  # no Retry-After, or one that is not an HTTP date
         pass
     reset = headers.get("x-ratelimit-reset") or ""
-    if headers.get("x-ratelimit-remaining") == "0" and reset.isdigit():
+    if spent and reset.isdigit():
         return int(reset) - now
     return None
 
 
 def urllib_wait(failure: BaseException, now: Callable[[], float] = time.time) -> float | None:
-    """`retry`'s classifier for urllib: an HTTPError by its status, message and
-    headers; a connection-level failure as transport; anything else refuses."""
+    """`retry`'s classifier for urllib: an HTTPError by its status and message,
+    and by its bucket only when those make it a rate-limit response; a
+    connection-level failure as transport; anything else refuses."""
     if isinstance(failure, urllib.error.HTTPError):
         headers = failure.headers or {}
-        wait = named_wait(headers, now())
-        if headers.get("x-ratelimit-remaining") == "0":
-            return wait  # a spent bucket: only its reset, never the schedule
         try:
             body = failure.read().decode("utf-8", "replace")
         except Exception:  # noqa: BLE001 -- an unreadable body is no message
             body = ""
-        if not http_transient(failure.code, f"{failure.reason} {body}"):
+        line = f"{failure.reason} {body}"
+        spent = rate_limited(failure.code, line) and headers.get("x-ratelimit-remaining") == "0"
+        wait = named_wait(headers, now(), spent)
+        if spent:
+            return wait  # a spent bucket: only its reset, never the schedule
+        if not http_transient(failure.code, line):
             return None
         return wait or 0.0
     if isinstance(failure, (urllib.error.URLError, http.client.HTTPException,
@@ -310,8 +325,8 @@ def self_test() -> int:
     check("a spent bucket with no reset header is a refusal",
           urllib_wait(hterr(403, "API rate limit exceeded", **{"x-ratelimit-remaining": "0"})) is None)
     check("Retry-After as an HTTP date names the seconds until it",
-          abs(named_wait(Hdr({"Retry-After": email.utils.formatdate(now + 40, usegmt=True)}), now) - 40) < 1.01)
-    check("an unparseable Retry-After names nothing", named_wait(Hdr({"Retry-After": "soon"}), now) is None)
+          abs(named_wait(Hdr({"Retry-After": email.utils.formatdate(now + 40, usegmt=True)}), now, False) - 40) < 1.01)
+    check("an unparseable Retry-After names nothing", named_wait(Hdr({"Retry-After": "soon"}), now, True) is None)
     got, n, _, _ = run([urllib.error.URLError("timed out"), ConnectionResetError(104, "reset"),
                         http.client.RemoteDisconnected("closed")], urllib_wait)
     check("URLError, a reset connection and a dropped one are transport: answered after 4 calls",
