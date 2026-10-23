@@ -27683,13 +27683,16 @@ _PT_EXEMPT = {
     ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
     "tests/nightly_status.py":
         "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
-    # The umbrella's programs (U0c). An arm for them is owed to tests.yml's
-    # owner (U5); until it lands, the U0 live probe runs them under the
-    # Actions token before P2b merges.
+    # The umbrella's programs (U0c). tests.yml's owner (U5) declined the arm:
+    # graders-head-copy runs inside `tests`, so only in a pull_request code
+    # run, where neither program's exit can show what the token sees. The U0
+    # live probe runs them under the Actions token before P2b merges.
     "tools/ci/gate.py":
-        "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
+        "its token paths judge or re-run this head; from inside `tests` the judge always FAILs "
+        "(`pr-contract` needs `tests`, so it is PENDING), whatever the token can see",
     "tools/ci/prelude.py":
-        "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
+        "on a pull_request code run, the only run graders-head-copy executes in, it makes no "
+        "API read (its reads are a dispatch's PR check and a non-code kind's wait)",
 }
 _PT_PROG = re.compile(r"(?:^|\s)(?:node|python3?)(?:\s+-\S+)*\s+([\w./-]+\.(?:mjs|py))", re.M)
 
