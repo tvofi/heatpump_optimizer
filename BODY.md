@@ -32,6 +32,40 @@ Carries settled in this diff, so none is forwarded:
 
 ## Head
 
+**Conflict fixer, R10-CURRENCY: BLOCKED. No new head was pushed; `handoff/r10-currency` is unchanged.** The PR head is still `0b9431baec2ff7b57dceadf6ed5ef56da1d25a25`. Measured against origin/main `a6620c30adcdf0d9529ee66977694bfa2a06d5c3` on 2026-10-23 at 10:47 UTC.
+
+`git merge origin/main` into `0b9431ba` gives a content conflict in `coordinator.py` with two hunks. Both sides consolidated the same duplicated COP-watch count.
+- **`_learning_view`'s `cop_health.watched_buckets`.** Taken from main: `_watched_cop_buckets(self._cop_baseline)`. #2620's `self._cop_watch()[0]` computes the same value.
+- **`_scores_view`.** Taken from main: `compose_scores(envelope_score(...), machine_score(...), ...)`, with the `advice` parameter and `reasons`. #2620's side re-inlined the old envelope formula and called `self._cop_watch()`.
+- **`_cop_watch` itself.** With both hunks taken from main it has no callers left, and main's `_watched_cop_buckets` and `machine_score` duplicate it (the `np.isfinite` guard, the `>= COP_BASELINE_MIN_SAMPLES` bound and the clip). The resolution deletes the method, its `tests/seam_map.json` entry and its four `tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._cop_watch.*.json` pins. Main already pins the same mutants on `_watched_cop_buckets.{BOOLOP,CMP_BOUND}` and `machine_score.{CLAMP_DROP,GUARD_OFF,RETURN_DEL}`.
+- **`tests/features.py`.** One semantic conflict: #2620's two added checks called `_scores_view()` with no argument, so they now pass `_rs_advice(coord)`, as main's neighbouring checks do.
+- **Outside the conflict.** #2620's narrative line (`narrative.render(items, chosen, self.currency)`), the `_raise_cop_issue` comment and the `_audit_price_units` comment merge as they are.
+
+Every check except the structure ratchet passes on the local merge commit `baf3d2dd4ca27b5157a06aae548e09c585527e35` (parents `0b9431ba`, `a6620c30`), which was not pushed:
+- `PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 python3 tests/features.py` exits 0, and so does `tests/entities.py`.
+- The scoped gate prints `MODE: SCOPED -- 21 script(s) run, 12 scoped out.`
+
+Red-on-revert, each as a single-hunk mutant of that commit run through `tests/features.py` (all exit 1):
+- **#2620's side put back into both conflict regions** (with `_cop_watch` restored). #2647's check at `tests/features.py:18501` fails with `KeyError: 'reasons'`.
+- **`_watched_cop_buckets` `>=` changed to `>`.** #2620's `the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples` fails with `{19: None, 20: None}`, and main's at-minimum check fails too.
+- **The clip removed from `machine_score`.** #2620's `... still grades 0, not below` fails with `[-100.0]`, and so does main's `(#2258)` twin.
+- **The narrative reverted to `resolve_currency(hass)`.** `D14-s3-01: the narrative prices a EUR feed on a SEK instance in EUR` fails with `{'EUR/kWh': ['SEK'], 'SEK/kWh': ['SEK']}`.
+
+**Why I stopped.** `python3 tests/structure.py` measures `seam_cut_total` at 715 against main's cap of 714. Its `views` row reads 110 against main's 109: the extra one is #2620's own `self.currency` read in `_narrative_view`. #2620 had paid for it with the `_cop_watch` consolidation (707 against its base of 708). #2647 has since made that consolidation on main by another route, so the payment is gone. The other two metrics go down: `class_excess_loc` 18243 against main's 18244, and `max_class_loc` 8479 against 8480. The ledger driver's merged values (713, 18233 and 8469) do not describe this tree.
+
+Getting under the cap needs one of three things, and none of them is this seat's call:
+- a payment that improves the code, a refactor outside this brief's "minimal union, no refactor";
+- an alias or getter, which round 3 already ruled out as O19 gaming;
+- a `seam_cut_total` raise from 714 to 715, which needs the owner's explicit confirmation before the branch is pushed (CLAUDE.md rule 2, `budget-raise-gate`).
+
+The orchestrator should get that confirmation or dispatch a payment. Then the resolution above can be pushed as it stands, with the budget re-recorded at 715 / 18243 / 8479.
+
+`0b9431baec2ff7b57dceadf6ed5ef56da1d25a25` is the orchestrator's recarry of main into the previous head (the roster PR #2655 that adds R10-STRUCTURE-ALIAS, which this body's carry names, merged). It is not a clean merge of the live head and main (the body file is not the live pull-request body), so prepr checked this head.
+
+`b2e2b5d579b192a34d0a394e72a75e796fa3c7fe` merges main `bfd61aa` into the previous head: an automatic merge by the orchestrator, no resolution (the roster PR #2655 that adds R10-STRUCTURE-ALIAS, which this body's carry names, merged). The reviewed code is unchanged.
+
+`72fbab2a719ce14870aa3284a35d043ea1b9588d` merges the authored code head `007ec1999b7752073cb8d550210898783582d4c8` and then merges origin/main `c26499e01` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `007ec1999b7752073cb8d550210898783582d4c8`. It is round 2's head `08ba3d9d7` with origin/main `f38f91852ea0251a9043378f76f907794874b2be` merged in, then four commits: the alias removal `0ebc7cf1e`, the `_cop_watch` move `c34bb23e9`, the budget record `34bde2120`, and a value check on the grade's clamp `e60558413`. origin/main `a7cf60cfd` was then merged in as `4731c08a4`. Round 3c added `f80d6125a` (a value check on the watch's sample bound, plus the `--pin-killed` ledger files for three sites) and `d5abe9de7` (the fourth site's ledger file). Last, origin/main `c26499e01f9d` was merged in as `007ec1999`. The two main merges bring only `tools/policy/field_coverage.mjs`, mutation-ledger files, delivery rows and `dev/programme/rosters/wave-r10-groups.json`, and no figure below reads any of them. The harness, comment_symbols and archscore figures were measured at `e60558413` (merge base `f38f91852`), 2026-10-23 04:40 UTC. `tests/features.py`, the pin runs, `ci_predict.py` and `tests/structure.py` were measured at `f80d6125a` to `007ec1999`, 2026-10-23 05:40 UTC.
 
 ## Mutation proof
@@ -79,8 +113,11 @@ none
 
 ## Forward-carry
 
-- `tests/structure.py`, `seam_metrics`: the structure instrument counts cross-seam attribute-reference occurrences, not distinct attributes. Aliasing a `self.<attr>` read into a local therefore lowers `seam_cut_total` with no structural change: round 2's reviewer planted `prices = self._prices` and measured -2. Every seam-cut payment is exposed to this. The group that owns `tests/structure.py`, R10-STRUCTURE-BLIND, is at stage `done` on both origin/main and origin/handoff/audit-r10-roster, so no live group owns it. It is therefore carried on R10-CURRENCY as a new O-item, for the orchestrator to number and cut as an O-brief. This PR does not fix it. Carry: R10-CURRENCY
+- `tests/structure.py`, `seam_metrics`: the structure instrument counts cross-seam attribute-reference occurrences, not distinct attributes. Aliasing a `self.<attr>` read into a local therefore lowers `seam_cut_total` with no structural change: round 2's reviewer planted `prices = self._prices` and measured -2. Every seam-cut payment is exposed to this. The group that owns `tests/structure.py`, R10-STRUCTURE-BLIND, is at stage `done` on both origin/main and origin/handoff/audit-r10-roster, so no live group owns it. It is therefore carried on a new group, R10-STRUCTURE-ALIAS, together with round 3's rule-14 finding (a bare getter returning a tuple of state reads also pays, item 931a23da). Landed on `handoff/audit-r10-roster` at `9169bb83487c5c6fe35596e1952347c07fdedbca`. This PR does not fix it. Carry: R10-STRUCTURE-ALIAS (item 931a23da)
 
 ## Friction
 
 - fixer.md-step17: contradiction: the architect note's mandated shape (read the one owner from the `views` seam) cost `seam_cut_total` +1 at zero headroom, and it took three dispatch rounds to find a real payment. Carry: dismissed: ruled by the orchestrator under mandate 6329234399 in round 3; no later stage owes a change
+
+
+
