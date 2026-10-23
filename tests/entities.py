@@ -28410,7 +28410,17 @@ _GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
               ".github/workflows/pr-contract-rerun.yml"]
 _GOV_FILE_JOBS: "set[str]" = set()
 for _f in _GOV_FILES:
-    _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
+    if Path(_f).is_file():
+        _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
+# agreement_py.py's governance_pin, restored from the BASE by wave-script, skips a listed file
+# the tree lacks, because a pull request deleting a governance workflow is judged by the base's
+# list (R10-CI-LAYOUT P2, step 11a). This pin, run from the tree, is what keeps a stale list
+# from passing that way: every entry must name a file the tree holds.
+R.check(
+    "every _GOV_FILES entry names a governance workflow file the tree holds",
+    all(Path(_f).is_file() for _f in _GOV_FILES),
+    f"absent: {[_f for _f in _GOV_FILES if not Path(_f).is_file()]} -- delete the entry with the file",
+)
 R.check(
     "the governance-cost GOV set names only jobs the workflow files define, "
     "and every job of every governance workflow file",

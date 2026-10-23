@@ -315,6 +315,23 @@ def job_ids(text):
     return set(re.findall(r"^  ([A-Za-z][\w-]*):", text[i:], re.M)) if i >= 0 else set()
 
 
+def governance_pin(files, root=Path(".")):
+    """`briefs` and the jobs of each listed governance file the tree holds.
+
+    wave-script restores this reader and tests/entities.py from the BASE commit and runs them
+    over the pull request's tree (decision 0013), so a pull request that deletes a governance
+    workflow meets a base list still naming it (R10-CI-LAYOUT P2b deletes two). Such a file has
+    no jobs in the tree it is judged on, so it adds none here. A stale list cannot pass this way
+    on main: tests/entities.py, run from the tree, refuses a `_GOV_FILES` entry with no file.
+    """
+    pin = {"briefs"}
+    for f in files:
+        p = root / f
+        if p.is_file():
+            pin |= job_ids(p.read_text())
+    return pin
+
+
 def governance_jobs():
     spec = importlib.util.spec_from_file_location("gc", locate("tools/audit/round4/D11/governance_cost.py"))
     gc = importlib.util.module_from_spec(spec)
@@ -327,9 +344,7 @@ def governance_jobs():
         files.append(w.group(1))
     if not files:
         raise SystemExit("entities.py: no _GOV_FILES list")
-    pin = {"briefs"}
-    for f in files:
-        pin |= job_ids(Path(f).read_text())
+    pin = governance_pin(files)
     jobs = set()
     for f in sorted(Path(".github/workflows").glob("*.y*ml")):
         jobs |= job_ids(f.read_text())
