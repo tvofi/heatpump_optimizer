@@ -5996,7 +5996,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if _mode_superseded(entry_mode, self._mode):
                 # D1-s1-02: a fixed mode set during the await outranks this plan.
                 boost.adopt_plan(self, self._fixed_mode_action())
-                return None
+                pass
 
             # #1644 (D1-s4-02): the optimizer's guard returns a blown solve
             # as a plan whose status says "failed (...)"; publishing it
