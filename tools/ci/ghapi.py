@@ -199,12 +199,43 @@ def self_test() -> int:
         _open = lambda req: (seen.append(req), next(pages))[1]  # noqa: E731
         check("paginate follows Link", paginate("p", {"q": 1}), [1, 2, 3])
         check("paginate's next page is the Link URL", seen[-1].full_url, f"{API}/p2?page=2")
-        _open = serve(500, b'{"message": "boom"}')
+        _open = serve(404, b'{"message": "boom"}')
         try:
             paginate("p")
             check("paginate raises on a bad page", "returned", "raised")
         except ApiError as e:
-            check("paginate raises on a bad page", e.status, 500)
+            check("paginate raises on a bad page", e.status, 404)
+        # A transient 5xx on a GET is retried, twice, with a short backoff (R10-CI-LAYOUT P2 step
+        # 11a: M-5b's gate FAILed on one HTTP 502, and a 5xx on the newest run's gate is red until
+        # the next event, since the sweep re-runs only older reds).
+        global _sleep
+        saved_sleep, naps = _sleep, []
+        _sleep = naps.append
+        try:
+            seq = iter([502, 200])
+            calls = []
+
+            def flaky(req):
+                calls.append(req)
+                st = next(seq)
+                if st >= 400:
+                    raise urllib.error.HTTPError(req.full_url, st, "x", {}, _Body(b'{"message": "Server Error"}'))
+                return Fake(st, b'{"ok": true}')
+            _open = flaky
+            check("a 502 then a 200 on a GET answers the 200", get("repos/o/r/actions/runs/1/jobs")[0], 200)
+            check("after one retry", len(calls), 2)
+            check("and a backoff before it", len(naps) >= 1 and all(0 < t <= 10 for t in naps), True)
+            calls.clear()
+            _open = lambda req: (calls.append(req), serve(404, b"")(req))[1]  # noqa: E731
+            check("a 404 is not retried (null control)", (get("x")[0], len(calls)), (404, 1))
+            calls.clear()
+            _open = lambda req: (calls.append(req), serve(503, b"")(req))[1]  # noqa: E731
+            check("a 5xx that persists is returned after two retries, not looped", (get("x")[0], len(calls)), (503, 3))
+            calls.clear()
+            _open = lambda req: (calls.append(req), serve(502, b"")(req))[1]  # noqa: E731
+            check("a POST is never retried (a re-run request is not repeated)", (post("x")[0], len(calls)), (502, 1))
+        finally:
+            _sleep = saved_sleep
         _open = serve(200, b"{}")
         post("repos/o/r/actions/jobs/9/rerun")
         check("post method", seen[-1].get_method(), "POST")
