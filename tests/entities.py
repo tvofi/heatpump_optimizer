@@ -26841,6 +26841,79 @@ R.check(
     "nightly-status precedent, read-only widenings on the one job that "
     "reads the API",
 )
+# A DISPATCH NAMING A PR IS GRADED BY THE BASE, AS ITS PULL REQUEST IS (Arm B
+# step 4, #2657 at 75011ea7e). On `workflow_dispatch -f pr= -f base=` the event
+# carries no base SHA, and a restore falling back to `github.sha` checks the
+# head out as its own grader: policy-docs read "0 file(s) differ" and passed
+# (job 120446627407) where the same head's pull_request run, pinned to the base,
+# read 37 errors (job 120438602400). The newest run at a head decides `gate`, so
+# such a dispatch -- merge-main's, on every bot head -- replaces the base's
+# verdict with the head's. The class is every base restore in a job writing a
+# name gate.REQUIRED['pr'] holds; each is evaluated over a dispatch's literals
+# with the `base` ci.yml passes its callee, and must not yield the head.
+_BP_HEAD = "HEADSHA"
+_BP_UNITS = {"governance.yml": "governance", "tests.yml": "tests"}
+
+
+def _bp_value(expr: str, ctx: dict) -> str:
+    expr = expr.strip().removeprefix("${{").removesuffix("}}")
+    for k, v in sorted(ctx.items(), key=lambda kv: -len(kv[0])):
+        expr = expr.replace(k, repr(v))
+    expr = expr.replace("&&", " and ").replace("||", " or ")
+    return eval(expr, {"__builtins__": {}, "format": lambda f, *a: f.format(*a)})  # noqa: S307
+
+
+def _bp_passes_base(ci_text: str, unit: str) -> bool:
+    return "base: ${{ needs.prelude.outputs.base }}" in _workflow_job(ci_text, unit)
+
+
+def _bp_sites(ci_text: str, callees: dict) -> "list[tuple[str, str, str]]":
+    """(file:job, PINNED, value on a dispatch naming a PR at base main)."""
+    required = set(_cig_required.get("pr", ())) | set(_cig_required.get("pr-cc", ()))
+    out = []
+    for fname, text in callees.items():
+        unit = _BP_UNITS[fname]
+        base = "main" if _bp_passes_base(ci_text, unit) else ""
+        for jid, job in (_yaml.safe_load(text).get("jobs") or {}).items():
+            if f"{unit} / {job.get('name', jid)}" not in required:
+                continue
+            for step in job.get("steps") or []:
+                pinned = (step.get("env") or {}).get("PINNED")
+                if pinned:
+                    ctx = {"github.event.pull_request.base.sha": "", "github.event.merge_group.base_sha": "",
+                           "github.sha": _BP_HEAD, "inputs.base": base}
+                    out.append((f"{fname}:{jid}", pinned, _bp_value(pinned, ctx)))
+    return out
+
+
+_BP_CI = Path(".github/workflows/ci.yml").read_text()
+_BP_CALLEES = {f: Path(".github/workflows", f).read_text() for f in _BP_UNITS}
+_BP_GOT = _bp_sites(_BP_CI, _BP_CALLEES)
+_BP_PLANT = _bp_sites(_BP_CI.replace("base: ${{ needs.prelude.outputs.base }}", "base: ''"), _BP_CALLEES)
+R.check(
+    "the class is non-empty: base restores in governance and tests jobs gate requires",
+    {s.split(":")[0] for s, _, _ in _BP_GOT} == set(_BP_UNITS) and len(_BP_GOT) >= 6,
+    f"sites: {[s for s, _, _ in _BP_GOT]}",
+)
+R.check(
+    "a dispatch naming a PR restores every gate-required grader from the base, never the head",
+    all(v and v != _BP_HEAD for _, _, v in _BP_GOT),
+    f"head-graded on a dispatch: {[(s, p) for s, p, v in _BP_GOT if not v or v == _BP_HEAD]}",
+)
+R.check(
+    "plant: the same callees with no base passed grade the head on a dispatch",
+    any(v == _BP_HEAD for _, _, v in _BP_PLANT),
+    f"the control no longer reads the defect: {_BP_PLANT}",
+)
+R.check(
+    "and on a pull_request and a push every such restore reads the event's own commit",
+    all(_bp_value(p, {"github.event.pull_request.base.sha": "BASESHA", "github.event.merge_group.base_sha": "",
+                      "github.sha": "MERGESHA", "inputs.base": "main"}) == "BASESHA"
+        and _bp_value(p, {"github.event.pull_request.base.sha": "", "github.event.merge_group.base_sha": "",
+                          "github.sha": "MAINSHA", "inputs.base": ""}) == "MAINSHA"
+        for _, p, _ in _BP_GOT),
+    f"sites: {[(s, p) for s, p, _ in _BP_GOT]}",
+)
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
 # `${{ github.event.pull_request.body }}` is the body as it stood when the
 # event fired, and `gh run rerun` replays that payload: a body corrected after
