@@ -30,6 +30,7 @@
 // exit 0: no disagreement, no unregistered or dead grammar, no refusal.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -340,6 +341,26 @@ const PAIRS = [
       const pl = await load('tools/policy/policy_lint.mjs')
       const rows = py('attribution')
       return { 'ref_privacy.py attribution': (t) => rows[t], 'policy_lint.mjs attributionClasses': (t) => pl.attributionClasses(t) }
+    },
+  },
+  {
+    concept: 'raise-justification',
+    what: "whether a pull-request body is refused on its `## Raise justification` (Triage P-F): budget_raise_gate.py justification (the budget-raise-gate check, at merge) against policy_lint.mjs raiseJustification (the body contract), which runs the gate's own --check-body but finds the heading itself, so the heading test is the one part that can drift",
+    async corpus() {
+      return Object.keys(py('raise_justification')).map((b, i) => [`body ${i} ${JSON.stringify(b.slice(0, 30))}`, b])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('raise_justification')
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agreement-raise-'))
+      let n = 0
+      const lint = (b) => {
+        const f = path.join(dir, `body-${n++}.md`)
+        fs.writeFileSync(f, b)
+        return pl.raiseJustification(f, b) !== null
+      }
+      return { 'budget_raise_gate.py justification': (b) => rows[b], 'policy_lint.mjs raiseJustification': lint,
+        cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
     },
   },
 ]
