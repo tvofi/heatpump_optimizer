@@ -27797,6 +27797,70 @@ R.check(
     f"none_only rc={_FN['none_only'][0]}, junk_only rc={_FN['junk_only'][0]}, "
     f"parsed={_FRICTION_PARSED}",
 )
+
+# The contract workflow is the ONE file that DEFINES the `pr-contract` job
+# (policy_lint.mjs, #1514). A reusable-workflow CALLER of that job -- a job
+# `pr-contract:` whose body is `uses: ./.github/workflows/pr-contract.yml` --
+# defines nothing: it runs the definer. The umbrella (R10-CI-LAYOUT-P2, #2495)
+# adds such a caller to ci.yml, and a text match on `\n  pr-contract:\n` read
+# it as a second definition (FIXTURE VACUOUS, 2 files). `policy-docs` grades
+# with the BASE's policy_lint.mjs, so the reader must learn this on main before
+# the caller lands. Plants: a caller, a caller carrying `with:`, a tree holding
+# a definer and a caller. Nulls: the real job, including one whose STEPS use
+# actions (a step `uses:` is not a call) and one followed by another job's call
+# (the body ends at the next job); two real definers are still two (the
+# "exactly one" refusal stands); and the tree itself names exactly one definer.
+_PCJ_DEFINER = ("on: pull_request\njobs:\n  pr-contract:\n    runs-on: ubuntu-latest\n"
+                "    steps:\n      - uses: actions/checkout@v4\n      - run: node x.mjs\n"
+                "  later:\n    uses: ./.github/workflows/other.yml\n")
+_PCJ_CALLER = ("on: push\njobs:\n  pr-contract:\n    needs: [prelude]\n"
+               "    uses: ./.github/workflows/pr-contract.yml\n  gate:\n    runs-on: x\n")
+_PCJ_CALLER_WITH = ("jobs:\n  pr-contract:\n    if: ${{ !cancelled() }}\n"
+                    "    uses: ./.github/workflows/pr-contract.yml\n"
+                    "    with: { pr: '1' }\n")
+_PCJ_OTHER = "jobs:\n  tests:\n    runs-on: x\n    steps:\n      - run: true\n"
+import shutil as _pcj_shutil  # noqa: E402
+_PCJ_ROOTS = {}
+for _k, _files in {"one": {"a.yml": _PCJ_DEFINER, "ci.yml": _PCJ_CALLER},
+                   "two": {"a.yml": _PCJ_DEFINER, "b.yml": _PCJ_DEFINER}}.items():
+    _d = Path(tempfile.mkdtemp())
+    (_d / ".github" / "workflows").mkdir(parents=True)
+    for _n, _t in _files.items():
+        (_d / ".github" / "workflows" / _n).write_text(_t)
+    _PCJ_ROOTS[_k] = str(_d)
+_PCJ = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     _PL_IMPORT + ".then((m) => { const t = JSON.parse(process.argv[1]); "
+     "console.log(JSON.stringify({"
+     "definer: m.definesJob(t.definer, 'pr-contract'),"
+     "caller: m.definesJob(t.caller, 'pr-contract'),"
+     "caller_with: m.definesJob(t.caller_with, 'pr-contract'),"
+     "other: m.definesJob(t.other, 'pr-contract'),"
+     "tree: m.contractWorkflowFiles(),"
+     "plant_one: m.contractWorkflowFiles(t.one),"
+     "plant_two: m.contractWorkflowFiles(t.two)"
+     "})) })",
+     json.dumps({"definer": _PCJ_DEFINER, "caller": _PCJ_CALLER,
+                 "caller_with": _PCJ_CALLER_WITH, "other": _PCJ_OTHER,
+                 **_PCJ_ROOTS})],
+    capture_output=True, text=True).stdout or "{}")
+for _d in _PCJ_ROOTS.values():
+    _pcj_shutil.rmtree(_d, ignore_errors=True)
+R.check(
+    "policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is not a "
+    "definition of the contract job, so ci.yml's caller cannot make the wiring pin vacuous",
+    _PCJ.get("caller") is False and _PCJ.get("caller_with") is False
+    and _PCJ.get("plant_one") == ["a.yml"],
+    f"parsed={_PCJ}; a `uses:` caller was read as the job's definition",
+)
+R.check(
+    "and the real job, steps using actions included, still defines it; another job "
+    "does not; the tree has exactly one definer (null controls)",
+    _PCJ.get("definer") is True and _PCJ.get("other") is False
+    and _PCJ.get("tree") == ["pr-contract.yml"]
+    and _PCJ.get("plant_two") == ["a.yml", "b.yml"],
+    f"parsed={_PCJ}",
+)
 # `## Friction` AND THE TRAILER BLOCK A TOOL PASTES UNDER IT (#1238, D13-01).
 # The lines a tool or an assistant appends to a body -- the Claude Code
 # attribution, a `Co-Authored-By:` git trailer, a `Closes #N` keyword line --
@@ -37988,6 +38052,39 @@ R.check(
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
     and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
+# THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
+# unit-pinned in `policy_lint.mjs`'s acceptance, but the saving only exists if
+# every invocation of the three modes in the `record` job carries the same
+# `--window-cache` file: drop it from one and that mode walks the window again
+# on the GITHUB_TOKEN bucket, with every other check green (the reviewer's
+# mutants M1-yaml and Y1). Both spellings of the `.claude` / `tools` arm count.
+# This reads the job text, so it pins the artifact the runner executes.
+import re as _re_wc
+_WC_JOB = _workflow_job(
+    Path(".github/workflows/governance.yml").read_text(), "record")
+_WC_SEEN = {}
+for _wc_m in _re_wc.finditer(r"node\s+(?:\S*policy_lint\.mjs|\"\$_pl\")\s+--(record|stats|sunset)\b", _WC_JOB):
+    _wc_rest = _WC_JOB[_wc_m.end():]
+    _wc_seg = _re_wc.split(r"\bnode\s|\n\s*- name:|\n\n", _wc_rest, maxsplit=1)[0]
+    _WC_SEEN.setdefault(_wc_m.group(1), []).append(
+        _re_wc.findall(r"--window-cache\s+(\"[^\"]+\")", _wc_seg))
+_WC_SHAPE = {k: len(v) for k, v in sorted(_WC_SEEN.items())}
+R.check(
+    "the record job's three modes are all found, so the wiring check below reads something",
+    _WC_SHAPE == {"record": 1, "sunset": 2, "stats": 2} or _WC_SHAPE == {"record": 1, "stats": 2, "sunset": 2},
+    f"invocations found per mode: {_WC_SHAPE} (--record once, --stats and "
+    "--sunset once per `.claude`/`tools` arm). A pattern that matched nothing "
+    "would make the next check vacuously true",
+)
+_WC_FILES = {tuple(f) for v in _WC_SEEN.values() for f in v}
+R.check(
+    "every record-job invocation of --record, --stats and --sunset passes the same --window-cache file",
+    bool(_WC_SEEN) and _WC_FILES == {('"$RUNNER_TEMP/window.json"',)},
+    f"distinct --window-cache arguments per invocation: {sorted(_WC_FILES)}. "
+    "An invocation without it walks the window itself (834 calls against 370 "
+    "in `record_api_calls.sh`); two different files would share nothing",
 )
 
 
