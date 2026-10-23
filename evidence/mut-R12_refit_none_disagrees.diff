@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..d4fd52f79 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2593,7 +2593,7 @@ def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
+     refit = advice.get("refit") or {}
+     fitted = refit.get("scale")
+     if fitted is None:
+-        return False
++        return True
+     band = float(refit.get("band_percent") or 0.0) / 100.0
+     return abs(float(fitted) - scale) > band * scale
+ 

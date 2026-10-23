@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..88111d363 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1201,7 +1201,7 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
+     await coord._async_save_accuracy()
+     # A cycle re-plans on the adopted scale and re-takes the advice the
+     # inbox and the house grade read (``_insight_view``, once a cycle).
+-    await coord.async_request_refresh()
++    coord.async_update_listeners()
+     return True
+ 
+ #: Which configured entity backs each published temperature -- the table
