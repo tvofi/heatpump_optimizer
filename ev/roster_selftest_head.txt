@@ -1,0 +1,2 @@
+roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-wlma82oj/drv3; pass --roster-path or --roster-ref
+roster_edit self-test: 117 checks, 0 failed

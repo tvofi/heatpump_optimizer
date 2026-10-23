@@ -1,0 +1,44 @@
+== python3 -I tools/audit/seat/pulse.py --self-test
+  ok   read_queue takes a :MIN override and reads a missing file as unreadable
+  ok   --snapshot judges the seat queues: exit 1, the STOPPED line names the seat, five arms
+  ok   --seat-queue refuses a seat no contract defines
+  ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
+  ok   the summary line counts the arms
+pulse self-test: 37 checks, 0 failed
+== python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test
+  ok   a crash with no FAIL line prints its tail
+  ok   a survivor prints fails=0 and no tail
+  ok   no names selects every plant
+  ok   a named plant is kept
+  ok   an unknown plant is returned for refusal
+r10_roster_ops_mutants self-test: 78 checks, 0 failed
+== python3 -I tools/audit/seat/sweep_render.py --self-test
+  ok   a home directory written in the template is refused
+  ok   the same home directory supplied by an overlay value renders (null control)
+  ok   a home directory straddling template text and a value is refused
+  ok   a cited instrument that is not in the tree is refused
+  ok   a cited instrument that exists passes, arguments and all (null control)
+sweep_render self-test: 21 checks, 0 failed
+== node tools/policy/rules_sync.mjs --check
+RULES-SYNC ok: every generated rule is the generated form of its source
+== node tools/policy/brief_lint.mjs
+GUARD ok: an unexpected throw is reported as that roster's own error
+EXCLUDE ok: 1 symbol-search exclusion(s), each naming a prefix the tree has, none of the load-bearing ones dropped
+LOCATE ok: tools/audit/briefs/COMMON.md is read there beside a copy at dev/governance/roles/COMMON.md; a moved file and a directory resolve to the new path
+ROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, nothing for a non-numeric one, nothing a done group alone covers, and the live group where a done one also covers
+  ERROR   [carry-990002.json] carry: `issue` is 990009 but the filename says 990002; a seat looking for its own stage opens the filename
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+== python3 tools/audit/seat/r10_roster_ops_mutants.py --null
+RESULT mutant=null rc=0 fails=0
+== python3 tools/audit/seat/r10_roster_ops_mutants.py T1 T2 T3 T4 T5
+RESULT mutant=T1 rc=1 fails=11
+RESULT mutant=T2 rc=1 fails=12
+RESULT mutant=T3 rc=1 fails=1
+RESULT mutant=T4 rc=1 fails=16
+RESULT mutant=T5 rc=1 fails=16
+TOTAL: 0 error(s) across 47 file(s)
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL
+claims hygiene: 4e38e7d7b3138b24c97e7d0fbea74965c1d43d62 ok
+ALL 112 closure shrink pins PASSED
+untouched-check-done
