@@ -7,7 +7,7 @@ What changes:
 - **`tools/audit/seat/gh_read.py`** (new) holds the read rule for the Python instruments: `app_push.sh`'s read-back rule, 4 reads settling `READ_SLEEP_S * 3^(n-1)` = 5/15/45 s, each settle printed. Retried: a transport error, HTTP 5xx, 429, or a 403 whose deciding status line names `secondary rate limit`; everything else refuses after its one call. A spent budget returns the last failure with `(after N attempts)`.
   - `gh_transient` is `app_approve.sh`'s `gh_transient` in Python. It has two Python-only alternatives, because `gh pr view` reads over GraphQL and fails in go-gh's shapes: `HTTP NNN: msg (url)`, and `Post "https://...": ` for transport. `app_approve.sh` never calls `gh pr view`.
   - `urllib_wait` classifies urllib failures: an `HTTPError` by its status, reason and body; `URLError`, `HTTPException`, `ConnectionError` and `TimeoutError` as transport.
-  - Named waits: a `Retry-After` (seconds or an HTTP date) or a spent primary bucket's `x-ratelimit-reset` is waited out, never undercut. A named wait past 45 s (the schedule's longest settle) refuses at once and says so. A spent bucket (`x-ratelimit-remaining: 0`) is read again only after its reset and is never put on the schedule. This is the R10-RCA-INSTALL-RATELIMIT carry: "A retry must wait until the reset time the 403 names, and must never loop."
+  - Named waits: a `Retry-After` (seconds or an HTTP date) is waited out, never undercut. A spent bucket (`x-ratelimit-remaining: 0`) counts only on a **rate-limit response**: a 429, or a 403 whose status line names `rate limit` (`gh_read.rate_limited`). That response is read again only after the bucket's reset and is never put on the schedule. Every other status is judged by its code alone, whatever bucket headers it carries: a 404, 401, 422 or permission 403 refuses after its one call, and a 5xx keeps the 5/15/45 s schedule. A named wait past 45 s (the schedule's longest settle) refuses at once and says so. This is the R10-RCA-INSTALL-RATELIMIT carry: "A retry must wait until the reset time the 403 names, and must never loop."
   - `is_read` decides what may be retried: `gh api` with no method but GET and no field or input (gh POSTs those, attached short forms like `-fbody=x` included), and `gh pr view`. Writes never reach the loop.
 - **`merge_train.py`**: `Train.__init__` wraps its own `run` (`self.run = self._reads_retried(self.run)`). Every `gh` call the train or `queue_pre_flight.py` makes goes through that `run`, so all 25 of their `gh` reads are under the rule, and a write passes through untouched. One wrapper and no call site edited: a read added later is covered the day it lands.
 - **`record_row.py`**: `_api`, its one `urlopen`, reads under the rule; a spent budget re-raises the last `HTTPError` with the count as a note.
@@ -18,6 +18,7 @@ What changes:
   - `tools/audit/seat/merge_pr.sh`: its offline merge flow copies `merge_train.py` into a scratch clone and runs `unstale_head` through it. `merge_train.py` now imports `gh_read.py` from its own directory, so the copy died on `ModuleNotFoundError: No module named 'gh_read'` and the null control read `STALE`. The fixture now copies `gh_read.py` beside it. The null control is unchanged: it still runs the real classifier against the fake gh and must record exactly `pr merge 42 --merge --match-head-commit <S>`.
   - `tools/audit/seat/pr_args.sh`: the pusher census (`PR_PUSHER_RULE`) returns `gh_read.py`, because its docstring names `app_push.sh`'s read-back rule. It gets a `mention` entry in `PR_PUSHERS`: the module starts no subprocess. The census rule is not changed.
   - `tools/audit/seat/ref_privacy.py`: `--check`'s push-site rule reads `gh_read.py`'s `is_read` fixture `["gh", "api", "--method=PATCH", "repos/o/r/git/refs/x"]` as a `git/refs` write. It gets a `fixture` entry in `PUSHERS`, the disposition `fragments_sync.mjs` already has for a push string fed to its own check. The site rule is not changed.
+- **Round 3: the bucket is read only on a rate-limit response** (the round-2 review's `retry-rule-unsound`). At `b79c3d4f6`, `urllib_wait` checked `x-ratelimit-remaining == "0"` before the status. GitHub sends the bucket headers on every response, so the request that spends the last token returns its own status with `remaining: 0`. A 404, 401, 422 or permission 403 on that request took the wait-and-retry arm: 4 calls, settling the reset and then 15/45 s. Now `urllib_wait` classifies by status and message first. `spent` is `rate_limited(code, line) and remaining == "0"`, and `named_wait` reads the bucket's reset only when `spent` is true. `INSTRUMENTS.md`'s statement of the rule says the same.
 - **`tools/audit/seat/INSTRUMENTS.md`**: the rule is stated once, under `gh_read.py`, and the `app_approve.sh`, `merge_train.py` and `record_row.py` entries point to it.
 - **`dev/audit/harnesses/r10_gh_read_retry_mutants.py`**: the bash region now runs to `curl_get`'s closing `}`. A Python half sweeps `gh_read.py` rule by rule (P mutants: `num cmp bool not const if str re meth elt del`), and `--seams [DIR]` enumerates the class's call sites.
 
@@ -38,85 +39,136 @@ Alternatives, and why each lost (fixer.md step 17):
 - **Retry `git fetch`**: git's smart-HTTP failures are git's text, not the API's status lines, so a classifier for them would be a third one, written blind. Carried, not built (`## Forward-carry`).
 - **Retry the post-merge GraphQL `closingIssuesReferences` query**: its answer is only logged and stops nothing, so a retry would delay the train up to 65 s for a log line.
 
+- **Round 3: keep the header-first order and add a status guard only to the spent arm** (`if remaining == "0" and code in (403, 429)`): a permission 403 with a spent bucket would still wait out the reset, and `named_wait` would still read the bucket for a 5xx. Deciding "is this a rate-limit response" in one predicate, from status and message, and passing the result into `named_wait`, removes the cause: the bucket test lives in one place.
+- **Round 3: treat every 403 with `remaining: 0` as a primary limit** (GitHub documents 403 or 429 with `remaining: 0` for a spent bucket): a permission 403 on the request that spends the last token carries the same headers. The documented primary-limit message, `API rate limit exceeded`, names `rate limit`, so the message separates the two. A 401 or 404 that names `rate limit` is still judged by its code (the sweep's P102, below).
 - **Round 2: narrow either rule so it stops returning `gh_read.py`** (skip docstrings in `PR_PUSHER_RULE`; skip self-test argvs in `ref_privacy`'s `_SITE`): that loosens a census to pass, and the next file that really pushes from a string the rule skipped would land undispositioned. Each rule already has a disposition for exactly this case, so the new path takes one.
 - **Round 2: reword `gh_read.py`'s docstring so it no longer names `app_push.sh`**: the citation is true and points at where the rule comes from. Removing it to hide the file from the census is the same as loosening the census.
 - **Round 2: make `merge_pr.sh`'s fixture stub `unstale_head`**: the comment above the copy says it runs the real classifier on purpose, so the flow crosses the K15 (b) re-run. A stub would make the null control a weaker test.
 
 ## Head
 
-`2e930039dd692271bc968a7108f2f8ec056070cd`. It fast-forwards from the round-1 head `5907408d6918c618e35c6cb202dc2d9b9cd1be9e`. In order: a merge of main `4e38e7d7b` into `5907408d6` (`f38fc7db2`); the merge_pr fixture and pusher-census fix (`b950125b4`); the `ref_privacy` registration (`40c556fae`); a merge of main `e30b24bbc` (`2e930039d`). Both merges were automatic and needed no resolution. `git merge-base origin/main HEAD` is `e30b24bbc45afd1174f64f7051d05021e31b6a89`, which was `origin/main`'s tip at 2026-10-23T02:42Z (`date -u`).
+`a7f04962896d8588e3b8d1a670cf411c516dc27d`. It fast-forwards from the round-2 head `b79c3d4f69bb603ec559ceb2f19f974c917b72f3`. In order:
+- `b16d1aee3`: the failing rows (red, `## Mutation proof`).
+- `c2ebc548a`: the fix.
+- `dec184b73`: `INSTRUMENTS.md`.
+- `213630e84`: the row the sweep asked for (P102).
+- `a7f049628`: a merge of main `f38f91852`. It was automatic and needed no resolution.
+
+`git merge-base origin/main HEAD` is `f38f91852ea0251a9043378f76f907794874b2be`. That was `origin/main`'s tip at 2026-10-23T04:12Z (`date -u`).
 
 Where each figure was taken:
-- The job run, the scoped-gate scripts, structure, scope, archscore, agreement, the census counts, the seam census and prepr were taken at `2e930039d`.
-- The mutation table and the sweep were taken at `40c556fae`. The last merge's delta (`git diff --name-only 40c556fae 2e930039d`) is 11 files: eight delivery rows, the roster, `tests/entities.py` and `tools/policy/policy_lint.mjs`. None of them is a mutation target or a file a mutated run reads (`grep -E "merge_train|record_row|app_approve|gh_read|merge_pr|pr_args|ref_privacy|queue_pre|r10_gh_read"` over that list matches nothing). So, per fixer.md step 6, that delta reaches the job run, entities and the body lint, and those were re-run; it does not reach the mutations.
+- The job run, the scoped-gate scripts, structure, scope, archscore, agreement, the census counts, the seam census and `ref_privacy` were taken at `a7f049628`.
+- The mutation table (M-A to M-G) and the sweep were taken at `213630e84`.
 
-Every round-1 figure was taken again; none is carried over.
+The merge's delta (`git diff --name-only 213630e84 a7f049628`) is main's governance roles, the roster tools (`pulse.py`, `roster_edit.py`), `INSTRUMENTS.md`, `tests/closures.json` and `tests/layout.json`. None of them is a mutation target or a file a mutated run reads: `grep -E "merge_train|record_row|app_approve|gh_read|merge_pr|pr_args|ref_privacy|queue_pre|r10_gh_read"` over that list exits 1. Per fixer.md step 6, then, the delta reaches the job run, entities and the body lint, and those were re-run. It does not reach the mutations.
+
+Every round-2 figure was taken again; none is carried over. The one exception is M-C, below, whose reason is given there.
 
 ## Mutation proof
 
-Each mutation was applied in a detached worktree of `40c556fae` (see `## Head`) by an exact-match replacement that must match once. It was run, then restored with `git checkout -- .`, and `git diff --quiet` passed after each one. The script that applied them is seat-local and not in the tree.
+**Failing first (round 3).** `b16d1aee3` adds the new rows to `gh_read.self_test()` on `b79c3d4f6`'s code, which is unchanged. There, `python3 -c "import sys; sys.path.insert(0,'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())"` (CPython 3.11.17) prints `gh_read self-test: 121 checks, 7 failed`, rc=1. The failing checks:
+- six rows of the form `a <code> '<msg>' on a spent bucket resetting in 20 s refuses after exactly 1 call`, for 404 `Not Found`, 401 `Bad credentials`, 422 `Validation Failed`, 403 `Resource not accessible by integration`, 403 `the limit on this repository's rate of forks`, and 404 `API rate limit exceeded`;
+- `a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names`.
+
+At `c2ebc548a` (the fix), the same command prints `121 checks, 0 failed`. The real rate-limit rows stay green at both ends:
+- `a rate-limit 429 '' on a spent bucket waits out its 20 s reset, then answers`;
+- the same for a 403 `API Rate Limit Exceeded`;
+- round 2's spent-bucket rows (20 min refused, 20 s waited, past reset on the schedule, no reset refused).
+
+**The re-order mutant (M-H)**, at `c2ebc548a`, applied in memory by an exact-match replacement that must match once: the old order is put back by inserting `if headers.get("x-ratelimit-remaining") == "0": return named_wait(headers, now(), True)` ahead of the status test. Result: `121 checks, 7 failed`, the same seven checks as the red run. The tree was not edited.
+
+**The sweep found one survivor at `c2ebc548a`.** P102 mutated `code == 403` to `code <= 403` in `rate_limited`, so a 401 naming `rate limit` on a spent bucket would wait. `213630e84` adds the row `a 401 'API rate limit exceeded' on a spent bucket ... refuses after exactly 1 call`. Re-run, P102 prints `KILLED ... first FAIL: a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call`.
+
+Each mutation below was applied in a detached worktree of `213630e84` by an exact-match replacement that must match once. It was run under `/opt/hpo/venv-ci/bin` (CPython 3.14.7), then restored with `git checkout`, and `git diff --quiet` gave rc=0 after each one. The applier is seat-local, a one-off probe.
 
 | mutation | run | result | failed checks |
 |---|---|---|---|
-| M-A: delete `self.run = self._reads_retried(self.run)` (`merge_train.py`) | `merge_train.py --self-test` | `229 checks, 5 failed` | `read retry:` train 8's shape (2 calls, 5 s); the settle is logged; five transient failures stop after 4 calls, 5/15/45 s; the last error and count; `gh pr view` is a read |
+| M-A: delete `self.run = self._reads_retried(self.run)` (`merge_train.py`) | `merge_train.py --self-test` | `229 checks, 5 failed` | `read retry:` five transient failures stop after exactly 4 calls, 5/15/45 s; naming the last error and the attempt count; `gh pr view` is a read; and others in the same arm |
 | M-A | `queue_pre_flight.py --self-test` | `43 checks, 1 failed` | `its reads are the train's, under the read retry: ... passes after exactly 2 reads` |
 | M-B: `_api` reads once (`gh_read.retry(...)` replaced by one `attempt()`) | `record_row.py --self-test` | `3 self-test check(s) failed` | `_api: a 500 twice, then 200, is read after exactly 3 calls`; `_api: and each settle is printed on stderr`; `_api: five 5xx queued ... after exactly 4 calls` |
-| M-C: the installation read calls `curl_get` once, outside `read_with` | `app_approve.sh --self-test` | `254 checks, 9 failed` | `a 502 on the installation read, then an answer, is approved`; `with exactly 2 calls` (x2); `after a printed settle of 5 s`; `a curl timeout (exit 28) ...`; `naming the status and message the API gave`; `after exactly 4 calls`; `settling 5/15/45 s`; `naming the last error` |
-| M-D: `is_read`'s attached short-form test `a[:2] in SHORT_FIELD_FLAGS` -> `a in SHORT_FIELD_FLAGS` (the pre-sweep bug) | `gh_read.self_test()` | `112 checks, 2 failed` | `is_read(gh api repos/o/r/x -fbody=x) is False`; `is_read(gh api repos/o/r/x -Fn=1) is False` |
-| M-E (round 2): `merge_pr.sh`'s fixture copies `merge_train.py` alone, as at `5907408d6` | `merge_pr.sh --self-test` | `18 checks, 1 failed` | `null control: the merge records the reviewed head (STALE: a re-run did not clear #42's head)`, the CI log's line |
-| M-F (round 2): delete `gh_read.py`'s `PR_PUSHERS` entry | `pr_args.sh --self-test` | `93 checks, 1 failed` | `the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps`, the CI log's line; `pr_args.sh --pushers` rc=1 |
-| M-G (round 2): delete `gh_read.py`'s `ref_privacy` `PUSHERS` entry | `ref_privacy.py --check` | rc=1, `1 refused` | `REFUSE tools/audit/seat/gh_read.py:401: a push site in a file PUSHERS does not name` |
+| M-C: the installation read calls `curl_get` once, outside `read_with` | `app_approve.sh --self-test` | `254 checks, 9 failed` (round 2, at `40c556fae`) | not re-run. `git diff --quiet 40c556fae HEAD -- tools/pr/app_approve.sh` exits 0, and its self-test does not read `gh_read.py`. The sweep's M mutants re-ran its region at `213630e84` (below). |
+| M-D: `is_read`'s `a[:2] in SHORT_FIELD_FLAGS` -> `a in SHORT_FIELD_FLAGS` | `gh_read.self_test()` | `122 checks, 2 failed` | `is_read(gh api repos/o/r/x -fbody=x) is False`; `is_read(gh api repos/o/r/x -Fn=1) is False` |
+| M-E: `merge_pr.sh`'s fixture copies `merge_train.py` alone | `merge_pr.sh --self-test` | `18 checks, 1 failed` | `null control: the merge records the reviewed head (STALE: a re-run did not clear #42's head)` |
+| M-F: delete `gh_read.py`'s `PR_PUSHERS` entry | `pr_args.sh --self-test` | `93 checks, 1 failed` | `the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps` |
+| M-G: delete `gh_read.py`'s `ref_privacy` `PUSHERS` entry | `ref_privacy.py --check` | rc=1, `1 refused` | `REFUSE tools/audit/seat/gh_read.py:439: a push site in a file PUSHERS does not name` |
 
-Failing first, for round 2: the CI red is the failing test. At `f38fc7db2` (round 1 plus main, before the fix), `merge_pr.sh --self-test` printed `18 checks, 1 failed` and `pr_args.sh --self-test` printed `93 checks, 1 failed`, the same lines as check-run 120184592953. `pr_args.sh --pushers` printed `OPEN tools/audit/seat/gh_read.py: undispositioned -- it names a pusher`. A copy of `merge_train.py` alone in an empty `tools/audit/seat/`, run with `unstale`, ends `ModuleNotFoundError: No module named 'gh_read'`. In a detached worktree of `5907408d6`, `ref_privacy.py --check` printed `1 refused` for `gh_read.py:401`. M-E, M-F and M-G put each red back at the final head.
-
-**The sweep**: `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py --jobs 4` at `40c556fae` prints `RESULT mutants=524 killed=494 equivalent=30 survivors=0`, rc=0, with no `TIMEOUT` line in its output (`grep -c TIMEOUT` prints 0). M0 and P0, the unmutated nulls, are `NULL-OK`. Round 1's history, kept as a record of what was done: the first full run printed `mutants=526 killed=468 equivalent=12 survivors=46`. Those were answered by the `is_read` fix (M-D), tests for untested branches, removing code the sweep showed redundant, not mutating annotations, and the equivalents below. Two later runs were void because of stale bytecode (`f20882626` runs the tiers under `PYTHONDONTWRITEBYTECODE=1` and `-B`). The first clean run's 2 survivors got rows in `3c67578bc`. Round 2 changes none of the sweep's targets (`gh_read.py`, `app_approve.sh`) or tiers (`gh_read.self_test()`, `merge_train.py`, `record_row.py`, `app_approve.sh`).
-
-**The equivalents**: 25 entries in the harness's `EQUIVALENT` table, keyed on line text and mutated text, each with its reason. Some match more than one mutant, so a run counts more equivalents than entries. They are PR 1's 12, `curl_get`'s 4 and `gh_read.py`'s 13, unchanged in round 2. Each reason is in the table.
+**The sweep**: `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py --jobs 3` at `213630e84` (`/opt/hpo/venv-ci/bin`, CPython 3.14.7) prints `RESULT mutants=545 killed=515 equivalent=30 survivors=0`, rc=0. `grep -c TIMEOUT` over its output prints 0. M0 and P0, the unmutated nulls, are `NULL-OK`. The harness's `EQUIVALENT` table is unchanged in round 3. It holds 30 entries (counted from `ast.parse` of the harness), each keyed on line text and mutated text and each with its reason in the table. No new line needed an entry: every mutant of `rate_limited` and of the rewritten `urllib_wait` and `named_wait` lines is killed. At `c2ebc548a`, a P-only run printed `mutants=355 killed=340 equivalent=14 survivors=1` (P102, above).
 
 ## Null control
 
-- Unmutated, at `40c556fae` and again at `2e930039d` (the job's 72 commands, plus `gh_read.self_test()` and `app_approve.sh --self-test` run directly): `gh_read self-test: 112 checks, 0 failed`; `record_row self-test: all checks passed`; `merge_train self-test: 229 checks, 0 failed`; `queue_pre_flight self-test: 43 checks, 0 failed`; `app_approve self-test: 254 checks, 0 failed`; `merge_pr self-test: 18 checks, 0 failed`; `pr_args self-test: 93 checks, 0 failed` (and the same tally through `open_pr.sh --self-test` and `update_pr.sh --self-test`); `ref_privacy self-test: 66 checks, 0 failed`. In each read-retry arm, a refusal (404, 401, a permission 403, 422, a wrong head, a write, a merge, curl exit 60, an installation answer with no `id`) makes exactly 1 call and does not settle.
-- **The pusher census, both ends** (`bash tools/audit/seat/pr_args.sh --pushers`): at `f38fc7db2`, rc=1 with one `OPEN` line, `tools/audit/seat/gh_read.py: undispositioned`. At `2e930039d`, rc=0 and `grep -c '^ok'` prints 19, which is the number of `PR_PUSHERS` entries (`printf '%s\n' "$PR_PUSHERS" | grep -c .`, the self-test's own equality). The census's own null controls in the self-test (a scratch `new_pusher.sh` refused as undispositioned, a runner without `pr_exit_trap` refused, a foreground push refused) still pass, so the census still refuses what it refused before.
-- **`ref_privacy --check`, both ends**: at `5907408d6`, `25 file(s) with a push site, 12 guarded, ... 1 refused`. At `2e930039d`, `25 file(s) with a push site, 12 guarded, 1160 line(s) added since e30b24bbc45a judged, 0 refused`. The file count does not change: the site was already counted, and only its disposition is added.
-- **merge_pr's flow**: unmutated, it records exactly `pr merge 42 --merge --match-head-commit dddd...` (40 `d`s). Its sibling arm (a refused merge fails the script) still passes, so the flow is not passing vacuously.
-- **The seam census**: at the merge base (`git archive e30b24bbc tools/audit/seat tools/pr`, then `--seams <that dir>`) it prints `PRECONDITION Train.run wrapped=False _api retried=False` and `SEAMS unretried_reads=27`, rc=1. At `2e930039d` it prints `wrapped=True _api retried=True` and `SEAMS unretried_reads=0`, rc=0.
-- **The agreement lane**: at `2e930039d`, `python3 -I tools/policy/agreement_py.py --restore` prints `14 closure file(s), 14 covered by the wave-script restore list, 0 missing`, rc=0.
+- **Unmutated, at `213630e84` and again at `a7f049628`** (`/opt/hpo/venv-ci/bin`):
+
+  | instrument | result |
+  |---|---|
+  | `gh_read` | `122 checks, 0 failed` (run directly, and inside `record_row --self-test`) |
+  | `record_row` | `all checks passed` |
+  | `merge_train` | `229 checks, 0 failed` |
+  | `queue_pre_flight` | `43 checks, 0 failed` |
+  | `app_approve` | `254 checks, 0 failed` |
+  | `merge_pr` | `18 checks, 0 failed` |
+  | `pr_args` | `93 checks, 0 failed` |
+
+  These also ran inside the 72-command job run below.
+- **The new rows' own control:** the rate-limit arm still waits. A 429 and a 403 `API Rate Limit Exceeded`, each on a spent bucket resetting in 20 s, settle exactly 20 s and answer on call 2. So "one call" on the 4xx rows comes from the status deciding, not from a bucket that is never read. M-H, the old order, turns the 4xx rows red and leaves these green.
+- **The pusher census** (`bash tools/audit/seat/pr_args.sh --pushers`, at `a7f049628`): rc=0, and `grep -c '^ok'` prints 19, the number of `PR_PUSHERS` entries. M-F is the census's red end.
+- **`ref_privacy --check`** at `a7f049628`: `25 file(s) with a push site, 12 guarded, 1201 line(s) added since f38f91852ea0 judged, 0 refused`. M-G is its red end, `1 refused`.
+- **The seam census**, at `a7f049628`: `--seams` prints `PRECONDITION Train.run wrapped=True _api retried=True` and `SEAMS unretried_reads=0`, rc=0. Round 2 recorded the merge-base end, `wrapped=False ... unretried_reads=27`, rc=1. Round 3 changes no seam, so that end was not re-taken.
+- **The agreement lane**, in a detached worktree of `a7f049628`: `python3 -I tools/policy/agreement_py.py --restore` prints `14 closure file(s), 14 covered by the wave-script restore list, 0 missing`. The worktree was restored afterwards.
 
 ## Figures
 
-- **The instrument-self-tests job, whole**: every `--self-test` and `--check` command in `governance.yml`'s `instrument-self-tests` job, taken from the job text (`awk '/^  instrument-self-tests:/{f=1} f&&/^  [a-z-]+:$/&&!/instrument-self-tests/{exit} f' .github/workflows/governance.yml | grep -E "^\s+(bash|python3|node) .*(--self-test|--check)"`), gives 72 commands. All 72 were run in a detached worktree of `2e930039d` under `/opt/hpo/venv-ci/bin` (CPython 3.14.7): 72 exited 0, and `grep -v '^rc=0'` printed no command line. The same 72 also exited 0 at `40c556fae`. At `b950125b4`, before the `ref_privacy` registration, the same run gave 71 exits of 0 and 1 exit of 1 (`ref_privacy.py --check`), which is how the third red was found. The only job command left out is `agreement_py.py --restore`, which edits the tree; it is in `## Null control`.
-- **The class's seams, round 2** (fixer.md step 8): the rule is "every check that enumerates tracked files and would refuse an undispositioned new one", which here means the two registries the job runs (`PR_PUSHERS` via `pr_args.sh --pushers`, ref_privacy's `PUSHERS` via `--check`), plus every fixture that copies a file the diff changes into a scratch tree: `git grep -nE 'cp .*(merge_train|record_row|queue_pre_flight|gh_read)\.py|cp .*app_approve\.sh' -- tools tests`. The Python form, `git grep -nE '(shutil\.copy|copyfile|copy2|write_text\(.*read_text).*(merge_train|record_row|queue_pre_flight|gh_read|app_approve)' -- tools tests`, is checked too. Together they return one site, `merge_pr.sh`'s copy, which is closed in this diff. At `5907408d6` the same site copied `merge_train.py` alone. Both registries are closed in this diff. The 72-command run above is the check that no other job command reads the new module and fails.
-- **The read seams** (round 1's census, re-run): `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py --seams | cut -f3 | sort | uniq -c`:
+- **The instrument-self-tests job, whole.** The commands are every `--self-test` and `--check` command in `governance.yml`'s `instrument-self-tests` job, taken from the job text: `awk '/^  instrument-self-tests:/{f=1} f&&/^  [a-z-]+:$/&&!/instrument-self-tests/{exit} f' .github/workflows/governance.yml | grep -E "^\s+(bash|python3|node) .*(--self-test|--check)"` gives 72. All 72 were run in a detached worktree of `a7f049628` under `/opt/hpo/venv-ci/bin`. 72 exited 0, and `grep -B1 -E '^rc=[1-9]'` printed nothing. The wall time was 377 s, measured with `date +%s`. The same run at `213630e84` also gave 72 exits of 0. The only job command left out is `agreement_py.py --restore`, which edits the tree; it is in `## Null control`.
+- **The class's seams, round 3** (fixer.md step 8). The rule: every read of a response header that steers the retry, against the status gate it sits behind. `grep -nE 'headers\.get\(' tools/audit/seat/gh_read.py tools/audit/seat/record_row.py tools/audit/seat/merge_train.py` returns three lines, all in `gh_read.py`:
+  - `Retry-After` in `named_wait`: honoured only after `http_transient` or `spent` lets the failure through. A 404 with `Retry-After` refuses at the `http_transient` return before the wait is used.
+  - `x-ratelimit-reset` in `named_wait`: read only under `spent`. Closed in this diff.
+  - `x-ratelimit-remaining` in `urllib_wait`: read only after `rate_limited(code, line)` (the `and` short-circuits). Closed in this diff.
+
+  `gh_wait` sees no headers (gh prints none), so merge_train's route has no such seam. `app_approve.sh`'s `curl_get` reads only `%{http_code}` (`grep -n ratelimit tools/pr/app_approve.sh` prints nothing), so it has no header seam either. `tests/nightly_status.py:539` reads `x-ratelimit-remaining` in a separate client with no retry loop: it is not this rule's caller, and it is not changed.
+- **The read seams** (`python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py --seams | cut -f3 | sort | uniq -c`, at `a7f049628`):
 
   | disposition | seams |
   |---|---|
-  | read, retried through `Train.run` (`self.run` 13, `self.out` 8, `self.t.run` 4) | 25: closed in this diff |
-  | read, `_api`'s `urlopen` under `gh_read.retry` | 1: closed in this diff |
-  | read, `read_with` (PR 1's four, plus the installation read through `curl_get`) | 5, plus the fetcher's own row (1) |
+  | read, retried through `Train.run` (`self.run` 13, `self.out` 8, `self.t.run` 4) | 25: closed in this PR |
+  | read, `_api`'s `urlopen` under `gh_read.retry` | 1: closed in this PR |
+  | read, `read_with` | 5, plus the fetcher's own row (1) |
   | the loop itself | 2 |
   | write or local (`write or local: never retried` 12, `write: never retried` 3) | 15: never retried, already guarded |
   | `gh api graphql` `closingIssuesReferences`, log-only | 1: not retried (alternatives above) |
   | git transport | 15: a distinct seam, carried |
 
-- **Scope**: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL -- every test script runs, nothing is scoped out.` (reason: `tests/closure.py changes the gate itself, so every closure is suspect`). As fixer.md step 5 says, that marks a diff the gate cannot scope. So I ran `tests/run.sh`'s `run_always` scripts and the scripts that read what changed, with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci/bin/python`: `tests/entities.py` (`ALL 2404 ENTITY CHECKS PASSED`), `tests/closure.py selftest` (`ALL 112 closure shrink pins PASSED`), `tests/harness_headers.py` (`ALL 109 HARNESS HEADER CHECKS PASSED`), `tests/layout.py` (`layout self-test: ok`), `tests/env_drift.py --claims-only e30b24bbc` (`claims hygiene: ... ok`). The rest is CI's.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c '_budgets.json$'` prints 0.
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `87 self-testing, 87 wired, 0 unwired`. `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
+- **Scope**: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL -- every test script runs, nothing is scoped out.` (reason: `tests/closure.py changes the gate itself, so every closure is suspect`). So I ran `tests/run.sh`'s `run_always` scripts and the scripts that read what changed, with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci/bin/python` (CPython 3.14.7), at `a7f049628`:
+
+  | script | result |
+  |---|---|
+  | `tests/entities.py` | `ALL 2406 ENTITY CHECKS PASSED` |
+  | `tests/closure.py selftest` | `ALL 112 closure shrink pins PASSED` |
+  | `tests/harness_headers.py` | `ALL 109 HARNESS HEADER CHECKS PASSED` |
+  | `tests/layout.py` | `layout self-test: ok` |
+  | `tests/env_drift.py --claims-only f38f91852` | `claims hygiene: ... ok` |
+
+  The rest is CI's.
+- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. `git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c '_budgets.json$'` prints 0.
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD` prints `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check` prints `87 self-testing, 87 wired, 0 unwired`. `python3 -I tools/audit/seat/tmp_paths.py --check` prints `0 refused`.
 - `git diff --quiet $(git merge-base origin/main HEAD)...HEAD -- VERSION 'custom_components/*/manifest.json' RELEASE_NOTES.md tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo NONE-TOUCHED` prints `NONE-TOUCHED`.
 - **A fixture that moved** (round 1): `queue_pre_flight.py`'s fixture Train takes `sleep=lambda s: None`. Its `gh: HTTP 500/502` "broken read" fixtures are now transient, and without it they would sleep through the 5/15/45 s schedule. The reads they pin are unchanged.
 
 ## Red checks
 
-- `instrument-self-tests` (check-run 120184592953, on `5907408d6`; green on main at `0d859d318`). This diff caused it, and it had three causes. Two are in the log: `merge_pr self-test: 18 checks, 1 failed` (the flow fixture copied `merge_train.py` without the `gh_read.py` it imports) and `pr_args self-test: 93 checks, 1 failed` (the pusher census returned `gh_read.py` undispositioned). The third, `ref_privacy.py --check` refusing `gh_read.py:401`, was red at `5907408d6` as well (reproduced in a detached worktree). All three are fixed in this diff (`## Mutation proof` M-E, M-F, M-G).
-  - **The cheaper detector and its standing cost**: running the job's own 72 commands locally before the handoff. It took 367 s of wall time at `2e930039d` and 341 s at `40c556fae` on this 4-core container, measured with `date +%s` around each run. The sweep shared the CPU during the second run. Round 1 ran only the self-tests of the files it changed. The three failing instruments are not in the diff; they read the diff's new file. `prepr.sh`'s `ci predict` step does not model this job (`grep -n instrument tools/pr/ci_predict.py` prints nothing), which is why round 1's body read `no closures or fast red predicted`.
-  - **Countermeasure**: none built here. Teaching `ci_predict.py` this job, or running the job's commands from `prepr.sh`, changes the gate and is outside this fix's scope. It is routed to root cause in `## Forward-carry`, not built.
+- **`nightly-status`** (check-run 120222854965, red on `b79c3d4f6`): `NIGHTLY RUNNING: no scheduled run has CONCLUDED; run 39890399205 ... still in_progress`. This is not this diff's cause: the first scheduled Nightly, run 39890399205 on main at `e30b24bbc`, had not concluded. It is named here because `governance.yml` is in the diff. Read again at 2026-10-23T03:43Z (one `get_workflow_run`), the run was still `status: in_progress`, so the check is expected red on this head too, until that run concludes.
+  - **The cheaper detector**: none. The check reads another workflow's live state, which no static step can predict.
+- **`pr-contract`** (check-run 120222982188, red on `b79c3d4f6`): the body lint printed `check \`nightly-status\` is red and \`## Red checks\` does not name it`. This body names it (above). It is answered by the body, not by code.
+  - **The cheaper detector and its standing cost**: `prepr.sh`'s body lint reads the live check runs, so it would have caught this if it had been run after nightly-status concluded red at 03:25:12Z. Round 2's body was linted before that. The cost is one re-lint at handoff time, already part of `body_push.sh`'s `--body-check` gate.
+- **`instrument-self-tests`** (check-run 120184592953, on `5907408d6`, round 1): this diff caused it, with three causes. The flow fixture copied `merge_train.py` without `gh_read.py`; the pusher census returned `gh_read.py` undispositioned; and `ref_privacy.py --check` refused `gh_read.py`'s fixture. All three were fixed in round 2 (M-E, M-F, M-G). Check-run 120222854741 was green at `b79c3d4f6`.
+  - **The cheaper detector and its standing cost**: running the job's own 72 commands locally before the handoff, 377 s at `a7f049628`. `prepr.sh`'s `ci predict` step does not model this job.
+  - **Countermeasure**: none built here. It is routed to root cause in `## Forward-carry`.
 
 ## Forward-carry
 
-- **Root cause for the red above** (`defect-root-cause.md`'s red-check trigger): `instrument-self-tests` turned this PR red on three instruments that copy or enumerate tracked files the diff adds. `prepr.sh` can run them, and its `ci predict` step does not model them. The cost test's inputs: about 6 minutes (341-367 s measured) per handoff to run the job locally, against one red PR cycle (the opener's refusal, then this round-2 seat). Carry: R10-FLY-GH-READ-RETRY
-- `git fetch`/`git push` are GitHub transport too (15 seams: 14 in `merge_train.py`, 1 in `app_approve.sh`'s carry path, which #2589's carry assigned to this PR). They are not API reads: git's smart-HTTP failures print git's own text (`fatal: unable to access '...'`, `error: RPC failed; HTTP 5xx`), not gh's status lines. Retrying them needs a classifier of its own, written against measured git stderr, not guessed. None has stopped a train in the brief's eleven. Carry: R10-FLY-GH-READ-RETRY
-- For PR 3 (`pr-contract.yml`'s body read): `printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify` already answers gh's classes (exit 0 transient), with the rule stated once. A workflow step can use it instead of writing a third classifier, and the non-JSON-body class that carry names would be added there, with a row in `ALTERNATIVES()`'s table. Carry: R10-FLY-GH-READ-RETRY
-- `tools/ci/ghapi.py` is a second urllib GitHub client with no read retry. Its `get` returns a 5xx to the caller, and every `tools/ci/` hook judges it. When those hooks want a retry, the rule to wrap `ghapi.get` in is `gh_read.retry` with `gh_read.urllib_wait`, not a third one. Carry: R10-CI-LAYOUT-P2
+- **Root cause for the instrument-self-tests red** (`defect-root-cause.md`'s red-check trigger): `instrument-self-tests` turned this PR red on three instruments that copy or enumerate tracked files the diff adds. `prepr.sh` can run them, and its `ci predict` step does not model them. The cost test's inputs: about 6 minutes (377 s measured) per handoff to run the job locally, against one red PR cycle. Carry: R10-FLY-GH-READ-RETRY
+- `git fetch`/`git push` are GitHub transport too (15 seams: 14 in `merge_train.py`, 1 in `app_approve.sh`'s carry path). They are not API reads: git's smart-HTTP failures print git's own text, not gh's status lines. Retrying them needs a classifier of its own, written against measured git stderr. Carry: R10-FLY-GH-READ-RETRY
+- For PR 3 (`pr-contract.yml`'s body read): `printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify` already answers gh's classes (exit 0 transient). A workflow step can use it instead of a third classifier, and the non-JSON-body class that carry names would be added there, with a row in `ALTERNATIVES()`'s table. A urllib caller there must use `urllib_wait`, which reads the bucket only on a rate-limit response (round 3). Carry: R10-FLY-GH-READ-RETRY
+- `tools/ci/ghapi.py` is a second urllib GitHub client with no read retry. When its hooks want one, the rule to wrap `ghapi.get` in is `gh_read.retry` with `gh_read.urllib_wait`, not a third one. Carry: R10-CI-LAYOUT-P2
 
 ## Friction
 
@@ -124,5 +176,11 @@ none
 
 ## Lint results
 
-`PATH=/opt/hpo/venv-ci/bin:$PATH PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`, run in a detached worktree of `2e930039d`, prints `PRE-PR: 2e930039dd692271bc968a7108f2f8ec056070cd 0000000000000000000000000000`, rc=0. Every step is `ok` or `clean` except `closures` (skipped by `PREPR_SKIP_CLOSURES`), `unpinned sites` (the diff adds none), and `push order` and `ancestry reds` (HEAD is detached, so no remote branch is the head). `instrument-self-tests` is answered under `## Red checks` either way.
+`PATH=/opt/hpo/venv-ci/bin:$PATH PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`, run at `a7f049628`, prints `PRE-PR: a7f04962896d8588e3b8d1a670cf411c516dc27d 0000000000000000000000000000`, rc=0. Every step is `ok` or `clean` except three:
+- `closures`: skipped by `PREPR_SKIP_CLOSURES`.
+- `unpinned sites`: the diff adds none.
+- `push order` and `ancestry reds`: the seat's local branch has no remote, so neither step had a branch to read.
+
+`ci predict` prints `no closures or fast red predicted against f38f91852ea0`. `pr-body` prints `0 error(s)`, and `figures` prints `14 resolved, 2 not verified, 0 refused`.
+
 `python3 tools/audit/carry_audit.py check --body <this body>` prints `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)`.
