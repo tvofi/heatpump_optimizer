@@ -1,8 +1,0 @@
-check-runs at ff6cfdaab (commit check-runs API via pull_request_read get_check_runs), read 2026-10-23 ~05:15Z
-red:   budget-raise-gate (runs 39901137851 job 120242736142; 39901136670 job 120242732058) failure
-red:   nightly-status (run 39901137865 job 120242913453) failure -- grades main; the diff touches no nightly input
-running at read: fast (3.14), mutation
-green: pr-contract x2 (04:35:35Z, 04:36:08Z; the second started after the last red to conclude, budget-raise-gate 04:35:49Z),
-       arch-score x2, closures, closure-scope, coverage, coverage-ratchet, browser, typing, briefs, policy-docs, delivery-status,
-       env-matrix, wave-script, instrument-self-tests, validate-hacs, hassfest, graders-head-copy, CodeQL, Analyze x3, scope, cancel-superseded x2
-skipped: nightly-ha, kernel-points, delivery-status-publish, record, closures-autofix

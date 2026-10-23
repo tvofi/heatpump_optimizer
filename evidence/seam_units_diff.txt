@@ -1,0 +1,13 @@
+total base 708 head 714
++1 grid _scores_view attr:_score_day
++1 learning _scores_view attr:_house_heat_loss_samples
++1 learning async_restore_learned_snapshot attr:async_request_refresh
+-1 learning async_restore_learned_snapshot attr:async_update_listeners
++1 learning coordinator.model_restart_advice attr:_house_heat_loss_scale
++1 views _scores_view attr:_house_heat_loss_samples
++1 views _scores_view attr:_score_day
+-3 views _scores_view attr:_thermal_params
++1 views coordinator.model_restart_advice attr:_accuracy
++1 views coordinator.model_restart_advice attr:_config
++1 views coordinator.model_restart_advice attr:_house_heat_loss_scale
++1 views coordinator.model_restart_advice attr:_thermal_params

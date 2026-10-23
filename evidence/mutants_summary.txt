@@ -1,0 +1,19 @@
+== null: ALL 4330 FEATURE CHECKS PASSED
+== R7: 1 of 4330 FEATURE CHECKS FAILED
+  FAIL #2258: a restore asks for a cycle, and that cycle's advice offers no refit and grades the house on the restored scale  [before={'drift_alarm': True, 'current_scale': 1.4, 'refit': {'scale': 1.56, 'band_percent': 10, 'pairs': 168, 'settled_days': 3.5, 'required_days': 3.0, 'settled_since': '2026-03-06T03:00:00+00:00'}, 'restore': {'taken_at': '2026-03-01T03:00:00+00:00', 'scale': 1.0}} view={'drift_alarm': True, 'current_scale': 1.0, 'refit': {'scale': None, 'band_percent': 10, 'pairs': 0, 'settled_days': 0.0, 'required_days': 3.0, 'settled_since': '2026-03-09T17:00:00+00:00'}, 'restore': {'taken_at': '2026-03-01T03:00:00+00:00', 'scale': 1.0}} refreshes 0]
+== R7del: 1 of 4330 FEATURE CHECKS FAILED
+  FAIL #2258: a restore asks for a cycle, and that cycle's advice offers no refit and grades the house on the restored scale  [before={'drift_alarm': True, 'current_scale': 1.4, 'refit': {'scale': 1.56, 'band_percent': 10, 'pairs': 168, 'settled_days': 3.5, 'required_days': 3.0, 'settled_since': '2026-03-06T03:00:00+00:00'}, 'restore': {'taken_at': '2026-03-01T03:00:00+00:00', 'scale': 1.0}} view={'drift_alarm': True, 'current_scale': 1.0, 'refit': {'scale': None, 'band_percent': 10, 'pairs': 0, 'settled_days': 0.0, 'required_days': 3.0, 'settled_since': '2026-03-09T17:00:00+00:00'}, 'restore': {'taken_at': '2026-03-01T03:00:00+00:00', 'scale': 1.0}} refreshes 0]
+== R13: 1 of 4330 FEATURE CHECKS FAILED
+  FAIL #2258: one cycle view offers the refit and grades the house against it  [{'drift_alarm': True, 'current_scale': 1.0, 'refit': {'scale': 1.16, 'band_percent': 10, 'pairs': 168, 'settled_days': 3.5, 'required_days': 3.0, 'settled_since': '2026-03-06T03:00:00+00:00'}, 'restore': {'taken_at': '2026-03-01T03:00:00+00:00', 'scale': 1.0}} {'envelope': 58.3, 'machine': None, 'operation': None, 'overall': None, 'reasons': {'machine': 'cop_watch_learning', 'operation': 'no_scored_day', 'overall': 'first_scored_day'}}]
+ .../heatpump_optimizer/coordinator.py              |  2 +-
+ tests/features.py                                  | 47 ----------------------
+ 2 files changed, 1 insertion(+), 48 deletions(-)
+ .../heatpump_optimizer/coordinator.py              |  2 +-
+ tests/features.py                                  | 47 ----------------------
+ 2 files changed, 1 insertion(+), 48 deletions(-)
+R7 without round-3 pins rc=0 ALL 4328 FEATURE CHECKS PASSED
+[1]-  Done                    ( cd $W/m-$m && git show 19319cc13:tests/features.py > tests/features.py && git diff --stat && PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python tests/features.py > $W/ev/mut-$m-features-without-pins.log 2>&1; echo "$m without round-3 pins rc=$? $(grep -E 'FEATURE CHECKS' $W/ev/mut-$m-features-without-pins.log | tail -1)" )
+R13 without round-3 pins rc=0 ALL 4328 FEATURE CHECKS PASSED
+[2]+  Done                    ( cd $W/m-$m && git show 19319cc13:tests/features.py > tests/features.py && git diff --stat && PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python tests/features.py > $W/ev/mut-$m-features-without-pins.log 2>&1; echo "$m without round-3 pins rc=$? $(grep -E 'FEATURE CHECKS' $W/ev/mut-$m-features-without-pins.log | tail -1)" )
+
+[exited with code 0]

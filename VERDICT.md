@@ -1,130 +1,106 @@
-Fix review: blocked ff6cfdaabc39647855987ae54fed4a3449eb2c47 mutation-vacuous: restore's async_request_refresh reverted to async_update_listeners, and _insight_view handing _scores_view an empty advice, both survive features, entities and finite_boundary
+Fix review: merge 488cbef71b0ded138cd75b0f1ea0542350a6f52b
 
-bus-nonce: c6edd5b09341e954f6a0552c0ad06492
+bus-nonce: 2fe32f1208ceef2db69dbff9efd478aa
 
-PR #2647, group R10-SCORES, fix round 2 (the round-2 fixer on the approved design `design/r10-scores`, `Design review: approve f01e06d24`). This is not the fourth round, so a repair is owed, not a re-cut. I found no round-1 fix verdict for this group on any `probe/rev-*`, `review/*` or `verdict/*` ref, and #2647 has no comments. I read the design verdict (`design-verdict/r10-scores` `7a09f4641`, round 3, approve).
+PR #2647, group R10-SCORES, fix round 3. This is not the fourth round, so a repair was owed, not a re-cut. Round 2 (`probe/rev-2647-c6edd5b0`, at `ff6cfdaab`) blocked on mutation-vacuous R7/R13 and on carry-missing. Both are resolved at this head.
 
-Measured head: `ff6cfdaabc39647855987ae54fed4a3449eb2c47` (`ev/HEAD.txt`), from detached worktrees at that SHA. It was still the PR head at 05:40Z, re-read just before writing this verdict. The code head is `19319cc13`; `ff6cfdaab` adds only `dev/programme/delivery/2647.md`.
+Measured head: `488cbef71b0ded138cd75b0f1ea0542350a6f52b` (`ev/HEAD.txt`), from a detached worktree at that SHA. It was still the PR head at 07:43Z, re-read before writing this.
+- Merge base: `a243a79f4` (origin/main's tip). The roles diff `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so `fix-review.md` is current.
+- Round 3's code head `902acfe28` adds only `tests/features.py` (+47, two checks). The merge commit `488cbef71` adds only `dev/programme/delivery/2647.md`. There is no production diff since round 2.
+- Toolchain: `/opt/hpo/venv-ci/bin/python`.
 
-- Merge base: `f38f91852`.
-- `fix-review.md` is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, at main `a7cf60cfd` and again at `c26499e01`.
-- Toolchain: `/opt/hpo/venv-ci/bin/python` (3.14.7), node 22.
+## RESULT
 
-## Block
-
-1. **mutation-vacuous (step 1).** I ran two production mutants of lines the body names over the whole Python closure that could kill them: `tests/features.py`, `tests/entities.py` and `tests/finite_boundary.py`. Both survive all three.
-   - **R7.** In `async_restore_learned_snapshot`, `await self.async_request_refresh()` becomes `self.async_update_listeners()` (coordinator.py:9525). This is the base behaviour.
-     - Result: `ALL 4328 FEATURE CHECKS PASSED`, `ALL 2406 ENTITY CHECKS PASSED`, `ALL 106 FINITE BOUNDARY CHECKS PASSED`.
-     - The body's item 3 says "The adopt and restore services now `async_request_refresh()`". The design verdict made both paths a test arm ("Both must refresh … That is a test arm").
-     - M11 pins only the adopt path. The restore checks at features.py:17929-17943 assert only the return value, and entities.py:14816 replaces the method with a stub.
-     - The ledger cannot see this line: an awaited expression statement draws no generated site. That is why `## Unpinned sites: none` and `ci_predict` are silent. Evidence: `ev/mut-R7_restore_listeners.diff` and `.log`, `ev/c2-R7_restore_listeners-*.log`.
-     - Fix wanted: a restore arm like M11's check. After a restore, the cycle that follows re-takes the advice: no refit is offered for the restored scale, and the grade reads the restored scale.
-   - **R13.** In `_insight_view`, `"scores": self._scores_view(advice)` becomes `self._scores_view({})` (coordinator.py:10575).
-     - Result: `ALL 4328 FEATURE CHECKS PASSED`, `ALL 2406 ENTITY CHECKS PASSED`, `ALL 106 FINITE BOUNDARY CHECKS PASSED`.
-     - This is item 3's own claim: "the envelope grade reads the same take" as the advisor. Under R13 the advisor sensor offers a refit while the house grade stays graded, the contradiction item 3 forbids.
-     - Every `heat_loss_refit_disagrees` check calls `envelope_score` or `_scores_view(advice)` with a hand-built advice. No check reaches the cycle path, where `insight.model_restart` and `insight.scores` come from one `_insight_view()`.
-     - Evidence: `ev/mut-R13_scores_fresh_advice.diff` and `.log`, `ev/c2-R13_scores_fresh_advice-*.log`.
-     - Fix wanted: one `_insight_view()` on a coordinator whose refit sits outside its band. Assert that `model_restart.refit` is offered and that `scores.reasons.envelope == "heat_loss_refit_disagrees"`.
-
-2. **carry-missing (step 10): not carried to R10-LEARNER-ETA, R10-UX-HEALTH and R10-ARCH-DOCS.**
-   - Three `## Forward-carry` items name no landed SHA. At `origin/handoff/audit-r10-roster` `8de7e22ac` their text is in neither those groups' `carry[]` nor their `brief`:
-     - **R10-LEARNER-ETA**: "must read `house_loss_converged`, never a second threshold". This narrows what that stage may do.
-     - **R10-UX-HEALTH**, first bullet: the score sensor is `unknown` with `reasons`, and Health's "learned" now means 50 samples. This invalidates an assumption the stage rests on.
-     - **R10-ARCH-DOCS**: the `[target: R10-SCORES]` line, with what landed and what did not.
-   - All three groups are `not-started`.
-   - Only the two "New finding" items (`9a4953627`, `75c891e28`) and the bundle blocker (`c3711a1f0`) are on the roster. Each of those is an ancestor of the branch tip, and I read each one back.
-   - `carry_audit.py check --body` reads `7 routed, 0 unrouted` (`ev/carry_audit.txt`). It checks that the marker exists, not that the carry landed, so `pr-contract` green does not settle this. `finding-propagation.md`: "The producing PR does not merge until the carry is in the tree."
-   - Fix wanted: land the three carries with their controls, and name the roster SHA in the body.
-
-## Findings
-
-- **Non-blocking (step 2/9, the harness).**
-  - The design names the finder's harness for item 2: `dev/audit/rounds/round10/study-reseed/live_store.py --ratio-override 1.0`. It needs the owner's bundle, which this container does not have. It reads the seams `_space_demand_kw` and `adoption_decision`, never the envelope grade, so it cannot measure this fix at either end.
-  - `dev/audit/harnesses/r10_scores_envelope.py` is the fixer's own instrument. Its header says so ("This harness drives …"), but the body presents it as "Item 2's harness" without the words "this PR's instrument, not the finder's".
-  - I ran it at both ends, and I built my own probe (`ev/probe_env.py`). It calls `envelope_score` directly against RATIO-SITES' formula, tau = mass / ((U + L·r)·s).
-  - Both agree with the body (Evidence). The bundle-dependent arms stay carried to R10-PARAMS-OWNER (`c3711a1f0`). Carry: dismissed: the fixer's instrument is in the tree with its own header, and the finder's harness needs the bundle R10-PARAMS-OWNER holds
-- **Non-blocking (step 11).** `tests/entities.py` at the head reads `ALL 2406 ENTITY CHECKS PASSED` here (`ev/c2-head-entities.log`). The body says `4 of 2402 ENTITY CHECKS FAILED` for the `hb:positive_control` py-spy retry arm, on its own machine. The arm depends on the environment, and CI `fast` was still running when I read it, so `fast` decides this one. Carry: dismissed: environment-dependent heartbeat arm, CI fast is the arbiter
+RESULT r7_mutant_with_pins=red (1 of 4330: "#2258: a restore asks for a cycle, ...")
+RESULT r7_mutant_without_pins=green (ALL 4328, tests/features.py at 19319cc13)
+RESULT r7_delete_mutant_with_pins=red (1 of 4330, same check)
+RESULT r13_mutant_with_pins=red (1 of 4330: "#2258: one cycle view offers the refit and grades the house against it")
+RESULT r13_mutant_without_pins=green (ALL 4328)
+RESULT null_control=green (ALL 4330 FEATURE CHECKS PASSED)
+RESULT carry_audit=7 routed, 0 unrouted, 0 bad
+RESULT seam_cut_total base=708 head=714 (re-derived by my own per-unit probe and by structure.py)
+RESULT archscore=dS +0.0105 IMPROVES (coord_footprint 2489 -> 2471)
+RESULT ci_predict=no closures or fast red predicted
+RESULT merge_tree=clean (rc 0)
+RESULT ref_privacy_round3=rc 0 (902acfe28, ac0ca52b3, 488cbef71)
+RESULT ci_red=budget-raise-gate only (answered)
 
 ## Brief items
 
-- **(a) Owner items 1-3 and C3: answered.**
-  - Item 1: `readNumber` is byte-identical to C3's patch at `3930b421a`. The sub-scores read through it in `scoreParts`. The headline reads through `statNumber`, which handles `unknown` and `unavailable`, and its state is a string, never `null`. The two `finiteScore` sites are gone.
-  - Item 2: the loss is `_effective_house_heat_loss`, with the convergence dash and the refit dash.
-  - Item 3: one advice per cycle, `insight.model_restart`. There is a card census over every score input, and a backend sweep `learned == house_loss_converged(samples)`, as the design review's carry asked.
-  - The `Number(attrs.*)` census re-derives as the body says: 4 sites at the head outside scores, all in the Advisor rows and carried. The grep also matches the `readNumber(attrs[key])` line itself, which is benign.
-  - Item 3 is **not pinned** at the two wiring points in Block 1.
-- **(b) The six ledger score sites (`a9099faf3`): each mutated back, each red** (`ev/mutants.txt`):
+### (1) R7 and R13 are no longer mutation-vacuous
 
-  | site | mutant | result |
-  |---|---|---|
-  | `_watched_cop_buckets` CMP_BOUND 5235f6e3 | `>=` -> `>` | 1 of 4328 failed: `a COP bucket at exactly the minimum sample count is watched…` |
-  | `_refit_disagrees` CMP_BOUND fcdeb271 | `>` -> `>=` | 1 failed |
-  | `envelope_score` CMP_BOUND 88c2835d, loss site | `<= 0.0` -> `< 0.0` | ZeroDivisionError |
-  | `envelope_score` CMP_BOUND 88c2835d, mass site | `<= 0` -> `< 0` | 1 failed |
-  | `envelope_score` GUARD_OFF 88c2835d | guard -> `if False:` | ZeroDivisionError |
-  | `machine_score` CLAMP_DROP 4fe0081d | clip dropped | 1 failed |
+Each mutant was planted alone in a copy of the head and run with `PYTHONPATH=tests/hastub tests/features.py`.
 
-  My own mutants are all red too, except R7 and R13:
+- **R7.** At coordinator.py:9525, `await self.async_request_refresh()` becomes `self.async_update_listeners()`.
+  - Result: `1 of 4330 FEATURE CHECKS FAILED`. The failing check is `#2258: a restore asks for a cycle, and that cycle's advice offers no refit and grades the house on the restored scale` (`refreshes 0`).
+  - A stronger variant replaces the line with `pass`. It fails the same check.
+- **R13.** At coordinator.py:10575, `self._scores_view(advice)` becomes `self._scores_view({})`.
+  - Result: `1 of 4330 FEATURE CHECKS FAILED`. The failing check is `#2258: one cycle view offers the refit and grades the house against it`.
+  - Under R13 the envelope grades 58.3 with no `envelope` reason while the advisor offers 1.16.
+- **Without the pins.** I put `tests/features.py` from `19319cc13` back into the same two mutant copies. Both read `ALL 4328 FEATURE CHECKS PASSED`.
+- **Null control.** The unmutated head reads `ALL 4330 FEATURE CHECKS PASSED`.
+- **The ledger.** `tests/mutation_table.py --list <kind>`, over every ratcheted kind, generates no site at 9525 or 10575. The only nearby site is 9526 `return True` RETURN_DEL. It is UNPINNED, but it predates this branch (blame `86425b9ad`).
+  - So R7 and R13 have no ledger row and no `killed_by`. Their pins are the two features checks, as the body says.
+  - The 25 ledger rows the branch adds or renames carry `killed_by` `tests/features.py` (23) or `tests/structure.py` (2) (`ev/ledger_rows_killed_by.txt`).
+- The R7 check kills through the stub's `refresh_requests` counter. Its view assertions hold under the mutant, because the test calls `_insight_view()` itself. The counter pins the production line, which is what the design verdict asked: "both must refresh".
+- Evidence: `ev/mut-*.diff`, `ev/mut-*-features*.log`, `ev/mutants_summary.txt`, `ev/ledger_sites_R7_R13.txt`.
 
-  | mutant | change | result |
-  |---|---|---|
-  | R1 | M2's configured loss | 1 failed: the two-zone check |
-  | R2 | M9 | 2 failed |
-  | R3 | M7's precedence swap | 1 failed |
-  | R4 | band measured on the fitted scale | 1 failed |
-  | R5 | a reason for every grade | 4 failed |
-  | R6 | M11 | 1 failed |
-  | R8 | operation reason constant | 1 failed |
-  | R9 | convergence at half a time constant | 2 failed |
-  | R10 | M6 | ValueError |
-  | R11 | sensor pre-cycle fallback scale -> None | 1 failed |
-  | R12 | a missing refit disagrees | TypeError |
-  | C1 | M1 (card) | 8 CARD CHECK(S) FAILED |
-  | C2 | M12 (card) | 1 failed |
-  | C3 | generic reason text | 8 failed |
+### (2) The three carries resolve on the roster
 
-- **(c) "Part of #2238 and part of #2258": right.**
-  - The roster's `fixes` is `[]` for R10-SCORES.
-  - The body and all 17 commit messages hold no closing keyword (`close|fix|resolve #N`).
-  - Both issues are open, with `closed_by_pull_requests: 0`.
-  - #2258's bundle arms are carried to R10-PARAMS-OWNER, so #2258 must stay open.
-- **(d) `## Red checks`.**
-  - The reds on the head are `budget-raise-gate` ×2 and `nightly-status`. `budget-raise-gate` is answered. `nightly-status` grades main, and the diff touches nothing it reads.
-  - `mutation` and `fast` were still running when I read CI (~05:15Z). The body pre-answers both: mutation at `04ab79356`, and entities' heartbeat arm.
-  - The second `pr-contract` run, started 04:36:08Z, began after the last red to conclude (`budget-raise-gate` at 04:35:49Z) and is green.
-  - My block does not rest on CI (`ev/checks.txt`).
-- **(e) The raise.**
-  - `seam_cut_total` 708 -> 714 reproduces: main learning 281, grid 158, views 106; head 283, 159, 109 (`ev/structure-*.log`).
-  - archscore `--diff origin/main` reproduces `dS +0.0105 IMPROVES`, `coord_footprint 2489 -> 2471` (`ev/archscore.log`).
-  - The four payments taken are sound:
-    - envelope out of the class;
-    - `restart_advice` made pure;
-    - `async_request_refresh` over an in-place write;
-    - the pure composition functions.
-  - Each moves code to pure module functions or reuses an existing mechanism, and none games the instrument.
-  - The `class_excess_loc` and `max_class_loc` falls are real: 18244 and 8480 at the head.
-  - Untried payments: I hunted one. The advice could be taken in the learning seam (`_async_watch_learning_drift`), stored, and read once from views. That needs a new coordinator attribute, and `coordinator_attrs` sits at 147 of 147 with zero headroom, so it trades one raise for another and is not a free payment.
-  - Re-seating (5) and the dict-smuggling of (7) were correctly refused as moving the charge.
-  - I found no untried payment that improves the code.
+`59c2ebc02`, `524d335a0` and `1f27f9daf` are each a `roster_edit append-carry` commit and an ancestor of `origin/handoff/audit-r10-roster` `bb7c6eb27`. I read each group's `carry[]` back at that tip (`ev/carries.txt`).
+- R10-LEARNER-ETA, R10-UX-HEALTH and R10-ARCH-DOCS each hold the body's Forward-carry text verbatim, prefixed `(from R10-SCORES #2647, Forward-carry)`.
+- `carry_audit.py check --body` reads `7 routed, 0 unrouted, 0 bad destination(s)` here (`ev/carry_audit.txt`) and in CI's `pr-contract`.
 
-## Evidence
+### (3) The seam_cut_total raise (708 -> 714) is honestly unpayable
 
-- RESULT head `tests/features.py`: `ALL 4328 FEATURE CHECKS PASSED`, rc 0. That is 4325 plus the three new checks (`ev/features-head.log`).
-- RESULT head `node tests/card.mjs`, after `tests/plan_view.py`: `ALL CARD CHECKS PASSED`, rc 0 (`ev/card-head.log`).
-- RESULT head `tests/entities.py`: `ALL 2406 ENTITY CHECKS PASSED`. `tests/finite_boundary.py`: `ALL 106 FINITE BOUNDARY CHECKS PASSED` (`ev/closure2.txt`).
-- RESULT fixer harness `r10_scores_envelope.py`, sha1 `272d5175…`:
-  - head: `split_max_abs_gap=0.0`; ends arm at 0 samples `None heat_loss_learning`; at 2000 samples 79.2 / 0.0 (`ev/harness-head.log`);
-  - origin/main, production identical to the merge base: `split_max_abs_gap=10.5` (split 0.5, scale 1.0: 6.2 against 16.7); ends arm at 0 samples 79.2 / 0.0;
-  - `--ratio-override 1.0` at the base: `0.0` (`ev/harness-base*.log`).
-  - These match the body.
-- RESULT my probe at the head (`ev/probe-env-head.log`):
-  - `probe_max_gap=0.00e+00` over 40 cells (single- and two-zone, r ∈ {0.5, 0.8, 1, 1.25, 2}, s ∈ {0.3, 1, 2.6, 3});
-  - 49 samples gives `(None, heat_loss_learning)`, 50 samples a grade;
-  - refit edge at scale 2.0, band 25 %: 2.5 / 2.51 / 1.5 / 1.49 give False / True / False / True.
-- RESULT `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
-- RESULT step 13: `git merge-tree --write-tree` against origin/main `a7cf60cfd` and `c26499e01` exits 0 both times, with no conflict and no claim driver invoked (`ev/merge_tree.txt`).
-- RESULT steps 4-5: `VERSION` 7.0.4, the manifest and `RELEASE_NOTES.md` are untouched. Both `claims-for:` lines read 7.0.4. The claimed set is exactly the five `coord_*` fixtures plus card `score_open`, matching the body. I did not re-run `env_drift --all` or `card_drift` myself; CI `fast` carries them.
-- RESULT step 6: the body's two census rules re-derive.
-  - Card: 4 `Number(attrs.*)` sites at the head, 4 plus 3 `finiteScore` at the base.
-  - UA grep: the envelope site is gone.
-  - The remaining hits are split-aware (`_space_demand_kw`, optimizer.py:2197, thermal_model.py:2283), single-zone branches, the lower-floor learner's own base, or tanks.
+- **Where the +6 sits.** I re-derived it with my own instrument, `ev/probe_seam_units.py`: per-unit crossings counted by `structure.py`'s `seam_metrics` rule. Base and head read 708 and 714, matching `structure.py` (`ev/seam_units_diff.txt`). The cause:
+  - **+5 `model_restart_advice`.** The cycle now hands it the coordinator, so it becomes a priced helper. Its four reads (`_accuracy`, `_config`, `_house_heat_loss_scale`, `_thermal_params`) cross views, and the scale also crosses learning. This is the design's holder: advice taken once per cycle.
+  - **+1 net in `_scores_view`.** It adds `_house_heat_loss_samples` (+2, the convergence dash) and `_score_day` (+2, the operation reason). Three `_thermal_params` reads collapse into one (-3). The restore's refresh swap is net 0.
+- **Each payment the body lists**, judged against that table:
+  - (1), (2) and (4) are taken. They moved code out of the class, and `class_excess_loc` and `max_class_loc` now sit under main's budget.
+  - (3), the in-place write and the reassignment, was correctly refused. Archscore and `coordinator_attrs` respectively rule it out.
+  - (5), a re-seat to `learning`, measures 714 with my probe, so it buys nothing. That agrees with the body.
+  - (6) and (7) only move the same reads, or hide them.
+- **Payments I hunted that the body does not list:**
+  - Re-seat `model_restart_advice` to `core`: it reads 711. It is a relabel of the seam map, with no code moved and no read removed. That is gaming the score, which pays nothing, so it is not a payment.
+  - A core or grid method composing the operation `(grade, why)` so that `_scores_view` stops reading `_score_day` and `_operation_score`: by the rule, -4 +2 +1 = -1 on the seam cut. It adds a unit to the coordinator span, though, and `class_excess_loc` and `max_class_loc` are at zero headroom. It trades one capped metric for another and does not improve the architecture.
+- No unpaid payment improves the architecture. The `## Raise justification` lists each payment with the `Architecture score: dS +0.0105` line, and I re-took archscore at the head: `dS +0.0105 IMPROVES`.
+- The raise itself is main's to rule under the mandate; I did not judge it.
+
+### (4) Author identity
+
+- **Footers.** `ref_privacy.py guard --commits` judges only commits no remote-tracking ref holds. I ran it in a scratch repo where the only remote refs were origin/main `a243a79f4` and the previous head `ff6cfdaab`, so it judged exactly this round's three commits (`902acfe28`, `ac0ca52b3`, `488cbef71`). The result was rc 0, no refusal (`ev/ref_privacy_round3.txt`). This round's messages carry no attribution class.
+- **Author identity is not refused.** The guard reads only the author and committer emails. `noreply@anthropic.com` is a public domain, so `host-email` passes. The author name "Claude" is not judged by any class.
+- **The whole range.** Run against only origin/main, the guard refuses `co-author-trailer` on `ff6cfdaab` (rc 3). Rounds 1-2's Claude-authored commits carry session-link, session-trailer and co-author-trailer (`ev/attribution_per_commit.txt`). The brief scopes footers to this round, and those commits are already on the remote, so this does not block.
+
+### (5) Red checks
+
+- **CI read.** I read CI with one bulk read: `commits/488cbef71/check-runs?per_page=100`, 41 runs, all completed (`ev/check-runs.json`, `ev/check-runs.txt`).
+- **The only red is `budget-raise-gate`** (two runs): `RAISE tests/structure_budgets.json: seam_cut_total: 708 -> 714` and `REFUSED: no decisive review by tvofi`. The body's `## Red checks` names it and answers it.
+- **`pr-contract` checked the body after the red.** The run that started at 06:46:10Z, after the last red concluded at 06:45:59Z, is green. It shows no version edit and `CARRY-AUDIT ... 0 unrouted`.
+- **`mutation` is green, and its log separates the cases** (`ev/ci_mutation_summary.txt`):
+  - the baselines for env_drift, features and entities are rc 0;
+  - the null control survived;
+  - `PIN RE-VERIFICATION: 5 reproduced`;
+  - `0 survivor(s) of 5 evaluated`;
+  - `MUTATION TABLE PASSED`.
+
+  It was evaluated, not INCONCLUSIVE.
+- **The rest.** `fast (3.14)` is green (07:42Z), and so are `closures`, `env-matrix`, `coverage`, `browser`, `typing` and `instrument-self-tests`. `nightly-status` is green.
+- **`ci_predict`.** `tools/pr/ci_predict.py --base origin/main` at the head reads `CI PREDICT: no closures or fast red predicted`. No ADDED UNPINNED and no stale pin means no mutation red is predicted (`ev/ci_predict.log`).
+
+## Other steps
+
+- **Step 2/9, the harness.** The roster group's `harness` is null. The design's finder harness (`study-reseed/live_store.py`) needs the owner's bundle. That arm stays carried to R10-PARAMS-OWNER (`c3711a1f0`), as round 2 found. Round 3 moved no production line, so round 2's both-ends envelope measurement stands.
+- **Steps 4 and 5.** Neither claim file nor any golden moved in round 3. `VERSION`, the manifest and the notes heading are untouched (the diff is 0 lines, and pr-contract reads no version edit).
+- **Step 7.** The body's head and code head (`902acfe28`) match what I measured.
+- **Step 13.** `git merge-tree --write-tree origin/main 488cbef71` exits 0 with no conflict (`ev/merge-tree.txt`).
+- **Step 14.** The structure budgets are as above. `structure.py` reads `STRUCTURE RATCHET PASSED` (`ev/structure.log`). The two falls are earned by the payments that moved code out of the class (`ev/structure_base_results.txt` against `ev/structure_head_results.txt`).
+- **Step 15.** The added lines are two test checks, with no architecture change.
+
+## Findings (non-blocking)
+
+- **The three new carries state no control.** The LEARNER-ETA carry states its precondition ("must read it, never a second threshold"), but none of the three names the check that would show a breach. UX-HEALTH and ARCH-DOCS record facts about what landed rather than a measured finding, and the destination stages re-measure at their own merge base. The predicate's own control, `#2258: Health's learned and the score's heat_loss_learning are one predicate`, is in the tree. Carry: dismissed: the destinations hold the precondition text and the control check is in the tree, findable by its name.
+- **The `core` re-seat reads 711 and is not a payment.** That relabel and the operation-part method are recorded under (3) so a later seat does not re-hunt them. Carry: dismissed: neither improves the code, so neither is owed.
+- **The PR body repeats a heading.** It carries a malformed `## Mutation proof`), ...` heading line, which yields two `## Mutation proof` sections. It is cosmetic, and `pr-contract` is green. Carry: dismissed: cosmetic, no reader is misled
+- **Rounds 1-2's commit messages carry tool-attribution trailers.** They are refused by `ref_privacy` when the full range is judged; see (4). The brief scopes footers to this round's commits. Carry: dismissed: already published, outside this round's commits by the brief's scope

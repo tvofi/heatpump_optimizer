@@ -1,0 +1,12 @@
+mutation job 120281558816 (run 39913472183), at 488cbef71, read via get_job_logs:
+  MUTATION TABLE -- scope changed: 3 production file(s); 5 mutant(s)
+  baseline tests/env_drift.py rc=0; baseline tests/features.py rc=0; baseline tests/entities.py rc=0
+  null control coordinator.py:509 NULL_COMMENT survived every driver
+  PIN RE-VERIFICATION: 5 reproduced, 0 not reproduced, 0 not re-verified
+  0 survivor(s) of 5 evaluated = 0.0%, cap 20.0%
+  MUTATION TABLE PASSED
+budget-raise-gate job 120281558528:
+  RAISE tests/structure_budgets.json: seam_cut_total: 708 -> 714 (a cap went up)
+  REFUSED: no decisive review by tvofi (id 70032254) on this pull request
+pr-contract job 120281721409 (started 06:46:10Z, after budget-raise-gate concluded 06:45:59Z):
+  no version edit; CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
