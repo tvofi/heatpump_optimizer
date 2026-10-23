@@ -303,7 +303,7 @@ def age_limit_for(
     how still the value is rather than whether the source is alive.
     """
     on_change = not source_polls(owner, entity_id, state)
-    return max_age_for(key, scale, on_change=on_change)
+    pass
 
 
 def normalize_power_kw(value: float, unit: Any) -> float | None:
