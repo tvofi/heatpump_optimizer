@@ -19299,8 +19299,8 @@ def _cig_mismatch(required: "dict[str, tuple[str, ...]]", fixture: dict) -> "lis
         out.append("gate_required is not sorted and duplicate-free")
     out += [f"only in REQUIRED: {n}" for n in union if n not in listed]
     out += [f"only in gate_required: {n}" for n in listed if n not in union]
-    if len(fixture.get("contexts") or []) != 17:
-        out.append(f"contexts holds {len(fixture.get('contexts') or [])}, not the 17")
+    if list(fixture.get("contexts") or []) != ["gate"]:
+        out.append(f"contexts is {fixture.get('contexts')}, not [\"gate\"] (P2b cut-over)")
     return out
 
 
@@ -19317,11 +19317,13 @@ _CIG_PLANTS = {
         _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + ["zz / planted"])}),
     "a duplicated fixture entry": (
         _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + _cig_listed[:1])}),
+    "contexts is still the 17": (
+        _cig_required, {**_CIG_FIXTURE, "contexts": ["gate"] + [f"c{i}" for i in range(16)]}),
 }
 _CIG_PLANT_MISSED = sorted(k for k, (req, fx) in _CIG_PLANTS.items() if not _cig_mismatch(req, fx))
 R.check(
     "tools/ci/gate.py's REQUIRED union equals required-contexts.json's "
-    "gate_required, and contexts stays the 17 (P2a)",
+    "gate_required, and contexts is gate alone (P2b)",
     not _cig_err and not _CIG_DEFECTS and not _CIG_PLANT_MISSED,
     f"load={_cig_err or 'ok'} defects={_CIG_DEFECTS} plants the reader missed="
     f"{_CIG_PLANT_MISSED}; the gate and the ruleset would demand different checks",
@@ -20901,7 +20903,7 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
 # Parsed from the push step's non-comment lines only: a commented-out
 # dispatch, or one moved into the `always()` report step (which also runs when
 # nothing was pushed), must not count.
-_AF_DISPATCHED = {"tests.yml", "hassfest.yml", "validate.yml", "codeql.yml"}
+_AF_DISPATCHED = {"ci.yml"}
 
 
 def _af_dispatches(step: str) -> set[str]:
@@ -20916,7 +20918,7 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
                                if s not in _push))
     R.check(
-        f"{_job} dispatches every workflow owning a required context but Governance",
+        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context",
         len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
         f"push steps={len(_push)} dispatched="
         f"{sorted(_af_dispatches(_push[0])) if _push else []}",
@@ -25657,9 +25659,9 @@ _NS_OVERRIDES = sorted(
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly seven jobs override the workflow's read-only floor, the newest "
-    "(R10-CI-CONCURRENCY's cancel-superseded, `actions: write`) running the base's program",
-    _NS_OVERRIDES == ["cancel-superseded", "ci-ratchet", "claims-autofix",
+    "exactly six jobs in tests.yml override the workflow's read-only floor "
+    "(cancel-superseded, `actions: write`, is ci.yml's since the umbrella)",
+    _NS_OVERRIDES == ["ci-ratchet", "claims-autofix",
                       "closures", "closures-autofix", "mutation-autofix",
                       "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
@@ -28970,8 +28972,20 @@ _RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
             for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
 
 
+# `contexts` is `gate` alone since the cut-over; the units it stands for are
+# `gate_required`, as `<file stem> / <job>` (tools/ci/gate.py's REQUIRED), and
+# the readers below that follow a unit to its producing job walk that list.
+_RC_UNITS = json.loads(next(Path(p) for p in (
+    ".claude/workflows/fixtures/required-contexts.json",
+    "tools/policy/fixtures/required-contexts.json") if Path(p).is_file()).read_text())["gate_required"]
+
+
 def _rc_producer(context: str) -> "tuple[str, str] | None":
-    for _name, _doc in _RC_DOCS.items():
+    _docs = _RC_DOCS
+    if " / " in context:
+        _stem, context = context.split(" / ", 1)
+        _docs = {n: d for n, d in _RC_DOCS.items() if n == f"{_stem}.yml"}
+    for _name, _doc in _docs.items():
         for _jid, _job in (_doc.get("jobs") or {}).items():
             if "uses" in (_job or {}):
                 continue                     # a caller reports `<id> / <job>` (DESIGN-P2 2.1)
@@ -29158,24 +29172,43 @@ R.check(
     f"{_cc_problems('null.yml', _CC_NULL)}",
 )
 _PC_DOC = _RC_DOCS["pr-contract.yml"]
-_TS_DOC = _RC_DOCS["tests.yml"]
 _CC_TWIN_SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 _CC_OLD_SHA = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 _CC_NEW_SHA = "cccccccccccccccccccccccccccccccccccccccc"
-_CC_TS_SUPERSEDE = (_cc_pr_event(_TS_DOC, 1, _CC_OLD_SHA),
-                    _cc_pr_event(_TS_DOC, 2, _CC_NEW_SHA))
-_CC_TS_CC = (_TS_DOC.get("concurrency") or {})
+# Supersession is ci.yml's `cancel-superseded` job since the umbrella (the
+# callees carry no concurrency group): a non-bot, same-repo pull_request run
+# runs the BASE's cancel_superseded.py for `ci.yml` with `actions: write`, and
+# that program cancels an older SHA's run, never a same-SHA one.
+import importlib.util as _cs_util  # noqa: E402
+
+_CS_SPEC = _cs_util.spec_from_file_location("hpo_cancel_superseded", "tools/pr/cancel_superseded.py")
+_CS = _cs_util.module_from_spec(_CS_SPEC)
+_CS_SPEC.loader.exec_module(_CS)
+_CC_UMB_JOB = (_RC_DOCS["ci.yml"].get("jobs") or {}).get("cancel-superseded") or {}
+_CC_UMB_IF = {"github.event_name": "pull_request", "github.event.sender.login": "someone",
+              "github.event.pull_request.head.repo.full_name": "o/r", "github.repository": "o/r"}
+_CC_UMB_RUNS = [{"id": 11, "head_sha": _CC_OLD_SHA, "event": "pull_request", "status": "in_progress",
+                 "head_branch": "b"},
+                {"id": 12, "head_sha": _CC_NEW_SHA, "event": "pull_request", "status": "in_progress",
+                 "head_branch": "b"}]
+_CC_UMB_CANCELS = _CS.candidates(_CC_UMB_RUNS, live_sha=_CC_NEW_SHA, branch="b", run_id=13)
 R.check(
-    "tests.yml cancels a superseded older SHA",
-    _CC_TS_SUPERSEDE[0].get("github.sha") == _CC_OLD_SHA
-    and _CC_TS_SUPERSEDE[1].get("github.sha") == _CC_NEW_SHA
-    and _CC_OLD_SHA != _CC_NEW_SHA
-    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[0]) == "True"
-    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[1]) == "True"
-    and _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[0])
-    == _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[1]),
-    f"sha={_CC_TS_SUPERSEDE[0].get('github.sha')!r}/{_CC_TS_SUPERSEDE[1].get('github.sha')!r} "
-    f"cancel={_cc_value(_CC_TS_CC.get('cancel-in-progress'), _CC_TS_SUPERSEDE[0])!r}",
+    "ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, "
+    "on a non-bot same-repo pull_request run only",
+    "python3 -I tools/pr/cancel_superseded.py run" in str(_CC_UMB_JOB)
+    and "--workflow ci.yml" in str(_CC_UMB_JOB)
+    and (_CC_UMB_JOB.get("permissions") or {}).get("actions") == "write"
+    and _if_under(_CC_UMB_JOB.get("if"), _CC_UMB_IF) is True
+    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"}) is False
+    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": "push"}) is False
+    and _CC_UMB_CANCELS == [11],
+    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)}",
+)
+R.check(
+    "and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)",
+    _CS.candidates([{**_CC_UMB_RUNS[0], "head_sha": _CC_NEW_SHA}], live_sha=_CC_NEW_SHA,
+                   branch="b", run_id=13) == [],
+    "a same-SHA twin must survive",
 )
 # pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
 # `concurrency`, so no event can start it and no group can cancel its run. The
@@ -29256,7 +29289,7 @@ R.check(
 # through `_rc_producer`, as the `edited` check above is.
 def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
     out = []
-    for _ctx in _RC_CONTEXTS:
+    for _ctx in _RC_UNITS + _RC_CONTEXTS:
         _prod = _rc_producer(_ctx)
         if _prod is None:
             out.append(f"{_ctx}: no producing job")
@@ -29286,8 +29319,8 @@ def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
 _MQ_FOUND = _mq_problems(_RC_DOCS)
 R.check(
     "every required context runs on a merge-queue entry (process review item 2)",
-    bool(_RC_CONTEXTS) and not _MQ_FOUND,
-    f"{len(_RC_CONTEXTS)} context(s); {_MQ_FOUND or 'none missing'}",
+    bool(_RC_UNITS) and not _MQ_FOUND,
+    f"{len(_RC_UNITS) + len(_RC_CONTEXTS)} context(s); {_MQ_FOUND or 'none missing'}",
 )
 _MQ_NULL = {_n: ({**_d, "on": {"pull_request": None}} if _n == "tests.yml" else _d)
             for _n, _d in _RC_DOCS.items()}
@@ -29295,7 +29328,7 @@ R.check(
     "and tests.yml without merge_group is refused for each context it produces "
     "(null control)",
     sorted(_c.split(":")[0] for _c in _mq_problems(_MQ_NULL))
-    == sorted(_c for _c in _RC_CONTEXTS if (_rc_producer(_c) or ("",))[0] == "tests.yml"),
+    == sorted(_c for _c in _RC_UNITS if (_rc_producer(_c) or ("",))[0] == "tests.yml"),
     f"{_mq_problems(_MQ_NULL)}",
 )
 # B9 (R10-CI-LAYOUT PR 1's design review): the same producer check on the
@@ -29311,16 +29344,26 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
                "github.event.inputs.recheck": "true", "inputs.recheck": "true"})
 
 
+# A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
+# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+_RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
+
+
 def _rd_problems(docs: "dict[str, dict]") -> "list[str]":
     out = []
-    for _ctx in _RC_CONTEXTS:
+    # tests.yml is a workflow_call callee: its dispatch is ci.yml's, which lists
+    # workflow_dispatch and calls it, the way _mq_problems reads callees.
+    _umb = docs.get("ci.yml") or {}
+    _umb_on = _umb.get("on", _umb.get(True)) or {}
+    _umb_calls = any(str((_j or {}).get("uses", "")).endswith("/tests.yml")
+                     for _j in (_umb.get("jobs") or {}).values())
+    for _ctx in _RD_UNITS:
         _prod = _rc_producer(_ctx)
         if _prod is None or _prod[0] != "tests.yml":
             continue
         _doc = docs[_prod[0]]
-        _on = _doc.get("on", _doc.get(True)) or {}
-        if "workflow_dispatch" not in ([_on] if isinstance(_on, str) else list(_on)):
-            out.append(f"{_ctx}: tests.yml does not list workflow_dispatch")
+        if "workflow_dispatch" not in list(_umb_on) or not _umb_calls:
+            out.append(f"{_ctx}: ci.yml does not list workflow_dispatch and call tests.yml")
             continue
         _job = ((_doc.get("jobs") or {}).get(_prod[1]) or {})
         for _ev in _RD_EVENTS:
@@ -29334,9 +29377,9 @@ def _rd_problems(docs: "dict[str, dict]") -> "list[str]":
 
 
 _RD_FOUND = _rd_problems(_RC_DOCS)
-_RD_TESTS = sorted(_c for _c in _RC_CONTEXTS if (_rc_producer(_c) or ("",))[0] == "tests.yml")
+_RD_TESTS = sorted(_c for _c in _RD_UNITS if (_rc_producer(_c) or ("",))[0] == "tests.yml")
 R.check(
-    "every required context tests.yml produces runs on an autofix or batch-proof dispatch (B9)",
+    "every required unit tests.yml produces runs on an autofix or batch-proof dispatch, read through ci.yml (B9)",
     bool(_RD_TESTS) and not _RD_FOUND,
     f"{len(_RD_TESTS)} tests.yml context(s); {_RD_FOUND or 'none missing'}",
 )
@@ -29347,8 +29390,58 @@ _RD_NULL = {**_RC_DOCS, "tests.yml": {**_RC_DOCS["tests.yml"], "jobs": {
     "briefs": {**_RC_DOCS["tests.yml"]["jobs"]["briefs"], "if": _RD_OLD_ARM}}}}
 R.check(
     "and a producer still gated on the old recheck-gate output is refused (null control)",
-    any(_p.startswith("briefs:") for _p in _rd_problems(_RD_NULL)),
+    any(_p.startswith("tests / briefs:") for _p in _rd_problems(_RD_NULL)),
     f"{_rd_problems(_RD_NULL)}",
+)
+_RD_NO_DISPATCH = {**_RC_DOCS, "ci.yml": {**_RC_DOCS["ci.yml"], "on": {"pull_request": None}}}
+R.check(
+    "and an umbrella that does not list workflow_dispatch is refused for each unit "
+    "tests.yml produces (null control)",
+    len(_rd_problems(_RD_NO_DISPATCH)) == len(_RD_TESTS) > 0,
+    f"{_rd_problems(_RD_NO_DISPATCH)}",
+)
+
+
+# U5's two stand-down properties, driven from its harnesses rather than
+# restated: no `tests / *` job that gate.py requires carries a job-level skip
+# `if:` (a skipped required job would satisfy `gate` unmeasured), and
+# RUN_PART=fast skips the architecture-score pair by name while RUN_PART=arch
+# runs only it. Each harness carries its own null (a planted skip `if:`, and
+# --mutant, which drops the fast part's skip and must read as refused).
+import contextlib as _u5_ctx  # noqa: E402
+import importlib.util as _u5_util  # noqa: E402
+import io as _u5_io  # noqa: E402
+
+
+def _u5_load(name: str):
+    spec = _u5_util.spec_from_file_location(f"hpo_u5_{name}", f"dev/audit/harnesses/r10_ci_layout_u5/{name}.py")
+    mod = _u5_util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_U5_UNIT = _u5_load("unitcheck")
+_U5_PLANT = {**_RC_DOCS["tests.yml"], "jobs": {
+    **_RC_DOCS["tests.yml"]["jobs"],
+    "typing": {**_RC_DOCS["tests.yml"]["jobs"]["typing"],
+               "if": "needs.closure-scope.outputs.skip != 'true'"}}}
+R.check(
+    "no tests / * job gate.py requires carries a job-level skip `if:` (U5)",
+    _U5_UNIT.stand_down_problems(_RC_DOCS["tests.yml"]) == []
+    and len(_U5_UNIT.stand_down_problems(_U5_PLANT)) == 1,
+    f"{_U5_UNIT.stand_down_problems(_RC_DOCS['tests.yml'])}; planted: {_U5_UNIT.stand_down_problems(_U5_PLANT)}",
+)
+_U5_RUN = _u5_load("run_part")
+_U5_OUT = {}
+for _u5_arg in ([], ["--mutant"]):
+    _u5_buf = _u5_io.StringIO()
+    with _u5_ctx.redirect_stdout(_u5_buf):
+        _U5_OUT[tuple(_u5_arg)] = (_U5_RUN.main(_u5_arg), _u5_buf.getvalue())
+R.check(
+    "RUN_PART=fast skips the arch pair by name and RUN_PART=arch runs only it; "
+    "dropping the fast skip is refused (U5, null control)",
+    _U5_OUT[()][0] == 0 and _U5_OUT[("--mutant",)][0] == 0 and "MUTANT KILLED" in _U5_OUT[("--mutant",)][1],
+    f"rc={_U5_OUT[()][0]}/{_U5_OUT[('--mutant',)][0]}: {_U5_OUT[()][1][-120:]!r}",
 )
 
 
@@ -29570,26 +29663,53 @@ def _prw_pulls(run: str) -> bool:
                for ln in _prw_live(run).replace("\\\n", " ").splitlines())
 
 
+def _prw_events(doc: dict) -> "set[str]":
+    on = doc.get(True, doc.get("on")) or {}
+    return set(on) if isinstance(on, (dict, list)) else {on}
+
+
+def _prw_reachable(texts: "dict[str, str]") -> "set[str]":
+    """The workflow files a `pull_request` event runs: those listing it, and
+    every `workflow_call` callee a reachable file `uses:` (ci.yml calls
+    tests.yml, so tests.yml's jobs run the pull request's event)."""
+    docs = {n: _yaml.safe_load(t) or {} for n, t in texts.items()}
+    reach = {n for n, d in docs.items() if "pull_request" in _prw_events(d)}
+    todo = sorted(reach)
+    while todo:
+        for job in (docs[todo.pop()].get("jobs") or {}).values():
+            m = re.fullmatch(r"\./\.github/workflows/([\w.-]+\.ya?ml)", str((job or {}).get("uses", "")))
+            if m and m.group(1) in docs and m.group(1) not in reach:
+                reach.add(m.group(1))
+                todo.append(m.group(1))
+    return reach
+
+
+def _prw_not_pr(cond: str) -> bool:
+    """An `if:` no `pull_request` event can satisfy (a callee reads the caller's event)."""
+    return "github.event_name != 'pull_request'" in cond or (
+        "github.event_name == '" in cond and "'pull_request'" not in cond)
+
+
 def _prw_defects(texts: "dict[str, str]") -> "list[str]":
     out = []
+    reach = _prw_reachable(texts)
     for name, text in sorted(texts.items()):
         doc = _yaml.safe_load(text) or {}
-        on = doc.get(True, doc.get("on")) or {}
-        events = set(on) if isinstance(on, (dict, list)) else {on}
-        if "pull_request" not in events:
+        if name not in reach:
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             perms = job.get("permissions", doc.get("permissions"))
             writes = ([k for k, v in perms.items() if v == "write"] if isinstance(perms, dict)
                       else [perms] if perms and "write" in str(perms) else [])
             cond = str(job.get("if", ""))
-            if not writes or "github.event_name != 'pull_request'" in cond or (
-                    "github.event_name == '" in cond and "'pull_request'" not in cond):
+            if not writes or _prw_not_pr(cond):
                 continue
             where = f"{name}:{jid}"
             restored: "list[str]" = []
             pulled = False
             for s in job.get("steps") or []:
+                if _prw_not_pr(str(s.get("if", ""))):
+                    continue                  # e.g. codeql.yml's D-5 step, `if: github.event_name == 'push'`
                 if str(s.get("uses", "")).startswith("actions/checkout@"):
                     if (s.get("with") or {}).get("persist-credentials") is not False:
                         out.append(f"{where} persists its checkout token")
@@ -29617,18 +29737,31 @@ R.check(
     _PRW_DEFECTS == [],
     f"defects: {_PRW_DEFECTS}",
 )
-_PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
-    "tests.yml": _PRW_TEXTS["tests.yml"].replace(
-        "persist-credentials: false", "persist-credentials: true").replace(
-        "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
+_PRW_UNDONE = {n: _PRW_TEXTS[n].replace("persist-credentials: false", "persist-credentials: true").replace(
+    "git checkout \"$PINNED\" --", "true \"$PINNED\" --") for n in ("ci.yml", "tests.yml")}
+_PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
-    "and the same tests.yml with its restores and token hygiene undone is "
-    "refused on each of the three autofix jobs and the cancel-superseded job (null control)",
-    _PRW_SUBJECTS == ["tests.yml:cancel-superseded", "tests.yml:claims-autofix",
+    "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
+    "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
+    "workflow) and on ci.yml's cancel-superseded and refresh jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
-_PRW_PULLED = sorted(d for d in _prw_defects({"tests.yml": _PRW_TEXTS["tests.yml"].replace(
+_PRW_D5 = _PRW_TEXTS["codeql.yml"].replace("if: github.event_name == 'push'\n", "if: success()\n")
+R.check(
+    "and codeql.yml's push-only D-5 step is exempt only by its `if:`: without it the step is refused (null control)",
+    _PRW_TEXTS["codeql.yml"] != _PRW_D5 and _prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "codeql.yml": _PRW_D5})
+    == ["codeql.yml:analyze runs tools/pr/codeql_scope.py unrestored"],
+    f"{_prw_defects({'ci.yml': _PRW_TEXTS['ci.yml'], 'codeql.yml': _PRW_D5})}",
+)
+R.check(
+    "and a callee that no pull_request workflow calls is not read: tests.yml alone, "
+    "undone, is refused nowhere (null control for the callee rule)",
+    _prw_defects({"tests.yml": _PRW_UNDONE["tests.yml"]}) == [],
+    f"refused: {_prw_defects({'tests.yml': _PRW_UNDONE['tests.yml']})}",
+)
+_PRW_PULLED = sorted(d for d in _prw_defects({"ci.yml": _PRW_TEXTS["ci.yml"], "tests.yml": _PRW_TEXTS["tests.yml"].replace(
     '"$RUNNER_TEMP/pinned/closure.py" autofix-report', "tests/closure.py autofix-report")})
     if d.endswith("from the working tree after a pull"))
 R.check(
