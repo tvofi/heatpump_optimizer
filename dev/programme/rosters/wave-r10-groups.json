@@ -8484,10 +8484,10 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-no-footers",
     "pr": 2636,
-    "commit": null,
+    "commit": "7deeef1b6b083b0fb5a8379717f3facd61897c6a",
     "last_step": null,
     "next_step": "review and merge the open pull request (#2636)",
     "note": "Registered after the pull request opened; stage recorded as in-progress because in-review is not a classified roster stage."
