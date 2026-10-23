@@ -4670,10 +4670,21 @@ function assertAcceptance(derived) {
     fs.writeFileSync(foreignFile, foreignSeed)
     const foreignFile2 = path.join(wcDir, 'foreign2.json')
     fs.writeFileSync(foreignFile2, foreignSeed)
+    // The same head and ANOTHER `since`: the seed above differs only in the head
+    // half of the key, so a read comparing only that half (the mutant) serves it.
+    const foreignSinceSeed = JSON.stringify({ key: `${'0'.repeat(40)}..${windowKey(wcSince).split('..')[1]}`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    const foreignFile3 = path.join(wcDir, 'foreign3.json')
+    fs.writeFileSync(foreignFile3, foreignSinceSeed)
+    const foreignFile4 = path.join(wcDir, 'foreign4.json')
+    fs.writeFileSync(foreignFile4, foreignSinceSeed)
     calls = 0
     const foreign = pullsByShaShared(commits, wcSince, foreignFile, okPulls)
     const foreignReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile2, okReads)
     if (calls !== 2 || foreign.fromCache || foreign.map.has('zz') || foreignReads.fromCache || foreignReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on another window was served instead of ignored')
+    calls = 0
+    const foreignSince = pullsByShaShared(commits, wcSince, foreignFile3, okPulls)
+    const foreignSinceReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile4, okReads)
+    if (calls !== 2 || foreignSince.fromCache || foreignSince.map.has('zz') || foreignSinceReads.fromCache || foreignSinceReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on the same head and another since was served instead of ignored')
     const seeded = path.join(wcDir, 'seeded.json')
     fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
     const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }

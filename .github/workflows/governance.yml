@@ -15,24 +15,22 @@
 
 name: Governance
 
+# This file is a callee of ci.yml (DESIGN-P2 2.1, unit U4): `workflow_call` for
+# the umbrella's `governance` job, which passes no inputs and no secrets and
+# grants `contents: read`, `pull-requests: read` and `issues: write` (the most a
+# job here may hold; the floor below and each job's own block narrow it), and
+# the weekly schedule. The push, pull_request and merge_group triggers, the
+# dispatch (a dispatch is ci.yml's) and the workflow-level `concurrency` (the
+# umbrella's run group and its `cancel-superseded` own supersession) are gone.
+# Inside a called workflow `github.event_name` and `github.event` are the
+# caller's, so every job's `if:` and every `github.event.pull_request.*`
+# expression below reads the umbrella's event unchanged; the push guards on
+# `record` and `delivery-status-publish` are the same text they were.
+#
+# The umbrella's pull_request types carry no `edited`, which the header above
+# explained for this file's own list (#1514): a body edit starts nothing here.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    # NO `edited` (#1514). A body edit changes nothing a job here reads, and an
-    # event this file lists starts a run in which every job writes a check run
-    # at the head -- skipped or not. #1484 listed `edited` and skipped the jobs
-    # with an `if:`, so each body edit re-created `policy-docs`, `env-matrix`
-    # and `wave-script` as SKIPPED at an unchanged head, over the real verdict.
-    # The contract that does read the body is `pr-contract.yml`.
-    types: [opened, synchronize, reopened]
-  # The merge queue (round-9 process review item 2): `policy-docs`,
-  # `env-matrix` and `wave-script` run on the queue's merge commit, pinned to
-  # the queue's base as a pull request's are to its own; `record` and the
-  # delivery-status pair stay off it.
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -41,16 +39,9 @@ on:
   # runs on every push to main and costs a runner-minute.
   schedule:
     - cron: "0 7 * * 1"
-  workflow_dispatch:
 
 permissions:
   contents: read
-
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   policy-docs:

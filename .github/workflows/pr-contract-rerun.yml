@@ -41,7 +41,7 @@ name: PR contract re-run
 
 on:
   workflow_run:
-    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Kernel points", "Tests", "Validate"]
+    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Hassfest", "Kernel points", "Tests", "Validate"]
     types: [completed]
 
 # The newest completion at a head supersedes every older follower of it; a
@@ -71,7 +71,7 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
-          WATCHED: '["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Kernel points", "Tests", "Validate"]'
+          WATCHED: '["Architecture score", "Budget raise gate", "CodeQL", "Hassfest", "Kernel points", "Tests", "Validate"]'
         run: |
           set -euo pipefail
           [[ "$RUN_ID" =~ ^[0-9]+$ && "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "REFUSED: run id or head sha malformed"; exit 1; }
