@@ -91,6 +91,41 @@ from heatpump_optimizer.optimizer import _Horizon
 R = Results("Feature modules")
 
 
+def _keystone_expire_away():
+    """`_expire_away_override`'s (active, return-time) pair, which
+    `_resolve_away` unpacks, on a bare coordinator: one live override and one
+    lapsed. Its own returns, not the pair as an end-to-end cycle sees it."""
+    coord = object.__new__(Coord)
+    coord._away_state = away_mode.AwayState(override_active=True)
+    saved = []
+
+    def spawn(coro):
+        saved.append(coro.__qualname__)
+        coro.close()
+
+    coord._spawn = spawn
+    now = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
+    ret = now + timedelta(hours=6)
+    coord._away_state.override_return_iso = ret.isoformat()
+    live = coord._expire_away_override(now)
+    lapsed = coord._expire_away_override(now + timedelta(hours=7))
+    return live, lapsed, ret, saved
+
+
+# A keystone: a broken return here makes every later away cycle raise inside
+# `_resolve_away`, and the whole script outruns the mutation pin run's budget
+# (PR #2632's two timed-out pin runs). Failing, it ends the run at once.
+_ks_live, _ks_lapsed, _ks_ret, _ks_saved = _keystone_expire_away()
+if not R.check(
+    "keystone: _expire_away_override returns the live override's (True, "
+    "return time) and a lapsed one's (False, None), saving only the lapse",
+    _ks_live == (True, _ks_ret) and _ks_lapsed == (False, None)
+    and _ks_saved == ["persist_override"],
+    str((_ks_live, _ks_lapsed, _ks_saved)),
+):
+    sys.exit(R.close("FEATURE CHECKS"))
+
+
 def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
     """The physics module's weather record from this file's fixture arrays
     (#1776): the series the trajectory entry points now take as one frozen
