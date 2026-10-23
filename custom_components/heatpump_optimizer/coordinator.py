@@ -9147,14 +9147,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
         # The price feed's currency: its prices are (audit D4-04, #168).
-        currency = self.currency
         cost_month = monthly_kwh * mean_price * shortfall
         _LOGGER.warning(
             "Compressor efficiency has drifted %.0f%% below its own "
             "baseline (~%.0f %s/month at current usage)",
             shortfall * 100.0,
             cost_month,
-            currency,
+            self.currency,
         )
         _create_issue(
             self.hass,
@@ -9169,7 +9168,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             translation_placeholders={
                 "shortfall_percent": f"{shortfall * 100.0:.0f}",
                 "cost_month": f"{cost_month:.0f}",
-                "currency": currency,
+                "currency": self.currency,
             },
         )
 
