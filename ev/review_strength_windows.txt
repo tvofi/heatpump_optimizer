@@ -1,0 +1,7 @@
+verdicts on the bus: 684; outside the grammar: 0
+taught real: architecture-unsound, class-open, harness, metric-gamed, mutation-vacuous, product-tradeoff-regression
+taught bookkeeping: carry-missing, claims, conflict, head-moved, null-control, other, preflight-mismatch, root-cause-detectable, root-cause-unanswered, root-cause-unrecorded, version
+untaught real: defect, figures-false, mutant-survives, mutation, mutation-survivor, mutation-untriaged, policy-regression, test-vacuous, vacuous-check, vacuous-test
+## all
+  all                      S052   PRs 112 verdicts 257 real 58 (0.52/PR) book 65 (0.58/PR) incidence 36/112 (0.32) first-pass 43/112
+  all                      L015   PRs 47 verdicts 84 real 7 (0.15/PR) book 30 (0.64/PR) incidence 6/47 (0.13) first-pass 20/44
