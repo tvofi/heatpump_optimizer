@@ -761,6 +761,30 @@ def self_test() -> int:
                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
         check("level CLI: a failed fetch is rc 2 and prints no level (unknown is not 'nothing owed')",
               r.returncode == 2 and r.stdout == "")
+        # ---- open_pr.sh's own attempt lines: a TERMed opener records `unopened`, a clean one `opened`
+        opener = (ROOT / "tools/audit/seat/open_pr.sh").read_text().splitlines()
+        wired = [l for l in opener if l.startswith(('python3 -I "$SEAT/ledger.py" attempt', "pr_exit_trap 'python3"))]
+        st = D / "op"
+
+        def run_opener(body: str, term: bool) -> list:
+            script = D / "op.sh"
+            script.write_text("\n".join([f'. "{ROOT}/tools/audit/seat/pr_args.sh"',
+                                         f'SEAT="{ROOT}/tools/audit/seat"; T=t1; PR_HT={A}', *wired, body]) + "\n")
+            p = subprocess.Popen(["bash", str(script)], env={**os.environ, "HPO_STATE_DIR": str(st)},
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if term:
+                for _ in range(200):
+                    if (st / EVENTS).exists() and "started" in (st / EVENTS).read_text().splitlines()[-1]:
+                        break
+                    subprocess.run(["sleep", "0.05"])
+                p.terminate()
+            p.wait(timeout=30)
+            return [r[5] for r in events(st, str(st / "cloud-relay.log")) if r[0] == "attempt"]
+        killed = run_opener("sleep 30 & wait $!\nPR_ATTEMPT=opened,PR=9", term=True)
+        clean = run_opener("sleep 0.1 & wait $!\nPR_ATTEMPT=opened,PR=9", term=False)
+        check("open_pr.sh carries both attempt lines", len(wired) == 2)
+        check("a TERMed opener records started then unopened on its handoff ref", killed == ["started", "unopened"])
+        check("null control: an opener that ends records opened,PR=<n>", clean[2:] == ["started", "opened,PR=9"])
         # ---- the relay's level writers each have a ledger kind
         relay = (ROOT / "tools/audit/seat/cloud_relay.sh").read_text()
         body = relay.split("\nself_test()")[0]

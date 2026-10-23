@@ -297,19 +297,22 @@ sweep's standing-seat liveness step keep them alive.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
   A handoff already inside its PR, or with no body ref, does nothing; a failed
-  update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, logged
-  `OWED handoff-update`, and retried only when the handoff moves. An update that
+  update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
+  `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
+  matches the handoff's tip, and retried only when the handoff moves. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
-  not recorded, and the next pass retries it. Every
-  `handoff/*` or `handoff-body/*` ref whose topic has no open pull request
-  is `OWED <utc> handoff-no-pr <ref> <sha>` in `<log>.level`, rewritten every
-  pass, until disposed the same way (a fixer's return the orchestrator has
-  not opened, or a merged PR's refs not yet archived); a failed PR listing
-  leaves those lines as they were, since an empty list would make every ref
-  look orphaned. The log holds events only, each naming its PR in its first
-  all-digit field: `OWED reviewer-fire <pr> ...` carries no timestamp first,
-  the others (`OWED <utc> ...`) do.
+  not recorded, and the next pass retries it. The
+  `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
+  every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
+  its topic has an open pull request, it is disposed at its sha, or main
+  already carries the change (ancestry, or content: see `ledger.py`), each
+  with its tip's commit time and last opener attempt; a failed PR listing or
+  ledger read leaves those lines as they were, since an empty list would make
+  every ref look orphaned. Every event the relay owes (`verdict-unposted` at
+  each passed push-verdict, `reviewer-fire`, `approve-held-runs`, `dispatch`)
+  is opened in the ledger, never appended to the log, which keeps only the
+  `POSTED` journal.
 - `codeql-triage-poll.sh` — polls until GitHub attaches the #1769
   evidence-alerts, dismisses them, re-runs CodeQL. When: a tools/ diff trips
   CodeQL on evidence files; nothing to do until the alerts exist.
@@ -430,6 +433,25 @@ sweep's standing-seat liveness step keep them alive.
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED.
+- `ledger.py` — the obligations ledger (R10-ORCH-LEDGER; the machinery
+  design's section 6.3): one table of kinds, two stores beside the relay's log
+  (`dispositions.tsv`, written only by `dispose`; `events.tsv`, append-only
+  `open`/`close`/`attempt`) and one fold. Derived kinds are recomputed each pass
+  (`level` derives `handoff-no-pr` for the relay; the tick derives
+  `design-build` and `review-owed`); event kinds are keyed on kind, subject and
+  sha, an open at a new sha superseding the old, and close by the producer's
+  `close`, a moved or closed pull request, or the tick's read-back of the
+  approver's comment (`verdict-unposted` only on its own first line: a relayed
+  POSTED closes nothing). `escalate` turns stranded handoffs into DISPATCH
+  lines, oldest first, naming the roster group, and an OWNER FLAG past the
+  second threshold, behind `HPO_LEDGER_AGING` (`<dispatch_h>,<owner_h>` or
+  `off`; default the owner's 4 h and 12 h). `open_pr.sh` records each opener
+  attempt on its handoff ref (`started`, then `opened,PR=<n>` or `unopened`).
+  The first run imports `cloud-disposed` (last disposition per ref) and the
+  log's still-open OWED lines; a reader folds that in memory and writes
+  nothing. Refusals: a ref of no arm, a kind of no table, a derived kind
+  opened. A missing store is first run; an unreadable one is UNREADABLE.
+  `board` exits 0 none owed, 1 owed (with its summary line), 2 unreadable.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the
@@ -514,10 +536,15 @@ sweep's standing-seat liveness step keep them alive.
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue
   whose entries are all merged prints no train-not-alive line (2026-10-18, t16).
   `OWED: <line>` prints every pass for each line of `cloud_relay.sh`'s level
-  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`)
-  and for each OWED event in the log with no later POSTED for the same PR (its
-  first all-digit field); an OWED naming no PR is an older writer's per-pass
-  level copy, skipped and counted, never replayed; no log yet prints no OWED. `OWED handoff: <bus.sh ORPHAN line>`
+  file (`<log>.level`, beside its default log `$HPO_STATE_DIR/cloud-relay.log`;
+  a line of no ledger kind prints REFUSED) and for each event `ledger.py`'s
+  fold holds open against this pass's open-PR heads and read-back verdicts;
+  its stranded handoffs escalate to `DISPATCH:` and `OWNER FLAG:` lines
+  (`ledger.escalate`); no store and no log yet prints no OWED. `REVIEW OWED:
+  #N <head12>` prints for each open non-draft PR whose head no approver
+  verdict names and no `bus.sh` dispatch record carries, and PLAN prints
+  `DESIGN-BUILD:` for an approved `design/<g>` whose group has no build
+  dispatched. `OWED handoff: <bus.sh ORPHAN line>`
   prints every pass for each complete handoff no PR head carries, read by
   `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
   included, #2411); a run with no summary line is UNCHECKED, never a clean

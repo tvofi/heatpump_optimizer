@@ -127,7 +127,7 @@ level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level bec
   rm -f "$2"
 }
 posted() { logline POSTED "$1 $2"; echo "cloud_relay: POSTED #$1 $2"; }
-owed() { echo "cloud_relay: OWED #$1: $3" >&2; }
+unposted() { echo "cloud_relay: UNPOSTED #$1: $3 (the verdict stays owed in the ledger)" >&2; }
 # Every obligation the relay writes goes through ledger.py (R10-ORCH-LEDGER): an event is
 # opened there, keyed on kind, PR and sha, and the log keeps only the POSTED journal.
 ledger() { python3 -I "$HERE/ledger.py" --log "$(relay_log)" "$@"; }
@@ -170,10 +170,10 @@ relay() {
   ledger_open verdict-unposted "$pr" "$head" "$first"
   if [ -n "${CONFIRM:-}" ]; then
     sha2=$(printf '%s\n' "$out" | tail -n 1 | awk '{ print $NF }')
-    if ! printf '%s' "$sha2" | grep -Eq '^[0-9a-f]{40}$'; then owed "$pr" - "push-verdict printed no 40-hex review commit"
+    if ! printf '%s' "$sha2" | grep -Eq '^[0-9a-f]{40}$'; then unposted "$pr" - "push-verdict printed no 40-hex review commit"
     elif [ -n "${HPO_RELAY_CONFIRM:-}" ]; then
-      "$HPO_RELAY_CONFIRM" "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "confirm failed"
-    else bash "$HERE/bus.sh" confirm "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "bus.sh confirm failed; run it by hand"; fi
+      "$HPO_RELAY_CONFIRM" "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || unposted "$pr" "$sha2" "confirm failed"
+    else bash "$HERE/bus.sh" confirm "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || unposted "$pr" "$sha2" "bus.sh confirm failed; run it by hand"; fi
   fi
   echo "cloud_relay: relayed $ref $sha; next: bus.sh confirm $pr <review commit>"
 }

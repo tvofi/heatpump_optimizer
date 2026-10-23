@@ -254,6 +254,7 @@ class Tick:
                  grace_hours: float = 0.5, behind_max: int = 25,
                  mandate_since_days: int = 14,
                  relay_log: str | None = None,
+                 bus_state: str | None = None,
                  now: datetime.datetime | None = None,
                  gh=None, git=None, proc=None, bus=None, carry=None,
                  carry_last: int = CARRY_LAST) -> None:
@@ -271,6 +272,8 @@ class Tick:
         self.relay_log = relay_log or os.path.join(
             os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"),
             "cloud-relay.log")
+        # bus.sh's dispatch record (`pr head thread nonce`), REVIEW OWED's "no live dispatch".
+        self.bus_state = bus_state or os.environ.get("HPO_BUS_STATE") or os.path.expanduser("~/.zcode/bus")
         self.now = now or datetime.datetime.now(datetime.timezone.utc)
         self._gh, self._git, self._proc, self._bus = gh, git, proc, bus
         self._carry, self.carry_last = carry, carry_last
@@ -545,7 +548,7 @@ class Tick:
     def prs(self, required: "list[str] | None") -> None:
         S = "PRS"
         code, o = self.gh(["pr", "list", "--repo", self.repo, "--limit", "200",
-                           "--json", "number,headRefOid,headRefName,"
+                           "--json", "number,headRefOid,headRefName,isDraft,"
                            "mergeStateStatus,title,createdAt,updatedAt,author"])
         if code:
             self.unreadable(S, "open pull requests", o.strip()[-120:])
@@ -556,6 +559,7 @@ class Tick:
             self.unreadable(S, "open pull requests", str(e)[:120])
             return
         self.line(S, f"{len(prs)} open pull request(s)")
+        self._live = {str(p["number"]): p.get("headRefOid") or "" for p in prs}
         queue = self._queue() or []
         verdicts = {int(i["pr"]): i.get("verdict") for i in queue if i.get("pr")}
         by_head: dict[str, list[int]] = {}
@@ -662,6 +666,7 @@ class Tick:
             self.unreadable(S, "verdict levels", "no VERDICT_AUTHORS in app_approve.sh")
             return
         authors, vid = allow
+        self._readback = {}  # {pr: [approver verdict first lines]}, the PRs whose comments were read
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
             code, o = self.gh(["api", "--paginate", "--slurp",
@@ -676,6 +681,7 @@ class Tick:
             vs = [c for c in cs if (c.get("user") or {}).get("login") in authors
                   and (c.get("user") or {}).get("id") == vid
                   and (c.get("body") or "").startswith("Fix review:")]
+            self._readback[str(n)] = [(c.get("body") or "").split("\n", 1)[0].rstrip("\r") for c in vs]
             if not vs:
                 continue
             v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
@@ -690,52 +696,85 @@ class Tick:
                     self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
                 elif not newer:
                     self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
+        lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
+        if lg is None:
+            self.unreadable(S, "REVIEW OWED", "tools/audit/seat/ledger.py absent")
+        elif dispatched is not None:
+            for text in lg.review_owed(prs, self._readback, dispatched):
+                self.line(S, text, flag=True)
+
+    def _dispatched(self, S: str) -> "set | None":
+        """{(pr, head)} from bus.sh's dispatch record; a missing record is no
+        dispatch yet, an unreadable one UNREADABLE (None)."""
+        try:
+            with open(os.path.join(self.bus_state, "dispatched"), encoding="utf-8") as fh:
+                return {tuple(l.split()[:2]) for l in fh if len(l.split()) >= 2}
+        except FileNotFoundError:
+            return set()
+        except OSError as e:
+            self.unreadable(S, "bus dispatch record (REVIEW OWED)", str(e)[:100])
+            return None
 
     def relay_owed(self, S: str) -> None:
-        """`OWED: <line>` every pass for what cloud_relay.sh says is owed now.
-        Two sources, one writer. The LEVEL -- a probe or handoff ref owed until
-        disposed -- is `<log>.level`, which every relay pass rewrites whole, so
-        each of its lines prints as is. The log holds EVENTS, each naming its
-        PR in its first all-digit field (`OWED <utc> <pr> <sha|-> <why>`,
-        `OWED <utc> handoff-update <pr> ...`, `OWED reviewer-fire <pr> ...`,
-        `POSTED <utc> <pr> <sha>`); an OWED prints until a later POSTED for its
-        PR. An OWED naming no PR is a level line an older writer appended on
-        every pass: replaying those printed each pass's copy, so they are
-        skipped and counted. No log is no relay yet; an unreadable file is
-        UNREADABLE."""
-        rows: dict[str, list[str]] = {}
-        for name, path in (("log", self.relay_log), ("level", self.relay_log + ".level")):
-            try:
-                with open(path, encoding="utf-8", errors="replace") as fh:
-                    rows[name] = fh.read().splitlines()
-            except FileNotFoundError:
-                rows[name] = []
-                if name == "log":
-                    self.line(S, "cloud-relay log: none yet (no OWED to report)")
-            except OSError as e:
-                rows[name] = []
-                self.unreadable(S, f"cloud-relay {name}", str(e)[:100])
-        for row in rows["level"]:
-            if row.startswith("OWED "):
-                self.line(S, f"OWED: {row.strip()}", flag=True)
-        owed: dict[str, list[str]] = {}
-        stale = 0
-        for row in rows["log"]:
+        """`OWED: <line>` every pass for what the obligations ledger holds open
+        (`ledger.py`, the one schema; R10-ORCH-LEDGER). The relay's DERIVED
+        levels are `<log>.level`, which every relay pass rewrites, each line
+        printed as is; a line of no ledger kind is REFUSED, never printed as an
+        obligation. Its `handoff-no-pr` lines escalate through
+        `ledger.escalate` under HPO_LEDGER_AGING: DISPATCH oldest first, then an
+        OWNER FLAG. The EVENTS are the ledger's events.tsv folded against this
+        pass's reads -- the open PRs' heads and their read-back verdicts -- so a
+        moved or closed PR and a posted verdict close them, and the relay's
+        POSTED claim does not (K17 4b). With no store yet the log's still-open
+        OWED lines are folded in memory, the migration's import; the tick never
+        writes it. A missing store is no relay yet; an unreadable one UNREADABLE."""
+        lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+        if lg is None:
+            self.unreadable(S, "obligations ledger", "tools/audit/seat/ledger.py absent")
+            return
+        try:
+            with open(self.relay_log + ".level", encoding="utf-8", errors="replace") as fh:
+                level = [r.strip() for r in fh if r.startswith("OWED ")]
+        except FileNotFoundError:
+            level = []
+        except OSError as e:
+            level = []
+            self.unreadable(S, "cloud-relay level", str(e)[:100])
+        for row in level:
             f = row.split()
-            pr = next((x for x in f[1:4] if x.isdigit()), None)
-            if f[:1] == ["OWED"]:
-                if pr is None:
-                    stale += 1
-                else:
-                    owed.setdefault(pr, []).append(row.strip())
-            elif f[:1] == ["POSTED"] and pr is not None:
-                owed.pop(pr, None)
-        if stale:
-            self.line(S, f"cloud-relay log: {stale} OWED line(s) naming no PR skipped "
-                      "(an older writer's level lines; the level file is the level)")
-        for pr in sorted(owed, key=lambda x: (len(x), x)):
-            for row in owed[pr]:
+            if len(f) > 2 and f[2] in lg.KINDS:
                 self.line(S, f"OWED: {row}", flag=True)
+            else:
+                self.line(S, f"REFUSED: a level line of no ledger kind: {row}", flag=True)
+        try:
+            aging = lg.parse_aging(os.environ.get(lg.AGING_ENV))
+        except lg.Refused as e:
+            aging = None
+            self.unreadable(S, "handoff aging", str(e))
+        read: list = []  # the roster, read once and only for a line that escalates
+
+        def group_of(t):
+            if not read:
+                read.append(self._roster(S, announce=False) if hasattr(self, "_roster") else (None, None))
+            rl, rost = read[0]
+            return rl.group_for_branch(rost, f"handoff/{t}") if rl else None
+        for text in lg.escalate(level, getattr(self, "now", None) or datetime.datetime.now(datetime.timezone.utc),
+                                aging, group_of):
+            self.line(S, text, flag=True)
+        home = Path(self.relay_log).parent
+        try:
+            rows = lg.events(home, self.relay_log)
+        except lg.Unreadable as e:
+            self.unreadable(S, "obligations ledger", str(e)[:100])
+            return
+        if not rows and not (home / lg.EVENTS).exists() and not os.path.exists(self.relay_log):
+            self.line(S, "obligations ledger: none yet (no OWED to report)")
+        open_, closed = lg.fold(rows, getattr(self, "_live", None), getattr(self, "_readback", None))
+        for ob in open_:
+            self.line(S, f"OWED: {lg.render(ob)}", flag=True)
+        if closed:
+            self.line(S, "obligations ledger: closed this pass "
+                      + " ".join(f"{k}={v}" for k, v in sorted(closed.items())))
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
@@ -1126,6 +1165,48 @@ class Tick:
                              f"on {rl.branch_of(g)}", flag=True)
             else:
                 self.line(S, f"{gid}: in progress (stage {stage})")
+        self.design_builds(S, rl, roster)
+
+    def design_builds(self, S: str, rl, roster: dict) -> None:
+        """`DESIGN-BUILD:` every pass for an approved design whose roster group
+        has no build dispatched (ledger kind `design-build`, the round-10
+        orphaned-handoff RCA's section 5.5): `design-verdict/<g>`'s verdict.md
+        reads `Design review: approve <sha>` at `design/<g>`'s tip. The verdict
+        and design refs are read over git; a read that fails is UNREADABLE."""
+        lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*", "refs/heads/design-verdict/*"])
+        if lg is None or code:
+            self.unreadable(S, "approved designs", "ledger.py absent" if lg is None else o.strip()[-100:])
+            return
+        designs, verdicts, names = {}, {}, {}
+        for sha, ref in (l.split()[:2] for l in o.splitlines() if len(l.split()) >= 2):
+            for prefix, into in (("refs/heads/design-verdict/", verdicts), ("refs/heads/design/", designs)):
+                if ref.startswith(prefix):
+                    into[ref[len(prefix):].lower()] = sha
+                    names[(prefix, ref[len(prefix):].lower())] = ref
+                    break
+        if verdicts and self.git(["fetch", "-q", "origin", *(names[("refs/heads/design-verdict/", t)]
+                                                            for t in verdicts)])[0]:
+            self.unreadable(S, "approved designs", "could not fetch the design-verdict refs")
+            return
+        firsts = {}
+        for t, sha in verdicts.items():
+            code, text = self.git(["show", f"{sha}:verdict.md"])
+            if code:
+                self.unreadable(S, f"design verdict {t}", text.strip()[-100:])
+                continue
+            firsts[t] = (sha, (text.splitlines() or [""])[0])
+
+        def stage_of(t):
+            gid = rl.group_for_branch(roster, f"design/{t}")
+            return gid, ((rl.groups_of(roster).get(gid) or {}).get("resume") or {}).get("stage") if gid else None
+        try:
+            disp = lg.dispositions(Path(self.relay_log).parent)
+        except lg.Unreadable as e:
+            self.unreadable(S, "obligations ledger", str(e)[:100])
+            return
+        for text in lg.design_builds(firsts, designs, stage_of, disp):
+            self.line(S, text, flag=True)
 
     # ---------------------------------------------------------------- MAIN
     def main(self) -> None:
@@ -2219,6 +2300,7 @@ def self_test() -> int:
                out=str(behind_handover))
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
+        kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -2250,6 +2332,8 @@ def self_test() -> int:
                 return 0, ""
             if argv[:1] == ["cat-file"]:
                 return 1, ""
+            if argv[:1] == ["ls-remote"]:
+                return 0, ""  # no design or verdict refs
             if argv[:2] == ["rev-list", "--count"]:
                 return 0, behind if "origin/main" in argv[2] and \
                     argv[2].startswith(H1) else "0"
@@ -3644,10 +3728,11 @@ def self_test() -> int:
              f"MERGE-READY: #43 {h(43)[:8]}" in txt and not any(x.startswith("BLOCKED-UNFIXED: #43") for x in txt)),
             ("blocked at the head with no handoff ref: BLOCKED-UNFIXED, flagged",
              any(l["flag"] and l["text"] == f"BLOCKED-UNFIXED: #44 {h(44)[:8]}" for l in lines)),
-            ("a verdict not from the approver App is ignored",
-             not any("#45" in x for x in txt)),
+            ("a verdict not from the approver App is ignored: the head owes its review",
+             not any("#45" in x for x in txt if not x.startswith("REVIEW OWED"))
+             and f"REVIEW OWED: #45 {h(45)[:12]}" in txt),
             ("null control: blocked at a stale head prints no BLOCKED-UNFIXED",
-             not any("#46" in x for x in txt)),
+             not any("#46" in x for x in txt if not x.startswith("REVIEW OWED"))),
             ("a handoff tip committed after the blocked verdict: no BLOCKED-UNFIXED",
              not any(l["text"].startswith("BLOCKED-UNFIXED") for l in fixed)),
             ("a handoff tip committed before it still prints BLOCKED-UNFIXED",
@@ -3657,63 +3742,158 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
-        # ---- OWED from cloud_relay.sh's log (2026-10-18) ----
-        def owed_lines(text, level=None):
-            lg = tmp / "relay.log"
-            lv = tmp / "relay.log.level"
-            if text is None:
-                lg.unlink(missing_ok=True)
-            else:
-                lg.write_text(text)
-            if level is None:
-                lv.unlink(missing_ok=True)
-            else:
-                lv.write_text(level)
-            t = tick(relay_log=str(lg))
-            t.relay_owed("PRS")
-            return t.sections.get("PRS", [])
+        # ---- OWED from the obligations ledger (R10-ORCH-LEDGER) ----
+        seq = iter(range(1000))
 
+        def owed_lines(text=None, level=None, events=None, live=None, readback=None, aging=None,
+                       roster_groups=None):
+            home = tmp / f"ledger{next(seq)}"
+            home.mkdir()
+            lg = home / "cloud-relay.log"
+            if text is not None:
+                lg.write_text(text)
+            if level is not None:
+                (home / "cloud-relay.log.level").write_text(level)
+            if events is not None:
+                (home / "events.tsv").write_text(events)
+            rf = None
+            if roster_groups is not None:
+                rf = home / "roster.json"
+                rf.write_text(json.dumps({"groups": roster_groups}))
+            env0 = os.environ.pop("HPO_LEDGER_AGING", None)
+            if aging is not None:
+                os.environ["HPO_LEDGER_AGING"] = aging
+            try:
+                t = tick(relay_log=str(lg), roster=str(rf) if rf else None)
+                t._live, t._readback = live, readback
+                t.relay_owed("PRS")
+            finally:
+                os.environ.pop("HPO_LEDGER_AGING", None)
+                if env0 is not None:
+                    os.environ["HPO_LEDGER_AGING"] = env0
+            return t.sections.get("PRS", []), home
+        flagged = lambda ls: [l["text"] for l in ls if l["flag"]]
         o1 = f"OWED 2026-10-18T19:00:00Z 7 {'a' * 40} bus.sh confirm failed; run it by hand"
         o2 = "OWED 2026-10-18T19:05:00Z 8 - push-verdict printed no 40-hex review commit"
         p1 = f"POSTED 2026-10-18T19:10:00Z 7 {'a' * 40}"
         o3 = f"OWED 2026-10-18T19:20:00Z 7 {'b' * 40} confirm failed"
-        both = owed_lines("\n".join([o1, o2]) + "\n")
-        healed = owed_lines("\n".join([o1, p1]) + "\n")
-        again = owed_lines("\n".join([o1, p1, o3]) + "\n")
-        none = owed_lines(None)
-        twice = owed_lines("\n".join([o1, o3]) + "\n")
-        # the level (cloud_relay.sh rewrites <log>.level each pass) beside an older
-        # writer's log, which appended the same level line on every pass
-        lvl = [f"OWED 2026-10-21T07:35:0{i}Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
-               for i in range(2)]
+        lvl = [f"OWED 2026-10-21T07:35:0{i}Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}" for i in range(2)]
         old = [f"OWED 2026-10-21T0{p}:00:00Z handoff-no-pr refs/heads/handoff/t{i} {'c' * 40}"
-               for p in range(3) for i in range(3)]
-        levels = owed_lines("\n".join(old + [o2]) + "\n", "\n".join(lvl) + "\n")
-        hu = f"OWED 2026-10-18T19:00:00Z handoff-update 9 topic-9 {'d' * 40}"
-        rf = f"OWED reviewer-fire 9 {'d' * 40} {'0' * 32} 2026-10-18T19:01:00Z"
-        hu_posted = owed_lines("\n".join([hu, rf, f"POSTED 2026-10-18T19:30:00Z 9 {'e' * 40}"]) + "\n")
-        hu_open = owed_lines("\n".join([hu, rf]) + "\n")
+               for p in range(3) for i in range(2)]
+        levels, _ = owed_lines("\n".join(old + [o2]) + "\n", "\n".join(lvl) + "\n")
+        healed, hh = owed_lines("\n".join([o1, p1]) + "\n")
+        again, _ = owed_lines("\n".join([o1, p1, o3]) + "\n")
+        twice, _ = owed_lines("\n".join([o1, o3]) + "\n")
+        none, _ = owed_lines()
+        refused, _ = owed_lines(None, f"OWED 2026-10-21T07:00:00Z frobnicate refs/heads/x {'c' * 40}\n")
+        H9, H8 = "d" * 40, "e" * 40
+        ev = "".join(f"open\t2026-10-23T09:00:00Z\t{k}\t{n}\t{sha}\t{tx}\n" for k, n, sha, tx in [
+            ("reviewer-fire", "9", H9, "nonce=n"), ("verdict-unposted", "8", H8, f"Fix review: merge {H8}"),
+            ("train-stop", "5", H9, "step 6")])
+        posted8 = f"POSTED 2026-10-23T09:05:00Z 8 {'f' * 40}\n"
+        ev_open, _ = owed_lines(posted8, events=ev)
+        ev_read, _ = owed_lines(posted8, events=ev, live={"9": H9, "8": H8, "5": H9},
+                                readback={"9": [f"Fix review: blocked {H9} harness: x"],
+                                          "8": [f"Fix review: merge {H8}"]})
+        ev_moved, _ = owed_lines(None, events=ev, live={"9": "1" * 40, "8": H8, "5": H9}, readback={"8": []})
+        (tmp / "unread").mkdir()
+        (tmp / "unread" / "events.tsv").mkdir()
+        t_un = tick(relay_log=str(tmp / "unread" / "cloud-relay.log"))
+        t_un.relay_owed("PRS")
+        unread_ev = t_un.sections.get("PRS", [])
+        ct30 = int((NOW - datetime.timedelta(hours=30)).timestamp())
+        ct2 = int((NOW - datetime.timedelta(hours=2)).timestamp())
+        agl = (f"OWED 2026-10-12T17:00:00Z handoff-no-pr refs/heads/handoff/r10-old {'c' * 40} ct={ct30}\n"
+               f"OWED 2026-10-12T17:00:00Z handoff-no-pr refs/heads/handoff-body/r10-old {'c' * 40} ct={ct30}\n"
+               f"OWED 2026-10-12T17:00:00Z handoff-no-pr refs/heads/handoff/r10-new {'c' * 40} ct={ct2}\n")
+        grp = [{"group": "R10-OLD", "resume": {"stage": "in-progress"}}]
+        aged, _ = owed_lines(None, agl, roster_groups=grp)
+        aged_off, _ = owed_lines(None, agl, aging="off", roster_groups=grp)
+        aged_bad, _ = owed_lines(None, agl, aging="4", roster_groups=grp)
         a, f = check("relay OWED", [
-            ("each level-file line prints once; the log's per-pass copies print none",
-             [l["text"] for l in levels if l["flag"]]
-             == [f"OWED: {x}" for x in lvl] + [f"OWED: {o2}"]),
-            ("the skipped copies are counted, unflagged",
-             any(not l["flag"] and "9 OWED line(s) naming no PR skipped" in l["text"]
-                 for l in levels)),
-            ("an OWED <utc> handoff-update <pr> is keyed on its PR: a later POSTED clears it",
-             not any(l["text"].startswith("OWED:") for l in hu_posted)),
-            ("null control: without that POSTED both kind-first lines print",
-             [l["text"] for l in hu_open if l["flag"]] == [f"OWED: {hu}", f"OWED: {rf}"]),
-            ("each OWED with no later POSTED prints OWED: <line>, flagged",
-             [l["text"] for l in both if l["flag"]] == [f"OWED: {o1}", f"OWED: {o2}"]),
-            ("null control: an OWED followed by a POSTED prints nothing",
+            ("each level-file line prints once, flagged; an older writer's log copies print none",
+             flagged(levels) == [f"OWED: {x}" for x in lvl] + [f"OWED: {o2}"]),
+            ("a level line of no ledger kind is REFUSED, never printed as owed",
+             any(x.startswith("REFUSED: a level line of no ledger kind") for x in flagged(refused))
+             and not any(x.startswith("OWED:") for x in flagged(refused))),
+            ("the migration keeps b38c6431a's rule: an OWED followed by its PR's POSTED prints nothing",
              not any(l["text"].startswith("OWED:") for l in healed)),
+            ("and the tick, a reader, writes no store", not (hh / "events.tsv").exists()),
             ("an OWED after that POSTED prints again, alone",
-             [l["text"] for l in again if l["text"].startswith("OWED:")] == [f"OWED: {o3}"]),
-            ("two OWED for one PR with no POSTED print both, each entry",
-             [l["text"] for l in twice if l["flag"]] == [f"OWED: {o1}", f"OWED: {o3}"]),
-            ("no log yet is no OWED and no flag",
-             not any(l["flag"] for l in none) and any("cloud-relay log: none yet" in l["text"] for l in none)),
+             [x for x in flagged(again) if x.startswith("OWED:")] == [f"OWED: {o3}"]),
+            ("two OWED for one PR with no POSTED are one obligation, keyed on kind and PR: the latest",
+             flagged(twice) == [f"OWED: {o3}"]),
+            ("null control: with nothing read, every ledger event prints, the POSTED claim closing none",
+             len([x for x in flagged(ev_open) if x.startswith("OWED:")]) == 3),
+            ("a read-back closes verdict-unposted and reviewer-fire; train-stop stays (K17 4b)",
+             [x.split()[3] for x in flagged(ev_read)] == ["train-stop"]
+             and any("closed this pass read-back=2" in l["text"] for l in ev_read)),
+            ("a relayed POSTED with no read-back leaves the verdict owed; a moved head supersedes",
+             sorted(x.split()[3] for x in flagged(ev_moved)) == ["train-stop", "verdict-unposted"]
+             and any("superseded=1" in l["text"] for l in ev_moved)),
+            ("an unreadable store is UNREADABLE, never a clean board",
+             any("UNREADABLE: obligations ledger" in x for x in flagged(unread_ev))),
+            ("no store and no log yet is no OWED and no flag",
+             not any(l["flag"] for l in none) and any("obligations ledger: none yet" in l["text"] for l in none)),
+            ("a stranded handoff past 4 h is a DISPATCH line naming its group and opener, oldest first",
+             [x.split(" (")[0] for x in flagged(aged) if x.startswith("DISPATCH")]
+             == [f"DISPATCH: R10-OLD refs/heads/handoff/r10-old {'c' * 12} opener"]),
+            ("past 12 h it raises an owner flag", any(x.startswith("OWNER FLAG: R10-OLD ") for x in flagged(aged))),
+            ("null control: a 2 h tip escalates nothing", not any("r10-new" in x for x in flagged(aged)
+                                                                  if not x.startswith("OWED:"))),
+            ("the switch off escalates nothing, the level still prints",
+             not any(x.startswith(("DISPATCH", "OWNER")) for x in flagged(aged_off)) and len(flagged(aged_off)) == 3),
+            ("a malformed switch is UNREADABLE, never a silent default",
+             any("UNREADABLE: handoff aging" in x for x in flagged(aged_bad))),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- REVIEW OWED (fold s4) ----
+        (tmp / "bus-ro").mkdir()
+        (tmp / "bus-ro" / "dispatched").write_text(f"{61} {h(61)} thread {'0' * 32}\n")
+        ro_board = [pr_obj(n, h(n)) for n in (60, 61, 62)] + [dict(pr_obj(63, h(63)), isDraft=True)]
+        ro_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([cs])) for n, cs in
+                    [(60, [vc(20, f"Fix review: merge {h(60)}")]), (61, []), (62, []), (63, [])]]
+        t_ro = tick(prs=ro_board, gh_extra=ro_extra, bus_state=str(tmp / "bus-ro"))
+        t_ro._git.on(("ls-remote",), out="")
+        t_ro.verdict_levels("PRS", ro_board)
+        ro = [x for x in flagged(t_ro.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
+        (tmp / "bus-dir").mkdir()
+        (tmp / "bus-dir" / "dispatched").mkdir()
+        t_rb = tick(prs=ro_board, gh_extra=ro_extra, bus_state=str(tmp / "bus-dir"))
+        t_rb.verdict_levels("PRS", ro_board)
+        rb = flagged(t_rb.sections.get("PRS", []))
+        a, f = check("REVIEW OWED", [
+            ("of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither",
+             ro == [f"REVIEW OWED: #62 {h(62)[:12]}"]),
+            ("an unreadable dispatch record is UNREADABLE and owes nothing it cannot know",
+             any("UNREADABLE: bus dispatch record" in x for x in rb)
+             and not any(x.startswith("REVIEW OWED") for x in rb)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- DESIGN-BUILD (the RCA's section 5.5) ----
+        A40, B40 = "a" * 40, "b" * 40
+        rlm = _module("roster_lib_db", "tools/audit/seat/roster_lib.py")
+        droster = {"groups": [{"group": "R10-G1", "resume": {"stage": "not-started"}},
+                              {"group": "R10-G2", "resume": {"stage": "in-progress"}}]}
+
+        def dboard(verdict_text, ls_rc=0):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), ls_rc,
+                                f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"
+                                f"{A40}\trefs/heads/design/r10-g2\n{B40}\trefs/heads/design-verdict/r10-g2\n"))
+            t._git.h.insert(0, ((f"{B40}:verdict.md",), 0, verdict_text))
+            t.design_builds("PLAN", rlm, droster)
+            return flagged(t.sections.get("PLAN", []))
+        db = dboard(f"Design review: approve {A40}\n- point\n")
+        db_rev = dboard(f"Design review: revise {A40} class-open\n")
+        db_un = dboard("", ls_rc=1)
+        a, f = check("DESIGN-BUILD", [
+            ("an approved design whose group is not dispatched owes a build; the dispatched one does not",
+             [x.split()[1] for x in db] == ["R10-G1"]),
+            ("null control: a revise verdict owes no build", db_rev == []),
+            ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: approved designs" in x for x in db_un)),
         ])
         total, failed = total + a, failed + f
 
@@ -3722,10 +3902,12 @@ def self_test() -> int:
             {"group": "A", "resume": {"stage": "done"}},
             {"group": "B", "resume": {"stage": "done"}},
         ]}))
+        (tmp / "bus30").mkdir()
+        (tmp / "bus30" / "dispatched").write_text(f"30 {H1} thread {'0' * 32}\n")
         t = tick(prs=[pr_obj(30, H1)],
                  runs_at={H1: [run_obj("tests"), run_obj("closures")]},
                  queue=None, train_log=None, workers=None, roster=str(rfile),
-                 checkout=str(version))
+                 checkout=str(version), bus_state=str(tmp / "bus30"))
         t.git = git_factory()
         rep = t.run()
         text = render(rep)
