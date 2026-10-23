@@ -23,17 +23,16 @@ would silently reinstate a claim the branch deleted, where the inherited-claims
 guard cannot see it: that guard fires only on a list *exactly* equal to the
 baseline's, and a unioned list carries the branch's own claim too.
 
-Two limits, both measured. Git never clones config, so an uninstalled driver
-falls back to the ordinary text merge — the same conflict as today, never worse.
-And git reads `.gitattributes` from the branch being merged **into**, so a branch
-cut before it landed conflicts once more before it is covered.
+Two limits, both measured. Git never clones config: an uninstalled driver falls
+back to the text merge, never worse. Git reads `.gitattributes` from the branch
+merged **into**: one cut before it landed conflicts once more.
 
 **GitHub is one of those uninstalled clones, and that one is not free (#570).**
 `mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
 every open pull request flips to `DIRTY` the moment `main` touches a claim file.
 GitHub will not build a merge commit for a `DIRTY` pull request, and the
 `pull_request` workflows never fire — such a PR does not go red, it **cannot
-run**. A run already in flight survives; no new one queues. The merge-main bot
+run**; no new one queues. The merge-main bot
 (`ci-autofix.md`) merges `main` in where the drivers can; else merge locally. Before treating any conflict as real,
 confirm it:
 
@@ -46,8 +45,9 @@ check reads a note, and a file byte-identical to its fork point's claims
 nothing: it passes, the autofix leaves it, and its lines excuse no drift. A
 line excuses only the diff that wrote it, so lines `main` carries from earlier
 merges are inert until `stamp.py` empties them. Such a file cannot conflict and
-keeps the `claims-for:` line the stamp last wrote. Edit these files only when
-you are actually claiming drift; there a conflict is meaningful, and rare.
+keeps the `claims-for:` line the stamp last wrote. Edit these only when
+you are claiming drift; there a conflict is meaningful, and rare.
+A may-drift fixture is claimed with its entry suspended for this release; the
+stamp owes the entry back verbatim (R8-P3; `env_drift.py` `MAY-DRIFT UNCOVERED`).
 
-Why no autofix job repairs this, and what the `claims-autofix` job does
-instead, are in `ci-autofix.md`.
+`ci-autofix.md` says why no autofix job repairs this, and what `claims-autofix` does.

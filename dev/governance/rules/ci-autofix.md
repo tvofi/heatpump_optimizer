@@ -10,7 +10,10 @@ paths:
 ---
 # Mechanical CI autofix (do not re-implement)
 
-Same-repo PRs have three jobs in `.github/workflows/tests.yml`. If `closures` is
+Same-repo PRs run three jobs (`.github/workflows/tests.yml`). **Before the PR exists
+nothing waits**: a handoff ref runs no job, so a red `prepr.sh` step 6d predicts is repaired
+before handoff (`--single`; for INERT READS `python3 tools/pr/ci_predict.py --apply-inert`,
+which writes the Linux recording's entry, not a `--single`). Once it exists, if `closures` is
 `UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait** --
 a `DIRTY` head queues no run, so no bot commit comes. Do not open a parallel PR, do not
 Darwin `--single` an under-scope CI already recorded, and do not hand-empty claim files
@@ -27,10 +30,7 @@ and it did not happen. **A red autofix job means no bot commit comes.** The
 line, re-derive the script it names and commit `tests/closures.json`; Python
 lanes record through `sys.addaudithook`, so Darwin is sound for them — except
 the inert dimension, which is Linux-recorded (`strace`-only): the bot merges
-INERT READS from CI recordings too (#1886, R9-CI-1). One 6d predicts is not the
-wait: `prepr.sh` refuses it before the push, and
-`python3 tools/pr/ci_predict.py --apply-inert` writes the entry the Linux
-recording would — that commit is not a `--single`. On `skip-failed-recording` a
+INERT READS from CI recordings too (#1886, R9-CI-1). On `skip-failed-recording` a
 script the check named (or its driven child) stopped while being recorded — fix it first; re-deriving would record the same truncation.
 
 **What green means, exactly — read the summary line, not the tick.** Green is
@@ -59,14 +59,12 @@ failure — so its summary line is its only signal.
   reached — so where that truncation hides the *only* under-approximation,
   `check` passes and the job is green on `skip-clean` — or on `changed`, since
   an unnamed script's cut-short recording is left out (R9-CI-1). `skip-failed-recording`
-  fires only *after* UNDER-SCOPED is printed, deliberately: a failed
-  recording is common to unrelated `no-copies` and NOT-A-FILE failures, and
-  would send their reader to re-derive a closure that was never stale. The
-  script that failed normally reddens `fast` in the same run; one that fails
-  *only* under recording would not.
+  fires only *after* UNDER-SCOPED is printed, deliberately: unrelated
+  `no-copies` and NOT-A-FILE failures fail recordings too, and their closures
+  were never stale.
 
-  A failed recording can read files a clean run never does (`linecache`), so an
-  UNDER-SCOPED beside one may be an artefact: fix the script; the next push re-records.
+  A failed recording reads files a clean run never does (`linecache`): an
+  UNDER-SCOPED beside one may be an artefact. Fix the script; a push re-records.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
@@ -81,7 +79,8 @@ approved: all three approve them, fail-soft while their secrets are absent, when
 body edit cures it. Absent is not green (`orchestrator.md` section 11). Every Tests dispatch is
 PR-like.
 
-When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage,
+When `mutation-autofix` goes red, run `--pin-killed` yourself. After `ci: pin killed mutants`
+the reviewer re-checks the body's `## Red checks` `mutation` line, which a pin stales. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
 
