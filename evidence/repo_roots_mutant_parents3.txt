@@ -1,9 +1,0 @@
-
-=== harness header EXPECTED vs RESULT (#817) ===
-  ok   repo_root finds the checkout that holds the manifest
-  ok   repo_root finds the checkout from one segment deeper
-  ok   repo_root refuses a directory with no manifest
-  FAIL every inlined walk matches the canonical helper and no depth root remains  [
-=== harness header EXPECTED vs RESULT (#817) ===
-FAIL depth seams: dev/audit/harnesses/r10_triage_gate_replay.py:34: ROOT = Path(__file__).resolve().parents[3]
-]

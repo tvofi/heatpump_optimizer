@@ -1,12 +1,20 @@
-Reviewer's own plants at 8cb08929c3cee3ea7e1252f95538f3e3b93692ab, each applied to a clean worktree, self-test run, then git checkout restored.
-roster_edit.py --self-test (baseline: 116 checks, 0 failed)
- M1 added_texts: changed brief not judged (`out.append(brief)` -> pass): 1 failed, "triage gate: a new group's brief is judged" -- KILLED
- M2 ruling_reader: no origin/main fallback (return None): 6 failed -- KILLED
- M3 added_texts: held carries re-judged (`c not in held` dropped): 1 failed, "added_texts: only what the write adds is judged" -- KILLED
- M4 triage_refusal: `verdict != "ACCEPT"` -> `verdict not in ("ACCEPT", "DEFER")`: 116 checks, 0 failed -- SURVIVED
-pulse.py --self-test (baseline: 37 checks, 0 failed)
- P1 cadence override ignored: 1 failed -- KILLED
- P2 max(ages) -> min(ages): 2 failed -- KILLED
- P3 UNREADABLE -> ok: 1 failed -- KILLED
- P4 --seat-queue bad-seat refusal disabled: 1 failed -- KILLED
-harness_headers check_repo_roots (canonical walk -> parents[3] on r10_triage_gate_replay.py:34): FAIL depth seams ... -- KILLED (repo_roots_mutant_parents3.txt)
+== M1 brief mutant: DEFER let through
+roster_edit self-test: 117 checks, 3 failed
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate fixture restored (got: )
+FAIL drop-carry with no carry refused (got: )
+== M2 own: gate never refuses a cited ruling
+roster_edit self-test: 117 checks, 13 failed
+FAIL triage gate: a REJECT ruling is refused (got: )
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate: an entry with no verdict line is refused (got: )
+FAIL triage gate: a cited entry the batch lacks is refused (got: )
+FAIL triage gate fixture restored (got: )
+== M3 own: ruling_verdict reads the first entry, not the cited pid
+roster_edit self-test: 117 checks, 13 failed
+FAIL triage gate: a REJECT ruling is refused (got: )
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate: an entry with no verdict line is refused (got: )
+FAIL triage gate: a cited entry the batch lacks is refused (got: )
+FAIL triage gate fixture restored (got: )
+roster_edit self-test: 117 checks, 0 failed

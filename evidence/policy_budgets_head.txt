@@ -3,7 +3,7 @@ tests/README.md                                  459  800     6677  6686
 tools/audit/briefs/fixer.md                      312  315     5169  5216 
 tools/audit/briefs/orchestrator.md               295  295     4251  4251 
 tools/audit/README.md                            238  250     3875  3880 
-CLAUDE.md                                        213  221     3627  3609   yes
+CLAUDE.md                                        213  221     3605  3605   yes
 .claude/workflows/web-fragments.md               155  168     2427  2427 
 .claude/rules/defect-root-cause.md               153  153     1887  1887 
 tools/audit/briefs/fix-review.md                 139  140     2420  2451 
@@ -50,11 +50,10 @@ dev/governance/roles/standing-tick.md             26   26      330   330
 dev/governance/roles/plan-review.md               24   24      304   304 
 AGENTS.md                                         12   13      166   183 
 
-always-loaded: ~3627 tokens, cap 3349 +band 500 = 3849
-corpus:        ~66456 tokens, cap 66507 +band 500 = 67007
-role fixer     ~6306 tokens, cap 5852 +band 500 = 6352
-role record    ~7450 tokens, cap 7405 +band 500 = 7905
-role policy    ~10039 tokens, cap 9958 +band 500 = 10458
+always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849
+corpus:        ~66434 tokens, cap 66434 +band 500 = 66934
+role fixer     ~6284 tokens, cap 5852 +band 500 = 6352
+role record    ~7428 tokens, cap 7405 +band 500 = 7905
+role policy    ~10017 tokens, cap 9958 +band 500 = 10458
 
 The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
-rc=0
