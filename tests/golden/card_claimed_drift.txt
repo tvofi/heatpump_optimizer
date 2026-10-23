@@ -24,6 +24,12 @@
 # v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+score_open  # R10-SCORES (#2258): a sub-score with no grade renders as a dash and its reason
+# R10-SCORES (#2258): a sub-score published as null renders as "—" and the
+# reason the coordinator names in `reasons` (here none is published, so the
+# fallback "No evidence yet"), in both the hover and the breakdown panel. Only
+# score_open moves: its "Driving" row and hover segment gain the leading dash;
+# card_drift reports the other 39 states identical.
 
 # R10-ADVISOR (#2257): the Advisor page's four enable-to-see rows (price of
 # a degree, wood-stove timing, fuse size, compressor frequency). Each gains a

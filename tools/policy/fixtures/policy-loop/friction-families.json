@@ -62,5 +62,80 @@
         { "body": "Fix review: blocked 9309000000000000000000000000000000000000 seat-environment: the seat host had no Docker daemon." }
       ]
     }
+  },
+  "_double_comment": "THE DOUBLE COUNT (#2410, measured by #2561 section 6). The window #2561 recorded read the family at 7 while mutation-vacuous filed its own line at 5 of those 7: 5 occasions filed twice. In miniature: mutation-vacuous at 3 (9321-9323) files its own line; mutation (9324) and mutation-survivor (9325) are the only occasions no member line counts, so the family reaches 3 only by re-counting the member's. It must print the member's line and no family line.",
+  "double": {
+    "_window": ["9321", "9322", "9323", "9324", "9325"],
+    "9321": {
+      "body": "Closes #9321.",
+      "comments": [
+        { "body": "Fix review: blocked 9321000000000000000000000000000000000000 mutation-vacuous: the proof mutated past the return." }
+      ]
+    },
+    "9322": {
+      "body": "Closes #9322.",
+      "comments": [
+        { "body": "Fix review: blocked 9322000000000000000000000000000000000000 mutation-vacuous: the mutant changed no line the check read." }
+      ]
+    },
+    "9323": {
+      "body": "Closes #9323.",
+      "comments": [
+        { "body": "Fix review: blocked 9323000000000000000000000000000000000000 mutation-vacuous: the third: the member files its own line." }
+      ]
+    },
+    "9324": {
+      "body": "Closes #9324.",
+      "comments": [
+        { "body": "Fix review: blocked 9324000000000000000000000000000000000000 mutation: the proof was not re-run." }
+      ]
+    },
+    "9325": {
+      "body": "Closes #9325.",
+      "comments": [
+        { "body": "Fix review: blocked 9325000000000000000000000000000000000000 mutation-survivor: one mutant lived." }
+      ]
+    }
+  },
+  "_residual_comment": "THE FAMILY ON ITS OWN OCCASIONS. mutation-vacuous at 3 (9331-9333) files its own line; 9333 also carries a mutation verdict, an occasion that member line already counts. The three occasions no member line counts are 9334 (mutation), 9335 (mutation-survivor) and 9336 (test-vacuous, one of #2561 section 5's synonyms). Exactly one family line must print, at 3: a fold that re-counts 9333 reads 4, a union reads 6, and a member list without test-vacuous reads 2 and prints none.",
+  "residual": {
+    "_window": ["9331", "9332", "9333", "9334", "9335", "9336"],
+    "9331": {
+      "body": "Closes #9331.",
+      "comments": [
+        { "body": "Fix review: blocked 9331000000000000000000000000000000000000 mutation-vacuous: the proof mutated past the return." }
+      ]
+    },
+    "9332": {
+      "body": "Closes #9332.",
+      "comments": [
+        { "body": "Fix review: blocked 9332000000000000000000000000000000000000 mutation-vacuous: the mutant changed no line the check read." }
+      ]
+    },
+    "9333": {
+      "body": "Closes #9333.",
+      "comments": [
+        { "body": "Fix review: blocked 9333000000000000000000000000000000000000 mutation: the first block, on the proof." },
+        { "body": "Fix review: blocked 9333000000000000000000000000000000000000 mutation-vacuous: the repair's proof mutated nothing the check read." }
+      ]
+    },
+    "9334": {
+      "body": "Closes #9334.",
+      "comments": [
+        { "body": "Fix review: blocked 9334000000000000000000000000000000000000 mutation: the proof was not re-run at the repaired head." }
+      ]
+    },
+    "9335": {
+      "body": "Closes #9335.",
+      "comments": [
+        { "body": "Fix review: blocked 9335000000000000000000000000000000000000 mutation-survivor: one mutant lived and carries only a written triage." }
+      ]
+    },
+    "9336": {
+      "body": "Closes #9336.",
+      "comments": [
+        { "body": "Fix review: blocked 9336000000000000000000000000000000000000 test-vacuous: the test read the value it supplied." }
+      ]
+    }
   }
 }
