@@ -1,0 +1,23 @@
+---
+pid: 17830
+cwd: "/Users/timmalmstrom/hpo-seats/r10s5/orch-wt"
+command: "cd /Users/timmalmstrom/hpo-seats/r10s5/orch-wt && git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | grep -c \"From #2668 review round 1\" ; git diff 54fb6f03e origin/handoff/audit-r10-roster --stat; export PATH=/Users/timmalmstrom/hpo-seats/r10s5/orch-wt/tools/audit/seat/shims:$PATH; D=$(mktemp -d); git worktree add -q --detach $D/roster origin/handoff/audit-r10-roster && (cd $D/roster && node tools/policy/brief_lint.mjs; echo \"brief_lint rc=$?\") 2>&1 | tail -5; echo $D"
+status: succeeded
+started_at: 2026-10-23T19:57:33.013Z
+running_for_ms: 51888    
+---
+1
+ dev/programme/rosters/wave-r10-groups.json | 35 +++++++++++++++++++-----------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
+  ERROR   [carry-990004.json] carry: issue 990004 already has a live roster group (wave-probe-groups.json PROBE-G1), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+brief_lint rc=0
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.mWi1XvbW86
+
+---
+exit_code: 0
+elapsed_ms: 51888
+ended_at: 2026-10-23T19:58:24.901Z
+---
