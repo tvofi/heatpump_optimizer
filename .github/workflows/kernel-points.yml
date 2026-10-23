@@ -7,38 +7,50 @@ name: Kernel points
 # the three x86 kernels OpenBLAS can be forced to are points no dev box
 # reaches. dev/audit/harnesses/k1725_blas_kernel_gap.py prints them.
 #
-# On demand only, and never required: a manual dispatch, the `kernel-points`
-# label put on a pull request, or a push to a pull request that carries it.
-# It is not in the required set and runs on no unlabelled push, so it costs
-# nothing on an ordinary pull request and cannot hold a merge; it exists to
-# re-derive the bound when the solver's numerics move. The push arm is what
-# makes the label a standing request: a `labeled` event runs the workflow at
-# the head of that moment, so a label put on before this file reached the
-# head -- #2368's, at 74f23814e -- or a head that moves after it, otherwise
-# gets no run, or a matrix of a tree that is no longer the pull request.
+# On demand only, and never required: the `kernel-points` label put on a pull
+# request, a push to a pull request that carries it, or a manual dispatch. It is
+# not in the required set and runs on no unlabelled push, so it costs nothing on
+# an ordinary pull request and cannot hold a merge; it exists to re-derive the
+# bound when the solver's numerics move. The push arm is what makes the label a
+# standing request: a `labeled` event runs at the head of that moment, so a
+# label put on before this file reached the head -- #2368's, at 74f23814e -- or
+# a head that moves after it, otherwise gets no run, or a matrix of a tree that
+# is no longer the pull request.
+#
+# This file is a callee of ci.yml (DESIGN-P2 2.1, A2): `workflow_call` for the
+# umbrella's `kernel-points` job, which passes the prelude's `pr`, `base` and
+# `head`, and `workflow_dispatch`. The `labeled`/`synchronize` choice is
+# tools/ci/prelude.py's workset, so no label test is made here, and the caller
+# is `if:`-guarded on it. The `pull_request` trigger and this file's
+# `cancel-in-progress` group are gone: the umbrella's run-id groups cancel
+# nothing (N1), and a superseded run is `cancel-superseded`'s. The unit's job
+# carries the matrix as it was.
 
 on:
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
   workflow_dispatch:
-  pull_request:
-    types: [labeled, synchronize]
+    inputs:
+      pr:
+        description: "PR this ref heads; required off main (A2 item 4)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
-
 jobs:
   kernel-points:
     name: kernel-points (${{ matrix.coretype }})
-    if: >-
-      github.event_name == 'workflow_dispatch'
-      || (github.event.action == 'labeled' && github.event.label.name == 'kernel-points')
-      || (github.event.action == 'synchronize'
-          && contains(github.event.pull_request.labels.*.name, 'kernel-points'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -48,6 +60,19 @@ jobs:
         # CPU selects, the one the `fast` job's optimality.py run sees.
         coretype: [native, Haswell, Sandybridge, Nehalem]
     steps:
+      # The ref guard (4.3 item 5, A2 item 4). A dispatched run at a pull
+      # request's head, with no `pr` named, would leave a red that
+      # `pr-contract` cannot attribute. `inputs.pr` is the caller's under
+      # `workflow_call`, whose event is the caller's.
+      - name: Ref guard
+        if: >-
+          github.event_name == 'workflow_dispatch'
+          && github.ref != 'refs/heads/main'
+          && inputs.pr == ''
+        run: |
+          echo "::error::dispatch off main must name the pull request (-f pr=N)"
+          exit 1
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
