@@ -245,6 +245,8 @@ if [ "$MODE" = handoffpush ]; then
   # worktree, branch and push all stay in the throwaway repository.
   mkdir -p "$W/seat/tools/audit/seat"
   cp "$BUS" "$W/seat/tools/audit/seat/handoff_push.sh"
+  # Its guard fails closed without ref_privacy.py, before the body read this arm measures.
+  cp "$HERE/ref_privacy.py" "$W/seat/tools/audit/seat/"
   out=$(planted_here refs/heads/handoff-body/A refs/heads/handoff-body/B \
         env HPO_STATE_DIR=$W/state HPO_WT_ROOT=$W/wt \
         bash "$W/seat/tools/audit/seat/handoff_push.sh" A "$C" "T")

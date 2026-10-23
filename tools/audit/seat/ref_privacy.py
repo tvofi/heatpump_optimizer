@@ -4,7 +4,7 @@
     python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
     python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
-                                                     [--commits <rev> [-C <dir>]]
+                                                     [--commits <rev> [--over <base>] [-C <dir>]]
     python3 -I tools/audit/seat/ref_privacy.py scrub [--write] <file>...  (this host's spans, in place)
     python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
     python3 -I tools/audit/seat/ref_privacy.py --self-test
@@ -32,7 +32,10 @@ None. Every instrument that composes a ref name or a commit message from a value
 it does not fix itself calls it before `git push`; the `guard` subcommand is the
 shell callers' form, and `--commits <rev>` adds the message, and the author
 and committer email, of every commit under <rev> that no remote-tracking ref
-already holds -- the ones the push publishes for the first time. A refusal
+already holds -- the ones the push publishes for the first time; `--over
+<base>` widens that to every commit under <rev> that <base> does not hold, so a
+commit first published on another ref (a ci-probe/* or handoff/* push) is
+judged when a pull request carries it (R10-FLY-NO-FOOTERS-PUSH-PATHS). A refusal
 names its class and where, never the matched text. Text is judged as written
 and URL-decoded once (`%2FUsers%2F<name>`). The classes, judged against the
 host's own identity (`Identity.of_host`: $HOME, its resolved path, the passwd
@@ -55,8 +58,8 @@ hostname):
 Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
 (a session link, a session or co-author trailer, the generated-by footer): no
 host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
-guard judges only what the push publishes first, so main's history is never
-charged.
+guard judges only what the push publishes first, or what a pull request adds
+over `--over`, so main's history is never charged.
 The accounts `root`, `runner` and `user`, and names under three characters, are
 not judged: the first three are the fixed accounts of a container, the CI
 runner and the cloud seat image, public by construction, and a shorter name
@@ -325,13 +328,16 @@ def slug(path: str, roots=(), ident: Identity | None = None) -> str:
     return cand
 
 
-def published(rev: str, cwd: str | None = None) -> tuple[list, list]:
+def published(rev: str, cwd: str | None = None, over: str | None = None) -> tuple[list, list]:
     """(messages, emails), each a list of (where, text), for every commit under
-    `rev` that no remote-tracking ref holds: what the push publishes first."""
-    out = subprocess.run(["git", "log", "--format=%H%x1f%ae%x1f%ce%x1f%B%x1e", rev, "--not", "--remotes"],
+    `rev` that no remote-tracking ref holds: what the push publishes first. With
+    `over`, every commit under `rev` that `over` does not hold instead: what a
+    pull request adds over its base, wherever each commit was first published."""
+    fence = ["--remotes"] if over is None else [over]
+    out = subprocess.run(["git", "log", "--format=%H%x1f%ae%x1f%ce%x1f%B%x1e", rev, "--not", *fence],
                          cwd=cwd, capture_output=True, text=True)
     if out.returncode != 0:
-        raise RuntimeError(f"git log {rev} --not --remotes exited {out.returncode}")
+        raise RuntimeError(f"git log {rev} --not {fence[0]} exited {out.returncode}")
     messages, emails = [], []
     for rec in out.stdout.split("\x1e"):
         rec = rec.strip("\n")
@@ -348,7 +354,7 @@ def published(rev: str, cwd: str | None = None) -> tuple[list, list]:
 GUARDED = "guarded"
 PUSHERS = {
     "tools/audit/seat/wt_sync.sh": (GUARDED, "the #2310 instrument: a slug from slug(), both pushes guarded"),
-    "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument, message composed from it"),
+    "tools/audit/seat/body_push.sh": (GUARDED, "ref from the topic argument; the commit it publishes, read back"),
     "tools/audit/seat/heartbeat.sh": (GUARDED, "the constant ref heartbeat/orchestrator, message from --message; "
                                       "its self-test pushes go to a temp bare repository"),
     "tools/audit/seat/bus.sh": (GUARDED, "_post's ref from family and number, message from the caller; "
@@ -780,6 +786,26 @@ def self_test() -> int:
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
         ok("and passes once that commit is history origin holds (the null control: main is not charged)",
            r.returncode == 0, r.stderr.strip())
+        # R10-FLY-NO-FOOTERS-PUSH-PATHS: a trailer commit first published on a
+        # ci-probe/* ref is not first-published by the pull request's push, so
+        # only --over <base> judges it; main's own trailer above stays uncharged.
+        def guard(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                   *a, "-C", seat], env=env, capture_output=True, text=True)
+        g("commit", "-q", "--allow-empty", "-m", footer["co-author-trailer"])
+        g("push", "-q", "origin", "HEAD:refs/heads/ci-probe/x")
+        g("fetch", "-q", "origin")
+        r = guard("--commits", "HEAD")
+        ok("a trailer commit origin holds on ci-probe/x passes the first-publish scope (the hole)",
+           r.returncode == 0, r.stderr.strip())
+        r = guard("--commits", "HEAD", "--over", "origin/main")
+        ok("--over origin/main refuses it, exit 3", r.returncode == 3
+           and "co-author-trailer in the message of" in r.stderr, r.stderr.strip())
+        r = guard("--commits", "HEAD~1", "--over", "origin/main")
+        ok("and passes the clean commit below it, over main's own trailer (the null control)",
+           r.returncode == 0, r.stderr.strip())
+        r = guard("--over", "origin/main")
+        ok("--over without --commits is a usage error, exit 2", r.returncode == 2, r.stderr.strip())
 
     # wt_sync.sh end to end: a worktree under a planted scratch path, pushed to
     # a temp bare origin under a planted HOME and USER.
@@ -836,14 +862,29 @@ def self_test() -> int:
         Path(main, "tools/pr").mkdir(parents=True)
         Path(main, "tools/pr/ci_predict.py").write_text("print('CI PREDICT: planted stub')\n")
         Path(td, "BODY.md").write_text("b\n")
+        body_err = ""
 
         def body(topic: str) -> tuple[int, str]:
+            nonlocal body_err
             r = subprocess.run(["bash", str(ROOT / "tools/audit/seat/body_push.sh"), topic,
                                 os.path.join(td, "BODY.md")], cwd=main, env=env, capture_output=True, text=True)
+            body_err = r.stderr
             return r.returncode, subprocess.run(["git", "--git-dir", bare, "for-each-ref", "refs/heads/handoff-body"],
                                                 env=env, capture_output=True, text=True).stdout
         rc, heads = body("Users-" + fake_name + "-notes")
         ok("body_push refuses a topic naming a host path, and pushes nothing", rc != 0 and heads == "", f"rc={rc} {heads}")
+        # R10-FLY-NO-FOOTERS-PUSH-PATHS: the commit is read back, so a session link
+        # the topic carries into the message, and a machine in the identity
+        # the commit was written under, refuse too (the link is built).
+        rc, heads = body("claude.ai/code/" + "session_x")
+        ok("body_push refuses a topic that puts a session link in the message, and pushes nothing",
+           rc != 0 and heads == "" and "session-link in the message of" in body_err, f"rc={rc} {heads}")
+        env_mail = env
+        env = {**env, "GIT_AUTHOR_EMAIL": "t@" + fake_name + "s-mbp.local"}
+        rc, heads = body("r10-mail")
+        env = env_mail
+        ok("body_push refuses a body commit whose author email names a machine, and pushes nothing",
+           rc != 0 and heads == "" and "host-email in the author email of" in body_err, f"rc={rc} {heads}")
         rc, heads = body("r10-clean")
         ok("and pushes a clean topic (the null control)", rc == 0 and "handoff-body/r10-clean" in heads, f"rc={rc}")
 
@@ -1010,10 +1051,10 @@ def main(argv: list[str]) -> int:
         print(slug(argv[1], roots))
         return 0
     if argv[:1] == ["guard"]:
-        ref, messages, emails, rev, cwd, rest = None, [], [], None, None, argv[1:]
+        ref, messages, emails, rev, over, cwd, rest = None, [], [], None, None, None, argv[1:]
         while rest:
             flag = rest[0]
-            if flag not in ("--ref", "--message", "--commits", "-C") or len(rest) < 2:
+            if flag not in ("--ref", "--message", "--commits", "--over", "-C") or len(rest) < 2:
                 print(f"ref_privacy: unknown or incomplete argument {flag!r}", file=sys.stderr)
                 return 2
             if flag == "--ref":
@@ -1022,15 +1063,17 @@ def main(argv: list[str]) -> int:
                 messages.append(("the message", rest[1]))
             elif flag == "--commits":
                 rev = rest[1]
+            elif flag == "--over":
+                over = rest[1]
             else:
                 cwd = rest[1]
             rest = rest[2:]
-        if ref is None:
-            print("ref_privacy: guard needs --ref", file=sys.stderr)
+        if ref is None or (over is not None and rev is None):
+            print("ref_privacy: guard needs --ref, and --over needs --commits", file=sys.stderr)
             return 2
         try:
             if rev is not None:
-                ms, emails = published(rev, cwd)
+                ms, emails = published(rev, cwd, over)
                 messages += ms
         except RuntimeError as e:
             print(f"ref_privacy: REFUSE: could not read the commits the push publishes ({e}); nothing pushed",
