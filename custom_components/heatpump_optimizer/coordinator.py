@@ -2164,8 +2164,9 @@ def _audit_price_units(hass: HomeAssistant, config: Mapping[str, Any]) -> None:
             translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
         )
     # #1657: the feed denominates every money figure, and the sensors say so
-    # (``money_currency``), but the money fields in the options dialog are
-    # labelled in the instance currency. Name the disagreement.
+    # (``unit_of_measurement`` and the ``currency`` attribute), but the money
+    # fields in the options dialog are labelled in the instance currency.
+    # Name the disagreement.
     declared = _feed_currency(hass, cfg)
     if declared is None or declared == resolve_currency(hass):
         ir.async_delete_issue(hass, DOMAIN, "price_currency")
@@ -9334,8 +9335,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
-        # In the instance currency: the prices are, so the product is
-        # (audit D4-04, #168 -- the placeholder used to be named after SEK).
+        # The price feed's currency: its prices are (audit D4-04, #168).
         cost_month = monthly_kwh * mean_price * shortfall
         _LOGGER.warning(
             "Compressor efficiency has drifted %.0f%% below its own "
@@ -10529,8 +10529,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         chosen = short if short in narrative.TEMPLATES else "en"
         return {
             "items": items,
-            # Resolved per render; narrative.render says why not self.currency.
-            "lines": narrative.render(items, chosen, resolve_currency(hass)),
+            # The feed's code, as every other money surface (#1657).
+            "lines": narrative.render(items, chosen, self.currency),
             "language": chosen,
         }
 
