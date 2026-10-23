@@ -2378,6 +2378,12 @@ EOF
     && $G checkout -q -b pglobsib pexsib \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pglobsib \
+    && $G checkout -q -b pleft origin/main \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;t=json.loads(c.CLOSURES.read_text());h='tests/harness_headers.py';f=next(x for x in t['inert_reads'][h] if x.startswith('dev/audit/harnesses/') and x not in t['closures'][h] and c.is_inert(x));p=P.Path('tests/closure.py');s=p.read_text();p.write_text(s.replace('INERT_EXCEPT = (\\n','INERT_EXCEPT = (\\n    \\'%s\\',\\n'%f,1));P.Path('$PDX/left').write_text(f)" \
+    && $G commit -qam pleft \
+    && $G checkout -q -b pleftrec pleft \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());f=P.Path('$PDX/left').read_text();[p['closures'].__setitem__(k,sorted(set(p['closures'][k])|{f})) for k,v in p['inert_reads'].items() if f in v];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pleftrec \
     && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
     && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
@@ -2419,6 +2425,11 @@ EOF
   st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
   got=$(predict_at pglobsib); grep -q 'PREDICT tests / closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
   st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
+  LEFT=$(cat "$PDX/left" 2>/dev/null)
+  got=$(predict_at pleft); [ -n "$LEFT" ] && grep -qF "PREDICT tests / closures UNDER-SCOPED tests/harness_headers.py: $LEFT leaves INERT" <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d predicts UNDER-SCOPED for a file an INERT edit takes out while the table lists it under inert_reads alone (r10-rca-inert-closure-recording)"
+  got=$(predict_at pleftrec); grep -q 'leaves INERT' <<<"$got"
+  st $? 1 "and is quiet once the closure lists it, the INERT edit otherwise the same (null control)"
   got=$(predict_at pedge); grep -q 'PREDICT tests / closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got"
   st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
