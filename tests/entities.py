@@ -27815,6 +27815,8 @@ def _friction_trailer_fixture():
             "none_plus_coauthor":
                 "none\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
             "none_plus_closes": "none\n\nCloses #1134",
+            "none_plus_session":
+                "none\n\n🤖 Generated with Claude Code\n\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE",
             "entry_plus_attribution":
                 "`CLAUDE.md`: cost: real\n\n🤖 Generated with Claude Code",
         }.items():
@@ -27835,6 +27837,8 @@ _FRICTION_TRAILER = json.loads(subprocess.run(
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
      "closes: m.frictionEntries('none\\n\\nCloses #1134').length,"
+     "session: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE').length,"
+     "session_prose: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_01 is where it ran').length,"
      "entry_kept: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\nCloses #1134')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
      "entry_total: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\n🤖 Generated with Claude Code').length,"
@@ -27847,14 +27851,17 @@ R.check(
     _FRICTION_TRAILER.get("attribution") == 0
     and _FRICTION_TRAILER.get("coauthor") == 0
     and _FRICTION_TRAILER.get("closes") == 0
+    and _FRICTION_TRAILER.get("session") == 0
     and _FT["none_plus_attribution"][0] == 0
     and _FT["none_plus_coauthor"][0] == 0
-    and _FT["none_plus_closes"][0] == 0,
+    and _FT["none_plus_closes"][0] == 0
+    and _FT["none_plus_session"][0] == 0,
     f"parsed={_FRICTION_TRAILER}, "
     f"rcs={{{', '.join(f'{k}: {v[0]}' for k, v in _FT.items())}}} -- the "
     "attribution bullet, the `Co-Authored-By:` near-miss and the `Closes #N` "
     "line each became an unlabelled histogram entry the filer would have "
-    "counted (#1238)",
+    "counted (#1238); the cloud harness's session link refused the body "
+    "(R10-RCA-BODY-LINT)",
 )
 R.check(
     "a real entry followed by a trailer block keeps exactly its own entry",
@@ -27869,7 +27876,8 @@ R.check(
     "and the drop buys no amnesty: junk still refuses, trailer words "
     "mid-evidence still parse (null controls)",
     _FN["junk_only"][0] == 1
-    and _FRICTION_TRAILER.get("midline_control") == 1,
+    and _FRICTION_TRAILER.get("midline_control") == 1
+    and _FRICTION_TRAILER.get("session_prose") == 1,
     f"junk_only rc={_FN['junk_only'][0]}, parsed={_FRICTION_TRAILER} -- the "
     "trailer shapes are line-anchored, so the same words inside an entry's "
     "evidence must not drop it, and a line that is neither an entry nor a "
