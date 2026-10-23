@@ -1,0 +1,16 @@
+RESULT mutant=M1-verdict-unposted-dropped rc=1 fails=3 cloud_relay self-test: 238 checks, 3 failed
+      FAIL the ledger owes the relayed verdict's posting until a read-back (K17 4b) (rc=1, want 0)
+      FAIL and the verdict is owed in the ledger, not the log (rc=1, want 0)
+      FAIL but the ledger owes its posting: a relayed verdict is owed until it is read back (rc=1, want 0)
+RESULT mutant=M2-unposted-silent rc=1 fails=2 cloud_relay self-test: 238 checks, 2 failed
+      FAIL UNPOSTED carries the review sha and confirm's last output line, not /dev/null (rc=1, want 0)
+      FAIL and UNPOSTED says the remote tip does not carry it (rc=1, want 0)
+RESULT mutant=M3-review-arm-dropped rc=1 fails=1 cloud_relay self-test: 238 checks, 1 failed
+      FAIL a disposed review is not owed (rc=0, want 1)
+RESULT mutant=M4-kinds-dropped rc=1 fails=1 ledger self-test: 56 checks, 1 failed
+      FAIL every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
+RESULT mutant=M5-confirm-why-dropped rc=1 fails=1 cloud_relay self-test: 238 checks, 1 failed
+      FAIL UNPOSTED carries the review sha and confirm's last output line, not /dev/null (rc=1, want 0)
+null:
+RESULT null rc=0 cloud_relay self-test: 238 checks, 0 failed
+rc=0

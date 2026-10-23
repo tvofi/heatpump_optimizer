@@ -1,0 +1,4 @@
+imported [['open', '2026-10-23T21:40:00Z', 'verdict-unposted', '7', '-', 'OWED 2026-10-23T21:40:00Z 7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa confirm failed: HTTP 502']] []
+RESULT imported_row_after_readback open=1 closed={}
+RESULT native_row_after_readback open=0 closed={'read-back': 1}
+RESULT imported_row_pr_closed open=0 closed={'subject-absent': 1}

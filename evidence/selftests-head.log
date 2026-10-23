@@ -1,0 +1,10 @@
+tools/audit/seat/cloud_relay.sh: line 822: 57004 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+  ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
+cloud_relay self-test: 238 checks, 0 failed
+  ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
+ledger self-test: 56 checks, 0 failed
+orchestrator_tick self-test: 207 checks, 0 failed
+  ledger.py:429        handoff-no-pr          -> level 1 line(s) for 1 item
+RESULT ledger=present writers=15 events=5 events_cleared=5 events_uncleared=0 events_unreported=0 events_refused=0 level_writers=10 level_unkinded=0 level_lines=10 level_items=10
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 1506 line(s) added since f046076aded7 judged, 0 refused
+selftest_wiring: 91 self-testing, 91 wired, 0 unwired
