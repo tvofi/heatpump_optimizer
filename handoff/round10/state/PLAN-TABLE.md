@@ -141,7 +141,7 @@ gantt
 | R10-SCORES | UI | 1 | done | #2238, #2258 | opus/opus | - | Owner-reported plan scores (tvofi, 2026-10-14), read from `_scores_view` and `_close_score_day`: (1) the heat-pump score reads 0 with too little COP data, be... |  |
 | R10-REGISTRY-LEAK | PM | 1 | done | **#2231** | sonnet/opus | - | `_STATES` in custom_components/heatpump_optimizer/early_cutoff.py is a module-level registry keyed by a coordinator: setup adds an entry and unload never rem... |  |
 | R10-PUMP-MODEL | PM | 1 | done | #2232, #2238 | opus/opus | - | 1. |  |
-| R10-LIVESTATE | AR | 1 | not-started | #2232, #2248 | opus/opus | - | The large coordinator move; it runs after every defect fix on the coordinator. |  |
+| R10-LIVESTATE | AR | 1 | in-progress | #2232, #2248 | opus/opus | - | The large coordinator move; it runs after every defect fix on the coordinator. |  |
 | R10-CONFIG-NOTICES | PS | 1 | not-started | #2232 | sonnet/opus | - | ARCH2-s2 P1: a config-notices owner in custom_components/heatpump_optimizer/setpoint_check.py instead of coordinator fields written from several places (`dev... |  |
 | R10-SERVICES-GUARD | PM | 1 | done | #2238 | sonnet/opus | - | D10-s1-51: `handle_apply_schedule` in custom_components/heatpump_optimizer/services.py stays silent on a bogus entry while its siblings raise; one guard for... |  |
 | R10-ARCHSCORE-COVERAGE | IN | 1 | done | #2228, #2235, **#2259** | opus/opus | yes: code-owned: archscore weights.json and calibration/expected.json | Fold the arch seats' leads into the archscore, one group on tools/audit/archscore/. |  |

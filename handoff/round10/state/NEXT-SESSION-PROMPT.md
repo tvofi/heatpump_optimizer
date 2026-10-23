@@ -13,6 +13,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
+- R10-LIVESTATE (stage in-progress, branch `handoff/r10-livestate`): `git fetch origin handoff/r10-livestate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-POLICY-LINT-FAMILY (stage in-progress, branch `handoff/r10-policy-lint-family`): `git fetch origin handoff/r10-policy-lint-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
