@@ -377,6 +377,9 @@ const SHARED_GRAMMARS = {
   "\\{(\\w+)\\}": "not-a-concept:the Python format-placeholder token",
   "[^:\\s]+:\\d+ [A-Z_]+": "identical:the mutation ledger line key, mutation_table.py and ledger_merge.py",
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
+  "[0-9a-f]{40}": "not-a-concept:the 40-hex commit SHA shape, in a JS linter and in ledger.py; no module can serve both languages and the shape is fixed by git",
+  "\\bledger_open ([a-z-]+) ": "identical:the cloud_relay.sh ledger_open call census, ledger.py self-test and the finder's harness r10_ledger_class_reach.py, which stays a second reader on purpose: it may not import the ledger it measures",
+  "\\blevel_line ([a-z-]+) ": "identical:the cloud_relay.sh level_line call census, ledger.py self-test and the finder's harness r10_ledger_class_reach.py, which stays a second reader on purpose: it may not import the ledger it measures",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
 }
