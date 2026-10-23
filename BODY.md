@@ -31,6 +31,10 @@ Code-owned: `.github/workflows/governance.yml` (`/.github/workflows/ @tvofi` in 
 
 ## Head
 
+Round 2 head: `c9999dfcd` on `handoff/r10-orch-ledger` (fast-forward from `6062f975e`; one commit, `tools/policy/agreement.mjs` only). `open_pr.sh` refused at the agreement lane with `unregistered=3`; all three are now registered in `SHARED_GRAMMARS`, none by renaming a pattern. `[0-9a-f]{40}` (a JS linter and ledger.py) is `not-a-concept:` like the semver shape: no module can serve both languages and git fixes the shape. The `ledger_open` / `level_line` censuses (ledger.py self-test and the harness `r10_ledger_class_reach.py`) are `identical:`, not imported: the harness is the finder's harness and must not load the ledger it measures, so a second reader is the point. `agreement_py.py --run` now prints `divergent=0 unregistered=0 dead=0 refused=0`; the ledger self-test (55 checks, 0 failed) and the harness (`events_uncleared=0 level_unkinded=0`) pass; `PREPR_SKIP_CLOSURES=1 prepr.sh` printed every row ok through `pinned graders`, where my 580s wait ended (the last row, not a failure).
+
+Earlier head note, round 1:
+
 `6062f975e0b5a68e7adf3ef795d9ca5ec4f8ad21` on `handoff/r10-orch-ledger`, cut from origin/main `a6620c30adcdf0d9529ee66977694bfa2a06d5c3` (the base given; `git merge-base --is-ancestor a6620c30a origin/main` held, and origin/main was still at it on 2026-10-23). There were no merges and no rebases. `git diff --stat $(git merge-base origin/main HEAD)...HEAD`: 9 files, of which `tests/closures.json` holds only the three INERT READS entries `ci_predict.py --apply-inert` wrote. Every figure was taken at this head or its code-identical parent `706fd80f3` (the child adds only `tests/closures.json`), with `/opt/hpo/venv-ci/bin` first on PATH (Python 3.14.7; the default `python3` 3.11 cannot parse `tests/entities.py`).
 
 ## Mutation proof
