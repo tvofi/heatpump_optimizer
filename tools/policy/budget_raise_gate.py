@@ -54,7 +54,11 @@ HOW IT IS RUN. `.github/workflows/budget-raise-gate.yml` restores this file
 from the base commit before running it under `python3 -I`, so a pull request
 cannot edit the gate that grades it; the workflow re-runs it on
 `pull_request_review`, so an approval turns it green without a push.
+`--check-body` runs justification() alone on a body file and exits 0 or 1:
+policy_lint.mjs --pr-body calls it, so pr-contract, body_patch.sh and prepr.sh
+refuse a malformed section before this gate does.
 
+    python3 -I tools/policy/budget_raise_gate.py --check-body FILE
     python3 -I tools/policy/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
     python3 tools/policy/budget_raise_gate.py --self-test
     python3 -I tools/policy/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
@@ -1114,6 +1118,40 @@ def self_test() -> int:
           rcm([agent()], body=JUST.replace("## Raise justification", "See ## Raise justification"))[0], 1)
     check("justification: an empty body is refused", rcm([agent()], body=None)[0], 1)
     check("justification: a body read that fails, fails closed", rcm([agent()], body=RuntimeError("HTTP 502"))[0], 1)
+    check("justification: a score line with no verdict word is refused",
+          justification(JUST.replace(" WORSENS\n", "\n"))[0], False)
+
+    # --check-body (Triage P-F): the same justification(), on a body file, as
+    # the process policy_lint.mjs --pr-body runs. The three shapes the gate
+    # refused after pr-contract passed them (#2633; #2647, twice) exit 1 with
+    # the clause named; the accepted shape exits 0.
+    with tempfile.TemporaryDirectory() as tmp:
+        def cli(*argv: str, body: str | None = None) -> tuple[int, str]:
+            path = os.path.join(tmp, "body.md")
+            if body is not None:
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(body)
+            r = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), *argv],
+                               capture_output=True, text=True)
+            return r.returncode, r.stdout + r.stderr
+        sec = "## Summary\n\nRaise.\n\n## Raise justification\n\n"
+        good = sec + "Payments tried: x\nArchitecture score: dS +0.1000 IMPROVES\n\n## Tests\n\nx\n"
+        body_path = os.path.join(tmp, "body.md")
+        rc_, said = cli("--check-body", body_path, body=good)
+        check("--check-body: payments and a verdict-bearing score in the section exit 0 (null control)",
+              (rc_, "names the payments tried" in said), (0, True))
+        for label, bad, clause in (
+                ("a bare `Payments tried:` heading over a list",
+                 sec + "- Payments tried:\n  - x\n- Architecture score: dS +0.1000 IMPROVES\n", "Payments tried"),
+                ("a score line with no verdict word",
+                 sec + "Payments tried: x\nArchitecture score: dS +0.1000\n", "Architecture score"),
+                ("a verdict-bearing score line outside the section",
+                 sec + "Payments tried: x\n\n## Figures\n\nArchitecture score: dS +0.1000 IMPROVES\n", "Architecture score")):
+            rc_, said = cli("--check-body", body_path, body=bad)
+            check(f"--check-body: {label} exits 1 and names the clause", (rc_, clause in said), (1, True))
+        rc_, said = cli("--check-body", os.path.join(tmp, "absent.md"))
+        check("--check-body: an unreadable body exits 1", (rc_, "unreadable" in said), (1, True))
+        check("--check-body: no path exits 2", cli("--check-body")[0], 2)
 
     # Every tracked budget file, as it stands: the schema must know it, a copy
     # must not raise against itself, every cap moved the strict way must be
@@ -1448,6 +1486,21 @@ def _end_to_end() -> list[tuple[str, object, object]]:
 def main(argv: list[str]) -> int:
     if argv == ["--self-test"]:
         return self_test()
+    if argv[:1] == ["--check-body"]:
+        # justification() on a body file, for policy_lint.mjs --pr-body: the
+        # lint asks this function rather than mirroring its regexes.
+        if len(argv) != 2:
+            print("usage: budget_raise_gate.py --check-body FILE", file=sys.stderr)
+            return 2
+        try:
+            with open(argv[1], encoding="utf-8") as fh:
+                body = fh.read()
+        except OSError as e:
+            print(f"{argv[1]}: unreadable ({e.strerror})")
+            return 1
+        ok, why = justification(body)
+        print(why)
+        return 0 if ok else 1
     if argv[:1] == ["--rerun-stale"]:
         rest = dict(zip(argv[2::2], argv[3::2]))
         if len(argv) < 2 or len(argv) % 2 or set(rest) - {"--repo"}:

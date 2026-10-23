@@ -61,7 +61,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import {
   trackedFiles,
   resolvePathToken,
@@ -2784,14 +2784,18 @@ const FRICTION_THRESHOLD = 3
 // THRESHOLD only -- exact-id rows and CENSUS lines are the raw record and stay
 // byte-shape-identical (`friction_issues.mjs` re-measures them); the family
 // rows are additive beside them, keyed `<name> (family)`.
-// Three standing rules a new entry must obey, pinned in assertAcceptance: the
+// Four standing rules a new entry must obey, pinned in assertAcceptance: the
 // members are DISTINCT-PULL-REQUEST unions, never a sum of rows (one pull
-// request blocked by two siblings is one occasion, not two); no family may
-// contain the passing verdict, or the family arm opens rework as friction; and
-// a family must be measured in a real window before it is declared -- the
-// declaration is a claim about where the friction actually split.
+// request blocked by two siblings is one occasion, not two); an occasion a
+// member's own would-open line already counts is not counted again by its
+// family (#2410); no family may contain the passing verdict, or the family arm
+// opens rework as friction; and a family must be measured in a real window
+// before it is declared -- the declaration is a claim about where the friction
+// actually split. The mutation family's last four words are #2561 section 5's
+// measured synonyms of the mutation obligation (v7.0.0..df6ca4bc: test-vacuous
+// on 2 pull requests, the other three on 1 each).
 const FRICTION_FAMILIES = [
-  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor'] },
+  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives'] },
   { name: 'environment', members: ['environment', 'seat-environment'] },
 ]
 
@@ -2801,27 +2805,35 @@ const FRICTION_FAMILIES = [
 // all, so a window with no family hits prints byte-identically to the
 // pre-fold counter -- the exact-id record is the raw record, and the fold
 // adds to it, never edits it.
+// THE FAMILY COUNTS ONLY WHAT NO MEMBER FILES (#2410). A member at or over the
+// threshold fires its own would-open line, so the family's `prs` leave out
+// every pull request such a member holds, and its `entries` are the other
+// members' entries on the pull requests left. Over v7.0.0..df6ca4bc the union
+// read 7 while mutation-vacuous filed its own line at 5 of those 7: five
+// occasions filed twice, and the 2 left were below the threshold. `filed`
+// names the members that filed, `union` is the count before they are taken
+// out, so the table can show both.
 function statsFamilies(hist) {
   const out = []
   for (const { name, members } of FRICTION_FAMILIES) {
-    let present = false
-    const cell = { entries: 0, prs: new Set() }
-    for (const m of members) {
-      const c = hist.get(m)
-      if (!c) continue
-      present = true
-      cell.entries += c.entries
-      for (const p of c.prs) cell.prs.add(p)
-    }
-    if (present) out.push({ name, entries: cell.entries, prs: cell.prs })
+    const cells = members.map((m) => hist.get(m)).filter(Boolean)
+    if (!cells.length) continue
+    const filed = members.filter((m) => (hist.get(m)?.prs.size ?? 0) >= FRICTION_THRESHOLD)
+    const taken = new Set(filed.flatMap((m) => [...hist.get(m).prs]))
+    const union = new Set(cells.flatMap((c) => [...c.prs]))
+    const prs = new Set([...union].filter((p) => !taken.has(p)))
+    let entries = 0
+    for (const c of cells) for (const p of prs) entries += c.byPr.get(p) ?? 0
+    out.push({ name, entries, prs, union: union.size, filed })
   }
   return out
 }
 const bump = (hist, key, pr) => {
-  if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set() })
+  if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set(), byPr: new Map() })
   const cell = hist.get(key)
   cell.entries += 1
   cell.prs.add(pr)
+  cell.byPr.set(pr, (cell.byPr.get(pr) ?? 0) + 1)
 }
 
 // THE SAME KEYING, ONE GRAMMAR (#1240, D13-03; #1304; #1472, D13-02). The
@@ -3135,12 +3147,13 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
   // environment siblings are friction rule ids). The exact-id arms above stay,
   // and a family whose distinct-PR union reaches the threshold fires beside
   // them, keyed `<name> (family)` with the map in the kind, so the filing
-  // lane's exact-title match never collides with an id row. One line per
-  // family per map, whatever its members do alone -- a member already over
-  // threshold fires its own id line above and the family does not double it,
-  // and the count is the union of the member pull requests, so one pull
-  // request blocked by two siblings is one occasion. The message shape is the
-  // one `friction_issues.mjs`'s WOULD_OPEN_RE parses: kind, count, threshold.
+  // lane's exact-title match never collides with an id row. At most one line
+  // per family per map, on the occasions no member's own line counts
+  // (statsFamilies): a member already over threshold fires its id line above,
+  // and the family neither doubles it nor reaches the threshold by re-counting
+  // it (#2410); one pull request blocked by two siblings is one occasion. The
+  // message shape is the one `friction_issues.mjs`'s WOULD_OPEN_RE parses:
+  // kind, count, threshold.
   for (const [kind, hist] of [['verdict family', verdicts], ['friction family', friction]]) {
     for (const fam of statsFamilies(hist)) {
       const n = fam.prs.size
@@ -3149,7 +3162,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
         severity: 'info',
         check: 'stats',
         where: '(window)',
-        message: `would open "[policy] recurring friction: ${fam.name} (family)" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (${fam.entries} entr${fam.entries === 1 ? 'y' : 'ies'} in all); it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.`,
+        message: `would open "[policy] recurring friction: ${fam.name} (family)" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (${fam.entries} entr${fam.entries === 1 ? 'y' : 'ies'} in all)${fam.filed.length ? `, less the ${fam.union - n} that ${fam.filed.join(', ')} already file${fam.filed.length === 1 ? 's' : ''} on ${fam.filed.length === 1 ? 'its' : 'their'} own line` : ''}; it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.`,
       })
     }
   }
@@ -3949,6 +3962,24 @@ function assertAcceptance(derived) {
     if (quiet.length) {
       console.log(`\nFIXTURE VACUOUS: the attribution arm fired on good-claude-ai.md, which names claude.ai in another sense (${quiet.length} error(s)); it would refuse an ordinary body`)
       return 1
+    }
+  }
+
+  // The raise-justification arm (Triage P-F): each body under prepr/raise/ is
+  // prepr/good.md plus a `## Raise justification` section. The three shapes
+  // budget_raise_gate.py refused after pr-contract had passed them (#2633, and
+  // #2647 twice) must each draw exactly that one error, and raise/good.md, the
+  // gate's accepted shape, none. prepr/good.md, with no section, is the loop
+  // above's null control: a body that owes nothing asks the gate nothing.
+  {
+    const raise = path.join(prepr, 'raise')
+    const want = { 'bare-payments.md': 'Payments tried', 'score-no-verdict.md': 'Architecture score', 'verdict-outside.md': 'Architecture score', 'good.md': null }
+    for (const [f, needle] of Object.entries(want)) {
+      const errs = checkPrBody(path.relative(ROOT, path.join(raise, f)), { head: ZERO })
+      if (needle ? errs.length !== 1 || !errs[0].message.includes('Raise justification') || !errs[0].message.includes(needle) : errs.length) {
+        console.log(`\nFIXTURE VACUOUS: the raise-justification arm on prepr/raise/${f} drew ${errs.length} error(s) (${errs.map((e) => e.message.slice(0, 80)).join(' | ')}); ${needle ? `budget_raise_gate.py refuses this body on its \`${needle}\` clause, so pr-body must refuse it alone` : 'the gate accepts this body, so pr-body must stay silent'}`)
+        return 1
+      }
     }
   }
 
@@ -5858,10 +5889,14 @@ function assertAcceptance(derived) {
   // 4 -- the environment siblings live in the id histogram, not the verdict
   // histogram, so both arms need their own witness. Exactly one family
   // would-open line per kind must print, and no exact-id line. (2) The
-  // controls window: the shared pull request counted once (the union, 3,
-  // where a per-member fold reads 4) and exactly one family line even though
-  // two members and the exact id itself all fire; and families whose members
-  // all sit below the threshold stay silent on both kinds.
+  // controls window: mutation's own id line fires at 3 and the family fires
+  // nothing, because every occasion it holds -- 9305 included, carrying two
+  // members -- is one that line already counts (#2410); and families whose
+  // members all sit below the threshold stay silent on both kinds. (3) The
+  // double window, #2561 section 6's shape: a family that reaches the
+  // threshold only by re-counting a member's filed occasions prints no line.
+  // (4) The residual window: one family line, at the 3 occasions no member
+  // line counts, the shared pull request out and a section 5 synonym in.
   {
     const famWins = read('.claude/workflows/fixtures/policy-loop/friction-families.json')
     if (famWins == null) {
@@ -5903,12 +5938,30 @@ function assertAcceptance(derived) {
     }
     pins += 1
     if (
-      famCtl.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
-      !famCtl.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 3 in this window')) ||
-      !famCtl.some((m) => /recurring friction: mutation"/.test(m)) ||
+      famCtl.some((m) => m.includes('recurring friction: mutation (family)')) ||
+      famCtl.filter((m) => /recurring friction: mutation"/.test(m)).length !== 1 ||
       famCtl.some((m) => m.includes('recurring friction: environment (family)'))
     ) {
-      console.log('\nFIXTURE VACUOUS: with one member over threshold the family line did not fire exactly once on the union count (3, the shared pull request counted once), or a family whose members all sit below threshold (environment + seat-environment at 2, on either kind) fired anyway')
+      console.log('\nFIXTURE VACUOUS: with mutation over threshold on every occasion the family holds, the family line fired anyway -- the same three pull requests filed twice (#2410) -- or the id line did not fire exactly once, or a family whose members all sit below threshold (environment + seat-environment at 2, on either kind) fired')
+      rc = 1
+    }
+    pins += 1
+    const famDouble = famDrive('double')
+    if (
+      famDouble.some((m) => m.includes('recurring friction: mutation (family)')) ||
+      famDouble.filter((m) => /recurring friction: mutation-vacuous"/.test(m)).length !== 1
+    ) {
+      console.log("\nFIXTURE VACUOUS: the double window's family reaches 5 only by re-counting mutation-vacuous's 3 filed occasions, and it printed a family line (#2410, #2561 section 6), or the member's own line did not print exactly once")
+      rc = 1
+    }
+    pins += 1
+    const famResidual = famDrive('residual')
+    if (
+      famResidual.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
+      !famResidual.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 3 in this window')) ||
+      famResidual.filter((m) => /recurring friction: mutation-vacuous"/.test(m)).length !== 1
+    ) {
+      console.log("\nFIXTURE VACUOUS: the residual window did not print exactly one `mutation (family)` line at 3 -- the occasions no member line counts (a fold re-counting 9333 reads 4, a union 6, a member list without test-vacuous 2) -- beside exactly one mutation-vacuous line")
       rc = 1
     }
     pins += 1
@@ -6529,6 +6582,33 @@ export function attributionClasses(text) {
   return ATTRIBUTION.filter(([, re]) => re.test(String(text))).map(([c]) => c)
 }
 
+// THE RAISE JUSTIFICATION IS THE GATE'S OWN READ (Triage P-F). A mandated
+// raise merges only when budget_raise_gate.py's justification() accepts the
+// body's `## Raise justification` section, and three bodies this check passed
+// were refused there at merge time (#2633 on the payments clause, #2647 on the
+// score clause and then on the section's end). So a body carrying the heading
+// is handed to `budget_raise_gate.py --check-body`, the function itself, never
+// a copy of its regexes here: a mirror drifts, and covers only the clauses
+// someone has already been refused on. Keyed on the heading alone: a diff that
+// touches a `*_budgets.json` is routine more often than it is a raise (19 of
+// the 26 such merges in v7.0.0..a6620c30 raised nothing), and an owner's own
+// approval owes no section at all. The heading test is the gate's own --
+// Python's `splitlines()` boundaries and `strip()` whitespace, which JS's
+// `split('\n')` and `trim()` are not -- and agreement.mjs's
+// raise-justification concept drives both over the cases where they part.
+// Returns the refusal, or null.
+const PY_LINE_BREAK_RE = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/
+const PY_STRIP_RE = /^[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/g
+function raiseJustification(bodyPath, body) {
+  if (!body.split(PY_LINE_BREAK_RE).some((ln) => ln.replace(PY_STRIP_RE, '') === '## Raise justification')) return null
+  const r = spawnSync('python3', ['-I', path.join(HERE, 'budget_raise_gate.py'), '--check-body', bodyPath],
+    { cwd: ROOT, encoding: 'utf8' })
+  const said = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
+  if (r.status === 0) return null
+  if (r.status === 1) return `${said} -- budget_raise_gate.py refuses this body at merge time, so it is refused here: put a \`Payments tried: <what>\` line and an \`Architecture score: dS <n> <IMPROVES|NULL|WORSENS>\` line inside the section, before the next \`#\` or \`##\` heading.`
+  return `the body has \`## Raise justification\`, and budget_raise_gate.py --check-body could not judge it (${r.error ? r.error.message : `exit ${r.status}`}${said ? `: ${said.slice(0, 120)}` : ''}). A section nobody checked is not one the gate will accept.`
+}
+
 function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
@@ -6548,6 +6628,8 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], ex
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `the body carries a tool's attribution (${attribution.join(', ')}). The owner bans it (2026-10-22): delete the footer, the session link and any trailer.` })
   }
+  const raise = raiseJustification(bodyPath, body)
+  if (raise) out.push({ severity: 'error', check: 'pr-body', where: bodyPath, message: raise })
   const secs = sections(body)
   const byTitle = /^policy:/.test(title.trim())
   const policyPaths = paths.filter((f) => POLICY_GLOBS.some((re) => re.test(f)))
@@ -7181,7 +7263,7 @@ function cmdStats(since, cacheFile) {
       }
       for (const fam of families[label]) {
         const n = fam.prs.size
-        console.log(`  ${String(n).padStart(4)} / ${String(fam.entries).padEnd(4)}  ${fam.name} (family)${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+        console.log(`  ${String(n).padStart(4)} / ${String(fam.entries).padEnd(4)}  ${fam.name} (family)${fam.filed.length ? ` (of ${fam.union}; ${fam.filed.join(', ')} ${fam.filed.length === 1 ? 'files its' : 'file their'} own)` : ''}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
       }
       // The machine-readable census, tab-separated with the key LAST because
       // one key -- the unlabelled bucket -- carries spaces. friction_issues.mjs
@@ -7335,6 +7417,14 @@ function main() {
 export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
 export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
+
+// For policy_lint_mutants.mjs's record-known-bad arm (#2408): the reseed's
+// writer, driven with its write captured, because the default run and its
+// acceptance never reach it.
+export { cmdRecord, KNOWN_BAD_FILE }
+
+// For agreement.mjs's raise-justification concept: the body contract's half.
+export { raiseJustification }
 
 // For field_coverage.mjs's budgets arm (class I3), which drives the real
 // per-file comparison on a perturbed file rather than a temp copy of this module.
