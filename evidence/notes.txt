@@ -1,0 +1,6 @@
+brief_lint (node tools/policy/brief_lint.mjs roster) at head: TOTAL: 0 error(s) across 1 file(s)
+ref_privacy --check at head: 4 line(s) added since 4e38e7d7b313 judged, 0 refused (body quotes 3 lines since 3e7aaed31a1d: different reference commit, same 0 refused)
+roster: 167 vs 167 groups, 0 new, 0 removed, changed R10-CI-LAYOUT-P2 (pr 2638), R10-FLY-GH-READ-RETRY (pr 2639); top-level keys equal
+stages main/head: done 88/88, in-progress 12/12, not-started 60/60, queued 6/6, absorbed 1/1
+null control: git diff 3e7aaed31 origin/main(5056615) -- roster is empty
+CI at head (check-runs, 2 reads): no failure; success: pr-contract, briefs, mutation, nightly-status, delivery-status, policy-docs, wave-script, graders-head-copy, closure-scope, scope, arch-score, Analyze python/actions; in progress at last read: closures, fast (3.14), instrument-self-tests, env-matrix, Analyze js-ts; CodeQL neutral; rest skipped
