@@ -1,1 +1,0 @@
-(eval):1: no such file or directory: python3 tests/structure.py
