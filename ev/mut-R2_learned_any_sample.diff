@@ -1,0 +1,15 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..d604766b5 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7690,9 +7690,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # against it; "learned" is the envelope grade's convergence rule.
+             "house_heat_loss_scale": self._house_heat_loss_scale,
+             "house_heat_loss_samples": self._house_heat_loss_samples,
+-            "house_heat_loss_learned": house_loss_converged(
+-                self._house_heat_loss_samples
+-            ),
++            "house_heat_loss_learned": self._house_heat_loss_samples > 0,
+             "house_heat_loss_effective": _effective_house_heat_loss(
+                 ctx._thermal_params, self._house_heat_loss_scale
+             ),

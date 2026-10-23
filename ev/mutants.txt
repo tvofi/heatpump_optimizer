@@ -1,0 +1,26 @@
+R1_loss_configured rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+L1_watched_cmp rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+R7_restore_listeners rc=0 RuntimeError: the solve is not the point here ALL 4328 FEATURE CHECKS PASSED 
+C1_readnumber_null rc=1 8 CARD CHECK(S) FAILED 
+C2_healthwaiting_unavail rc=1 1 CARD CHECK(S) FAILED 
+C3_reason_text_generic rc=1 8 CARD CHECK(S) FAILED 
+LANE-DONE /tmp/claude-0/-home-user-heatpump-optimizer/03dae863-1169-5933-8977-305f1796f360/scratchpad/m4
+R2_learned_any_sample rc=1 RuntimeError: the solve is not the point here 2 of 4328 FEATURE CHECKS FAILED 
+R8_op_reason_const rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+L2_refit_cmp rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+L3_env_loss_cmp rc=1 Traceback (most recent call last): ZeroDivisionError: division by zero 
+R9_convergence_half rc=1 RuntimeError: the solve is not the point here 2 of 4328 FEATURE CHECKS FAILED 
+R3_precedence_swap rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+L4_env_mass_cmp rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+R10_watched_finite_drop rc=1 Traceback (most recent call last): ValueError: cannot convert float NaN to integer 
+L5_env_guard_off rc=1 Traceback (most recent call last): ZeroDivisionError: division by zero 
+R4_band_on_fitted rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+R11_sensor_fallback_none rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+R12_refit_none_disagrees rc=1 Traceback (most recent call last): TypeError: unsupported operand type(s) for -: 'NoneType' and 'float' 
+LANE-DONE /tmp/claude-0/-home-user-heatpump-optimizer/03dae863-1169-5933-8977-305f1796f360/scratchpad/m3
+L6_machine_clamp rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+R5_reason_for_grades rc=1 RuntimeError: the solve is not the point here 4 of 4328 FEATURE CHECKS FAILED 
+R13_scores_fresh_advice rc=0 RuntimeError: the solve is not the point here ALL 4328 FEATURE CHECKS PASSED 
+LANE-DONE /tmp/claude-0/-home-user-heatpump-optimizer/03dae863-1169-5933-8977-305f1796f360/scratchpad/m1
+R6_adopt_listeners rc=1 RuntimeError: the solve is not the point here 1 of 4328 FEATURE CHECKS FAILED 
+LANE-DONE /tmp/claude-0/-home-user-heatpump-optimizer/03dae863-1169-5933-8977-305f1796f360/scratchpad/m2

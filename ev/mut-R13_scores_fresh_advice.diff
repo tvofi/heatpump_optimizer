@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..714005547 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10572,7 +10572,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         advice = model_restart_advice(self)
+         return {
+             "narrative": self._narrative_view(),
+-            "scores": self._scores_view(advice),
++            "scores": self._scores_view({}),
+             "model_restart": advice,
+             "compressor_starts": {
+                 "lifetime": self._start_counter.lifetime,
