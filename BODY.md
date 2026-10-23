@@ -15,7 +15,7 @@ P2b's `gate` requires all three jobs, so P2b's gate was red at every head, and `
 
 ## Head
 
-54c60b5ac74f (before `open_pr.sh` merges origin/main).
+54c60b5ac888 (before `open_pr.sh` merges origin/main).
 
 ## Mutation proof
 
