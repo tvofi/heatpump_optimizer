@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_watched_cop_buckets CMP_BOUND 5235f6e3",
+  "killed_by": "tests/features.py",
+  "old": "        if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4e38e7d7b3138b24c97e7d0fbea74965c1d43d62: CMP_BOUND (`if np.isfinite(entry[1]) and int(entry[1]) > COP_BASELINE_MIN_SAMPLES`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

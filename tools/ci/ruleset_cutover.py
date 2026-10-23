@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 """Cut ruleset 23698884's required contexts over from the 17 to `gate`, and back.
 
-    python3 -I tools/ci/ruleset_cutover.py --dry-run [--staged F --head H --pr N]
+    python3 -I tools/ci/ruleset_cutover.py --dry-run [--window] [--staged F --head H --pr N]
     python3 -I tools/ci/ruleset_cutover.py --apply --rollback-file /abs/path.json \\
         --staged F --head H --pr N
     python3 -I tools/ci/ruleset_cutover.py --rollback /abs/path.json
     python3 -I tools/ci/ruleset_cutover.py --self-test
+
+THE RULESET-OFF WINDOW (tvofi 2026-10-23, R10 mandate 6329234399), the order step 12 runs:
+    --disable --rollback-file /abs/F --staged S --head H --pr N
+        save the 17 copy, then PUT it with `enforcement: disabled`. Preconditions as
+        --apply's, except that gate-at-head becomes reds-at-head: at H every check is
+        complete, and the only reds are BASE_PINNED (governance jobs that restore their
+        graders from the base, so main's copies judge P2b's tree) and `gate`, which
+        requires them. Without --staged it refuses: no toggle outside the staged sequence.
+    [merge P2b while enforcement is off; the train is frozen]
+    --enable --rollback-file /abs/F --merged M
+        requires live == the copy with enforcement disabled, and M on main; PUTs the
+        copy with [gate] and the copy's own enforcement; both read-back halves.
+    --verify --head <main sha>
+        every check suite's newest `gate` at main's head is green, or it names the rollback.
+    --rollback F restores the copy (the 17, enforcement on) from any of these states.
 
 WHO RUNS IT. `--apply` and `--rollback` are tvofi's, as the repository owner,
 at PR 2's merge (plans/ci-layout PLAN.md section 3; DESIGN-REVIEW.md section
@@ -54,6 +69,8 @@ OWNER = "tvofi"
 OLD_CONTEXTS = 17  # required-contexts.json `contexts`, the layout P2 replaces
 KEYS = ("name", "target", "enforcement", "conditions", "bypass_actors", "rules")
 RSC = "required_status_checks"
+BASE_PINNED = ("governance / policy-docs", "governance / env-matrix", "governance / wave-script")
+GREEN = ("success", "skipped", "neutral")
 NEW_CHECKS = [{"context": "gate", "integration_id": GATE_APP_ID}]
 MAIN_RUN_PATHS = (".github/workflows/tests.yml", ".github/workflows/ci.yml")
 PAGE = 100  # a full page cannot prove the list is complete, so it refuses
@@ -151,28 +168,7 @@ def preconditions(gh, live: dict, staged: dict | None, head: str | None, pr: int
     if head is None:
         out.append(("gate-at-head", None, "not evaluated: no --head"))
     else:
-        runs = call(gh, [f"repos/{REPO}/commits/{head}/check-runs"
-                         f"?check_name=gate&filter=all&per_page={PAGE}"])
-        cr = [r for r in runs.get("check_runs", []) if r.get("name") == "gate"]
-        if not cr or len(cr) >= PAGE:
-            out.append(("gate-at-head", False, f"{len(cr)} gate check runs at {head}"))
-        else:
-            # GitHub reads the newest `gate` of EVERY check suite at the head
-            # (#2009): a deferred red in an older run's suite blocks the merge
-            # beside a newer green one, and the sweep is what turns it green.
-            # A run whose suite cannot be read is refused, never guessed.
-            suites: dict = {}
-            for r in cr:
-                suites.setdefault((r.get("check_suite") or {}).get("id"), []).append(r)
-            if None in suites:
-                out.append(("gate-at-head", False, f"{len(suites[None])} gate check run(s) with no check_suite"))
-            else:
-                newest = [max(rs, key=lambda r: r["id"]) for rs in suites.values()]
-                bad = [n for n in newest if not (n.get("conclusion") == "success"
-                       and (n.get("app") or {}).get("id") == GATE_APP_ID and n.get("head_sha") == head)]
-                out.append(("gate-at-head", not bad, f"{len(newest)} suite(s); " + (
-                    "; ".join(f"newest id {n['id']}: {n.get('conclusion')} app {(n.get('app') or {}).get('id')} "
-                              f"head {n.get('head_sha')}" for n in bad) or "every suite's newest gate is green")))
+        out.append(("gate-at-head", *preconditions_gate(gh, head)))
     login = call(gh, ["user"]).get("login")
     out.append(("caller-is-owner", login == OWNER, f"gh api user reads {login!r}"))
     wr = call(gh, [f"repos/{REPO}/actions/runs?branch=main&event=push&status=in_progress&per_page={PAGE}"])
@@ -282,6 +278,125 @@ def dry_run(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
     return 0 if ok else 1
 
 
+def preconditions_gate(gh, head: str):
+    runs = call(gh, [f"repos/{REPO}/commits/{head}/check-runs"
+                     f"?check_name=gate&filter=all&per_page={PAGE}"])
+    cr = [r for r in runs.get("check_runs", []) if r.get("name") == "gate"]
+    if not cr or len(cr) >= PAGE:
+        return False, f"{len(cr)} gate check runs at {head}"
+    suites: dict = {}
+    for r in cr:
+        suites.setdefault((r.get("check_suite") or {}).get("id"), []).append(r)
+    if None in suites:
+        return False, f"{len(suites[None])} gate check run(s) with no check_suite"
+    newest = [max(rs, key=lambda r: r["id"]) for rs in suites.values()]
+    bad = [n for n in newest if not (n.get("conclusion") == "success"
+           and (n.get("app") or {}).get("id") == GATE_APP_ID and n.get("head_sha") == head)]
+    return not bad, f"{len(newest)} suite(s); " + (
+        "; ".join(f"newest id {n['id']}: {n.get('conclusion')} app {(n.get('app') or {}).get('id')} "
+                  f"head {n.get('head_sha')}" for n in bad) or "every suite's newest gate is green")
+
+
+def reds_at_head(gh, head: str):
+    """(ok, detail): every check at H complete, and its only reds BASE_PINNED and `gate`."""
+    runs = call(gh, [f"repos/{REPO}/commits/{head}/check-runs?filter=all&per_page={PAGE}"])
+    cr = runs.get("check_runs", [])
+    if not cr or len(cr) >= PAGE:
+        return False, f"{len(cr)} check runs at {head} (none, or a full page that cannot prove the list complete)"
+    newest: dict = {}
+    for r in cr:
+        key = (r.get("name"), (r.get("check_suite") or {}).get("id"))
+        if key not in newest or r["id"] > newest[key]["id"]:
+            newest[key] = r
+    pending = sorted(n for (n, _), r in newest.items() if r.get("status") != "completed")
+    reds = sorted({n for (n, _), r in newest.items()
+                   if r.get("status") == "completed" and r.get("conclusion") not in GREEN})
+    other = [n for n in reds if n not in BASE_PINNED and n != "gate"]
+    ok = not pending and not other
+    return ok, (f"pending: {pending}; " if pending else "") + (
+        f"reds besides the base-pinned: {other}" if other else f"reds: {reds or 'none'} (base-pinned and gate only)")
+
+
+def disable(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
+    rollback = save_rollback(gh, rollback_file)
+    live = call(gh, [RULESET])
+    if six(live) != six(rollback):
+        raise Refuse("the ruleset changed between the rollback GET and the precondition read")
+    rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
+    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head)))
+    if not print_preconditions(rows):
+        raise Refuse("a precondition failed; nothing was written")
+    want = {**six(rollback), "enforcement": "disabled"}
+    rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
+    if rc != 0:
+        raise Refuse(f"the disable PUT was refused ({out.strip()[:300]})")
+    after = six(call(gh, [RULESET]))
+    if after != want:
+        raise Refuse("DISABLE READBACK FAILED\n" + diff(want, after, "payload", "live"))
+    print("DISABLE READBACK OK: enforcement disabled; every other key equals the rollback copy")
+    print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
+          f"--rollback-file {rollback_file} --merged <merge sha>\nIf anything goes wrong first: --rollback {rollback_file}")
+    return 0
+
+
+def enable(gh, rollback_file: str, merged: str) -> int:
+    p = Path(rollback_file)
+    if not p.is_absolute():
+        raise Refuse(f"--rollback-file {rollback_file!r} is not an absolute path")
+    try:
+        rollback = json.loads(p.read_text())
+    except (OSError, ValueError) as e:
+        raise Refuse(f"cannot read the rollback copy {rollback_file}: {e}") from None
+    assert_old(six(rollback), f"the rollback copy {rollback_file}")
+    live = six(call(gh, [RULESET]))
+    if live != {**six(rollback), "enforcement": "disabled"}:
+        raise Refuse("the live ruleset is not the rollback copy with enforcement disabled\n"
+                     + diff({**six(rollback), "enforcement": "disabled"}, live, "expected", "live"))
+    cmp = call(gh, [f"repos/{REPO}/compare/{merged}...main"]).get("status")
+    login = call(gh, ["user"]).get("login")
+    rows = [("merged-on-main", cmp in ("ahead", "identical"), f"compare {merged[:12]}...main reads {cmp!r}"),
+            ("caller-is-owner", login == OWNER, f"gh api user reads {login!r}")]
+    if not print_preconditions(rows):
+        raise Refuse("a precondition failed; nothing was written")
+    want = payload(rollback)
+    rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
+    if rc != 0:
+        raise Refuse(f"the enable PUT was refused ({out.strip()[:300]}); enforcement is still disabled")
+    after = six(call(gh, [RULESET]))
+    if after != want or contexts(after) != NEW_CHECKS:
+        raise Refuse("READBACK half 1 FAILED: the GET is not the payload\n" + diff(want, after, "payload", "live"))
+    print("READBACK half 1 OK: the GET equals the payload; it requires only gate")
+    if without_checks(after) != without_checks(six(rollback)):
+        raise Refuse("READBACK half 2 FAILED\n" + diff(without_checks(six(rollback)), without_checks(after), "rollback", "live"))
+    print("READBACK half 2 OK: everything but required_status_checks equals the rollback copy, enforcement included")
+    print(f"NEXT: watch main's push gate, then --verify --head <main sha>; on red: --rollback {rollback_file}, then revert")
+    return 0
+
+
+def verify(gh, head: str) -> int:
+    ok, detail = preconditions_gate(gh, head)
+    print(f"VERIFY {'OK' if ok else 'FAILED'}: {detail}")
+    if not ok:
+        print("ROLLBACK NOW: python3 -I tools/ci/ruleset_cutover.py --rollback <the rollback file>, then revert P2b")
+    return 0 if ok else 1
+
+
+def dry_run_window(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
+    """--dry-run --window: what --disable and --enable would PUT, and --disable's preconditions."""
+    live = call(gh, [RULESET])
+    assert_old(six(live), "the live ruleset")
+    off = {**six(live), "enforcement": "disabled"}
+    print("DISABLE PAYLOAD (PUT " + RULESET + "): the live six keys with enforcement disabled")
+    print(diff(six(live), off, "live", "disable"), end="")
+    print("ENABLE PAYLOAD (PUT " + RULESET + "): the rollback copy with [gate] and its own enforcement")
+    print(diff(six(live), payload(live), "live", "enable"), end="")
+    rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
+    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head)) if head else ("reds-at-head", None, "not evaluated: no --head"))
+    ok = print_preconditions(rows)
+    print(f"WINDOW DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
+    return 0 if ok else 1
+
+
 def load(path: str | None):
     if path is None:
         return None
@@ -298,6 +413,11 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--rollback", metavar="FILE")
     mode.add_argument("--self-test", action="store_true")
+    mode.add_argument("--disable", action="store_true")
+    mode.add_argument("--enable", action="store_true")
+    mode.add_argument("--verify", action="store_true")
+    ap.add_argument("--window", action="store_true", help="with --dry-run: the ruleset-off order's read")
+    ap.add_argument("--merged", help="P2b's merge commit on main (--enable)")
     ap.add_argument("--rollback-file", help="absolute path the --apply GET is saved to")
     ap.add_argument("--staged", help="the ruleset JSON staged in PR 2's body")
     ap.add_argument("--head", help="PR 2's head SHA, H")
@@ -307,9 +427,23 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
         return self_test()
     try:
         if a.dry_run:
+            if a.window:
+                return dry_run_window(gh, load(a.staged), a.head, a.pr)
             return dry_run(gh, load(a.staged), a.head, a.pr)
         if a.rollback:
             return rollback(gh, a.rollback)
+        if a.verify:
+            if a.head is None:
+                raise Refuse("--verify needs --head (main's head sha)")
+            return verify(gh, a.head)
+        if a.enable:
+            if None in (a.rollback_file, a.merged):
+                raise Refuse("--enable needs --rollback-file and --merged")
+            return enable(gh, a.rollback_file, a.merged)
+        if a.disable:
+            if None in (a.rollback_file, a.staged, a.head, a.pr):
+                raise Refuse("--disable needs --rollback-file, --staged, --head and --pr: no toggle outside the staged sequence")
+            return disable(gh, a.rollback_file, load(a.staged), a.head, a.pr)
         if None in (a.rollback_file, a.staged, a.head, a.pr):
             raise Refuse("--apply needs --rollback-file, --staged, --head and --pr")
         return apply(gh, a.rollback_file, load(a.staged), a.head, a.pr)
@@ -344,7 +478,7 @@ class FakeGh:
         if path == RULESET:
             return (1, "gh: HTTP 502") if self.fail_get else (0, json.dumps(self.state))
         g = self.green
-        for prefix, key in ((f"repos/{REPO}/commits/", "check_runs"), ("user", "user"),
+        for prefix, key in ((f"repos/{REPO}/commits/", "check_runs"), (f"repos/{REPO}/compare/", "compare"), ("user", "user"),
                             (f"repos/{REPO}/actions/runs", "runs"), (f"repos/{REPO}/pulls", "pulls")):
             if path.startswith(prefix):
                 return 0, json.dumps(g[key])
@@ -519,6 +653,91 @@ def self_test() -> int:
         check("rollback: a read-back mismatch refuses", rc == 2 and "ROLLBACK READBACK FAILED" in out, out)
         rc, out = run(FakeGh(ruleset, green), ["--rollback", "relative.json"])
         check("rollback: a relative path refuses", rc == 2, out)
+
+    # THE RULESET-OFF WINDOW (tvofi 2026-10-23, under the R10 mandate): --disable turns
+    # enforcement off for P2b's merge, --enable PUTs [gate] after it, --verify reads main's gate.
+    with tempfile.TemporaryDirectory() as td:
+        staged = os.path.join(td, "staged.json")
+        Path(staged).write_text(json.dumps(ruleset))
+        k = iter(range(10**6))
+
+        def rbp():
+            return os.path.join(td, f"rb-{next(k)}.json")
+
+        def runs_at(*named):
+            return lambda c: {"total_count": len(named), "check_runs": [
+                {"id": 910000 + i, "name": nm, "head_sha": H, "status": "completed", "conclusion": cc,
+                 "app": {"id": GATE_APP_ID}, "check_suite": {"id": 710000 + i}} for i, (nm, cc) in enumerate(named)]}
+        window = [("tests / fast (3.14)", "success"), ("governance / policy-docs", "failure"),
+                  ("governance / env-matrix", "failure"), ("governance / wave-script", "failure"),
+                  ("gate", "failure")]
+        g_win = variant(check_runs=runs_at(*window))
+
+        def dis(g, **over):
+            v = {"--rollback-file": rbp(), "--staged": staged, "--head": H, "--pr": str(PR), **over}
+            f = FakeGh(ruleset, g)
+            rc, out = run(f, ["--disable", *[x for kv in v.items() if kv[1] is not None for x in kv]])
+            return f, rc, out, v["--rollback-file"]
+        f, rc, out, rb = dis(g_win)
+        check("disable: only the base-pinned reds (and gate) at H: succeeds", rc == 0, out)
+        check("disable: one PUT, the copy with enforcement disabled and nothing else changed",
+              f.puts == [{**six(ruleset), "enforcement": "disabled"}], str(f.puts)[:300])
+        check("disable: saves the 17 copy and prints the next step",
+              os.path.exists(rb) and "--enable" in out and "reds-at-head: PASS" in out, out)
+        f, rc, out, rb = dis(g_win, **{"--staged": None})
+        check("disable: refuses outside the staged sequence (no --staged), no PUT",
+              rc == 2 and f.puts == [] and not os.path.exists(rb), out)
+        for name, extra in (("a unit red besides the three", ("tests / closures", "failure")),
+                            ("a check still running", ("tests / coverage", None))):
+            g = variant(check_runs=runs_at(*window, extra))
+            if extra[1] is None:
+                g["check_runs"]["check_runs"][-1]["status"] = "in_progress"
+            f, rc, out, _ = dis(g)
+            check(f"disable plant {name}: refuses, no PUT",
+                  rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        f, rc, out, _ = dis(variant(user=lambda u: {"login": "hpo-author[bot]"}))
+        check("disable plant caller not tvofi: refuses, no PUT", rc == 2 and f.puts == [], out)
+
+        # --enable: from the disabled copy, after P2b's merge commit is on main.
+        rb = rbp()
+        Path(rb).write_text(json.dumps(ruleset))
+        off = {**ruleset, "enforcement": "disabled"}
+
+        def ena(state, cmp_status="ahead", rbf=rb):
+            g = variant(user=lambda u: u)
+            g["compare"] = {"status": cmp_status}
+            f = FakeGh(state, g)
+            rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40])
+            return f, rc, out
+        f, rc, out = ena(off)
+        check("enable: PUTs [gate] with the copy's own enforcement, both halves read back",
+              rc == 0 and f.puts and contexts(f.puts[0]) == NEW_CHECKS
+              and f.puts[0]["enforcement"] == ruleset["enforcement"]
+              and "half 1 OK" in out and "half 2 OK" in out, out)
+        f, rc, out = ena(ruleset)
+        check("enable: refuses when the live ruleset is not the disabled copy", rc == 2 and f.puts == [], out)
+        f, rc, out = ena(off, "behind")
+        check("enable: refuses when the merge commit is not on main", rc == 2 and f.puts == [], out)
+
+        # --dry-run --window: the staging read for the body -- both payloads, the window's preconditions.
+        f = FakeGh(ruleset, g_win)
+        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("dry-run --window: passes on the base-pinned reds, prints both payloads, writes nothing",
+              rc == 0 and f.puts == [] and "reds-at-head: PASS" in out and "gate-at-head" not in out
+              and "DISABLE PAYLOAD" in out and "ENABLE PAYLOAD" in out and "WINDOW DRY-RUN OK" in out, out)
+        f = FakeGh(ruleset, variant(check_runs=runs_at(*window, ("tests / closures", "failure"))))
+        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("dry-run --window: a unit red refuses", rc == 1 and "reds-at-head: FAIL" in out, out)
+        # --verify: main's push gate, every suite's newest green.
+        rc, out = run(FakeGh(ruleset, green), ["--verify", "--head", H])
+        check("verify: every suite's newest gate green passes", rc == 0 and "VERIFY OK" in out, out)
+        rc, out = run(FakeGh(ruleset, variant(check_runs=gate(conclusion="failure"))), ["--verify", "--head", H])
+        check("verify: a red newest gate fails, and names the rollback", rc == 1 and "--rollback" in out, out)
+        # --rollback restores the 17 from the disabled state too.
+        f = FakeGh(off, green)
+        rc, out = run(f, ["--rollback", rb])
+        check("rollback from the disabled window: restores the copy whole",
+              rc == 0 and f.puts == [six(ruleset)], out)
 
     print(f"ruleset_cutover self-test: {checks} checks, {failed} failed")
     return 1 if failed else 0
