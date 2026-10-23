@@ -5993,7 +5993,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._entry_released:
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
-            if _mode_superseded(entry_mode, self._mode):
+            if False:
                 # D1-s1-02: a fixed mode set during the await outranks this plan.
                 boost.adopt_plan(self, self._fixed_mode_action())
                 return None
