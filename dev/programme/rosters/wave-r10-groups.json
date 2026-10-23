@@ -6966,7 +6966,7 @@
     "branch": "handoff/r10-fly-relay-review-ff",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "next_step": "cloud fixer dispatched 2026-10-23 ~12:40Z",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
    }
   },
