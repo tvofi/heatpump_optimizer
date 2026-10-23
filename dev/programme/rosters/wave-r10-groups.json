@@ -5694,7 +5694,7 @@
    "architect_note": null,
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-ci-layout-p2",
+    "branch": "handoff/r10-ci-layout-p2b-v2",
     "commit": "5056615a28b861abb32a9b8ff2111340b7487146",
     "last_step": null,
     "next_step": "dispatch a fixer once R10-CI-LAYOUT-P1 is done",
