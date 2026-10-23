@@ -34314,6 +34314,33 @@ R.check(
     f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
 )
 
+# R10-CI-LAYOUT P2b-pre2 (U5b's payment, ported to main ahead of the cut-over):
+# tests.yml's `arch-instrument` runs the architecture-score pair (RUN_PART=arch)
+# beside `fast` (RUN_PART=fast). It takes fast's scope by COPIES of fast's two
+# steps, so the copies must stay equal: a drift lets the pair run at another
+# scope than the suite it was split from. The null: both jobs exist and the
+# steps are found by name in each.
+_AI_JOBS = ((_yaml.safe_load(_tests_workflow) or {}).get("jobs") or {})
+
+
+def _ai_step(job: str, name: str) -> dict | None:
+    return next((s for s in (_AI_JOBS.get(job) or {}).get("steps") or [] if s.get("name") == name), None)
+
+
+_AI_COPIED = ("Resolve the golden comparison ref", "Decide the gate scope")
+_AI_RUN = {"fast": _ai_step("fast", "Run the suite"),
+           "arch-instrument": _ai_step("arch-instrument", "Run the architecture-score pair")}
+R.check(
+    "arch-instrument takes fast's scope by equal copies of fast's two steps, and each runs its own RUN_PART",
+    all(_ai_step("fast", n) is not None and _ai_step("fast", n) == _ai_step("arch-instrument", n)
+        for n in _AI_COPIED)
+    and ((_AI_RUN["fast"] or {}).get("env") or {}).get("RUN_PART") == "fast"
+    and ((_AI_RUN["arch-instrument"] or {}).get("env") or {}).get("RUN_PART") == "arch"
+    and (_AI_JOBS.get("arch-instrument") or {}).get("needs") == ["closure-scope"],
+    f"copies equal: {[n for n in _AI_COPIED if _ai_step('fast', n) == _ai_step('arch-instrument', n)]}; "
+    f"RUN_PART: {[((r or {}).get('env') or {}).get('RUN_PART') for r in _AI_RUN.values()]}",
+)
+
 # The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3).
 # harness_headers.py bills each harness's CPU against bounds sized from the
 # serial cost; a co-running lane inflates a CPU second (its CPU_LIMIT_S
