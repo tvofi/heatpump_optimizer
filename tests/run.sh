@@ -39,6 +39,12 @@
 #     environment rather than against recorded numbers, for the same
 #     reason env_drift does). Neither writes anything a lane could see.
 #
+# RUN_PART splits the suite between two CI jobs (R10-CI-LAYOUT P2b, U5b):
+# `fast` skips the architecture-score pair, by name, and `arch` runs that pair
+# and nothing else -- `tests / fast (3.14)` and `tests / arch-instrument` run
+# the two parts side by side. Unset, or any other value, runs everything:
+# what a local run, prepr.sh and coverage's script list see.
+#
 # GATE_JOBS controls it: unset (default) uses the smaller of `nproc` and 3
 # lanes; GATE_JOBS=1 runs everything serially with live streaming output,
 # which is the old behaviour and the thing to reach for when a failure needs
@@ -199,6 +205,10 @@ else
   echo "  (architecture report unavailable)"
 fi
 
+# Which part of the suite this run is (the header's RUN_PART): anything but
+# the two names is the whole suite.
+case "${RUN_PART:-}" in (fast|arch) ;; (*) RUN_PART=all ;; esac
+
 # --- scoping ---------------------------------------------------------------
 # Default full. The scoped path has to be asked for by name, and any doubt
 # inside tests/closure.py comes back as a full run.
@@ -227,6 +237,12 @@ fi
 } > "$WORKDIR/scope.print"
 
 cat "$WORKDIR/scope.print"
+# The arch part answers for the pair alone (RUN_PART above): the rest of the
+# plan's skips are `fast`'s to report, so its NOT RUN block names only these.
+if [ "$RUN_PART" = arch ] && [ -f "$WORKDIR/scope.skip" ]; then
+  grep -E '^tests/arch_score(_head)?\.py	' "$WORKDIR/scope.skip" > "$WORKDIR/scope.skip.arch" || true
+  mv "$WORKDIR/scope.skip.arch" "$WORKDIR/scope.skip"
+fi
 
 # CI-cost metrics (tests/ci_ratchet.py): the gate's own scope decision, one
 # line -- class (full or scoped), how many scripts the scoped plan RUNS and
@@ -558,7 +574,9 @@ lane_units() {
 # it is the longest single step in the suite — in drift mode it captures every
 # scenario twice — and nothing else depends on it.
 lane_golden() {
-  if [ "$GOLDEN_MODE" = "drift" ]; then
+  if [ "$RUN_PART" = arch ]; then
+    :   # the pair below, alone: the fixtures are `fast`'s
+  elif [ "$GOLDEN_MODE" = "drift" ]; then
     # Drift mode replaces the exact comparison entirely; golden.py's
     # fixtures were recorded on another machine and comparing this one's
     # floats against them would cry wolf. Said out loud rather than left
@@ -590,8 +608,18 @@ lane_golden() {
   # In this lane, not lane_units (R10-CI-LAYOUT PR 0): lane_units ends last in
   # CI's `fast` job and this lane ends sooner, so the pair moves `fast`'s end
   # earlier at the same total work. tests/entities.py pins the placement.
-  run "$PYTHON" tests/arch_score.py
-  run "$PYTHON" tests/arch_score_head.py
+  # In CI the pair is its own job beside `fast` (U5b): about 41 of fast's 58
+  # minutes on a slow runner were this pair (roster carry 3). Skipped here by
+  # name, so the accounting below sees both; the coverage stage's list
+  # (tools/coverage/coverage_tree.sh) and the closures plan never ran them
+  # through `fast`, so their script-runs rows are unchanged.
+  if [ "$RUN_PART" = fast ]; then
+    skip tests/arch_score.py "SKIP: tests/arch_score.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)"
+    skip tests/arch_score_head.py "SKIP: tests/arch_score_head.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)"
+  else
+    run "$PYTHON" tests/arch_score.py
+    run "$PYTHON" tests/arch_score_head.py
+  fi
 }
 
 # End-to-end optimizer behaviour, then the plan payloads, the card that
@@ -667,9 +695,13 @@ lane_stress() {
 }
 
 LANES="units golden e2e"
+ALL_LANES="$LANES stress"
+# The arch part: lane_golden alone, and so the pair alone; nothing to measure
+# the machine against, so no stress lane.
+[ "$RUN_PART" = arch ] && { LANES="golden"; ALL_LANES="golden"; }
 
 if [ "$JOBS" -le 1 ]; then
-  for lane in $LANES stress; do
+  for lane in $ALL_LANES; do
     LANE="$lane" step=0
     "lane_$lane"
     : > "$WORKDIR/$lane.done"
@@ -688,14 +720,16 @@ else
     pids="$pids $!"
   done
   for pid in $pids; do wait "$pid"; done
-  echo
-  echo "########## alone on the box: stress, then harness_headers ##########"
-  ( trap - EXIT; LANE="stress"; step=0; lane_stress; : > "$WORKDIR/stress.done" ) &
-  wait $!
+  if [ "$RUN_PART" != arch ]; then
+    echo
+    echo "########## alone on the box: stress, then harness_headers ##########"
+    ( trap - EXIT; LANE="stress"; step=0; lane_stress; : > "$WORKDIR/stress.done" ) &
+    wait $!
+  fi
 fi
 
 # --- accounting: every lane finished, every test script is accounted for ---
-for lane in $LANES stress; do
+for lane in $ALL_LANES; do
   if [ ! -f "$WORKDIR/$lane.done" ]; then
     echo "LANE DID NOT FINISH: $lane stopped before its last script"
     failed=$((failed + 1))
@@ -710,6 +744,11 @@ for f in tests/*.py tests/*.mjs; do
   case "$base" in
     harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py) continue ;;
   esac
+  # The arch part owes the pair and nothing else; `fast` owes the rest, the
+  # pair as its two named skips.
+  if [ "$RUN_PART" = arch ]; then
+    case "$base" in arch_score.py|arch_score_head.py) ;; *) continue ;; esac
+  fi
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
     echo "  executed it and no lane skipped it on purpose."
@@ -720,7 +759,7 @@ done
 # --- the report ------------------------------------------------------------
 
 if [ "$JOBS" -gt 1 ]; then
-  for lane in $LANES stress; do
+  for lane in $ALL_LANES; do
     [ -f "$WORKDIR/$lane.manifest" ] || continue
     while IFS=$'\t' read -r id rc seconds label; do
       echo
@@ -737,7 +776,7 @@ fi
 echo
 echo "########## wall clock ##########"
 ran=0
-for lane in $LANES stress; do
+for lane in $ALL_LANES; do
   [ -f "$WORKDIR/$lane.manifest" ] || continue
   while IFS=$'\t' read -r id rc seconds label; do
     case "$label" in
