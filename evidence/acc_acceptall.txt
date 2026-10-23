@@ -1,0 +1,6 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE VACUOUS: a half-migrated live set (gate plus one of the old contexts) passed; only a whole recorded shape may

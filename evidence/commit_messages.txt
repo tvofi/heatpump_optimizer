@@ -1,0 +1,62 @@
+--- f8c05fbf7 tvofi
+record: the delivery row for #2658
+
+--- 54c60b5ac tvofi
+fix: ghapi retries a GET's transient 5xx before answering (R10-CI-LAYOUT P2, step 11a; a P2a defect)
+
+M-5b on #2649: a gate re-run FAILed on one HTTP 502 from actions/runs/<id>/jobs.
+ghapi returned the 5xx, gate.py made it FAIL, and sweep.py re-runs only OLDER
+reds once a newer gate is green, so a 5xx on the newest run's gate leaves the
+one required check red until the next event; ruleset_cutover.py --apply reads
+the same client. A GET now retries a 5xx after 2 s and 6 s, then returns what it
+got. Every other status, a rate limit included, answers at once; a POST is never
+retried.
+
+Red first: the self-test failed (no _sleep) before this. Mutants: no backoffs
+(4 failed), retrying any status >= 400 (the 404 null fails). Self-tests: ghapi
+19/0, gate 27/0, ruleset_cutover 51/0, alert_list 25/0, prelude 27/0.
+
+--- f17e09d63 tvofi
+test: ghapi retries a transient 5xx on a GET (R10-CI-LAYOUT P2, step 11a; red first)
+
+--- b1de8abec tvofi
+fix: the base-pinned governance pin reads no deleted workflow file (R10-CI-LAYOUT P2, step 11a)
+
+wave-script restores agreement_py.py and tests/entities.py from the BASE and
+runs them over the pull request's tree (decision 0013). On P2b (#2656, #2657)
+main's _GOV_FILES still names budget-raise-gate-rerun.yml, which U8 deletes,
+and governance_jobs raised FileNotFoundError: wave-script red, so P2b's gate
+red. governance_pin adds no jobs for a listed file the tree lacks. A stale list
+cannot pass that way on main: entities, run from the tree, now pins that every
+_GOV_FILES entry names a file the tree holds, and reads only those, so the
+pin names the entry instead of crashing.
+
+Red first: the self-test's two rows failed before governance_pin; the plant
+(main's code over a tree without the file) raised FileNotFoundError; a mutant
+that reads every listed file reddens the self-test (6 failed).
+
+--- b9e408c7a tvofi
+test: agreement_py's governance pin over a listed file the tree lacks (R10-CI-LAYOUT P2, step 11a; red first)
+
+--- 1ea885f50 tvofi
+fix: the base-pinned policy graders accept the cut-over record's either whole shape (R10-CI-LAYOUT P2, step 11a)
+
+governance.yml restores policy_lint and its modules from the BASE commit
+(decision 0013), so on P2b main's linter judges P2b's record, contexts [gate]
+beside pre_cutover, against the live 17: 37 [required-contexts] errors, so
+policy-docs and env-matrix red, so P2b's gate red at every head, and
+ruleset_cutover.py --apply's gate-at-head precondition refuses. P2b's own
+linter carried cutoverDrift; the base-pinned copy never runs it. This lands
+counts.mjs cutoverDrift and its two readers (policy_lint
+requiredContextsOverTree, field_coverage RULESET_PROBE) on main first.
+Main's record carries no pre_cutover, so on main cutoverDrift is
+requiredContextsDrift unchanged.
+
+--- b31fe0812 tvofi
+test: policy_lint pins the cut-over window's record shapes (R10-CI-LAYOUT P2, step 11a; red first)
+
+Four acceptance pins: a live set equal to a recorded pre_cutover passes and
+says PRE-CUT-OVER; the post-PUT shape passes beside it; a half-migrated set is
+refused; with no pre_cutover the old set is still refused (null). Red on this
+commit: the pre_cutover pin reads 4 findings and no PRE-CUT-OVER line.
+

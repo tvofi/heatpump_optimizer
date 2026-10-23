@@ -1,0 +1,26 @@
+== noretry: ghapi self-test: 19 checks, 4 failed
+FAIL a 502 then a 200 on a GET answers the 200: got 502, want 200
+FAIL after one retry: got 1, want 2
+FAIL and a backoff before it: got False, want True
+FAIL a 5xx that persists is returned after two retries, not looped: got (503, 1), want (503, 3)
+== retry4xx: ghapi self-test: 19 checks, 1 failed
+FAIL a 404 is not retried (null control): got (404, 3), want (404, 1)
+ghapi self-test: 19 checks, 1 failed
+== loopforever: 
+== onceonly: ghapi self-test: 19 checks, 1 failed
+FAIL a 5xx that persists is returned after two retries, not looped: got (503, 2), want (503, 3)
+ghapi self-test: 19 checks, 1 failed
+== postretry: ghapi self-test: 19 checks, 2 failed
+FAIL a POST is never retried (a re-run request is not repeated): got (502, 3), want (502, 1)
+FAIL post method: got 'GET', want 'POST'
+ghapi self-test: 19 checks, 2 failed
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError:         _sleep(nap)\n
+== nosleep: ghapi self-test: 19 checks, 0 failed
+ghapi self-test: 19 checks, 0 failed
+FAIL a 5xx that persists is returned after two retries, not looped: got (503, 8), want (503, 3)
+ghapi self-test: 19 checks, 1 failed
+== nosleep:
+FAIL and a backoff before it: got False, want True
+ghapi self-test: 19 checks, 1 failed
