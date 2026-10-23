@@ -1,0 +1,56 @@
+Fix review: merge fc0ab7733e0511f56a4359bc02ea859a4868a898
+
+bus-nonce: 467c3190b8986366a5245126a223939c
+
+Round 1. PR #2643 (R10-FLY-NO-FOOTERS pre-PR). Measured head fc0ab7733e0511f56a4359bc02ea859a4868a898, from a detached worktree; re-read at 03:24Z as still the head. The roles diff since the merge base is empty, so this contract is current.
+
+## RESULT
+RESULT mutants=7 killed=6 equivalent=1 survived=0
+RESULT selftest_head=ok (36 ok lines)
+RESULT null_head_hooks read=7 ignored=5 blind=0 dead=0 refused=0 pending_lines=1 FIELD_COVERAGE=ok
+RESULT null_head_full read=69 ignored=25 declared_none=34 blind=0 dead=0 refused=0 runs=145 FIELD_COVERAGE=ok
+RESULT plant_2636_main_grader blind=3 (attribution.commit, attribution.pr, attribution.sessionUrl) dead=0 FIELD_COVERAGE=REFUSED
+RESULT plant_2636_head_grader blind=0 dead=0 refused=0 pending_lines=0 FIELD_COVERAGE=ok
+RESULT merged_with_main_4200ea4c selftest=ok null_hooks blind=0 dead=0 refused=0 pending=1 plant_2636_settings blind=0 dead=0 policy_lint TOTAL=0
+RESULT policy_lint TOTAL=0 (43 files); structure.py STRUCTURE RATCHET PASSED
+RESULT merge_tree origin/main=4200ea4c4275 rc=0 tree=f472e1fd (also rc=0 against e30b24bbc earlier)
+RESULT carry_audit pr 2643: 2 routed, 0 unrouted, 0 bad
+RESULT closure_select MODE: SCOPED -- 1 script(s) run (tests/entities.py), matching the body
+
+## 1. Not a general loosening
+- `pending` occurs once in the tree's registrations: on HOOKS (field_coverage.mjs:120). RULESET, APPROVALS and BUDGETS do not have it, and budgetsRun reads only `BUDGETS.ignore`. jsonRun's IGNORE DEAD loop runs before the pending globs are appended, so an unmatched IGNORE is still DEAD whether or not a pending entry sits beside it.
+- Mutants of tools/policy/field_coverage.mjs, each run with `--self-test` and restored (ev/mutant_*.txt):
+  - M1 (fixer's): unmatched PENDING pushed to dead. Killed: "a PENDING matching no field is printed, not DEAD...".
+  - M2 (fixer's): `globs.push(...pend)` removed. Killed: "a PENDING matching a field clears it like an IGNORE".
+  - M3 (fixer's): IGNORE DEAD made tolerant. Killed: "an IGNORE matching no field is DEAD" and "an ordinary IGNORE beside a PENDING is still DEAD".
+  - M4 (mine): IGNORE DEAD check skipped whenever a registration has `pending`. Killed: the beside-a-PENDING row.
+  - M5 (mine): the unmatched PENDING line dropped silently. Killed: row 1.
+  - M6 (mine): a present PENDING clears every field. Killed: rows 1 and 2.
+  - M7 (mine): IGNORE keys merged into the pending list. Survives, but it is equivalent in strictness: the DEAD loop still pushes DEAD for an unmatched IGNORE, and it only adds a redundant pending line. No loosening survives.
+- Not covered by the self-test: the `pending` print line in main(). That line is display only, and verdicts count blind, dead and refused.
+
+## 2. Null and plant
+- Null, head on its own tree: blind=0 dead=0 refused=0, with one `pending` line, FIELD COVERAGE ok. This holds for `--only hooks` and for the full run (ev/null_head_*.txt).
+- Plant, #2636's tree at 328e222f: main's grader reads blind=3 and REFUSED. This head's grader reads blind=0 dead=0, ok, with no pending line because the key is present and matched (ev/plant2636_*).
+- Re-taken on the merge with today's main (4200ea4c, which changed policy_lint.mjs, the program the hooks verdict calls): the null and the #2636-settings plant both still read ok.
+
+## 3. Lint, ratchet, merge
+- policy_lint TOTAL 0. structure.py passed.
+- `git merge-tree --write-tree origin/main fc0ab7733e0511f56a4359bc02ea859a4868a898` exits 0 against main 4200ea4c4275 and leaves no conflict.
+- VERSION, the manifest version and the notes heading are untouched; CI's version-edit step confirms "no version edit".
+
+## 4. Carries
+- carry_audit.py pr 2643 reads 2 routed, 0 unrouted, 0 bad.
+- The roster carry is at 95891bbd24640ecbaa981cb735c51661776261c4, an ancestor of handoff/audit-r10-roster, which is at that same SHA. It appends to dev/programme/rosters/wave-r10-groups.json a precondition for R10-FLY-NO-FOOTERS: move `attribution` from `pending` to `ignore` after #2636, or inside it.
+- I could not re-derive the brief's "body sha1 911db7d4". The current body (updated 02:59:24Z) hashes to 68a01ce0 raw and f03a98b2 with a trailing newline, and carry_audit's item ids are hashes of item text, not of the body. The body does not quote this figure, so it does not count against the PR. I am recording it as unverified.
+
+## 5. CI on the head (one bulk read, ev/check_runs.tsv: 32 success, 9 skipped, 3 failure, all concluded)
+- nightly-status: red. The log reads "NIGHTLY RUNNING: no scheduled run has CONCLUDED" (run 39890399205 in progress). This check is unrequired, and the diff does not reach what it reads, so it is not this PR's.
+- pr-contract x2 (02:57:11Z, 02:57:37Z): red. In both, carry_audit check --body read "0 routed, 2 unrouted", on body revisions from before the roster carry landed at 02:58:22Z. A later pr-contract run (02:59:30Z) on this same head reads "2 routed", FIGURES 5 resolved, and is green. That run started after the last red concluded (nightly-status, 02:59:05Z), so it graded the final body, whose `## Red checks: none` it accepted. The cheaper detector was `carry_audit.py check --body` before the body was published; this was an ordering slip inside one handoff, already superseded.
+- py-spy heartbeat entity failures: CI does not show them. tests/entities.py ran in fast (3.14) (293s) and passed ("5 TEST SCRIPT(S) PASSED"). I could not run entities.py in this container (no homeassistant module; the system python is 3.11), so I cite CI.
+
+## 6. Policy
+Yes, this is policy under CLAUDE.md. tools/policy/field_coverage.mjs is the pinned grader of the required check governance / policy-docs, and this change alters what that check refuses. It needs the owner's approval before merging, or the orchestrator's under the mandate in force, as the body's ## Approval states. dev/programme/delivery/2643.md is a record row, not policy.
+
+## Harness
+There is no finder harness to run: this is a pre-PR instrument change, and its harness is the program's own `--self-test` plus the #2636 plant. Both are run above. Mutants M4 to M7 are my own.

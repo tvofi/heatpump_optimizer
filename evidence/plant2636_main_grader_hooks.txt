@@ -1,0 +1,17 @@
+  read     hooks hooks.SessionStart[0].hooks[0].type
+  read     hooks hooks.SessionStart[0].hooks[0].command
+  read     hooks hooks.PreToolUse[0].matcher
+  read     hooks hooks.PreToolUse[0].hooks[0].type
+  read     hooks hooks.PreToolUse[0].hooks[0].command
+  read     hooks hooks.Stop[0].hooks[0].type
+  read     hooks hooks.Stop[0].hooks[0].command
+  ignored  hooks permissions.allow[0]
+  ignored  hooks permissions.allow[1]
+  ignored  hooks permissions.allow[2]
+  ignored  hooks permissions.allow[3]
+  ignored  hooks permissions.allow[4]
+  BLIND    hooks `attribution.commit` = "": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `attribution.pr` = "": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `attribution.sessionUrl` = false: perturbed, policy_lint.mjs --hooks stays green
+RESULT read=7 ignored=5 declared_none=0 blind=3 dead=0 refused=0 runs=11 seconds=6.3
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
