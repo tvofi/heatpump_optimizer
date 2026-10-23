@@ -9,18 +9,24 @@
 
 THE RULESET-OFF WINDOW (tvofi 2026-10-23, R10 mandate 6329234399), the order step 12 runs:
     --disable --rollback-file /abs/F --staged S --head H --pr N
-        save the 17 copy, then PUT it with `enforcement: disabled`. Preconditions as
-        --apply's, except that gate-at-head becomes reds-at-head: at H every check is
-        complete, and the only reds are BASE_PINNED (governance jobs that restore their
-        graders from the base, so main's copies judge P2b's tree) and `gate`, which
-        requires them. Without --staged it refuses: no toggle outside the staged sequence.
-    [merge P2b while enforcement is off; the train is frozen]
-    --enable --rollback-file /abs/F --merged M
-        requires live == the copy with enforcement disabled, and M on main; PUTs the
-        copy with [gate] and the copy's own enforcement; both read-back halves.
+        save the 17 copy (and its six-key digest beside it, F.sha256), then PUT it
+        with ONLY the required_status_checks rule removed: enforcement and the
+        pull_request rule (code-owner review) stay on. Preconditions as --apply's,
+        except that gate-at-head becomes reds-at-head -- what `gate` owes at H:
+        every gate.REQUIRED['pr'] (or 'pr-cc') name less BASE_PINNED present with
+        success, every check complete, the only reds BASE_PINNED (governance jobs
+        that restore their graders from the base, so main's copies judge P2b's
+        tree) and `gate` -- and main-ratchet-green: main's newest completed push
+        run shows ci-ratchet green. Without --staged it refuses.
+    [merge P2b in the window; the train is frozen]
+    --enable --rollback-file /abs/F --merged M --head H
+        requires live == the copy less required_status_checks, the copy still at
+        its saved digest, M on main and H among M's parents; PUTs the copy with
+        [gate] and the copy's own enforcement; both read-back halves.
     --verify --head <main sha>
         every check suite's newest `gate` at main's head is green, or it names the rollback.
-    --rollback F restores the copy (the 17, enforcement on) from any of these states.
+    --rollback F restores the copy (the 17) from any of these states, refusing a
+        copy that no longer hashes to F.sha256.
 
 WHO RUNS IT. `--apply` and `--rollback` are tvofi's, as the repository owner,
 at PR 2's merge (plans/ci-layout PLAN.md section 3; DESIGN-REVIEW.md section
