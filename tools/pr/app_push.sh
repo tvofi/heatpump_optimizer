@@ -475,9 +475,11 @@ push_and_open() {
     || die "--$flag: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
   local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
   # The branch name and every commit message the push publishes for the first
-  # time: one naming this host is refused before anything is minted (#2310).
+  # time: one naming this host, or carrying a tool's attribution (a session link
+  # or trailer, the generated-by footer), is refused before anything is minted
+  # (#2310, R10-FLY-NO-FOOTERS).
   python3 -I "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/ref_privacy.py" guard --ref "$br" --commits "$head" -C "$wt" \
-    || die "the branch or a commit it publishes would publish this host (#2310); NOTHING was minted or pushed"
+    || die "the branch or a commit it publishes would publish this host (#2310) or a tool's attribution; NOTHING was minted or pushed"
 
   if [ "$dry" = 1 ]; then
     if [ "$prnum" = "none" ]; then

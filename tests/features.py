@@ -18455,6 +18455,53 @@ R.check(
     and _rs_quiet._house_heat_loss_scale == _rs_quiet_scale,
 )
 
+# The restore service re-plans as adopt does (#2258): it asks for a cycle, and
+# that cycle's advice offers no refit for the restored scale and grades the
+# house on it. A features check, not a ledger row: an awaited expression
+# statement draws no generated mutation site.
+_rs_r = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_r._accuracy.record(_rs_row)
+_rs_r._apply_house_heat_loss_scale(1.4)
+_rs_r_before = _rs_advice(_rs_r)
+_rs_r_refreshes = getattr(_rs_r, "refresh_requests", 0)
+try:
+    _dt_mod_t4b.now = lambda: _rs_accept_at
+    _rs_r_ok = _asyncio.run(_rs_r.async_restore_learned_snapshot())
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+_rs_r_view = _rs_r._insight_view()
+R.check(
+    "#2258: a restore asks for a cycle, and that cycle's advice offers no refit "
+    "and grades the house on the restored scale",
+    _rs_r_before["refit"] is not None
+    and _rs_r_ok is True
+    and getattr(_rs_r, "refresh_requests", 0) == _rs_r_refreshes + 1
+    and _rs_r_view["model_restart"]["refit"]["scale"] is None
+    and _rs_r_view["model_restart"]["current_scale"]
+    == round(_rs_r._house_heat_loss_scale, 3) == 1.0,
+    f"before={_rs_r_before} view={_rs_r_view['model_restart']} "
+    f"refreshes {getattr(_rs_r, 'refresh_requests', 0) - _rs_r_refreshes}",
+)
+
+# The cycle path itself: ONE ``_insight_view()`` on a coordinator whose refit
+# sits outside its band offers the refit to the advisor and dashes the grade
+# with the matching reason, both read from that one view.
+_rs_d = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_d._accuracy.record(_rs_row)
+_rs_d._house_heat_loss_samples = 5000  # converged: only the refit can dash
+_rs_d_view = _rs_d._insight_view()
+_rs_d_refit = _rs_d_view["model_restart"]["refit"]
+R.check(
+    "#2258: one cycle view offers the refit and grades the house against it",
+    _rs_d_refit is not None
+    and _rs_d_refit["scale"] is not None
+    and _rs_d_view["scores"]["reasons"].get("envelope") == "heat_loss_refit_disagrees"
+    and _rs_d_view["scores"]["envelope"] is None,
+    f"{_rs_d_view['model_restart']} {_rs_d_view['scores']}",
+)
+
 # --- persistence: the detectors' memory rides the thermal store ----------------------
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
