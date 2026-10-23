@@ -142,8 +142,8 @@ none
 
 ## Forward-carry
 
-none. The runbook carry (#2422: `nudge.md` and `orchestrator.md` name `open_pr.sh` without `--over-cap`) concerns policy files. The carry itself leaves them unedited, and its contract is already held in `tools/audit/seat/INSTRUMENTS.md`, so this PR moves nothing there. The root-cause analysis of the raise-gate grammar is the separate seat r10-rca-raise-gate-grammar, by dispatch.
+none.
 
 ## Friction
 
-`environment`: `cost`: `GH_TOKEN` is rejected (HTTP 404 on a public read), and `seat_venv.sh` asks uv for a CPython 3.14.7 that has no download. So the live `v7.0.4` window went unmeasured, and the scoped gate ran on a 3.13 venv.
+- `environment`: `cost`: `GH_TOKEN` is rejected (HTTP 404 on a public read), and `seat_venv.sh` asks uv for a CPython 3.14.7 that has no download. So the live `v7.0.4` window went unmeasured, and the scoped gate ran on a 3.13 venv. Carry: dismissed: a cloud-seat environment limit, not a defect in this PR; the live window is measured by CI on this head (heavy runs go to cloud CI, owner 2026-10-21)
