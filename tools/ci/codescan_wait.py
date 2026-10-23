@@ -148,7 +148,7 @@ def self_test() -> int:
     def jobs(skip=()):
         return [{"name": n, "status": "completed", "steps": steps(n.split("(")[1][:-1] not in skip)} for n in CODEQL]
 
-    def world(analyses, sarifs, alerts, runs=None, run_jobs=None, **kw):
+    def world(analyses, sarifs, alerts, runs=None, run_jobs=None, at=A.R, **kw):
         inner = A.world(analyses, sarifs, alerts, **kw)
         runs = {100: code, 200: edit, **(runs or {})}
         run_jobs = run_jobs or {100: jobs()}
@@ -165,6 +165,8 @@ def self_test() -> int:
                 return 200, {}, {"workflow_runs": [r for r in runs.values() if r["head_sha"] == (params or {})["head_sha"]]}
             if tail == f"pulls/{pr}":
                 return 200, {}, {"base": {"ref": "main"}}
+            if tail == A.LISTING and (params or {}).get("ref") != at:
+                return 200, {}, []                   # an analysis is listed only under the ref it was uploaded to
             return inner(tail, params, headers)
         return get
 
@@ -182,8 +184,8 @@ def self_test() -> int:
     nosleep = dict(sleep=lambda s: None)
 
     def go(get, run_id=100, **kw):
-        try:
-            return run(get, repo, run_id, pr, "main", False, **nosleep, **kw)
+        try:                                       # a bounded clock: a mutant that never finds an analysis ends, not hangs
+            return run(get, repo, run_id, pr, "main", False, **{"now": iter(range(0, 10_000, 100)).__next__}, **nosleep, **kw)
         except Fail as e:
             return f"FAIL {e}"
 
@@ -199,23 +201,26 @@ def self_test() -> int:
     check("7 a code run of another base is no source",
           str(go(world(A.THREE, plant, live, runs={100: dict(code, display_title=code["display_title"].replace("base=main", "base=dev"))}), 200)
               ).startswith("FAIL no run"))
-    check("8 an uploaded leg with no analysis at the bound FAILs", str(go(world(A.THREE[1:], A.EMPTY, []),
-          now=iter(range(0, 10_000, 100)).__next__)).startswith("FAIL no analysis"))
+    check("8 an uploaded leg with no analysis at the bound FAILs", str(go(world(A.THREE[1:], A.EMPTY, []))).startswith("FAIL no analysis"))
     naps = []
 
     def lagging(path, params=None, headers=None):
         return world(A.THREE if len(naps) >= 2 else A.THREE[1:], plant, live)(path, params, headers)
 
     check("9 a leg whose analysis lands late is waited for at the 60 s poll, then listed",
-          run(lagging, repo, 100, pr, "main", False, sleep=naps.append) == one and naps == [POLL_S, POLL_S])
+          run(lagging, repo, 100, pr, "main", False, sleep=naps.append, now=iter(range(0, 10_000, 1)).__next__) == one and naps == [POLL_S, POLL_S])
     check("10 the poll is the 60 s floor", POLL_S >= 60)
+    disp = dict(code, event="workflow_dispatch", head_branch="bot/x")
+    check("11 a dispatch source is read at refs/heads/<its branch>, and not found at the merge ref (null)",
+          go(world(A.THREE, plant, live, runs={100: disp}, at="refs/heads/bot/x")) == one
+          and str(go(world(A.THREE, plant, live, runs={100: disp}, at=A.R))).startswith("FAIL no analysis"))
 
     def limited(path, params=None, headers=None):
         raise ghapi.RateLimited(path, 1, "limit")
 
     env = {"GITHUB_REPOSITORY": repo, "GITHUB_RUN_ID": "100"}
-    check("11 main: a rate limit FAILs closed, rc 1", main(["--pr", pr, "--base", "main"], get=limited, env=env) == 1)
-    check("12 null: main on the plant exits 0", main(["--pr", pr, "--base", "main"], get=world(A.THREE, plant, live), env=env) == 0)
+    check("12 main: a rate limit FAILs closed, rc 1", main(["--pr", pr, "--base", "main"], get=limited, env=env) == 1)
+    check("13 null: main on the plant exits 0", main(["--pr", pr, "--base", "main"], get=world(A.THREE, plant, live), env=env) == 0)
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
