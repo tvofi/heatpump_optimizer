@@ -1281,7 +1281,6 @@
    ".github/PULL_REQUEST_TEMPLATE.md",
    ".github/actions/nightly-ha/action.yml",
    ".github/workflows/arch-score.yml",
-   ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
@@ -2383,7 +2382,6 @@
   ],
   "tests/harness_headers.py": [
    ".github/workflows/arch-score.yml",
-   ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
