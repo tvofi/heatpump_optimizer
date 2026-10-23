@@ -1,0 +1,46 @@
+head: ac6dc1328702d5a8be9caeba4098277acd1e6794
+base-of-delta: c40335889dd453c206c0d6a77b6301fe7dc1a8e1
+ac6dc1328702d5a8be9caeba4098277acd1e6794 c40335889dd453c206c0d6a77b6301fe7dc1a8e1 d2b3d797a15fe692d8889822c62027855e20acfc Merge commit 'd2b3d797a15fe692d8889822c62027855e20acfc' into fix/r10-ci-layout-p2b-v2
+d2b3d797a15fe692d8889822c62027855e20acfc c40335889dd453c206c0d6a77b6301fe7dc1a8e1 f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c Merge remote-tracking branch 'origin/main' into p2b-v2
+f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c c93a469512901df777f08e69783b1bef71a84f71 ba4f9f2d8b3ef0f3de53340ced187d7e2210bcca Merge pull request #2676 from tvofi/record/autofix
+ba4f9f2d8b3ef0f3de53340ced187d7e2210bcca 5236b36ca8b4f60daf1b819342d936234e5c1e99 ci: record delivery rows
+5236b36ca8b4f60daf1b819342d936234e5c1e99 c93a469512901df777f08e69783b1bef71a84f71 ci: record delivery rows
+c93a469512901df777f08e69783b1bef71a84f71 f046076aded786f271edba6f27a2a1d4b4a515d7 20307f5fc43e7b7f1c733e2c9950a1756f822255 Merge pull request #2653 from tvofi/record/autofix
+20307f5fc43e7b7f1c733e2c9950a1756f822255 72f502512dd54fafe630b889bb899606d30a18c8 ci: record delivery rows
+72f502512dd54fafe630b889bb899606d30a18c8 fafcf2d320e59da456c0beb1f56666f5ed5a457a f046076aded786f271edba6f27a2a1d4b4a515d7 Merge origin/main into record/autofix
+f046076aded786f271edba6f27a2a1d4b4a515d7 25816d5eb50d285c0c94261223e5e0b2b3380759 4547d59da65e6548c76b1d6291e078d8823ea174 Merge pull request #2672 from tvofi/fix/r10-triage-s5-batch2
+4547d59da65e6548c76b1d6291e078d8823ea174 cb479c42bb1b334089e7394acbef9919907fedf4 record: the delivery row for #2672
+cb479c42bb1b334089e7394acbef9919907fedf4 d7cb63508d1a13bd63a0cb74119e429899fa476e triage: s5 batch 2 rulings, P34-P41
+fafcf2d320e59da456c0beb1f56666f5ed5a457a e6378e0174653fc002f96d58cdb19dcec32401ca ci: record delivery rows
+e6378e0174653fc002f96d58cdb19dcec32401ca 8cea0d2cf3e1b6632b667174a17b2808c01ec21b ci: record delivery rows
+--cc d2b3d797a:
+--cc ac6dc1328:
+trees d2b3d797a/ac6dc1328: 9c88d5178181f393623e0dd8ffafab4b2ecfeb6a 9c88d5178181f393623e0dd8ffafab4b2ecfeb6a
+interdiff vs main's own delta (25816d5eb50d285c0c94261223e5e0b2b3380759..f8cc41ab0):
+IDENTICAL
+P2b paths diff c40335889..head:
+(empty)
+ dev/programme/delivery/2620.md    |   2 +-
+ dev/programme/delivery/2632.md    |   2 +-
+ dev/programme/delivery/2639.md    |   2 +-
+ dev/programme/delivery/2645.md    |   2 +-
+ dev/programme/delivery/2647.md    |   2 +-
+ dev/programme/delivery/2650.md    |   2 +-
+ dev/programme/delivery/2651.md    |   2 +-
+ dev/programme/delivery/2652.md    |   2 +-
+ dev/programme/delivery/2653.md    |   1 +
+ dev/programme/delivery/2655.md    |   2 +-
+ dev/programme/delivery/2659.md    |   2 +-
+ dev/programme/delivery/2661.md    |   2 +-
+ dev/programme/delivery/2663.md    |   2 +-
+ dev/programme/delivery/2664.md    |   2 +-
+ dev/programme/delivery/2665.md    |   2 +-
+ dev/programme/delivery/2666.md    |   2 +-
+ dev/programme/delivery/2667.md    |   2 +-
+ dev/programme/delivery/2668.md    |   2 +-
+ dev/programme/delivery/2669.md    |   2 +-
+ dev/programme/delivery/2670.md    |   2 +-
+ dev/programme/delivery/2672.md    |   1 +
+ dev/programme/delivery/2676.md    |   1 +
+ dev/programme/triage/s5-batch2.md | 182 ++++++++++++++++++++++++++++++++++++++
+ 23 files changed, 204 insertions(+), 19 deletions(-)

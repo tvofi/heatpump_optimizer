@@ -1,2 +1,0 @@
-RESULT code-run gate, newer edit run pr-contract failure: (False, ['pr-contract / pr-contract: failure (run 200)'])
-RESULT null: newer edit run pr-contract success: (True, [])
