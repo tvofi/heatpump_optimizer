@@ -20267,6 +20267,23 @@ R.check(
     and _ce0._scores_view(_rs_advice(_ce0))["reasons"]["envelope"] == "no_house_model",
     f"massless {_ce0_env!r}, lossless {_ce0_env_loss!r}",
 )
+_ce1 = _t2_coord()
+_ce1._house_heat_loss_samples = 1000
+_ce1._thermal_params.heat_loss_coefficient = 0.25
+_ce1._thermal_params.room_thermal_mass = 0.0
+_ce1_massless = _ce1._scores_view(_rs_advice(_ce1))
+_ce1._thermal_params.room_thermal_mass = 10.0
+_ce1._thermal_params.heat_loss_coefficient = 1e-6
+_ce1_lossless = _ce1._scores_view(_rs_advice(_ce1))
+R.check(
+    "#2258: a converged learner on a massless house, or one at the loss floor, "
+    "has no house model -- not a grade of 0",
+    _ce1_massless["envelope"] is None
+    and _ce1_massless["reasons"]["envelope"] == "no_house_model"
+    and _ce1_lossless["envelope"] is None
+    and _ce1_lossless["reasons"]["envelope"] == "no_house_model",
+    f"massless {_ce1_massless} lossless {_ce1_lossless}",
+)
 _cmach = _t2_coord()
 R.check(
     "no COP evidence means no machine grade, not a failing one",
