@@ -1,0 +1,1 @@
+RESULT seam_cut_total=714 count
