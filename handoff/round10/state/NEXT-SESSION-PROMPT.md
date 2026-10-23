@@ -13,19 +13,19 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R10-CURRENCY (stage in-progress, branch `handoff/r10-currency`): `git fetch origin handoff/r10-currency && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-LOOP-CPU (stage in-progress, branch `fix/r10-loop-cpu`): `git fetch origin fix/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
-- R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
-- R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
-- R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
-- R10-CI-LAYOUT-P2 (stage in-progress, branch `handoff/r10-ci-layout-p2`): `git fetch origin handoff/r10-ci-layout-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-DEPGRAPH-STALE (stage in-progress, branch `handoff/r10-fly-depgraph-stale`): `git fetch origin handoff/r10-fly-depgraph-stale && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CURRENCY (stage in-progress, branch `handoff/r10-currency`, note `None`): `git fetch origin handoff/r10-currency && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-LOOP-CPU (stage in-progress, branch `fix/r10-loop-cpu`, note `None`): `git fetch origin fix/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`, note `None`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-DEMAND-OVERBOOK (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-BUFFER-STORE (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-COP-PARTLOAD (stage queued, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-UPDATE-PR-SIGNALS (stage in-progress, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-ORCH-MACHINERY (stage absorbed, branch `None`, note `None`): `git fetch origin None && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-CI-LAYOUT-P2 (stage in-progress, branch `handoff/r10-ci-layout-p2`, note `None`): `git fetch origin handoff/r10-ci-layout-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-FLY-DEPGRAPH-STALE (stage in-progress, branch `handoff/r10-fly-depgraph-stale`, note `None`): `git fetch origin handoff/r10-fly-depgraph-stale && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`, note `None`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-TRAIN-OVERLAP-GRADE (stage queued, branch `handoff/r10-train-overlap-grade`, note `None`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`, note `None`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
 Ready next (after-edges satisfied; nothing open constrains them): R10-BUFFER-STORE, R10-CARD-VOICE, R10-CEILING-PROBE, R10-CI-LAYOUT-P2, R10-CONFIG-NOTICES, R10-COP-PARTLOAD, R10-CURRENCY, R10-DEMAND-OVERBOOK, R10-FLOW-AUDIT-PLAN, R10-FLOW-AUTOTRAIN, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-JIDOKA, R10-FLOW-POSTMERGE, R10-FLOW-ROSTER-FREEZE, R10-FLOW-WIP, R10-FLY-CAP-LINE, R10-FLY-CARRY-DOC-CONTEXT, R10-FLY-CIPREDICT-LAYOUT, R10-FLY-CLOUD-SETUP-TOOLCHAIN, R10-FLY-DAEMONIZE-ARGV, R10-FLY-DEPGRAPH-STALE, R10-FLY-ENVMATRIX-NOREMOTE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-PRUNE-REFS, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-WORKTREE-GC, R10-FLY-YIELD-GUARD, R10-INPUT-STALENESS, R10-LEARNER-DEFAULT, R10-LEARNER-ETA, R10-LOOP-CPU, R10-MERGE-SUBJECT-HARDEN, R10-MUTANT-SKIP, R10-MUTATION-ANCHOR, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-MACHINERY, R10-ORCH-ROSTER-SCHEMA, R10-POLICY-FIXER-MD, R10-POLICY-GATE-SCOPING, R10-POLICY-LINT-FAMILY, R10-RATIO-ANCHOR, R10-RCA-FRICTION-RESIDUE, R10-RCA-HEADMOVED, R10-REPLAY-LANE, R10-SAV-COMFORT, R10-STRUCTURE-ALIAS, R10-THERMAL-POWER-OPTION, R10-TRAIN-OVERLAP-GRADE, R10-UPDATE-PR-SIGNALS
 
