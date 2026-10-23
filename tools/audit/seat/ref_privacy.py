@@ -52,6 +52,11 @@ hostname):
                   (`.local`, `.lan`, `.internal`, ...) or this host's own
                   name -- git's default identity is <user>@<hostname>. A
                   public domain passes, so a noreply address does.
+Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
+(a session link, a session or co-author trailer, the generated-by footer): no
+host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
+guard judges only what the push publishes first, so main's history is never
+charged.
 The accounts `root`, `runner` and `user`, and names under three characters, are
 not judged: the first three are the fixed accounts of a container, the CI
 runner and the cloud seat image, public by construction, and a shorter name
@@ -201,6 +206,33 @@ def leaks(text: str, ident: Identity) -> list[str]:
 
 CLASSES = ("home-directory", "account-name", "uid", "scratch-root", "host-path")
 
+#: TOOL ATTRIBUTION (R10-FLY-NO-FOOTERS). The owner's ruling (tvofi,
+#: 2026-10-22): "please have your seats not post claude code footers,
+#: especially not with direct links to sessions", then "make this ban
+#: persistent". .claude/settings.json's `attribution` turns the harness's own
+#: lines off; these are the refusal for a seat that writes them anyway. Judged
+#: on what a push or a post publishes -- a commit message, a comment body --
+#: never on tracked content, since the tree names these lines to forbid them.
+#: A trailer is a trailer only at the start of a line, as git reads one, so
+#: prose quoting one mid-line passes. policy_lint.mjs's body contract keeps the
+#: second reader (pr-contract runs only the base's programs, and this file is
+#: not one); agreement.mjs's `attribution` pair holds the two to one answer, so
+#: both read on the same terms: ASCII case folding, explicit word edges, and
+#: \r, \r\n, U+2028 and U+2029 read as \n, where JavaScript's `^` opens a line.
+ATTRIBUTION = (
+    ("session-link", r"claude\.ai/code/session_"),
+    ("session-trailer", r"^[ \t]*Claude-Session[ \t]*:"),
+    ("co-author-trailer", r"^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])"),
+    ("generated-footer", r"^[^A-Za-z0-9\n]*Generated (?:with|by) \[?Claude Code(?![A-Za-z0-9_])"),
+)
+_ATTRIBUTION = tuple((c, re.compile(p, re.I | re.M | re.A)) for c, p in ATTRIBUTION)
+
+
+def attribution(text: str) -> list[str]:
+    """The attribution classes `text` carries, in a fixed order."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\u2028", "\n").replace("\u2029", "\n")
+    return [c for c, r in _ATTRIBUTION if r.search(text)]
+
 
 def email_leaks(email: str, ident: Identity) -> list[str]:
     """`host-email` when a git identity's domain names a machine: a private-use
@@ -228,7 +260,8 @@ def _leaks(text: str, ident: Identity) -> list[str]:
 
 
 def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> str | None:
-    """Why pushing `ref` with these commit messages and identities would publish the host, or None."""
+    """Why pushing `ref` with these commit messages and identities would publish the host,
+    or a message carries a tool's attribution, or None."""
     ident = ident or Identity.of_host()
     why = leaks(ref, ident)
     if not _REF_CHARS.match(ref):
@@ -236,7 +269,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
     if why:
         return f"{', '.join(why)} in the ref name"
     for where, msg in messages:
-        why = leaks(msg, ident)
+        why = leaks(msg, ident) + attribution(msg)
         if why:
             return f"{', '.join(why)} in {where}"
     for where, email in emails:
@@ -253,8 +286,9 @@ BODY_CLASSES = ("home-directory", "account-name", "uid", "scratch-root")
 
 
 def body_refusal(text: str, ident: Identity | None = None) -> str | None:
-    """Why posting this comment or review body would publish this host, or None."""
-    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES]
+    """Why posting this comment or review body would publish this host, or carries a
+    tool's attribution, or None."""
+    why = [c for c in leaks(text, ident or Identity.of_host()) if c in BODY_CLASSES] + attribution(text)
     return f"{', '.join(why)} in the body" if why else None
 
 
@@ -656,6 +690,31 @@ def self_test() -> int:
     ok("home_relative: under the home is ~/<rest>; outside it, or a sibling sharing its prefix, unchanged",
        home_relative(fake_home + "/.zcode/bus/x", fake_home) == "~/.zcode/bus/x"
        and home_relative("/srv/x", fake_home) == "/srv/x" and home_relative(fake_home + "s/x", fake_home) == fake_home + "s/x")
+    # R10-FLY-NO-FOOTERS: a tool's attribution in a message or a body. The
+    # planted lines are built, so this file states no footer of its own.
+    sess = "https://claude.ai/code/" + "session_011AbC"
+    footer = {"session-link": "fix: x\n\nsee " + sess + "\n",
+              "session-trailer": "fix: x\n\n" + "Claude-" + "Session: " + sess + "\n",
+              "co-author-trailer": "fix: x\n\n" + "Co-Authored-" + "By: Claude Opus 5.5 <noreply@anthropic.com>\n",
+              "generated-footer": "body\n\n\U0001f916 " + "Generated with [Claude Code](https://claude.com/claude-code)\n"}
+    for cls, msg in footer.items():
+        ok(f"a planted {cls} is its class", cls in attribution(msg), str(attribution(msg)))
+        ok(f"and the guard refuses a message carrying it, naming the message ({cls})",
+           (refusal("fix/x", (("the message", msg),), fid) or "").endswith("in the message"),
+           str(refusal("fix/x", (("the message", msg),), fid)))
+        ok(f"and a comment body carrying it ({cls})", cls in (body_refusal(msg, fid) or ""))
+    ok("the comment footer, italic and linked, is the generated-footer class",
+       attribution("LGTM\n\n---\n_" + "Generated by [Claude Code](https://claude.ai/code)_\n") == ["generated-footer"])
+    ok("a trailer after a bare carriage return is still at a line's start",
+       attribution("fix: x\r" + "Claude-" + "Session: y") == ["session-trailer"])
+    plain = ("fix: an ordinary commit\n\nCloud docs: https://claude.ai/code and claude.ai/code/artifact/x; "
+             "the ban names the `Claude-" + "Session:` trailer and the `Generated with Claude Code` line mid-line.\n\n"
+             "Co-Authored-" + "By: Someone Else <s@example.com>\n")
+    ok("an ordinary commit naming claude.ai in another sense, and quoting the trailers mid-line, passes "
+       "(the null control)", attribution(plain) == [] and refusal("fix/x", (("the message", plain),), fid) is None
+       and body_refusal(plain, fid) is None, str(attribution(plain)))
+    ok("a ref name is not judged for attribution (the classes are a message's)",
+       "session" not in (refusal("fix/claude-session-trailer", (), fid) or ""))
     host = Identity.of_host()
     ok("the host identity reads a home and a hostname, and judges no public account",
        bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
@@ -701,6 +760,22 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
         ok("and passes it re-authored to the fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
+        # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
+        # trailer is refused, and the same trailer on a commit origin already
+        # holds is history, never charged.
+        g("commit", "-q", "--allow-empty", "-m", footer["session-trailer"])
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("the guard CLI refuses an unpushed commit carrying a session trailer, exit 3, never echoing the link",
+           r.returncode == 3 and "session-link, session-trailer in the message of" in r.stderr
+           and sess not in r.stderr, r.stderr.strip())
+        g("push", "-q", "origin", "HEAD:main")
+        g("fetch", "-q", "origin")
+        g("commit", "-q", "--allow-empty", "-m", "clean commit on top")
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes once that commit is history origin holds (the null control: main is not charged)",
+           r.returncode == 0, r.stderr.strip())
 
     # wt_sync.sh end to end: a worktree under a planted scratch path, pushed to
     # a temp bare origin under a planted HOME and USER.
@@ -959,7 +1034,8 @@ def main(argv: list[str]) -> int:
             return 2
         why = refusal(ref, messages, None, emails)
         if why:
-            print(f"ref_privacy: REFUSE: {why} would publish this host; nothing pushed", file=sys.stderr)
+            print(f"ref_privacy: REFUSE: {why} would publish this host or a tool's attribution; nothing pushed",
+                  file=sys.stderr)
             return 3
         return 0
     print(__doc__.split("\n\n")[1], file=sys.stderr)
