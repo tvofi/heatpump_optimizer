@@ -92,9 +92,33 @@ That path already breaks `comment-readback.md`.
 
 ## Head
 
-`a4b27986dc8bf5bf3a1de02ec246d488a4915f0b`. Merge base and origin/main tip are
-both `de69745ffcab66b566b3e75aee0b572023f80857`, measured at
-2026-10-22T22:06:14Z.
+`5dc336fcf5931cc9b1d67fca189675ef019e21b4`. Merge base and origin/main tip are
+both `e45fc34fb1459e67f01ea50399b970f0e9aff2da`, measured at
+2026-10-22T23:58Z. The previous code head was
+`a4b27986dc8bf5bf3a1de02ec246d488a4915f0b` on base
+`de69745ffcab66b566b3e75aee0b572023f80857`; this head merges `origin/main`
+into it (twice: `7ac60fec7`, then `5dc336fcf`), resolving two semantic overlaps:
+- `tests/entities.py`, friction-trailer pin. Main's R10-RCA-BODY-LINT had added
+  `_FRICTION_TRAILER.get("session") == 0` and `_FT["none_plus_session"][0] == 0`;
+  this branch had re-keyed the attribution and co-author rows to
+  `_attribution_only(...)`. Both sides stay: the parsed `session == 0` check
+  is kept, and the session row is now `_attribution_only("none_plus_session")`
+  (the contract refuses it in its own arm, where main expected rc 0). A bare
+  fixture `none_plus_session_link` (the link alone, no footer text) is added,
+  because `none_plus_session` also holds the footer words and so would pass on
+  the footer arm alone.
+- `tools/pr/prepr.sh --self-test`, a check main added: "pushes a body the lint
+  passes, the cloud harness's session-link line under Friction included".
+  That is exactly what this branch bans. It now asserts `body_push` refuses
+  that body by the attribution arm alone (rc=1, no `does not parse`, no ref
+  pushed), and a second check pushes the same body without the link as the
+  null control.
+
+Planted-trailer demonstration, `node tools/policy/policy_lint.mjs --pr-body F
+--head <40 zeros>` over a body whose `## Friction` is `none` plus one line:
+clean rc=0 with 0 attribution errors; session link alone rc=1, 1 attribution
+error, 0 `does not parse`; Generated-with footer rc=1, 1, 0; `Co-Authored-By:
+Claude` rc=1, 1, 0; footer plus link rc=1, 1, 0.
 
 I ran the mutation table at `560cddcc179d`. This head amends it in three
 places, all from prepr refusals:
@@ -150,10 +174,11 @@ pass, both run at the head:
 
 ## Figures
 
-- `230 of 3051 commits on origin/main since 2026-10-15 carry the session-trailer class`:
+- `247 of 3432 commits on origin/main (e45fc34fb145) since 2026-10-15 carry the session-trailer class`:
   `git log origin/main --since=2026-10-15 --format='%H%x1f%B%x1e'`, each
-  message judged by `ref_privacy.attribution`. This matches the brief's
-  measured count.
+  message judged by `ref_privacy.attribution`, counting `'session-trailer'` in
+  the returned class list (null control: `attribution('plain message')` is `[]`).
+  The earlier 230 of 3051 was taken at `de69745ffcab`; the window moved.
 - The guard does not charge main's history: `python3 -I tools/audit/seat/ref_privacy.py guard --ref main --commits origin/main` gives rc=0.
 - This branch's own messages: `git log origin/main..HEAD --format=%B` has 0
   lines matching the trailer, session-link or footer shapes.
@@ -170,7 +195,7 @@ pass, both run at the head:
 - The agreement lane with the **base** copy of tools/policy/agreement.mjs
   (`git show origin/main:tools/policy/agreement.mjs` written beside it, then
   run on `agreement_py.py --out`): `RESULT divergent=0 unregistered=0 dead=0 refused=0`,
-  `AGREEMENT ok`. With the head copy, `pair attribution: 2 readers, 286 items, 0 divergent` (the last-400 window moves with HEAD).
+  `AGREEMENT ok`. With the head copy, `pair attribution: 2 readers, 301 items, 0 divergent` (the last-400 window moves with HEAD).
   `python3 -I tools/policy/agreement_py.py --restore`: `13 closure file(s), 13 covered ..., 0 missing`.
 - `python3 -I tools/audit/archscore/gate.py --base origin/main --head HEAD --body <this body>`:
   `PASS: dS +0.0000 NULL, no gate metric rose`.
@@ -180,16 +205,23 @@ pass, both run at the head:
   `tests/entities.py` and `tests/harness_headers.py`; their results are in the
   next item.
 - `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py` under the
-  venv-ci interpreter (3.14): `ALL 2397 ENTITY CHECKS PASSED`. The run includes
-  the friction-trailer pins this diff re-keys: a pasted footer is now refused
-  by the attribution arm alone, never as unparseable friction.
+  venv-ci interpreter (3.14): `4 of 2399 ENTITY CHECKS FAILED`. The four are
+  the `hb:` heartbeat controls in `tests/nightly_ha.py` (py-spy samples and
+  timing), which this diff does not touch. The same command on a detached
+  worktree of origin/main at `cf01e82eec28` on this box prints the same
+  `4 of 2399` and the same three non-`hb:`-prefixed failing names ("and a try
+  whose sample misses the spin", "the control rests between tries", "the control
+  survives two hung samples"), so they are this box's load and py-spy, not the
+  diff; CI is the authority. The three friction-trailer pins this diff re-keys
+  ("a trailer block pasted under `none` ...", "a real entry followed by a
+  trailer block ...", "and the drop buys no amnesty ...") print `ok`.
 - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` (venv-ci):
   `ALL 109 HARNESS HEADER CHECKS PASSED`. Under venv-ha it reads `56 of 109 ... FAILED`,
   and origin/main reads the same 56 under venv-ha. That is the interpreter, not
   this diff.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test`: `335 passed, 0 failed`.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh --self-test`: `340 passed, 0 failed`.
   This includes "a body with attribution is refused" and its null control.
-- `python3 tools/pr/ci_predict.py`: `no closures or fast red predicted against de69745ffcab`.
+- `python3 tools/pr/ci_predict.py`: `no closures or fast red predicted against e45fc34fb145`.
 - `node tools/policy/policy_lint.mjs --corpus-filter` over the diff names no
   policy file, so no `## Approval` is owed. The mandate in force for `.claude/`
   and `tools/` is #201 comment 6329234399.
