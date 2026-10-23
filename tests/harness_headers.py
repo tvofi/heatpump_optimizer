@@ -545,6 +545,17 @@ def main() -> int:
     R.check("a bounded child runs with every BLAS pool pinned to one thread",
             rc == 0 and out.split() == ["1", "1", "1"],
             f"rc={rc} OMP/OPENBLAS/MKL={out.split()!r}")
+    # The headroom is a GRADE, and a closure recording grades nothing (R10-FLY-SUITE-ENV-FLAKES):
+    # under strace on a slow runner the frontier's CPU-s ran 260-310 against a 240 s headroom
+    # (probe #2656 and #2657's closures jobs; 166 s on the same head's re-run), the recording
+    # exited 1 and closures-autofix refused its repair. The fast lane grades it on every PR.
+    rec = {RECORDING_ENV: "1"}
+    R.check("a recorded run does not grade the CPU headroom (closure.py's flag)",
+            headroom_verdict(300.0, 480, rec) == (False, True), str(headroom_verdict(300.0, 480, rec)))
+    R.check("an unrecorded run past half its bound still fails the headroom (null control)",
+            headroom_verdict(300.0, 480, {}) == (True, False), str(headroom_verdict(300.0, 480, {})))
+    R.check("and an unrecorded run within it passes",
+            headroom_verdict(100.0, 480, {}) == (True, True), str(headroom_verdict(100.0, 480, {})))
     clean, detail = dirty_registers()
     R.check(
         "the executed harnesses leave their committed output byte-identical",
