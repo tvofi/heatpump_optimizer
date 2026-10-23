@@ -431,7 +431,7 @@ def raise_justification():
     sys.path.insert(0, str(ROOT / "tools/policy"))
     import budget_raise_gate as g
     fix = ROOT / "tools/policy/fixtures/policy-rot/prepr"
-    bodies = [f.read_text() for f in sorted(fix.glob("*.md")) + sorted(fix.glob("raise/*.md"))]
+    bodies = [f.read_text() for f in sorted(fix.glob("*.md")) + sorted(fix.glob("raise/*.md")) + sorted(fix.glob("raise/recorded/*.md"))]
     bad = "Payments tried:\nArchitecture score: dS +0.1000\n"
     for pre, post in (("", ""), ("\x1c", ""), ("\x85", ""), ("\u00a0", ""), ("\ufeff", ""), ("\u200b", ""),
                       ("", "\x1f"), ("", "\u3000"), (" \t", "\r")):

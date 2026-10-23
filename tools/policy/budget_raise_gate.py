@@ -54,11 +54,13 @@ HOW IT IS RUN. `.github/workflows/budget-raise-gate.yml` restores this file
 from the base commit before running it under `python3 -I`, so a pull request
 cannot edit the gate that grades it; the workflow re-runs it on
 `pull_request_review`, so an approval turns it green without a push.
-`--check-body` runs justification() alone on a body file and exits 0 or 1:
-policy_lint.mjs --pr-body calls it, so pr-contract, body_patch.sh and prepr.sh
-refuse a malformed section before this gate does.
+`--check-body` runs justification() on a body file and exits 0 or 1; given
+`--base` and `--head` it reads the diff too, and refuses a raise whose body has
+no section (check_body). policy_lint.mjs --pr-body calls it, so pr-contract,
+body_patch.sh and prepr.sh (body_push.sh's --body-check) refuse before this
+gate does.
 
-    python3 -I tools/policy/budget_raise_gate.py --check-body FILE
+    python3 -I tools/policy/budget_raise_gate.py --check-body FILE [--base SHA --head SHA]
     python3 -I tools/policy/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
     python3 tools/policy/budget_raise_gate.py --self-test
     python3 -I tools/policy/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
@@ -411,11 +413,15 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
                          str(review.get("submitted_at")))
 
 
+def _heading_at(lines: list[str]) -> list[int]:
+    return [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
+
+
 def justification(body) -> tuple[bool, str]:
     """(present, why): the body's JUSTIFICATION_HEADING section, up to the next
     heading of level one or two, holds both a payment line and a score line."""
     lines = str(body or "").splitlines()
-    starts = [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
+    starts = _heading_at(lines)
     if not starts:
         return False, f"the body has no `{JUSTIFICATION_HEADING}` section, which a mandated raise owes"
     section = []
@@ -430,6 +436,20 @@ def justification(body) -> tuple[bool, str]:
     if missing:
         return False, f"`{JUSTIFICATION_HEADING}` lacks {' and '.join(missing)}"
     return True, f"the body's `{JUSTIFICATION_HEADING}` names the payments tried and the arch_score figures"
+
+
+def check_body(body, raises: list[str] | None = None) -> tuple[bool, str]:
+    """(ok, why) for `--check-body`: what a mandated approval of this body
+    would meet at merge. `raises` is raises_between's reading of the diff, or
+    None when no diff was named. A section present is judged by justification()
+    whatever the diff; with none, a diff that raises a cap is refused (the
+    train refuses it identically) and one that raises nothing owes nothing."""
+    if raises is None or _heading_at(str(body or "").splitlines()):
+        return justification(body)
+    if raises:
+        return False, (f"the diff raises {len(raises)} cap(s) ({'; '.join(raises)}) and the body has no "
+                       f"`{JUSTIFICATION_HEADING}` section, which a mandated raise owes")
+    return True, "the diff raises no cap, and the body has no raise section to judge"
 
 
 def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None,
@@ -1476,6 +1496,29 @@ def _end_to_end() -> list[tuple[str, object, object]]:
             out.append((f"e2e: {label} exits 2 and asks nothing", (rc_, calls), (2, [])))
         rc_, _, _ = run(raise_, argv=["--base", "no-such-ref", "--head", raise_, "--pr", "7"])
         out.append(("e2e: an unresolvable base fails closed", rc_ != 0, True))
+        # --check-body with the diff named (C2): the raise is read by
+        # raises_between, as the gate and the train read it, and no review is asked.
+        bodyf = os.path.join(root, "body.md")
+
+        def check_body_run(head: str, text: str, base_: str = base):
+            with open(bodyf, "w") as f:
+                f.write(text)
+            return run(head, argv=["--check-body", bodyf, "--base", base_, "--head", head])
+        bare = "## Summary\n\nx\n"
+        rc_, text, calls = check_body_run(raise_, bare)
+        out.append(("e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing",
+                    (rc_, "cut_views: 110 -> 111" in text, JUSTIFICATION_HEADING in text, calls), (1, True, True, [])))
+        rc_, text, _ = check_body_run(routine, bare)
+        out.append(("e2e: --check-body: ... a routine edit with no section exits 0 (null control)", rc_, 0))
+        rc_, _, _ = check_body_run(raise_, just["body"])
+        out.append(("e2e: --check-body: ... a raise with a well-formed section exits 0", rc_, 0))
+        rc_, text, _ = check_body_run(routine, just["body"].replace(" NULL", ""))
+        out.append(("e2e: --check-body: a malformed section is refused on a diff that raises nothing",
+                    (rc_, "Architecture score" in text), (1, True)))
+        rc_, text, _ = check_body_run(raise_, bare, base_="no-such-ref")
+        out.append(("e2e: --check-body: a diff that cannot be read exits 2", (rc_, "could not be read" in text), (2, True)))
+        rc_, _, _ = run(raise_, argv=["--check-body", bodyf, "--base", base])
+        out.append(("e2e: --check-body: --base without --head exits 2", rc_, 2))
     except (OSError, subprocess.CalledProcessError) as e:
         out.append((f"e2e: the throwaway repository could be built ({e})", False, True))
     finally:
@@ -1489,8 +1532,11 @@ def main(argv: list[str]) -> int:
     if argv[:1] == ["--check-body"]:
         # justification() on a body file, for policy_lint.mjs --pr-body: the
         # lint asks this function rather than mirroring its regexes.
-        if len(argv) != 2:
-            print("usage: budget_raise_gate.py --check-body FILE", file=sys.stderr)
+        # With --base and --head the diff is read too, so a raise whose body
+        # has no section is refused here and not first at the train (C2).
+        rest = dict(zip(argv[2::2], argv[3::2]))
+        if len(argv) < 2 or len(argv) % 2 or set(rest) - {"--base", "--head"} or len(rest) == 1:
+            print("usage: budget_raise_gate.py --check-body FILE [--base SHA --head SHA]", file=sys.stderr)
             return 2
         try:
             with open(argv[1], encoding="utf-8") as fh:
@@ -1498,7 +1544,17 @@ def main(argv: list[str]) -> int:
         except OSError as e:
             print(f"{argv[1]}: unreadable ({e.strerror})")
             return 1
-        ok, why = justification(body)
+        raises = None
+        if rest:
+            try:
+                mb = _git("merge-base", rest["--base"], rest["--head"]).strip()
+                raises = raises_between(mb, rest["--head"], lambda sha: _git("ls-tree", "-r", "--name-only", sha).splitlines(),
+                                        _show)[1]
+            except subprocess.CalledProcessError as e:
+                print(f"the diff {rest['--base'][:12]}...{rest['--head'][:12]} could not be read "
+                      f"({(e.stderr or '').strip()[:120] or f'git exited {e.returncode}'})")
+                return 2
+        ok, why = check_body(body, raises)
         print(why)
         return 0 if ok else 1
     if argv[:1] == ["--rerun-stale"]:

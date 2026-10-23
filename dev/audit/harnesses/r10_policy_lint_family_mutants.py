@@ -12,8 +12,12 @@ M1 drops the family's exclusion of filed members, M2 the four synonyms, M3
 the pr-body call to the gate, M4 the gate's own verdict in --check-body, M5
 restores the JS line split and trim in the heading test (needs
 --agreement-json, the output of `python3 -I tools/policy/agreement_py.py
---out FILE`). The #2408 shadowing mutant is policy_lint_mutants.mjs's own
-record-known-bad arm, run by that lane.
+--out FILE`). M6-M12 are round 2's (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md
+C2, C3): the gate's refusal of a raise with no section, the lint's budget-path
+trigger, its refusal when no base is named, its forwarding of the base, and
+the base passed by pr-contract, prepr's body_check and body_patch.sh. The #2408
+shadowing mutant is policy_lint_mutants.mjs's own record-known-bad arm, run by
+that lane.
 """
 import subprocess
 import sys
@@ -35,35 +39,45 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 PL, GATE = "tools/policy/policy_lint.mjs", "tools/policy/budget_raise_gate.py"
+PRC, PREPR, PATCH = ".github/workflows/pr-contract.yml", "tools/pr/prepr.sh", "tools/audit/seat/body_patch.sh"
 MUTANTS = [
     ("M1-no-exclusion", PL, "const taken = new Set(filed.flatMap((m) => [...hist.get(m).prs]))", "const taken = new Set()"),
     ("M2-no-synonyms", PL, ", 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives']", "]"),
-    ("M3-no-raise-call", PL, "  const raise = raiseJustification(bodyPath, body)\n", "  const raise = null\n"),
-    ("M4-check-body-ok", GATE, "        ok, why = justification(body)\n", "        ok, why = True, justification(body)[1]\n"),
+    ("M3-no-raise-call", PL, "  const raise = raiseJustification(bodyPath, body, { base, head, paths })\n", "  const raise = null\n"),
+    ("M4-check-body-ok", GATE, "        ok, why = check_body(body, raises)\n", "        ok, why = True, check_body(body, raises)[1]\n"),
     ("M5-js-heading-test", PL,
      "body.split(PY_LINE_BREAK_RE).some((ln) => ln.replace(PY_STRIP_RE, '') === '## Raise justification')",
      "body.split('\\n').some((ln) => ln.trim() === '## Raise justification')"),
+    ("M6-gate-no-diff-raise", GATE, "    if raises:\n        return False, (f\"the diff raises", "    if False:\n        return False, (f\"the diff raises"),
+    ("M7-no-budget-trigger", PL, "if (!heading && !budgets.length) return null", "if (!heading) return null"),
+    ("M8-no-base-refusal", PL, "if (budgets.length && !diff) return", "if (false) return"),
+    ("M9-no-base-forward", PL, "...(diff ? ['--base', base, '--head', head] : [])", "...([])"),
+    ("M10-pr-contract-no-base", PRC, '--head "$PR_HEAD" --base "$PR_BASE" --title', '--head "$PR_HEAD" --title', 2),
+    ("M11-prepr-no-base", PREPR, '  [ -n "${BASE:-}" ] && args+=(--base "$BASE")\n', ""),
+    ("M12-body-patch-no-base", PATCH, '--head "$head" --base "$base" --title', '--head "$head" --title'),
 ]
-MARKERS = ("FIXTURE VACUOUS", "  FAIL ", "DIVERGENT", "RESULT divergent")
+MARKERS = ("FIXTURE VACUOUS", "  FAIL ", "DIVERGENT", "RESULT divergent", "FAIL ")
 
 
 def owner(name, path, agreement):
     if name.startswith("M5"):
         return ["node", "tools/policy/agreement.mjs", "--py-json", agreement]
-    return ["python3", path, "--self-test"] if path.endswith(".py") else ["node", path]
+    if path.endswith(".sh"):
+        return ["bash", path, "--self-test"]
+    return ["python3", path, "--self-test"] if path.endswith(".py") else ["node", PL if path.endswith(".yml") else path]
 
 
 def main(argv):
     agreement = argv[argv.index("--agreement-json") + 1] if "--agreement-json" in argv else None
     restored = 0
-    for name, path, old, new in MUTANTS:
+    for name, path, old, new, *count in MUTANTS:
         if name.startswith("M5") and not agreement:
             print(f"MUTANT {name} not run: no --agreement-json")
             continue
         f = ROOT / path
         src = f.read_bytes()
         text = src.decode()
-        if text.count(old) != 1:
+        if text.count(old) != (count[0] if count else 1):
             print(f"MUTANT {name} not applied: its anchor appears {text.count(old)} time(s) in {path}")
             return 1
         f.write_text(text.replace(old, new))

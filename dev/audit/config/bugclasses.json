@@ -2371,6 +2371,44 @@
     "total": 5,
     "max_per_round": 5
   },
+  "N-train-only-predicate": {
+    "kind": "instrument",
+    "mechanism": "A predicate the merge train applies to pull-request text that no pre-train path applies: budget_raise_gate.py justification() was reached only from approval() after a mandated approval was found on the head, so the `## Raise justification` grammar was first evaluated at the train's approve step; pr-contract, body_patch.sh, prepr step 7 and body_push.sh never read it, and the CI gate's expected pre-approval red (`no decisive review by tvofi`) hid the second reason",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 #2633-c6c8fee16",
+      "R10 #2647-run40",
+      "R10 #2647-run41"
+    ],
+    "detector": "budget_raise_gate.justification() over each handoff-body version of the raise PRs (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md section 1): c6c8fee16 and 9b5742049 (#2633), 84e2aaf66 and f2b98c1df (#2647) refused; 8f564875d passes",
+    "detector_idea": null,
+    "barrier": "budget_raise_gate.py --check-body FILE [--base SHA --head SHA] (check_body: justification() on a section present, and raises_between on the diff refusing a raise with no section), called from policy_lint.mjs --pr-body raiseJustification on the heading or a *_budgets.json path; the base passed by pr-contract (every push and body edit), prepr.sh body_check (step 7 and body_push.sh's --body-check) and body_patch.sh contract; pinned in policy_lint's acceptance on the recorded sections (raise/recorded/), the gate's self-test e2e and the workflow-shape arm",
+    "status": "barriered",
+    "nearest_existing": "N-body-lint-bounce",
+    "mechanism_difference": "N-body-lint-bounce is a predicate pr-contract already applied that body_push.sh did not run before the handoff; here no pre-train path applied the predicate at all, pr-contract included, because its one reader sat behind the train's approval",
+    "aliases": [
+      "new: budget-raise-gate refuses a raise justification at the train that pr-contract passed"
+    ],
+    "non_round_note": "The three round-10 instances are budget-raise-gate refusals at the merge train's pre-flight, counted per refusal by the orchestrator's ruling under mandate 6329234399: #2633 once, #2647 twice (run40, run41); process incidents, not audit findings. The class's other member, preflight.sh on the title at merge only (merge_train.py land, merge_pr.sh), has no known instance: 0 of the merged titles v7.0.0..a6620c30 refuse (dev/audit/harnesses/r10_title_seam.sh)",
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-RAISE-GATE-GRAMMAR"
+    ],
+    "rca_planned": [],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
   "_rca": {
     "RCA-546-paired-artifacts": {
       "class": null,
@@ -4379,6 +4417,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-BODY-LINT.md",
       "doc": [
         "dev/audit/rca/R10-RCA-BODY-LINT.md"
+      ]
+    },
+    "R10-RCA-RAISE-GATE-GRAMMAR": {
+      "class": "N-train-only-predicate",
+      "level": "class",
+      "subject": "N-train-only-predicate class: budget-raise-gate refused a raise justification at the merge train that every pre-train path passed (#2633 once, #2647 twice, round 10)",
+      "trigger": "class (3 refusals in round 10, counted per refusal under mandate 6329234399)",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the CI gate carrying the grammar ran on every push and was followed; its justification arm is reachable only after the train's mandated approval, so no path evaluated it before the train",
+      "countermeasure": "M1: budget_raise_gate.py --check-body called from policy_lint.mjs --pr-body on every path that writes the text the train reads (C1-C4); about 0.06 s per raise body against 69-103 CI-minutes expected over the mandate window",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md"
       ]
     }
   },

@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -3981,6 +3981,44 @@ function assertAcceptance(derived) {
         return 1
       }
     }
+    // C1 of dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md: the RECORDED sections,
+    // verbatim under raise/recorded/ (named by their handoff-body commit), each
+    // set into raise/good.md in place of its own. The three the gate refused
+    // are refused here; the one it accepted and the RCA's two one-line repairs
+    // pass. f2b98c1df carries IMPROVES twice in the section's prose, which a
+    // "verdict word in the section" mirror passes.
+    const own = fs.readFileSync(path.join(raise, 'good.md'), 'utf8')
+    const sec = own.slice(own.indexOf('## Raise justification'), own.indexOf('## ', own.indexOf('## Raise justification') + 3))
+    const rec = (c, from = '', to = from) => fs.readFileSync(path.join(raise, 'recorded', `${c}.md`), 'utf8').replace(from, to)
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-raise-'))
+    const cases = [
+      ['c6c8fee16', rec('c6c8fee16'), 'Payments tried'], ['84e2aaf66', rec('84e2aaf66'), 'Architecture score'],
+      ['f2b98c1df', rec('f2b98c1df'), 'Architecture score'], ['8f564875d', rec('8f564875d'), null],
+      ['9b5742049 repaired', rec('9b5742049', '- Payments tried:\n', '- Payments tried: each below, as sub-bullets\n'), null],
+      ['f2b98c1df repaired', rec('f2b98c1df', 'Architecture score: dS +0.0105\n', 'Architecture score: dS +0.0105 IMPROVES\n'), null],
+    ]
+    // C2: a budget path with no section. No base read is refused, never
+    // skipped; a base and head reach the gate's own diff read (an unreadable
+    // base, so its exit 2 shows the arguments arrived without needing history).
+    const diffCases = [
+      ['a budget path, no --base', { paths: ['tests/structure_budgets.json'] }, 'was not read'],
+      ['a budget path, a base git cannot read', { paths: ['tests/structure_budgets.json'], base: 'no-such-ref', head: 'f'.repeat(40) }, 'could not be read'],
+      ['a non-budget path, no --base (null control)', { paths: ['README.md'] }, null],
+    ]
+    try {
+      for (const [label, text, needle, opts = { head: ZERO }] of [...cases.map((c) => [c[0], own.replace(sec, c[1] + '\n'), c[2]]),
+        ...diffCases.map(([label, opts, needle]) => [label, own.replace(sec, '').replace(ZERO, opts.head ?? ZERO), needle, { head: ZERO, ...opts }])]) {
+        const f = path.join(tmp, 'body.md')
+        fs.writeFileSync(f, text)
+        const errs = checkPrBody(f, opts)
+        if (needle ? errs.length !== 1 || !errs[0].message.includes('Raise justification') || !errs[0].message.includes(needle) : errs.length) {
+          console.log(`\nFIXTURE VACUOUS: the raise-justification arm on ${label} drew ${errs.length} error(s) (${errs.map((e) => e.message.slice(0, 80)).join(' | ')}); it must draw ${needle ? `exactly one, naming \`${needle}\`` : 'none'}`)
+          return 1
+        }
+      }
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
   }
 
   // `## Approval` is keyed on the DIFF, so one fixture is driven twice and the
@@ -4100,6 +4138,7 @@ function assertAcceptance(derived) {
   const pathsDerive = runBlocks.filter((b) => /git diff/.test(b) && /--name-only/.test(b)).join('\n')
   for (const [where, hay, flag, why] of [
     ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
+    ['the body-check invocation', bodyCheck, '--base', 'a raise whose body has no `## Raise justification` would pass here and be refused first at the train (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md, C2)'],
     ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],
   ]) {
     if (!hay.includes(flag)) {
@@ -6582,34 +6621,42 @@ export function attributionClasses(text) {
   return ATTRIBUTION.filter(([, re]) => re.test(String(text))).map(([c]) => c)
 }
 
-// THE RAISE JUSTIFICATION IS THE GATE'S OWN READ (Triage P-F). A mandated
-// raise merges only when budget_raise_gate.py's justification() accepts the
-// body's `## Raise justification` section, and three bodies this check passed
-// were refused there at merge time (#2633 on the payments clause, #2647 on the
-// score clause and then on the section's end). So a body carrying the heading
-// is handed to `budget_raise_gate.py --check-body`, the function itself, never
-// a copy of its regexes here: a mirror drifts, and covers only the clauses
-// someone has already been refused on. Keyed on the heading alone: a diff that
-// touches a `*_budgets.json` is routine more often than it is a raise (19 of
-// the 26 such merges in v7.0.0..a6620c30 raised nothing), and an owner's own
-// approval owes no section at all. The heading test is the gate's own --
-// Python's `splitlines()` boundaries and `strip()` whitespace, which JS's
-// `split('\n')` and `trim()` are not -- and agreement.mjs's
-// raise-justification concept drives both over the cases where they part.
-// Returns the refusal, or null.
+// THE RAISE JUSTIFICATION IS THE GATE'S OWN READ (Triage P-F;
+// dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md). A mandated raise merges only
+// when budget_raise_gate.py's justification() accepts the body's
+// `## Raise justification` section, and three bodies this check passed were
+// refused there at merge time (#2633 on the payments clause, #2647 on the score
+// clause, twice). So the body is handed to `budget_raise_gate.py --check-body`,
+// the function itself, never a copy of its regexes here: a mirror drifts, and
+// covers only the clauses someone has already been refused on. Two triggers: the
+// heading, and a diff that touches a `*_budgets.json` (C2) -- then the gate
+// reads `--base...--head` with its own raises_between and refuses a raise whose
+// body has no section. REFUSED, NOT WARNED: the train refuses that body
+// identically under any mandate, a warning under a green check is read by no
+// one (the RCA's refused M2), and the owner's own route costs one section,
+// which is the list of payments fixer.md already owes a raise. A budget path
+// with no base or head to read is refused, never skipped. The heading test is
+// the gate's own -- Python's `splitlines()` boundaries and `strip()`
+// whitespace, which JS's `split('\n')` and `trim()` are not -- and
+// agreement.mjs's raise-justification concept drives both over the cases where
+// they part. Returns the refusal, or null.
 const PY_LINE_BREAK_RE = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/
 const PY_STRIP_RE = /^[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/g
-function raiseJustification(bodyPath, body) {
-  if (!body.split(PY_LINE_BREAK_RE).some((ln) => ln.replace(PY_STRIP_RE, '') === '## Raise justification')) return null
-  const r = spawnSync('python3', ['-I', path.join(HERE, 'budget_raise_gate.py'), '--check-body', bodyPath],
+function raiseJustification(bodyPath, body, { base = '', head = '', paths = [] } = {}) {
+  const heading = body.split(PY_LINE_BREAK_RE).some((ln) => ln.replace(PY_STRIP_RE, '') === '## Raise justification')
+  const budgets = paths.filter((f) => f.endsWith('_budgets.json'))
+  if (!heading && !budgets.length) return null
+  const diff = budgets.length && base && /^[0-9a-f]{40}$/i.test(head) && !/^0{40}$/.test(head)
+  if (budgets.length && !diff) return `the diff touches ${budgets.join(', ')}, and no \`--base\` and \`--head\` name it, so whether it raises a cap -- and owes \`## Raise justification\` -- was not read. Pass both.`
+  const r = spawnSync('python3', ['-I', path.join(HERE, 'budget_raise_gate.py'), '--check-body', bodyPath, ...(diff ? ['--base', base, '--head', head] : [])],
     { cwd: ROOT, encoding: 'utf8' })
   const said = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
   if (r.status === 0) return null
-  if (r.status === 1) return `${said} -- budget_raise_gate.py refuses this body at merge time, so it is refused here: put a \`Payments tried: <what>\` line and an \`Architecture score: dS <n> <IMPROVES|NULL|WORSENS>\` line inside the section, before the next \`#\` or \`##\` heading.`
-  return `the body has \`## Raise justification\`, and budget_raise_gate.py --check-body could not judge it (${r.error ? r.error.message : `exit ${r.status}`}${said ? `: ${said.slice(0, 120)}` : ''}). A section nobody checked is not one the gate will accept.`
+  if (r.status === 1) return `${said} -- budget_raise_gate.py refuses this body at merge time, so it is refused here: a raise's body carries \`## Raise justification\` with a \`Payments tried: <what>\` line and an \`Architecture score: dS <n> <IMPROVES|NULL|WORSENS>\` line inside it, before the next \`#\` or \`##\` heading.`
+  return `budget_raise_gate.py --check-body could not judge this body's \`## Raise justification\` or the raise it owes it for (${r.error ? r.error.message : `exit ${r.status}`}${said ? `: ${said.slice(0, 160)}` : ''}). A raise nobody checked is not one the gate will accept.`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
@@ -6628,7 +6675,7 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], ex
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `the body carries a tool's attribution (${attribution.join(', ')}). The owner bans it (2026-10-22): delete the footer, the session link and any trailer.` })
   }
-  const raise = raiseJustification(bodyPath, body)
+  const raise = raiseJustification(bodyPath, body, { base, head, paths })
   if (raise) out.push({ severity: 'error', check: 'pr-body', where: bodyPath, message: raise })
   const secs = sections(body)
   const byTitle = /^policy:/.test(title.trim())
@@ -6804,7 +6851,7 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
