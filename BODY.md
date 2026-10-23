@@ -60,12 +60,16 @@ Health tab's comment above `HEALTH_WAITING` is rewritten and its filter
 (`healthWaiting`) admits an `unknown` sensor that names what it waits for,
 so the score row stays listed.
 
-**Architecture.** `envelope_score`, `house_loss_converged`,
-`_refit_disagrees`, `_watched_cop_buckets` and `restart_advice` are pure
-module-level functions taking their inputs; `model_restart_advice(coord)`
-is now a six-line adapter over `restart_advice`. `_watched_cop_buckets`
-replaces the two inline counts, which disagreed on `np.isfinite`.
-Alternatives, and why each lost:
+**Architecture.** `envelope_score`, `machine_score`, `operation_reason`,
+`compose_scores`, `house_loss_converged`, `_refit_disagrees`,
+`_watched_cop_buckets` and `restart_advice` are pure module-level functions
+taking their inputs. Each score part is a `(grade, why)` pair and
+`compose_scores` is the one place the rule "one code per None, none for a
+grade" is written; `_scores_view` is a thirteen-line adapter that reads the
+coordinator's learners into it, and `model_restart_advice(coord)` is a
+six-line adapter over `restart_advice`. `_watched_cop_buckets` replaces the
+two inline counts, which disagreed on `np.isfinite`. Alternatives, and why
+each lost:
 - a new `scores.py` module: rejected in the design (a new tracked file and
   churn outside the seam while R10-LIVESTATE follows on `coordinator.py`);
 - keeping the configured coefficient and adding only a confidence dash:
@@ -82,36 +86,68 @@ The `max(scale, 0.1)` floor stays: the learner's writers
 `[HOUSE_HEAT_LOSS_SCALE_MIN, _MAX]`, but `ThermalParameters` does not clamp
 the field on construction (`clamp()` covers the masses, `inter_zone_transfer`
 and `window_area`), so a configured or service-written value reaches the
-grade unclamped.
+grade unclamped. The no-loss test is `loss <= 0.0`, not `<= 1e-6`:
+`_effective_house_heat_loss` rounds to 1e-4 kW/K, so a house with no loss
+reads exactly 0.0 and the epsilon separated nothing.
 
 ## Head
 
-`9b6423818873f3eb888bb6c22568e1cac311b663` is the measured code head.
-- Cut from `origin/main` `86425b9ad` (the dispatch base). `origin/main` was
-  merged in twice before the handoff: `de69745ff` (merge `01b55d546`,
-  bringing R10-SOLVER #2612; the ledger driver resolved
-  `tests/structure_budgets.json`) and `fc7173fe7` (merge `d88061f89`; it
-  touches `tests/entities.py` and `tests/closures.json` here, both merged
-  without conflict, `closures.json` by its ledger driver).
-- Merge base: `fc7173fe7876e9973a170675d25337a810a40c59`, origin/main's tip
-  at 2026-10-22T23:52Z (`date -u`).
-- Where a figure was taken at an earlier commit of this branch it names it;
-  steps 2-8 were re-run after each merge where the merge reached them:
-  `tests/entities.py` (`ALL 2399 ENTITY CHECKS PASSED` at `d88061f89`),
-  `tests/structure.py` and `tests/closure.py selftest` and
-  `tools/pr/ci_predict.py` at `d88061f89`, and `tests/features.py` at
-  `9b6423818` (the M0 null run below). Neither merge touched the card,
-  `coordinator.py`, `sensor.py`, `payload.py` or `tests/features.py`'s
-  score blocks.
+`19319cc135899015bfc34e8832580665e43a3b80` is the measured code head.
+- Merge base: `f38f91852ea0251a9043378f76f907794874b2be`, origin/main's tip
+  at 2026-10-23T04:06Z (`date -u`). It contains #2635 and #2637, so the
+  head's roster holds the three carries this body cites as landed.
+- Since the previous handoff head `9b6423818`, this seat merged `origin/main`
+  four times (`f9458e55c`, `f5995d517`, `65d6f349c`, `19319cc13`; each
+  clean, none touching `coordinator.py`, `sensor.py`, `payload.py`, the card
+  or `tests/features.py`) and committed:
+  - `c79cb51a3`: the score composition moved into `machine_score`,
+    `operation_reason` and `compose_scores` (the payment below);
+  - `80043426f`: the 16 pins `--pin-killed` recorded, three killing checks
+    for its survivors, and the `loss <= 0.0` floor;
+  - `f464d3dfa`: the retired `1e-6` line's pin dropped;
+  - `a9099faf3`: the six new pins recorded.
+- Steps 2-8 were re-run at this head where a commit reached them: the pin
+  drive (`## Mutation proof`), `tests/structure.py`, `tools/pr/ci_predict.py`,
+  `tools/audit/archscore/score.py`, and the envelope harness. Figures taken
+  at an earlier commit name it.
 
 ## Mutation proof
 
-Each mutant replaces one production text, exactly one occurrence, in its own
-detached worktree at `38d7452b8` (M1-M13), `ad0df8395` (M14, M15) or
-`9b6423818` (M16, M17) (`git worktree add --detach`), driven by a scratch
-driver that is not committed (worktree, replace, run the script, collect its
-`FAIL` lines). A named check is one that went red; the unmutated head is green on
-the same scripts (`## Null control`).
+**At this head: `tests/mutation_table.py --pin-killed --base origin/main`**
+(scripts: the default drivers less `tests/entities.py`, whose baseline is red
+on `origin/main` itself; see `## Red checks`). Each site the diff adds is
+mutated in a temp copy and driven by every script whose recorded closure
+holds its file; a site is pinned only when a driver goes red on it, and the
+null mutant `coordinator.py:509 NULL_COMMENT` must survive every driver.
+- Run 1 (at `65d6f349c`, after `c79cb51a3`): `PIN KILLED: 16 pinned, 5 left unpinned`; the null
+  control survived every driver; baselines green (`tests/features.py`,
+  `tests/env_drift.py`, `tests/structure.py`, `tests/typing_ruler.py`,
+  `tests/harness_headers.py` rc=0).
+- The five survivors and what this seat did:
+  - `_watched_cop_buckets` CMP_BOUND (`>=` -> `>`): new check `a COP bucket
+    at exactly the minimum sample count is watched, and the machine is graded`;
+  - `_refit_disagrees` CMP_BOUND (`>` -> `>=`): new check `a refit exactly on
+    its own band edge agrees with the scale; only one past it disagrees`
+    (scale 2.0, band 25 %: 2.5 agrees, 2.51 and 1.49 disagree; the edge is
+    exact in binary, so the check reads the operator, not rounding);
+  - `machine_score` CLAMP_DROP: new check `a machine past the alarm threshold
+    still grades 0, never below` (Cusum at twice the threshold);
+  - `envelope_score` CMP_BOUND x2 on one line (`loss <= 1e-6`, `mass <= 0`):
+    the mass bound was killed, the loss bound lived because the rounded loss
+    is never within (0, 1e-6]; the line now reads `loss <= 0.0`, where the
+    strict mutant divides by zero on the existing lossless check.
+- Run 2 (at `80043426f`, after dropping the retired line's pin
+  `envelope_score GUARD_OFF 0805c971`, which the ledger refused as naming no
+  generated site): `PIN KILLED: 6 pinned, 0 left unpinned`, every one by
+  `tests/features.py`; the null control survived; `tests/features.py` and
+  `tests/env_drift.py` baselines rc=0 -- the three new checks pass on the
+  fix and each fails on its mutant.
+
+**Recorded by the previous rounds of this seat** (each mutant one
+production text in its own detached worktree; the commit it ran at is named;
+`c79cb51a3` later moved M5's and M17's texts into `machine_score` and
+`operation_reason` unchanged, and the pin drive above re-proves every added
+site at this head):
 
 | mutant | production text replaced | script | red checks |
 |---|---|---|---|
@@ -149,7 +185,9 @@ tests/features.py` (each `PIN RE-VERIFICATION: 1 reproduced`, null control
 - `_scores_view BOOLOP 4902d2e0` (`if loss > 1e-6 and …`): the guard is now
   `envelope_score`'s `if loss <= 1e-6 or params.room_thermal_mass <= 0:`,
   where the inventory generates a GUARD_OFF site and no BOOLOP site; pinned
-  as `envelope_score GUARD_OFF 0805c971`, reproduced;
+  as `envelope_score GUARD_OFF 0805c971`, reproduced; that line now reads
+  `loss <= 0.0`, so `f464d3dfa` dropped the row and the drive re-pinned it
+  as `envelope_score GUARD_OFF 88c2835d`;
 - `sensor.py:ModelRestartAdvisorSensor.native_value RETURN_DEL b9a14709`
   (`return None if scale is None else float(scale)`): the line is now the
   payload-number read `return refit if refit is not None else
@@ -161,63 +199,74 @@ tests/features.py` (each `PIN RE-VERIFICATION: 1 reproduced`, null control
 
 ## Unpinned sites
 
-Each line is a site `tools/pr/ci_predict.py --base origin/main` lists as
-added and unpinned at `d88061f89`, with its disposition. "Pinned by
-`mutation-autofix`" names the check this branch shows killing it.
-- `coordinator.py` `house_loss_converged` CMP_BOUND (`>=`): pinned by `mutation-autofix` (M3).
-- `coordinator.py` `house_loss_converged` RETURN_DEL: pinned by `mutation-autofix` (the convergence sweep reads `None` as unconverged everywhere and fails at 50 samples).
-- `coordinator.py` `_refit_disagrees` GUARD_OFF `if fitted is None:`: pinned by `mutation-autofix` (`float(None)` raises on the fresh-install view, whose advice has no refit).
-- `coordinator.py` `_refit_disagrees` CMP_BOUND: written triage, **equivalent** -- `>` against `>=` differ only when the refit sits exactly `band x scale` from the scale; no check pins that edge and none should, since the band itself is a measured ±7-10 %.
-- `coordinator.py` `_refit_disagrees` RETURN_DEL: pinned by `mutation-autofix` (M4's checks read the `None` return as "agrees").
-- `coordinator.py` `envelope_score` CLAMP_DROP (the 0.1 floor): pinned by `mutation-autofix` (M14).
-- `coordinator.py` `envelope_score` CMP_BOUND x2 (`loss <= 1e-6`, `mass <= 0`): the mass bound is pinned by `mutation-autofix` (M16); the loss bound is written triage, **equivalent** -- `_effective_house_heat_loss` rounds to 1e-4 kW/K, so the loss is never exactly 1e-6.
-- `coordinator.py` `envelope_score` GUARD_OFF `if not house_loss_converged`: pinned by `mutation-autofix` (the convergence sweep).
-- `coordinator.py` `envelope_score` GUARD_OFF `if _refit_disagrees`: pinned by `mutation-autofix` (`a converged learner the refit disagrees with is dashed`).
-- `coordinator.py` `envelope_score` CLAMP_DROP and RETURN_DEL on the band's return: pinned by `mutation-autofix` (M15; a deleted return unpacks `None`).
-- `coordinator.py` `_scores_view` GUARD_OFF `if why is not None` / `if _watched_cop_buckets` / `if operation is None` / `if not available`: pinned by `mutation-autofix` (the fresh-install reasons check and the invariant census).
-- `coordinator.py` `_scores_view` CMP_BOUND `free >= SCORE_FREE_SPAN_RESET`: pinned by `mutation-autofix` (M17).
-- `sensor.py` `ModelRestartAdvisorSensor._advice` GUARD_OFF `if advice:`: pinned by `mutation-autofix` (`#1936: the advisor sensor reads the recommended scale and both options` reads the fallback's no-refit state).
+none -- `tests/mutation_table.py --pin-killed --base origin/main` at this
+seat's commits pinned every site the diff adds (16, then 6: `PIN KILLED: 6
+pinned, 0 left unpinned`), and `tools/pr/ci_predict.py --base origin/main`
+at `19319cc13` lists no added unpinned site.
 
 ## Null control
 
-- The unmutated head: `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh`
-  at `01b55d546` printed `MODE: SCOPED -- 29 script(s) run, 4 scoped out.`
-  and failed one script, `tests/entities.py`, on the mutation ledger's
-  refusal of the advisor sensor's moved pin; that pin was re-anchored in
-  `e07f41fed` and `tests/entities.py` reads `ALL 2397 ENTITY CHECKS PASSED`
-  there and `ALL 2399` at `d88061f89`. Every other script in scope passed,
-  including `tests/stress.py`, `tests/card.mjs`, `tests/card_drift.mjs`,
+- The pin drive's null mutant, `coordinator.py:509 NULL_COMMENT` (a
+  comment-only edit), survived every driver in both runs at this head; a
+  driver that killed it would have refused the run.
+- The previous rounds' unmutated head: `GATE_SCOPE=auto GOLDEN_MODE=drift
+  PYTHONPATH=tests/hastub bash tests/run.sh` at `01b55d546` printed `MODE:
+  SCOPED -- 29 script(s) run, 4 scoped out.`, every script in scope green
+  after the advisor pin's re-anchor (`e07f41fed`), including
+  `tests/stress.py`, `tests/card.mjs`, `tests/card_drift.mjs`,
   `tests/env_drift.py --all`, `tests/optimality.py` and
-  `tests/typing_ruler.py`. The M0 null mutant (a comment-only edit) at
-  `9b6423818`: `tests/features.py` rc=0.
+  `tests/typing_ruler.py`.
 - The finder's instance (item 1) at the merge base: `finiteScore(null)` is
   `Number(null)` = 0 -- the base card under the head's card tests prints the
-  `0/100` checks red (above); at the head they are green.
+  `0/100` checks red; at the head they are green. This seat did not touch
+  the card.
 - Item 2's harness, `dev/audit/harnesses/r10_scores_envelope.py`
   (`--ratio-override 1.0`): every split forced to 1.0, where the configured
   total and the model's figure are one number; it reads
-  `split_max_abs_gap=0.0` at the merge base and at the head, so the base's
+  `split_max_abs_gap=0.0` at the merge base and at this head, so the base's
   gap is the split's and not a scale-only drift.
 
 ## Figures
 
-Every figure below was taken at FIG_`9b6423818873f3eb888bb6c22568e1cac311b663` is the measured code head.
-- Cut from `origin/main` `86425b9ad` (the dispatch base). `origin/main` was
-  merged in twice before the handoff: `de69745ff` (merge `01b55d546`,
-  bringing R10-SOLVER #2612; the ledger driver resolved
-  `tests/structure_budgets.json`) and `fc7173fe7` (merge `d88061f89`; it
-  touches `tests/entities.py` and `tests/closures.json` here, both merged
-  without conflict, `closures.json` by its ledger driver).
-- Merge base: `fc7173fe7876e9973a170675d25337a810a40c59`, origin/main's tip
-  at 2026-10-22T23:52Z (`date -u`).
-- Where a figure was taken at an earlier commit of this branch it names it;
-  steps 2-8 were re-run after each merge where the merge reached them:
-  `tests/entities.py` (`ALL 2399 ENTITY CHECKS PASSED` at `d88061f89`),
-  `tests/structure.py` and `tests/closure.py selftest` and
-  `tools/pr/ci_predict.py` at `d88061f89`, and `tests/features.py` at
-  `9b6423818` (the M0 null run below). Neither merge touched the card,
-  `coordinator.py`, `sensor.py`, `payload.py` or `tests/features.py`'s
-  score blocks. unless it names another commit.
+Every figure below was taken at `19319cc135899015bfc34e8832580665e43a3b80`
+(or at a seat commit whose production code it shares, named) unless it names
+another commit.
+
+- `python3 tools/audit/archscore/score.py --diff origin/main`:
+  `Architecture score: dS +0.0105 IMPROVES` (`coord_footprint 2489 -> 2471`).
+  Before `c79cb51a3`, at `f9458e55c`: `dS +0.0023 IMPROVES`
+  (`coord_footprint 2489 -> 2485`); `--diff HEAD` across `c79cb51a3` alone:
+  `dS +0.0081 IMPROVES` (`2485 -> 2471`).
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. Against
+  `origin/main`'s budgets (three-dot diff of `tests/structure_budgets.json`):
+  `class_excess_loc 18268 -> 18244`, `max_class_loc 8514 -> 8480`,
+  `seam_cut_total 708 -> 714`. Before `c79cb51a3` the branch read
+  `18282`, `8518`, `714`; `c79cb51a3` re-recorded the two that fell (-38
+  each) with the reason in its commit message.
+- Seam table (`tests/structure.py`'s `coordinator seam table`, rule: per
+  seam, attribute references and calls crossing it), a detached
+  `origin/main` at `e45fc34fb` against this branch at `f9458e55c`: `learning 281 -> 283`, `grid 158
+  -> 159`, `views 106 -> 109`, the other two equal; total `708 -> 714`.
+  At `c79cb51a3`'s tree, with `coordinator.model_restart_advice` re-seated to `learning` in
+  `tests/seam_map.json`: `learning 286`, `views 106`, total still `714`; `c79cb51a3` itself leaves the total at `714`.
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_scores_envelope.py`
+  re-run at `f464d3dfa` (production code identical to this head; harness
+  sha1 `272d51759459b3bd7410f2224763fa197565602d`): `split_max_abs_gap=0.0`;
+  `ends` arm `samples=0` at scales 0.3 and 3.0 `envelope=None
+  reason=heat_loss_learning`, `samples=2000` grades 79.2 and 0.0; with
+  `--ratio-override 1.0`, `split_max_abs_gap=0.0`.
+- `PYTHONPATH=tests/hastub python3 tests/features.py` at `c79cb51a3`:
+  `ALL 4325 FEATURE CHECKS PASSED`; at `80043426f` its pin-drive baseline
+  rc=0 failed=0.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY
+  CHECKS FAILED` at `65d6f349c` and `4 of 2402 ENTITY CHECKS FAILED` on a
+  detached `origin/main` at `4e38e7d7b`, the same four checks (the
+  `hb:positive_control` retry arm: `survives one hung py-spy sample`, `a try
+  whose sample misses the spin ... is retried`, `the control rests between
+  tries`, `survives two hung samples`).
+
+Taken by the previous rounds of this seat, at the commits they name (none of
+these inputs moved since):
 
 - `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_scores_envelope.py`
   (rule: |published envelope − the 20-100 h grade of
@@ -238,14 +287,6 @@ Every figure below was taken at FIG_`9b6423818873f3eb888bb6c22568e1cac311b663` i
   `post_2005` is 36.4 h, grade 20.5; every timber `pre_1960` and
   `1960_1980` preset grades 0.0. A drift of the scale to 2.6 grades 0 on
   every split of the default preset (split arm).
-- `python3 tools/audit/archscore/score.py --diff origin/main`:
-  `Architecture score: dS +0.0023 IMPROVES` (`coord_footprint 2489 -> 2485`), at `e07f41fed` against `de69745ff`.
-- `python3 tests/structure.py`: before the re-record,
-  `class_excess_loc 18286 > 18272 (+14)`, `max_class_loc 8518 > 8514 (+4)`,
-  `seam_cut_total 714 > 708 (+6)` (at `eb90c6de6`); re-recorded in
-  `8495a8d51` with the reason in its commit message; after merging
-  `origin/main` the ledger driver resolved `class_excess_loc` to 18282 and
-  the ratchet reads `STRUCTURE RATCHET PASSED`.
 - `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main`
   (at `eb90c6de6`, against `86425b9ad`):
   exactly the five `coord_*` fixtures move, 5 leaves each
@@ -286,13 +327,15 @@ Every figure below was taken at FIG_`9b6423818873f3eb888bb6c22568e1cac311b663` i
 
 Mandate 6175172275 (#201, scope `all`, until 2026-10-28T18:14Z), read from
 `dev/programme/HANDOVER.md`; the approver reads it and any revocation from
-the API at use. Rows raised in `tests/structure_budgets.json`:
-`class_excess_loc` +14 (now 18282 after main's -4), `max_class_loc` +4,
-`seam_cut_total` +6. What remains is the feature itself: `_insight_view`
-hands the coordinator to `model_restart_advice` once a cycle (the design's
-holder), which makes that adapter a charged helper (+10) and reads
-learning-owned state from the views seam; the class keeps four lines of
-`reasons`.
+the API at use. One row stays raised in `tests/structure_budgets.json`:
+`seam_cut_total` +6 (708 -> 714). The other two rows this branch raised are
+paid and now sit under `origin/main`'s: `class_excess_loc` 18268 -> 18244 and
+`max_class_loc` 8514 -> 8480. What remains is the feature itself: the cycle
+takes the restart advice once (`_insight_view` hands the coordinator to
+`model_restart_advice`, the design's holder), so the advisor's reads of the
+learner's ring, scale and accuracy now cross from the views seam, and the
+envelope grade reads the learner's sample count to know whether it has
+converged.
 
 Payments tried: (1) the envelope grade moved out of the class into the pure
 `envelope_score` -- taken, -15 class lines; (2) `model_restart_advice`'s
@@ -301,43 +344,54 @@ taken, -32 helper lines; (3) a `republish_restart_advice` helper, then an
 in-place `data["insight"]` write, then a `coord.data` reassignment, each
 replaced by the existing `async_request_refresh` -- taken (the in-place
 write was archscore-inadmissible, the reassignment moved
-`coordinator_attrs`); (4) reformatting the machine grade's twelve-line
-expression -- not taken, it moves lines without improving code; (5) calling
-`restart_advice` directly from `_insight_view` to avoid charging the
-adapter -- not taken, it duplicates the adapter's argument extraction.
+`coordinator_attrs`); (4) the score composition moved into the pure
+`machine_score`, `operation_reason` and `compose_scores` (`c79cb51a3`) --
+taken, -38 on `class_excess_loc` and `max_class_loc`, archscore
+`dS +0.0081 IMPROVES` across it, seam cut unchanged at 714; (5) re-seating
+`coordinator.model_restart_advice` from `views` to `learning` in
+`tests/seam_map.json` -- not taken, the total stays 714 (`learning` +5,
+`views` -3), so it buys nothing and would only move the charge; (6) calling
+`restart_advice` directly from `_insight_view` -- not taken, the same three
+learner reads then sit in `_insight_view` itself and the adapter's argument
+extraction is duplicated for `async_adopt_heat_loss_refit`; (7) carrying the
+sample count inside the advice so the grade reads no learner state -- not
+taken, it hides the same read inside a dict to move a metric.
 
-Architecture score: dS +0.0023 IMPROVES
+Architecture score: dS +0.0105
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff origin/main`: no gate metric
-rises; `coord_footprint 2489 -> 2485`.
+`python3 tools/audit/archscore/score.py --diff origin/main` at this head:
+`dS +0.0105 IMPROVES`; no gate metric rises; `coord_footprint 2489 -> 2471`.
 
 ## Red checks
 
 - `budget-raise-gate` is red until an approving review at the head: this
-  branch raises three rows of `tests/structure_budgets.json`
-  (`class_excess_loc`, `max_class_loc`, `seam_cut_total`). It is the gate
-  working as designed, not a defect; the answer is `## Raise justification`
-  (mandate 6175172275, scope `all`), which the approver judges. No cheaper
-  detector applies.
-Two scripts went red on this branch's own first gate (at `8495a8d51`,
-against the moved `de69745ff`), both caught locally before any push:
-- `tests/finite_boundary.py`, `every number state publishes None, never the
-  bool or the text, from a bool or text payload (#2242)`:
-  `ModelRestartAdvisorSensor.native_value` cast a text advice leaf with
-  `float()`. Fixed in `9ed756d3f` (the payload-number read). The cheaper
-  detector is the census itself, which ran here; no cheaper one exists.
-- `tests/harness_headers.py`, `the executed harnesses leave their committed
-  output byte-identical`: the README's score row no longer says
-  "Unavailable", so `dev/audit/rounds/round4/D6/claims.py` counts 20 notes,
-  not 21; its output is regenerated in `9ed756d3f`. The cheaper detector is
-  running that generator with any README edit; none is wired, and the gate
-  caught it.
-- `tests/stress.py`'s production-call check read 1.192x on `summer/2z/space`
-  against `de69745ff` before this branch had merged it (thermal_model.py
-  +13956 calls, R10-SOLVER's code); after the merge it passed. Not this
-  diff's: a branch-vs-moved-main comparison.
+  branch raises one row of `tests/structure_budgets.json`
+  (`seam_cut_total`). It is the gate working as designed, not a defect; the
+  answer is `## Raise justification` (mandate 6175172275, scope `all`),
+  which the approver judges. No cheaper detector applies.
+- `mutation` was the opener's predicted red at `04ab79356`: 17 sites the
+  diff added had no pin. Own defect, fixed here: `tests/mutation_table.py
+  --pin-killed --base origin/main` pinned 16, three new checks and the
+  `loss <= 0.0` floor made the other five killable, and a second drive
+  pinned them (`## Mutation proof`); `## Unpinned sites` is empty and
+  `tools/pr/ci_predict.py` predicts no red. The cheaper detector is the
+  same `--pin-killed` drive run before the handoff instead of after the
+  opener refuses; it costs one drive of the changed files' drivers (two runs
+  here, the longer over an hour on this loaded box).
+- `tests/entities.py` reads `4 of 2402 ENTITY CHECKS FAILED` on a detached
+  `origin/main` at `4e38e7d7b`, the same four `hb:positive_control` retry
+  checks it fails here; nothing in this diff reaches `tests/nightly_ha.py`'s
+  heartbeat control. Not this branch's: if `fast` carries it, main carries it
+  too. The pin drive left `tests/entities.py` out for that reason
+  (`MUTATION TABLE INCONCLUSIVE -- the baseline is already red`).
+- From the previous rounds, both caught locally before any push:
+  `tests/finite_boundary.py`'s `every number state publishes None, never the
+  bool or the text` (fixed in `9ed756d3f`; the census itself is the cheapest
+  detector) and `tests/harness_headers.py`'s `the executed harnesses leave
+  their committed output byte-identical` (regenerated in `9ed756d3f`; no
+  cheaper detector is wired).
 
 ## Forward-carry
 
@@ -364,11 +418,10 @@ against the moved `de69745ff`), both caught locally before any push:
   landed: no score reads or recomputes a Savings figure (SAV-BASELINE's
   figures are untouched, carry 2), and Health's own copy is UX-HEALTH's.
   Carry: R10-ARCH-DOCS.
-- **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix. Carry: R10-UX-HEALTH
-- **New finding, the envelope band and mass basis (reported, not shipped, per the design note):** on the tree's own presets the 20-100 h band grades the default preset 6.2 and a post-2005 timber house 20.5 at the configured prior, and every timber house before 1980 0; the time constant reads `room_thermal_mass`, which on a floor-heated house excludes the slow mass `presets.derive` puts in `slab_thermal_mass`, and on a two-zone house is not the zone masses the dynamics use. A band or mass-basis change is a behaviour no finding names yet. Main's decision under the mandate: R10-PARAMS-OWNER, the single owner of the thermal parameters, decides which mass the score's time constant reads (the dynamics' slab-inclusive and zone masses are recommended, so the score grades the house the model simulates), and re-grades the 20-100 h band on the presets at that basis. Carry: R10-PARAMS-OWNER
-- **Blocked, not designed around:** the owner's bundle is not in this container, so the suspected 2.6x scale drift and the band on the owner's own house are unmeasured. The harness takes `--bundle PATH` and prints the stored scale, split and samples and the grade on both bases. A local seat with the bundle runs the harness with `--bundle PATH` as part of that group. Carry: R10-PARAMS-OWNER
+- **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix. Landed on R10-UX-HEALTH at 9a4953627ba02add3175dd80cbd3c5b4d8c87af6. Carry: R10-UX-HEALTH
+- **New finding, the envelope band and mass basis (reported, not shipped, per the design note):** on the tree's own presets the 20-100 h band grades the default preset 6.2 and a post-2005 timber house 20.5 at the configured prior, and every timber house before 1980 0; the time constant reads `room_thermal_mass`, which on a floor-heated house excludes the slow mass `presets.derive` puts in `slab_thermal_mass`, and on a two-zone house is not the zone masses the dynamics use. A band or mass-basis change is a behaviour no finding names yet. Main's decision under the mandate: R10-PARAMS-OWNER, the single owner of the thermal parameters, decides which mass the score's time constant reads (the dynamics' slab-inclusive and zone masses are recommended, so the score grades the house the model simulates), and re-grades the 20-100 h band on the presets at that basis. Landed on R10-PARAMS-OWNER at 75c891e28f19142fc44f550b792c1442bff89715. Carry: R10-PARAMS-OWNER
+- **Blocked, not designed around:** the owner's bundle is not in this container, so the suspected 2.6x scale drift and the band on the owner's own house are unmeasured. The harness takes `--bundle PATH` and prints the stored scale, split and samples and the grade on both bases. A local seat with the bundle runs the harness with `--bundle PATH` as part of that group. Landed on R10-PARAMS-OWNER at c3711a1f09213ef1a5c072c5e77297c2b674bac7. Carry: R10-PARAMS-OWNER
 
 ## Friction
-
 
 none
