@@ -8639,6 +8639,49 @@
     "next_step": "cloud fixer cse_014HGxgRAzJoTMn2nvYqvCbC dispatched, topic r10-fly-no-footers-push-paths",
     "note": "Scope ruling (orchestrator, main): author identity is out of scope; the guard judges commit messages (footers, trailers, session links), not the author field."
    }
+  },
+  {
+   "group": "R10-FLY-INERT-LOAD-TIME",
+   "lane": "FLY",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "wave": 4,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tests/closure.py",
+    "tools/pr/ci_predict.py",
+    "tools/pr/prepr.sh",
+    "dev/audit/config/bugclasses.json",
+    "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md"
+   ],
+   "hot_files": [
+    "tests/closure.py"
+   ],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "severity": "medium",
+   "findings": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "Barrier for audit class I2 (RCA R10-RCA-INERT-CLOSURE-RECORDING, root-cause seat beside #2662, 2026-10-23). A closures recording carries an inert_reads split decided by the recording tree's INERT list; a later INERT_EXCEPT edit voids it, but merge and check trusted the split, so check passed vacuously and #2662's probe d5b053e went UNDER-SCOPED (32 min red FULL closures). Countermeasure built by the RCA seat: closure.py _load_recording re-splits each recording under the loading tree's INERT list for merge and check; ci_predict.py left_inert predicts UNDER-SCOPED statically when a diff edits tests/closure.py and a committed inert_reads file has left INERT while its script's closure omits it (prepr 6d, body_push).",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
