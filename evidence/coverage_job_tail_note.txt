@@ -1,6 +1,0 @@
-coverage job 120155414070 (run 39874068348, the red run), log lines read via get_job_logs:
- ran tests/entities.py exit=0 wall=1140s
- ran tests/features.py exit=0 wall=1165s
- ran tests/golden.py exit=1 wall=206s
- FAIL package coverage 85.89 % >= 96.0 %  (after golden.py exit=1)
-fast (3.14) job 120155413953: "1 of 2401 ENTITY CHECKS FAILED"; its FAIL line fell outside the 495 KB window the tool returns.
