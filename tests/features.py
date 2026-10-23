@@ -67875,34 +67875,49 @@ for _sr_name in ("coordinator.py", "boost.py"):
                 getattr(_sr_arg.func, "attr", None) == "get_current_action":
             _sr_adopt_sites.append((_sr_name, _sr_node.lineno, "plan"))
             continue
-        _sr_keys = {
-            _k.value: _v for _k, _v in zip(
-                (_sr_arg.keys if isinstance(_sr_arg, _sr_ast.Dict) else []),
-                (_sr_arg.values if isinstance(_sr_arg, _sr_ast.Dict) else []),
-            ) if isinstance(_k, _sr_ast.Constant)
-        }
-        _sr_mode = (
-            _sr_keys["mode"].value
-            if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
-            else None
-        )
-        _sr_adopt_sites.append(
-            (_sr_name, _sr_node.lineno, _sr_mode,
-             all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
-        )
-        for _sr_key in ("space_reason", "dhw_reason"):
-            _sr_value = _sr_keys.get(_sr_key)
-            _sr_code = (
-                getattr(_sr_mod, _sr_value.id, None)
-                if isinstance(_sr_value, _sr_ast.Name)
-                else _sr_value.value
-                if isinstance(_sr_value, _sr_ast.Constant)
+        # A builder method (``_fixed_mode_action``) hands over one of its own
+        # mode-keyed dict literals, so each of those is a site.
+        _sr_dicts = [_sr_arg]
+        if isinstance(_sr_arg, _sr_ast.Call):
+            _sr_dicts = [
+                _d for _f in _sr_ast.walk(_sr_tree)
+                if isinstance(_f, _sr_ast.FunctionDef)
+                and _f.name == getattr(_sr_arg.func, "attr", None)
+                for _d in _sr_ast.walk(_f)
+                if isinstance(_d, _sr_ast.Dict) and any(
+                    isinstance(_k, _sr_ast.Constant) and _k.value == "mode"
+                    for _k in _d.keys
+                )
+            ] or [_sr_arg]
+        for _sr_dict in _sr_dicts:
+            _sr_keys = {
+                _k.value: _v for _k, _v in zip(
+                    (_sr_dict.keys if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                    (_sr_dict.values if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                ) if isinstance(_k, _sr_ast.Constant)
+            }
+            _sr_mode = (
+                _sr_keys["mode"].value
+                if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
                 else None
             )
-            if _sr_code not in _sr_vocab:
-                _sr_unvocab.append((_sr_name, _sr_node.lineno, _sr_key, _sr_code))
-            elif _sr_key == "space_reason":
-                _sr_causes.add(_sr_code)
+            _sr_adopt_sites.append(
+                (_sr_name, _sr_dict.lineno, _sr_mode,
+                 all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
+            )
+            for _sr_key in ("space_reason", "dhw_reason"):
+                _sr_value = _sr_keys.get(_sr_key)
+                _sr_code = (
+                    getattr(_sr_mod, _sr_value.id, None)
+                    if isinstance(_sr_value, _sr_ast.Name)
+                    else _sr_value.value
+                    if isinstance(_sr_value, _sr_ast.Constant)
+                    else None
+                )
+                if _sr_code not in _sr_vocab:
+                    _sr_unvocab.append((_sr_name, _sr_dict.lineno, _sr_key, _sr_code))
+                elif _sr_key == "space_reason":
+                    _sr_causes.add(_sr_code)
 _sr_fixed = {s[2] for s in _sr_adopt_sites if isinstance(s[2], str)}
 _sr_dict_sites = [
     s for s in _sr_adopt_sites if isinstance(s[2], str) and s[2] != "plan"
