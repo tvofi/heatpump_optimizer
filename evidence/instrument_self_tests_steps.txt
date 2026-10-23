@@ -1,9 +1,0 @@
-23	Refuse a push that names the host, and an unregistered pusher	failure	2026-10-23T13:08:52Z	2026-10-23T13:08:54Z
-24	Render the sweep template, and the policy re-read predicate	skipped	2026-10-23T13:08:54Z	2026-10-23T13:08:54Z
-25	Show the orchestrator tick deciding its own fixtures	skipped	2026-10-23T13:08:54Z	2026-10-23T13:08:54Z
-26	Refuse a self-testing seat instrument that no step runs	skipped	2026-10-23T13:08:54Z	2026-10-23T13:08:54Z
-63	Refuse a throwaway git repository built without the shared helper	skipped	2026-10-23T13:13:03Z	2026-10-23T13:13:03Z
-64	Show the merge train refusing its own fixtures	skipped	2026-10-23T13:13:03Z	2026-10-23T13:13:03Z
-65	Show the carry check and the queue pre-flight refusing their own fixtures	skipped	2026-10-23T13:13:03Z	2026-10-23T13:13:03Z
-66	Show the train launcher refusing its own fixtures	skipped	2026-10-23T13:13:03Z	2026-10-23T13:13:03Z
-155	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	skipped	2026-10-23T13:13:07Z	2026-10-23T13:13:07Z

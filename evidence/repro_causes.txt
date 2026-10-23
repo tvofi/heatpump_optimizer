@@ -1,7 +1,0 @@
-== cause: stale script (main's cloud_relay.sh, pass with no arm), then head pass --confirm
-RESULT first_pass_calls=0 after_head_confirm_pass_calls=1 posted=1
-== cause: stale script with --confirm whose confirm failed: repro_po.txt PASS1/PASS2 on head
-== cause: head relay called without --confirm (old relay_start), then head pass --confirm
-RESULT first_pass_calls=0 after_head_confirm_pass_calls=1 posted=1
-== control: main without --confirm then main pass --confirm (main has no arm)
-RESULT first_pass_calls=0 after_head_confirm_pass_calls= posted=

@@ -1,0 +1,7 @@
+== committed unguarded push appended, no PUSHERS entry
+ref_privacy: REFUSE tools/audit/seat/cloud_relay.sh:840: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 301 line(s) added since fd7e289d0a09 judged, 1 refused
+rc=1
+== same, with a whole-file fixture PUSHERS entry
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 302 line(s) added since fd7e289d0a09 judged, 0 refused
+rc=0
