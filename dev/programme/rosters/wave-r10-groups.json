@@ -6986,7 +6986,7 @@
     "branch": "handoff/r10-fly-relay-review-ff",
     "commit": null,
     "last_step": null,
-    "next_step": "cloud fixer dispatched 2026-10-23 ~12:40Z",
+    "next_step": "#2664 merged 811cd01aa 2026-10-23T19:39Z; unbuilt carries owed before done: stale-checkout restart (P-B), P-E SEAT ENDED NO RETURN, http.postBuffer + ev/ size cap, and P14 (s5-batch1). Re-home or build, then done.",
     "note": "Started ahead of its after-edge R10-UPDATE-PR-SIGNALS by orchestrator ruling (mandate 6329234399): it blocks the critical-path merge seat (P-O, 4 instances in 2 days). TICK-OWED-LEVEL, FLOW-ANDON and FLOW-RELAY-HOLD are done. UPDATE-PR-SIGNALS (held) and ORCH-LEDGER (in flight) also edit cloud_relay.sh; whichever lands later merges main.",
     "pr": 2664
    }
