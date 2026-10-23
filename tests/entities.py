@@ -28625,9 +28625,6 @@ R.check(
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
                       "budget-raise-gate.yml": ["budget-raise-gate"],
-                      # R9-EG-A4: the required score check reads the body, so
-                      # a body edit is the answer to its red; one job, no `if:`.
-                      "arch-score.yml": ["arch-score"],
                       # The umbrella (U0c): its one required check is `gate`,
                       # whose `if:` no event can make false (pinned above), and
                       # gate.py takes no unit's verdict from a run whose
@@ -28794,7 +28791,6 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 # twin from being cancelled. A design choice per file, not a derived fact.
 _CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
                   "budget-raise-gate.yml": "per-run",
-                  "arch-score.yml": "per-run",
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
 
