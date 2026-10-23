@@ -966,9 +966,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-NIGHT-FOLDS; after you: R10-LIVESTATE). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-NIGHT-FOLDS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-loop-cpu",
-    "commit": "577ec62dbb35f2353902b5bbe5adb37b69805af2",
+    "commit": "7108101d71211772c2f45f67b240ee3663e3446e",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
