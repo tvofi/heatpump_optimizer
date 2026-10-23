@@ -1,0 +1,48 @@
+head: 4547d59da65e6548c76b1d6291e078d8823ea174
+base: d7cb63508d1a13bd63a0cb74119e429899fa476e
+origin/main: 25816d5eb50d285c0c94261223e5e0b2b3380759
+roster: e267cd102b9205516c91f03e28609864c3e63c8a
+CARRY-AUDIT #2672: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+9821f88eed9982ac81ef32fdc9126523ac4b7d28
+merge-tree rc=0
+Analyze (actions) success 2026-10-23T20:00:36Z
+Analyze (javascript-typescript) success 2026-10-23T20:00:36Z
+Analyze (python) success 2026-10-23T20:00:35Z
+arch-instrument success 2026-10-23T20:01:27Z
+arch-score success 2026-10-23T20:00:17Z
+arch-score success 2026-10-23T20:00:18Z
+briefs success 2026-10-23T20:00:59Z
+browser success 2026-10-23T20:01:27Z
+budget-raise-gate success 2026-10-23T20:00:17Z
+budget-raise-gate success 2026-10-23T20:00:17Z
+cancel-superseded success 2026-10-23T20:00:17Z
+cancel-superseded success 2026-10-23T20:00:58Z
+ci-ratchet skipped 2026-10-23T20:06:16Z
+claims-autofix skipped 2026-10-23T20:05:37Z
+closure-scope success 2026-10-23T20:00:58Z
+closures success 2026-10-23T20:01:27Z
+closures-autofix skipped 2026-10-23T20:06:16Z
+coverage success 2026-10-23T20:01:27Z
+coverage-ratchet success 2026-10-23T20:02:00Z
+delivery-status failure 2026-10-23T20:01:44Z
+delivery-status-publish skipped 2026-10-23T20:01:41Z
+env-matrix success 2026-10-23T20:01:43Z
+fast (3.14) success 2026-10-23T20:01:27Z
+graders-head-copy success 2026-10-23T20:02:00Z
+hassfest success 2026-10-23T20:00:17Z
+instrument-self-tests success 2026-10-23T20:01:44Z
+kernel-points (${{ matrix.coretype }}) skipped 2026-10-23T20:00:15Z
+lane-proofs success 2026-10-23T20:05:40Z
+mutation success 2026-10-23T20:00:58Z
+mutation-autofix skipped 2026-10-23T20:01:29Z
+mutation-pins skipped 2026-10-23T20:01:29Z
+nightly-ha skipped 2026-10-23T20:01:25Z
+nightly-status success 2026-10-23T20:00:58Z
+policy-docs success 2026-10-23T20:01:44Z
+pr-contract success 2026-10-23T20:00:17Z
+pr-contract success 2026-10-23T20:11:20Z
+record skipped 2026-10-23T20:01:41Z
+scope success 2026-10-23T20:00:17Z
+typing success 2026-10-23T20:01:27Z
+validate-hacs success 2026-10-23T20:00:17Z
+wave-script success 2026-10-23T20:01:43Z
