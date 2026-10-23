@@ -1,0 +1,6 @@
+GATE R10-ARCH-DOCS[5] refused proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): "Study step, run first (owner suggestion tvofi 2026-10-22; triage P5 ACCEPT, timing set by the orchestrator to the owner'"
+GATE R10-FLOW-BODY-PATCH[5] refused proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'Triage P2 (s4): the instrument must work while another worktree holds the branch. #2589 at 11:40Z: update_pr.sh refused '
+GATE R10-FLOW-JIDOKA[3] refused proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): "Triage P3 (s4): add the base-pinned replay to prepr. CI's policy-docs, env-matrix and wave-script restore the checkers f"
+GATE R10-FLY-ORPHANS-REWRITTEN[0] refused proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'Fold (s4 triage P1): bus.sh orphans reports a handoff tip as ORPHAN when the tip is a merge commit of main whose non-mer'
+GATE R10-TRAIN-OVERLAP-GRADE[2] refused proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): "Triage P4 (s4): the train's hand re-points. Step 1, diagnose: when `gh pr merge` is refused 'base branch policy prohibit"
+replay: 447 carries, 5 proposal-sourced, 5 refused
