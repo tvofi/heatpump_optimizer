@@ -581,6 +581,9 @@ self_test() {
   failprs=$t/failprs.sh; printf '#!/bin/sh\nexit 1\n' > "$failprs"; chmod +x "$failprs"
   HPO_RELAY_PRS=$failprs handoff_arm >/dev/null 2>&1
   chk "a failed PR listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
+  mv "$t/dispositions.tsv" "$t/disp.bak"; mkdir "$t/dispositions.tsv"; handoff_arm >/dev/null 2>&1
+  chk "an unreadable ledger leaves the handoff level as it was (rc 2 is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
+  rmdir "$t/dispositions.tsv"; mv "$t/disp.bak" "$t/dispositions.tsv"
   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b; : > "$LOG"
   chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
