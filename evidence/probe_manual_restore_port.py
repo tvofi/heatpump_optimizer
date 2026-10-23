@@ -9,9 +9,12 @@ from heatpump_optimizer.manual_plan import ManualOverride
 C = cmod.HeatPumpOptimizerCoordinator
 
 class Store:
-    def __init__(self, gate, data): self.gate, self.data, self.saved = gate, data, []
+    def __init__(self, gate, data): self.gate, self.data, self.saved, self.reading = gate, data, [], None
     async def async_load(self):
-        await self.gate.wait(); return dict(self.data)
+        self.reading = asyncio.get_running_loop().create_future()
+        await self.gate.wait(); self.reading.set_result(None); return dict(self.data)
+    async def async_wait_for_read(self):
+        if self.reading is not None: await asyncio.shield(self.reading)
     async def async_save(self, d): self.saved.append(d)
 
 def stored():
@@ -29,8 +32,9 @@ async def run(midload):
     load = asyncio.ensure_future(C._async_load_manual_plan(c))
     await asyncio.sleep(0)
     if midload:
-        await C.async_clear_manual_plan(c)
-        gate.set(); await load
+        clear = asyncio.ensure_future(C.async_clear_manual_plan(c))
+        await asyncio.sleep(0)
+        gate.set(); await load; await clear
     else:
         gate.set(); await load
         await C.async_clear_manual_plan(c)
