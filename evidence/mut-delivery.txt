@@ -1,0 +1,2 @@
+  FAIL the row commit's message carries no attribution trailer (ref_privacy's reader finds none)
+delivery_row self-test: 6 checks, 1 failed
