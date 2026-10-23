@@ -1,0 +1,17 @@
+occurrences of the flag on one line form: 5
+== null rc=0
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+ tail: ["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
+== M1-yaml rc=1
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  FAIL every record-job invocation of --record, --stats and --sunset passes the same --window-cache file  [distinct --window-cache arguments per invocation: [()]. An invocation without it walks the window itself (834 calls against 370 in `record_api_calls.sh`); two different files would share nothing]
+ tail: ["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
+== Y1 rc=1
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  FAIL every record-job invocation of --record, --stats and --sunset passes the same --window-cache file  [distinct --window-cache arguments per invocation: [(), ('"$RUNNER_TEMP/window.json"',)]. An invocation without it walks the window itself (834 calls against 370 in `record_api_calls.sh`); two different files would share nothing]
+ tail: ["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
+== E1-sunset-tools-only rc=1
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  FAIL every record-job invocation of --record, --stats and --sunset passes the same --window-cache file  [distinct --window-cache arguments per invocation: [(), ('"$RUNNER_TEMP/window.json"',)]. An invocation without it walks the window itself (834 calls against 370 in `record_api_calls.sh`); two different files would share nothing]
+ tail: ["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
