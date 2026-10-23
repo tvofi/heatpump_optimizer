@@ -1,0 +1,2 @@
+ref_privacy: REFUSE: co-author-trailer in the message of ff6cfdaabc39 would publish this host or a tool's attribution; nothing pushed
+rc=3
