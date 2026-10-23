@@ -385,9 +385,11 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
             carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))
         return carried[t]
 
-    tips = sorted({s for s, _ in hrefs})
-    rc, out = git(["log", "--no-walk=unsorted", "--format=%H %ct", *tips]) if tips else (0, "")
-    ct = dict(l.split() for l in out.splitlines() if len(l.split()) == 2) if rc == 0 else {}
+    ct = {}
+    for sha in sorted({s for s, _ in hrefs}):  # one tip's missing object must not blank the rest
+        rc, out = git(["log", "-1", "--format=%ct", sha])
+        if rc == 0 and out.strip().isdigit():
+            ct[sha] = out.strip()
     lines, why = [], collections.Counter()
     for sha, ref in hrefs:
         t = topic_of(ref)
@@ -409,7 +411,8 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
 
 def fetch_world(git) -> None:
     rc, out = git(["fetch", "-q", "--prune", "origin", f"+refs/heads/main:{NS}/main",
-                   f"+refs/heads/handoff/*:{NS}/handoff/*", f"+refs/heads/fix/*:{NS}/fix/*"])
+                   f"+refs/heads/handoff/*:{NS}/handoff/*", f"+refs/heads/handoff-body/*:{NS}/handoff-body/*",
+                   f"+refs/heads/fix/*:{NS}/fix/*"])
     if rc:
         raise Unreadable(f"could not fetch origin's refs ({out.strip()[-100:]}): a shut fetch is not a clean zero")
 
@@ -447,9 +450,7 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
         ref, sha, kv = refs.get("code") or refs["body"]
         if not kv.get("ct", "").isdigit():
             continue
-        age = (now.timestamp() - int(kv["ct"])) / 3600
-        if age < 0:
-            continue  # stamped ahead of the clock: its age is unknowable, never 0
+        age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
         repair = "opener" if len(refs) == 2 else "no code ref" if "code" not in refs else "no body ref"
         queue.append((age, t, ref, sha, repair, kv.get("attempt")))
     queue.sort(key=lambda q: -q[0])
@@ -564,7 +565,7 @@ def self_test() -> int:
     def refuses(call) -> str:
         try:
             call()
-        except (Refused, Unreadable) as e:
+        except Exception as e:  # a crash names its class, so it never reads as the refusal
             return type(e).__name__
         return ""
 
@@ -717,6 +718,13 @@ def self_test() -> int:
         g("checkout", "-qb", "work3", cov + "~1")
         anc = g("rev-parse", "HEAD")
         g("checkout", "-q", "main")
+        bo = D / "bo"
+        throwaway_git_init(bo, "-q")
+        (bo / "BODY.md").write_text("body\n")
+        subprocess.run(["git", "-C", str(bo), "add", "-A"], env=env, check=True)
+        subprocess.run(["git", "-C", str(bo), "commit", "-qm", "body"], env=env, check=True)
+        subprocess.run(["git", "-C", str(bo), "push", "-q", str(o), "HEAD:refs/heads/handoff-body/bodyonly"],
+                       env=env, check=True)
         g("push", "-q", "origin", "main", f"{cov}:refs/heads/handoff/cov", f"{unc}:refs/heads/handoff/unc",
           f"{unc}:refs/heads/handoff-body/unc", f"{anc}:refs/heads/handoff/anc",
           f"{unc}:refs/heads/handoff/audit-r10-roster", f"{unc}:refs/heads/handoff/open",
@@ -732,13 +740,14 @@ def self_test() -> int:
         att = {"refs/heads/handoff/unc": (unc, "2026-10-20T11:50:33Z", "rc=143")}
         lines, why = handoff_level(hr, {"open"}, gw, {"refs/heads/handoff/disp": (unc, "t", "h")}, att, "NOW")
         owed = sorted(l.split()[3] for l in lines)
-        check("the level owes exactly the uncovered topic's two refs",
-              owed == ["refs/heads/handoff-body/unc", "refs/heads/handoff/unc"])
+        check("the level owes exactly the uncovered topic's two refs and the body-only ref",
+              owed == ["refs/heads/handoff-body/bodyonly", "refs/heads/handoff-body/unc", "refs/heads/handoff/unc"])
         check("and names each close: state ref, open PR, disposed, carried (ancestry and content)",
-              dict(why) == {"owed": 2, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2})
-        check("an owed line carries the tip's commit time and the opener attempt at that tip",
-              all(" ct=" in l and not l.split("ct=")[1].startswith("?") for l in lines)
-              and "attempt=2026-10-20T11:50:33Z,rc=143" in lines[0] + lines[1])
+              dict(why) == {"owed": 3, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2})
+        check("every owed line, an orphan body ref's included, carries its tip's commit time",
+              all(" ct=" in l and not l.split("ct=")[1].startswith("?") for l in lines))
+        check("the code ref's topic carries the opener attempt at that tip",
+              sum("attempt=2026-10-20T11:50:33Z,rc=143" in l for l in lines) == 2)
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(e / "cloud-relay.log"), "board"],
                            capture_output=True, text=True)
         check("board: obligations exist is rc 1 with its summary line (a finding, not a failure)",
@@ -755,7 +764,7 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
         check("level CLI: owed lines on stdout, rc 1, the counts on stderr",
-              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 3 and "owed=3" in r.stderr)
+              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 4 and "owed=4" in r.stderr)
         g("remote", "set-url", "origin", str(D / "absent.git"))
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)

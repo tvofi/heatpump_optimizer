@@ -3887,12 +3887,20 @@ def self_test() -> int:
             t.design_builds("PLAN", rlm, droster)
             return flagged(t.sections.get("PLAN", []))
         db = dboard(f"Design review: approve {A40}\n- point\n")
+        (tmp / "droster.json").write_text(json.dumps(droster))
+        t_pl = tick(roster=str(tmp / "droster.json"))
+        t_pl._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), 0,
+                               f"{A40}\trefs/heads/design/R10-G1\n{B40}\trefs/heads/design-verdict/r10-g1\n"))
+        t_pl._git.h.insert(0, ((f"{B40}:verdict.md",), 0, f"Design review: approve {A40}\n"))
+        t_pl.plan()
+        db_plan = flagged(t_pl.sections.get("PLAN", []))
         db_rev = dboard(f"Design review: revise {A40} class-open\n")
         db_un = dboard("", ls_rc=1)
         a, f = check("DESIGN-BUILD", [
             ("an approved design whose group is not dispatched owes a build; the dispatched one does not",
              [x.split()[1] for x in db] == ["R10-G1"]),
             ("null control: a revise verdict owes no build", db_rev == []),
+            ("PLAN prints it every pass", any(x.startswith("DESIGN-BUILD: R10-G1 ") for x in db_plan)),
             ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: approved designs" in x for x in db_un)),
         ])
         total, failed = total + a, failed + f
