@@ -1,0 +1,7 @@
+=== base fef4a135 features HASTUB_TZ=Europe/Stockholm
+  FAIL every entity action's state survives a restart before any cycle completes  [lost at restart: ["AwayReturnDateTime.async_set_value(datetime.datetime(2026, 10, 25, 2, 1, 13, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')),): datetime.datetime(2026, 10, 25, 2, 1, 13, tzinfo=datetime.timezone(d
+  FAIL the house meter is preferred, then the pump meter, then the commanded power  [house -> None, pump only -> None, neither -> None -- each source under-states the whole-house peak more than the one before it, so the order is the accuracy order]
+  FAIL a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock  [naive against aware -> datetime.datetime(2026, 2, 1, 10, 0, tzinfo=datetime.timezone.utc); aware against naive -> datetime.datetime(2026, 2, 1, 11, 0) -- both directions are needed because subtract
+  FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [], after 21.0]
+  FAIL R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired  [published mid-solve [], after 21.0]
+5 of 4299 FEATURE CHECKS FAILED

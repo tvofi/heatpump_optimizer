@@ -1,0 +1,20 @@
+Check runs read from the GitHub API (pull_request_read get_check_runs, list_workflow_jobs) between 2026-10-22T23:5xZ and 2026-10-23T00:5xZ.
+
+At head 86b3fe71d656949c8bd07e802c284316acbe825f (Tests run 39871545349, attempt 1):
+  closures            failure  step "Fail if tests/closures.json under-approximates" (UNDER-SCOPED), concluded 23:47:09Z
+  closures-autofix    success  "Merge UNDER-SCOPED recordings" + "Push the merged closures" -> bot commit ab6216cee6b688b45d6f4b89b70f84563307cacc (ci: re-record closures; tests/closures.json only: +process_worker.py in one closure, two timing fields)
+  mutation            failure  "MUTATION TABLE REFUSED -- 4064 unpinned site(s) against 4062 at the ratchet base cf01e82e..., 3 of them added by this diff": coordinator.py:1629 RETURN_DEL, :9553 RETURN_DEL, :9577 GUARD_OFF (the three the body names under ## Unpinned sites)
+  mutation-pins (1)   in_progress since 23:27:15Z, still in_progress at ~00:5xZ
+  nightly-status      failure  "NIGHTLY ABSENT: no scheduled run of the workflow was found at all" -- the log says it is NOT a required context on main-protect and does not block a merge; the diff touches no workflow or nightly lane
+  fast (3.14)         success  (concluded 00:14:44Z)
+  coverage, coverage-ratchet, typing, browser, briefs, closure-scope, graders-head-copy: success
+  pr-contract (2 runs, started 23:24:19Z, before closures went red): success
+  Governance, Architecture score, Budget raise gate, Hassfest, Validate, CodeQL: success
+
+At branch tip ab6216cee6b688b45d6f4b89b70f84563307cacc (bot autofix on top of the reviewed head):
+  pr-contract (run 39874068320, started 23:47:30Z, after closures concluded red at 23:47:09Z): failure
+    "HEAD: `## Head` names 86b3fe7; accepted autofix commit(s) on top of it: ab6216c (ci: re-record closures)"
+    "record red-history 8 commit(s) ... every failure conclusion across them: closures, mutation, nightly-status"
+    "ERROR [pr-body] check `closures` is red and `## Red checks` does not name it."
+    "CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)"
+  Tests run 39874068348 attempt 2: in progress; mutation failure (same three sites)

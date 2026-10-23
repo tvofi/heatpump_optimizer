@@ -1,0 +1,32 @@
+=== null
+KC_FAILS 0
+  ok   a pump command that FAILED is not remembered as done
+  FAIL a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock  [naive against aware -> datetime.datetime(2026, 2, 1, 10, 0, tzinfo=datetime.timezone.utc); aware against naive -> datetime.datetime(2026, 2, 1, 11, 0) -- both directions are needed because subtracting a naive datetime from an aware one raises, and this helper is what every horizon alignment compares through]
+  FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [], after 21.0]
+  FAIL R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired  [published mid-solve [], after 21.0]
+4 of 4300 FEATURE CHECKS FAILED
+=== M1-replay-inline
+FAIL P10: the space-heating learners replay the elapsed interval in the process worker, never on the loop | {'worker': 6872, 'worker:simulate_dhw_only': 54, 'worker:simulate_dhw_step': 5060, 'worker:simulate_trajectory': 18, 'worker:simulate_trajectory_batch': 6, 'worker:simulate_trajectory_with_dhw': 6, 'w
+KC_FAILS 1
+=== M2-recovery-inline
+FAIL P10: an away override's recovery estimate simulates the ramp in the process worker, never on the loop (D14-s1-01) | {'loop': 183, 'loop:simulate_step': 183, 'worker': 2372, 'worker:simulate_dhw_only': 38, 'worker:simulate_dhw_step': 576, 'worker:simulate_trajectory': 18, 'worker:simulate_trajectory_batch': 6, 'work
+KC_FAILS 1
+=== M3-guard-off
+KC_FAILS 0
+  FAIL a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock  [naive against aware -> datetime.datetime(2026, 2, 1, 10, 0, tzinfo=datetime.timezone.utc); aware against naive -> datetime.datetime(2026, 2, 1, 11, 0) -- both directions are needed because subtracting a naive datetime from an aware one raises, and this helper is what every horizon alignment compares through]
+  FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [], after 21.0]
+  FAIL R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired  [published mid-solve [], after 21.0]
+  FAIL D14-s1-01 the away recovery estimate is handed off the loop, and a switch written during its await is not reverted by the resolve's publish  [(['estimate_recovery_hours'], AwayState(active=True, source='service', return_time=datetime.datetime(2026, 10, 23, 7, 43, 52, 419177, tzinfo=datetime.timezone(datetime.timedelta(seconds=7200))), hours_until_return=5.9999999455555555, recovery_active=False, recovery_hours=0.0, target_temperature=16.0, dhw_min_temperature=20.0, override_active=True, override_return_iso='2026-10-23T07:43:52.419177+02:00', migrated_helpers=False))]
+5 of 4300 FEATURE CHECKS FAILED
+=== M4-recovery-snapshot-off
+KC_FAILS 0
+=== finder harness head
+RESULT loop_kernels=0 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
+RESULT loop_kernels=0 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
+DONE
