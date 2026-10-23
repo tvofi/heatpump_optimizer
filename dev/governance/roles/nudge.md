@@ -4,9 +4,9 @@ This file binds the Cursor orchestrators on grok and qwen. Any other agent uses 
 
 Run the numbered steps every turn, in order. Do not stop the turn on a log line, a pending check, or a sentence that names work nobody is doing.
 
-A live timer may add three things, and only for that session: a dated owner mandate, seat identifiers that must not be resumed, and one pull request held open. Re-measure those. They are not copied here, because a date and a seat id in this file outlive the session that measured them.
+A live timer may add three things, and only for that session: a dated owner mandate, seat identifiers that must not be resumed, and one pull request held open. Re-measure those. They are not copied here: a date or seat id would outlive its session.
 
-This programme keeps seat worktrees under `~/hpo-seats`. A reader on another machine substitutes the root its own dispatch names. The same substitution applies to the state mirror and the sync scratch named below.
+This programme keeps seat worktrees under `~/hpo-seats`. A reader on another machine substitutes the root its own dispatch names. The same holds for the state mirror and sync scratch below.
 
 ## Who writes, and what stays shut
 
@@ -20,7 +20,7 @@ Do not push `main` with the deploy key. Do not merge with the admin flag. Do not
 
 A timer subscription dedupes by name and answers created false without replacing the prompt. Unsubscribe first, then subscribe. Do not call the two together.
 
-`--ignore-red` replaces the train's default ignore list, so name both `nightly-status` and `delivery-status`.
+`--ignore-red` replaces the train's default ignore list, so name both `tests / nightly-status` and `governance / delivery-status`.
 
 ## 1. Verdict and handoff
 
@@ -49,12 +49,12 @@ Leave out of the queue: a change to a `*_budgets.json` file, a policy path as `p
 The command is detached, because a background waiter dies at two hours:
 
 ```
-python3 -u tools/audit/seat/merge_train.py run <queue.json> --mandate "<the session mandate cite>" --ignore-red nightly-status --ignore-red delivery-status
+python3 -u tools/audit/seat/merge_train.py run <queue.json> --mandate "<the session mandate cite>" --ignore-red 'tests / nightly-status' --ignore-red 'governance / delivery-status'
 ```
 
 ## 4. Required checks
 
-Required checks are the contexts in ruleset `main-protect-checks`. Read that ruleset every turn. The id last used to open it was 23698884. Re-read it. Do not trust a remembered list. `nightly-status` and `delivery-status` are not required. Pending is not a pass. DIRTY is the claim-file merge GitHub cannot run. Absorb `main` locally with the claimnotes driver. Conflicting or DIRTY is not ready.
+Required checks are the contexts in ruleset `main-protect-checks`. Read that ruleset every turn. The id last used to open it was 23698884. Do not trust a remembered list. `gate` is the one required check; `tests / nightly-status` and `governance / delivery-status` are not units. Pending is not a pass. DIRTY is the claim-file merge GitHub cannot run. Absorb `main` locally with the claimnotes driver.
 
 ## 5. Budget files
 
@@ -82,7 +82,7 @@ If a push or an open is refused and no fixer is working on that group, dispatch 
 
 ## 11. Stalled runs, autofix, and a red main
 
-Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after every App push. CodeQL on a tools-evidence diff is `tools/audit/seat/codeql-triage-poll.sh`, not a new fixer. Read the autofix summary before dispatching a fixer. `changed` means wait for the bot commit. `skip-failed-recording` means fix the script and do not re-derive. `skip-manual-repair-owed` means closures failed and the job was not under-scoped, so no bot commit is coming and the check itself is the repair. `skip-clean` means the check passed and no bot commit is coming. A selectable script with no recording is not under-scoped: add it to a derive lane or record it alone. A red Tests run on `main` outranks the queue. Revert a merge that reddened `main` only when that diff can reach the failure. Never pass `--allow-red`.
+Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after every App push. CodeQL on a tools-evidence diff is `tools/audit/seat/codeql-triage-poll.sh`, not a new fixer. Read the autofix summary before dispatching a fixer. `changed` means wait for the bot commit. `skip-failed-recording` means fix the script and do not re-derive. `skip-manual-repair-owed` means closures failed and the job was not under-scoped, so no bot commit is coming and the check itself is the repair. `skip-clean` means the check passed and no bot commit is coming. A selectable script with no recording is not under-scoped: add it to a derive lane or record it alone. A red `gate` on `main` outranks the queue. Revert a merge that reddened `main` only when that diff can reach the failure. Never pass `--allow-red`.
 
 ## 12. After each merge
 
@@ -90,7 +90,7 @@ Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Po
 
 ## 13. Stamps
 
-Run `tools/release/stamp.py` only when no train is waiting, the roster's stamp-unblock group is done, and the latest Tests run on the current `origin/main` is green. Not during a CI wait. A push-triggered green Tests run is not a nightly. `nightly-status` reads the last concluded schedule or workflow_dispatch on `main`. Do not rerun a push-triggered Tests run and call it the nightly. A dependabot alert the overlay names stays open. Do not force an override the overlay forbids.
+Run `tools/release/stamp.py` only when no train is waiting, the roster's stamp-unblock group is done, and the latest `ci.yml` push run's `gate` on the current `origin/main` is green. Not during a CI wait. A push-triggered green `gate` is not a nightly. `nightly-status` reads the last concluded schedule or workflow_dispatch on `main`. Do not rerun a push-triggered run as the nightly. A dependabot alert the overlay names stays open. Do not force an override the overlay forbids.
 
 ## 14. Handed-off seats
 
