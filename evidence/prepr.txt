@@ -1,0 +1,15 @@
+  ok   the hooks step prints the failing hook's row, not only the count
+  ok   the main flow takes a heavy slot
+  ok   and frees it on the way out, a mid-run refusal included
+  ok   and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status
+  ok   and exports its label, so a nested heavy step joins this slot
+  ok   and joins a slot it was already inside instead of taking a second
+  ok   a run that cannot take a slot counts itself in slot-status
+  ok   and clears the count on the way out
+  ok   and takes it before the heavy steps begin
+  ok   the main flow derives the branch's gate priority
+  ok   and exports it for the slot-take and every nested leased step
+  ok   and derives it before the heavy slot is taken
+  ok   gate_priority.py's derived-default self-test passes
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+331 passed, 9 failed

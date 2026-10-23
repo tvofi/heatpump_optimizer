@@ -1,57 +1,13 @@
-Fix review: merge 328e222fe8d3b4fe92ad9e37724fcc62bad55da8
+Fix review: merge 4e1c57d5af1326cd61578d3bbf8751f7865a4ffb
 
-bus-nonce: e881976bd7e564ebf68a0268f794f870
+bus-nonce: 9329e3e04f3dab9017782b1f82a8fc34
 
-Round 1 (no earlier review or verdict on #2636). Measured at 328e222fe8d3b4fe92ad9e37724fcc62bad55da8 from a detached worktree. Re-read before return: refs/pull/2636/head = 328e222fe8d3. Role file current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+Round 2 (delta review over round 1 merge at 328e222f). Head measured: 4e1c57d5af1326cd61578d3bbf8751f7865a4ffb (PR head ref re-read at post time, unchanged). Role file current vs merge base (empty roles diff).
 
-RESULT head=328e222fe8d3b4fe92ad9e37724fcc62bad55da8 moved=no
-RESULT merge-tree origin/main=e364a0d73b85 rc=0 tree=325cff60c255 conflicts=0 (ev/merge-tree.txt)
-RESULT version-files-touched=0 (VERSION, manifest, RELEASE_NOTES.md, tests/golden/)
+RESULT delta: tree(4e1c57d5) == tree of mechanical 3-way merge(328e222f, a7cf60cf; base b24cfe51) = 1e43a51c. Every file in main's diff b24cfe51..a7cf60cf has an identical +/- line set in 328e222f..4e1c57d5 (0 dropped, 0 extra); the delta's file list equals main's. The PR's own change (15 files, 294+/22-) is line-identical at old base and new base for every file, including the overlapping policy_lint.mjs, field_coverage.mjs, tools/pr/*, .claude/settings.json, tests/entities.py. (ev/delta.txt)
+RESULT merge-tree origin/main 4e1c57d5: rc=0, no conflicts (ev/mt.err empty); origin/main is a7cf60cf, the PR's base.
+RESULT policy_lint --self-test / --fixtures: 0 errors, FIXTURE ok 93 errors hold 254 pins; field_coverage: FIELD COVERAGE ok (blind=0 dead=0 refused=0); ref_privacy --self-test 84 checks 0 failed; cloud_dispatch --self-test 68 checks 0 failed.
+RESULT prepr fixtures: attribution.md refused (rc=1, "carries a tool's attribution (session-link, generated-footer)"); good-claude-ai.md accepted (rc=0). Full prepr.sh --self-test: 331 passed, 9 failed -- all 9 are 6b gate-recording/orphan-watchdog arms failing on "no interpreter that parses the tree was found (seat venv)", i.e. this cloud environment's missing seat venv; none touches the attribution arms (they pass). I did not run these on main for comparison, so the environmental attribution is by the failure text, stated as such. (ev/prepr-full.txt)
+RESULT CI at head (check-runs API, one bulk read): 32 success, 9 skipped, 1 failure = nightly-status; policy-docs success. nightly-status grades main and the diff does not touch tests/nightly_status.py or its inputs (that file arrives from main's side of the delta), so it is not this PR's. (ev/checks.tsv)
 
-## 1. Source arm: .claude/settings.json
-RESULT settings attribution={"commit":"","pr":"","sessionUrl":false} parses=python,node
-These match the settings reference (ev/settings-reference-attribution.md, fetched today): `attribution.commit` and `attribution.pr` are strings, and an empty one hides that attribution. `attribution.sessionUrl` is a Boolean, and false omits the Claude-Session trailer and the PR link. `attribution: false` needs v2.1.281+, and earlier versions skip the whole file. The page's own advice "in a settings file that earlier versions also read" is the form used here, so the file loads on both sides of 2.1.281. The local binary is 2.1.309. I did not repeat the body's headless `claude -p` A/B. It is the author's demonstration, not re-derived here.
-
-## 2. Check arm: policy_lint.mjs --pr-body (ev/planted.txt; bodies described in ev/planted-README.txt)
-RESULT clean rc=0 attribution=0 dnp=0
-RESULT link rc=1 attribution=1 dnp=0 (session-link)
-RESULT footer rc=1 attribution=1 dnp=0 (generated-footer)
-RESULT coauth rc=1 attribution=1 dnp=0 (co-author-trailer)
-RESULT footer+link rc=1 attribution=1 dnp=0
-RESULT footer+link+coauth rc=1 attribution=1 dnp=0 (session-link, co-author-trailer, generated-footer)
-RESULT prose(Claude, docs URL, claude.ai/code, claude.ai/artifact, mid-line trailer words) rc=0 attribution=0
-Mutants on the JS reader, applied one at a time and restored (ev/js-mutants.txt). The entities pin is the pin's own source, run by my ev/pin.py (my instrument, disclosed):
-RESULT drop session-link row: entities-pin FAIL, acceptance FIXTURE VACUOUS, agreement 64 divergent, prepr body_push check FAIL (committed mutant; ev/prepr-selftest-mut-session-link-committed.txt 330/10, the extra FAIL is "refuses the cloud harness's session-link line ...")
-RESULT drop co-author-trailer row: entities-pin FAIL, agreement 104 divergent; acceptance and prepr stay green
-RESULT drop generated-footer row: entities-pin FAIL x2, acceptance VACUOUS, agreement 5 divergent; prepr stays green
-RESULT drop session-trailer row: entities-pin green, acceptance green, prepr green; agreement 67 divergent (the only detector)
-RESULT arm disabled (if (false)): entities-pin FAIL x2, acceptance VACUOUS, prepr "a body with attribution is refused" rc=0 (FAIL)
-Python mutants M1/M2/M4 reproduce the body's 5/84, 4/84 and 1/68 (ev/python-mutants.txt).
-Every mutant reddens at least one shipped check, so none is vacuous. Coverage is uneven, though. prepr's fixture check keys on rc alone, and attribution.md carries two classes, so prepr catches only the arm-off mutant and the session-link drop. Only the agreement pair watches the JS session-trailer row. That pair runs from the base copy in CI and covers this row only after merge.
-A trap I hit and corrected: prepr's body_push self-test clones the committed tree. An uncommitted mutant leaves it green (ev/prepr-selftest-mut-session-link.txt). Only the locally committed mutant, never pushed, shows the red.
-
-## 3. Over-firing (ev/census.txt, ev/census-fp.txt; ev/census.mjs and census2.mjs are mine)
-RESULT merged PR bodies=294 (the most recently updated 300 closed PRs, merged only) refused=66 (generated-footer 66, session-link 21)
-RESULT false-positives=0 of 294 (0 of the 66 refusals lack a real footer or session-link line); passed bodies naming "claude"=35; passed bodies carrying footer words=0 (no false negative)
-Observation, not blocking: in two forms the attribution arm is not the only error. The cloud prompt's `---` + `_Generated by [Claude Code](...)_` footer, and a `Claude-Session:` line, are both refused once by the arm. Under ## Friction, the friction parser adds its own "does not parse", because neither line is in its drop list. The body is still refused. The cost is a second, noisier error.
-
-## 4. Merge resolution in tests/entities.py
-Main's meaning keeps both of its terms. The link is not friction: `_FRICTION_TRAILER["session"] == 0` is kept. The body-level row `none_plus_session` flips deliberately from rc 0 to `_attribution_only` (rc 1, the attribution error, no "does not parse"). That flip is exactly the ban. The added `none_plus_session_link` isolates the link from the footer words, so the session-link row is pinned on its own. The pin fails when that row is dropped (above). One stale string remains: the failure message's tail still reads "the cloud harness's session link refused the body (R10-RCA-BODY-LINT)". It is diagnostic text only.
-
-## 5. Body figures at this head
-RESULT ref_privacy --self-test 84 checks, 0 failed = body; --check rc=0 = body
-RESULT cloud_dispatch --self-test 68 checks, 0 failed = body
-RESULT policy_lint FIXTURE ok; --hooks HOOKS ok; field_coverage --only hooks blind=0 = body
-RESULT base field_coverage --only hooks: BLIND attribution.commit/pr/sessionUrl, blind=3 = body's prediction
-RESULT agreement pair attribution 301 items 0 divergent = body; agreement_py --restore 13/13, 0 missing = body
-RESULT session-trailer census at e45fc34fb145 since 2026-10-15: 247 of 3428. The numerator equals the body's; the denominator is 3428, not the body's 3432. `--since=2026-10-15` is a git approxidate that keeps the current time of day, so the window shifts with run time (UTC, Helsinki and Stockholm all give 3428 now). Not reproducible to the commit. Not material.
-RESULT prepr --self-test 340 checks: 331 passed, 9 failed here. All 9 are this box's missing seat venv ("no interpreter that parses the tree") and the recorder-signal checks that depend on it. Every attribution check is ok. The body's 340/0 is not re-derived on this box (ev/prepr-selftest-head.txt).
-Not re-run (cite CI): tests/entities.py in full, the archscore gate, structure.py, the scoped gate, the mutation table. fast (3.14), closures, mutation, arch-score x2, instrument-self-tests, briefs and wave-script are green on this head.
-CI on this head (ev/check-runs.tsv, 41 runs, all concluded): two red.
-RESULT policy-docs red: step "Refuse a governance check input field no check reads". The base-pinned field_coverage.mjs prints BLIND for exactly the three attribution leaves (ev/policy-docs.log). This is the body's predicted red, named and answered under ## Red checks: no cheaper detector, it is the pinned-grader limit, and the remedy is the orchestrator's (land the IGNORE entry first, or merge through the red).
-RESULT nightly-status red: NIGHTLY ABSENT (no scheduled run). The diff reaches nothing it reads, so it is not this PR's (defect-root-cause.md).
-RESULT pr-contract 120189852360 started 01:33:17Z, after the last red concluded (01:05:19Z): success, "clean no refusal".
-Forward-carry: dismissed in the body. The destination is cloud_dispatch.py's prompt, which this diff changes (FOOTER_BAN, mutant M4 reddens it). Accepted.
-
-## 6. Policy approval
-The diff touches no file that CLAUDE.md names as policy, and POLICY_GLOBS agrees: `--corpus-filter` over the 15 paths prints nothing, so no `## Approval` section is owed. By CLAUDE.md's own test it is still policy in substance: the honest description is "this changes what a seat must do". It adds a new refusal to the PR-body contract, which is the template's contract, and to the push guard and gh_comment.py, and it adds a ban line to every dispatched prompt. Separately, `.claude/settings.json` is CODE-OWNED (`.github/CODEOWNERS:107 /.claude/settings.json @tvofi`), and tvofi is a requested reviewer. Under CLAUDE.md's identity section only @tvofi reviews code-owned paths, so this PR needs tvofi's approving review at its head. A mandate approval by the orchestrator does not reach that path. The body cites the mandate (#201 comment 6329234399) and does not mention the code-owner rule.
+Not re-done (delta review, round 1 merge stands): mutation proof, finder-harness baseline/head measurement, claim files, version untouched -- the PR's own hunks are line-identical to round 1, so those carry. Round 1 count: this is round 2.
