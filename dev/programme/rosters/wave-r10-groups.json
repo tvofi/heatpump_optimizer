@@ -971,7 +971,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2632
    },
    "brief": "`estimate_recovery_hours` in custom_components/heatpump_optimizer/away.py runs a model kernel on the event loop (183 loop kernel calls over 6 cycles; `_replay_interval` in the coordinator is the sibling). Move it to the process worker.\n\nForward-carried (finding-propagation.md): (1) Null control: with the deficit at 0 the count reads 0 before and after. (2) R10-LIVESTATE edits the away override path after you; do not reshape it here.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-NIGHT-FOLDS; after you: R10-LIVESTATE). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-NIGHT-FOLDS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
@@ -2831,7 +2832,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2631
    },
    "brief": "The D7 M7/M8 policy fold (tvofi, 2026-10-14) plus every brief edit the round owes, in one policy pull request. M7: arch-score opportunities, all counters on, a behaviour gate, an architectural argument, \"review trigger, never a target\", with the 150 % bar as the guideline. M8: a duplicated-shape census, enumerate implementations by seam rule, an agreement test, one owner. Write both from what the judges confirmed and voided; re-cut D7's three seats in dev/audit/config/scopes.json and rotation.json across M1-M8; update tools/policy/check-wave-script.mjs and tools/audit/check_scopes.py as needed. Owed edits: D1 step 3 checks the published and booked value, not only the plan; D2 step 5 tests learners under error in the other covariate; confirm under D2 that the 35 evidence-only stale-path seams are by design; the D5 and D12 briefs get the display-basis question (the published heat loss is the (U+L)s basis, 189.9 W/K, not the effective UA, 244.0 at ratio 1.6); the D7 brief gets the coordinator context write-once residual (L4); and the stale D7.md and D9.md lines of #2222 (D11-s1-51).\n\nAdded by the coordinator, 2026-10-15: (a) D5.md and D12.md carry D2-s3-73's published heat-loss basis: `heat_loss_kw_per_c` is on the (U+L) basis and reads 22 % below the effective UA at r=1.6, so the display-basis question names which basis a published heat-loss figure is on. (b) D7.md carries that CoordinatorContext is documented write-once but is replaced in `async_update_thermal_params`.\n\nForward-carried (finding-propagation.md): (1) Policy: tvofi approves before merging. Cap entries in the policy budgets if a file grows; command before adding prose. (2) If the arch seats had returned dry this would record a one-time run; they did not (s1 +11.0, s2 +7.0).\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: dimension briefs. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n\nCountermeasure M4 is adopted under mandate 6175172275 (the recommended option): dev/governance/rules/ci-autofix.md, dev/governance/roles/fixer.md steps 5 and 18, and CLAUDE.md's ci-autofix index line must state the pre-PR sequence: predicted reds are repaired before handoff, and the bot's wait applies only once a PR exists.\n\nForward-carried precondition (finding-propagation.md), copied from this group's carry list so the fixer prompt carries it; satisfy each before the fix is judged complete:\n- From R10-GATE-YIELD (#2225, handoff/r10-gate-yield at 21a4e4a1d), which splits the block class root-cause-unanswered into root-cause-detectable and root-cause-unrecorded in .claude/workflows/web-fix-wave.js. (1) dev/governance/roles/fix-review.md step 11 must teach the two new words; that file is policy at 140/140 lines and 2451/2451 tokens, so pay for the addition by cutting text. (2) D13 M3 bucketing and the D14 N-gate-yield enumerator's ENG set must place both words. Control: dev/audit/rounds/round10/D13/s2/blocks_friction.mjs files them under orchestration until they are placed.\n\nForward-carried precondition (finding-propagation.md): From #2275: web-fix-wave.js now teaches two block classes, root-cause-detectable and root-cause-unrecorded (both block and route to the root-cause seat). dev/governance/roles/fix-review.md step 11 must teach the same two words, because hand-run reviews read the contract, not the web-wave prompt. The next D13 bucketing (blocks_friction) and the D14 enumerator must place both words. fix-review.md is policy at zero headroom: pay for it within the cap.\n\nForward-carried (finding-propagation.md): From #2293 (ARCHSCORE-COVERAGE part 1): archscore gains the counters C14 (annotated-parameter payload census), C1b (every Any spelling reads untyped) and C6b (invented-family overrides), documented in tools/audit/archscore/ABOUT.md. The D7 M7/M8 fold may cite them."
   },
@@ -6582,7 +6584,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "pr": 2633
    }
   },
   {
@@ -7760,7 +7763,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": null
+    "note": null,
+    "pr": 2629
    },
    "priority": "high"
   },
@@ -7888,7 +7892,8 @@
    "brief": "nightly-status (tests/nightly_status.py, classify(), the ABSENT arm around l.346) turns every PR head and main red with 'NIGHTLY ABSENT: no scheduled run of the workflow was found at all ... GitHub disables schedules on repositories with no recent activity'. Measured 2026-10-22: nightly.yml (cron '17 2 * * *') reached main with #2585 (fae523a14, 08:05Z), after that day's 02:17Z slot; `gh api repos/tvofi/heatpump_optimizer/actions/workflows/nightly.yml` gives state=active, created 2026-10-22T08:05:56Z; `actions/workflows/nightly.yml/runs?event=schedule` total_count 0. So the schedule is NOT disabled: the workflow is younger than its first slot, and the message's stated cause is false. Every PR must answer the red in its body until the first scheduled run (pr-contract refused #2622 for it). Fix: distinguish (a) no cron slot has elapsed since the workflow reached main (read the workflow's created_at, or the first-parent commit that added the file, against the cron) -> a NEW/PENDING state that is not red, bounded to the first slot plus a grace (the cron period plus one hour), after which ABSENT reds as today; (b) the workflow's state is disabled_* -> ABSENT with GitHub's own reason (one read of actions/workflows/<file>); (c) active and past its first slot with no run -> ABSENT, worded without the inactivity claim. Keep classify() pure: new inputs are data, drivable from tests/entities.py. Controls: a fixture workflow created after the last slot reads NEW, not red; the same fixture 26 h later with no run reads ABSENT (null control: the grace does not hide a dead schedule); GitHub's disabled-for-inactivity workflow state reads ABSENT with that reason. Mutants: drop the grace bound -> the 26 h fixture passes wrongly; drop the state read -> the disabled fixture loses its reason. Spare the API: at most one extra read per run. If the first scheduled Nightly (due ~2026-10-23T02:17Z) lands before this merges, the fix still stands for the next new scheduled workflow (CI-LAYOUT P2b adds more).",
    "resume": {
     "stage": "in-progress",
-    "branch": null
+    "branch": null,
+    "pr": 2627
    }
   },
   {
