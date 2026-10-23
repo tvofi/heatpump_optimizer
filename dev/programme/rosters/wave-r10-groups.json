@@ -7895,9 +7895,10 @@
    "architect_note": "",
    "brief": "nightly-status (tests/nightly_status.py, classify(), the ABSENT arm around l.346) turns every PR head and main red with 'NIGHTLY ABSENT: no scheduled run of the workflow was found at all ... GitHub disables schedules on repositories with no recent activity'. Measured 2026-10-22: nightly.yml (cron '17 2 * * *') reached main with #2585 (fae523a14, 08:05Z), after that day's 02:17Z slot; `gh api repos/tvofi/heatpump_optimizer/actions/workflows/nightly.yml` gives state=active, created 2026-10-22T08:05:56Z; `actions/workflows/nightly.yml/runs?event=schedule` total_count 0. So the schedule is NOT disabled: the workflow is younger than its first slot, and the message's stated cause is false. Every PR must answer the red in its body until the first scheduled run (pr-contract refused #2622 for it). Fix: distinguish (a) no cron slot has elapsed since the workflow reached main (read the workflow's created_at, or the first-parent commit that added the file, against the cron) -> a NEW/PENDING state that is not red, bounded to the first slot plus a grace (the cron period plus one hour), after which ABSENT reds as today; (b) the workflow's state is disabled_* -> ABSENT with GitHub's own reason (one read of actions/workflows/<file>); (c) active and past its first slot with no run -> ABSENT, worded without the inactivity claim. Keep classify() pure: new inputs are data, drivable from tests/entities.py. Controls: a fixture workflow created after the last slot reads NEW, not red; the same fixture 26 h later with no run reads ABSENT (null control: the grace does not hide a dead schedule); GitHub's disabled-for-inactivity workflow state reads ABSENT with that reason. Mutants: drop the grace bound -> the 26 h fixture passes wrongly; drop the state read -> the disabled fixture loses its reason. Spare the API: at most one extra read per run. If the first scheduled Nightly (due ~2026-10-23T02:17Z) lands before this merges, the fix still stands for the next new scheduled workflow (CI-LAYOUT P2b adds more).",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "pr": 2627
+    "pr": 2627,
+    "commit": "e364a0d73b8537e94258d5d0da98542d53793c84"
    }
   },
   {
