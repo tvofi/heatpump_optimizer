@@ -197,6 +197,24 @@ CPU_LIMIT_OVERRIDES_S = {
 }
 WALL_LIMIT_S = 900
 CPU_HEADROOM = 0.5
+# closure.py's record() sets this to "1": the run is recorded, not graded (stress.py
+# keys its timing verdicts on it too; closure.py's selftest pins both spellings).
+RECORDING_ENV = "HPO_CLOSURE_RECORDING"
+
+
+def headroom_verdict(cpu: float, bound: int, env) -> tuple[bool, bool]:
+    """``(graded, ok)`` for a harness's CPU cost against CPU_HEADROOM of its bound.
+
+    A closure recording runs the harnesses under strace, which bills their CPU at a
+    runner-dependent multiple (the frontier: 166 to 310 CPU-s on one head), and it
+    grades nothing: it needs the run to finish so the closure is complete. So under
+    RECORDING_ENV the headroom is not graded. The fast lane runs this script without
+    the flag on every pull request and grades it there; the exit check and every
+    RESULT comparison still run under the flag.
+    """
+    if env.get(RECORDING_ENV) == "1":
+        return False, True
+    return True, cpu <= bound * CPU_HEADROOM
 
 
 # RLIMIT_CPU sums the CPU of every thread, so a BLAS pool of N threads spends the
@@ -257,12 +275,17 @@ def run_harness(rel: str) -> str:
     # The bound is a hang detector, so a harness doing its ordinary work must
     # sit far below it; this reds on the cost, with the number, before the
     # kernel kills on it without one.
-    R.check(
-        f"{rel} costs at most {CPU_HEADROOM:.0%} of its CPU bound",
-        cpu <= bound * CPU_HEADROOM,
-        f"cpu={cpu:.1f}s against {bound * CPU_HEADROOM:.0f}s "
-        f"({CPU_HEADROOM:.0%} of its {bound}s bound)",
-    )
+    graded, ok = headroom_verdict(cpu, bound, os.environ)
+    if not graded:
+        print(f"  {rel}: headroom not graded under {RECORDING_ENV}=1 (a recording); "
+              "the fast lane grades it")
+    else:
+        R.check(
+            f"{rel} costs at most {CPU_HEADROOM:.0%} of its CPU bound",
+            ok,
+            f"cpu={cpu:.1f}s against {bound * CPU_HEADROOM:.0f}s "
+            f"({CPU_HEADROOM:.0%} of its {bound}s bound)",
+        )
     return stdout
 
 
@@ -545,6 +568,17 @@ def main() -> int:
     R.check("a bounded child runs with every BLAS pool pinned to one thread",
             rc == 0 and out.split() == ["1", "1", "1"],
             f"rc={rc} OMP/OPENBLAS/MKL={out.split()!r}")
+    # The headroom is a GRADE, and a closure recording grades nothing (R10-FLY-SUITE-ENV-FLAKES):
+    # under strace on a slow runner the frontier's CPU-s ran 260-310 against a 240 s headroom
+    # (probe #2656 and #2657's closures jobs; 166 s on the same head's re-run), the recording
+    # exited 1 and closures-autofix refused its repair. The fast lane grades it on every PR.
+    rec = {RECORDING_ENV: "1"}
+    R.check("a recorded run does not grade the CPU headroom (closure.py's flag)",
+            headroom_verdict(300.0, 480, rec) == (False, True), str(headroom_verdict(300.0, 480, rec)))
+    R.check("an unrecorded run past half its bound still fails the headroom (null control)",
+            headroom_verdict(300.0, 480, {}) == (True, False), str(headroom_verdict(300.0, 480, {})))
+    R.check("and an unrecorded run within it passes",
+            headroom_verdict(100.0, 480, {}) == (True, True), str(headroom_verdict(100.0, 480, {})))
     clean, detail = dirty_registers()
     R.check(
         "the executed harnesses leave their committed output byte-identical",
