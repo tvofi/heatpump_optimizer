@@ -75,6 +75,10 @@ NEW_CHECKS = [{"context": "gate", "integration_id": GATE_APP_ID}]
 MAIN_RUN_PATHS = (".github/workflows/tests.yml", ".github/workflows/ci.yml")
 PAGE = 100  # a full page cannot prove the list is complete, so it refuses
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "ruleset"
+DIGEST_SUFFIX = ".sha256"  # beside the rollback copy: its six-key digest at save time
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gate as gate_mod  # noqa: E402  REQUIRED: what `gate` owes, which reds-at-head stands in for
 
 TRIGGERS = """\
 ROLLBACK TRIGGERS (DESIGN-REVIEW.md section 4 item 6). Roll back if any holds:
@@ -209,8 +213,38 @@ def save_rollback(gh, path: str) -> dict:
     if back != live:
         raise Refuse(f"{path} does not read back as the GET")
     assert_old(six(back), f"the rollback file {path}")
-    print(f"ROLLBACK saved {path} ({OLD_CONTEXTS} contexts, sha256 {digest(six(back))[:16]})")
+    side = Path(path + DIGEST_SUFFIX)
+    if side.exists():
+        raise Refuse(f"{side} exists; a rollback digest is never overwritten")
+    side.write_text(digest(six(back)) + "\n")
+    print(f"ROLLBACK saved {path} ({OLD_CONTEXTS} contexts, sha256 {digest(six(back))[:16]}, digest beside it)")
     return back
+
+
+def read_copy(path: str, flag: str) -> dict:
+    """The rollback copy's six keys, only if they still hash to the digest saved beside them."""
+    p = Path(path)
+    if not p.is_absolute():
+        raise Refuse(f"{flag} {path!r} is not an absolute path")
+    try:
+        want = six(json.loads(p.read_text()))
+        saved = Path(path + DIGEST_SUFFIX).read_text().strip()
+    except (OSError, ValueError) as e:
+        raise Refuse(f"cannot read the rollback copy {path} and its digest {path}{DIGEST_SUFFIX}: {e}") from None
+    if digest(want) != saved:
+        raise Refuse(f"the rollback copy {path} hashes to {digest(want)[:16]}, not the digest {saved[:16]} "
+                     f"saved beside it: it changed after it was saved, and is not PUT")
+    assert_old(want, f"the rollback copy {path}")
+    return want
+
+
+def window_off(sixk: dict) -> dict:
+    """The window state: the six keys with the required_status_checks rule removed and
+    everything else -- enforcement, the pull_request rule -- kept."""
+    out = copy.deepcopy(sixk)
+    rsc_rule(out)
+    out["rules"] = [r for r in out["rules"] if r.get("type") != RSC]
+    return out
 
 
 def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
@@ -245,14 +279,7 @@ def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
 
 
 def rollback(gh, path: str) -> int:
-    p = Path(path)
-    if not p.is_absolute():
-        raise Refuse(f"--rollback {path!r} is not an absolute path")
-    try:
-        want = six(json.loads(p.read_text()))
-    except (OSError, ValueError) as e:
-        raise Refuse(f"cannot read the rollback copy {path}: {e}") from None
-    assert_old(want, f"the rollback copy {path}")
+    want = read_copy(path, "--rollback")
     rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
     if rc != 0:
         raise Refuse(f"the rollback PUT was refused: {out.strip()[:300]}")
@@ -297,8 +324,12 @@ def preconditions_gate(gh, head: str):
                   f"head {n.get('head_sha')}" for n in bad) or "every suite's newest gate is green")
 
 
-def reds_at_head(gh, head: str):
-    """(ok, detail): every check at H complete, and its only reds BASE_PINNED and `gate`."""
+def reds_at_head(gh, head: str, reaches=None):
+    """(ok, detail): what `gate` owes at H, less BASE_PINNED. Every check at H complete;
+    every name in gate.REQUIRED['pr'] (or 'pr-cc', when H reaches custom_components)
+    less BASE_PINNED present with `success` in every suite that ran it; and the only
+    reds BASE_PINNED and `gate`. A name GREEN admits (skipped, neutral) passes only
+    where nothing is owed."""
     runs = call(gh, [f"repos/{REPO}/commits/{head}/check-runs?filter=all&per_page={PAGE}"])
     cr = runs.get("check_runs", [])
     if not cr or len(cr) >= PAGE:
@@ -312,56 +343,69 @@ def reds_at_head(gh, head: str):
     reds = sorted({n for (n, _), r in newest.items()
                    if r.get("status") == "completed" and r.get("conclusion") not in GREEN})
     other = [n for n in reds if n not in BASE_PINNED and n != "gate"]
-    ok = not pending and not other
-    return ok, (f"pending: {pending}; " if pending else "") + (
-        f"reds besides the base-pinned: {other}" if other else f"reds: {reds or 'none'} (base-pinned and gate only)")
+    cc = True if reaches is None else reaches("main", head)
+    kind = "pr-cc" if cc else "pr"
+    owed = [n for n in gate_mod.REQUIRED[kind] if n not in BASE_PINNED]
+    seen: dict = {}
+    for (n, _), r in newest.items():
+        seen.setdefault(n, []).append(r.get("conclusion"))
+    absent = [n for n in owed if n not in seen]
+    unproven = sorted(n for n in owed if n in seen and any(c != "success" for c in seen[n]) and n not in other)
+    ok = not pending and not other and not absent and not unproven
+    parts = [f"pending: {pending}"] if pending else []
+    if absent:
+        parts.append(f"owed by REQUIRED[{kind!r}] and absent: {absent}")
+    if unproven:
+        parts.append(f"owed and not success: " + ", ".join(f"{n} {sorted(set(seen[n]))}" for n in unproven))
+    parts.append(f"reds besides the base-pinned: {other}" if other
+                 else f"reds: {reds or 'none'} (base-pinned and gate only)")
+    if ok:
+        parts.append(f"every one of REQUIRED[{kind!r}]'s {len(owed)} names less the base-pinned is success")
+    return ok, "; ".join(parts)
 
 
-def disable(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
+def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=None) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
     if six(live) != six(rollback):
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
-    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head)))
+    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)))
     if not print_preconditions(rows):
         raise Refuse("a precondition failed; nothing was written")
-    want = {**six(rollback), "enforcement": "disabled"}
+    want = window_off(six(rollback))
     rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
     if rc != 0:
         raise Refuse(f"the disable PUT was refused ({out.strip()[:300]})")
     after = six(call(gh, [RULESET]))
     if after != want:
         raise Refuse("DISABLE READBACK FAILED\n" + diff(want, after, "payload", "live"))
-    print("DISABLE READBACK OK: enforcement disabled; every other key equals the rollback copy")
+    print("DISABLE READBACK OK: required_status_checks removed; enforcement and every other rule equal the rollback copy")
     print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
-          f"--rollback-file {rollback_file} --merged <merge sha>\nIf anything goes wrong first: --rollback {rollback_file}")
+          f"--rollback-file {rollback_file} --merged <merge sha> --head {head}\n"
+          f"If anything goes wrong first: --rollback {rollback_file}")
     return 0
 
 
-def enable(gh, rollback_file: str, merged: str) -> int:
-    p = Path(rollback_file)
-    if not p.is_absolute():
-        raise Refuse(f"--rollback-file {rollback_file!r} is not an absolute path")
-    try:
-        rollback = json.loads(p.read_text())
-    except (OSError, ValueError) as e:
-        raise Refuse(f"cannot read the rollback copy {rollback_file}: {e}") from None
-    assert_old(six(rollback), f"the rollback copy {rollback_file}")
+def enable(gh, rollback_file: str, merged: str, head: str) -> int:
+    rollback = read_copy(rollback_file, "--rollback-file")
     live = six(call(gh, [RULESET]))
-    if live != {**six(rollback), "enforcement": "disabled"}:
-        raise Refuse("the live ruleset is not the rollback copy with enforcement disabled\n"
-                     + diff({**six(rollback), "enforcement": "disabled"}, live, "expected", "live"))
+    if live != window_off(rollback):
+        raise Refuse("the live ruleset is not the rollback copy less required_status_checks\n"
+                     + diff(window_off(rollback), live, "expected", "live"))
     cmp = call(gh, [f"repos/{REPO}/compare/{merged}...main"]).get("status")
+    parents = [p.get("sha") for p in call(gh, [f"repos/{REPO}/commits/{merged}"]).get("parents", [])]
     login = call(gh, ["user"]).get("login")
     rows = [("merged-on-main", cmp in ("ahead", "identical"), f"compare {merged[:12]}...main reads {cmp!r}"),
+            ("merge-of-head", head in parents, f"{merged[:12]}'s parents {[x[:12] for x in parents]} "
+             f"{'include' if head in parents else 'do not include'} H {head[:12]}"),
             ("caller-is-owner", login == OWNER, f"gh api user reads {login!r}")]
     if not print_preconditions(rows):
         raise Refuse("a precondition failed; nothing was written")
     want = payload(rollback)
     rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
     if rc != 0:
-        raise Refuse(f"the enable PUT was refused ({out.strip()[:300]}); enforcement is still disabled")
+        raise Refuse(f"the enable PUT was refused ({out.strip()[:300]}); required_status_checks is still removed")
     after = six(call(gh, [RULESET]))
     if after != want or contexts(after) != NEW_CHECKS:
         raise Refuse("READBACK half 1 FAILED: the GET is not the payload\n" + diff(want, after, "payload", "live"))
@@ -381,17 +425,19 @@ def verify(gh, head: str) -> int:
     return 0 if ok else 1
 
 
-def dry_run_window(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
+def dry_run_window(gh, staged: dict | None, head: str | None, pr: int | None, reaches=None) -> int:
     """--dry-run --window: what --disable and --enable would PUT, and --disable's preconditions."""
     live = call(gh, [RULESET])
     assert_old(six(live), "the live ruleset")
-    off = {**six(live), "enforcement": "disabled"}
-    print("DISABLE PAYLOAD (PUT " + RULESET + "): the live six keys with enforcement disabled")
+    off = window_off(six(live))
+    print("DISABLE PAYLOAD (PUT " + RULESET + "): the live six keys less the required_status_checks rule, "
+          "enforcement kept")
     print(diff(six(live), off, "live", "disable"), end="")
     print("ENABLE PAYLOAD (PUT " + RULESET + "): the rollback copy with [gate] and its own enforcement")
     print(diff(six(live), payload(live), "live", "enable"), end="")
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
-    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head)) if head else ("reds-at-head", None, "not evaluated: no --head"))
+    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)) if head
+                else ("reds-at-head", None, "not evaluated: no --head"))
     ok = print_preconditions(rows)
     print(f"WINDOW DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
     return 0 if ok else 1
@@ -406,7 +452,7 @@ def load(path: str | None):
         raise Refuse(f"cannot read {path}: {e}") from None
 
 
-def main(argv: list[str], gh=gh_subprocess) -> int:
+def main(argv: list[str], gh=gh_subprocess, reaches=gate_mod.reaches_custom_components) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
@@ -428,7 +474,7 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
     try:
         if a.dry_run:
             if a.window:
-                return dry_run_window(gh, load(a.staged), a.head, a.pr)
+                return dry_run_window(gh, load(a.staged), a.head, a.pr, reaches)
             return dry_run(gh, load(a.staged), a.head, a.pr)
         if a.rollback:
             return rollback(gh, a.rollback)
@@ -437,13 +483,13 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
                 raise Refuse("--verify needs --head (main's head sha)")
             return verify(gh, a.head)
         if a.enable:
-            if None in (a.rollback_file, a.merged):
-                raise Refuse("--enable needs --rollback-file and --merged")
-            return enable(gh, a.rollback_file, a.merged)
+            if None in (a.rollback_file, a.merged, a.head):
+                raise Refuse("--enable needs --rollback-file, --merged and --head (H, P2b's head)")
+            return enable(gh, a.rollback_file, a.merged, a.head)
         if a.disable:
             if None in (a.rollback_file, a.staged, a.head, a.pr):
                 raise Refuse("--disable needs --rollback-file, --staged, --head and --pr: no toggle outside the staged sequence")
-            return disable(gh, a.rollback_file, load(a.staged), a.head, a.pr)
+            return disable(gh, a.rollback_file, load(a.staged), a.head, a.pr, reaches)
         if None in (a.rollback_file, a.staged, a.head, a.pr):
             raise Refuse("--apply needs --rollback-file, --staged, --head and --pr")
         return apply(gh, a.rollback_file, load(a.staged), a.head, a.pr)
@@ -665,7 +711,7 @@ def self_test() -> int:
         check("rollback: a relative path refuses", rc == 2, out)
         # The copy is bound to the digest written beside it at save time (#2662 review):
         # a copy edited between --disable and --rollback is never PUT.
-        f = FakeGh(payload(ruleset), green)
+        f = FakeGh(ruleset, green)
         argv, rbx = apply_argv()
         rc, out = run(f, argv)
         check("save writes the six-key digest beside the copy",
