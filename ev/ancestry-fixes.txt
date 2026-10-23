@@ -1,0 +1,11 @@
+a0f525900 ancestor=yes  fix: the cut-over's gate-at-head precondition reads every check suite (R10-CI-LAYOUT P2b, 
+ff7244ac0 ancestor=yes  fix: two prepr refusals the Arm B probe found on the assembly (R10-CI-LAYOUT P2b, step 10)
+1cce735c3 ancestor=yes  glue: carry-1648 cites 57b7b4994 for the retired pr-contract-rerun.yml
+9f7f443cc ancestor=yes  fix: three files entities reads leave the INERT prefixes (R10-CI-LAYOUT P2b, step 10)
+4a83592e3 ancestor=yes  ci: closures.json merges CI's Linux recordings of probe #2656 (R10-CI-LAYOUT P2b, step 10)
+3585c7feb ancestor=yes  test: ghapi retries a transient 5xx on a GET (R10-CI-LAYOUT P2, step 11a; red first)
+81900c11a ancestor=yes  fix: ghapi retries a GET's transient 5xx before answering (R10-CI-LAYOUT P2, step 11a; a P
+57b7b4994 ancestor=yes  Merge pull request #2639 from tvofi/fix/r10-fly-gh-read-retry-2
+fab4acdb1 ancestor=yes  docs: the cut-over window's comments name --enable, the PUT the ruleset-off order runs (R1
+f3a37894d ancestor=yes  Merge remote-tracking branch 'origin/main' into p2b-assembly
+85d13b859 ancestor=yes  ci: the CI umbrella and its sweep (R10-CI-LAYOUT P2b, unit U0c)

@@ -1,0 +1,40 @@
+b0bd2d25e -> 20382dd99 ancestor=yes
+   orig: ci-layout P2b U9a: two INERT READS entries, written by ci_predict.py --apply-inert
+   new:  ci-layout P2b U9a: two INERT READS entries, written by ci_predict.py --apply-inert
+   orig files: tests/closures.json 
+   new files:  tests/closures.json 
+c9d647e64 -> 20382dd99 ancestor=yes
+   orig: ci-layout P2b U9a: two INERT READS entries, written by ci_predict.py --apply-inert
+   new:  ci-layout P2b U9a: two INERT READS entries, written by ci_predict.py --apply-inert
+   orig files: tests/closures.json 
+   new files:  tests/closures.json 
+0c04d5da4 -> 8f339b0fa ancestor=yes
+   orig: U6: entities pins follow pr-contract's conversion to a callee
+   new:  U6: entities pins follow pr-contract's conversion to a callee
+   orig files: tests/entities.py 
+   new files:  tests/entities.py 
+4f3d54e14 -> 2d5378a20 ancestor=yes
+   orig: ci: budget-raise-gate becomes a called workflow; --rerun-stale retires into gate.py --sweep
+   new:  ci: budget-raise-gate becomes a called workflow; --rerun-stale retires into gate.py --sweep
+   orig files: .github/workflows/budget-raise-gate-rerun.yml .github/workflows/budget-raise-gate.yml .github/workflows/pr-contract-rerun.yml dev/audit/harnesses/r10_ci_layout_u8/map.json dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh tests/entities.py tools/audit/round4/D11/governance_cost.py tools/policy/budget_raise_gate.py 
+   new files:  .github/workflows/budget-raise-gate-rerun.yml .github/workflows/budget-raise-gate.yml .github/workflows/pr-contract-rerun.yml dev/audit/harnesses/r10_ci_layout_u8/map.json dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh tests/entities.py tools/audit/round4/D11/governance_cost.py tools/policy/budget_raise_gate.py 
+1877542fd -> ea38b17fe ancestor=yes
+   orig: U9d: harness and CI readers for the ci.yml layout
+   new:  U9d: harness and CI readers for the ci.yml layout
+   orig files: dev/audit/harnesses/ci_script_seconds.py dev/audit/harnesses/r10_seat_selftests_mutants.py dev/audit/harnesses/superseded_runs.py dev/audit/rounds/round4/D11/dora_keys.py tools/audit/merge_throughput.py tools/audit/round4/D11/governance_cost.py tools/audit/seat/ci_predict_replay.sh tools/audit/seat/failure_logs.sh tools/policy/fixtures/red-ancestry/green/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json tools/policy/fixtures/red-ancestry/red/d01ba036aa210b8c6f2660c8e2985f65c764a779.json tools/pr/ci_predict.py tools/pr/local_alerts.py tools/pr/prepr.sh 
+   new files:  dev/audit/harnesses/ci_script_seconds.py dev/audit/harnesses/r10_seat_selftests_mutants.py dev/audit/harnesses/superseded_runs.py dev/audit/rounds/round4/D11/dora_keys.py tools/audit/merge_throughput.py tools/audit/round4/D11/governance_cost.py tools/audit/seat/ci_predict_replay.sh tools/audit/seat/failure_logs.sh tools/policy/fixtures/red-ancestry/green/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json tools/policy/fixtures/red-ancestry/red/d01ba036aa210b8c6f2660c8e2985f65c764a779.json tools/pr/ci_predict.py tools/pr/local_alerts.py tools/pr/prepr.sh 
+c2143e8e8 -> e3b6c8730 ancestor=yes
+   orig: ci: merge-main dispatches the umbrella once per branch; the contract re-run follower is retired (R10-CI-LAYOUT P2b, unit U10)
+   new:  ci: merge-main dispatches the umbrella once per branch; the contract re-run follower is retired (R10-CI-LAYOUT P2b, unit U10)
+   orig files: .github/CODEOWNERS .github/workflows/governance.yml .github/workflows/merge-main.yml .github/workflows/pr-contract-rerun.yml tests/closures.json tests/entities.py tests/layout.json tools/audit/round4/D11/governance_cost.py tools/audit/seat/orchestrator_tick.py tools/pr/contract_rerun.py tools/pr/merge_main_bot.py tools/pr/prepr.sh 
+   new files:  .github/CODEOWNERS .github/workflows/governance.yml .github/workflows/merge-main.yml .github/workflows/pr-contract-rerun.yml tests/closures.json tests/entities.py tests/layout.json tools/audit/round4/D11/governance_cost.py tools/audit/seat/orchestrator_tick.py tools/pr/contract_rerun.py tools/pr/merge_main_bot.py tools/pr/prepr.sh 
+== dropped probe commits (must be absent: not ancestor and no patch-id match)
+65f112ec5 not-ancestor patch-id-matches-in-range=0  (probe: cut ci.yml to prelude + one trivial unit + refresh + gate (U0c probe ref,)
+d4506f37e not-ancestor patch-id-matches-in-range=0  (probe: 3a trivial)
+536fdb4b9 not-ancestor patch-id-matches-in-range=0  (probe: neutralise failed 3a probe.yml line)
+c758cb770 not-ancestor patch-id-matches-in-range=0  (probe: 3a trivial)
+14b8d768a not-ancestor patch-id-matches-in-range=0  (probe: 3g trivial)
+d924db603 not-ancestor patch-id-matches-in-range=0  (probe: 3g trivial)
+4cf31cc50 not-ancestor patch-id-matches-in-range=0  (probe: neutralise 3d break on the handoff ref)
+89a4a44e7 not-ancestor patch-id-matches-in-range=0  (probe: 3d break)
+69a9279a5 not-ancestor patch-id-matches-in-range=0  (probe: Arm B twin, main's layout with a gate-file comment (never merged))

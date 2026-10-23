@@ -1,0 +1,48 @@
+12:09 gate=absent pending=[codeql / Analyze (python),tests / fast (3.14),tests / coverage,tests / closures,tests / arch-instrument]
+12:13 gate=absent pending=[codeql / Analyze (python),tests / fast (3.14),tests / coverage,tests / closures,tests / arch-instrument]
+12:17 gate=absent pending=[codeql / Analyze (python),tests / closures,tests / arch-instrument]
+12:21 gate=absent pending=[codeql / Analyze (python),tests / closures,tests / arch-instrument]
+12:25 gate=absent pending=[codeql / Analyze (python),tests / closures,tests / arch-instrument]
+12:29 gate=absent pending=[tests / closures]
+12:33 gate=completed pending=[]
+cancel-superseded: success
+refresh: success
+prelude: success
+hassfest / hassfest: success
+tests / mutation: success
+tests / briefs: success
+tests / nightly-status: success
+tests / closure-scope: success
+validate / validate-hacs: success
+governance / env-matrix: failure
+codeql / Analyze (javascript-typescript): success
+codeql / Analyze (actions): success
+codeql / Analyze (python): success
+governance / delivery-status: success
+budget-raise-gate / budget-raise-gate: success
+arch-score / arch-score: success
+governance / policy-docs: failure
+governance / instrument-self-tests: success
+governance / wave-script: failure
+governance / delivery-status-publish: skipped
+governance / record: skipped
+kernel-points: skipped
+tests / browser: success
+tests / fast (3.14): success
+tests / typing: success
+tests / coverage: success
+tests / closures: failure
+tests / arch-instrument: success
+tests / nightly-ha: skipped
+tests / mutation-pins: skipped
+tests / mutation-autofix: skipped
+tests / coverage-ratchet: success
+tests / graders-head-copy: success
+tests / claims-autofix: skipped
+tests / lane-proofs: success
+tests / closures-autofix: failure
+tests / ci-ratchet: skipped
+pr-contract / pr-contract: failure
+gate: failure
+
+[exited with code 0]

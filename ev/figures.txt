@@ -1,0 +1,6 @@
+layout self-test: ok
+selftest_wiring: 91 self-testing, 91 wired, 0 unwired
+  note     required-contexts     the live set is the recorded PRE-CUT-OVER shape (`pre_cutover`), accepted whole until the cut-over PUT (ruleset_cutover.py --enable)
+TOTAL: 0 error(s) across 50 policy file(s)
+ghapi self-test: 19 checks, 0 failed
+version-manifest-notes diff lines: 0

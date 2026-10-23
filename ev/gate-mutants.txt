@@ -1,0 +1,8 @@
+MUTANT skipped-is-success | selftest: gate self-test: 28 checks, 1 failed | perturb: RESULT perturb: 243 cases, 37 holes; pr=18 pr-cc=19 push=18
+MUTANT cancelled-is-success | selftest: gate self-test: 28 checks, 0 failed | perturb: RESULT perturb: 243 cases, 37 holes; pr=18 pr-cc=19 push=18
+MUTANT absent-ignored | selftest: gate self-test: 28 checks, 2 failed | perturb: RESULT perturb: 243 cases, 37 holes; pr=18 pr-cc=19 push=18
+MUTANT drop-browser | selftest: gate self-test: 28 checks, 3 failed | perturb: RESULT perturb: 230 cases, 0 holes; pr=17 pr-cc=18 push=17
+MUTANT drop-governance-wave | selftest: gate self-test: 28 checks, 2 failed | perturb: RESULT perturb: 230 cases, 0 holes; pr=17 pr-cc=18 push=17
+MUTANT pending-ok | selftest: gate self-test: 28 checks, 0 failed | perturb: RESULT perturb: 243 cases, 37 holes; pr=18 pr-cc=19 push=18
+cancelled-mutant replay: GATE-REPLAY2 rc 1
+cancelled-mutant replay: gate_replay2.py over tools/ci/gate.py: rc 1; output DIFFERS from 1371a0a6:measure/rev/gate_replay2.txt

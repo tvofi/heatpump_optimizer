@@ -1,0 +1,1 @@
+  MODE: FULL -- every test script runs, nothing is scoped out.
