@@ -1,0 +1,32 @@
+== main's policy_lint (origin/main 4e38e7d7b)
+FAIL policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is parsed={}; a `uses:` caller was read as the job's definition
+FAIL and the real job, steps using actions included, still defines it; anot parsed={}
+rc=1
+1
+== M1 drop caller rule
+FAIL policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is parsed={'definer': True, 'caller': True, 'caller_with': True, 'other': False, 'tree': ['pr-contract.yml'], 'plant_one': ['a.yml', 'ci.yml'], 'plant_two': ['a.yml', 'b.yml']}; a `uses:` caller was read as the job's definition
+ok   and the real job, steps using actions included, still defines it; anot 
+rc=1
+1
+== M2 body runs into next job
+FAIL policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': ['pr-contract.yml'], 'plant_one': [], 'plant_two': []}; a `uses:` caller was read as the job's definition
+FAIL and the real job, steps using actions included, still defines it; anot parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': ['pr-contract.yml'], 'plant_one': [], 'plant_two': []}
+rc=1
+1
+== M3 step-level uses counts as call
+FAIL policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': [], 'plant_one': [], 'plant_two': []}; a `uses:` caller was read as the job's definition
+FAIL and the real job, steps using actions included, still defines it; anot parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': [], 'plant_one': [], 'plant_two': []}
+rc=1
+== M4 body ends only at column 0 (top-level key)
+FAIL policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': ['pr-contract.yml'], 'plant_one': [], 'plant_two': []}; a `uses:` caller was read as the job's definition
+FAIL and the real job, steps using actions included, still defines it; anot parsed={'definer': False, 'caller': False, 'caller_with': False, 'other': False, 'tree': ['pr-contract.yml'], 'plant_one': [], 'plant_two': []}
+rc=1
+== M5 absent job reads as defined
+ok   policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is 
+FAIL and the real job, steps using actions included, still defines it; anot parsed={'definer': True, 'caller': False, 'caller_with': False, 'other': True, 'tree': ['arch-score.yml', 'budget-raise-gate-rerun.yml', 'budget-raise-gate.yml', 'ci.yml', 'codeql.yml', 'governance.yml', 'hassfest.yml', 'kernel-points.yml', 'merge-main.yml', 'nightly.yml', 'pages.yml', 'pr-contract-rerun.yml', 'pr-contract.yml', 'release.yml', 'tests.yml', 'validate.yml'], 'plant_one': ['a.yml'], 'plant_two': ['a.yml', 'b.yml']}
+rc=1
+1
+== M6 blank line ends body
+ok   policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is 
+ok   and the real job, steps using actions included, still defines it; anot 
+rc=0
