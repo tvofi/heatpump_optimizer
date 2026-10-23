@@ -1,2 +1,0 @@
-spike (fd7e289d0 + livestate-spike.patch): RESULT lost_midload=0 lost_null=0
-base fd7e289d0: RESULT lost_midload=1 lost_null=0
