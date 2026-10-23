@@ -1,0 +1,5 @@
+$ python3 -I tools/audit/seat/ci_probe.py --self-test
+rc=1
+  FAIL  push refuses a commit carrying a co-author trailer, before any API write
+  FAIL  the remote holds main and the two probe refs only
+ci_probe self-test: 42 checks, 2 failed

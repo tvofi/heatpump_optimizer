@@ -1,0 +1,4 @@
+RESULT pr2662 rc=3 ref_privacy: REFUSE: session-link, session-trailer, co-author-trailer in the message of cc51e6626c91 would publish this host or a tool's attribution; nothing pu
+RESULT pr2657 rc=3 ref_privacy: REFUSE: session-link, session-trailer, co-author-trailer in the message of cc51e6626c91 would publish this host or a tool's attribution; nothing pu
+RESULT pr2656 rc=3 ref_privacy: REFUSE: session-link, session-trailer, co-author-trailer in the message of cc51e6626c91 would publish this host or a tool's attribution; nothing pu
+RESULT pr2670 rc=0 

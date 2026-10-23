@@ -1,0 +1,13 @@
+$ bash tools/audit/seat/handoff_push.sh --self-test
+rc=1
+  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+  ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+  ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+  ok   no group writes no empty parentheses
+  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+  ok   the row commit's message carries no attribution trailer (ref_privacy's reader finds none)
+delivery_row self-test: 6 checks, 0 failed
+  ok   null control: the open path pushes the pull request, then its row
+  ok   null control: the update path pushes its head once
+  FAIL a code head carrying a co-author trailer is refused, and nothing is pushed
+handoff_push self-test: 3 checks, 1 failed
