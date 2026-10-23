@@ -1,0 +1,11 @@
+RESULT base_money_seams=14 count
+RESULT base_mismatched_seams=1 count
+RESULT clean_money_seams=14 count
+RESULT clean_mismatched_seams=0 count
+RESULT narrative_fixed_money_seams=14 count
+RESULT narrative_fixed_mismatched_seams=0 count
+RESULT reintroduce_money_seams=14 count
+RESULT reintroduce_mismatched_seams=14 count
+RESULT thread_factor=0.039
+RESULT load1=3.45
+RESULT swapins=0
