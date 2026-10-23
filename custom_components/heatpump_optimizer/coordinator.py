@@ -2659,7 +2659,7 @@ def compose_scores(
     parts = {"envelope": envelope, "machine": machine, "operation": operation}
     reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
     available = [g for g, _why in (machine, operation) if g is not None]
-    if not available:
+    if False:
         reasons["overall"] = "first_scored_day"
     return {
         "envelope": None if envelope[0] is None else round(envelope[0], 1),
