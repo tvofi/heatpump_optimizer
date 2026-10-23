@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_run GUARD_OFF 6490f17d",
-  "killed_by": "tests/structure.py",
-  "old": "    if batch_objective is not None and _bounds_supported_by_batch(bounds):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

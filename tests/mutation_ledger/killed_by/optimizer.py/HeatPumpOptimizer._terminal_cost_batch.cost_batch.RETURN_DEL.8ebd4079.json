@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._terminal_cost_batch.cost_batch RETURN_DEL 8ebd4079",
-  "killed_by": "tests/plan_view.py",
-  "old": "            return out",
-  "reason": "Recorded by `mutation_table.py --drain` against e30b24bbc45afd1174f64f7051d05021e31b6a89: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}
