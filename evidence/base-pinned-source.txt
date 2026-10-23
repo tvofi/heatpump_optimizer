@@ -1,0 +1,7 @@
+[policy-docs] step 'Restore the check source from the base commit' env PINNED='${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}'
+   git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+[env-matrix] step 'Restore the check source from the base commit' env PINNED='${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}'
+   git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+[wave-script] step 'Restore the check source from the base commit' env PINNED='${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}'
+   git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+[instrument-self-tests] no PINNED restore

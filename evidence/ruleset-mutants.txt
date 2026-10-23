@@ -1,0 +1,8 @@
+MUTANT reds-any-red: ruleset_cutover self-test: 72 checks, 2 failed
+MUTANT merged-always: ruleset_cutover self-test: 72 checks, 1 failed
+MUTANT disable-no-staged: ruleset_cutover self-test: 72 checks, 1 failed
+MUTANT disable-touches-rules: ruleset_cutover self-test: 72 checks, 1 failed
+MUTANT enable-keeps-disabled: ruleset_cutover self-test: 72 checks, 1 failed
+MUTANT rollback-no-17-check: ruleset_cutover self-test: 72 checks, 0 failed
+MUTANT enable-no-integration-id: ruleset_cutover self-test: 72 checks, 0 failed
+MUTANT reds-skipped-not-green: ruleset_cutover self-test: 72 checks, 0 failed

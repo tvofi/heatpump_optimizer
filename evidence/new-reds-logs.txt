@@ -1,0 +1,14 @@
+Run 39949789023 (CI, code, pr=2662) at e542446e7, concluded 12:32Z.
+tests / closures (job 120401460518, SCOPE_CASE full, this PR's tests/closure.py):
+  UNDER-SCOPED: tests/harness_headers.py really reads 2 file(s) the committed closure does not list:
+      dev/audit/harnesses/r10_ci_layout_u5/run_part.py
+      dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py
+  1 closure(s) are stale. Re-derive the named script: ./tests/derive_closures.sh --single <script>
+tests / closures-autofix (job 120414737386): AUTOFIX: skip-classifier-disagrees -- THE REPAIR DID NOT HAPPEN.
+pr-contract / pr-contract (job 120414818380; policy_lint restored from PINNED a6620c30a):
+  red checks the body must answer: governance / env-matrix, governance / policy-docs, governance / wave-script, tests / closures, tests / closures-autofix
+  record red-history: 57 commit(s) ... gate, governance / env-matrix, governance / instrument-self-tests, governance / policy-docs, governance / wave-script, pr-contract / pr-contract, tests / briefs, tests / closures, tests / closures-autofix, tests / fast (3.14)
+  ERROR [pr-body] check `pr-contract / pr-contract` is red and `## Red checks` does not name it.
+  PR-BODY: 1 error(s)   (carry_audit: 4 routed, 0 unrouted; figure_lint: 3 resolved)
+gate (job 120415182368; programs restored from a6620c30a):
+  FAIL run(s) [39949790607, 39949942238] at this head are still being judged; their gate decides

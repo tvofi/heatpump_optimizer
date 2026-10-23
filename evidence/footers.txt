@@ -1,0 +1,8 @@
+commits=57 footer-lines=2
+     19 Claude <noreply@anthropic.com>
+      2 fixer <f@x>
+      1 hpo <hpo@example.invalid>
+      3 hpo <x@example.invalid>
+      3 hpo-seat <seat@example.invalid>
+      1 seat <seat@users.noreply.github.com>
+     28 tvofi <70032254+tvofi@users.noreply.github.com>
