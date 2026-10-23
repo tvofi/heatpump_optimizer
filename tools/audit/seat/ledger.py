@@ -82,6 +82,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+from merge_train import is_sha  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
@@ -93,7 +97,7 @@ PR_KEYED = ("reviewer-fire", "verdict-unposted", "approve-held-runs", "dispatch"
 ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
         ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"))
 STATE_REF = re.compile(r"^audit-r\d+-(?:plan|roster)$")
-SHA = re.compile(r"^[0-9a-f]{40}$")
+RELAY_WRITE = re.compile(r"\b(ledger_open|level_line) ([a-z-]+) ")
 VERDICT = re.compile(r"^Fix review: (?:merge|blocked) ([0-9a-f]{40})(?: |$)")
 APPROVE = re.compile(r"^Design review: approve ([0-9a-f]{40})\s*$")
 NOT_DISPATCHED = (None, "", "not-started")
@@ -135,6 +139,21 @@ def kind_of(kind: str) -> str:
     if kind not in KINDS:
         raise Refused(f"'{kind}' is no ledger kind: an obligation nothing reads is refused, never stored")
     return KINDS[kind]
+
+
+def relay_writers(text: str) -> "list[tuple[int, str, str]]":
+    """(line, kind, sink) for every `ledger_open <kind>` (event) and `level_line
+    <kind>` (level) call in cloud_relay.sh before `self_test()`: the one census of
+    the relay's writers, read by the self-test and r10_ledger_class_reach.py."""
+    out = []
+    for n, line in enumerate(text.splitlines(), 1):
+        if line.startswith("self_test()"):
+            break
+        if line.lstrip().startswith(("#", "ledger_open()", "level_line()", "level_set()")):
+            continue
+        out += [(n, m.group(2), "event" if m.group(1) == "ledger_open" else "level")
+                for m in RELAY_WRITE.finditer(line)]
+    return out
 
 
 def _rows(path: Path, width: int) -> "list[list[str]] | None":
@@ -185,7 +204,7 @@ def _import_disposed(home: Path) -> "tuple[list, list[str]]":
         if not f:
             continue
         try:
-            if len(f) != 2 or not SHA.match(f[1]):
+            if len(f) != 2 or not is_sha(f[1]):
                 raise Refused(f"'{l}' is not `<ref> <sha40>`")
             classify(f[0])
         except Refused as e:
@@ -208,7 +227,7 @@ def dispositions(home: Path, persist: bool = False) -> dict:
                    f"{len(refused)} refused\n", rows)
     out = {}
     for ref, sha, when, how in rows:
-        if not SHA.match(sha):
+        if not is_sha(sha):
             raise Unreadable(f"{DISP}: '{sha}' is not a sha")
         out[ref] = (sha, when, how)
     return out
@@ -216,7 +235,7 @@ def dispositions(home: Path, persist: bool = False) -> dict:
 
 def dispose(home: Path, ref: str, sha: str, how: str = "disposed") -> None:
     classify(ref)
-    if not SHA.match(sha):
+    if not is_sha(sha):
         raise Refused("sha must be 40 lowercase hex")
     dispositions(home, persist=True)  # the one-time import lands before the first act
     _append(home / DISP, [ref, sha, utc(), how])
@@ -247,10 +266,10 @@ def _import_log(log: str) -> "tuple[list, list[str]]":
                 kind, when, sha = "reviewer-fire", f[-1], f[3]
             elif f[2] in ("approve-held-runs", "dispatch"):
                 kind, when = f[2], f[1]
-                sha = f[4] if len(f) > 4 and SHA.match(f[4]) else "-"
+                sha = f[4] if len(f) > 4 and is_sha(f[4]) else "-"
             elif f[2] == "handoff-update":
                 continue  # derived now: the relay's level from cloud-handoff-failed
-            elif f[2] == pr and len(f) > 3 and (f[3] == "-" or SHA.match(f[3])):
+            elif f[2] == pr and len(f) > 3 and (f[3] == "-" or is_sha(f[3])):
                 kind, when, sha = "verdict-unposted", f[1], "-"
             else:
                 refused.append(f"'{line}' is no relay OWED shape")
@@ -270,7 +289,7 @@ def events(home: Path, log: str, persist: bool = False) -> list:
                    f"event(s), {len(refused)} refused\n", rows)
     for op, _, kind, _, sha, _ in rows:
         if op not in OPS or (op != "attempt" and KINDS.get(kind) != "event") \
-                or not (sha == "-" or SHA.match(sha)):
+                or not (sha == "-" or is_sha(sha)):
             raise Unreadable(f"{EVENTS}: a row '{op} {kind} {sha}' of no ledger shape")
     return rows
 
@@ -281,7 +300,7 @@ def record(home: Path, log: str, op: str, kind: str, subject: str, sha: str, tex
             raise Refused("an attempt is recorded on a handoff ref")
     elif kind_of(kind) != "event":
         raise Refused(f"'{kind}' is derived: it is recomputed each pass, never opened or closed")
-    if not (sha == "-" or SHA.match(sha)):
+    if not (sha == "-" or is_sha(sha)):
         raise Refused("sha must be 40 lowercase hex or -")
     events(home, log, persist=True)  # the one-time import lands before the first event
     _append(home / EVENTS, [op, utc(), kind, subject, sha, text])
@@ -795,9 +814,10 @@ def self_test() -> int:
         check("a TERMed opener records started then unopened on its handoff ref", killed == ["started", "unopened"])
         check("null control: an opener that ends records opened,PR=<n>", clean[2:] == ["started", "opened,PR=9"])
         # ---- the relay's level writers each have a ledger kind
-        relay = (ROOT / "tools/audit/seat/cloud_relay.sh").read_text()
-        body = relay.split("\nself_test()")[0]
-        used = set(re.findall(r"\blevel_line ([a-z-]+) ", body)) | set(re.findall(r"\bledger_open ([a-z-]+) ", body))
+        writers = relay_writers((ROOT / "tools/audit/seat/cloud_relay.sh").read_text())
+        used = {k for _, k, _ in writers}
+        check("the census reads both sinks of the relay (ledger_open events, level_line levels)",
+              {s for *_, s in writers} == {"event", "level"})
         check("every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)",
               used and all(k in KINDS for k in used))
     print(f"ledger self-test: {ok + bad} checks, {bad} failed")
