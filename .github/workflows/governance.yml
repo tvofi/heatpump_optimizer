@@ -561,6 +561,16 @@ jobs:
           bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
           grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
 
+      # The obligations ledger (R10-ORCH-LEDGER) the relay and the tick write and
+      # read through: its stores, fold, level and exit codes over a throwaway
+      # origin and open_pr.sh's own attempt lines. No network.
+      - name: Show the obligations ledger refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
+          grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
+
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -706,6 +716,15 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
           grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
+      # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
+      # CI pins its plants' preconditions, never the sweep itself.
+      - name: Show the ledger mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+          grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
 
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
