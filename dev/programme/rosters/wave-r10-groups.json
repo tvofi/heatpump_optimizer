@@ -966,9 +966,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-NIGHT-FOLDS; after you: R10-LIVESTATE). Owning seam in this group: `_replay_interval` call site. Shape: offload, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-NIGHT-FOLDS if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-loop-cpu",
-    "commit": "577ec62dbb35f2353902b5bbe5adb37b69805af2",
+    "commit": "7108101d71211772c2f45f67b240ee3663e3446e",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
@@ -5674,7 +5674,12 @@
     "From R10-RCA-INSTALL-RATELIMIT (28a20e95): the record job's API budget (M0 to M3) is owned by R10-RECORD-API-BUDGET. CI-LAYOUT-P2 holds it only until that group lands; do not duplicate it.",
     "From the #2622 (P2a) review, review/2622 d3bbca03: the forgery pin (DESIGN-P2 2.1) refuses checks: write, write-all and any job that can report as gate, but not statuses: write. A required check pinned to integration_id 15368 could be satisfied by a commit status from a job holding statuses: write. P2b must extend the pin to refuse statuses: write, with a planted fixture.",
     "From #2627 (R10-NIGHTLY-ABSENT): **The NEW window's precondition on `nightly.yml`'s schedule.** `tests/nightly_status.py`'s no-run arm reads NEW (green) for one cron period plus an hour after the workflow's `created_at`, then ABSENT. The period is `SCHEDULE_PERIOD` (one day), and a `tests/entities.py` check refuses it unless `nightly.yml` carries exactly one cron of the daily shape `M H * * *`. So a change to `nightly.yml`'s schedule (a second cron, or a non-daily one) turns that check red and must re-derive the window rather than edit the regex. A new scheduled workflow is watched by no reporter until one names it, because `DEFAULT_WORKFLOW` is `nightly.yml` alone. Control: `verdict(None, None, [], created+26h, workflow={'state': 'active', ...})` reads ABSENT; at `created+9h` it reads NEW. Re-measure at your merge base.",
-    "ci_critpath --drop-edge (R10-FLOW-TOOLKIT-MEASURE, #2645): a window that straddles a job-graph change refuses only when both jobs of the dropped edge still run. If the change renames or removes either job, the drop is a silent no-op (gain 0, rc=0) and the median mixes two graphs. Read the window over runs on one side of the change only, using --run lists or --event/--branch, and check that the job names match at both ends of the window before quoting a W figure."
+    "ci_critpath --drop-edge (R10-FLOW-TOOLKIT-MEASURE, #2645): a window that straddles a job-graph change refuses only when both jobs of the dropped edge still run. If the change renames or removes either job, the drop is a silent no-op (gain 0, rc=0) and the median mixes two graphs. Read the window over runs on one side of the change only, using --run lists or --event/--branch, and check that the job names match at both ends of the window before quoting a W figure.",
+    "From #2662 (P2b) Forward-carry: delete tools/policy/fixtures/required-contexts.json's `_pre_cutover` and `pre_cutover` keys after the ruleset PUT (ruleset_cutover.py --enable). Owner: the step-22 beat. A 'stale' print from policy_lint or counts.mjs is not this carry; the deletion is.",
+    "From #2662 (P2b) Forward-carry: after the ruleset PUT, delete tools/ci/gate.py's self-test check that reads REQUIRED['pr'] as the old 17 contexts renamed (\"REQUIRED['pr'] is the 17 pre-cut-over contexts, renamed, and arch-instrument (U5b)\"), together with the pre_cutover key it reads.",
+    "From #2662 (P2b) Forward-carry: after the ruleset PUT, delete tools/audit/seat/merge_train.py's A5 layouts pair (the old 17 against the new [gate]), which only exists to span the cut-over.",
+    "From #2662 (P2b) Forward-carry, and roster carry 1's disposition: `same_sha_dup_heads` before and after the cut-over (carry 1 from #2396). The 'before' figure is carry 1's own (tests 31, codeql 33). The 'after' figure cannot be measured before the merge: it counts bot-pushed heads on main's layout, and only the cut-over puts the umbrella on main. Disposition: the step-22 beat measures it with the #2396 harness over the first 30 bot-pushed heads after the PUT, and records both figures in the group's closing row. If after >= before, that is a finding against the umbrella's concurrency, not a pass.",
+    "From #2662 fix review e1b53d854, Block 1 (owner ruling (a), 2026-10-23): the cut-over window opens only once main's newest completed push Tests run shows tests / ci-ratchet green. The payment for carry 3 (U5b's arch-instrument split) lands first as precursor P2b-pre2, ported into main's tests.yml. ruleset_cutover.py --disable reads that precondition."
    ],
    "architect_note": null,
    "resume": {
@@ -6801,7 +6806,8 @@
    ],
    "carry": [
     "Two more instances on 2026-10-22 of open_pr.sh leaving a PR without its delivery row: #2625 and #2629. In both, the first push opened the PR, then the row push (app_push p2) was refused by prepr on an unanswered nightly-status red that the opener's body could not answer before CI had run. The row commit stayed unpushed in the opener worktree, which then blocked update_pr.sh (\"holds commits ... origin lacks\") until the orchestrator detached it by hand. Countermeasure shape for this group: the row lands in the same push as the PR (atomic open), or open_pr retries the row push after writing the red answer, and never leaves an unpushed row worktree behind. Control: replay an open whose body omits a red that CI reports, and assert the PR still ends with its row and no stranded worktree.",
-    "Triage P-D (s4, 2026-10-23 03:45Z, accepted), verbatim:\nopen_pr.sh's exit trap must detach or remove its PR worktree on success and on STOPPED.\n\nMeasured facts: open_pr.sh calls pr_exit_trap (pr_args.sh:162), which only runs pr_reap on the process tree; nothing detaches or removes $D/wt, so the branch stays checked out after a STOPPED run. merge_train --free-holders (merge_train.py free_holder) covers only a recarry whose holder is clean and at origin/<branch>; a fetch-race stop that leaves an unpushed or dirty tree is refused, which is the no-footers case. Moratorium 0012 is revoked (decision 0014, 2026-10-21), so it binds nothing here; this edits an existing instrument (no new policy file, lint class or rule).\nConstraint: detach, do not remove, on exit, since update_pr.sh and cloud_relay detach the same worktree under the branch lock (open_pr.sh line 32) and the lock must stay held to the end.\nCost: S, about 10-20 lines in open_pr.sh (PR_AFTER_REAP detach, guarded by the branch lock) plus one self-test row and a mutant; no gate-budget raise expected."
+    "Triage P-D (s4, 2026-10-23 03:45Z, accepted), verbatim:\nopen_pr.sh's exit trap must detach or remove its PR worktree on success and on STOPPED.\n\nMeasured facts: open_pr.sh calls pr_exit_trap (pr_args.sh:162), which only runs pr_reap on the process tree; nothing detaches or removes $D/wt, so the branch stays checked out after a STOPPED run. merge_train --free-holders (merge_train.py free_holder) covers only a recarry whose holder is clean and at origin/<branch>; a fetch-race stop that leaves an unpushed or dirty tree is refused, which is the no-footers case. Moratorium 0012 is revoked (decision 0014, 2026-10-21), so it binds nothing here; this edits an existing instrument (no new policy file, lint class or rule).\nConstraint: detach, do not remove, on exit, since update_pr.sh and cloud_relay detach the same worktree under the branch lock (open_pr.sh line 32) and the lock must stay held to the end.\nCost: S, about 10-20 lines in open_pr.sh (PR_AFTER_REAP detach, guarded by the branch lock) plus one self-test row and a mutant; no gate-budget raise expected.",
+    "P-P (triage batch 8): open_pr.sh and update_pr.sh run the tools of whatever checkout invokes them and nothing compares that tool tree to origin/main (a stale main checkout wrote a Co-Authored-By delivery row, #2664). Add pr_tools_fresh to pr_args.sh (both scripts source it), called after each script's git fetch origin main: refuse with 'STALE CHECKOUT <head> behind origin/main <sha> by <n> commits touching tools/audit/seat tools/pr' when git rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr is above 0 in the checkout holding the tools; no auto-pull; escape HPO_ALLOW_STALE_TOOLS=1 prints a notice and continues. Self-test rows on a throwaway origin: stale tools refuse; a docs/-only difference passes (null control); fresh passes. Mutants: drop the path filter, drop the refusal. Rebase on R10-UPDATE-PR-SIGNALS (also edits pr_args.sh); keep the helper a separate function. Reuse the path-scoped count the tick_loop freshness carry in R10-FLY-RELAY-REVIEW-FF defines."
    ],
    "architect_note": "",
    "brief": "open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: read main's nightly-status before the first push. P13 fold: the stuck row commit lives in open_pr.sh's own worktree ($HPO_STATE_DIR/pr/<topic>/wt) after a refused second push (29 of 98 open_pr runs refused); fix there, NOT an update_pr.sh auto-reset, which would drop the row's group.",
@@ -6962,12 +6968,12 @@
    "architect_note": "",
    "brief": "When a review/<N> push is refused as non-fast-forward, cloud_relay.sh fetches the ref, re-applies the same verdict commit on the fresh tip and pushes; it never forces. If the fresh tip already carries the same verdict for the same head it skips; it logs either case. After any push it reports the remote tip (git ls-remote origin refs/heads/review/<N>), not the commit it built locally, because bus.sh confirm wants that tip (rule 23). Also: tools/audit/seat/tick_loop.sh relay_start (about lines 60-66) passes --confirm to cloud_relay.sh pass so a relayed verdict is posted with no hand step (assessor P15). Reviewed after #2547 and #2580, and after #2582 for tick_loop.sh. Also: cloud_relay.sh probe_arm writes .refused on every non-zero rc, so transient push failures are never retried; retry transients and log REFUSED <ref> <reason>.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-relay-review-ff",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer (fly-in, lane F)",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+    "next_step": "cloud fixer dispatched 2026-10-23 ~12:40Z",
+    "note": "Started ahead of its after-edge R10-UPDATE-PR-SIGNALS by orchestrator ruling (mandate 6329234399): it blocks the critical-path merge seat (P-O, 4 instances in 2 days). TICK-OWED-LEVEL, FLOW-ANDON and FLOW-RELAY-HOLD are done. UPDATE-PR-SIGNALS (held) and ORCH-LEDGER (in flight) also edit cloud_relay.sh; whichever lands later merges main."
    }
   },
   {
@@ -8525,7 +8531,8 @@
     "tools/audit/seat/ref_privacy.py"
    ],
    "carry": [
-    "Follow-up of R10-FLY-NO-FOOTERS (#2636, merged at 7deeef1b6b). Found by the roster seat on #2651: after #2636 every open_pr.sh and update_pr.sh row commit was refused at app_push with `ref_privacy: REFUSE: co-author-trailer in the message of <row commit>`, because delivery_row.sh commit_row hardcodes a Co-Authored-By trailer, and tools/release/stamp.py hardcodes one on the stamp commit. #2636's controls did not exercise either producer. Control: a self-test row per producer that fails while its trailer is present and passes without it (the null control), reusing ref_privacy's co-author-trailer pattern rather than a second copy of the regex."
+    "Follow-up of R10-FLY-NO-FOOTERS (#2636, merged at 7deeef1b6b). Found by the roster seat on #2651: after #2636 every open_pr.sh and update_pr.sh row commit was refused at app_push with `ref_privacy: REFUSE: co-author-trailer in the message of <row commit>`, because delivery_row.sh commit_row hardcodes a Co-Authored-By trailer, and tools/release/stamp.py hardcodes one on the stamp commit. #2636's controls did not exercise either producer. Control: a self-test row per producer that fails while its trailer is present and passes without it (the null control), reusing ref_privacy's co-author-trailer pattern rather than a second copy of the regex.",
+    "From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after the guard a4b27986 reached main at 7deeef1b6 06:08Z) reach a PR head. (1) Cloud and handoff pushes run no message guard: the cloud harness's own git push of handoff/<topic> and handoff_push.sh call no ref_privacy/attribution check. The u4 session's base 4200ea4c4 lacked both the guard and the .claude/settings.json attribution off-switch. (2) A commit first published through a ci-probe/* ref (ci_probe.py judges only the ref name and log lines, line ~180) is then exempt from app_push.sh's first-publish scope (line ~481), so cc51e6626 rode into #2662 unjudged. Fix both: judge commit messages on every push path that publishes commits, and make app_push judge every commit the PR adds over main, not only first-published ones. Each needs a failing fixture first and a null control. Open question for this group's design: 19 commits in P2b are AUTHORED 'Claude <noreply@anthropic.com>' (the cloud seat default identity). The owner's rule names footers, trailers and session links, not authors, so decide and record whether author identity is in scope; do not widen it silently."
    ],
    "model": {
     "fixer": "sonnet",
@@ -8587,6 +8594,95 @@
     "branch": null
    },
    "brief": "seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) and a bare getter that returns a tuple of state reads pays (rule 14, planted as `_cop_state()`, -2). Count distinct (seam, attribute) pairs reached, including through a callee, or refuse a callee whose only body is a tuple of state reads. A failing test first: plant the alias and the getter on a clean tree; neither may move the figure, and that plant is also the null control. Use the finder's harness, the plants plant_p2.diff and plant_p3.diff in the ev/ directory of probe/rev-2620-654004be. Any budget re-record the metric change forces goes in the commit message, per CLAUDE.md rule 2, and a raise needs the owner's confirmation before the branch is pushed. Follow dev/governance/roles/fixer.md."
+  },
+  {
+   "group": "R10-FLY-NO-FOOTERS-PUSH-PATHS",
+   "lane": "FLY",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "wave": 4,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/handoff_push.sh",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/ci_probe.py",
+    "tools/pr/app_push.sh",
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "hot_files": [
+    "tools/pr/app_push.sh"
+   ],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "severity": "medium",
+   "findings": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after the guard a4b27986 reached main at 7deeef1b6 06:08Z) reach a PR head. (1) Cloud and handoff pushes run no message guard: the cloud harness's own git push of handoff/<topic> and handoff_push.sh call no ref_privacy/attribution check. The u4 session's base 4200ea4c4 lacked both the guard and the .claude/settings.json attribution off-switch. (2) A commit first published through a ci-probe/* ref (ci_probe.py judges only the ref name and log lines, line ~180) is then exempt from app_push.sh's first-publish scope (line ~481), so cc51e6626 rode into #2662 unjudged. Fix both: judge commit messages on every push path that publishes commits, and make app_push judge every commit the PR adds over main, not only first-published ones. Each needs a failing fixture first and a null control. Open question for this group's design: 19 commits in P2b are AUTHORED 'Claude <noreply@anthropic.com>' (the cloud seat default identity). The owner's rule names footers, trailers and session links, not authors, so decide and record whether author identity is in scope; do not widen it silently.",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-fly-no-footers-push-paths",
+    "next_step": "cloud fixer cse_014HGxgRAzJoTMn2nvYqvCbC dispatched, topic r10-fly-no-footers-push-paths",
+    "note": "Scope ruling (orchestrator, main): author identity is out of scope; the guard judges commit messages (footers, trailers, session links), not the author field."
+   }
+  },
+  {
+   "group": "R10-FLY-INERT-LOAD-TIME",
+   "lane": "FLY",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "wave": 4,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tests/closure.py",
+    "tools/pr/ci_predict.py",
+    "tools/pr/prepr.sh",
+    "dev/audit/config/bugclasses.json",
+    "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md"
+   ],
+   "hot_files": [
+    "tests/closure.py"
+   ],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "severity": "medium",
+   "findings": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "Barrier for audit class I2 (RCA R10-RCA-INERT-CLOSURE-RECORDING, root-cause seat beside #2662, 2026-10-23). A closures recording carries an inert_reads split decided by the recording tree's INERT list; a later INERT_EXCEPT edit voids it, but merge and check trusted the split, so check passed vacuously and #2662's probe d5b053e went UNDER-SCOPED (32 min red FULL closures). Countermeasure built by the RCA seat: closure.py _load_recording re-splits each recording under the loading tree's INERT list for merge and check; ci_predict.py left_inert predicts UNDER-SCOPED statically when a diff edits tests/closure.py and a committed inert_reads file has left INERT while its script's closure omits it (prepr 6d, body_push). The countermeasure is built at handoff commit e9d169b7 (handoff/r10-rca-inert-closure-recording).",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-inert-closure-recording",
+    "next_step": "open PR from the RCA seat's handoff e9d169b7, then review"
+   }
   }
  ]
 }

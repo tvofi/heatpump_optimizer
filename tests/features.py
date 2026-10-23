@@ -17521,8 +17521,9 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-# D4-04 (#168): the notice prices the shortfall in the instance's currency,
-# not in the SEK the placeholder used to be named after.
+# D4-04 (#168): the notice prices the shortfall in the coordinator's currency
+# (here, with no feed, the instance's), not in the SEK the placeholder used to
+# be named after.
 _eur_hass = _FakeHass(dict(_METER))
 _eur_hass.config.currency = "EUR"
 _eur_cop = _Coord(
@@ -20377,6 +20378,18 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
 )
+# The watch judges a bucket from its COP_BASELINE_MIN_SAMPLES-th sample on,
+# so a bucket at exactly that count is watched; one short of it is not.
+_cmach_edge = {}
+for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
+    _cmach_c = _t2_coord()
+    _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
+    _cmach_edge[_cmach_n] = _cmach_c._scores_view(_rs_advice(_cmach_c))["machine"]
+R.check(
+    "the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples",
+    _cmach_edge == {COP_BASELINE_MIN_SAMPLES - 1: None, COP_BASELINE_MIN_SAMPLES: 100.0},
+    str(_cmach_edge),
+)
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
@@ -20407,6 +20420,13 @@ R.check(
     not _r9p8_coord._refit_disagrees({"refit": {"scale": 2.5, "band_percent": 25.0}}, 2.0)
     and _r9p8_coord._refit_disagrees({"refit": {"scale": 2.51, "band_percent": 25.0}}, 2.0)
     and _r9p8_coord._refit_disagrees({"refit": {"scale": 1.49, "band_percent": 25.0}}, 2.0),
+)
+# Past the alarm the Cusum keeps climbing; the grade stays at 0, never below.
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, not below",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+    str(_cmach._scores_view(_rs_advice(_cmach))["machine"]),
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
@@ -20917,6 +20937,45 @@ R.check(
     "and an unconfigured instance still prices the plan in SEK",
     any("SEK" in _l for _l in _n_view["lines"]),
     str(_n_view["lines"][:2]),
+)
+# D14-s3-01: the feed denominates the plan's money (#1657), so the narrative
+# names the code every other money surface publishes -- not the instance's
+# label. A SEK feed on the same SEK instance is the null control.
+_d14s3_codes = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass("SEK", _d14s3_unit), _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._optimization_result = _r6
+    _d14s3_codes[_d14s3_unit] = sorted(
+        {_c for _l in _d14s3_c._narrative_view()["lines"]
+         for _c in _re6.findall(r"\b(EUR|SEK)\b", _l)}
+    )
+R.check(
+    "D14-s3-01: the narrative prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_codes == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_codes),
+)
+# R10-CURRENCY: the COP notice prices its shortfall from the same feed, so
+# it carries the feed's code too; the SEK feed is again the null control.
+_d14s3_cop = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_h = _r9p8_hass("SEK", _d14s3_unit)
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _d14s3_h, _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._measured_cop.cop = 2.4
+    _d14s3_c._raise_cop_issue(3.0)
+    _d14s3_cop[_d14s3_unit] = [
+        _i[2]["translation_placeholders"]["currency"]
+        for _i in getattr(_d14s3_h, "issues", []) if _i[1] == "cop_degradation"
+    ]
+R.check(
+    "R10-CURRENCY: the COP notice prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_cop == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_cop),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
