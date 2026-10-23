@@ -25756,8 +25756,8 @@ def _ns_stale_collect(first, windowed):
 
     _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
     try:
-        _c, _f, _j = _nstatus.collect("o/r", "tests.yml", None, None,
-                                      now=_ns_stale_now)
+        _c, _f, _j, _w = _nstatus.collect("o/r", "tests.yml", None, None,
+                                          now=_ns_stale_now)
     finally:
         _nstatus._get, _nstatus._sleep = (_ns_stale_real_get,
                                           _ns_stale_real_sleep)
@@ -25806,6 +25806,91 @@ R.check(
     "is neither timezone slack nor the #533 incident",
 )
 
+
+# --- a workflow younger than its first slot is not a dead schedule ---------
+#
+# nightly.yml reached main at 2026-10-22T08:05Z, after that day's 02:17Z slot,
+# and the reporter turned every pull request red with "GitHub disables
+# schedules on repositories with no recent activity" while GitHub reported the
+# workflow `active`. The arm guessed a cause it never read. Three fixtures, one
+# property varied in each: the workflow nine hours old reads NEW and green; the
+# SAME record 26 h on, still with no run, reads ABSENT -- the null control that
+# the window does not hide a schedule that never fired; and a disabled record
+# reads ABSENT naming GitHub's own state.
+# The record's shape is the live one, offset included: GitHub stamps a
+# workflow's `created_at` with `+02:00` where a run's carries `Z`.
+_ns_wf = {"path": ".github/workflows/nightly.yml", "state": "active",
+          "created_at": "2026-10-22T10:05:56+02:00"}
+_ns_wf_made = datetime(2026, 10, 22, 8, 5, 56, tzinfo=UTC)
+_ns_young = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                             workflow=_ns_wf)
+_ns_late = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=26),
+                            workflow=_ns_wf)
+_ns_off = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                           workflow={**_ns_wf, "state": "disabled_inactivity"})
+_ns_late_txt = "\n".join(_ns_late[2])
+R.check(
+    "a workflow younger than its first cron slot reads NEW and green, the same "
+    "one 26 h on with no run reads ABSENT, and a disabled one names its state",
+    _ns_young[:2] == (_nstatus.NEW, _nstatus.EXIT_GREEN)
+    and _ns_late[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "inactivity" not in _ns_late_txt and "'active'" in _ns_late_txt
+    and _ns_off[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "'disabled_inactivity'" in "\n".join(_ns_off[2]),
+    f"9 h -> {_ns_young[:2]}; 26 h -> {_ns_late[:2]} "
+    f"(inactivity claimed={'inactivity' in _ns_late_txt}); disabled -> "
+    f"{_ns_off[:2]} {_ns_off[2][1:2]}",
+)
+# The window is one cron PERIOD plus an hour, so the period must be the cron's.
+# Read from the workflow's own `cron:`: a daily one is minute and hour fields
+# and three stars. A cron that fires more often than daily would leave the
+# window merely generous; one that fires less often would read ABSENT before
+# its first slot -- either way the constant is restated, not derived, and this
+# refuses the drift.
+_ns_crons = re.findall(r'^\s+- cron: "([^"]+)"', _NIGHTLY_YML, re.M)
+R.check(
+    "the reporter's schedule period is the nightly cron's: daily",
+    len(_ns_crons) == 1
+    and re.fullmatch(r"\d{1,2} \d{1,2} \* \* \*", _ns_crons[0]) is not None
+    and _nstatus.SCHEDULE_PERIOD == timedelta(days=1),
+    f"cron lines {_ns_crons}; SCHEDULE_PERIOD={_nstatus.SCHEDULE_PERIOD}",
+)
+# The one extra read is spent only where it can change the answer: a discovery
+# that finds a run never asks for the workflow's record, and one that finds
+# none asks for it once.
+_ns_wf_real_get, _ns_wf_real_sleep = _nstatus._get, _nstatus._sleep
+
+
+def _ns_wf_collect(runs):
+    _calls = []
+
+    def _fake_get(url, _token):
+        _calls.append(url)
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if url.endswith("/actions/workflows/nightly.yml"):
+            return _ns_wf
+        return {"workflow_runs": [r for r in runs if r["event"] in url]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _out = _nstatus.collect("o/r", "nightly.yml", None, None,
+                                now=_ns_wf_made + timedelta(hours=9))
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_wf_real_get, _ns_wf_real_sleep
+    return _out, sum(1 for _u in _calls if _u.endswith("/workflows/nightly.yml"))
+
+
+(_, _, _, _ns_wf_none), _ns_wf_reads_none = _ns_wf_collect([])
+_ns_wf_fresh = {**_ns_run(7, "2026-10-22T07:00:00Z"), "event": "schedule"}
+(_, _, _, _ns_wf_some), _ns_wf_reads_some = _ns_wf_collect([_ns_wf_fresh])
+R.check(
+    "the workflow's record is read once when no run exists, and never otherwise",
+    _ns_wf_none == _ns_wf and _ns_wf_reads_none == 1
+    and _ns_wf_some is None and _ns_wf_reads_some == 0,
+    f"no runs: record={_ns_wf_none is not None} reads={_ns_wf_reads_none}; "
+    f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
+)
 
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
