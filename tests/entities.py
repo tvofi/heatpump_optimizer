@@ -38003,7 +38003,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "once per event by the function's own state (a refit, an issue raised, a "
     "rollback per alarm, a malformed month closed so it is not retried)": {
-        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 1,
+        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 2,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
     },

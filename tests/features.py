@@ -7944,6 +7944,8 @@ class _LearnPersist:
 
     def __init__(self, store) -> None:
         self._thermal_learning_store = store
+        # The entry's settings: the payload records the power basis (#2239).
+        self._config = {}
         self._thermal_params = ThermalParameters()
         self._buffer_cooling_rate = 6.0
         self._buffer_cooling_samples = 3
@@ -8714,10 +8716,12 @@ _tz_new._thermal_params.lower_floor_heat_loss = 0.10
 _tz_new._apply_lower_floor_loss_ratio(1.0)
 _aio.run(_tz_new._async_load_thermal_learning())
 _phi_tz = _hl_phi(300)
-_tz_eff = _tz_new._house_heat_loss_scale * (0.20 + 0.10)
+# The total at the ratio the load now holds: it is re-anchored too (#2239).
+_tz_base = 0.20 + 0.10 * _tz_new._lower_floor_loss_ratio
+_tz_eff = _tz_new._house_heat_loss_scale * _tz_base
 R.check(
     "a two-zone edit re-anchors on the zone total, not the upper zone",
-    abs(_tz_eff - ((1.0 - _phi_tz) * 0.30 + _phi_tz * 0.40)) < 1e-9
+    abs(_tz_eff - ((1.0 - _phi_tz) * _tz_base + _phi_tz * 0.40)) < 1e-9
     and _tz_eff > 0.30,
     f"effective total {_tz_eff:.4f} kW/°C (learned level was 0.40)",
 )
@@ -8741,6 +8745,154 @@ R.check(
     abs(_snap._house_heat_loss_scale * _NEW - _expected_eff) < 1e-9,
     f"effective {_snap._house_heat_loss_scale * _NEW:.4f} kW/°C after "
     "rollback",
+)
+
+# --- The lower-floor ratio is re-anchored with the scale (#2239) -------------
+#
+# The ratio multiplies the lower nameplate the way the scale multiplies the
+# zone total, so an options edit of the lower nameplate, or a snapshot from
+# before one, re-expressed the scale alone and handed the lower zone's learned
+# heat loss to the upper one. Adding a power meter changes what the learners
+# were fitted against (commanded power carries every delivery shortfall), so
+# it re-anchors both at zero confidence. Real coordinators over the stock
+# two-zone house; every expectation is a property, never the law restated.
+from harness import FakeEntry as _ra_entry  # noqa: E402
+from profiles import house as _ra_house  # noqa: E402
+
+R.section("The lower-floor ratio is re-anchored with the scale (#2239)")
+
+_RA_S, _RA_R, _RA_NS, _RA_NR = 1.567, 1.922, 310, 147
+_RA_CFG = dict(_ra_house(two_zone=True, dhw=False), lower_floor_temp_entity="sensor.lower")
+_RA_U, _RA_L = _RA_CFG["upper_floor_heat_loss"], _RA_CFG["lower_floor_heat_loss"]
+_RA_RESEED = dict(_RA_CFG, upper_floor_heat_loss=_RA_U * _RA_S,
+                  lower_floor_heat_loss=_RA_L * _RA_R * _RA_S)
+_RA_METERED = dict(_RA_CFG, heat_pump_power_entity="sensor.hp_power")
+
+
+def _ra_coord(cfg, store):
+    c = Coord(FakeHass({}), _ra_entry(data=cfg))
+    c._thermal_learning_store = store
+    return c
+
+
+def _ra_learned(cfg, scale=_RA_S, ratio=_RA_R, samples=(_RA_NS, _RA_NR)):
+    """A store the coordinator itself wrote, with the learners at this state."""
+    src = _ra_coord(cfg, _CountingLearnStore())
+    src._apply_house_heat_loss_scale(scale)
+    src._apply_lower_floor_loss_ratio(ratio)
+    src._house_heat_loss_samples, src._lower_floor_loss_samples = samples
+    _aio.run(src._async_save_thermal_learning())
+    return src._thermal_learning_store
+
+
+def _ra_zones(c):
+    """(upper, lower) effective heat loss, kW/°C, as the model applies it."""
+    p = c._thermal_params
+    s = c._house_heat_loss_scale
+    return p.upper_floor_heat_loss * s, p.lower_floor_heat_loss * c._lower_floor_loss_ratio * s
+
+
+def _ra_reload(cfg, store):
+    c = _ra_coord(cfg, store)
+    _aio.run(c._async_load_thermal_learning())
+    return c
+
+
+_ra_want = (_RA_U * _RA_S, _RA_L * _RA_R * _RA_S)
+_ra_seed = _ra_reload(_RA_RESEED, _ra_learned(_RA_CFG))
+_ra_got = _ra_zones(_ra_seed)
+R.check(
+    "an options reseed of both zones keeps each zone's learned heat loss",
+    all(abs(g / w - 1.0) < 1e-4 for g, w in zip(_ra_got, _ra_want)),
+    f"upper {_ra_got[0]:.4f} lower {_ra_got[1]:.4f} vs learned "
+    f"{_ra_want[0]:.4f} {_ra_want[1]:.4f} kW/°C (scale "
+    f"{_ra_seed._house_heat_loss_scale:.3f}, ratio {_ra_seed._lower_floor_loss_ratio:.3f})",
+)
+_ra_store2 = _ra_seed._thermal_learning_store
+_ra_saves = _ra_store2.saves
+_ra_again = _ra_reload(_RA_RESEED, _ra_store2)
+R.check(
+    "and a second load over the reseeded configuration re-anchors nothing",
+    _ra_zones(_ra_again) == _ra_got and _ra_store2.saves == _ra_saves,
+    f"{_ra_zones(_ra_again)} vs {_ra_got}, {_ra_store2.saves - _ra_saves} extra save(s)",
+)
+
+# The weekly-snapshot restore: a pre-reseed snapshot rolled back onto the
+# reseeded configuration is the same edit seen from the other side.
+_ra_snap = {"thermal_learning": dict(_ra_learned(_RA_CFG).saved)}
+_ra_rest = _ra_reload(_RA_RESEED, _CountingLearnStore())
+_ra_rest._apply_learner_payloads(_ra_snap)
+_ra_got_rest = _ra_zones(_ra_rest)
+R.check(
+    "a pre-reseed snapshot restored after the reseed keeps each zone",
+    all(abs(g / w - 1.0) < 1e-4 for g, w in zip(_ra_got_rest, _ra_want)),
+    f"upper {_ra_got_rest[0]:.4f} lower {_ra_got_rest[1]:.4f} vs learned "
+    f"{_ra_want[0]:.4f} {_ra_want[1]:.4f} kW/°C",
+)
+
+# Zero evidence: an install that has learned nothing keeps its edit, at
+# either nameplate -- round 1's failure mode, now on the ratio.
+_ra_zero = _ra_reload(
+    dict(_RA_CFG, lower_floor_heat_loss=_RA_L * 2.0),
+    _ra_learned(_RA_CFG, scale=1.0, ratio=1.0, samples=(0, 0)),
+)
+R.check(
+    "an unlearned install keeps a lower-nameplate edit",
+    _ra_zero._house_heat_loss_scale == 1.0 and _ra_zero._lower_floor_loss_ratio == 1.0,
+    f"scale {_ra_zero._house_heat_loss_scale}, ratio {_ra_zero._lower_floor_loss_ratio}",
+)
+
+# On the clamp: a ratio that cannot be expressed against the new lower
+# nameplate resets explicitly, never clips onto a bound.
+_ra_far = _ra_reload(
+    dict(_RA_CFG, lower_floor_heat_loss=_RA_L * 40.0), _ra_learned(_RA_CFG)
+)
+R.check(
+    "an inexpressible ratio resets, not clips onto a bound",
+    _ra_far._lower_floor_loss_ratio == 1.0 and _ra_far._lower_floor_loss_samples == 0,
+    f"ratio {_ra_far._lower_floor_loss_ratio}, {_ra_far._lower_floor_loss_samples} samples",
+)
+
+# G-ID-3: a power meter added under a learned state. The learners replayed
+# commanded power until now, so what they hold is void against the metered
+# basis: both start again from the configuration, and the store says so once.
+_ra_meter_store = _ra_learned(_RA_CFG)
+_ra_meter_saves = _ra_meter_store.saves
+_ra_meter = _ra_reload(_RA_METERED, _ra_meter_store)
+R.check(
+    "adding a power meter re-anchors both learners at zero confidence",
+    (_ra_meter._house_heat_loss_scale, _ra_meter._lower_floor_loss_ratio,
+     _ra_meter._house_heat_loss_samples, _ra_meter._lower_floor_loss_samples)
+    == (1.0, 1.0, 0, 0)
+    and _ra_meter_store.saves - _ra_meter_saves == 1,
+    f"scale {_ra_meter._house_heat_loss_scale}, ratio "
+    f"{_ra_meter._lower_floor_loss_ratio}, samples {_ra_meter._house_heat_loss_samples}/"
+    f"{_ra_meter._lower_floor_loss_samples}, {_ra_meter_store.saves - _ra_meter_saves} save(s)",
+)
+_ra_meter2 = _ra_reload(_RA_METERED, _ra_learned(_RA_METERED))
+R.check(
+    "a metered store reloaded metered keeps both learners verbatim",
+    (_ra_meter2._house_heat_loss_scale, _ra_meter2._lower_floor_loss_ratio) == (_RA_S, _RA_R),
+    f"scale {_ra_meter2._house_heat_loss_scale}, ratio {_ra_meter2._lower_floor_loss_ratio}",
+)
+# Removing the meter voids nothing: metered evidence is the better basis.
+_ra_unmeter = _ra_reload(_RA_CFG, _ra_learned(_RA_METERED))
+R.check(
+    "removing the power meter keeps both learners verbatim",
+    (_ra_unmeter._house_heat_loss_scale, _ra_unmeter._lower_floor_loss_ratio) == (_RA_S, _RA_R),
+    f"scale {_ra_unmeter._house_heat_loss_scale}, ratio {_ra_unmeter._lower_floor_loss_ratio}",
+)
+# A store written before the basis was recorded proves nothing about it:
+# the load adopts the configuration in force, it does not void the learners.
+_ra_old = _ra_learned(_RA_CFG)
+_ra_old.saved = {k: v for k, v in _ra_old.saved.items() if k != "house_heat_loss_basis"}
+_ra_pre = _ra_reload(_RA_METERED, _ra_old)
+R.check(
+    "a store without a recorded basis keeps both learners on a meter add",
+    (_ra_pre._house_heat_loss_scale, _ra_pre._lower_floor_loss_ratio) == (_RA_S, _RA_R)
+    and _ra_old.saved.get("house_heat_loss_basis") == "metered",
+    f"scale {_ra_pre._house_heat_loss_scale}, ratio {_ra_pre._lower_floor_loss_ratio}, "
+    f"basis adopted {_ra_old.saved.get('house_heat_loss_basis')!r}",
 )
 
 # --- The savings baseline follows the comfort schedule ---------------------
@@ -45027,15 +45179,16 @@ R.check(
 _t4_ra = _t4_coord()
 _T4_RA_CURRENT = _t4_ra._house_heat_loss_anchor()
 _t4_ra_refusals = {
-    "absent": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, None),
-    "non-numeric": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, "junk"),
-    "zero": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, 0.0),
-    "non-finite": _t4_call(
-        _t4_ra._reanchor_house_heat_loss_scale, float("nan")
-    ),
-    "within the step": _t4_call(
-        _t4_ra._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 1.01
-    ),
+    "absent": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, {}),
+    **{
+        label: _t4_call(
+            _t4_ra._reanchor_house_heat_loss_scale, {"house_heat_loss_anchor": anchor}
+        )
+        for label, anchor in (
+            ("non-numeric", "junk"), ("zero", 0.0), ("non-finite", float("nan")),
+            ("within the step", _T4_RA_CURRENT * 1.01),
+        )
+    },
 }
 R.check(
     "five stored anchors re-express nothing, and each says so by returning False",
@@ -45046,7 +45199,8 @@ R.check(
 )
 _t4_ra_far = _t4_coord()
 _t4_ra_far_out = _t4_call(
-    _t4_ra_far._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 4.0
+    _t4_ra_far._reanchor_house_heat_loss_scale,
+    {"house_heat_loss_anchor": _T4_RA_CURRENT * 4.0},
 )
 R.check(
     "an anchor a factor of four out IS re-expressed, and reports that it was",
