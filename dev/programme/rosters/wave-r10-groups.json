@@ -8532,10 +8532,10 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-trailer-emitters",
     "pr": null,
-    "commit": null,
+    "commit": "c6ef0668463b5e9291d0bf41061b06940ecb11ef",
     "last_step": null,
     "next_step": "a fixer seat is on branch fix/r10-trailer-emitters; open its pull request when the fix is pushed",
     "note": null
