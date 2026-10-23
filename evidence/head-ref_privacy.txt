@@ -1,0 +1,92 @@
+  ok   the old wt_sync slug of a scratch path is refused
+  ok   slug() of that path is ext-<leaf>-<hash>
+  ok   and passes the guard (the null control)
+  ok   slug() is stable for one path
+  ok   and distinct for two paths sharing a leaf
+  ok   a leaf carrying the account name falls back to ext-<hash>
+  ok   a leaf named after the temp root falls back too
+  ok   a path under a named root is <name>-<rest>
+  ok   --root naming the home directory still yields no leak
+  ok   a planted leaking ref name is refused
+  ok   a planted leaking message is refused, and named as the message
+  ok   the clean name and message pass (the null control)
+  ok   the account name is judged as a word, not a substring
+  ok   the uid is judged in the temp root's shape only
+  ok   a public runner path passes
+  ok   another host's home is refused
+  ok   a per-user macOS temp is refused
+  ok   an unpublishable ref character is refused
+  ok   a URL-escaped home path is refused, judged decoded (round 2)
+  ok   and an escape that decodes to nothing private passes (the null control)
+  ok   a git identity at a private-use domain is refused (round 2)
+  ok   and one at this host's own name, short or full
+  ok   a noreply address passes, even naming the account (the null control)
+  ok   a comment body naming this host's home is refused (the bus evidence line)
+  ok   and the same line home-relative passes, as does a quoted other home (the null control)
+  ok   home_relative: under the home is ~/<rest>; outside it, or a sibling sharing its prefix, unchanged
+  ok   a planted session-link is its class
+  ok   and the guard refuses a message carrying it, naming the message (session-link)
+  ok   and a comment body carrying it (session-link)
+  ok   a planted session-trailer is its class
+  ok   and the guard refuses a message carrying it, naming the message (session-trailer)
+  ok   and a comment body carrying it (session-trailer)
+  ok   a planted co-author-trailer is its class
+  ok   and the guard refuses a message carrying it, naming the message (co-author-trailer)
+  ok   and a comment body carrying it (co-author-trailer)
+  ok   a planted generated-footer is its class
+  ok   and the guard refuses a message carrying it, naming the message (generated-footer)
+  ok   and a comment body carrying it (generated-footer)
+  ok   the comment footer, italic and linked, is the generated-footer class
+  ok   a trailer after a bare carriage return is still at a line's start
+  ok   an ordinary commit naming claude.ai in another sense, and quoting the trailers mid-line, passes (the null control)
+  ok   a ref name is not judged for attribution (the classes are a message's)
+  ok   the host identity reads a home and a hostname, and judges no public account
+  ok   --commits judges the local commit only, not the one origin holds
+  ok   the guard CLI refuses an unpushed commit naming the scratch path, exit 3
+  ok   and passes the same branch one commit earlier (the null control)
+  ok   an unreadable range refuses (fail closed), exit 2
+  ok   the guard CLI refuses an unpushed commit whose author email names a machine, exit 3
+  ok   and passes it re-authored to the fixture identity (the null control)
+  ok   the guard CLI refuses an unpushed commit carrying a session trailer, exit 3, never echoing the link
+  ok   and passes once that commit is history origin holds (the null control: main is not charged)
+  ok   a trailer commit origin holds on ci-probe/x passes the first-publish scope (the hole)
+  ok   --over origin/main refuses it, exit 3
+  ok   and passes the clean commit below it, over main's own trailer (the null control)
+  ok   --over without --commits is a usage error, exit 2
+  ok   wt_sync pushed a snapshot of the dirty scratch worktree
+  ok   no wip-sync ref name or message it pushed leaks the planted host
+  ok   the planted message is itself a leak under the planted identity (the plant's precondition)
+  ok   the worktree whose unpushed commit names its path is refused, not pushed
+  ok   body_push refuses a topic naming a host path, and pushes nothing
+  ok   body_push refuses a topic that puts a session link in the message, and pushes nothing
+  ok   body_push refuses a body commit whose author email names a machine, and pushes nothing
+  ok   and pushes a clean topic (the null control)
+  ok   the site rule finds shell and Python pushes, not comments, .push( or excluded paths
+  ok   a Python wrapper call with no `git` word is a site (the g(...) arm alone: merge_train.py's shape)
+  ok   git spelled through a variable is a site, and $GIT_DIR is not (round 2)
+  ok   a gh api ref write is a site: -f, -F, -X PATCH, a createRef mutation (round 2)
+  ok   and a gh api ref read or DELETE is not (the null control)
+  ok   a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)
+  ok   and a release read is not (the null control)
+  ok   an unregistered pusher is refused
+  ok   a stale entry is refused
+  ok   guarded files that call the guard pass (the null control)
+  ok   a guarded entry that calls no guard is refused
+  ok   --check's content arm judges the diff from the merge base with origin/main
+  ok   and check() runs it (a pin by text: check() itself needs the real tree's pushers)
+  ok   a diff adding a line naming the host's scratch path is refused, by line and class
+  ok   and one naming another machine's home, by the host-path shape a runner can see
+  ok   the refusal never echoes the planted text
+  ok   a line the diff moves from another file is not charged (the null control)
+  ok   main's stock line in a changed file is not charged (the null control)
+  ok   a NUL-bearing file adding a host line is refused: binary content is judged (round 2)
+  ok   and so is UTF-16 text naming one, its NULs dropped
+  ok   a file added under a dash-mangled home is refused by its name, never echoing it (round 3)
+  ok   an ordinary new path passes by name and content (the null control)
+  ok   a NUL-bearing file naming no host passes (the null control), and nothing else is charged
+  ok   the scrubbed tree's diff is refused nothing (scrub is the remedy)
+  ok   scrub leaves no leak class under the planted identity, and keeps the line count
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 90 checks, 0 failed
+rc=0

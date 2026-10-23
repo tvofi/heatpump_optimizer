@@ -1,0 +1,12 @@
+$ bash tools/audit/seat/r9_rc_bus_fetchhead.sh tools/audit/seat/handoff_push.sh handoffpush
+rc=1
+== sibling: handoff_push.sh ==
+handoff-body/A BODY.md ............. BODY MARKER A
+handoff-body/B BODY.md (the decoy) . BODY MARKER B
+handoff_push.sh rc ................. 1
+verdict: no body written at /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/state/bodies/A-body.md -- the arm never reached the read
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/handoff_push.sh: line 12: cd: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/../../pr: No such file or directory
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/handoff_push.sh: line 15: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/delivery_row.sh: No such file or directory
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/handoff_push.sh: line 101: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/pr_args.sh: No such file or directory
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/handoff_push.sh: line 101: pr_exit_trap: command not found
+/Library/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python: can't open file '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.hmm5a7xiHB/seat/tools/audit/seat/ref_privacy.py': [Errno 2] No such file or directory
