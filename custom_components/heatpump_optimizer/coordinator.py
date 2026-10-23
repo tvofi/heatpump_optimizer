@@ -2635,7 +2635,7 @@ def machine_score(
     """
     if not _watched_cop_buckets(baseline):
         return None, "cop_watch_learning"
-    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+    return (1.0 - float((cusum_stat / COP_HEALTH_THRESHOLD))) * 100.0, None
 
 
 def operation_reason(score_day: Mapping[str, Any]) -> str:
