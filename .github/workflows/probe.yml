@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: "true"
+      # M-5b/M-7 window: the unit stays in progress for 4 min so one listing at a 60 s poll lands inside it
+      - run: sleep 240
 # m6 nochain trivial push 2026-10-23T06:04:33Z
 # m6 chain trivial push
