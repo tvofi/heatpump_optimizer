@@ -330,6 +330,18 @@ const PAIRS = [
       return { 'strings.json entity section': (k) => a[k] ?? null, 'translations/en.json entity section': (k) => b[k] ?? null }
     },
   },
+  {
+    concept: 'attribution',
+    what: "the tool attribution a text carries (R10-FLY-NO-FOOTERS): ref_privacy.py ATTRIBUTION (the push guard, on commit messages and comment bodies) against policy_lint.mjs attributionClasses (the body contract, kept there because pr-contract runs only the base's programs)",
+    async corpus() {
+      return Object.keys(py('attribution')).map((t) => [t, t])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('attribution')
+      return { 'ref_privacy.py attribution': (t) => rows[t], 'policy_lint.mjs attributionClasses': (t) => pl.attributionClasses(t) }
+    },
+  },
 ]
 
 // ---- discovery ---------------------------------------------------------------
