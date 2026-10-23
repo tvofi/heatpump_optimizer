@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.LO9uW6aikJ/wt/dev/audit/rounds/round10/D14/sweep-P8/p8_valve_probe.py", line 62, in <module>
+    mis, v, back = cell(dom, u)
+                   ~~~~^^^^^^^^
+  File "/tmp/tmp.LO9uW6aikJ/wt/dev/audit/rounds/round10/D14/sweep-P8/p8_valve_probe.py", line 47, in cell
+    asyncio.run(co.HeatPumpOptimizerCoordinator._command_valve_target(me))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/tmp.LO9uW6aikJ/wt/custom_components/heatpump_optimizer/coordinator.py", line 7338, in _command_valve_target
+    if log_held(self, "valve_flow_needs_two_zone",
+       ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                kind == mixing_valve.WRITE_TARGET_FLOW and not params.two_zone_enabled,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                "mixing_valve_write_target_kind=flow needs two-zone"):
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.LO9uW6aikJ/wt/custom_components/heatpump_optimizer/log_latch.py", line 52, in log_held
+    held = {} if owner is None else _HELD_CONDITIONS.setdefault(owner, {})
+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/weakref.py", line 408, in setdefault
+    return self.data.setdefault(ref(key, self._remove),default)
+                                ~~~^^^^^^^^^^^^^^^^^^^
+TypeError: cannot create weak reference to 'types.SimpleNamespace' object
