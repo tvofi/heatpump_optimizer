@@ -68097,6 +68097,23 @@ R.check(
 )
 
 
+def _ls_comfort_displace(displace_max):
+    coord = _solve_coord()
+    coord._mode = _LS_COMFORT
+    coord._ecl110_displace_max = displace_max
+    return coord._fixed_mode_action()["displace_value"]
+
+
+_ls_comfort_wide = _ls_comfort_displace(8.0)
+_ls_comfort_narrow = _ls_comfort_displace(2.5)
+R.check(
+    "comfort's fixed action displaces 4 K, held inside a narrower configured "
+    "ECL110 displace window",
+    _ls_comfort_wide == 4.0 and _ls_comfort_narrow == 2.5,
+    f"max 8.0 -> {_ls_comfort_wide}; max 2.5 -> {_ls_comfort_narrow}",
+)
+
+
 class _LsMsg:
     def __init__(self, payload):
         self.payload = payload
