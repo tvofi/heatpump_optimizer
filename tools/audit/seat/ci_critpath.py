@@ -423,6 +423,21 @@ def self_test() -> int:
         check("needs at a head git does not hold are read from the contents API, raw",
               api.needs("0" * 40, "w.yml") == dict(a=dict(name=None, needs=[]), b=dict(name=None, needs=["a"]))
               and calls[-1] == f"repos/o/r/contents/w.yml?ref={'0' * 40}")
+        head = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        gapi = Api("o/r", cache / "git", 5, get)
+        gapi.needs(head, ".github/workflows/tests.yml")
+        check("needs at a head git holds are read from git, not the API (0 reads)", gapi.reads == 0)
+        seen = []
+
+        def qget(path: str, raw: bool = False) -> str:
+            seen.append(path)
+            main_only = "event=push&branch=main" in path
+            return json.dumps(dict(workflow_runs=[dict(id=11 if main_only else 22, conclusion="success")]))
+        qapi = Api("o/r", cache / "q", 5, qget)
+        got = qapi.runs("tests.yml", 1, "push", "main")
+        check("--event and --branch reach the run-list query, and only its rows return",
+              [r["id"] for r in got] == [11] and "&event=push&branch=main" in seen[0])
+        check("with neither flag the query carries no filter", [r["id"] for r in qapi.runs("tests.yml", 1, None, None)] == [22])
         check("p90 is nearest rank", p90([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) == 9 and p90([5]) == 5)
         try:
             Api("o/r", cache / "x", 1, get).get("a") and Api("o/r", cache / "x", 0, get).get("a")

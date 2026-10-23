@@ -180,6 +180,9 @@ MUTANTS = [
     # R10-FLOW-TOOLKIT-MEASURE: the path walk, the per-run cache, the absorb count, the record split.
     ("ci_critpath-1", "ci_critpath.py", "n = max(live, key=lambda x: ends[x])", "n = min(live, key=lambda x: ends[x])"),
     ("ci_critpath-2", "ci_critpath.py", "        if f.exists():\n", "        if False:\n"),
+    ("ci_critpath-3", "ci_critpath.py", 'q = "".join(f"&{k}={v}" for k, v in (("event", event), ("branch", branch)) if v)',
+     'q = ""'),
+    ("ci_critpath-4", "ci_critpath.py", "p.stdout if p.returncode == 0\n", "p.stdout if False\n"),
     ("flow_metrics-1", "flow_metrics.py", "n += any(p in mainline for p in line.split())", "n += 0"),
     ("flow_metrics-2", "flow_metrics.py", 'fixes = [m for m in ms if not m["branch"].startswith(record)]',
      "fixes = list(ms)"),
