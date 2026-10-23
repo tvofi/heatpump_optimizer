@@ -90,12 +90,14 @@ ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
     "handoff-hold-malformed": "derived", "design-build": "derived", "review-owed": "derived",
+    "probe-refused": "derived", "confirm-owed": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
 PR_KEYED = ("reviewer-fire", "verdict-unposted", "approve-held-runs", "dispatch")
 ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
-        ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"))
+        ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"),
+        ("refs/heads/review/", "confirm-owed"))
 STATE_REF = re.compile(r"^audit-r\d+-(?:plan|roster)$")
 RELAY_WRITE = re.compile(r"\b(ledger_open|level_line) ([a-z-]+) ")
 VERDICT = re.compile(r"^Fix review: (?:merge|blocked) ([0-9a-f]{40})(?: |$)")
@@ -592,9 +594,9 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as d:
         D = Path(d)
         # ---- dispositions: classification, import, last per ref
-        check("each of the four arms classifies", [classify(f"refs/heads/{p}/x") for p in
-              ("probe", "handoff", "handoff-body", "design-verdict")]
-              == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build"])
+        check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
+              ("probe", "handoff", "handoff-body", "design-verdict", "review")]
+              == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build", "confirm-owed"])
         check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
         h = D / "imp"
         h.mkdir()

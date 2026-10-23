@@ -264,6 +264,11 @@ jobs:
           # keyed on --paths-file below, and the title only adds to it.
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          # The base, so policy_lint's raise arm reads the diff with
+          # budget_raise_gate.py's own raises_between: a raise whose body has
+          # no `## Raise justification` is refused here, on every push and body
+          # edit, not first at the train (dev/audit/rca/R10-RCA-RAISE-GATE-GRAMMAR.md).
+          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
           # #2028: the red history (#1144) reads every branch commit's check
           # runs and SKIPS without a token; no revision of this step held one,
           # so the contract printed `skip red-history` and passed a body silent
@@ -284,13 +289,13 @@ jobs:
           fi
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
-              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
               "${RED_ARGS[@]}"
           else
             node tools/policy/policy_lint.mjs \
-              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
               "${RED_ARGS[@]}"
