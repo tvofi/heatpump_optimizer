@@ -2625,6 +2625,51 @@ def envelope_score(
     return float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0, None
 
 
+def machine_score(
+    baseline: Mapping[Any, Any], cusum_stat: float
+) -> tuple[float | None, str | None]:
+    """The heat pump grade (#65) and, when it is None, the code saying why.
+
+    100 while the COP watch (#12) accumulates no shortfall; the grade falls
+    as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    """
+    if not _watched_cop_buckets(baseline):
+        return None, "cop_watch_learning"
+    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+
+
+def operation_reason(score_day: Mapping[str, Any]) -> str:
+    """Why the operation grade is None: a free-price reset, or no day scored yet."""
+    free = _as_float(score_day.get("free_streak"), 0.0)
+    return "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
+
+
+def compose_scores(
+    envelope: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None],
+    operation: tuple[float | None, str | None],
+) -> Scores:
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+
+    Envelope is the house; it stays in the breakdown. Overall is machine and
+    operation only -- averaging the house in is how a DHW-only cheap-hour plan
+    reads as 5/100. None is no evidence and is never 0: each None carries one
+    code in ``reasons`` (#2258), and a grade carries none.
+    """
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
+    available = [g for g, _why in (machine, operation) if g is not None]
+    if not available:
+        reasons["overall"] = "first_scored_day"
+    return {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "machine": None if machine[0] is None else round(machine[0], 1),
+        "operation": None if operation[0] is None else round(operation[0], 1),
+        "overall": round(float(np.mean(available)), 1) if available else None,
+        "reasons": reasons,
+    }
+
+
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
     return EntryConfig.from_mapping(config).price_source == PRICE_SOURCE_ENTITY
 
@@ -10384,58 +10429,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._schedule_ledger_save()
 
     def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
-        """#65: envelope, machine and operation on one 0–100 scale.
+        """#65's scores off this coordinator's learners (``compose_scores``).
 
-        Envelope is the house; it stays in the breakdown. Overall is
-        machine and operation only — averaging the house in is how a
-        DHW-only cheap-hour plan reads as 5/100. None is no evidence and
-        is never 0: each None carries one code in ``reasons`` (#2258).
         ``advice`` is this cycle's ``model_restart_advice``, taken once.
         """
-        reasons: dict[str, str] = {}
-        envelope, why = envelope_score(
-            getattr(self, "_ctx", self)._thermal_params,
-            self._house_heat_loss_samples,
-            advice,
-        )
-        if why is not None:
-            reasons["envelope"] = why
-
-        machine = None
-        if _watched_cop_buckets(self._cop_baseline):
-            # 100 while the COP watch (#12) accumulates no shortfall; the
-            # grade falls as the Cusum climbs toward its alarm.
-            machine = (
-                1.0
-                - float(
-                    np.clip(
-                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
-                        0.0,
-                        1.0,
-                    )
-                )
-            ) * 100.0
-        else:
-            reasons["machine"] = "cop_watch_learning"
-
         operation = self._operation_score
-        if operation is None:
-            free = _as_float(self._score_day.get("free_streak"), 0.0)
-            reasons["operation"] = (
-                "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
-            )
-        available = [s for s in (machine, operation) if s is not None]
-        if not available:
-            reasons["overall"] = "first_scored_day"
-        return {
-            "envelope": round(envelope, 1) if envelope is not None else None,
-            "machine": round(machine, 1) if machine is not None else None,
-            "operation": round(operation, 1) if operation is not None else None,
-            "overall": (
-                round(float(np.mean(available)), 1) if available else None
+        return compose_scores(
+            envelope_score(
+                getattr(self, "_ctx", self)._thermal_params,
+                self._house_heat_loss_samples,
+                advice,
             ),
-            "reasons": reasons,
-        }
+            machine_score(self._cop_baseline, self._cop_health_cusum.stat),
+            (operation, None if operation is not None else operation_reason(self._score_day)),
+        )
 
     def _narrative_view(self) -> Narrative:
         """#29: the current plan grouped by reason, with rendered lines."""
