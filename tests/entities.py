@@ -26731,6 +26731,64 @@ R.check(
     "`delivery-status` runs on pull requests with no widening at all, because "
     "it only reads the tree it is already checked out in",
 )
+# EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
+# Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
+# `-f pr= -f base=`, merge-main) is `github.event_name == 'workflow_dispatch'`
+# with `github.ref` the branch, and `prelude.derive` gives it `code`, which holds
+# `governance`. A `record` guarded only on `!= pull_request && != merge_group`
+# therefore ran there with `issues: write` over code the branch carries, and
+# walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
+# budgets. The guard is read off the registered job and evaluated over literals;
+# the plant is the unguarded text, the null controls are the arms that must run.
+_RW_GOV_WRITERS = ("record", "delivery-status-publish")
+_RW_OLD_RECORD_IF = (
+    "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
+_RW_PR_BRANCH = "refs/heads/claude/some-pr"
+_RW_REACH = (
+    ("push at main", "push", "refs/heads/main"),
+    ("schedule at main", "schedule", "refs/heads/main"),
+    ("dispatch at main", "workflow_dispatch", "refs/heads/main"),
+    ("push at a PR branch", "push", _RW_PR_BRANCH),
+    ("dispatch at a PR branch", "workflow_dispatch", _RW_PR_BRANCH),
+    ("pull_request", "pull_request", "refs/pull/1/merge"),
+    ("merge_group", "merge_group", "refs/heads/gh-readonly-queue/main/x"),
+)
+
+
+def _rw_reach(expr: str) -> "dict[str, bool]":
+    return {n: _gh_eval(expr, {"github.event_name": ev, "github.ref": ref})
+            for n, ev, ref in _RW_REACH}
+
+
+_RW_RECORD_REACH = _rw_reach(_gh_if(_workflow_job(_DS_GOV, "record")))
+_RW_PLANT_REACH = _rw_reach(_RW_OLD_RECORD_IF)
+R.check(
+    "plant: record's pre-U4-resume `if:` reaches a dispatch at a PR branch",
+    _RW_PLANT_REACH["dispatch at a PR branch"]
+    and _RW_PLANT_REACH["push at a PR branch"],
+    f"the control no longer reads the defect: {_RW_PLANT_REACH}",
+)
+R.check(
+    "record (issues: write) runs at main only: push, schedule, dispatch there",
+    all(_RW_RECORD_REACH[k] for k in
+        ("push at main", "schedule at main", "dispatch at main"))
+    and not any(v for k, v in _RW_RECORD_REACH.items()
+                if k not in ("push at main", "schedule at main",
+                             "dispatch at main")),
+    f"record reaches: {_RW_RECORD_REACH}. A dispatch of ci.yml at a PR branch "
+    "carries `governance` in its workset, so a write-holding job guarded on the "
+    "event name alone runs `issues: write` over the branch's code and spends "
+    "the main window's GITHUB_TOKEN calls",
+)
+for _rw_job in _RW_GOV_WRITERS:
+    _rw_got = _rw_reach(_gh_if(_workflow_job(_DS_GOV, _rw_job)))
+    R.check(
+        f"{_rw_job} holds a write grant and is unreachable from a PR branch",
+        not _rw_got["push at a PR branch"]
+        and not _rw_got["dispatch at a PR branch"]
+        and not _rw_got["pull_request"] and not _rw_got["merge_group"],
+        f"{_rw_job} reaches: {_rw_got}",
+    )
 _PC_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)",
     _workflow_job(_PC_WF, "pr-contract"), re.M)
