@@ -14,7 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CURRENCY (stage in-progress, branch `handoff/r10-currency`): `git fetch origin handoff/r10-currency && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-LOOP-CPU (stage in-progress, branch `handoff/r10-loop-cpu`): `git fetch origin handoff/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-LOOP-CPU (stage in-progress, branch `fix/r10-loop-cpu`): `git fetch origin fix/r10-loop-cpu && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SCORES (stage in-progress, branch `handoff/r10-scores`): `git fetch origin handoff/r10-scores && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-LANE (stage in-progress, branch `handoff/r10-replay-lane`): `git fetch origin handoff/r10-replay-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
