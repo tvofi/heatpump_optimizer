@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 00d89dd9b..64a6009db 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9698,7 +9698,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             self._away_state.override_active = active
+             self._away_state.override_return_iso = ret.isoformat() if ret else None
+             self._spawn(away_mode.persist_override(self, self._away_state))
+-        return active, ret
++        pass
+ 
+     async def _resolve_away(self) -> None:
+         """Work out whether the house is empty, and when it must be warm again."""
