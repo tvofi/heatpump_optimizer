@@ -237,6 +237,33 @@ def inert_siblings(changed, inert_reads, closure, pairs=None):
     return preds
 
 
+def left_inert(changed, closures, inert_reads, closure, scripts=None):
+    """A file this diff's INERT edit took out of INERT that a closure omits.
+
+    The committed table files a Python child's read of an INERT file under
+    `inert_reads` alone (`closure.strace_files` splits by the classifier that
+    recorded it). Once `tests/closure.py` excepts the file, a recording at
+    this head files the read in the closure, so a closure that omits it is
+    CI's UNDER-SCOPED: probe B2's harness_headers.py on r10_ci_layout_u5's
+    run_part.py and unitcheck.py (job 120398407061), which 6b never records
+    because a closure.py edit makes the case FULL. Charged only to a diff
+    that edits tests/closure.py, so main's own table is never a branch's red.
+    """
+    if "tests/closure.py" not in changed:
+        return []
+    preds = []
+    for script, files in sorted(inert_reads.items()):
+        listed = set(closures.get(script, ()))
+        for f in sorted(files):
+            if f not in listed and not closure.is_inert(f):
+                preds.append(("closures", f"UNDER-SCOPED {script}: {f} leaves INERT "
+                              f"in this diff; the table lists it under inert_reads "
+                              f"only, and a recording at this head files it in the closure"))
+                if scripts is not None:
+                    scripts.add(script)
+    return preds
+
+
 def no_recording(root, base, changed, closure):
     """Nothing, since round-9 C1 planned the full arm.
 
@@ -325,6 +352,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
                           closure, pairs, scripts)
     preds += inert_siblings(changed, inert_reads, closure, pairs)
+    preds += left_inert(changed, closures, inert_reads, closure, scripts)
     preds += unpinned(base)
     seen, out = set(), []
     for p in preds:
