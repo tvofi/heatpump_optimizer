@@ -59,6 +59,7 @@
     "governance / wave-script",
     "hassfest / hassfest",
     "pr-contract / pr-contract",
+    "tests / arch-instrument",
     "tests / briefs",
     "tests / browser",
     "tests / ci-ratchet",

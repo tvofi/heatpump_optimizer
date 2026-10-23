@@ -9,7 +9,14 @@
  ],
  "gained": [
   "browser|Say the lane-skip decision this run stands on",
-  "typing|Say the lane-skip decision this run stands on"
+  "typing|Say the lane-skip decision this run stands on",
+  "arch-instrument|",
+  "arch-instrument|order",
+  "arch-instrument|Say the lane-skip decision this run stands on",
+  "arch-instrument|uses:actions/checkout@<sha>",
+  "arch-instrument|uses:actions/setup-python@<sha>",
+  "arch-instrument|Install pinned test dependencies",
+  "arch-instrument|Run the architecture-score pair"
  ],
  "after": {
   "browser|Say the lane-skip decision this run stands on": "browser|^",
@@ -38,6 +45,9 @@
   "closures-autofix|Push the merged closures",
   "claims-autofix|Push emptied claim files",
   "mutation-autofix|Push the pinned ledger",
-  "ci-ratchet|Fetch the recent push runs' durations"
- ]
+  "ci-ratchet|Fetch the recent push runs' durations",
+  "lane-proofs|Record fast's green run at this base and diff",
+  "lane-proofs|Save fast's proof"
+ ],
+ "_comment_u5b": "U5b (its own commit range): the gained job arch-instrument runs tests/arch_score.py and tests/arch_score_head.py through run.sh's RUN_PART=arch, standing down on fast's decision; fast's Run the suite (already changed by U5) gains RUN_PART=fast; lane-proofs records fast's proof only when arch-instrument also passed."
 }

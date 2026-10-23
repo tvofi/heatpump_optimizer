@@ -361,6 +361,9 @@ jobs:
           # above all, or an empty input -- runs the whole suite.
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
           GATE_SCOPE_BASE: ${{ env.GOLDEN_REF }}
+          # The architecture-score pair is `arch-instrument`'s, below (U5b):
+          # run.sh skips it here by name.
+          RUN_PART: fast
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
           # shared runners it answered the second question. tests/stress.py
@@ -406,6 +409,64 @@ jobs:
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.warmkey.outputs.key }}
+
+  # The architecture score's own check (R9-EG-A1: tests/arch_score.py and
+  # tests/arch_score_head.py), beside `fast` instead of inside it (R10-CI-LAYOUT
+  # P2b, U5b; plan section 6, roster carry 3). On a slow runner the pair was
+  # about 41 of fast's 58 minutes. run.sh's RUN_PART=arch runs the pair alone,
+  # under the same scope `fast` takes and the same lane-skip decision, and
+  # its own accounting owes exactly the pair; `fast` skips it by name. Named
+  # apart from arch-score.yml's `arch-score`, which grades a pull request WITH
+  # the instrument (D-2); this guards the instrument. A required job, so it
+  # stands down at the step level (DESIGN-P2 4.2).
+  arch-instrument:
+    needs: [closure-scope]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    # The pair's slow-runner time (2350-2436 s, roster carry 3) and set-up.
+    timeout-minutes: 60
+    steps:
+      - name: Say the lane-skip decision this run stands on
+        run: |
+          echo "arch-instrument: closure-scope decided '${{ needs.closure-scope.outputs.fast_skip || 'run' }}' for fast's base and diff."
+          if [ "${{ needs.closure-scope.outputs.fast_skip }}" = "skip" ]; then
+            echo "A recorded green run of fast and this job at this exact base and diff"
+            echo "stands in for this rerun; every step below is skipped and this job reports success."
+          fi
+
+      # Full history: the scoped plan diffs against the merge base.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        with:
+          python-version: "3.14"
+
+      - name: Install pinned test dependencies
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # The scope `fast` takes: the prelude's, diffed from the merge base with
+      # the PR's base (origin/main on a dispatch naming none); full on push.
+      - name: Run the architecture-score pair
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          RUN_PART: arch
+          GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
+          GATE_SCOPE_BASE: origin/${{ inputs.base || 'main' }}
+        run: ./tests/run.sh
 
   # The real-browser layout lane (issue #96): positions, sizes and
   # visibility, the three things the DOM-stub lanes cannot see. Own job
@@ -1524,7 +1585,7 @@ jobs:
   # ci.yml's cancel-superseded cancels this run on a newer push, so a
   # proof can never be recorded against a diff the lanes never judged.
   lane-proofs:
-    needs: [closure-scope, fast, coverage, browser]
+    needs: [closure-scope, fast, arch-instrument, coverage, browser]
     if: >-
       !cancelled() && (
         github.event_name == 'pull_request'
@@ -1535,9 +1596,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      # fast's proof stands in for arch-instrument too, which stands down on
+      # fast's decision (U5b), so it is recorded only when both ran green.
       - name: Record fast's green run at this base and diff
         if: >-
           needs.fast.result == 'success'
+          && needs.arch-instrument.result == 'success'
           && needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           mkdir -p "$RUNNER_TEMP/lane-proof-fast"
@@ -1551,6 +1615,7 @@ jobs:
       - name: Save fast's proof
         if: >-
           needs.fast.result == 'success'
+          && needs.arch-instrument.result == 'success'
           && needs.closure-scope.outputs.fast_skip != 'skip'
         continue-on-error: true
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5

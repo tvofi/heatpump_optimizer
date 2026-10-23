@@ -108,8 +108,9 @@ def main(argv: list[str]) -> int:
         probs = stand_down_problems(head)
         say("stand-down, the head (want none)", not probs, "; ".join(probs) or "none")
         probs = stand_down_problems(yaml.safe_load(before.read_text()))
-        say("stand-down, BASE's tests.yml (want browser and typing refused)",
-            [p.split(":")[0] for p in probs] == ["browser", "typing"], "; ".join(p[:60] for p in probs) or "none")
+        say("stand-down, BASE's tests.yml (want arch-instrument absent, browser and typing refused)",
+            [p.split(":")[0] for p in probs] == ["arch-instrument", "browser", "typing"],
+            "; ".join(p[:60] for p in probs) or "none")
         probs = interface_problems(head, ci)
         say("interface, the head (want none)", not probs, "; ".join(probs) or "none")
 
