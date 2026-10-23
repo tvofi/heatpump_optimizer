@@ -20226,6 +20226,18 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view()["machine"] is None,
 )
+# The watch judges a bucket from its COP_BASELINE_MIN_SAMPLES-th sample on,
+# so a bucket at exactly that count is watched; one short of it is not.
+_cmach_edge = {}
+for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
+    _cmach_c = _t2_coord()
+    _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
+    _cmach_edge[_cmach_n] = _cmach_c._scores_view()["machine"]
+R.check(
+    "the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples",
+    _cmach_edge == {COP_BASELINE_MIN_SAMPLES - 1: None, COP_BASELINE_MIN_SAMPLES: 100.0},
+    str(_cmach_edge),
+)
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",

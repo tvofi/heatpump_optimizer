@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._cop_watch CLAMP_DROP 7eb4b17f",
+  "killed_by": "tests/features.py",
+  "old": "        return watched, float(np.clip(self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a7cf60cfd8acbd0a8b66421d6ac33e06400ac882: CLAMP_DROP (`return watched, float((self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
