@@ -968,7 +968,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "fix/r10-loop-cpu",
-    "commit": null,
+    "commit": "577ec62dbb35f2353902b5bbe5adb37b69805af2",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
