@@ -1,0 +1,7 @@
+  note     required-contexts     the live set is the recorded PRE-CUT-OVER shape (`pre_cutover`), accepted whole until the cut-over PUT (ruleset_cutover.py --enable)
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 263 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
