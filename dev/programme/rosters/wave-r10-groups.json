@@ -6056,7 +6056,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "rca: topic r10-rca-body-check-parity"
    }
   },
   {
