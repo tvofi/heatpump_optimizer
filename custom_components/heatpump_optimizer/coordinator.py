@@ -1536,8 +1536,18 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     ``_await_optimize`` catches only ``ProcessWorkerUnavailable``, so an
     install that could not fork got neither the in-process fallback nor its
     repair notice: no plan at all.
+
+    The job is serialised whole before the pipe is touched, as the worker's
+    replies are (``process_worker._dump``): a job that will not pickle fails
+    here with the worker untouched, never as a dropped handle to a child
+    parked on half a frame. A fault after that leaves the stream in an
+    unknown state, so the child is reaped, never left running unheld.
     """
     global _PROCESS_WORKER
+    try:
+        job = pickle.dumps((fn, args), protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as err:  # noqa: BLE001 - the job's state, not the worker
+        raise ProcessWorkerUnavailable(f"job cannot be pickled: {err}") from err
     with _PROCESS_LOCK:
         worker: "subprocess.Popen[bytes] | None" = None
         try:
@@ -1545,7 +1555,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             stdin, stdout = worker.stdin, worker.stdout
             if stdin is None or stdout is None:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
-            pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+            stdin.write(job)
             stdin.flush()
             status, payload = pickle.load(stdout)
         except ProcessWorkerUnavailable:
@@ -1559,6 +1569,11 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                     f"process worker cannot start: {err}"
                 ) from err
             rc = worker.poll()
+            try:  # a no-op on a child poll() has already reaped
+                worker.kill()
+                worker.wait()
+            except Exception:  # noqa: BLE001 - must not mask the cause
+                pass
             raise ProcessWorkerUnavailable(
                 f"process worker exited rc={rc}: {err}"
             ) from err
