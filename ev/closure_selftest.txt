@@ -1,0 +1,4 @@
+  ok   the census refuses a planted rename-detecting diff, and only it
+  ok   and reports every allow entry nothing matches as stale
+
+ALL 113 closure shrink pins PASSED
