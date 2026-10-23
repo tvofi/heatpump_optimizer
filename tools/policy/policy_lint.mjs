@@ -5192,6 +5192,17 @@ function assertAcceptance(derived) {
     console.log('\nFIXTURE VACUOUS: the old set passed a record with no pre_cutover, so the comparison is not reading the record at all (null control)')
     rc = 1
   }
+  // WHOLE, not contexts alone (#2658 review): a pre shape whose rulesets differ from the
+  // post-PUT record's. A comparison that took only `contexts` from pre_cutover and the rest
+  // from the post-PUT record refuses this live set; the whole-shape arm accepts it.
+  pins += 1
+  const RC_PRE2 = { contexts: RC_THREE.contexts, count: 3, rulesets: [2] }
+  const rcBoth2 = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [2] } })
+  const pre2 = driveRC(RC_PRE2, rcBoth2, [])
+  if (pre2.found.length || !pre2.said.some((l) => /PRE-CUT-OVER/.test(l))) {
+    console.log(`\nFIXTURE VACUOUS: a live set equal to a pre_cutover whose rulesets differ from the post-PUT record's produced ${pre2.found.length} finding(s); pre_cutover must be compared WHOLE, not on contexts alone`)
+    rc = 1
+  }
   const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
   const rcRotText = read(rcRot)
   if (rcRotText == null) {
