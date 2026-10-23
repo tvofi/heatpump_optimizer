@@ -1,0 +1,14 @@
+== R1 rc=1
+FIXTURE VACUOUS: window cache ["a failed commit-to-PR enumeration was cached or served: it must fetch again and write nothing","a read after a failed enumeration did not fetch for itself (null control)"]. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.
+== R1b rc=1
+
+== R1c rc=1
+FIXTURE VACUOUS: window cache ["the commit-to-PR map was fetched 1 time(s) for two reads of one window, not once","a failed commit-to-PR enumeration was cached or served: it must fetch again and write nothing","a read after a failed enumeration did not fetch for itself (null control)"]. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.
+== R2 rc=1
+FIXTURE VACUOUS: window cache ["a window cache keyed on another window was served instead of ignored"]. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.
+== R2b rc=1
+FIXTURE VACUOUS: window cache ["a window cache keyed on another window was served instead of ignored"]. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.
+== R2c rc=1
+FIXTURE VACUOUS: window cache ["a window cache keyed on another window was served instead of ignored"]. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.
+== R2d rc=0
+FIXTURE ok: 92 error(s) hold 253 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
