@@ -1,50 +1,51 @@
 # The pull-request contract: a body is checked against the evidence it owes.
 #
-# WHY ITS OWN FILE (#1514). The contract must re-run when a body is edited,
-# because a body edit is the only change it reads that a commit does not make;
-# no other required check reads a body. `pull_request: [edited]` therefore
-# lives here and nowhere else. It lived in governance.yml, whose other jobs
-# carried an `if:` that skipped them on an `edited` event (#1484) -- and a
-# skipped job still writes a check run at the head. A body edit re-created
-# `policy-docs`, `env-matrix` and `wave-script` as SKIPPED at an unchanged
-# head, the latest run of each context superseding the real verdict before
-# it. An event this file does not list starts no run of it, so nothing here
-# can be superseded that way. `tests/entities.py` pins the split: a workflow
-# that lists `edited` holds one unguarded job -- this one, or
-# `budget-raise-gate`, which reads the base a retarget moves.
+# A CALLEE OF ci.yml (R10-CI-LAYOUT P2b, U6). The umbrella's `pr-contract`
+# caller runs this after every other unit, on code and edit events that name a
+# pull request, so the red list below is final. It is a unit, not a required
+# context: `gate` is the one required check, and this job's check run reads
+# `pr-contract / pr-contract`. A body edit re-runs it because ci.yml lists
+# `edited`; the PR number, base ref name and head SHA arrive as inputs, the
+# prelude's, and the event (`github.event`, `github.event_name`) is the
+# caller's. Nothing here selects an event any more: no `pull_request`, no
+# `merge_group`, no `concurrency` (ci.yml's run-id group holds the run alone).
 #
-# `tests.yml` must not carry `edited` either: it would re-run the whole
-# forty-minute gate every time a body is edited.
+# `tests.yml` must not carry `edited`: the umbrella's callers are skipped on an
+# edit run unless the prelude's workset names them (DESIGN-P2 4.3).
 
 name: PR contract
 
 on:
-  pull_request:
-    types: [opened, edited, synchronize, reopened]
-  # The merge queue (round-9 process review item 2): the same contract, run on
-  # a queue entry for the pull request it carries, named by the step below.
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
 
+# The floor a job-level block replaces; restated on the job. `security-events`
+# and `actions` are the code-scanning wait's reads (DESIGN-P2 4.3): runs and
+# jobs for steps 1-3, analyses and alerts for steps 4-5.
 permissions:
   contents: read
-
-# The forty-minute gate in tests.yml still cancels a superseded pull-request
-# run (round-9 process review item 3). This required job is short, and
-# cancelling two events at one SHA (synchronize + edited) left a cancelled
-# required context at the live head (R9-RC-PRCONTRACT). Do not cancel here.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: false
+  security-events: read
+  actions: read
 
 jobs:
   pr-contract:
-    # The evidence sections a body owes, checked at the head CI is running.
-    # `pull_request: [edited]` is why this workflow is separate from tests.yml:
-    # a body edit must re-run this and must NOT re-run the forty-minute gate.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # The evidence sections a body owes, checked at the head CI is running. A
+    # body edit re-runs this and must NOT re-run the forty-minute gate: ci.yml's
+    # workset for an edit run names this job and the body units only. No `if:`:
+    # the caller's decides, and a skipped job here would write a skipped check.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The code-scanning wait is bounded at ten minutes (codescan_wait.py
+    # WAIT_MAX_S); the rest of the job is about a minute.
+    timeout-minutes: 20
     # THE GRANTS THIS JOB ADDS ARE READS. The red-list step below reads the
     # head's check runs through `/commits/<sha>/check-runs`, which the token
     # refuses without `checks: read` (#956); the body step reads the pull
@@ -55,10 +56,14 @@ jobs:
     # read-only widening on the one job that reads the API is the
     # `nightly-status` precedent in tests.yml, and the override pin in
     # tests/entities.py counts this block and carries this argument.
+    # `security-events: read` and `actions: read` are the code-scanning wait's
+    # (DESIGN-P2 4.3): the run and its jobs, then the analyses and alerts.
     permissions:
       contents: read
       checks: read
       pull-requests: read
+      security-events: read
+      actions: read
     steps:
       # fetch-depth 0 because `## Approval` is keyed on the DIFF (R3-D11-03):
       # the base commit has to be in the clone for `git diff base...head` to
@@ -87,7 +92,9 @@ jobs:
       # `policy-docs` states.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          # The event's base commit; a dispatch carries none, and falls back to
+          # the base ref's tip (the clone is full-depth, so origin/<ref> exists).
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
         run: |
           set -euo pipefail
           rm -rf .claude/workflows/vendor
@@ -105,6 +112,7 @@ jobs:
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
+            'tools/ci/*.py' \
             'tools/policy/vendor' \
             'tools/pr/*.sh' \
             'tools/seat/*.sh' \
@@ -123,17 +131,22 @@ jobs:
       # tree: its number from the queue branch's name, its head as the queue
       # commit's second parent (merge method MERGE), and the API must report
       # that same head or the step fails -- a run that cannot name what it
-      # grades must not pass. On any other event it writes nothing and every
-      # step below reads the payload as before. Outputs only, never
-      # $GITHUB_ENV: nothing here can reach a later program, and it runs after
-      # the restore, from admitted commands alone.
-      - name: Name the pull request a queue entry carries
+      # grades must not pass. On every other event the number and head are the
+      # prelude's inputs (a dispatch and a review carry no `pull_request`
+      # payload to read them from), and the base commit is the payload's, else
+      # the API's. Outputs only, never $GITHUB_ENV: nothing here can reach a
+      # later program, and it runs after the restore, from admitted commands
+      # alone.
+      - name: Name the pull request this run grades
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event_name }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }}
           QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          IN_PR: ${{ inputs.pr }}
+          IN_HEAD: ${{ inputs.head }}
+          PAYLOAD_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT" = "merge_group" ]; then
@@ -144,6 +157,13 @@ jobs:
             echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
             echo "head=$HEAD" >> "$GITHUB_OUTPUT"
             echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
+          else
+            test -n "$IN_PR" && test -n "$IN_HEAD"
+            BASE=${PAYLOAD_BASE:-$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${IN_PR}" --jq '.base.sha')}
+            echo "number=$IN_PR" >> "$GITHUB_OUTPUT"
+            echo "base=$BASE" >> "$GITHUB_OUTPUT"
+            echo "head=$IN_HEAD" >> "$GITHUB_OUTPUT"
+            echo "pull request $IN_PR at $IN_HEAD on base $BASE"
           fi
 
       # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT
@@ -176,18 +196,16 @@ jobs:
       - name: Read the body off the API, not the event payload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           set -euo pipefail
           BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
           printf '%s' "$BODY" > /tmp/pr-body.md
           AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
           printf '%s' "$AUTHOR" > /tmp/pr-author.txt
-          # The title too, which a queue entry's payload does not carry; on a
-          # pull request the payload's title below is used, as before.
-          if [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
-            gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
-          fi
+          # The title too: a queue entry's payload does not carry it, and a
+          # dispatch's has no pull request. Read like the body, never the payload.
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
 
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
@@ -195,8 +213,8 @@ jobs:
       # reason -- an empty diff is not a thing a pull request has.
       - name: List the paths this pull request changes
         env:
-          PR_BASE: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+          PR_HEAD: ${{ steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           # --no-renames, and it is not cosmetic: a rename is reported by its
@@ -210,6 +228,29 @@ jobs:
           # while the diff touches none of its inputs, and a delivery row the
           # pull request ADDS (its own) is not one; a row it edits or deletes is.
           git diff --no-renames --name-only --diff-filter=a "$PR_BASE...$PR_HEAD" > /tmp/pr-existing.txt
+
+      # THE CODE-SCANNING WAIT (DESIGN-P2 4.3, steps 1-5; owner ruling R-10,
+      # option B). The `CodeQL` check concludes before the last uploading leg
+      # ends, so the check listing below cannot see a finding only the python
+      # leg reports. This step waits for the analyses of the run that owns the
+      # codeql unit (a poll of at least 60 s, bounded at ten minutes), reads
+      # each by id, and lists the alerts left open as
+      # `code-scanning alert <n> (<rule id>)`, one per line, for the list below.
+      # It fails closed on any failed read. Its program is the base's (the
+      # restore above takes tools/ci/*.py). `CS_BASE_REPEATS` is empty until the
+      # live probe (U6 case 6) shows the merge ref's analysis repeats the base's
+      # alerts; set it to subtract them.
+      - name: Wait for code scanning and list its open alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BASE_REF: ${{ inputs.base }}
+          CS_BASE_REPEATS: ""
+        run: |
+          set -euo pipefail
+          test -n "$PR_NUMBER" && test -n "$BASE_REF"
+          python3 -I tools/ci/codescan_wait.py --pr "$PR_NUMBER" --base "$BASE_REF" ${CS_BASE_REPEATS:+--base-repeats} > /tmp/pr-alerts.txt
+          printf 'code-scanning alerts the body must answer: %s\n' "$(paste -sd, /tmp/pr-alerts.txt)"
 
       # #956: the red-check trigger CLAUDE.md calls enforced, enforced. The
       # head's check runs are listed FIRST, the red names are handed to the
@@ -238,10 +279,17 @@ jobs:
       # `gh pr checks` -- the no-gh rule's own reason). One call, one page per
       # hundred runs (`--paginate`): single-digit seconds inside a job that
       # already runs about 75 s.
+      #
+      # THE EXCLUSION KEYS ARE NOW TWO (N4). A unit's check run is named
+      # `<caller> / <job>`, so this job's own is `pr-contract / pr-contract`;
+      # the name key above holds for that name, and `gate` is excluded too: it
+      # is red whenever anything required is red, so listing it would ask a
+      # body to answer the verdict it feeds. The code-scanning alerts the wait
+      # step listed join the list, each as its own name (R-10, option B).
       - name: List the red checks at this head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          PR_HEAD: ${{ steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           # Fail-closed, on the paths-file step's own principle: a derivation
@@ -251,19 +299,21 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
             --jq '.check_runs[]
                    | select(.status == "completed" and .conclusion == "failure")
-                   | select(.name != "pr-contract")
+                   | select(.name != "pr-contract / pr-contract")
+                   | select(.name != "gate")
                    | .name' | sort -u > /tmp/pr-reds.txt
+          cat /tmp/pr-alerts.txt >> /tmp/pr-reds.txt
+          sort -u /tmp/pr-reds.txt -o /tmp/pr-reds.txt
           printf 'red checks the body must answer: %s\n' \
             "$(paste -sd, /tmp/pr-reds.txt)"
 
       - name: Check the body against the contract
         env:
-          # Interpolating a title into a shell line is script injection: the
-          # title is written by whoever opened the pull request. The same is
-          # true of the title as EVIDENCE, which is R3-D11-03: `## Approval` is
-          # keyed on --paths-file below, and the title only adds to it.
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          # The title is written by whoever opened the pull request, so it
+          # reaches the shell as a file read below, never as an interpolation. It
+          # is also EVIDENCE (R3-D11-03): `## Approval` is keyed on --paths-file
+          # below, and the title only adds to it.
+          PR_HEAD: ${{ steps.pr.outputs.head }}
           # #2028: the red history (#1144) reads every branch commit's check
           # runs and SKIPS without a token; no revision of this step held one,
           # so the contract printed `skip red-history` and passed a body silent
@@ -279,9 +329,7 @@ jobs:
           while IFS= read -r name; do
             RED_ARGS+=(--red "$name")
           done < /tmp/pr-reds.txt
-          if [ -f /tmp/pr-title.txt ]; then
-            PR_TITLE=$(cat /tmp/pr-title.txt)
-          fi
+          PR_TITLE=$(cat /tmp/pr-title.txt)
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
@@ -359,7 +407,7 @@ jobs:
       - name: Refuse a version, manifest-version or notes-heading edit
         if: always()
         env:
-          PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          PR_HEAD: ${{ steps.pr.outputs.head }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
