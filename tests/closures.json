@@ -3472,8 +3472,10 @@
   "tests/entities.py": [
    "LICENSE",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
    "tools/audit/seat/cloud_dispatch.py",
+   "tools/audit/seat/flow_metrics.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
@@ -3533,6 +3535,7 @@
    "dev/audit/harnesses/r10_ci_layout_p1/critpath.py",
    "dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh",
    "dev/audit/harnesses/r10_ci_layout_p1/unitcheck.sh",
+   "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
