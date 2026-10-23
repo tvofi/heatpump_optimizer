@@ -1161,6 +1161,17 @@ jobs:
     if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # ONE RECORD RUN PER BURST (dev/audit/rca/install-ratelimit.md, M2). Every
+    # run walks the whole `<last tag>..origin/main` window on the repository's
+    # GITHUB_TOKEN bucket, which the required checks of every open pull request
+    # read from too. A fixed group with `cancel-in-progress: false` keeps one run
+    # going and one pending, and a newer push replaces the pending one: the run
+    # that does start measures the newest head, whose window holds every
+    # superseded push's. Shared by the schedule and dispatch arms, which spend
+    # the same bucket. Not a required context, so nothing waits on the queue.
+    concurrency:
+      group: governance-record
+      cancel-in-progress: false
     permissions:
       contents: read
       # --stats reads pull-request bodies and review comments through the API.
@@ -1189,6 +1200,17 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22"
+
+      # THE UNIT IS CALLS, NOT RUNS (dev/audit/rca/install-ratelimit.md, M0).
+      # The bucket's size, what is left of it and its reset, before the window
+      # walk and again after it, so a diagnosis reads "N calls of L" from this
+      # log instead of counting runs. `rate_limit` is not counted against the
+      # limit. A log line, never a gate: `|| true` keeps it from reddening the job.
+      - name: GITHUB_TOKEN rate limit before the window walk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT before: \(.resources.core)"' || true
 
       - name: Choose the window
         id: window
@@ -1224,6 +1246,7 @@ jobs:
           if test -f .claude/workflows/policy_lint.mjs; then _pl=.claude/workflows/policy_lint.mjs; else _pl=tools/policy/policy_lint.mjs; fi
           node "$_pl" --record \
             --since "${{ steps.window.outputs.since }}" \
+            --window-cache "$RUNNER_TEMP/window.json" \
             2>&1 | tee "$RUNNER_TEMP/record.txt"
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
@@ -1239,7 +1262,7 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
 
       # THE LANES THAT CAN REDDEN THIS JOB (#959, D11-04). The step below is one
       # path in this job allowed to ACT, and it runs WITHOUT `|| true`: a filing
@@ -1289,7 +1312,14 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; fi|| true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
+
+      - name: GITHUB_TOKEN rate limit after the window walk
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT after: \(.resources.core)"' || true
 
       # THE REPORT, AND IT COMES LAST. It reports on the steps above it, so it
       # has to be after them -- the ordering `tests/entities.py` pins for the
