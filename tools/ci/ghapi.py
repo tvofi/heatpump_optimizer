@@ -14,7 +14,8 @@ there that imports urllib (contract item 2), stdlib only.
     post(path, body=None)  -> Resp
     paginate(path, params) -> list       every item of every page, Link-followed
 
-A non-2xx answer is returned, never raised, so the caller names it -- except a
+A GET retries a 5xx twice (RETRY_5XX backoffs) before answering. A non-2xx
+answer is returned, never raised, so the caller names it -- except a
 RATE LIMIT (A1 item 4): a 403 or 429 whose body says the rate limit was
 exceeded raises `RateLimited`, carrying `reset_epoch` from `X-RateLimit-Reset`
 (else now + `Retry-After`), so no caller can read it as an ordinary red and no
@@ -35,6 +36,7 @@ import urllib.parse
 import urllib.request
 
 API = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+RETRY_5XX = (2, 6)      # GET only: the backoffs, in seconds, before each retry of a 5xx answer
 MAX_PAGES = 50          # 5000 items at per_page=100: far past any head's runs; a Link loop ends here
 _NEXT = re.compile(r'<([^>]+)>;\s*rel="next"')
 
@@ -94,8 +96,22 @@ def _request(method: str, path: str, params=None, body=None, headers=None):
     return status, headers, doc
 
 
+def _sleep(seconds: float) -> None:
+    """The backoff; the self-test swaps it for a recorder."""
+    time.sleep(seconds)
+
+
 def get(path: str, params=None, headers=None):
-    return _request("GET", path, params, headers=headers)
+    """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), so a GET retries it
+    after each backoff in RETRY_5XX and then returns what it got; any other status, a rate limit
+    included, answers at once. A POST is never retried."""
+    resp = _request("GET", path, params, headers=headers)
+    for nap in RETRY_5XX:
+        if resp[0] < 500:
+            break
+        _sleep(nap)
+        resp = _request("GET", path, params, headers=headers)
+    return resp
 
 
 def post(path: str, body=None):
