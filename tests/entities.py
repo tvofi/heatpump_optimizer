@@ -29140,7 +29140,19 @@ def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
             continue
         _doc = docs[_prod[0]]
         _on = _doc.get("on", _doc.get(True)) or {}
-        if "merge_group" not in ([_on] if isinstance(_on, str) else list(_on)):
+        _evs = [_on] if isinstance(_on, str) else list(_on)
+        if "workflow_call" in _evs and "merge_group" not in _evs:
+            # A called workflow (U8): `ci.yml`
+            # lists `merge_group` and has a caller job that `uses` this file.
+            # Which events the caller's `if:` admits is the prelude's workset,
+            # a pin of its own; this reader cannot evaluate it.
+            _umb = docs.get("ci.yml") or {}
+            _umb_on = _umb.get("on", _umb.get(True)) or {}
+            if "merge_group" not in list(_umb_on) or not any(
+                    str((_j or {}).get("uses", "")).endswith("/" + _prod[0])
+                    for _j in (_umb.get("jobs") or {}).values()):
+                out.append(f"{_ctx}: {_prod[0]} is not called by ci.yml on merge_group")
+        elif "merge_group" not in _evs:
             out.append(f"{_ctx}: {_prod[0]} does not list merge_group")
         elif _if_under(((_doc.get("jobs") or {}).get(_prod[1]) or {}).get("if"),
                        {"github.event_name": "merge_group"}) is not True:
