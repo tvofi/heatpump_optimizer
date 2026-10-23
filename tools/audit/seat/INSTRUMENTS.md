@@ -24,10 +24,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
-  Its GitHub reads retry on `app_push.sh`'s read-back rule (4 reads, settling
-  5/15/45 s) only on a transport error, 5xx, 429 or a secondary-rate-limit
-  403, and refuse with the last error once spent; any other failure, a wrong
-  answer and the review POST are never retried.
+  Its GitHub reads -- the four `gh api` reads and curl's JWT read of the
+  App's installation -- are under `seat/gh_read.py`'s read rule; the token
+  mint and the review POST are never retried.
 - `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
   and reads the posted comment back byte-identical. When: a reviewer seat
   delivers a verdict. Refusal: a read-back that differs from what it meant to
@@ -326,6 +325,20 @@ sweep's standing-seat liveness step keep them alive.
   non-Actions check prints NO-JOB, an unserved log prints NO-LOG and exits 1
   with the count over readable logs beside the unread one; no error-marker
   match falls back to the log's tail, never a silent zero.
+- `gh_read.py` — the read rule every seat instrument's GitHub READS are
+  under, stated here once: `app_push.sh`'s read-back rule, 4 reads settling
+  5/15/45 s, retrying only a transport error, HTTP 5xx, 429 or a 403 whose
+  status line names the secondary rate limit; a failure naming a longer wait
+  (Retry-After, or a spent bucket's reset on a rate-limit response: a 429,
+  or a 403 naming a rate limit) is read no sooner, and one past 45 s refuses
+  at once naming it; any other status is judged by its code alone, whatever
+  bucket it carries. When: a new GitHub read in a seat instrument —
+  `retry` with `gh_wait` (gh's output) or `urllib_wait` (urllib's), and
+  `is_read` before retrying any `gh` call; `app_approve.sh`'s `gh_transient`
+  is the bash twin its self-test compares row for row. Refusal: every other
+  failure (401, a permission 403, 404, 422, an unclassified one) after its one
+  call, a spent budget with its last error and the attempt count; a write is
+  never retried. Its `self_test()` runs inside `record_row.py`'s.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
@@ -366,7 +379,9 @@ sweep's standing-seat liveness step keep them alive.
   `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
   `--free-holders` detaches a clean, pushed holder worktree. Every refused
   merge attempt is logged in GitHub's words; the recarry worktrees a run made
-  are removed before its closing line.
+  are removed before its closing line. Every `gh api` GET and `gh pr view`
+  it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
+  settle logged.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -607,7 +622,8 @@ sweep's standing-seat liveness step keep them alive.
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
   `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
   table and HANDOVER are a seat's dispositions, never this generator's — and
-  a window it cannot attribute refuses rather than reports empty.
+  a window it cannot attribute refuses rather than reports empty. Every API
+  read is `_api`'s, under `gh_read.py`'s read rule.
   `--automerge-check --pr N [--head SHA] [--hold] [--require-green]` is the
   guard CI approves and merges a record pull request behind (exit 3: guard
   passes, a required check has not yet); `--replay-moved` replays one
