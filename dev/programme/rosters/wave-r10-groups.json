@@ -8493,6 +8493,50 @@
     "note": "Registered after the pull request opened; stage recorded as in-progress because in-review is not a classified roster stage."
    },
    "brief": "Owner ruling (tvofi, 2026-10-22): no Claude attribution footers or session links in seat output, that is no generated-with line, no co-author or session trailer, and no session URL in commits, pull request bodies or comments. The pull request bans them in the harness settings and refuses them in the policy lint, an entities check and prepr, each with a planted-defect control. Follow dev/governance/roles/fixer.md."
+  },
+  {
+   "group": "R10-FLY-NO-FOOTERS-EMITTERS",
+   "lane": "FLY",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-FLY-NO-FOOTERS"
+   ],
+   "files": [
+    "tools/audit/seat/delivery_row.sh",
+    "tools/release/stamp.py",
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "carry": [
+    "Follow-up of R10-FLY-NO-FOOTERS (#2636, merged at 7deeef1b6b). Found by the roster seat on #2651: after #2636 every open_pr.sh and update_pr.sh row commit was refused at app_push with `ref_privacy: REFUSE: co-author-trailer in the message of <row commit>`, because delivery_row.sh commit_row hardcodes a Co-Authored-By trailer, and tools/release/stamp.py hardcodes one on the stamp commit. #2636's controls did not exercise either producer. Control: a self-test row per producer that fails while its trailer is present and passes without it (the null control), reusing ref_privacy's co-author-trailer pattern rather than a second copy of the regex."
+   ],
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-trailer-emitters",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "a fixer seat is on branch fix/r10-trailer-emitters; open its pull request when the fix is pushed",
+    "note": null
+   },
+   "brief": "delivery_row.sh line 40 and stamp.py line 2114 hardcode Co-Authored-By trailers that ref_privacy and policy_lint have refused since #2636. Remove them, pin each producer with a self-test row that reuses ref_privacy's pattern, and sweep the producer class: every script under tools/ that writes a commit message, body or comment must be checked for a hardcoded attribution line. Follow dev/governance/roles/fixer.md."
   }
  ]
 }
