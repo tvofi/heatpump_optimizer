@@ -782,14 +782,14 @@ def self_test() -> int:
             p = subprocess.Popen(["bash", str(script)], env={**os.environ, "HPO_STATE_DIR": str(st)},
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if term:
-                for _ in range(200):
-                    if (st / EVENTS).exists() and "started" in (st / EVENTS).read_text().splitlines()[-1]:
+                for _ in range(400):  # past both attempt lines: the trap is installed
+                    if (D / "op.ready").exists():
                         break
                     subprocess.run(["sleep", "0.05"])
                 p.terminate()
             p.wait(timeout=30)
             return [r[5] for r in events(st, str(st / "cloud-relay.log")) if r[0] == "attempt"]
-        killed = run_opener("sleep 30 & wait $!\nPR_ATTEMPT=opened,PR=9", term=True)
+        killed = run_opener(f'touch "{D}/op.ready"; sleep 30 & wait $!\nPR_ATTEMPT=opened,PR=9', term=True)
         clean = run_opener("sleep 0.1 & wait $!\nPR_ATTEMPT=opened,PR=9", term=False)
         check("open_pr.sh carries both attempt lines", len(wired) == 2)
         check("a TERMed opener records started then unopened on its handoff ref", killed == ["started", "unopened"])
