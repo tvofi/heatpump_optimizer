@@ -4240,9 +4240,10 @@ function assertAcceptance(derived) {
     c1: [
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
       { name: 'typing', status: 'completed', conclusion: 'failure' },
-      { name: 'pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'gate', status: 'completed', conclusion: 'failure' },
       { name: 'mutation', status: 'completed', conclusion: 'skipped' },
-      { name: 'nightly-status', status: 'in_progress' },
+      { name: 'tests / nightly-status', status: 'in_progress' },
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
     ],
     c2: [
@@ -4277,18 +4278,18 @@ function assertAcceptance(derived) {
   const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
   const OWN_ROW = ['tests/x.py', 'dev/programme/delivery/9999.md']
   const REPORTER_CASES = [
-    ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
-      OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
-    ['a merged row deleted', ['delivery-status'],
-      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['delivery-status']],
-    ['a merged row deleted, old spelling', ['delivery-status'],
-      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
-    ['the moved plan edited', ['delivery-status'],
-      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['delivery-status']],
-    ["the reporter's own script", ['nightly-status'],
-      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
-    ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
-    ['no paths', ['nightly-status'], [], null, ['nightly-status']],
+    ['exempt, own row added', ['tests / nightly-status', 'governance / delivery-status', 'typing', 'governance / delivery-status-publish', 'tests / Nightly-Status'],
+      OWN_ROW, ['tests/x.py'], ['typing', 'governance / delivery-status-publish', 'tests / Nightly-Status']],
+    ['a merged row deleted', ['governance / delivery-status'],
+      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['governance / delivery-status']],
+    ['a merged row deleted, old spelling', ['governance / delivery-status'],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['governance / delivery-status']],
+    ['the moved plan edited', ['governance / delivery-status'],
+      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['governance / delivery-status']],
+    ["the reporter's own script", ['tests / nightly-status'],
+      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['tests / nightly-status']],
+    ['no existing list', ['governance / delivery-status'], OWN_ROW, null, ['governance / delivery-status']],
+    ['no paths', ['tests / nightly-status'], [], null, ['tests / nightly-status']],
   ]
   for (const [label, redNames, paths, existing, owed] of REPORTER_CASES) {
     pins += 1
@@ -6351,7 +6352,12 @@ function autofixChain(head, names) {
 //
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
-const PR_CONTRACT_CHECK = 'pr-contract'
+// A check run's name is `<caller> / <job>` under the umbrella (DESIGN-P2 2.1),
+// so the contract's own is `pr-contract / pr-contract`, and `gate` is red
+// whenever any required check is: both are excluded from the red history, or
+// the body would be asked to answer the verdict it feeds (N4). U6 forward-carry.
+const PR_CONTRACT_CHECK = 'pr-contract / pr-contract'
+const OWN_VERDICT_CHECKS = new Set([PR_CONTRACT_CHECK, 'gate'])
 // THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
 // main's last scheduled run and `delivery-status` main's rowless merges; both
 // run on every pull request so a stopped lane or batch is seen. Owing a
@@ -6370,10 +6376,10 @@ const PR_CONTRACT_CHECK = 'pr-contract'
 // is why `existing` (the paths the base already had) is separate from `paths`;
 // without it every row counts, so a caller that cannot say which rows are new
 // loses the exemption rather than gaining it. No paths at all voids it too.
-const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
+const MAIN_STATE_REPORTERS = new Set(['tests / nightly-status', 'governance / delivery-status'])
 const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
-  '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  '.github/workflows/ci.yml', '.github/workflows/tests.yml', '.github/workflows/governance.yml',
   // nightly-status reads nightly.yml's runs since R10-CI-LAYOUT PR 1.
   '.github/workflows/nightly.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
@@ -6402,7 +6408,7 @@ function failingCheckNames(runs) {
   const names = new Set()
   for (const run of Array.isArray(runs) ? runs : []) {
     if (run?.status !== 'completed' || run?.conclusion !== 'failure') continue
-    if (run?.name === PR_CONTRACT_CHECK) continue
+    if (OWN_VERDICT_CHECKS.has(run?.name)) continue
     if (typeof run?.name === 'string' && run.name.trim()) names.add(run.name)
   }
   return [...names].sort()
