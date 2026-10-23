@@ -84,7 +84,7 @@ binds the seat to this file.
 | rule | what it binds |
 |---|---|
 | `brief-citations.md` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric or a stated count the tree answers is an error; extending the plan format extends the linter in the same pull request |
-| `ci-autofix.md` | three jobs already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
+| `ci-autofix.md` | three jobs already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — repair a red `prepr.sh` predicts before the handoff; once a PR exists, wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
@@ -107,7 +107,7 @@ template and contract are one file.
 
 ### Role contracts — open the one you are
 
-Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
+Under `dev/governance/roles/`.
 
 | contract | the role |
 |---|---|
@@ -118,9 +118,9 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
 | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
 | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
-| `proposal-triage.md` | the cost/benefit gate a process or tooling proposal passes first |
-| `standing-tick.md` | reports only owed or new items from the tick board |
-| `standing-merge.md` | runs merges, critical path first; never chooses what merges |
+| `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
+| `standing-tick.md` | reports only owed or new tick-board items |
+| `standing-merge.md` | runs merges, critical path first, never choosing them |
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
 | `standing-roster.md` | `roster_edit.py` ops only, behind the lint gate |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
@@ -170,7 +170,7 @@ never only in /tmp (decision 0013).
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
-- `dev/programme/HANDOVER.md` — state, not policy: the one durable handover, ruled by
+- `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 
 ## Fix it; if you cannot, verify it independently; only then file it
