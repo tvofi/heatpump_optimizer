@@ -14,23 +14,29 @@ What each brief and carry item became:
 - **Standing seats**: `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and `standing-roster.md`. The out-of-tree s4 briefs were not readable from this seat, so each contract is folded from the carry's text and the instruments' own headers, with no host path.
   - The sweep gains step (1b), standing-seat liveness: a seat that is absent, finished with work owed, or reported `STOPPED seat <name>:` is restarted on its contract, with a new `seat_queues` placeholder. It also gains step (7), Proposals: send to triage.
   - `pulse.py`: each origin arm's STOPPED line names the seat its input waits on, and `--seat-queue SEAT=FILE[:MIN]` adds one arm per seat, STOPPED once a queued input passes the seat's cadence.
+- **Merge resolution (section 10b)**: #2628 rewrote `orchestrator.md` section 10b in place while this PR moved it to `standing-roster.md`. The pointer line stays in `orchestrator.md`; #2628's landed wording (the plan, handover and `dev/governance/` read set, "that rule's remedies" with the tag clause dropped, and the `FIXTURE ok: N error(s)` exit-code rule) replaces the older text in `standing-roster.md`, stated once.
+- **Merge resolution (`CLAUDE.md` cap)**: main's `fdf930b52` (#2631) lengthened `CLAUDE.md`'s `ci-autofix.md` row, so the merge with `d6308d77c` read `about 3627 tokens ... exceeds its cap of 3609 tokens (files_tokens)` in `policy_lint.mjs`. It is paid in `CLAUDE.md` with no obligation dropped: three of this PR's own rows are shortened (`proposal-triage.md`, `standing-tick.md` and `standing-merge.md`). Two restatements are cut. The role-contracts lead sentence "Each says what its role owes and what blocks it." goes, because each row states that. "state, not policy:" on the `HANDOVER.md` line goes, because the policy-set paragraph already makes that exception. `CLAUDE.md` now measures 3605 tokens, and its `files_tokens` cap and `corpus_tokens` are re-recorded down to this head's measurement.
+- **Round-2 finding (DEFER)**: `roster_edit.py --self-test` adds a check that a carry citing a `Verdict: DEFER` entry is refused, so only an ACCEPT is routed (`proposal-triage.md`).
 - **Paid by moving text**: from `orchestrator.md`, section 4's `preflight.sh` and post-merge read-back rules moved to `standing-merge.md`, section 5b (read the ref) to `standing-dispatch.md`, and section 10b (brief citations) to `standing-roster.md`, each leaving a pointer. Section 4's first two paragraphs stay put: they carry decision 0010's only corpus citation, which `policy_lint`'s citation-presence acceptance elides by its recorded spelling and the layout guard refuses on a new line. `orchestrator.md`'s caps are re-recorded down to the measured value.
 
 ## Head
 
-64813b0db3547400e9098b63013e0b73b42043e7, merge base `fef4a1351db3e8e328d714e84299284c6876eecb` (origin/main's tip, re-read 2026-10-22T22:42Z; `origin/main` merged in, never rebased; every figure below re-taken at this head).
+96d7ef878a278d9d9d2c737f12c5f7a0419042b2 is the authored code head. It merges `origin/main` at `d6308d77c5d02b2001e58a5436715d0c45a4fa9e` into the reviewed head `8cb08929c3cee3ea7e1252f95538f3e3b93692ab` (`d5c6385bb`, textually clean), then pays the `CLAUDE.md` cap and pins the DEFER ruling (`96d7ef878`). The earlier merge, of `e45fc34fb`, resolved `orchestrator.md` section 10b.
+
+96d7ef878a278d9d9d2c737f12c5f7a0419042b2, merge base `d6308d77c5d02b2001e58a5436715d0c45a4fa9e` (origin/main's tip, re-read 2026-10-23T01:03Z; `origin/main` merged in, never rebased; every figure below re-taken at this head).
 
 ## Mutation proof
 
 Triage gate, `python3 tools/audit/seat/r10_roster_ops_mutants.py T1 T2 T3 T4 T5` (the plants land in the harness in this PR):
 - T1 (the uncited arm `if False`) rc=1 fails=11, first: `triage gate: a proposal-sourced carry citing no ruling is refused`, `triage gate: a new group's brief is judged`;
-- T2 (`verdict is None` for `!= "ACCEPT"`) rc=1 fails=11, first: `triage gate: a REJECT ruling is refused`, `triage gate: an entry with no verdict line is refused`;
+- T2 (`verdict is None` for `!= "ACCEPT"`) rc=1 fails=12, first: `triage gate: a REJECT ruling is refused`, `triage gate: a DEFER ruling is refused: only an ACCEPT is routed`, `triage gate: an entry with no verdict line is refused`;
 - T3 (a missing batch read as `""`) rc=1 fails=1: `triage gate: a citation to a missing batch is refused, proposal named or not`;
-- T4 (the gate's call in `write_roster` deleted) rc=1 fails=15, first: every `triage gate:` arm;
-- T5 (`added_texts` blind to appended carries) rc=1 fails=15, including `added_texts: only what the write adds is judged`.
+- T4 (the gate's call in `write_roster` deleted) rc=1 fails=16, first: every `triage gate:` arm;
+- T5 (`added_texts` blind to appended carries) rc=1 fails=16, including `added_texts: only what the write adds is judged`.
 - The later drop-carry FAIL lines in each are the cascade from `triage gate fixture restored`.
+- The round-2 reviewer's plant, `if verdict != "ACCEPT":` -> `if verdict not in ("ACCEPT", "DEFER"):`, applied by hand to `roster_edit.py` and then restored: `roster_edit self-test: 117 checks, 3 failed`, first `triage gate: a DEFER ruling is refused: only an ACCEPT is routed`, then the drop-carry cascade. At `8cb08929c`, before this check, the same plant read `0 failed` (the round-2 verdict's evidence). Restored: `0 failed`.
 
-pulse.py, each plant applied by hand, `python3 -I tools/audit/seat/pulse.py --self-test`, then restored:
+pulse.py, each plant applied by hand, `python3 -I tools/audit/seat/pulse.py --self-test`, then restored. These were taken at `8cb08929c` and not re-planted: `git diff 8cb08929c HEAD -- tools/audit/seat/pulse.py` is empty, and the unplanted self-test re-reads 37 checks, 0 failed, at this head:
 - `if ages and max(ages) > cadence:` -> `if False:`: 2 failed, `a queued input older than the seat's cadence is STOPPED, naming the seat`, `--snapshot judges the seat queues: exit 1, ...`;
 - the seat prefix on a STOPPED origin arm deleted: 3 failed, the three `names the ... seat` checks;
 - `if not q["entries"]:` -> `if q["entries"] is None:`: 1 failed, `null control: idle standing seats with nothing queued are ok, and add one arm each`;
@@ -44,13 +50,13 @@ pulse.py, each plant applied by hand, `python3 -I tools/audit/seat/pulse.py --se
 - The gate's own null control, in `roster_edit.py --self-test`: the same `Triage P1 (s9)` carry is refused uncited and lands citing its ACCEPT ruling, and text naming no proposal lands untouched.
 - pulse's: an idle seat with an empty queue reads `seat roster: idle, nothing queued`, ok; the 61 min input under a 90 min override reads ok.
 - The detector over the live roster, `python3 dev/audit/harnesses/r10_triage_gate_replay.py <roster at 0a326689b>`: `replay: 447 carries, 5 proposal-sourced, 5 refused`. The five are exactly s4's P1-P4 and P5 carries. With `--cite dev/programme/triage/s4-batch1.md`: `5 proposal-sourced, 1 refused`. The one is R10-ARCH-DOCS's P5, which batch 1 does not hold.
-- Base `fef4a1351`: `pulse self-test: 22 checks`, `roster_edit self-test: 106 checks`, `r10_roster_ops_mutants self-test: 63 checks`. Head: 37, 116 and 78, all `0 failed`.
-- `sweep_render.py` with one contract path misspelt in a template copy: `REFUSED citation: dev/governance/roles/standing-nope.md cited and not in the tree`, rc=1; the head template renders rc=0.
+- Base `d6308d77c`: `pulse self-test: 22 checks`, `roster_edit self-test: 106 checks`, `r10_roster_ops_mutants self-test: 63 checks`. Head: 37, 117 and 78, all `0 failed`.
+- `sweep_render.py` with one contract path misspelt in a template copy: `REFUSED citation: dev/governance/roles/standing-nope.md cited and not in the tree`, rc=1; the head template renders rc=0. Taken at `8cb08929c`; `sweep_render.py` and its template are unchanged since, and the self-test re-reads 21 checks, 0 failed, at this head.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/pulse.py --self-test` (3.11 and `/opt/hpo/venv-ci/bin/python` 3.14): `pulse self-test: 37 checks, 0 failed`
-- `python3 tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 116 checks, 0 failed`
+- `python3 -I tools/audit/seat/pulse.py --self-test` (3.14): `pulse self-test: 37 checks, 0 failed`
+- `python3 tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 117 checks, 0 failed`
 - `python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test`: `78 checks, 0 failed`
 - `python3 -I tools/audit/seat/sweep_render.py --self-test`: `21 checks, 0 failed`
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`; `node tools/policy/policy_lint.mjs --budgets` for every cap (not restated)
@@ -58,13 +64,12 @@ pulse.py, each plant applied by hand, `python3 -I tools/audit/seat/pulse.py --se
 - `node tools/policy/brief_lint.mjs`: `TOTAL: 0 error(s) across 47 file(s)`
 - agreement lane, head copy, `python3 -I tools/policy/agreement_py.py --out ag.json && node tools/policy/agreement.mjs --py-json ag.json`: `AGREEMENT ok`
 - agreement lane, BASE copy (`git show origin/main:tools/policy/agreement.mjs`, run beside `counts.mjs`), same JSON: `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`, rc=0
-- `python3 tests/structure.py` (3.11 and 3.14): `STRUCTURE RATCHET PASSED`
-- `python3 tools/audit/archscore/score.py --diff fef4a1351 HEAD`: `Architecture score: dS +0.0000 NULL`
-- `python3 tests/closure.py select --diff fef4a1351 --workdir $D`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, scope.run `tests/entities.py` and `tests/layout.py` (`tests/layout.json` gains the `dev/programme/triage/*.md` glob the layout guard asked for). Before the closure commits it read `MODE: FULL`, with "no recorded closure mentions" the seven contracts that `_is_citation_source` reads for entities.py's #2227 arm.
-- `python3 tools/pr/ci_predict.py`: `no closures or fast red predicted against fef4a1351db3`. Before the closure commits it predicted 10: 7 UNCLASSIFIED contracts and 3 INERT READS, the latter written by `--apply-inert` (commit 2).
-- `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python tests/entities.py` at this head: `ALL 2399 ENTITY CHECKS PASSED`. Before the closure entry (`PYTHON=/opt/hpo/venv-ci/bin/python ./tests/derive_closures.sh --single tests/entities.py`, two-step, then re-recorded clean at rc=0), the same script read `2 of 2397 ENTITY CHECKS FAILED`, both the classification of the seven contracts. The dispatch says CI owns closures, but `body_push.sh` refuses a head `ci_predict.py` predicts red, so the entry was recorded here on Linux, by the route decision 0014's contracts took (`6ecbf8a9c`).
-- `/opt/hpo/venv-ci/bin/python tests/layout.py`: `layout self-test: ok`
-- `python3 tests/env_drift.py --claims-only fef4a1351`: `claims hygiene: ... ok`; `python3 tests/closure.py selftest`: `ALL 112 closure shrink pins PASSED`; `python3 tests/layout.py`: `layout self-test: ok`
+- `python3 tests/structure.py` (3.14): `STRUCTURE RATCHET PASSED`
+- `python3 tools/audit/archscore/score.py --diff d6308d77c HEAD`: `Architecture score: dS +0.0000 NULL`
+- `python3 tests/closure.py select --diff d6308d77c --workdir $D`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, scope.run `tests/entities.py` and `tests/layout.py` (`tests/layout.json` gains the `dev/programme/triage/*.md` glob the layout guard asked for). Before the closure commits it read `MODE: FULL`, with "no recorded closure mentions" the seven contracts that `_is_citation_source` reads for entities.py's #2227 arm.
+- `python3 tools/pr/ci_predict.py`: `no closures or fast red predicted against d6308d77c5d0 (a data-file read is not seen)`. Before the closure commits it predicted 10: 7 UNCLASSIFIED contracts and 3 INERT READS, the latter written by `--apply-inert` (commit 2).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (macOS seat venv, 3.14), at this head: `4 of 2399 ENTITY CHECKS FAILED`. At the base `d6308d77c`, on the same machine and in the same run window: `5 of 2399`. I compared the sets of top-level `FAIL` names, not the totals. The head's 4 are a subset of the base's 5: the heartbeat py-spy positive-control retry checks, which are timing-bound and ran here at load average ~107. The base's fifth is the template-arm acceptance. This PR's round-3 delta touches nothing these checks read, so CI's Linux run grades them. At `8cb08929c` on the Linux venv the previous round read `ALL 2399 ENTITY CHECKS PASSED`. Before the closure entry (`PYTHON=/opt/hpo/venv-ci/bin/python ./tests/derive_closures.sh --single tests/entities.py`, two-step, then re-recorded clean at rc=0), the same script read `2 of 2397 ENTITY CHECKS FAILED`, both the classification of the seven contracts. The dispatch says CI owns closures, but `body_push.sh` refuses a head `ci_predict.py` predicts red, so the entry was recorded here on Linux, by the route decision 0014's contracts took (`6ecbf8a9c`).
+- `python3 tests/env_drift.py --claims-only d6308d77c`: `claims hygiene: ... ok`; `python3 tests/closure.py selftest`: `ALL 112 closure shrink pins PASSED`; `PYTHONPATH=tests/hastub python3 tests/layout.py`: `layout self-test: ok`; `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`; `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`
 - target arithmetic, `cd tools/audit/archscore && python3 -c "import score,math; w=score.weights(); print(len(w), sum(w.values()), math.log2(1/0.7)*sum(w.values()))"`: `17 44.18 22.74`
 
 ## Approval
@@ -73,11 +78,14 @@ Not yet given. This diff is policy (seven new contracts, `orchestrator.md`, `CLA
 
 ## Raise justification
 
-`corpus_tokens` is re-recorded to the `--budgets` measurement of this head. `files_tokens` for `CLAUDE.md` rises by the seven role-table rows the carries require, less what was cut. The seven new contracts get caps at their measured values. `orchestrator.md`'s two caps are re-recorded down.
+`corpus_tokens` is re-recorded to the `--budgets` measurement of this head, 62892 -> 66434. That includes #2628's section-10b wording, folded into `standing-roster.md`, and the merge with `d6308d77c`. `files_tokens` for `CLAUDE.md` is re-recorded to this head's measurement, 3590 -> 3605: the seven role-table rows the carries require, less what was cut. Over `d6308d77c` the reviewed head's 3609 cap read 3627, and the cuts below paid that overage, so the cap went down, not up. The seven new contracts get caps at their measured values. `orchestrator.md`'s two caps are re-recorded down, to this head's measured 295 lines and 4251 tokens (main's #2628 added lines elsewhere in the file); `standing-roster.md` is 27 lines, 368 tokens.
 
 - Payments tried:
   - `orchestrator.md` text (part of section 4, all of 5b and 10b) moved into the standing contracts whose seats now do that work. This is net zero to the corpus by construction: `ratchet-budgets.md`, "corpus_tokens does not move when prose moves". It is what fits `orchestrator.md`'s additions under its own cap.
   - `CLAUDE.md`: the instrument list restating the instruments guide was cut; so was the AGENTS.md sentence restating its POLICY_GLOBS and cap mechanics, which `ratchet-budgets.md` carries; the new rows were shortened. That paid most of the rows' cost; the rest is the raise.
+  - Over the merge with `d6308d77c` (round 3), paid in `CLAUDE.md`, with each candidate measured by `policy_lint.mjs --budgets`. Three of this PR's own rows were shortened. The role-contracts lead sentence was cut, because the rows state it. "state, not policy:" was cut from the `HANDOVER.md` line, because the policy-set paragraph states it. Together: 3627 -> 3605.
+  - Tried and reverted: naming `INSTRUMENTS.md` instead of "its instruments guide". It saved about 4 tokens, but `policy_lint.mjs` `named-docs` refused it, because the guide is uncapped (the Friction entry below).
+  - Not taken: cutting `CLAUDE.md` text that states a rule, for example the `COMMON.md` emphasis or the issue-filing incident. A read of the whole file found no other sentence that only restates another; that is a judgement, with no instrument behind it.
   - Refused: moving the target's conditions or the standing seats' rules into decision 0015, an unmeasured path. That is the residual risk `policy_lint.mjs`'s ADR comment names, the shape `fixer.md` step 17 forbids.
   - Refused: one combined standing-seats file. The carry asks for each seat as its own contract with its own row, and the saving would be four headers.
   - Refused: cutting other seats' contracts to fit. None of their prose is spent by this change.
@@ -86,7 +94,7 @@ Not yet given. This diff is policy (seven new contracts, `orchestrator.md`, `CLA
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff fef4a1351 HEAD`: dS +0.0000 NULL, no gate metric rises.
+`python3 tools/audit/archscore/score.py --diff d6308d77c HEAD`: dS +0.0000 NULL, no gate metric rises.
 
 ## Unpinned sites
 
@@ -94,6 +102,8 @@ none: `prepr.sh` step 6d, `the diff adds no unpinned mutation site`.
 
 ## Red checks
 
+- `nightly-status`: red on every head, main included. It is main's false ABSENT, which #2627 fixes; the red is not this pull request's own, although the diff touches `docs/plan-2026-09-open-issues.md`, which it reads. The cheaper detector is #2627's NEW/ABSENT fixture, whose standing cost is one fixture run in the scoped gate.
+- `fast (3.14)`: this pull request's own defect, already fixed on this branch. `tests/harness_headers.py` refused `dev/audit/harnesses/r10_triage_gate_replay.py:21`, an inlined `parents[3]` depth root; it now carries the canonical `repo_root` walk. The cheaper detector is `harness_headers` itself in the scoped gate, which skipped it because the closure did not reach the new harness. Carry: R10-FLY-RELAY-REVIEW-FF | dismissed: the closure miss is a new-file classification gap that `tests/entities.py` and the late closures job already catch; fixing closures is out of this group's scope.
 - `budget-raise-gate`: red by design until an approving review at this head. That is the owner's, or an agent's citing the mandate in force with scope all (#201 comment 6329234399) beside this body's `## Raise justification`. No cheaper detector exists: the check is an approval gate (decision 0013), not a defect detector, and `prepr.sh`'s pr-body step already predicts it locally at no standing cost, which is how this line was owed.
 
 ## Forward-carry
@@ -105,3 +115,4 @@ none: `prepr.sh` step 6d, `the diff adds no unpinned mutation site`.
 
 - ratchet-budgets.md: contradiction: the brief says to pay the new contracts' caps "by moving text, not by raising a cap", but `corpus_tokens` sums every policy file, so a new contract cannot be paid by moving text inside the corpus; only a cut or a raise moves it. Carry: dismissed: answered by this body's raise justification
 - policy_lint.mjs: unclear: `named-docs` refuses a policy file that names an uncapped guide (`INSTRUMENTS.md`, archscore's `ABOUT.md`, `sweep_template.md`), and CI grades with the base copy, so `CORPUS_EXCLUDED` cannot be extended in the same PR. The contracts cite the directories instead. Carry: dismissed: worked around in the text, no rule changed
+
