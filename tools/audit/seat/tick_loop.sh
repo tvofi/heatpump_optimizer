@@ -4,7 +4,7 @@
 #
 # The tick's driver loop (the round-10 orchestrator, tvofi approved,
 # 2026-10-18). Each pass, in order:
-#   1. `cloud_relay.sh pass`, when the tree carries cloud_relay.sh (#2419). Before
+#   1. `cloud_relay.sh pass --confirm` (a relayed verdict is posted with no hand step), when the tree carries cloud_relay.sh (#2419). Before
 #      that lands the step is skipped and the banner says so, so the tick still runs.
 #      The relay runs detached under a holder of the flock <out>.relay.lock, so two
 #      relay passes never overlap, and the pass waits for it at most
@@ -60,7 +60,7 @@ relay_reap() { # <r> [late]: print a finished relay's output; sets rrc. 1: nothi
 relay_start() { # <r> <relay>: start the relay detached, wait for it at most the bound; sets rrc
   local r=$1 relay=$2 hp hrc k=0 wait=${HPO_TICK_RELAY_WAIT:-30}
   case $wait in ''|*[!0-9]*) wait=30 ;; esac
-  python3 -I -c "$RELAY_HOLDER" "$r" bash "$relay" pass </dev/null >/dev/null 2>&1 & hp=$!
+  python3 -I -c "$RELAY_HOLDER" "$r" bash "$relay" pass --confirm </dev/null >/dev/null 2>&1 & hp=$!  # mut:confirm
   while kill -0 "$hp" 2>/dev/null && [ $k -lt $((wait * 10)) ]; do sleep 0.1; k=$((k + 1)); done
   if kill -0 "$hp" 2>/dev/null; then rrc=running; return 0; fi  # mut:detach
   wait "$hp"; hrc=$?
@@ -103,10 +103,10 @@ tick_loop_self_test() (
   printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
   export HPO_TICK_HEARTBEAT=$t/hb.sh
   out=$(HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt" -- --only PRS)
-  [ "$(cat "$t/order")" = "relay pass
+  [ "$(cat "$t/order")" = "relay pass --confirm
 tick --only PRS" ] && [ "$(cat "$t/b.txt")" = BOARD ] \
     && printf '%s\n' "$out" | grep -Eq '^TICK-PASS [0-9T:-]+Z relay=ok tick=0 out=' && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ]
-  ck "--once: one pass, cloud_relay.sh pass first, then the tick with its args; one banner" $?
+  ck "--once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner" $?
   rm -f "$t/order"
   out=$(HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
   [ "$(cat "$t/order")" = "tick " ] && printf '%s\n' "$out" | grep -q 'relay=absent tick=0'
