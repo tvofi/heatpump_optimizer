@@ -36,6 +36,7 @@ from pathlib import Path
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
