@@ -6077,7 +6077,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # dropped where a fixed mode superseded the solve (D1-s1-02).
             if self._optimization_rerun_requested and not self._entry_released:
                 self._optimization_rerun_requested = False
-                if not _mode_superseded(entry_mode, self._mode):
+                if False:
                     await self.async_run_optimization()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
