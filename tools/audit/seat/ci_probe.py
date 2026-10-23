@@ -31,7 +31,10 @@ vacuously; a subcommand that gains a wait owes `MIN_POLL_S`.
 THE NAMESPACE. `push` and `dispatch --ref` accept `ci-probe/<name>` (or the full
 `refs/heads/` spelling) and refuse every other ref, `..` segments included: a
 probe never moves `main`, `handoff/*` or `probe/*` (cloud_relay.sh owes the
-latter). The ref and the log line go through ref_privacy.refusal. A `ci-probe/*`
+latter). The ref, every commit the push publishes first (its message and
+emails, ref_privacy.published: a trailer or session link refuses, so no commit
+rides a probe ref into a pull request unjudged) and the log line go through
+ref_privacy.refusal. A `ci-probe/*`
 ref is invisible to cloud_relay.sh's probe arm (it lists `probe/*`) and to
 bus.sh orphans (it fetches main, handoff, handoff-body, fix); --self-test plants
 one and compares both outputs, with a `probe/foo` null that cloud_relay reports.
@@ -177,9 +180,13 @@ class Probe:
         short = probe_ref(ref)
         if not self.commit(sha):
             raise Refuse(f"'{sha}' is not the full SHA of a local commit (git rev-parse --verify)")
-        why = ref_privacy.refusal(short)
+        try:  # every commit the push publishes first, judged like app_push's (R10-FLY-NO-FOOTERS-PUSH-PATHS)
+            messages, emails = ref_privacy.published(sha)
+        except RuntimeError as e:
+            raise Refuse(f"could not read the commits the push publishes ({e})")
+        why = ref_privacy.refusal(short, messages, emails=emails)
         if why:
-            raise Refuse(f"the push would publish this host: {why}")
+            raise Refuse(f"the push would publish this host or a tool's attribution: {why}")
         if not self.rate_ok:
             self.rate_check()
             self.rate_ok = True
@@ -449,6 +456,16 @@ def self_test() -> int:
             ck("null: an existing local commit passes git's check", git_commit(head))
             ck("push to ci-probe/x lands", refused(p.do_push, "ci-probe/x", head) is None)
             ck("push accepts the refs/heads/ spelling", refused(p.do_push, "refs/heads/ci-probe/y", head) is None)
+            # R10-FLY-NO-FOOTERS-PUSH-PATHS: a commit carrying a co-author trailer
+            # (built, so this file states none) refuses before any API write.
+            tr = _git(work, "commit-tree", "HEAD^{tree}", "-p", head, "-m",
+                      "fix: x\n\nCo-Authored-" + "By: Claude <noreply@example.test>", env=env).strip()
+            f0 = len(p.api.calls)
+            why = refused(p.do_push, "ci-probe/tr", tr)
+            ck("push refuses a commit carrying a co-author trailer, before any API write",
+               bool(why) and "co-author-trailer in the message of" in why and len(p.api.calls) == f0)
+            cl = _git(work, "commit-tree", "HEAD^{tree}", "-p", head, "-m", "fix: x\n\nclean", env=env).strip()
+            ck("null: a clean commit above the same base lands", refused(p.do_push, "ci-probe/y", cl) is None)
             for bad in ("main", "probe/foo", "handoff/x", "ci-probe/", "ci-probe/../main", "refs/heads/main", "ci-probe", "xci-probe/a"):
                 ck(f"push refuses {bad}", refused(p.do_push, bad, head))
         finally:

@@ -9,7 +9,7 @@
 # one: the three push calls are driven over a scratch origin with a stub
 # app_push, so a push line replaced by `true` reddens it (#2444).
 set -uo pipefail
-PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$SEAT/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 # The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
 # writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
 . "$(dirname -- "$0")/delivery_row.sh"
@@ -36,14 +36,17 @@ handoff_push_self_test() (
     && code=$(git -C "$o" rev-parse HEAD) \
     && git -C "$o" branch handoff/g "$code" && git -C "$o" branch handoff/h "$code" \
     && git -C "$o" branch fix/h "$base" \
+    && git -C "$o" branch handoff/t "$(git -C "$o" commit-tree "$code^{tree}" -p "$code" \
+         -m "$(printf 'fix: t\n\nCo-Authored-%s: Claude <noreply@example.test>' By)")" \
     && printf '## Head\n\nthe body\n' > "$t/body.md" \
     && body=$(git -C "$o" commit-tree "$(printf '100644 blob %s\tBODY.md\n' \
          "$(git -C "$o" hash-object -w "$t/body.md")" | git -C "$o" mktree)" -m "body") \
     && git -C "$o" update-ref refs/heads/handoff-body/g "$body" \
     && git -C "$o" update-ref refs/heads/handoff-body/h "$body" \
+    && git -C "$o" update-ref refs/heads/handoff-body/t "$body" \
     && throwaway_git_clone -q "$o" "$m" \
     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
-    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$m/tools/audit/seat/" \
+    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
     && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
     && chmod +x "$m/tools/pr/app_push.sh" \
@@ -55,17 +58,18 @@ handoff_push_self_test() (
     i=$((i + 1))
     local wr=$t/wt$i st=$t/st$i topic=g exists=$t/no-pr w
     [ "$1" = update ] && { topic=h; exists=$t/pr-exists; }
+    [ "$1" = trailer ] && topic=t
     rm -rf "$wr" "$st"; mkdir -p "$wr" "$st" "$m/tools/audit/seat"
     for w in $(git -C "$m" worktree list --porcelain | awk '/^worktree /{print $2}' | grep -vxF "$m"); do
       git -C "$m" worktree remove --force "$w" 2>/dev/null
     done
     git -C "$m" branch -D "fix/$topic" >/dev/null 2>&1
-    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$m/tools/audit/seat/"
+    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/"
     [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
     [ "$exists" = "$t/pr-exists" ] && : > "$exists"
     : > "$t/push"
     HPO_STATE_DIR=$st HPO_WT_ROOT=$wr PATH="$t/bin:$PATH" PUSH_LOG=$t/push \
-      PR_EXISTS=$exists bash "$m/tools/audit/seat/handoff_push.sh" "$topic" "$code" "a title" \
+      PR_EXISTS=$exists bash "$m/tools/audit/seat/handoff_push.sh" "$topic" "${2:-$code}" "a title" \
       > "$t/out" 2>&1
     echo $? > "$t/rc"
   }
@@ -77,6 +81,11 @@ handoff_push_self_test() (
   [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
     && grep -q 'RESULT pr=42' "$t/out"
   ck "null control: the update path pushes its head once" $?
+  # R10-FLY-NO-FOOTERS-PUSH-PATHS: a code head whose commit carries a co-author
+  # trailer (built above) is refused before any push; the two runs above are its null.
+  run trailer "$(git -C "$o" rev-parse handoff/t)"
+  [ "$(cat "$t/rc")" = 1 ] && [ ! -s "$t/push" ] && grep -q 'co-author-trailer in the message of' "$t/out"
+  ck "a code head carrying a co-author trailer is refused, and nothing is pushed" $?
   rm -rf "$t"
   echo "handoff_push self-test: $n checks, $f failed"
   [ "$f" = 0 ]
@@ -111,6 +120,13 @@ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
 git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
 CODE=$(git rev-parse "$CODE")
+# Every commit the code head adds over main, judged before any worktree or pull
+# request exists: the cloud harness pushed handoff/<topic> with no guard of its
+# own, so this is the first reader of those messages (R10-FLY-NO-FOOTERS-PUSH-PATHS).
+# app_push.sh judges the same range again at the push, rows included.
+git fetch -q origin main || { echo "could not fetch origin/main to judge $CODE over it"; exit 1; }
+python3 -I "$SEAT/ref_privacy.py" guard --ref "$BR" --commits "$CODE" --over refs/remotes/origin/main \
+  || { echo "REFUSE: a commit handoff/$TOPIC adds over main carries a tool's attribution or names this host; nothing pushed"; exit 1; }
 git diff --no-renames --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
