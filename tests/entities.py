@@ -19196,13 +19196,6 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
-    # D11-s1-72: this file was already in tests/closures.json's recorded
-    # closure for this script (its `workflow_run` trigger reads live from the
-    # default branch, so nothing here forces FULL), but carried no check of
-    # its own and its one job was absent from governance_cost.py's GOV set --
-    # the sweep's "escapes the GOV pin" instance. Classified here on the same
-    # terms as its two siblings above.
-    ".github/workflows/budget-raise-gate-rerun.yml",
     # D13-s1-03: the contract's re-run follower, read for its pins below.
     ".github/workflows/pr-contract-rerun.yml",
 ]
@@ -27736,7 +27729,7 @@ _PT_EXEMPT = {
         "its one principal-dependent row pins TOKEN_HIDDEN_SKIP_RE, which the arm's policy_lint "
         "self-test drives; its since-ref shape uses a fixture token and no network",
     ".claude/workflows/budget_raise_gate.py":
-        "reads reviews and issue comments, and on --rerun-stale POSTs a rerun; it reads no "
+        "reads reviews and issue comments; it reads no "
         "ruleset, and needs pull-requests/issues read, which graders-head-copy lacks",
     ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
     "tests/nightly_status.py":
@@ -28856,7 +28849,7 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     _ALL_JOB_IDS |= _workflow_job_ids(_wf.read_text())
 # D11-s1-72: this used to check only `_GOV_WF` (governance.yml) against GOV,
 # so a governance job added to pr-contract.yml, budget-raise-gate.yml or
-# budget-raise-gate-rerun.yml -- held in its own file for its own trigger, per
+# gate-sweep.yml -- held in its own file for its own trigger, per
 # governance_cost.py's own derivation comment, exactly like `briefs` in
 # tests.yml -- escaped the pin (the sweep's 3-of-3 instance). `briefs` stays
 # out of this union: it is the one governance job the null control below
@@ -28865,7 +28858,7 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
 # defines (`fast`, `browser`, `closures`).
 _GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
               ".github/workflows/budget-raise-gate.yml",
-              ".github/workflows/budget-raise-gate-rerun.yml",
+              ".github/workflows/gate-sweep.yml",
               ".github/workflows/pr-contract-rerun.yml"]
 _GOV_FILE_JOBS: "set[str]" = set()
 for _f in _GOV_FILES:
@@ -28882,7 +28875,7 @@ R.check(
     "a GOV member with no job measures nothing (the renamed `record-status`), "
     "and a job of one of these files outside GOV is counted as gate seconds "
     "(#1241; D11-s1-72 widened this from governance.yml alone to every "
-    "governance workflow file after `rerun-stale-verdict` escaped it)",
+    "governance workflow file after `rerun-stale-verdict`, now `gate-sweep.yml`'s `sweep`, escaped it)",
 )
 R.check(
     "and the split survives: the code gate's own jobs are not governance "
@@ -28922,10 +28915,9 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
 R.check(
     "a body edit starts a run of the contract job and the budget gate, and of "
     "no other job",
-    _EDITED_FILES == {# A base retarget moves the merge base the gate reads;
-                      # its one job carries no `if:`, which `_brg_defects`
-                      # below pins, so an `edited` run is a full verdict.
-                      "budget-raise-gate.yml": ["budget-raise-gate"],
+    _EDITED_FILES == {# The budget gate (U8), the contract (U6) and the score
+                      # (U7) are called workflows: their `edited` runs are
+                      # `ci.yml`'s callers, listed below.
                       # The umbrella (U0c): its one required check is `gate`,
                       # whose `if:` no event can make false (pinned above), and
                       # gate.py takes no unit's verdict from a run whose
@@ -29090,7 +29082,7 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 
 # How each workflow that lists `pull_request: edited` keeps its same-SHA
 # twin from being cancelled. A design choice per file, not a derived fact.
-_CC_TWIN_ROUTE = {"budget-raise-gate.yml": "per-run",
+_CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
 
@@ -29198,23 +29190,10 @@ R.check(
     "the predicate over the two shapes the callee must not take",
 )
 
-_BRG_DOC = _RC_DOCS["budget-raise-gate.yml"]
-_BRG_CC = (_BRG_DOC.get("concurrency") or {})
-_CC_BRG_TWIN = (_cc_pr_event(_BRG_DOC, 1, _CC_TWIN_SHA),
-                _cc_pr_event(_BRG_DOC, 2, _CC_TWIN_SHA))
-R.check(
-    "budget-raise-gate gives each author-app pull_request event at one SHA a "
-    "group of its own and cancels none (R9-CI-2a)",
-    _cc_lists_edited(_BRG_DOC)
-    and _cc_value(_BRG_CC.get("cancel-in-progress"), _CC_BRG_TWIN[0]) == "False"
-    and None not in (_cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0]),
-                     _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]))
-    and _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0])
-    != _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]),
-    f"groups={_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[0])!r}/"
-    f"{_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[1])!r} "
-    f"cancel={_cc_value(_BRG_CC.get('cancel-in-progress'), _CC_BRG_TWIN[0])!r}",
-)
+# The per-run route is the umbrella's now (U8: the budget gate is a called
+# workflow with no `concurrency:` of its own); `ci.yml` is the model the three
+# null controls below corrupt.
+_UMB_DOC = _RC_DOCS["ci.yml"]
 # The block the gate carried until R9-CI-2a: one group per pull request,
 # cancelling. It cancelled a same-SHA twin at every author push that
 # re-bodied a pull request (#2007, #2029, #2041, #2049).
@@ -29224,10 +29203,10 @@ _BRG_OLD_CC = {
              "github.event.pull_request.number || github.run_id }}",
     "cancel-in-progress": "${{ github.event_name == 'pull_request' && "
                           "github.event.sender.login != 'github-actions[bot]' }}"}
-_BRG_OLD = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": _BRG_OLD_CC})
-_BRG_SERIAL = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": {
+_BRG_OLD = _cc_problems("ci.yml", {**_UMB_DOC, "concurrency": _BRG_OLD_CC})
+_BRG_SERIAL = _cc_problems("ci.yml", {**_UMB_DOC, "concurrency": {
     **_BRG_OLD_CC, "cancel-in-progress": False}})
-_CC_UNROUTED = _cc_problems("unrouted.yml", {**_BRG_DOC, "name": "x"})
+_CC_UNROUTED = _cc_problems("unrouted.yml", {**_UMB_DOC, "name": "x"})
 R.check(
     "and the cancelling block, a serialised one, or an unrouted `edited` "
     "file is refused (null control)",
@@ -29278,7 +29257,7 @@ def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
         _on = _doc.get("on", _doc.get(True)) or {}
         _evs = [_on] if isinstance(_on, str) else list(_on)
         if "workflow_call" in _evs and "merge_group" not in _evs:
-            # A called workflow (U8): `ci.yml`
+            # A called workflow (U8) runs on the umbrella's events: `ci.yml`
             # lists `merge_group` and has a caller job that `uses` this file.
             # Which events the caller's `if:` admits is the prelude's workset,
             # a pin of its own; this reader cannot evaluate it.
@@ -29469,11 +29448,16 @@ def _brg_defects(text: str) -> "list[str]":
         out.append(f"jobs {list(jobs)}")
     if "if" in job:
         out.append("a job-level if:")
-    if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
-            "dismissed", "edited", "submitted"]:
-        out.append("review trigger")
-    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
-        out.append("no `edited`: a base retarget would not re-run it")
+    # A called workflow (U8): `workflow_call` is its only trigger, and it declares
+    # the three string inputs the umbrella's `budget-raise-gate` caller passes. The
+    # review and `edited` triggers are `ci.yml`'s.
+    if set(on) != {"workflow_call"}:
+        out.append(f"triggers {sorted(map(str, on))}")
+    ins = (on.get("workflow_call") or {}).get("inputs") or {}
+    if ins != {k: {"type": "string", "default": ""} for k in ("pr", "base", "head")}:
+        out.append(f"inputs {ins}")
+    if doc.get("concurrency") is not None:
+        out.append("a top-level concurrency: (every callee has none)")
     if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
         out.append(f"restore at {restore}, gate at {gate}")
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
@@ -29489,8 +29473,8 @@ def _brg_defects(text: str) -> "list[str]":
 _BRG_TEXT = Path(".github/workflows/budget-raise-gate.yml").read_text()
 _BRG_DEFECTS = _brg_defects(_BRG_TEXT)
 R.check(
-    "the budget-raise gate is one unguarded job that re-runs on a review and "
-    "grades with the base's copy of its program",
+    "the budget-raise gate is one unguarded called job that declares the "
+    "umbrella's inputs and grades with the base's copy of its program",
     _BRG_DEFECTS == [],
     f"defects: {_BRG_DEFECTS}",
 )
@@ -29502,72 +29486,27 @@ R.check(
     any(d.startswith("restore at") for d in _BRG_NULL),
     f"defects on the unpinned copy: {_BRG_NULL}",
 )
-# The stale verdict's re-run (budget-raise-gate-rerun.yml). It holds the only
-# write grant near the gate, so each property is a way it could do more than
-# ask GitHub to re-grade: a trigger that runs the pull request's copy of the
-# file (`pull_request*`), a grant beyond `actions: write` and the checkout's
-# `contents: read`, a checkout of anything but the default branch's commit, a
-# string the pull request controls reaching the job, a program run before the
-# restore or without `-I`, a job that fires on anything but a PASSING REVIEW
-# run -- the guard that also stops a re-run's own completion from starting
-# another -- and a `workflows:` name that no longer names the gate, which
-# would disable it silently. The null control re-points the checkout at the
-# pull request's head.
-def _brr_defects(text: str, gate_text: str) -> "list[str]":
-    doc = _yaml.safe_load(text) or {}
-    on = doc.get(True, doc.get("on")) or {}
-    jobs = doc.get("jobs") or {}
-    job = jobs.get("rerun-stale-verdict") or {}
-    steps = job.get("steps") or []
-    runs = [str(s.get("run", "")) for s in steps]
-    gate = [i for i, r in enumerate(runs)
-            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
-    restore = [i for i, r in enumerate(runs)
-               if _restores_workflow_py(r)]
-    gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
-    out = []
-    if set(on) != {"workflow_run"}:
-        out.append(f"triggers {sorted(map(str, on))}")
-    wr = on.get("workflow_run") or {}
-    if wr.get("workflows") != [gate_name] or wr.get("types") != ["completed"]:
-        out.append(f"workflow_run {wr} does not name the gate {gate_name!r}")
-    if list(jobs) != ["rerun-stale-verdict"]:
-        out.append(f"jobs {list(jobs)}")
-    if doc.get("permissions") != {} or job.get("permissions") != {
-            "actions": "write", "contents": "read"}:
-        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
-    cond = str(job.get("if", ""))
-    if not ("github.event.workflow_run.event == 'pull_request_review'" in cond
-            and "github.event.workflow_run.conclusion == 'success'" in cond
-            and "||" not in cond):
-        out.append(f"if: {cond!r}")
-    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
-    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
-            or (co[0].get("with") or {}).get("persist-credentials") is not False:
-        out.append(f"checkout {[s.get('with') for s in co]}")
-    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit", text.split("\njobs:", 1)[-1]):
-        out.append("a pull-request-controlled string reaches the job")
-    if not gate or not restore or gate[0] < restore[0] or not all(
-            re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py --rerun-stale", runs[i])
-            for i in gate):
-        out.append(f"restore at {restore}, program at {gate}")
-    return out
+# U8's input control: GitHub refuses a run whose caller passes an input the
+# callee does not declare, so every `with:` key `ci.yml`'s `budget-raise-gate`
+# caller passes is declared by the callee. Plants: one declaration deleted.
+def _brg_undeclared(ci_text: str, brg_text: str) -> "list[str]":
+    caller = ((_yaml.safe_load(ci_text) or {}).get("jobs") or {}).get("budget-raise-gate") or {}
+    on = (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(brg_text) or {})
+    declared = set(((on.get("workflow_call") or {}).get("inputs")) or {})
+    return sorted(set(caller.get("with") or {}) - declared)
 
 
-_BRR_TEXT = Path(".github/workflows/budget-raise-gate-rerun.yml").read_text()
-_BRR_DEFECTS = _brr_defects(_BRR_TEXT, _BRG_TEXT)
+_BRG_CI = Path(".github/workflows/ci.yml").read_text()
 R.check(
-    "the gate's stale-verdict re-run fires on a passing review run only, holds "
-    "`actions: write` and nothing it does not use, and runs the default branch's program",
-    _BRR_DEFECTS == [],
-    f"defects: {_BRR_DEFECTS}",
+    "every `with:` key the umbrella's budget-raise-gate caller passes is declared "
+    "by the called workflow",
+    _brg_undeclared(_BRG_CI, _BRG_TEXT) == [] and bool(_yaml.safe_load(_BRG_CI)["jobs"]["budget-raise-gate"]["with"]),
+    f"undeclared: {_brg_undeclared(_BRG_CI, _BRG_TEXT)}",
 )
-_BRR_NULL = _brr_defects(_BRR_TEXT.replace(
-    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"), _BRG_TEXT)
 R.check(
-    "and the same file checking out the pull request's head is refused (null control)",
-    any(d.startswith("checkout") for d in _BRR_NULL),
-    f"defects on the re-pointed copy: {_BRR_NULL}",
+    "and the callee with one input declaration deleted is refused (null control)",
+    _brg_undeclared(_BRG_CI, re.sub(r"      head:\n        type: string\n        default: \"\"\n", "", _BRG_TEXT)) == ["head"],
+    "a reader that read no `with:` key would pass the check above vacuously",
 )
 # --- D11-s1-03: a job holding a write grant on `pull_request` runs no program
 # the pull request controls, and leaves no token on disk for one to find. The
