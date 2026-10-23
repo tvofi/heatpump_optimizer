@@ -8677,7 +8677,7 @@
    "rca": [],
    "architect_note": "",
    "carry": [],
-   "brief": "Barrier for audit class I2 (RCA R10-RCA-INERT-CLOSURE-RECORDING, root-cause seat beside #2662, 2026-10-23). A closures recording carries an inert_reads split decided by the recording tree's INERT list; a later INERT_EXCEPT edit voids it, but merge and check trusted the split, so check passed vacuously and #2662's probe d5b053e went UNDER-SCOPED (32 min red FULL closures). Countermeasure built by the RCA seat: closure.py _load_recording re-splits each recording under the loading tree's INERT list for merge and check; ci_predict.py left_inert predicts UNDER-SCOPED statically when a diff edits tests/closure.py and a committed inert_reads file has left INERT while its script's closure omits it (prepr 6d, body_push).",
+   "brief": "Barrier for audit class I2 (RCA R10-RCA-INERT-CLOSURE-RECORDING, root-cause seat beside #2662, 2026-10-23). A closures recording carries an inert_reads split decided by the recording tree's INERT list; a later INERT_EXCEPT edit voids it, but merge and check trusted the split, so check passed vacuously and #2662's probe d5b053e went UNDER-SCOPED (32 min red FULL closures). Countermeasure built by the RCA seat: closure.py _load_recording re-splits each recording under the loading tree's INERT list for merge and check; ci_predict.py left_inert predicts UNDER-SCOPED statically when a diff edits tests/closure.py and a committed inert_reads file has left INERT while its script's closure omits it (prepr 6d, body_push). The countermeasure is built at handoff commit e9d169b7 (handoff/r10-rca-inert-closure-recording).",
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-rca-inert-closure-recording",
