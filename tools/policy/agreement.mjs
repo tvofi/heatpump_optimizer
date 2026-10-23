@@ -367,6 +367,10 @@ const SHARED_GRAMMARS = {
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
+  // R10-CI-LAYOUT P2b (integration): three grammars the layout units shared.
+  "[0-9a-f]{40}": "not-a-concept:the full commit-SHA shape, policy_lint.mjs's head check and ci_probe.py's probe-push guard",
+  "DERIVED=\\$\\(.*?\\)": "identical:coverage_tree.sh's DERIVED line extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
+  "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
 }
 
 function governanceCode() {
