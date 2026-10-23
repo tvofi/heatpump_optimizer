@@ -1,0 +1,2 @@
+63:+    ".claude/settings.json",
+92:+   "brief": "Owner ruling (tvofi, 2026-10-22): no Claude attribution footers or session links in seat output, that is no generated-with line, no co-author or session trailer, and no session URL in
