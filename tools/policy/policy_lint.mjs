@@ -50,6 +50,7 @@
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
+//   ... --record|--stats|--sunset --since <ref> --window-cache <file>   # one window walk shared by the three
 //
 // `--record` and `--record-known-bad` are two different things and the names sit
 // one hyphen apart: the first REFUSES a merge with no disposition, the second
@@ -57,6 +58,7 @@
 // prefix, so neither can be reached by mistyping the other.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -2111,11 +2113,64 @@ function fetchPullsBySha(commits) {
   return { ok: true, map, gapShas }
 }
 
-function mergedPRsFromWindow(since) {
+// THE WINDOW CACHE (dev/audit/rca/install-ratelimit.md, M1). Governance's
+// `record` job runs `--record`, `--stats` and `--sunset` over one window on one
+// push, and each walked it from scratch through `ghGet`: 3W + 6P reads of the
+// repository's GITHUB_TOKEN bucket where W + 3P carry the same data. With
+// `--window-cache <file>` the first mode to read a part of the window writes it
+// and the later modes read it back, so the job's cost is one walk.
+//
+// Keyed on the two resolved SHAs, so a file left from another window or another
+// head is ignored rather than trusted. ONLY A COMPLETE READ SERVES: a failed
+// enumeration writes nothing and an aborted per-PR fetch carries an empty map,
+// so the next mode retries exactly as it did before the cache existed -- every
+// failure marker (`enumSkipLine`, the stats fetch guard, the sunset `no
+// friction data`) keeps its meaning. Without the flag nothing is read or
+// written. Each mode prints `windowCacheLine`, so the job's log says whether the
+// share happened rather than leaving it to a count of calls nobody sees.
+function windowKey(since) {
+  const rev = (r) => git(['rev-parse', '--verify', '--quiet', `${r}^{commit}`], { allowFail: true }).trim()
+  return `${rev(since)}..${rev(mainRef())}`
+}
+
+function readWindowCache(file, since) {
+  if (!file) return {}
+  let cache
+  try {
+    cache = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    return {}
+  }
+  return cache && cache.key === windowKey(since) ? cache : {}
+}
+
+function writeWindowCache(file, since, part) {
+  if (!file) return
+  fs.writeFileSync(file, JSON.stringify({ ...readWindowCache(file, since), ...part, key: windowKey(since) }))
+}
+
+// `fetchPullsBySha` through the window cache. The fetcher is a parameter so the
+// acceptance drives the cache with a counting stand-in, offline in every clone.
+function pullsByShaShared(commits, since, cacheFile, fetch = fetchPullsBySha) {
+  const cached = readWindowCache(cacheFile, since).pullsBySha
+  if (cached) return { ok: true, map: new Map(cached.map), gapShas: cached.gapShas, fromCache: true }
+  const fetched = fetch(commits)
+  if (fetched.ok) writeWindowCache(cacheFile, since, { pullsBySha: { map: [...fetched.map], gapShas: fetched.gapShas } })
+  return { ...fetched, fromCache: false }
+}
+
+function mergedPRsFromWindow(since, cacheFile = null) {
   const commits = firstParentCommits(since)
-  const fetched = fetchPullsBySha(commits)
-  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas }
-  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [] }
+  const fetched = pullsByShaShared(commits, since, cacheFile)
+  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null, gapShas: fetched.gapShas, fromCache: fetched.fromCache }
+  return { ...enumerateMerges(commits, null), why: fetched.why, gapShas: [], fromCache: false }
+}
+
+// What a mode took from the window cache, one line per mode: `parts` is
+// [name, served-by-the-file] for each read the mode makes.
+function windowCacheLine(file, parts) {
+  if (!file) return 'WINDOW_CACHE: off -- no --window-cache, so this mode fetched the window itself'
+  return `WINDOW_CACHE: ${parts.map(([name, hit]) => `${name} ${hit ? 'served by' : 'fetched, not served by'}`).join('; ')} ${file}`
 }
 
 // THE LOUD HALF OF THE ENUMERATION GUARD (#957's dead-fetch discipline; the
@@ -3325,6 +3380,18 @@ export function fetchWindow(prs) {
   return { fetched, fetchError: null }
 }
 
+// `fetchWindow` through the window cache: a cached read serves only when it
+// holds every pull request asked for, and only a complete fetch is written.
+function fetchWindowShared(prs, since, cacheFile, fetch = fetchWindow) {
+  const cached = readWindowCache(cacheFile, since).prReads
+  if (cached && prs.every(({ pr }) => Object.hasOwn(cached, pr))) {
+    return { fetched: new Map(prs.map(({ pr }) => [pr, cached[pr]])), fetchError: null, fromCache: true }
+  }
+  const out = fetch(prs)
+  writeWindowCache(cacheFile, since, { prReads: Object.fromEntries(out.fetched) })
+  return { ...out, fromCache: false }
+}
+
 // A detector "fires" if the ledger records a defect naming it, or the window's
 // friction does. That is a deliberately generous reading: it errs toward keeping
 // a rule, and the guard it feeds is one-sided by design.
@@ -3770,6 +3837,37 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // rot fixture is rotten, and must produce nothing.
 const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
+// Does this workflow text DEFINE the top-level job `id`? A job is defined when
+// `  <id>:` opens it under `jobs:`; it is only CALLED when its own body (the
+// lines indented under it, before the next two-space key) carries a job-level
+// `    uses:` -- a reusable-workflow call runs another file's job. A step's
+// `- uses:` sits deeper and is not a call.
+export function definesJob(text, id) {
+  const lines = String(text ?? '').split('\n')
+  const start = lines.indexOf(`  ${id}:`)
+  if (start < 0) return false
+  for (let i = start + 1; i < lines.length; i++) {
+    const l = lines[i]
+    if (l.trim() === '' || /^\s*#/.test(l)) continue
+    if (!/^   /.test(l)) break
+    if (/^    uses:\s/.test(l)) return false
+  }
+  return true
+}
+
+// The workflow files under .github/workflows that define the `pr-contract`
+// job, sorted. Exactly one is the contract's workflow (#1514).
+export function contractWorkflowFiles(root = ROOT) {
+  const dir = path.join(root, '.github', 'workflows')
+  let names = []
+  try { names = fs.readdirSync(dir).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
+  return names.filter((n) => {
+    let t = ''
+    try { t = fs.readFileSync(path.join(dir, n), 'utf8') } catch {}
+    return definesJob(t, 'pr-contract')
+  })
+}
+
 function assertAcceptance(derived) {
   const dir = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures', 'policy-rot'))
   if (!fs.existsSync(dir)) {
@@ -3892,10 +3990,10 @@ function assertAcceptance(derived) {
   // grades with the base's copy of this file, so a named path must be right
   // on both sides of the move at once. Exactly one file may define the job;
   // none, or two, is itself a refusal below.
+  // A reusable-workflow CALLER (`pr-contract:` whose body is `uses: <file>`)
+  // runs the definer and defines nothing, so it is not counted (definesJob).
   const WF_DIR = '.github/workflows'
-  let wfNames = []
-  try { wfNames = fs.readdirSync(path.join(ROOT, WF_DIR)).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
-  const contractFiles = wfNames.filter((n) => /\n  pr-contract:\n/.test(read(`${WF_DIR}/${n}`) ?? ''))
+  const contractFiles = contractWorkflowFiles()
   const WORKFLOW = contractFiles.length === 1 ? `${WF_DIR}/${contractFiles[0]}` : `${WF_DIR}/(${contractFiles.length} files define pr-contract)`
   const wf = contractFiles.length === 1 ? read(WORKFLOW) : null
   if (wf == null) {
@@ -4520,6 +4618,81 @@ function assertAcceptance(derived) {
   if (withTok.code !== 0 || /needs GITHUB_TOKEN/.test(withTok.out)) regFail.push(`--record with a token set exited ${withTok.code} and must reach its verdict unchanged (null control)`)
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
+  // THE WINDOW CACHE (dev/audit/rca/install-ratelimit.md, M1). The record job's
+  // three modes share one walk of the window only while a second read is served
+  // from the file the first wrote; restore the per-mode fetch and the first two
+  // arms count the second fetch. Driven with counting stand-ins for the two
+  // fetchers, so it is offline in every clone; `mainRef()..mainRef()` keys a
+  // window that resolves in every shape. Then the WIRING, as a subprocess per
+  // mode: a seeded file for that window must reach each mode's `WINDOW_CACHE:`
+  // line as served, and without the flag the line must say `off`.
+  pins += 7
+  const wcFail = []
+  const wcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'policy-lint-window-'))
+  try {
+    const wcSince = mainRef()
+    const wcFile = path.join(wcDir, 'window.json')
+    let calls = 0
+    const okPulls = () => (calls++, { ok: true, map: new Map([['a1', '7']]), gapShas: ['a1'] })
+    const okReads = (prs) => (calls++, { fetched: new Map(prs.map(({ pr }) => [pr, { body: 'b', title: 't', comments: [], reviews: [] }])), fetchError: null })
+    const badReads = () => (calls++, { fetched: new Map(), fetchError: 'HTTP 403 from fixture' })
+    const commits = [{ sha: 'a1', subject: 'Merge pull request #7 from fixture' }]
+    pullsByShaShared(commits, wcSince, wcFile, okPulls)
+    const again = pullsByShaShared(commits, wcSince, wcFile, okPulls)
+    if (calls !== 1 || again.map.get('a1') !== '7' || again.gapShas[0] !== 'a1') wcFail.push(`the commit-to-PR map was fetched ${calls} time(s) for two reads of one window, not once`)
+    calls = 0
+    const prs = [{ pr: '7' }]
+    if (fetchWindowShared(prs, wcSince, wcFile, badReads).fetchError == null) wcFail.push('a failed per-PR fetch did not reach its caller')
+    fetchWindowShared(prs, wcSince, wcFile, okReads)
+    const reread = fetchWindowShared(prs, wcSince, wcFile, okReads)
+    if (calls !== 2 || reread.fetched.get('7')?.body !== 'b') wcFail.push(`the per-PR reads were fetched ${calls} time(s) over a failure, a fetch and a re-read, not 2: a failure served a read or the re-read fetched again`)
+    calls = 0
+    fetchWindowShared([{ pr: '7' }, { pr: '8' }], wcSince, wcFile, okReads)
+    pullsByShaShared(commits, wcSince, null, okPulls)
+    if (calls !== 2) wcFail.push('a cache missing a pull request, or no cache file at all, served a read it does not hold (null control)')
+    // A failed enumeration writes nothing: two reads over a 403 must fetch twice
+    // and the file must not exist, or the saturation case this cache exists for
+    // reaches --stats/--sunset as a measured window with no pull requests.
+    const badPulls = () => (calls++, { ok: false, why: 'HTTP 403 from fixture' })
+    const failFile = path.join(wcDir, 'failed.json')
+    calls = 0
+    const failed = pullsByShaShared(commits, wcSince, failFile, badPulls)
+    pullsByShaShared(commits, wcSince, failFile, badPulls)
+    if (calls !== 2 || failed.ok || fs.existsSync(failFile)) wcFail.push('a failed commit-to-PR enumeration was cached or served: it must fetch again and write nothing')
+    const refetched = pullsByShaShared(commits, wcSince, failFile, okPulls)
+    if (!refetched.ok || refetched.fromCache || refetched.map.get('a1') !== '7') wcFail.push('a read after a failed enumeration did not fetch for itself (null control)')
+    // A file left from another window or head is ignored, not trusted.
+    const foreignFile = path.join(wcDir, 'foreign.json')
+    const foreignSeed = JSON.stringify({ key: `${windowKey(wcSince)}-foreign`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    fs.writeFileSync(foreignFile, foreignSeed)
+    const foreignFile2 = path.join(wcDir, 'foreign2.json')
+    fs.writeFileSync(foreignFile2, foreignSeed)
+    calls = 0
+    const foreign = pullsByShaShared(commits, wcSince, foreignFile, okPulls)
+    const foreignReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile2, okReads)
+    if (calls !== 2 || foreign.fromCache || foreign.map.has('zz') || foreignReads.fromCache || foreignReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on another window was served instead of ignored')
+    const seeded = path.join(wcDir, 'seeded.json')
+    fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
+    const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }
+    for (const [mode, parts] of Object.entries(wants)) {
+      const run = (extra) => {
+        try {
+          return execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), mode, '--since', wcSince, ...extra], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, GITHUB_TOKEN: 'acceptance-fixture-not-a-credential' }, stdio: ['pipe', 'pipe', 'pipe'] })
+        } catch (e) {
+          return `${e.stdout || ''}`
+        }
+      }
+      if (run(['--window-cache', seeded]).split('\n').find((l) => l.startsWith('WINDOW_CACHE:')) !== windowCacheLine(seeded, parts.map((p) => [p, true]))) wcFail.push(`${mode} --window-cache did not take ${parts.join(' and ')} from the file`)
+      if (!run([]).split('\n').includes(windowCacheLine(null, []))) wcFail.push(`${mode} without --window-cache did not say it fetched the window itself (null control)`)
+    }
+  } finally {
+    fs.rmSync(wcDir, { recursive: true, force: true })
+  }
+  if (wcFail.length) {
+    console.log(`\nFIXTURE VACUOUS: window cache ${JSON.stringify(wcFail)}. The record job's three modes share one window walk through it; unpinned, each mode walks the window again on the GITHUB_TOKEN bucket every required check reads from.`)
     return 1
   }
 
@@ -6694,26 +6867,23 @@ function cmdHooks(settingsPath) {
   return bad.length ? 1 : 0
 }
 
-// `--since <ref>` takes a value, so its value must not fall through to the
-// positional list and be linted as a file path. Parsed explicitly rather than by
-// filtering on a leading `--`.
+// `--since <ref>` and `--window-cache <file>` take a value, so the value must
+// not fall through to the positional list and be linted as a file path. Parsed
+// explicitly rather than by filtering on a leading `--`.
 function parseArgs(argv) {
   const flags = []
   const positional = []
-  let since = null
+  const valued = { since: null, 'window-cache': null }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--since') {
-      since = argv[++i] ?? null
-      continue
-    }
-    if (a.startsWith('--since=')) {
-      since = a.slice('--since='.length)
+    const name = Object.keys(valued).find((k) => a === `--${k}` || a.startsWith(`--${k}=`))
+    if (name) {
+      valued[name] = a.includes('=') ? a.slice(a.indexOf('=') + 1) : (argv[++i] ?? null)
       continue
     }
     ;(a.startsWith('--') ? flags : positional).push(a)
   }
-  return { flags, positional, since }
+  return { flags, positional, since: valued.since, windowCache: valued['window-cache'] }
 }
 
 // ---------------------------------------------------------------------------
@@ -6826,11 +6996,12 @@ function requireToken(mode) {
   process.exit(2)
 }
 
-function cmdRecordDispositions(since) {
+function cmdRecordDispositions(since, cacheFile) {
   requireToken('--record')
-  const enumerated = mergedPRsFromWindow(since)
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache]]))
   // The enumeration guard's loud half (#957 discipline -- see enumSkipLine).
   // RECORD_ENUM alone states the MODE, not the confidence: a reader who stops
   // at `TOTAL: 0 error(s)` sees a measured window, and the fallback's zero over
@@ -6900,8 +7071,8 @@ function cmdRecordDispositions(since) {
   process.exit(errors > 0 ? 1 : 0)
 }
 
-function cmdStats(since) {
-  const enumerated = mergedPRsFromWindow(since)
+function cmdStats(since, cacheFile) {
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   const classes = verdictClasses()
   // BOTH HALVES OF THE GRAMMAR, or nothing: the words the reviewer prompt
@@ -6926,9 +7097,10 @@ function cmdStats(since) {
   // shape fetchWindow's own any-failure abort exists to prevent.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []`)
-  const { fetched, fetchError } = enumerated.why
-    ? { fetched: new Map(), fetchError: enumerated.why }
-    : fetchWindow(prs)
+  const { fetched, fetchError, fromCache } = enumerated.why
+    ? { fetched: new Map(), fetchError: enumerated.why, fromCache: false }
+    : fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction, rework, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
@@ -6988,7 +7160,7 @@ function cmdStats(since) {
   process.exit(0)
 }
 
-function cmdSunset(since) {
+function cmdSunset(since, cacheFile) {
   // #1050's residual 1, taken here rather than left: this line dropped
   // `.why` on the floor, so `--sunset` was the one loop mode that stayed silent
   // on a dead fetch while its two siblings printed the marker. #1050 classed it
@@ -6998,11 +7170,12 @@ function cmdSunset(since) {
   // window and says nothing about an unenumerable one teaches the reader that
   // silence here means measured. The marker is `enumSkipLine` unchanged -- the
   // same words on the same lane, not a second vocabulary.
-  const enumerated = mergedPRsFromWindow(since)
+  const enumerated = mergedPRsFromWindow(since, cacheFile)
   const prs = enumerated.prs
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   const classes = verdictClasses()
-  const { fetched, fetchError } = fetchWindow(prs)
+  const { fetched, fetchError, fromCache } = fetchWindowShared(prs, since, cacheFile)
+  console.log(windowCacheLine(cacheFile, [['commit-to-PR map', enumerated.fromCache], ['per-PR reads', fromCache]]))
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
   const fires = detectorFires(friction)
   const rows = policyFiles().map((f) => ({ file: f, text: read(f) }))
@@ -7025,7 +7198,7 @@ function cmdSunset(since) {
 
 function main() {
   const argv = process.argv.slice(2)
-  const { flags, positional, since } = parseArgs(argv)
+  const { flags, positional, since, windowCache } = parseArgs(argv)
   const has = (f) => flags.includes(f)
   const derived = derivations()
 
@@ -7040,9 +7213,9 @@ function main() {
     console.log('--record and --record-known-bad are different modes: the first refuses an undispositioned merge, the second reseeds the ledger. Pass one.')
     process.exit(2)
   }
-  if (has('--record')) return cmdRecordDispositions(requireSince(since, '--record'))
-  if (has('--stats')) return cmdStats(requireSince(since, '--stats'))
-  if (has('--sunset')) return cmdSunset(requireSince(since, '--sunset'))
+  if (has('--record')) return cmdRecordDispositions(requireSince(since, '--record'), windowCache)
+  if (has('--stats')) return cmdStats(requireSince(since, '--stats'), windowCache)
+  if (has('--sunset')) return cmdSunset(requireSince(since, '--sunset'), windowCache)
 
   const all = policyFiles()
   const files = positional.length ? positional.map((a) => path.relative(ROOT, path.resolve(a))) : all
