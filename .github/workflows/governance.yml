@@ -830,6 +830,73 @@ jobs:
         if: always()
         run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
 
+      # The umbrella engine (R10-CI-LAYOUT P2a): every tools/ci/ module and the two
+      # seat-side instruments that drive it, each over its own fixtures, offline.
+      - name: Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ghapi.py --self-test | tee "$RUNNER_TEMP/ghapi-self-test.txt"
+          grep -Eq '^ghapi self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ghapi-self-test.txt"
+
+      - name: Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/prelude.py --self-test | tee "$RUNNER_TEMP/prelude-self-test.txt"
+          grep -Eq '^prelude self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prelude-self-test.txt"
+
+      - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/gate.py --self-test | tee "$RUNNER_TEMP/gate-self-test.txt"
+          grep -Eq '^gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gate-self-test.txt"
+
+      - name: Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/sweep.py --self-test | tee "$RUNNER_TEMP/sweep-self-test.txt"
+          grep -Eq '^sweep self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-self-test.txt"
+
+      - name: Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/alert_list.py --self-test | tee "$RUNNER_TEMP/alert-list-self-test.txt"
+          grep -Eq '^alert_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/alert-list-self-test.txt"
+
+      - name: Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/ruleset_cutover.py --self-test | tee "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+          grep -Eq '^ruleset_cutover self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ruleset-cutover-self-test.txt"
+
+      - name: Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
+          grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
+
+      - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_probe.py --self-test | tee "$RUNNER_TEMP/ci-probe-self-test.txt"
+          grep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"
+
+      # alert_list.py's rules, each deleted in turn: the self-test must refuse every
+      # mutant (the script takes no other mode; --self-test names the run).
+      - name: Show the alert lister's mutants each refused by its self-test
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          sh tools/ci/alert_list_mutants.sh --self-test | tee "$RUNNER_TEMP/alert-list-mutants.txt"
+          grep -Eq '^ALERT-LIST MUTANTS: every mutant refused$' "$RUNNER_TEMP/alert-list-mutants.txt"
+
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
   # by a fact about the clone -- shallow or not, origin/main present or not,

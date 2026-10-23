@@ -562,6 +562,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
   every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
   `--mandate <comment-id>`, and refuses at launch without one.
+- `ci_probe.py` — the writes a CI-layout probe needs, each behind the same
+  guards: `push <ref> <sha>` (only `refs/heads/ci-probe/*`), `dispatch`,
+  `rerun-job`, `cancel`, `label`, `retarget`, `close`, and the owner-only
+  `review --approve --sha` and `dismiss-review`. When: the P2 probe fan-out
+  (`plans/ci-layout`). Refusals: a ref outside `ci-probe/`, a missing or other
+  `--repo`, `/rate_limit` below 20 % remaining (or unreadable), a token that is
+  not `tvofi` on a review, a host path in a ref, message or log line. One log
+  line per write (`--log`); `--dry-run` writes nothing. Nothing polls (the 60 s
+  floor holds vacuously). `--self-test` runs over fakes and a throwaway bare
+  remote, including the namespace control: a planted `ci-probe/x` leaves
+  `cloud_relay.sh`'s probe arm and `bus.sh orphans` unchanged, a planted
+  `probe/foo` is OWED. `prune_refs.py` deletes a `ci-probe/*` ref, untagged,
+  unless an open pull request has it as head.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
@@ -801,6 +814,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
+- `sweep_driver.py` — the probe PR's sweep, where `workflow_run` never fires
+  (`gate-sweep.yml` runs only from the default branch): every poll (60 s floor,
+  tvofi 2026-10-19) it lists the PR's `ci.yml` runs at the live head, reads each
+  run attempt not yet swept (N5-1) and starts `python3 -I <tree>/tools/ci/gate.py
+  --sweep --run <id>` as a concurrent child for it: attempt 1 only under
+  `--nochain`, every attempt under `--chain`. It logs one line per sweep,
+  `superseded=1` for an attempt first seen already replaced, reads `/rate_limit`
+  before each poll and backs off below 20 % remaining or on a 403 (A1 item 5),
+  and exits after 900 s with every run completed and nothing new. When: a seat
+  drives a probe PR through the sweep (M-6, M-2, the combined control). It only
+  reads (`gh api` GET); the child's re-runs are the only writes. Refusal: a
+  `--poll` under 60. `--self-test` runs it over a fake `gh` and clock.
 - `sweep_render.py` — renders the orchestrator sweep from
   `sweep_template.md` and a session's JSON overlay (stdout or `--out`). The
   template's `## Placeholders` table is the one registry of names. When: a

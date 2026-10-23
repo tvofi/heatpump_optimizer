@@ -329,6 +329,8 @@ PUSHERS = {
     "tools/release/stamp.py": (GUARDED, "the stamp commit's message carries the --title argument"),
     "tools/audit/seat/prune_refs.py": (GUARDED, "writes archive/<branch> tags through gh api git/refs: "
                                        "a permanent name from a branch it does not fix (round 2)"),
+    "tools/audit/seat/ci_probe.py": (GUARDED, "pushes only ci-probe/<name> refs, the name and the log line through "
+                                     "ref_privacy.refusal; its self-test pushes go to a temp bare repository"),
     "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
                                    "a name the remote already holds, under the constant SUBJECT"),
     "tools/audit/seat/merge_train.py": ("republishes", "deletes merged branches the remote already "
@@ -344,6 +346,8 @@ PUSHERS = {
                                     "into a scratch origin repository; the file pushes nothing else"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
                                                 "temp bare repository"),
+    "tools/pr/prepr.sh": ("fixture", "its pushes are the --self-test's handoff/zz-lint probe heads, into "
+                          "the temp bare repository its origin is pointed at; prepr itself only reads"),
     ".github/workflows/release.yml": ("shape-checked", "`gh release create` makes the tag on origin, and the "
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
