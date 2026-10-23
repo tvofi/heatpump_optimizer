@@ -314,6 +314,7 @@ from .thermal_model import (
     ThermalParameters,
     ThermalState,
     is_sunlit_interval,
+    heat_loss_anchor_pair,
     heat_loss_basis,
     heat_loss_basis_voids,
     learner_newton_step,
@@ -5003,12 +5004,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         verbatim left the model up to 1.94x wrong (issue #86, four prior
         attempts recorded in dev/archive/backlog.md), and re-expressing the
         scale alone mis-split the zones (#2239). The law is
-        ``reanchor_heat_loss``'s, on the anchors the payload records; a store
-        without a lower anchor re-expresses the zone total as one zone, its
-        ratio kept. Two guards, both from the recorded decisions:
+        ``reanchor_heat_loss``'s, on the nameplates ``heat_loss_anchor_pair``
+        reads from the anchors the payload records. Two guards, both from
+        the recorded decisions:
 
         * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` change of the
-          total and of the lower nameplate the store is kept verbatim: below
+          total and of the nameplate split the store is kept verbatim: below
           convergence the law is a measured regression against today's
           behaviour on exactly that path (the 30-hop walk), and the learner's
           EWMA closes a small edit on its own.
@@ -5033,13 +5034,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return False
         bases = (stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
         void = heat_loss_basis_voids(*bases)
-        lower = _as_float(stored.get("lower_floor_loss_anchor"), 0.0)
-        split = lower_now is not None and lower > 1e-9 and anchor - lower * ratio > 1e-9
-        then = (anchor - lower * ratio, lower) if split else (anchor, 0.0)
-        now = (current - lower_now * ratio, lower_now) if split else (current, 0.0)
-        moved = max(abs(current / anchor - 1.0), abs(now[1] / then[1] - 1.0) if split else 0.0)
-        if not void and moved <= HOUSE_LOSS_MAX_STEP:
+        pair = heat_loss_anchor_pair(
+            (anchor, _as_float(stored.get("lower_floor_loss_anchor"), 0.0)),
+            (current, lower_now), ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
+        )
+        if pair is None:
             return False
+        then, now = pair
         if void:
             self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
         phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))

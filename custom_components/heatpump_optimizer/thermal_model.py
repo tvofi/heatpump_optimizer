@@ -2004,6 +2004,36 @@ def learner_newton_step(
     return target, updated
 
 
+def heat_loss_anchor_pair(
+    stored: tuple[float, float],
+    live: tuple[float, float | None],
+    ratio: float,
+    *,
+    void: bool,
+    step: float,
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    """The ``(then, now)`` nameplates ``reanchor_heat_loss`` re-expresses against.
+
+    ``stored`` and ``live`` are the ``(zone total, lower nameplate)`` anchors
+    as saved and as configured now (lower 0 or ``None``: one zone, or a store
+    from before the lower anchor). The ratio multiplies the nameplate split,
+    so it is re-anchored only when that split moves past ``step`` (or the
+    evidence is ``void``); otherwise the total is re-expressed as one zone,
+    the ratio kept -- the law blends toward the nameplate at partial
+    confidence, so re-anchoring an unmoved split would pull the lower zone
+    off its measurement. ``None``: below ``step`` everywhere, keep the store.
+    """
+    (total_then, lower_then), (total_now, lower_now) = stored, live
+    upper = (total_then - lower_then * ratio, total_now - (lower_now or 0.0) * ratio)
+    if lower_now and lower_then > 1e-9 and min(upper) > 1e-9:
+        then, now = (upper[0], lower_then), (upper[1], lower_now)
+        if void or abs(now[1] * then[0] / (now[0] * then[1]) - 1.0) > step:
+            return then, now
+    if not void and abs(total_now / total_then - 1.0) <= step:
+        return None
+    return (total_then, 0.0), (total_now, 0.0)
+
+
 def reanchor_heat_loss(
     then: tuple[float, float],
     now: tuple[float, float],

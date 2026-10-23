@@ -7939,6 +7939,7 @@ class _LearnPersist:
     _load_t4b_learners = Coord._load_t4b_learners
     _apply_cop_scale = Coord._apply_cop_scale
     _house_heat_loss_anchor = Coord._house_heat_loss_anchor
+    _heat_loss_anchors = Coord._heat_loss_anchors
     _reanchor_house_heat_loss_scale = Coord._reanchor_house_heat_loss_scale
     _apply_learner_payloads = Coord._apply_learner_payloads
 
@@ -8815,6 +8816,23 @@ R.check(
     "and a second load over the reseeded configuration re-anchors nothing",
     _ra_zones(_ra_again) == _ra_got and _ra_store2.saves == _ra_saves,
     f"{_ra_zones(_ra_again)} vs {_ra_got}, {_ra_store2.saves - _ra_saves} extra save(s)",
+)
+
+# The ratio multiplies the nameplate SPLIT: an edit scaling both nameplates
+# alike (the scale adopted, the split kept) leaves the ratio verbatim. The
+# law blends toward the nameplate at partial confidence, so re-anchoring the
+# ratio here would pull the lower zone a ratio-confidence share off.
+_ra_keep = _ra_reload(
+    dict(_RA_CFG, upper_floor_heat_loss=_RA_U * _RA_S, lower_floor_heat_loss=_RA_L * _RA_S),
+    _ra_learned(_RA_CFG),
+)
+_ra_got_keep = _ra_zones(_ra_keep)
+R.check(
+    "an edit that keeps the nameplate split keeps the ratio and each zone",
+    _ra_keep._lower_floor_loss_ratio == _RA_R
+    and all(abs(g / w - 1.0) < 1e-4 for g, w in zip(_ra_got_keep, _ra_want)),
+    f"ratio {_ra_keep._lower_floor_loss_ratio}, upper {_ra_got_keep[0]:.4f} lower "
+    f"{_ra_got_keep[1]:.4f} vs learned {_ra_want[0]:.4f} {_ra_want[1]:.4f} kW/°C",
 )
 
 # The weekly-snapshot restore: a pre-reseed snapshot rolled back onto the
