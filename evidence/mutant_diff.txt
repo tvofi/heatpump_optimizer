@@ -1,0 +1,15 @@
+ tests/harness_headers.py | 2 --
+ 1 file changed, 2 deletions(-)
+diff --git a/tests/harness_headers.py b/tests/harness_headers.py
+index ef7701ec0..47da2e339 100644
+--- a/tests/harness_headers.py
++++ b/tests/harness_headers.py
+@@ -212,8 +212,6 @@ def headroom_verdict(cpu: float, bound: int, env) -> tuple[bool, bool]:
+     the flag on every pull request and grades it there; the exit check and every
+     RESULT comparison still run under the flag.
+     """
+-    if env.get(RECORDING_ENV) == "1":
+-        return False, True
+     return True, cpu <= bound * CPU_HEADROOM
+ 
+ 

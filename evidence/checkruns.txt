@@ -1,0 +1,35 @@
+delivery-status-publish	completed	skipped
+CodeQL	completed	neutral
+mutation-autofix	completed	skipped
+mutation-pins	completed	skipped
+record	completed	skipped
+policy-docs	completed	success
+instrument-self-tests	completed	success
+wave-script	completed	success
+env-matrix	completed	success
+delivery-status	completed	success
+nightly-ha	completed	skipped
+typing	completed	success
+browser	completed	success
+closures	in_progress	
+fast (3.14)	in_progress	
+coverage	in_progress	
+briefs	completed	success
+closure-scope	completed	success
+nightly-status	completed	success
+mutation	completed	success
+cancel-superseded	completed	success
+Analyze (actions)	completed	success
+Analyze (python)	in_progress	
+Analyze (javascript-typescript)	completed	success
+pr-contract	completed	success
+scope	completed	success
+cancel-superseded	completed	success
+kernel-points (${{ matrix.coretype }})	completed	skipped
+budget-raise-gate	completed	success
+arch-score	completed	success
+arch-score	completed	success
+hassfest	completed	success
+validate-hacs	completed	success
+pr-contract	completed	success
+budget-raise-gate	completed	success
