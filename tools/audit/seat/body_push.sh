@@ -68,7 +68,9 @@ TREE=$(git mktree < "${TMPDIR:-/tmp}/body_push.$$")
 rm -f "${TMPDIR:-/tmp}/body_push.$$"
 # shellcheck disable=SC2086 # $P is empty or exactly "-p <sha>"
 C=$(git commit-tree "$TREE" $P -m "body: $TOPIC")
-# The topic names the ref and the message: refuse one that names this host (#2310).
-python3 -I "$(dirname "$0")/ref_privacy.py" guard --ref "$REF" --message "body: $TOPIC"
+# The topic names the ref and the message: refuse one that names this host
+# (#2310). The commit is judged as written, not as composed: its message and
+# identity, and any parent origin does not hold (R10-FLY-NO-FOOTERS-PUSH-PATHS).
+python3 -I "$(dirname "$0")/ref_privacy.py" guard --ref "$REF" --commits "$C"
 git push -q origin "$C:refs/heads/$REF"
 echo "$REF $C"

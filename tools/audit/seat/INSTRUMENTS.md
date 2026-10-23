@@ -41,6 +41,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `carry_audit.py check`) only when the head
   is the live head plus one commit adding exactly that PR's own open row and
   the body is the live one under one new `## Head` note; else prepr runs.
+  Every commit the PR adds over a freshly fetched `origin/main`, wherever it
+  was first published (a `ci-probe/*` or `handoff/*` ref included), is
+  judged by `ref_privacy.py guard --over` before anything is minted.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -124,7 +127,9 @@ sweep's standing-seat liveness step keep them alive.
   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
   before anything is pushed, with each arm's repair printed; a fetch that
   half-failed leaves a parentless commit the push refuses as a
-  non-fast-forward — a rewrite is never forced through.
+  non-fast-forward — a rewrite is never forced through; the body commit it
+  wrote is read back through `ref_privacy.py guard --commits`, message and
+  identity, before the push.
 - `body_patch.sh` — repairs an open pull request's BODY without moving its
   head: `body_patch.sh [--dry-run] [--repo O/R] <pr> <expected-head-sha>
   <body.md>`. Reads the live head, runs the body contract offline at it
@@ -391,7 +396,9 @@ sweep's standing-seat liveness step keep them alive.
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
   `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
   (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
-  push line replaced by `true` reddens it (#2444).
+  push line replaced by `true` reddens it (#2444). Every commit the code head
+  adds over `origin/main` passes `ref_privacy.py guard --over` before any
+  worktree or push, so a trailer the cloud harness pushed is refused there.
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -616,7 +623,9 @@ sweep's standing-seat liveness step keep them alive.
   `review --approve --sha` and `dismiss-review`. When: the P2 probe fan-out
   (`plans/ci-layout`). Refusals: a ref outside `ci-probe/`, a missing or other
   `--repo`, `/rate_limit` below 20 % remaining (or unreadable), a token that is
-  not `tvofi` on a review, a host path in a ref, message or log line. One log
+  not `tvofi` on a review, a host path in a ref, message or log line, and a
+  commit the push publishes first whose message carries a tool's attribution
+  or whose identity names a machine (`ref_privacy.published`). One log
   line per write (`--log`); `--dry-run` writes nothing. Nothing polls (the 60 s
   floor holds vacuously). `--self-test` runs over fakes and a throwaway bare
   remote, including the namespace control: a planted `ci-probe/x` leaves
@@ -679,9 +688,11 @@ sweep's standing-seat liveness step keep them alive.
 - `ref_privacy.py` — the one owner of what a push may say about the host
   (#2310): `slug <path>` names a local path for a ref (`<root>-<rest>` under
   a named root, else `ext-<leaf>-<hash>`); `guard --ref R [--message M]
-  [--commits REV -C DIR]` refuses a ref name or commit message carrying the
+  [--commits REV [--over BASE] -C DIR]` refuses a ref name or commit message carrying the
   home directory, an account name, the uid, a session temp root or a host
-  path (exit 3, the class named, the text not echoed); `--check` refuses a
+  path, or a message carrying a tool's attribution (exit 3, the class named,
+  the text not echoed); `--commits` reads what the push publishes first,
+  `--over BASE` every commit REV adds over BASE; `--check` refuses a
   tracked file with a push site its `PUSHERS` registry does not name, and a
   `guarded` entry that calls no guard. When: before every push an instrument
   composes; a new pusher registers in `PUSHERS` in the same diff. Refusal: a
