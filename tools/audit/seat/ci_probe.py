@@ -11,13 +11,22 @@
         close <pr>                          PATCH state=closed (the seat token is hpo-author's)
         review <pr> --approve --sha <sha>               owner account only
         dismiss-review <pr> <review-id> --message TEXT  owner account only
+        sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
+        dismiss-alert <n> --reason R [--comment TEXT]   a code-scanning alert, state=dismissed
+        workflow-disable <workflow>                     PUT actions/workflows/<file or id>/disable
     python3 -I tools/audit/seat/ci_probe.py --self-test
 
 WHY THIS EXISTS. The CI-layout probes (plans/ci-layout, P2) fan a unit out as a
 pull request against a probe ref, then re-run, cancel and retarget it. Done by
 hand the writes share no guard: one typo pushes a probe to a live namespace, and
 a loop drains the API budget the gate needs. This is the one place they live.
-sarif-upload, dismiss-alert and workflow-disable are P2b's.
+sarif-upload, dismiss-alert and workflow-disable (P2b, U6) are the orchestrator's:
+the first two are security-tool writes whose record is permanent (a SARIF on a
+closed PR's merge ref, a dismissed alert), and the third is rollback write 21.
+`sarif-upload` takes a token with `security-events: write` and writes no file the
+caller names: the SARIF it sends is empty (no results), tool CodeQL, with
+`automationDetails.id` = `<category>/`, so it supersedes nothing but the
+analysis it is meant to outrank at that ref and category.
 
 EVERY SUBCOMMAND, before it writes:
   - needs `--repo tvofi/heatpump_optimizer` spelled out, never a default;
@@ -48,8 +57,10 @@ runs them, never an App, and the tool refuses when `gh api user` is not tvofi.
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import datetime
+import gzip
 import io
 import json
 import os
@@ -69,6 +80,9 @@ PROBE_NS = "ci-probe/"
 MIN_REMAINING = 0.20
 MIN_POLL_S = 60
 REF_RE = re.compile(r"^ci-probe/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$")
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+CATEGORY_RE = re.compile(r"^/language:[a-z-]+$")
+DISMISS_REASONS = ("false positive", "won't fix", "used in tests")
 
 
 class Refuse(Exception):
@@ -238,6 +252,34 @@ class Probe:
                           self.r(f"pulls/{self.num(pr)}/reviews/{self.num(review)}/dismissals"),
                           {"message": message}, owner=True)
 
+    def do_sarif_upload(self, pr: str, commit: str, category: str) -> str:
+        if not SHA_RE.match(commit):
+            raise Refuse(f"--commit '{commit}' is not a full lower-case SHA")
+        if not CATEGORY_RE.match(category):
+            raise Refuse(f"--category '{category}' is not /language:<name>")
+        sarif = {"version": "2.1.0", "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                 "runs": [{"tool": {"driver": {"name": "CodeQL"}}, "results": [],
+                           "automationDetails": {"id": category + "/"}}]}
+        packed = base64.b64encode(gzip.compress(json.dumps(sarif).encode())).decode()
+        return self.write("sarif-upload", f"#{self.num(pr)}@{commit[:12]}{category}", "POST",
+                          self.r("code-scanning/sarifs"),
+                          {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
+
+    def do_dismiss_alert(self, n: str, reason: str, comment: str) -> str:
+        if reason not in DISMISS_REASONS:
+            raise Refuse(f"--reason must be one of {', '.join(DISMISS_REASONS)}")
+        why = ref_privacy.body_refusal(comment)
+        if why:
+            raise Refuse(f"the comment would publish this host: {why}")
+        return self.write("dismiss-alert", f"alert {self.num(n)}", "PATCH",
+                          self.r(f"code-scanning/alerts/{self.num(n)}"),
+                          {"state": "dismissed", "dismissed_reason": reason, "dismissed_comment": comment})
+
+    def do_workflow_disable(self, workflow: str) -> str:
+        if not re.match(r"^[A-Za-z0-9._-]+\.ya?ml$|^[0-9]+$", workflow):
+            raise Refuse("workflow must be a file name or numeric id")
+        return self.write("workflow-disable", workflow, "PUT", self.r(f"actions/workflows/{workflow}/disable"))
+
     @staticmethod
     def num(v: str) -> int:
         if not re.fullmatch(r"[0-9]+", str(v)):
@@ -267,6 +309,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sha", required=True)
     p = sp.add_parser("dismiss-review"); p.add_argument("pr"); p.add_argument("review_id")
     p.add_argument("--message", required=True)
+    p = sp.add_parser("sarif-upload"); p.add_argument("pr")
+    p.add_argument("--commit", required=True); p.add_argument("--category", required=True)
+    p = sp.add_parser("dismiss-alert"); p.add_argument("alert")
+    p.add_argument("--reason", required=True); p.add_argument("--comment", default="")
+    sp.add_parser("workflow-disable").add_argument("workflow")
     return ap
 
 
@@ -291,6 +338,12 @@ def run(a: argparse.Namespace, probe: Probe) -> str:
         return probe.do_close(a.pr)
     if s == "review":
         return probe.do_review(a.pr, a.sha)
+    if s == "sarif-upload":
+        return probe.do_sarif_upload(a.pr, a.commit, a.category)
+    if s == "dismiss-alert":
+        return probe.do_dismiss_alert(a.alert, a.reason, a.comment)
+    if s == "workflow-disable":
+        return probe.do_workflow_disable(a.workflow)
     return probe.do_dismiss(a.pr, a.review_id, a.message)
 
 
@@ -410,6 +463,49 @@ def self_test() -> int:
         p.fetch = lambda remote, pr: (fetched.append((remote, pr)), known.add("c" * 40))
         ck("null: a head the fetch brings in is reviewed",
            refused(p.do_review, "3", "c" * 40) is None and f.calls[-1][2] == {"event": "APPROVE", "commit_id": "c" * 40})
+
+        # sarif-upload, dismiss-alert, workflow-disable (P2b U6)
+        p, f = mk()
+        m = "b" * 40
+        p.do_sarif_upload("9", m, "/language:python")
+        sent = f.calls[-1]
+        doc = json.loads(gzip.decompress(base64.b64decode(sent[2]["sarif"])))
+        ck("sarif-upload posts an empty CodeQL SARIF for the category to the PR's merge ref",
+           sent[:2] == ("POST", f"/repos/{REPO}/code-scanning/sarifs")
+           and sent[2]["ref"] == "refs/pull/9/merge" and sent[2]["commit_sha"] == m
+           and doc["runs"][0]["results"] == [] and doc["runs"][0]["tool"]["driver"]["name"] == "CodeQL"
+           and doc["runs"][0]["automationDetails"]["id"] == "/language:python/")
+        n0 = len(f.calls)
+        ck("sarif-upload refuses a short commit, an upper-case commit, a non-language category and a non-number PR",
+           all(refused(p.do_sarif_upload, *a) for a in (("9", "abc", "/language:python"), ("9", m.upper(), "/language:python"),
+                                                       ("9", m, "python"), ("9", m, "/language:python/../x"), ("x", m, "/language:python")))
+           and len(f.calls) == n0)
+        p.do_dismiss_alert("7", "used in tests", "probe plant")
+        ck("dismiss-alert PATCHes the alert dismissed with its reason",
+           f.calls[-1] == ("PATCH", f"/repos/{REPO}/code-scanning/alerts/7",
+                           {"state": "dismissed", "dismissed_reason": "used in tests", "dismissed_comment": "probe plant"}))
+        n0 = len(f.calls)
+        ck("dismiss-alert refuses an unlisted reason, a non-number and a host path in the comment",
+           refused(p.do_dismiss_alert, "7", "because", "") and refused(p.do_dismiss_alert, "7;x", "used in tests", "")
+           and refused(p.do_dismiss_alert, "7", "used in tests", "see /tmp/" + "claude-1000/x") and len(f.calls) == n0)
+        p.do_workflow_disable("pr-contract-rerun.yml")
+        ck("workflow-disable PUTs the workflow's disable endpoint",
+           f.calls[-1] == ("PUT", f"/repos/{REPO}/actions/workflows/pr-contract-rerun.yml/disable", None))
+        ck("workflow-disable refuses a path-shaped name",
+           refused(p.do_workflow_disable, "../x.yml") and refused(p.do_workflow_disable, "a/b.yml"))
+        for tag, call in (("sarif-upload", lambda q: q.do_sarif_upload("9", m, "/language:python")),
+                          ("dismiss-alert", lambda q: q.do_dismiss_alert("7", "used in tests", "")),
+                          ("workflow-disable", lambda q: q.do_workflow_disable("x.yml"))):
+            q, g = mk(Fake(remaining=999, limit=5000))
+            ck(f"{tag} refuses below 20 % rate limit and writes nothing", refused(call, q) and not g.calls)
+            q, g = mk(dry=True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                call(q)
+            ck(f"{tag} --dry-run makes no write", not g.calls)
+        logged = Path(log).read_text().splitlines()
+        ck("each of the three logs one `ok` line for its write, and one `dry-run` line for its dry run",
+           all(sum(bool(re.fullmatch(rf"\S+ {t} .+ {r}", ln)) for ln in logged) == 1
+               for t in ("sarif-upload", "dismiss-alert", "workflow-disable") for r in ("ok", "dry-run")))
 
         # dry run and the log
         p, f = mk(dry=True)
