@@ -240,7 +240,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLOW-DESIGN-POLICY | IN | 1 | done | - | opus/opus | yes: policy: owner's approving review | Land the two design seats in the policy corpus (owner ruling, 2026-10-21: decision 0012's moratorium is void; L/XL groups gain a pipelined design and design... |  |
 | R10-FLOW-DESIGN-STAGES | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6175172275 | Mechanise the two design steps (owner ruling, 2026-10-21). |  |
 | R10-FLOW-DISPATCH | IN | 1 | done | - | sonnet/opus | yes: mandated approval under 6175172275 | One call per cloud seat (Lean flow study K16; expedite since revision 4: the repo half has no dependency on any other flow group, and its cost recurs for eve... |  |
-| R10-FLOW-JIDOKA | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6175172275 | Error-proofing before handoff (Lean study K2). |  |
+| R10-FLOW-JIDOKA | IN | 1 | in-progress | - | sonnet/opus | yes: mandated approval under 6175172275 | Error-proofing before handoff (Lean study K2). |  |
 | R10-FLOW-MAIN-GATE | IN | 1 | done | - | opus/opus | yes: mandated approval under 6175172275 | The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it misleads the operator today). |  |
 | R10-FLOW-MQ-PROBE | IN | 2 | not-started | - | opus/opus | yes: owner decision after the probe; the probe ruleset itself under 6175172275 | Probe GitHub's merge queue (Lean study K9). |  |
 | R10-FLOW-POSTMERGE | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6175172275 | After-merge bookkeeping without an agent (Lean flow study, mechanisation). |  |
