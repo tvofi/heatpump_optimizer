@@ -225,6 +225,21 @@ def self_test():
             rc = main(["--out", str(root / "ag.json")], root=root, reader=root / "tools/policy/agreement_py.py")
         ck("and --out refuses to answer on it (the precondition, not a report)",
            rc == 1 and not (root / "ag.json").exists())
+    # A governance file the base's _GOV_FILES still lists but the tree deleted (R10-CI-LAYOUT P2,
+    # step 11a): wave-script restores this reader and tests/entities.py from the BASE, then runs
+    # them over the pull request's tree, so a PR deleting a governance workflow met a list naming
+    # it. The absent file contributes no jobs; a present one still does (null control).
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        (root / "wf").mkdir()
+        (root / "wf/a.yml").write_text("on: push\njobs:\n  alpha:\n    steps: []\n")
+        try:
+            got = governance_pin(["wf/a.yml", "wf/deleted.yml"], root)
+        except Exception as e:  # noqa: BLE001 -- the red arm names it
+            got = repr(e)
+        ck("a listed governance file the tree lacks adds no jobs and does not raise", got == {"briefs", "alpha"})
+        ck("and a present one still adds its jobs (null control)",
+           governance_pin(["wf/a.yml"], root) == {"briefs", "alpha"} if not isinstance(got, str) else False)
     print(f"agreement_py self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
