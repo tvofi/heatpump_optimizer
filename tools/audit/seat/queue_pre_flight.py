@@ -301,8 +301,13 @@ def _self_test() -> int:
                 world.setdefault("body_reads", []).append(argv)
                 return (1, "gh: HTTP 502") if world.get("body_fail") else (0, world.get("pr_body", ""))
             if argv[:3] == ["gh", "pr", "view"]:
+                world["pr_reads"] = world.get("pr_reads", 0) + 1
                 if world.get("pr_read_breaks"):
                     return 1, "gh: HTTP 500"
+                if world.get("pr_read_transient", 0) >= world["pr_reads"]:
+                    return 1, 'Post "https://api.github.com/graphql": net/http: TLS handshake timeout'
+                if world.get("pr_read_404"):
+                    return 1, "HTTP 404: Not Found (https://api.github.com/graphql)"
                 return 0, json.dumps({"state": world.get("pr_state", "OPEN"),
                                       "headRefOid": world.get("pr_head", H0),
                                       "headRefName": world.get("pr_branch", "fix/x")})
@@ -369,8 +374,11 @@ def _self_test() -> int:
             opts.setdefault("dests", ca.Dests({"groups": [
                 {"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}},
                 {"group": "R10-OVER", "issues": [], "fixes": [], "resume": {"stage": "done"}}]}, set()))
+            # sleep: a broken read's `gh: HTTP 502` is transient, so the train's
+            # read retry settles 5/15/45 s before it answers the failure here.
             pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), None, "", (), 1,
-                                                 run=fake(w)), checkout=Path(d), **opts)
+                                                 run=fake(w), sleep=lambda s: None),
+                           checkout=Path(d), **opts)
             return pf.entry({"pr": 7, "verdict": verdict, "branch": "fix/x"})
 
     check("null control: an open, verdicted, rowed, non-policy entry passes",
@@ -382,6 +390,13 @@ def _self_test() -> int:
           and "MERGED" in go({"pr_state": "MERGED"})[2])
     check("an unreadable pull request is a FAIL",
           go({"pr_read_breaks": True})[:2] == ("FAIL", "head"))
+    _w = {"pr_read_transient": 1}
+    check("its reads are the train's, under the read retry: a transport error on the pull request's "
+          "read, then the answer, passes after exactly 2 reads (R10-FLY-GH-READ-RETRY)",
+          go(_w) == ("PASS", "", "") and _w["pr_reads"] == 2)
+    _w = {"pr_read_404": True}
+    check("and a 404 on it is a FAIL after exactly 1 read (no retry masks a refusal)",
+          go(_w)[:2] == ("FAIL", "head") and _w["pr_reads"] == 1)
     check("a verdict that does not carry to the head PARKs with the carry line",
           go({"pr_head": H1, "carry": "CARRY: no c1 -> c2: a commit of the branch's own"})[:2] == ("PARK", "carry")
           and "branch's own" in go({"pr_head": H1, "carry": "CARRY: no c1 -> c2: a commit of the branch's own"})[2])
