@@ -26653,14 +26653,17 @@ R.check(
     "and the contract lane's widening is the one read it needs",
     bool(_PC_PERMS)
     and sorted(_PC_PERMS.group(1).split()) == sorted(
-        ["checks:", "contents:", "pull-requests:", "read", "read", "read"]),
+        ["actions:", "checks:", "contents:", "pull-requests:", "read", "read", "read", "read", "read",
+         "security-events:"]),
     f"pr-contract permissions: "
     f"{_PC_PERMS.group(1).split() if _PC_PERMS else None} -- `checks: read` "
     "lists the head's check runs for the red-check arm (#956), "
     "`pull-requests: read` fetches the body off `/pulls/<number>` at run "
-    "time, and `contents: read` restates the floor a job-level block "
-    "replaces; the nightly-status precedent, read-only widenings on the one "
-    "job that reads the API",
+    "time, `contents: read` restates the floor a job-level block "
+    "replaces, and `security-events: read` and `actions: read` are the "
+    "code-scanning wait's (DESIGN-P2 4.3, R10-CI-LAYOUT P2b U6); the "
+    "nightly-status precedent, read-only widenings on the one job that "
+    "reads the API",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
 # `${{ github.event.pull_request.body }}` is the body as it stood when the
@@ -26708,16 +26711,71 @@ R.check(
 # body refused for not naming a red caused by not naming it), and the flag
 # itself.
 _PC_JOB = _workflow_job(_PC_WF, "pr-contract")
-_PC_EXCLUSION = '.name != "pr-contract"'
+# N4 (DESIGN-P2 section 9): a unit's check run is `<caller> / <job>`, so the
+# job's own name is `pr-contract / pr-contract`, and `gate` -- red whenever any
+# required check is -- is excluded beside it, or the body would be asked to
+# answer the verdict it feeds. A substring pin on the bare `.name !=
+# "pr-contract"` would keep passing on an exclusion that excludes nothing.
+_PC_EXCLUSION = ('.name != "pr-contract / pr-contract"', '.name != "gate"')
 R.check(
     "the contract lane passes the head's red checks to the body check",
     "check-runs" in _PC_JOB
     and "--red" in _PC_JOB
-    and _PC_EXCLUSION in _PC_JOB,
+    and all(_x in _PC_JOB for _x in _PC_EXCLUSION),
     f"listing={'check-runs' in _PC_JOB}, flag={'--red' in _PC_JOB}, "
-    f"exclusion={_PC_EXCLUSION in _PC_JOB}; without all three "
+    f"exclusion={[_x in _PC_JOB for _x in _PC_EXCLUSION]}; without all three "
     "the red-check trigger reads as enforced while the same unnamed red body "
     "exits 0 -- the silent-green shape #533 is about, in this workflow",
+)
+# The red filter, DRIVEN: the jq program is cut out of the step and run over a
+# listing holding a red non-required job (the plant), `gate`, this job's own
+# name, a green check and a still-running one. Only the plant may come out; the
+# nulls are the two excluded names, and a filter without them returns them too.
+def _pc_red_filter(step_run: str) -> str:
+    _m = re.search(r"--jq '(.*?)' \| sort", step_run, re.S)
+    return _m.group(1) if _m else ""
+
+
+_PC_LISTING = json.dumps({"check_runs": [
+    {"name": "tests / fast (3.14)", "status": "completed", "conclusion": "failure"},
+    {"name": "gate", "status": "completed", "conclusion": "failure"},
+    {"name": "pr-contract / pr-contract", "status": "completed", "conclusion": "failure"},
+    {"name": "CodeQL", "status": "completed", "conclusion": "success"},
+    {"name": "tests / typing", "status": "in_progress", "conclusion": None}]})
+_PC_FILTER = _pc_red_filter(next(
+    (_s["run"] for _s in _yaml.safe_load(_PC_WF)["jobs"]["pr-contract"]["steps"]
+     if _s.get("name", "").startswith("List the red checks")), ""))
+
+
+def _pc_reds(program: str) -> "list[str]":
+    _r = subprocess.run(["jq", "-r", program], input=_PC_LISTING, capture_output=True, text=True)
+    return _r.stdout.split("\n")[:-1] if _r.returncode == 0 else ["jq failed"]
+
+
+R.check(
+    "the red filter lists a red non-required job and neither `gate` nor the contract's own name (plant and null)",
+    bool(_PC_FILTER) and _pc_reds(_PC_FILTER) == ["tests / fast (3.14)"]
+    and _pc_reds(_PC_FILTER.replace('| select(.name != "gate")', "")) == ["tests / fast (3.14)", "gate"],
+    f"filter={'found' if _PC_FILTER else 'missing'} reds={_pc_reds(_PC_FILTER) if _PC_FILTER else None}",
+)
+# The code-scanning wait (DESIGN-P2 4.3; owner ruling R-10, option B): its step
+# runs the base's copy of the program (the restore takes `tools/ci/*.py`) BEFORE
+# the red listing, fail-closed (`set -euo pipefail`, its output a file, not a
+# pipe), and the listing folds that file into the reds the body must answer.
+# Read from the comment-stripped job, as the pins above are.
+_PC_STEPS = _PC_BODY_STEP.split("\n      - name: ")
+_PC_WAIT = next((_b for _b in _PC_STEPS if _b.startswith("Wait for code scanning")), "")
+_PC_WAIT_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("Wait for code scanning")), -1)
+_PC_LIST_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("List the red checks")), -1)
+R.check(
+    "the contract lane waits for code scanning before listing reds, fail-closed, with the base's program",
+    0 <= _PC_WAIT_I < _PC_LIST_I
+    and _PC_WAIT.find("set -euo pipefail") < _PC_WAIT.find("python3 -I tools/ci/codescan_wait.py")
+    and "> /tmp/pr-alerts.txt" in _PC_WAIT
+    and "cat /tmp/pr-alerts.txt >> /tmp/pr-reds.txt" in _PC_STEPS[_PC_LIST_I]
+    and "'tools/ci/*.py'" in _PC_BODY_STEP,
+    f"wait step at {_PC_WAIT_I}, listing at {_PC_LIST_I}; a listing that cannot see the python leg's "
+    "alerts lets a finding only the last uploading leg reports reach the merge unanswered (R-10)",
 )
 # THE LISTING'S FAIL-CLOSED SHAPE. The step runs `set -euo pipefail` before the
 # `gh api ... | jq ... > /tmp/pr-reds.txt` pipeline on purpose: a derivation
@@ -26857,7 +26915,7 @@ _PC_VE_STEP = any(
 R.check(
     "the contract lane refuses a version edit on every pull request",
     _PC_VE_CALL and _PC_VE_FETCH and bool(_PC_VE_STEP)
-    and "if: github.event_name == 'pull_request'" in _PC_JOB,
+    and "\n    if:" not in _PC_JOB,
     f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
@@ -27525,6 +27583,10 @@ _PT_EXEMPT = {
         "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
     "tools/ci/prelude.py":
         "needs `actions: read` and `pull-requests: read`, which graders-head-copy lacks",
+    # pr-contract's code-scanning wait (U6): it reads runs, jobs and code-scanning
+    # analyses and alerts, none of which graders-head-copy's token holds.
+    "tools/ci/codescan_wait.py":
+        "needs `actions: read` and `security-events: read`, which graders-head-copy lacks",
 }
 _PT_PROG = re.compile(r"(?:^|\s)(?:node|python3?)(?:\s+-\S+)*\s+([\w./-]+\.(?:mjs|py))", re.M)
 
@@ -28620,8 +28682,7 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
 R.check(
     "a body edit starts a run of the contract job and the budget gate, and of "
     "no other job",
-    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"],
-                      # A base retarget moves the merge base the gate reads;
+    _EDITED_FILES == {# A base retarget moves the merge base the gate reads;
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
                       "budget-raise-gate.yml": ["budget-raise-gate"],
@@ -28792,8 +28853,7 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 
 # How each workflow that lists `pull_request: edited` keeps its same-SHA
 # twin from being cancelled. A design choice per file, not a derived fact.
-_CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
-                  "budget-raise-gate.yml": "per-run",
+_CC_TWIN_ROUTE = {"budget-raise-gate.yml": "per-run",
                   "arch-score.yml": "per-run",
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
@@ -28866,22 +28926,9 @@ _TS_DOC = _RC_DOCS["tests.yml"]
 _CC_TWIN_SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 _CC_OLD_SHA = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 _CC_NEW_SHA = "cccccccccccccccccccccccccccccccccccccccc"
-_CC_PC_TWIN = (_cc_pr_event(_PC_DOC, 1, _CC_TWIN_SHA),
-               _cc_pr_event(_PC_DOC, 2, _CC_TWIN_SHA))
 _CC_TS_SUPERSEDE = (_cc_pr_event(_TS_DOC, 1, _CC_OLD_SHA),
                     _cc_pr_event(_TS_DOC, 2, _CC_NEW_SHA))
-_CC_PC_CC = (_PC_DOC.get("concurrency") or {})
 _CC_TS_CC = (_TS_DOC.get("concurrency") or {})
-R.check(
-    "pr-contract does not cancel two author-app pull_request events at one SHA",
-    _CC_PC_TWIN[0].get("github.sha") == _CC_PC_TWIN[1].get("github.sha") == _CC_TWIN_SHA
-    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[0]) == "False"
-    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[1]) == "False"
-    and _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[0])
-    == _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[1]),
-    f"sha={_CC_PC_TWIN[0].get('github.sha')!r}/{_CC_PC_TWIN[1].get('github.sha')!r} "
-    f"cancel={_cc_value(_CC_PC_CC.get('cancel-in-progress'), _CC_PC_TWIN[0])!r}",
-)
 R.check(
     "tests.yml cancels a superseded older SHA",
     _CC_TS_SUPERSEDE[0].get("github.sha") == _CC_OLD_SHA
@@ -28894,15 +28941,25 @@ R.check(
     f"sha={_CC_TS_SUPERSEDE[0].get('github.sha')!r}/{_CC_TS_SUPERSEDE[1].get('github.sha')!r} "
     f"cancel={_cc_value(_CC_TS_CC.get('cancel-in-progress'), _CC_TS_SUPERSEDE[0])!r}",
 )
-_PC_CANCEL_TRUE = {**_PC_DOC, "concurrency": {
-    **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": True}}
+# pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
+# `concurrency`, so no event can start it and no group can cancel its run. The
+# same-SHA twins of a body edit are ci.yml's, held by its run-id group (the
+# `per-run` route above).
+def _callee_only(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    return list(on) == ["workflow_call"] and "concurrency" not in doc
+
+
 R.check(
-    "and a pr-contract.yml that cancels same-SHA twins is refused (null control)",
-    any("cancel-in-progress" in p for p in _cc_problems("pr-contract.yml",
-                                                       _PC_CANCEL_TRUE))
-    and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
-        **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
-    f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
+    "pr-contract is a workflow_call callee with no event and no concurrency group of its own",
+    _callee_only(_PC_DOC),
+    f"on={list(_PC_DOC.get('on', _PC_DOC.get(True)) or [])} concurrency={'concurrency' in _PC_DOC}",
+)
+R.check(
+    "and a pr-contract.yml that lists pull_request, or declares a concurrency group, is refused (null control)",
+    not _callee_only({**_PC_DOC, "on": {"workflow_call": None, "pull_request": None}})
+    and not _callee_only({**_PC_DOC, "concurrency": {"group": "x"}}),
+    "the predicate over the two shapes the callee must not take",
 )
 
 _BRG_DOC = _RC_DOCS["budget-raise-gate.yml"]
@@ -28983,7 +29040,17 @@ def _mq_problems(docs: "dict[str, dict]") -> "list[str]":
             continue
         _doc = docs[_prod[0]]
         _on = _doc.get("on", _doc.get(True)) or {}
-        if "merge_group" not in ([_on] if isinstance(_on, str) else list(_on)):
+        if list(_on) == ["workflow_call"]:
+            # A callee runs on its caller's events: the umbrella must list
+            # merge_group and call this file (the caller's `if:` is the
+            # workset's, pinned with the umbrella).
+            _ci = docs["ci.yml"]
+            _ci_on = _ci.get("on", _ci.get(True)) or {}
+            if "merge_group" not in _ci_on or not any(
+                    (_j or {}).get("uses") == f"./.github/workflows/{_prod[0]}"
+                    for _j in (_ci.get("jobs") or {}).values()):
+                out.append(f"{_ctx}: {_prod[0]} is a callee ci.yml does not call on merge_group")
+        elif "merge_group" not in ([_on] if isinstance(_on, str) else list(_on)):
             out.append(f"{_ctx}: {_prod[0]} does not list merge_group")
         elif _if_under(((_doc.get("jobs") or {}).get(_prod[1]) or {}).get("if"),
                        {"github.event_name": "merge_group"}) is not True:
