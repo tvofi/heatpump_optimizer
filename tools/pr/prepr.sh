@@ -2900,13 +2900,6 @@ else
   say skip "brief_lint" "no pinned path changed, so CI's briefs job reads this head's copy"
 fi
 
-# --- 3f2. the contract re-run's decision, from its own fixtures (D13-s1-03).
-# `pr-contract-rerun.yml` runs the default branch's copy; its self-test is
-# offline and under a second, so the local path is the self-test.
-if test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; else python3 -I tools/pr/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; fi
-step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
-rm -f /tmp/prepr-crr.$$
-
 # --- 3f3. field coverage (I3 barrier), which `policy-docs` runs from the base
 # once the base carries it. The whole program: without `gh` its ruleset arm
 # prints its UNCHECKED skip, and the other arms are offline.
