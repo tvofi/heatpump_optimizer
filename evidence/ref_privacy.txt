@@ -1,0 +1,5 @@
+  ok   the scrubbed tree's diff is refused nothing (scrub is the remedy)
+  ok   scrub leaves no leak class under the planted identity, and keeps the line count
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 84 checks, 0 failed

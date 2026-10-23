@@ -1,0 +1,5 @@
+  none     pinned tools/audit/preflight.sh: runs other checks; no input of its own
+  none     pinned tools/audit/prepr.sh: runs other checks over a body; no input of its own
+  none     stamp rule 4: reads commit parents and subjects; residual (D11-s1-02), no arm here
+RESULT read=69 ignored=28 declared_none=34 blind=0 dead=0 refused=0 runs=159 seconds=141.0
+FIELD COVERAGE ok

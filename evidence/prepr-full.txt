@@ -192,9 +192,9 @@
   ok   6a passes a branch that writes its own claim (null control)
   ok   pr-body exempts a main-graded red when the diff only ADDS its own delivery row
   ok   and still owes it when the diff edits a row the base had (null control)
-  FAIL 6b passes a scoped script its committed closure covers (null control) (got 1:no interpreter that parses the tree was found (tried the seat venv at ~/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 0:scoped recordings are covered)
-  FAIL 6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at ~/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:UNDER-SCOPED)
-  FAIL 6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at ~/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:failed while being recorded)
+  FAIL 6b passes a scoped script its committed closure covers (null control) (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 0:scoped recordings are covered)
+  FAIL 6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:UNDER-SCOPED)
+  FAIL 6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:failed while being recorded)
   ok   6b skips a diff that reaches no selectable script, recording nothing
   ok   6b leaves a scoped diff's recordings to CI off Linux by default, owing no recorder interpreter
   ok   and the skip line names the CI context and the autofix job that own them
@@ -239,7 +239,7 @@
   ok   and refuses a checkout with no predictor rather than passing it silently
   ok   a topic with no handoff/<topic> is a result body, and the pr-body lint is not run on it (null control)
   ok   body_push refuses a PR body whose Forward-carry names no file and whose Friction does not parse, printing each ERROR, and pushes nothing (#2524)
-  FAIL and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS) (got 1, wanted 0)
+  ok   and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)
   ok   and pushes a body the lint passes (null control: the same body without the session link)
   ok   and refuses a body pushed from a checkout that is not the head at handoff/<topic>
   ok   6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)
@@ -348,5 +348,4 @@ AssertionError: queue-base
   ok   gate_priority.py's derived-default self-test passes
   ok   the self-test checks the floor, then takes its temp root, before any fixture
 
-330 passed, 10 failed
-rc=2
+331 passed, 9 failed

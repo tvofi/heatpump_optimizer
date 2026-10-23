@@ -1,3 +1,0 @@
-M1: ref_privacy self-test: 84 checks, 5 failed
-M2: ref_privacy self-test: 84 checks, 4 failed
-M4: cloud_dispatch self-test: 68 checks, 1 failed
