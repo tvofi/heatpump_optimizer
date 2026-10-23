@@ -328,6 +328,29 @@ def self_test() -> int:
     got, n, sleeps, _ = run([past], lambda f: urllib_wait(f, lambda: now))
     check("a spent bucket whose reset is already past is read again after the schedule's 5 s",
           got[:2] == ("ok", None) and n == 2 and sleeps == [5])
+    # GitHub sends the bucket headers on every response, so the request that
+    # spends the last token returns its own status with `remaining: 0`: the
+    # bucket is read only on a rate-limit response, never on these.
+    for code, msg in ((404, "Not Found"), (401, "Bad credentials"),
+                      (422, "Validation Failed"), (403, "Resource not accessible by integration"),
+                      (403, "the limit on this repository's rate of forks"),
+                      (404, "API rate limit exceeded")):
+        got, n, sleeps, _ = run([hterr(code, msg, **{"x-ratelimit-remaining": "0",
+                                                     "x-ratelimit-reset": str(int(now) + 20)})],
+                                lambda f: urllib_wait(f, lambda: now))
+        check(f"a {code} {msg!r} on a spent bucket resetting in 20 s refuses after exactly 1 call",
+              n == 1 and sleeps == [] and got[3] == "")
+    for code, msg in ((429, ""), (403, "API Rate Limit Exceeded")):
+        got, n, sleeps, _ = run([hterr(code, msg, **{"x-ratelimit-remaining": "0",
+                                                     "x-ratelimit-reset": str(int(now) + 20)})],
+                                lambda f: urllib_wait(f, lambda: now))
+        check(f"a rate-limit {code} {msg!r} on a spent bucket waits out its 20 s reset, then answers",
+              got[:2] == ("ok", None) and n == 2 and sleeps == [20])
+    got, n, sleeps, _ = run([hterr(500, "Server Error", **{"x-ratelimit-remaining": "0",
+                                                           "x-ratelimit-reset": str(int(now) + 1200)})],
+                            lambda f: urllib_wait(f, lambda: now))
+    check("a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names",
+          got[:2] == ("ok", None) and n == 2 and sleeps == [5])
 
     # Every alternative of gh_transient, pinned from both sides: an input it
     # must classify transient and a near-miss it must refuse. ALTERNATIVES
