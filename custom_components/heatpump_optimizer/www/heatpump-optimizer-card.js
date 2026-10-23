@@ -753,6 +753,18 @@ const STRINGS = {
       "energy replayed against the day's flat average price — buying 20% " +
       "below flat scores 100, buying at or above flat scores 0.",
     "score.no_evidence": "No evidence yet — not a zero.",
+    // Why a score has no grade: one line per code the coordinator
+    // publishes in the score sensor's `reasons` (#2258).
+    "score.reason_no_house_model":
+      "No house model: thermal mass or heat loss is not configured.",
+    "score.reason_heat_loss_learning": "Still learning the house's heat loss.",
+    "score.reason_heat_loss_refit_disagrees":
+      "The learned heat loss disagrees with recent days; a refit is on offer.",
+    "score.reason_cop_watch_learning": "Not enough COP data yet to watch the heat pump.",
+    "score.reason_no_scored_day": "Waiting for the first scored day.",
+    "score.reason_free_price_reset":
+      "Reset after a run of free-price days; waiting for a priced day.",
+    "score.reason_first_scored_day": "Waiting for the first scored day.",
     // Short names for the breakdown rows; the explanations follow below.
     "score.label_envelope": "House",
     "score.label_machine": "Heat pump",
@@ -1444,6 +1456,16 @@ const STRINGS = {
       "energi omspelad mot dagens platta medelpris — 20% under platt " +
       "ger 100, på eller över platt ger 0.",
     "score.no_evidence": "Inget underlag ännu — inte noll.",
+    "score.reason_no_house_model":
+      "Ingen husmodell: värmetröghet eller värmeförlust saknas i inställningarna.",
+    "score.reason_heat_loss_learning": "Lär sig fortfarande husets värmeförlust.",
+    "score.reason_heat_loss_refit_disagrees":
+      "Den inlärda värmeförlusten stämmer inte med de senaste dagarna; en omanpassning erbjuds.",
+    "score.reason_cop_watch_learning": "Ännu för lite COP-data för att bevaka värmepumpen.",
+    "score.reason_no_scored_day": "Väntar på den första bedömda dagen.",
+    "score.reason_free_price_reset":
+      "Nollställd efter en rad dagar med gratis el; väntar på en dag med pris.",
+    "score.reason_first_scored_day": "Väntar på den första bedömda dagen.",
     "score.label_envelope": "Huset",
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
@@ -8438,26 +8460,38 @@ function statusSignature(plan, now) {
   return pill ? `${pill.key}:${pill.text}` : "-";
 }
 
+/** A published value as a finite number, or null. `Number(null)` and
+ * `Number("")` are 0, and 0 is finite -- without the first test a value the
+ * backend published as None would read as a measured zero. */
+function readNumber(raw) {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** The score sensor's three sub-scores, in display order.
  *
  * Read from the same entity the headline number comes from, so the two
  * can never disagree. A null value is "no evidence yet", never zero --
- * a fresh install has no grades, not failing ones, and the panel says
- * so rather than printing 0/100 for something unmeasured.
+ * a fresh install has no grades, not failing ones -- and carries the
+ * coordinator's code for why (`reasons`), so the hover and the panel say
+ * the same thing rather than printing 0/100 for something unmeasured.
  */
 function scoreParts(plan) {
   const st = plan.statEntity("_plan_optimization_score");
   const attrs = (st && st.attributes) || {};
-  return [
-    { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
-    { key: "machine", label: L("score.label_machine"), value: finiteScore(attrs.machine) },
-    { key: "operation", label: L("score.label_operation"), value: finiteScore(attrs.operation) },
-  ];
+  const reasons = attrs.reasons || {};
+  return ["envelope", "machine", "operation"].map((key) => {
+    const value = readNumber(attrs[key]);
+    return { key, label: L(`score.label_${key}`), value,
+      reason: value === null ? scoreReasonText(reasons[key]) : null };
+  });
 }
 
-function finiteScore(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+/** The words for a score's no-grade code; an unknown code is no evidence. */
+function scoreReasonText(code) {
+  const key = `score.reason_${code}`;
+  return code && STRINGS.en[key] !== undefined ? L(key) : L("score.no_evidence");
 }
 
 /** The click-opened panel: each sub-score, its value, and what it means.
@@ -8471,7 +8505,7 @@ function scoreBreakdownHtml(plan) {
     .map((p) => {
       const value =
         p.value === null
-          ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
+          ? `<span class="sb-na">— ${esc(p.reason)}</span>`
           : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
       const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
       return (
@@ -8576,7 +8610,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
       .map(
         (p) =>
           `${p.label}: ${
-              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
+              p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`
             }`
       )
       .join(" · ");
@@ -8935,12 +8969,13 @@ async function openHaLink(host, kind, entityId) {
 //
 // Reads the Input Problem binary sensor (the failing inputs and every input's
 // age), the last/next optimization sensors, the status sensor's counts and
-// solve time, and the unavailable state of the sensors that wait for evidence
-// (Home Assistant hides an unavailable entity's attributes, so `waiting_for`
-// is not readable and the reason is keyed by sensor). Only sensors that are
-// on by default are read; none of this is a new backend field. Not published,
-// so not shown: which fallback the plan uses for a stale input, and how many
-// insight sensors are off by default.
+// solve time, and the sensors that wait for evidence. Three of those go
+// unavailable while they wait, and Home Assistant hides an unavailable
+// entity's attributes, so their reason is keyed by sensor; the score stays
+// `unknown` with its attributes and says so in `waiting_for` (#2258), the
+// rule `advisorRow` reads. Only sensors that are on by default are read.
+// Not published, so not shown: which fallback the plan uses for a stale
+// input, and how many insight sensors are off by default.
 const HEALTH_WAITING = [
   ["savings", "_plan_monthly_savings"],
   ["cop", "_learning_observed_cop"],
@@ -9047,8 +9082,15 @@ function healthPlanHtml(plan) {
     `</div>`;
 }
 
+/** Whether a waiting sensor is still waiting: unavailable, or `unknown`
+ * naming what it waits for. */
+function healthWaiting(st) {
+  if (!st) return false;
+  return st.state === "unavailable" || (st.state === "unknown" && !!(st.attributes || {}).waiting_for);
+}
+
 function healthLearningHtml(plan) {
-  const rows = HEALTH_WAITING.filter(([, sfx]) => (plan.statEntity(sfx) || {}).state === "unavailable")
+  const rows = HEALTH_WAITING.filter(([, sfx]) => healthWaiting(plan.statEntity(sfx)))
     .map(([id]) => healthRow("", L(`health.learn_${id}`), L(`health.learn_${id}_why`), ""));
   return rows.length ? `<div class="health-learning"><h3 class="health-h">${esc(L("health.learning"))}</h3>${rows.join("")}</div>` : "";
 }
