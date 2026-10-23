@@ -1289,8 +1289,12 @@ def replay_one(R, path: Path, step_minutes: int | None, inject: str | None) -> d
 SYSID_KERNELS = ("identify", "identify_slab", "_size_step_power", "_unadoptable")
 #: The arms: ``base`` is the tree as it is; ``fallback`` makes the process
 #: route unusable (the #511 degrade, whose work must land on the executor,
-#: never the loop); ``sysid`` arms an experiment on the replayed night.
-KERNEL_ARMS = {"base": 3.0, "fallback": 3.0, "sysid": 6.0}
+#: never the loop); ``sysid`` arms an experiment on the replayed night;
+#: ``away`` holds the set_away override with a return ahead and the house
+#: below its recovery target (D14-s1-01: the recovery estimate); ``learner``
+#: opens the space-heating learners' gates, which the DHW-only fixture keeps
+#: shut, so the interval replay runs.
+KERNEL_ARMS = {"base": 3.0, "fallback": 3.0, "sysid": 6.0, "away": 3.0, "learner": 3.0}
 
 
 def kernel_routes(arm: str, hours: float) -> dict:
@@ -1307,6 +1311,7 @@ def kernel_routes(arm: str, hours: float) -> dict:
     tl = threading.local()
     counts: Counter = Counter()
     sites: Counter = Counter()
+    worker_sites: Counter = Counter()
 
     def site() -> str:
         f = sys._getframe(2)
@@ -1317,6 +1322,18 @@ def kernel_routes(arm: str, hours: float) -> dict:
             f = f.f_back
         return "?"
 
+    def callers() -> set[str]:
+        # Every package frame below the kernel: the parent's frames stay on
+        # this stack through the in-process worker, so a job shipped by name
+        # (``_replay_step``) still names the function that handed it over.
+        out, f = set(), sys._getframe(2)
+        while f is not None:
+            fn = f.f_code.co_filename.replace("\\", "/")
+            if "/heatpump_optimizer/" in fn:
+                out.add(f"{Path(fn).name}:{f.f_code.co_name}")
+            f = f.f_back
+        return out
+
     def counted(real):
         def wrap(*a, **k):
             if not getattr(tl, "inside", 0):
@@ -1326,6 +1343,8 @@ def kernel_routes(arm: str, hours: float) -> dict:
                 counts[f"{route}:{real.__name__}"] += 1
                 if route != "worker":
                     sites[f"{route} {site()} {real.__name__}"] += 1
+                else:  # the arm's witness that it reached its seam
+                    worker_sites.update(callers())
             tl.inside = getattr(tl, "inside", 0) + 1
             try:
                 return real(*a, **k)
@@ -1408,6 +1427,26 @@ def kernel_routes(arm: str, hours: float) -> dict:
             return out
 
         cm.HeatPumpOptimizerCoordinator._async_update_data = armed
+    elif arm == "away":
+        # The set_away override with a return 12 h out, and a house 2 K below
+        # what recovery must reach (the fixture's sits above its comfort): the
+        # override and the recovery target are the away module's own inputs,
+        # so the solve's comfort is untouched.
+        from heatpump_optimizer import away as away_mode
+
+        away_mode.expire_override = lambda active, ret, now: (True, now + timedelta(hours=12))
+        real_resolve = away_mode.resolve
+
+        def resolve(config, **kw):
+            kw["comfort_temp"] = kw["comfort_temp"] + 2.0
+            return real_resolve(config, **kw)
+
+        away_mode.resolve = resolve
+    elif arm == "learner":
+        # The learners' own gates (a frozen input, no trustworthy interval
+        # power on a DHW-only day) are their business, not this arm's.
+        cm.HeatPumpOptimizerCoordinator._learning_frozen = lambda self, *a, **k: None
+        cm.HeatPumpOptimizerCoordinator._interval_space_power = lambda self: 3.0
     src = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text())
     start = datetime.fromisoformat(src["window"]["start"])
     src["window"]["end"] = (start + timedelta(hours=hours)).isoformat()
@@ -1417,7 +1456,7 @@ def kernel_routes(arm: str, hours: float) -> dict:
         with contextlib.redirect_stdout(io.StringIO()):
             run = run_fixture(path, 30)
     return {"arm": arm, "cycles": run["cycles"], "counts": dict(counts),
-            "sites": dict(sites.most_common(8))}
+            "sites": dict(sites.most_common(8)), "worker_sites": dict(worker_sites)}
 
 
 def kernel_checks() -> list[tuple[str, bool, str]]:
@@ -1438,13 +1477,20 @@ def kernel_checks() -> list[tuple[str, bool, str]]:
 
 
 def kernel_verdicts(runs: dict[str, dict | None]) -> list[tuple[str, bool, str]]:
-    """The P10 barrier over the three arms' counts (``None``: the arm did not run)."""
+    """The P10 barrier over the arms' counts (``None``: the arm did not run)."""
     def got(arm, key):
         return ((runs.get(arm) or {}).get("counts") or {}).get(key, 0)
 
     def detail(arm):
         run = runs.get(arm)
         return "did not run" if run is None else f"{run['counts']} {run['sites']}"
+
+    def reached(arm, seam):
+        # The worker witness: a seam the arm never drives reads green on
+        # any route, so an arm whose scenario stopped reaching it is red.
+        run = runs.get(arm) or {}
+        return seam in (run.get("worker_sites") or {}) or any(
+            k.split(" ")[1] == seam for k in run.get("sites") or {})
 
     return [
         ("P10: on a replayed day no model kernel runs on the event loop or an "
@@ -1463,6 +1509,16 @@ def kernel_verdicts(runs: dict[str, dict | None]) -> list[tuple[str, bool, str]]
          and got("sysid", "loop") == 0 and got("sysid", "executor") == 0
          and got("sysid", "worker:identify") + got("sysid", "worker:identify_slab") > 0,
          detail("sysid")),
+        ("P10: an away override's recovery estimate simulates the ramp in the "
+         "process worker, never on the loop (D14-s1-01)",
+         reached("away", "away.py:estimate_recovery_hours")
+         and got("away", "loop") == 0 and got("away", "executor") == 0,
+         detail("away")),
+        ("P10: the space-heating learners replay the elapsed interval in the "
+         "process worker, never on the loop",
+         reached("learner", "coordinator.py:_replay_interval")
+         and got("learner", "loop") == 0 and got("learner", "executor") == 0,
+         detail("learner")),
     ]
 
 
