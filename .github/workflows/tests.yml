@@ -412,6 +412,9 @@ jobs:
           # set it and emit nothing.
           HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
           GOLDEN_MODE: drift
+          # The architecture-score pair is `arch-instrument`'s, below (U5b):
+          # run.sh skips it here by name.
+          RUN_PART: fast
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
           # shared runners it answered the second question. tests/stress.py
@@ -457,6 +460,122 @@ jobs:
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.warmkey.outputs.key }}
+
+  # The architecture score's own check (R9-EG-A1: tests/arch_score.py and
+  # tests/arch_score_head.py), beside `fast` instead of inside it (R10-CI-LAYOUT
+  # P2b, U5b; plan section 6, roster carry 3). On a slow runner the pair was
+  # about 41 of fast's 58 minutes. run.sh's RUN_PART=arch runs the pair alone,
+  # under the same scope `fast` takes and the same lane-skip decision, and
+  # its own accounting owes exactly the pair; `fast` skips it by name. Named
+  # apart from arch-score.yml's `arch-score`, which grades a pull request WITH
+  # the instrument (D-2); this guards the instrument. A required job, so it
+  # stands down at the step level (DESIGN-P2 4.2).
+  arch-instrument:
+    needs: [closure-scope]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    # The pair's slow-runner time (2350-2436 s, roster carry 3) and set-up.
+    timeout-minutes: 60
+    steps:
+      - name: Say the lane-skip decision this run stands on
+        run: |
+          echo "arch-instrument: closure-scope decided '${{ needs.closure-scope.outputs.fast_skip || 'run' }}' for fast's base and diff."
+          if [ "${{ needs.closure-scope.outputs.fast_skip }}" = "skip" ]; then
+            echo "A recorded green run of fast and this job at this exact base and diff"
+            echo "stands in for this rerun; every step below is skipped and this job reports success."
+          fi
+
+      # Full history: the scoped plan diffs against the merge base.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        with:
+          python-version: "3.14"
+
+      - name: Install pinned test dependencies
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # The scope `fast` takes, by fast's own two steps, copied: the same
+      # comparison ref and the same auto-or-full decision (full on a push to
+      # main). tests/entities.py pins the copies equal.
+      - name: Resolve the golden comparison ref
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # The PR's merge-base with its target: exactly the code this
+            # PR forked from, so the drift comparison isolates the PR.
+            REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+            # The branch's OWN claim list is read from the PR head, not the
+            # synthetic merge tree this checkout is (env_drift's CLAIM_HEAD).
+            echo "CLAIM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "merge_group" ]; then
+            # A queue entry is a merge commit (merge method MERGE): its first
+            # parent is the main tip or the entry ahead of it, its second the
+            # pull request's head. That is the shape of a pull request's
+            # synthetic merge, whose merge-base with its target is the same
+            # first parent, so the drift comparison and the claim list are
+            # read exactly as on the pull request. No second parent means the
+            # queue's merge method changed; fail rather than guess.
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+            PR_TIP=$(git rev-parse --verify --quiet 'HEAD^2^{commit}') || {
+              echo "This merge_group commit has no second parent; the queue must merge with merge method MERGE."
+              exit 1
+            }
+            echo "CLAIM_HEAD=${PR_TIP}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Autofix dispatch is not a pull_request event. Compare against
+            # main the same way a PR would, not HEAD^1 (the autofix commit's
+            # parent), so leftover drift vs main cannot hide.
+            git fetch --no-tags origin main
+            REF=$(git merge-base origin/main HEAD)
+          else
+            # Push to main: compare against the state before this push.
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+          fi
+          if [ -z "${REF}" ]; then
+            # An empty GOLDEN_REF is not "no preference": run.sh and
+            # env_drift.py both fall back to origin/main, which on a push to
+            # main IS this commit -- the tree would be compared against
+            # itself and pass no matter what it did. Fail here instead, where
+            # the reason is visible.
+            echo "Could not resolve a comparison ref for this ${{ github.event_name }}."
+            echo "The drift gate needs a baseline that is not this commit;"
+            echo "an empty ref silently becomes origin/main == HEAD."
+            exit 1
+          fi
+          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
+
+      - name: Decide the gate scope
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] \
+             || [ "${{ github.event_name }}" = "merge_group" ] \
+             || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
+            echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
+          else
+            echo "GATE_SCOPE=full" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run the architecture-score pair
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          RUN_PART: arch
+        run: ./tests/run.sh
 
   # The real-browser layout lane (issue #96): positions, sizes and
   # visibility, the three things the DOM-stub lanes cannot see. Own job
@@ -1539,7 +1658,7 @@ jobs:
   # The pull-request concurrency group cancels this job on a newer push, so a
   # proof can never be recorded against a diff the lanes never judged.
   lane-proofs:
-    needs: [closure-scope, fast, coverage, browser]
+    needs: [closure-scope, fast, arch-instrument, coverage, browser]
     if: >-
       !cancelled() && (
         github.event_name == 'pull_request'
@@ -1550,9 +1669,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
+      # fast's proof stands in for arch-instrument too, which stands down on
+      # fast's decision (U5b), so it is recorded only when both ran green.
       - name: Record fast's green run at this base and diff
         if: >-
           needs.fast.result == 'success'
+          && needs.arch-instrument.result == 'success'
           && needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
           mkdir -p "$RUNNER_TEMP/lane-proof-fast"
@@ -1566,6 +1688,7 @@ jobs:
       - name: Save fast's proof
         if: >-
           needs.fast.result == 'success'
+          && needs.arch-instrument.result == 'success'
           && needs.closure-scope.outputs.fast_skip != 'skip'
         continue-on-error: true
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
