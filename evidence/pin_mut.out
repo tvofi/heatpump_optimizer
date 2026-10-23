@@ -1,0 +1,8 @@
+[head] ok   copies equal: ['Resolve the golden comparison ref', 'Decide the gate scope']; RUN_PART: ['fast', 'arch']
+[origin/main tests.yml] FAIL copies equal: []; RUN_PART: [None, None]
+[arch copy: full->auto] FAIL copies equal: ['Resolve the golden comparison ref']; RUN_PART: ['fast', 'arch']
+[fast RUN_PART dropped] FAIL copies equal: ['Resolve the golden comparison ref', 'Decide the gate scope']; RUN_PART: [None, 'arch']
+[arch RUN_PART=all] FAIL copies equal: ['Resolve the golden comparison ref', 'Decide the gate scope']; RUN_PART: ['fast', 'all']
+[arch needs fast] FAIL copies equal: ['Resolve the golden comparison ref', 'Decide the gate scope']; RUN_PART: ['fast', 'arch']
+[arch copy: push ref HEAD^1->HEAD] FAIL copies equal: ['Decide the gate scope']; RUN_PART: ['fast', 'arch']
+RESULT {'head': 'pass', 'main': 'fail', 'scope-full->auto': 'fail', 'fast RUN_PART dropped': 'fail', 'arch RUN_PART=all': 'fail', 'arch needs fast too': 'fail', 'ref push HEAD^1->HEAD': 'fail'}
