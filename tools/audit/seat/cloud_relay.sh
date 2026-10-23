@@ -2,7 +2,7 @@
 # cloud_relay.sh [--confirm] [--log FILE] <pr> <nonce> <head40>    relay one cloud reviewer's verdict
 # cloud_relay.sh --watch [--interval N] [--once] [--confirm] [--log FILE]
 # cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]
-# cloud_relay.sh dispose [--log FILE] <ref> <sha40>                    record an OWED ref handled
+# cloud_relay.sh dispose [--log FILE] <ref> <sha40>                    record an OWED probe/handoff/review ref handled
 # cloud_relay.sh held <pr>                                             rc 0 held, 1 not held, 2 malformed hold file
 # cloud_relay.sh --self-test
 #
@@ -43,24 +43,41 @@
 # It relays each probe/rev-* ref+sha once.
 # The dispatch record ($HPO_BUS_STATE or ~/.zcode/bus, field order `pr head
 # thread nonce`) supplies the head and full nonce for a ref's pr and nonce8; a ref
-# with no record is logged and left for a later pass. A refused ref+sha is noted
-# in `<ledger>.refused` and not retried, so a loop does not repeat one refusal
-# every interval; a re-pushed ref has a new sha and is tried again. --once makes
+# with no record is logged and left for a later pass. A refused ref+sha (relay
+# rc 2, a refusal of the ref itself) is noted in `<ledger>.refused` and not
+# retried, so a loop does not repeat one refusal every interval; any other
+# failure (a push or a fetch: an HTTP 400 once sat 3 h refused in silence) is
+# retried on later passes, HPO_RELAY_TRIES times in all (default 3; tries in
+# `<ledger>.tries`), and then refused. A refusal prints
+#   cloud_relay: REFUSED <ref> <sha> <reason>       (the relay's last stderr line)
+# and is `OWED <utc> probe-refused <ref> <sha> <reason>` in <log>.level until
+# disposed; one refused before reasons were kept (`<ledger>.refused-why`) stays
+# silent. A re-pushed ref has a new sha and is tried again. --once makes
 # one pass (the self-test's and cron's shape). Run it detached via daemonize.py.
+#
+# A push-verdict refused non-fast-forward (review/<pr> moved under it) is run
+# again, at most three times in all: bus.sh re-reads the fresh tip and appends the
+# same verdict there; nothing is forced. A fresh tip whose tree is already this
+# verdict's (VERDICT.md, evidence/: bus.sh's tree) is not re-applied. Either case
+# is printed. After the push the relay prints `review/<pr> remote tip <sha>`, the
+# tip `git ls-remote` answers, never the commit push-verdict built here.
 #
 # --confirm does not stop at push-verdict (two verdicts once sat relayed and
 # unposted for 20 minutes): after a push-verdict that PASSED it runs
-# `bus.sh confirm <pr> <review-sha>`, the sha being the one push-verdict printed
-# (`review/<pr> <sha>`), and appends one line to the log (--log FILE, default
-# <state>/cloud-relay.log, which the orchestrator reads):
+# `bus.sh confirm <pr> <review-sha>`, the sha being review/<pr>'s remote tip when
+# that tip carries this verdict's tree (confirm takes only a tip), and appends
+# one line to the log (--log FILE, default <state>/cloud-relay.log, which the
+# orchestrator reads):
 #   POSTED <utc> <pr> <review-sha>          confirm succeeded
-#   OWED   <utc> <pr> <review-sha|-> <why>  push-verdict passed, the verdict is not posted
+#   OWED   <utc> <pr> <review-sha|-> <why>  push-verdict passed, the verdict is not posted;
+#                                           <why> carries confirm's last output line
 # confirm never runs after a refused relay or a failed push-verdict, and writes
 # nothing for them (a refusal prints its reason, and --watch's .refused file
 # holds it). HPO_RELAY_CONFIRM replaces the confirm command (the self-test's stub).
 #
 # `pass` is the orchestrator's whole beat, ONE entry point a driver calls once
-# (and takes over relay_watch.sh, which was session-local). A pass runs two arms.
+# (and takes over relay_watch.sh, which was session-local). A pass runs two arms,
+# and with --confirm a third.
 #   handoff arm: for every OPEN pull request, topic = headRefName less a leading
 #     `fix/` and a trailing `-pr`. If handoff-body/<topic> and handoff/<topic>
 #     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
@@ -91,6 +108,21 @@
 #     itself (the beat's handoff job reads it unchanged).
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
+#   confirm arm (--confirm): the ledger is written before confirm runs, so a
+#     confirm that failed, a relay by a script without the confirm, or one by a
+#     call without --confirm was never confirmed later ('already relayed';
+#     #2659, #2632). For every review/<pr> tip (git ls-remote) that the relay
+#     pushed -- the tip's `bus-nonce:` matches a ledgered probe/rev-<pr>-<nonce8>
+#     -- and whose tree is not in bus.sh's posted record (`<pr> <tree>` in
+#     $HPO_BUS_STATE/posted-signed), it runs `bus.sh confirm <pr> <tip>`: POSTED
+#     on success; on failure `OWED <utc> confirm-owed refs/heads/review/<pr> <tip>
+#     tries=<n>/<max>: <last output line>` in <log>.level, retried next pass up to
+#     HPO_RELAY_CONFIRM_TRIES (default 3), then left owed, untried, until bus.sh's
+#     record shows it posted or `dispose` takes it. A tip with no dispatch for its
+#     PR, head and nonce is owed `undispatched` and never confirmed. A tip the
+#     relay did not push waits for the orchestrator's own read (bus.sh). Settled
+#     tips are noted in `<ledger>.confirm-done`, so a pass fetches only new ones.
+#     It makes no gh call; bus.sh confirm posts.
 # `--loop` repeats a pass every --interval seconds (default 120); without it a
 # pass runs once. HPO_RELAY_PRS, HPO_RELAY_UPDATE, HPO_RELAY_APPROVE and
 # HPO_RELAY_DISPATCH replace the PR lister (tab lines `number branch head`),
@@ -112,7 +144,7 @@ logline() { mkdir -p "$(dirname -- "$(relay_log)")" && printf '%s %s\n' "$1" "$(
 # The level is state, not an event: an arm writes `OWED <utc> <kind> <ref> <sha>` lines to a
 # file of its own, then level_set makes them the whole of <kind> in <log>.level, which the
 # tick prints as is. Appended to the log on every pass they were replayed whole (2026-10-21).
-level_line() { printf 'OWED %s %s %s %s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3"; }
+level_line() { printf 'OWED %s %s %s %s%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "${4:+ $4}"; }  # [why]
 level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level become that file's
   local lv; lv=$(relay_log).level
   mkdir -p "$(dirname -- "$lv")" || return 1
@@ -121,6 +153,21 @@ level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level bec
 }
 posted() { logline POSTED "$1 $2"; echo "cloud_relay: POSTED #$1 $2"; }
 owed() { logline OWED "$1 $2 $3"; echo "cloud_relay: OWED #$1: $3" >&2; }
+last_line() { printf '%s\n' "$1" | awk 'NF { l = $0 } END { print (l == "" ? "(no output)" : l) }'; }
+push_run() { if [ -n "${HPO_RELAY_PUSH:-}" ]; then "$HPO_RELAY_PUSH" "$@"; else bash "$HERE/bus.sh" push-verdict "$@"; fi; }
+confirm_run() { if [ -n "${HPO_RELAY_CONFIRM:-}" ]; then "$HPO_RELAY_CONFIRM" "$@"; else bash "$HERE/bus.sh" confirm "$@"; fi; }
+verdict_tree() { # <verdict.md> <ev dir> -> the tree bus.sh push-verdict builds from them (VERDICT.md, evidence/)
+  local s gd tree; s=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay_tree.XXXXXX") || return 1
+  gd=$(git rev-parse --absolute-git-dir) && mkdir -p "$s/w/evidence" && cp "$1" "$s/w/VERDICT.md" && cp -R "$2"/. "$s/w/evidence/" \
+    && tree=$(cd "$s/w" && export GIT_DIR="$gd" GIT_INDEX_FILE="$s/index" GIT_WORK_TREE="$s/w" && git add -A -f . && git write-tree)
+  local rc=$?; rm -rf "$s"; [ $rc = 0 ] && echo "$tree"
+}
+review_tip() { # <pr> -> review/<pr>'s tip as ls-remote answers it, its objects fetched; nothing when absent, rc 1 when unknown
+  local tip; tip=$(git ls-remote origin "refs/heads/review/$1") || return 1; tip=$(awk 'NF { print $1; exit }' <<< "$tip")
+  [ -n "$tip" ] || return 0
+  git cat-file -e "$tip^{commit}" 2>/dev/null || git fetch -q origin "+refs/heads/review/$1:refs/hpo-relay/review/$1" 2>/dev/null
+  git cat-file -e "$tip^{commit}" 2>/dev/null && echo "$tip"
+}
 
 relay() {
   local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
@@ -132,7 +179,7 @@ relay() {
   [ -n "$sha" ] || { die "no $ref on origin"; return; }
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
   if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
-  git fetch -q origin "$ref" || { die "could not fetch $ref"; return; }
+  git fetch -q origin "$ref" || { echo "cloud_relay: could not fetch $ref" >&2; return 1; }
   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
   subj=$(git log -1 --format=%s "$sha")
@@ -151,19 +198,33 @@ relay() {
   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
-  local out sha2
-  if [ -n "${HPO_RELAY_PUSH:-}" ]; then out=$("$HPO_RELAY_PUSH" "$pr" "$d/verdict.md" "$d/ev") || { printf '%s\n' "$out"; return 1; }
-  else out=$(bash "$HERE/bus.sh" push-verdict "$pr" "$d/verdict.md" "$d/ev") || { printf '%s\n' "$out"; return 1; }; fi
-  printf '%s\n' "$out"
+  local out sha2 wt tip tries=0
+  wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
+  # A push refused non-fast-forward (review/<pr> moved since push-verdict read its tip) is
+  # re-applied: push-verdict reads the fresh tip again and appends the same verdict there,
+  # never forcing. A fresh tip that already carries this verdict's tree is not re-applied.
+  while :; do
+    tries=$((tries + 1))
+    out=$(push_run "$pr" "$d/verdict.md" "$d/ev" 2> "$d/push.err") && { cat "$d/push.err" >&2; break; }
+    cat "$d/push.err" >&2; printf '%s\n' "$out"
+    grep -Eq 'non-fast-forward|fetch first' "$d/push.err" || return 1
+    if tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ]; then
+      echo "cloud_relay: review/$pr refused non-fast-forward; its fresh tip $tip already carries this verdict: not re-applied"; out=; break
+    fi
+    [ "$tries" -lt 3 ] || { echo "cloud_relay: review/$pr refused non-fast-forward $tries times; giving up this pass" >&2; return 1; }
+    echo "cloud_relay: review/$pr refused non-fast-forward; re-applying the verdict on its fresh tip"
+  done
+  [ -z "$out" ] || printf '%s\n' "$out"
   mkdir -p "$state" && echo "$ref $sha" >> "$led"
+  # The remote's tip, not the commit push-verdict built here: confirm takes only a tip (bus.sh
+  # unpack), and it is confirmed only when it carries this verdict's tree.
+  sha2=-; tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ] && sha2=$tip
+  echo "cloud_relay: review/$pr remote tip ${tip:-none}"
   if [ -n "${CONFIRM:-}" ]; then
-    sha2=$(printf '%s\n' "$out" | tail -n 1 | awk '{ print $NF }')
-    if ! printf '%s' "$sha2" | grep -Eq '^[0-9a-f]{40}$'; then owed "$pr" - "push-verdict printed no 40-hex review commit"
-    elif [ -n "${HPO_RELAY_CONFIRM:-}" ]; then
-      "$HPO_RELAY_CONFIRM" "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "confirm failed"
-    else bash "$HERE/bus.sh" confirm "$pr" "$sha2" >/dev/null 2>&1 && posted "$pr" "$sha2" || owed "$pr" "$sha2" "bus.sh confirm failed; run it by hand"; fi
+    if [ "$sha2" = - ]; then owed "$pr" - "review/$pr's remote tip ${tip:-none} does not carry this verdict"
+    else out=$(confirm_run "$pr" "$sha2" 2>&1) && posted "$pr" "$sha2" || owed "$pr" "$sha2" "confirm failed: $(last_line "$out")"; fi
   fi
-  echo "cloud_relay: relayed $ref $sha; next: bus.sh confirm $pr <review commit>"
+  echo "cloud_relay: relayed $ref $sha; next: bus.sh confirm $pr $sha2"
 }
 
 disposed() { # disposed <ref> <sha>: the orchestrator ran `dispose` on this ref at this sha
@@ -172,7 +233,7 @@ disposed() { # disposed <ref> <sha>: the orchestrator ran `dispose` on this ref 
 dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled; it is OWED again once it moves
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
-  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/ or handoff-body/ ref"; return;; esac
+  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*|refs/heads/review/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/, handoff-body/ or review/ ref"; return;; esac
   printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
   mkdir -p "$state" && echo "$1 $2" >> "$state/cloud-disposed" || return 1
   local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
@@ -181,26 +242,77 @@ dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled
 }
 
 probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sha, any other is OWED until disposed
-  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} led bus sha ref k pr n8 rec nonce head rc
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} led bus sha ref k pr n8 rec nonce head rc why n max=${HPO_RELAY_TRIES:-3}
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
   # a failed listing leaves the level as it was: unknown is not "nothing owed"
   git ls-remote origin 'refs/heads/probe/*' > "${TMPDIR:-/tmp}/cloud_relay_ls.$$" || { echo "cloud_relay: ls-remote failed; will retry" >&2; rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"; return 0; }
-  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"
+  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"; : > "$state/cloud-level-refused.$$"
   while read -r sha ref; do
     [ -n "$ref" ] || continue
     case $ref in refs/heads/probe/rev-*) ;;
       *) disposed "$ref" "$sha" || { level_line probe-ref "$ref" "$sha" >> "$state/cloud-level-probe.$$"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
-    if { [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; } || { [ -f "$led.refused" ] && grep -qxF "$ref $sha" "$led.refused"; }; then continue; fi
+    if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then continue; fi
+    if [ -f "$led.refused" ] && grep -qxF "$ref $sha" "$led.refused"; then
+      # a refusal is owed until disposed; one recorded before reasons were kept stays silent
+      why=$(awk -v r="$ref" -v s="$sha" '$1 == r && $2 == s { $1 = $2 = ""; w = substr($0, 3) } END { print w }' "$led.refused-why" 2>/dev/null)
+      [ -z "$why" ] || disposed "$ref" "$sha" || level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"
+      continue
+    fi
     k=${ref#refs/heads/probe/rev-}; pr=${k%%-*}; n8=${k#*-}
     rec=$(awk -v p="$pr" -v n="$n8" '$1 == p && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
     if [ -z "$rec" ]; then echo "$(date -u +%FT%TZ) cloud_relay: $ref $sha has no dispatch record in $bus; leaving it" >&2; continue; fi
     head=${rec%% *}; nonce=${rec#* }
     echo "$(date -u +%FT%TZ) cloud_relay: relaying $ref $sha"
-    relay "$pr" "$nonce" "$head"; rc=$?
-    if [ $rc -ne 0 ]; then mkdir -p "$state" && echo "$ref $sha" >> "$led.refused"; fi
+    relay "$pr" "$nonce" "$head" 2> "$state/cloud-relay-err.$$"; rc=$?; cat "$state/cloud-relay-err.$$" >&2
+    [ $rc -ne 0 ] || continue
+    # rc 2 is a refusal of the ref itself, final; any other failure (a push, a fetch) is
+    # retried on later passes, at most HPO_RELAY_TRIES times in all, then refused with its reason.
+    why=$(last_line "$(cat "$state/cloud-relay-err.$$")"); echo "$ref $sha" >> "$led.tries"
+    n=$(grep -cxF "$ref $sha" "$led.tries")
+    if [ $rc = 2 ] || [ "$n" -ge "$max" ]; then
+      echo "$ref $sha" >> "$led.refused"; echo "$ref $sha $why" >> "$led.refused-why"
+      level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo "cloud_relay: REFUSED $ref $sha $why"
+    else echo "cloud_relay: relay of $ref $sha failed (rc=$rc, try $n of $max); the next pass retries: $why" >&2; fi
   done < "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
-  rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
-  level_set probe-ref "$state/cloud-level-probe.$$"
+  rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$" "$state/cloud-relay-err.$$"
+  level_set probe-ref "$state/cloud-level-probe.$$"; level_set probe-refused "$state/cloud-level-refused.$$"
+}
+
+confirm_arm() { # one pass over review/* tips the relay delivered: confirm each not yet posted, owed on the level until it is
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} led bus sha ref pr tree v nonce head n why lv max=${HPO_RELAY_CONFIRM_TRIES:-3}
+  led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}; lv=$(relay_log).level
+  git ls-remote origin 'refs/heads/review/*' > "$state/cloud-reviews.$$" || { echo "cloud_relay: ls-remote of review/* failed; will retry" >&2; rm -f "$state/cloud-reviews.$$"; return 0; }
+  : > "$state/cloud-level-confirm.$$"
+  while read -r sha ref; do
+    pr=${ref#refs/heads/review/}; case $pr in ''|*[!0-9]*) continue;; esac
+    # only what this relay delivered: a reviewer of the orchestrator's own waits for its thread read
+    grep -q "^refs/heads/probe/rev-$pr-" "$led" 2>/dev/null || continue
+    grep -qxF "$pr $sha" "$led.confirm-done" 2>/dev/null && continue
+    git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "+$ref:refs/hpo-relay/review/$pr" 2>/dev/null
+    if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then  # unknown is not "nothing owed": keep its line
+      [ -f "$lv" ] && awk -v r="$ref" -v s="$sha" '$3 == "confirm-owed" && $4 == r && $5 == s' "$lv" >> "$state/cloud-level-confirm.$$"; continue
+    fi
+    tree=$(git rev-parse "$sha^{tree}"); v=$(git show "$sha:VERDICT.md" 2>/dev/null)
+    nonce=$(sed -n 's/^bus-nonce: \([0-9a-f]\{32\}\)$/\1/p' <<< "$v" | head -n 1)
+    # posted (bus.sh's record of each tree it posted for a PR), or a tip the relay did not push: settled for this sha
+    if grep -qxF "$pr $tree" "$bus/posted-signed" 2>/dev/null || ! grep -q "^refs/heads/probe/rev-$pr-${nonce:0:8} " "$led"; then
+      echo "$pr $sha" >> "$led.confirm-done"; continue; fi
+    disposed "$ref" "$sha" && continue
+    head=$(head -n 1 <<< "$v" | grep -oE '[0-9a-f]{40}' | head -n 1)
+    if ! awk -v p="$pr" -v h="$head" -v n="$nonce" '$1 == p && $2 == h && $4 == n { f = 1 } END { exit !f }' "$bus/dispatched" 2>/dev/null; then
+      level_line confirm-owed "$ref" "$sha" "undispatched: no dispatch of #$pr at $head with this verdict's nonce; confirm refuses it" >> "$state/cloud-level-confirm.$$"; continue
+    fi
+    n=$(awk -v p="$pr" -v s="$sha" '$1 == p && $2 == s { k++ } END { print k + 0 }' "$led.confirm-tries" 2>/dev/null)
+    if [ "${n:-0}" -ge "$max" ]; then
+      why=$(awk -v p="$pr" -v s="$sha" '$1 == p && $2 == s { $1 = $2 = ""; w = substr($0, 3) } END { print w }' "$led.confirm-tries")
+      level_line confirm-owed "$ref" "$sha" "tries=$n/$max, not retried; bus.sh confirm $pr $sha by hand, or dispose: $why" >> "$state/cloud-level-confirm.$$"; continue
+    fi
+    if why=$(confirm_run "$pr" "$sha" 2>&1); then posted "$pr" "$sha"; echo "$pr $sha" >> "$led.confirm-done"; continue; fi
+    why=$(last_line "$why"); n=$((n + 1)); echo "$pr $sha $why" >> "$led.confirm-tries"
+    level_line confirm-owed "$ref" "$sha" "tries=$n/$max: $why" >> "$state/cloud-level-confirm.$$"; echo "cloud_relay: OWED confirm #$pr $sha: $why" >&2
+  done < "$state/cloud-reviews.$$"
+  rm -f "$state/cloud-reviews.$$"
+  level_set confirm-owed "$state/cloud-level-confirm.$$"
 }
 
 watch() { # [--interval N] [--once]
@@ -297,7 +409,7 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -309,9 +421,23 @@ self_test() {
   git remote add origin "$t/o.git"
   h=0123456789abcdef0123456789abcdef01234567; n=0123456789abcdef0123456789abcdef
   export HPO_STATE_DIR=$t/state
-  stub=$t/stub.sh; printf '#!/bin/sh\necho "$1" >> "%s/pushed"\necho "review/$1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n' "$t" > "$stub"; chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
+  # push-verdict's stand-in pushes review/<pr> after its tip with bus.sh's tree (VERDICT.md,
+  # evidence/), and prints `review/<pr> <commit>`, or $STUB_SAYS in place of the commit.
+  export RELAY_T=$t; stub=$t/stub.sh; cat > "$stub" <<'EOF'
+#!/bin/bash
+echo "$1" >> "$RELAY_T/pushed"
+s=$(mktemp -d "$RELAY_T/push.XXXXXX"); mkdir -p "$s/w/evidence"; cp "$2" "$s/w/VERDICT.md"; cp -R "$3"/. "$s/w/evidence/"
+gd=$(git rev-parse --absolute-git-dir)
+tree=$(cd "$s/w" && export GIT_DIR="$gd" GIT_INDEX_FILE="$s/index" GIT_WORK_TREE="$s/w" && git add -A -f . && git write-tree) || exit 1
+p=$(git ls-remote origin "refs/heads/review/$1" | awk 'NF { print "-p " $1; exit }')
+[ -z "$p" ] || git fetch -q origin "refs/heads/review/$1" || exit 1
+c=$(git commit-tree "$tree" $p -m "verdict: #$1") && git push -q origin "$c:refs/heads/review/$1" || exit 1
+echo "review/$1 ${STUB_SAYS:-$c}"
+EOF
+  chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
+  rtip() { git ls-remote origin "refs/heads/review/$1" | awk 'NF { print $1; exit }'; }
   mk() { # mk <pr> <subject-head> <verdict-head> <nonce-in-verdict> : push a probe ref for nonce n
-    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1)) $3" > "$t/pr/ev/e"
     printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
     git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict $1 $2"
     git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-$1-${n:0:8}"; }
@@ -355,12 +481,12 @@ self_test() {
   chk "a bracketed class outside [a-z-]+ is refused" 2 relay 9 $n $h
   # --confirm: confirm runs only after a passed push-verdict, and logs POSTED or OWED
   cstub=$t/cstub.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/confirmed"\n' "$t" > "$cstub"; chmod +x "$cstub"
-  fstub=$t/fstub.sh; printf '#!/bin/sh\nexit 1\n' > "$fstub"; chmod +x "$fstub"
+  fstub=$t/fstub.sh; printf '#!/bin/sh\necho "BUS refused $1 $2: the poster refused: HTTP 502" >&2\necho\nexit 1\n' > "$fstub"; chmod +x "$fstub"
   HPO_RELAY_PUSH=$stub; HPO_RELAY_CONFIRM=$cstub; LOG=$t/relay.log; rm -f "$t/confirmed" "$LOG"
   mk 7 $h $h $n; CONFIRM=1
   chk "relay --confirm succeeds" 0 relay 7 $n $h
-  chk "confirm ran with the review sha push-verdict printed" 0 test "$(cat "$t/confirmed")" = "7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-  chk "the log has a POSTED line" 0 grep -q "^POSTED .* 7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$" "$LOG"
+  chk "confirm ran with review/7's remote tip" 0 test "$(cat "$t/confirmed")" = "7 $(rtip 7)"
+  chk "the log has a POSTED line" 0 grep -q "^POSTED .* 7 $(rtip 7)$" "$LOG"
   mk 7 $h $h ffffffffffffffffffffffffffffffff; rm -f "$t/confirmed"
   chk "a refused relay does not confirm" 2 relay 7 $n $h
   chk "and logs nothing new" 0 test "$(wc -l < "$LOG" | tr -d ' ')" = 1
@@ -370,11 +496,34 @@ self_test() {
   chk "confirm did not run after it" 0 test ! -f "$t/confirmed"
   HPO_RELAY_PUSH=$stub; HPO_RELAY_CONFIRM=$fstub
   chk "a failing confirm leaves the relay itself passed" 0 relay 7 $n $h
-  chk "and logs OWED with the review sha" 0 grep -q "^OWED .* 7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa confirm failed$" "$LOG"
+  chk "and logs OWED with the review sha and confirm's last output line, not /dev/null" 0 grep -q "^OWED .* 7 $(rtip 7) confirm failed: BUS refused 7 $(rtip 7): the poster refused: HTTP 502$" "$LOG"
   nosha=$t/nosha.sh; printf '#!/bin/sh\necho done\n' > "$nosha"; chmod +x "$nosha"
   mk 7 $h $h $n; HPO_RELAY_PUSH=$nosha; HPO_RELAY_CONFIRM=$cstub
-  chk "a push-verdict that printed no review sha logs OWED" 0 relay 7 $n $h
-  chk "and the OWED line carries a dash" 0 grep -q "^OWED .* 7 - " "$LOG"
+  chk "a push-verdict that left review/7 without this verdict logs OWED" 0 relay 7 $n $h
+  chk "and the OWED line carries a dash" 0 grep -q "^OWED .* 7 - review/7's remote tip [0-9a-f]* does not carry this verdict$" "$LOG"
+  # the remote's tip is confirmed, not the commit push-verdict says it built
+  mk 7 $h $h $n; HPO_RELAY_PUSH=$stub; rm -f "$t/confirmed"; out=$(STUB_SAYS=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb relay 7 $n $h 2>&1)
+  chk "confirm takes review/7's remote tip, not the sha push-verdict printed" 0 test "$(cat "$t/confirmed")" = "7 $(rtip 7)"
+  chk "and the relay reports that remote tip" 0 grep -q "review/7 remote tip $(rtip 7)$" <<< "$out"
+  # a push refused non-fast-forward is re-applied on the fresh tip, never forced
+  printf '#!/bin/sh\necho x >> "%s/nff.calls"\n[ "$(wc -l < "%s/nff.calls")" -gt 1 ] && exec "%s" "$@"\necho " ! [rejected]        c -> review/$1 (fetch first)" >&2\necho "bus: REFUSE: the push of review/$1 was refused" >&2\nexit 1\n' "$t" "$t" "$stub" > "$t/nff.sh"; chmod +x "$t/nff.sh"
+  mk 7 $h $h $n; rm -f "$t/confirmed" "$t/nff.calls"; HPO_RELAY_PUSH=$t/nff.sh; out=$(relay 7 $n $h 2>&1); rc=$?
+  chk "a push refused non-fast-forward is re-applied and the relay passes" 0 test "$rc $(wc -l < "$t/nff.calls" | tr -d ' ')" = "0 2"
+  chk "and says it re-applied" 0 grep -q "refused non-fast-forward; re-applying" <<< "$out"
+  chk "and confirms the fresh remote tip" 0 test "$(cat "$t/confirmed")" = "7 $(rtip 7)"
+  printf '#!/bin/sh\necho x >> "%s/nff.calls"\n"%s" "$@" >/dev/null\necho " ! [rejected]        c -> review/$1 (non-fast-forward)" >&2\nexit 1\n' "$t" "$stub" > "$t/nff2.sh"; chmod +x "$t/nff2.sh"
+  mk 7 $h $h $n; rm -f "$t/confirmed" "$t/nff.calls"; HPO_RELAY_PUSH=$t/nff2.sh; out=$(relay 7 $n $h 2>&1); rc=$?
+  chk "a fresh tip that already carries this verdict is not re-applied" 0 test "$rc $(wc -l < "$t/nff.calls" | tr -d ' ')" = "0 1"
+  chk "and says so" 0 grep -q "already carries this verdict: not re-applied" <<< "$out"
+  chk "and confirms that tip" 0 test "$(cat "$t/confirmed")" = "7 $(rtip 7)"
+  printf '#!/bin/sh\necho x >> "%s/nff.calls"\necho " ! [rejected]        c -> review/$1 (fetch first)" >&2\nexit 1\n' "$t" > "$t/nff3.sh"; chmod +x "$t/nff3.sh"
+  mk 7 $h $h $n; rm -f "$t/nff.calls"; HPO_RELAY_PUSH=$t/nff3.sh
+  chk "a push refused non-fast-forward every time gives up after three tries (rc 1)" 1 relay 7 $n $h
+  chk "and pushed three times, no more" 0 test "$(wc -l < "$t/nff.calls" | tr -d ' ')" = 3
+  printf '#!/bin/sh\necho x >> "%s/nff.calls"\necho nope >&2\nexit 1\n' "$t" > "$t/nff4.sh"; chmod +x "$t/nff4.sh"
+  mk 7 $h $h $n; rm -f "$t/nff.calls"; HPO_RELAY_PUSH=$t/nff4.sh
+  chk "null control: any other push failure is not re-applied" 1 relay 7 $n $h
+  chk "and pushed once" 0 test "$(wc -l < "$t/nff.calls" | tr -d ' ')" = 1
   CONFIRM=; HPO_RELAY_PUSH=$stub; unset HPO_RELAY_CONFIRM; : > "$LOG"; rm -f "$t/confirmed"
   mk 7 $h $h $n
   chk "without --confirm, relay logs nothing" 0 relay 7 $n $h
@@ -400,6 +549,30 @@ self_test() {
   probe_arm >/dev/null 2>&1
   chk "a watch pass with --confirm confirms and logs POSTED" 0 grep -q "^POSTED .* 5 " "$LOG"
   CONFIRM=
+  # a failed relay that is not a refusal (rc 1: a push, a fetch) is retried, at most HPO_RELAY_TRIES
+  # times, then refused with its reason; the refusal is owed in the level file until disposed
+  printf '#!/bin/sh\necho x >> "%s/flaky.calls"\n[ "$(wc -l < "%s/flaky.calls")" -gt "${FLAKY_FAILS:-0}" ] && exec "%s" "$@"\necho "error: RPC failed; HTTP 400 curl 22" >&2\nexit 1\n' "$t" "$t" "$stub" > "$t/flaky.sh"; chmod +x "$t/flaky.sh"
+  HPO_RELAY_PUSH=$t/flaky.sh; LV=$LOG.level; rm -f "$t/flaky.calls" "$LV"; mk 5 $h $h $n; P5=$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8})
+  : >> "$t/state/cloud-relayed.refused"; FLAKY_FAILS=1 probe_arm >/dev/null 2>&1
+  chk "a transient push failure is not refused" 1 grep -qxF "refs/heads/probe/rev-5-${n:0:8} $P5" "$t/state/cloud-relayed.refused"
+  FLAKY_FAILS=1 probe_arm >/dev/null 2>&1
+  chk "and the next pass retries and relays it" 0 grep -qxF "refs/heads/probe/rev-5-${n:0:8} $P5" "$t/state/cloud-relayed"
+  rm -f "$t/flaky.calls"; mk 5 $h $h $n; P5=$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8})
+  for k in 1 2; do FLAKY_FAILS=9 probe_arm >/dev/null 2>&1; done; out=$(FLAKY_FAILS=9 probe_arm 2>/dev/null)
+  chk "a push failing every pass is refused on the third try" 0 grep -qxF "refs/heads/probe/rev-5-${n:0:8} $P5" "$t/state/cloud-relayed.refused"
+  chk "and prints REFUSED with the ref and its reason" 0 grep -q "^cloud_relay: REFUSED refs/heads/probe/rev-5-${n:0:8} $P5 error: RPC failed; HTTP 400 curl 22$" <<< "$out"
+  FLAKY_FAILS=9 probe_arm >/dev/null 2>&1
+  chk "and is not tried a fourth time" 0 test "$(wc -l < "$t/flaky.calls" | tr -d ' ')" = 3
+  chk "the refusal is owed in the level file, once, with its reason" 0 test "$(grep -c "^OWED .* probe-refused refs/heads/probe/rev-5-${n:0:8} $P5 error: RPC failed; HTTP 400 curl 22$" "$LV")" = 1
+  HPO_RELAY_PUSH=$stub; mk 5 $h $h ffffffffffffffffffffffffffffffff; P5B=$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8}); probe_arm >/dev/null 2>&1
+  chk "a refusal of the ref itself (rc 2) is refused at once, with its reason" 0 grep -q "^OWED .* probe-refused refs/heads/probe/rev-5-${n:0:8} $P5B cloud_relay: refused: nonce mismatch" "$LV"
+  dispose refs/heads/probe/rev-5-${n:0:8} "$P5B" >/dev/null; probe_arm >/dev/null 2>&1
+  chk "a disposed refusal is not owed" 1 grep -q "probe-refused" "$LV"
+  # the tree the relay expects is the one the real bus.sh push-verdict builds (no stub)
+  mk 5 $h $h $n; HPO_RELAY_PUSH=; HPO_RELAY_CONFIRM=$cstub; CONFIRM=1; rm -f "$t/confirmed"
+  chk "with the real bus.sh push-verdict the relay passes" 0 relay 5 $n $h
+  chk "and confirms the remote tip as carrying its verdict tree" 0 test "$(cat "$t/confirmed" 2>/dev/null)" = "5 $(rtip 5)"
+  HPO_RELAY_PUSH=$stub; CONFIRM=
   # the probe arm's other refs: any probe/* that is not rev-* is OWED on every pass until disposed
   # The level is <log>.level, rewritten by each pass: appended to the log, every pass's copy
   # was replayed by the tick (2026-10-21), so "once per pass" is checked on the file itself.
@@ -568,6 +741,52 @@ self_test() {
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   chk "pass runs both arms once and returns" 0 pass --log "$LOG"
   chk "the pass fired the handoff arm" 0 test -e "$t/updated"
+  # the confirm arm (P-O): the ledger is written before confirm runs, so a failed confirm was never
+  # retried ('already relayed'). pass --confirm confirms each review/<pr> tip the relay pushed and
+  # bus.sh has not posted; posting is what the confirm stub records, as bus.sh does in posted-signed.
+  printf '#!/bin/sh\n' > "$t/none.sh"; chmod +x "$t/none.sh"; HPO_RELAY_PRS=$t/none.sh; HPO_RELAY_PUSH=$stub
+  git -C "$t/o.git" for-each-ref --format='%(refname)' refs/heads/review/ | while read -r r; do git -C "$t/o.git" update-ref -d "$r"; done
+  cat > "$t/cf.sh" <<'EOF'
+#!/bin/sh
+echo "$1 $2" >> "$RELAY_T/cf.calls"
+[ "$(grep -c "^$1 " "$RELAY_T/cf.calls")" -gt "${CF_FAILS:-0}" ] || { echo "bus: REFUSE: the push of verdict/$1 was refused: HTTP 502" >&2; exit 1; }
+echo "$1 $(git rev-parse "$2^{tree}")" >> "$HPO_BUS_STATE/posted-signed"; echo "BUS posted $1 $2"
+EOF
+  chmod +x "$t/cf.sh"; export HPO_RELAY_CONFIRM=$t/cf.sh CF_FAILS=2; LOG=$t/confirm.log; LV=$LOG.level; : > "$LOG"; rm -f "$LV" "$t/cf.calls"
+  calls() { grep -c "^$1 " "$t/cf.calls" 2>/dev/null; }
+  mk 61 $h $h $n; printf '61 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a relayed review whose confirm failed is owed on the level, with confirm's last stderr line" 0 grep -q "^OWED .* confirm-owed refs/heads/review/61 $(rtip 61) tries=1/3: bus: REFUSE: the push of verdict/61 was refused: HTTP 502$" "$LV"
+  chk "and nothing is posted yet" 1 grep -q "^POSTED .* 61 " "$LOG"
+  pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "the next pass confirms it and logs POSTED" 0 grep -q "^POSTED .* 61 $(rtip 61)$" "$LOG"
+  chk "and its level line is gone" 1 grep -q "review/61 " "$LV"
+  pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a posted review is not confirmed again" 0 test "$(calls 61)" = 3
+  CONFIRM=; mk 66 $h $h $n; printf '66 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"; pass --log "$LOG" >/dev/null 2>&1
+  chk "pass without --confirm relays and runs no confirm arm (null control)" 0 test "$(calls 66)" = 0
+  echo "66 $(git rev-parse "$(rtip 66)^{tree}")" >> "$t/bus/posted-signed"; pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a review already posted by hand (bus.sh's posted record) does nothing (null control)" 0 test "$(calls 66)" = 0
+  chk "and owes nothing" 1 grep -q "review/66 " "$LV"
+  rm -rf "$t/v62"; mkdir -p "$t/v62/ev"; echo "$h" > "$t/v62/ev/e"; printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h" "$n" > "$t/v62/verdict.md"
+  "$stub" 62 "$t/v62/verdict.md" "$t/v62/ev" >/dev/null; echo "refs/heads/probe/rev-62-${n:0:8} $h" >> "$t/state/cloud-relayed"
+  pass --confirm --log "$LOG" >/dev/null 2>&1; pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "an undispatched review is owed once in the level after two passes (null control)" 0 test "$(grep -c "^OWED .* confirm-owed refs/heads/review/62 $(rtip 62) undispatched: " "$LV")" = 1
+  chk "and confirm never runs on it" 0 test "$(calls 62)" = 0
+  dispose refs/heads/review/62 "$(rtip 62)" >/dev/null; pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a disposed review is not owed" 1 grep -q "review/62 " "$LV"
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h" ffffffffffffffffffffffffffffffff > "$t/v62/verdict.md"
+  "$stub" 64 "$t/v62/verdict.md" "$t/v62/ev" >/dev/null; echo "refs/heads/probe/rev-64-${n:0:8} $h" >> "$t/state/cloud-relayed"
+  pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a review/<pr> tip the relay did not push is left to the orchestrator (null control)" 0 test "$(calls 64)" = 0
+  chk "and owes nothing" 1 grep -q "review/64 " "$LV"
+  CONFIRM=; CF_FAILS=99; mk 63 $h $h $n; printf '63 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"; pass --log "$LOG" >/dev/null 2>&1
+  for k in 1 2 3 4; do pass --confirm --log "$LOG" >/dev/null 2>&1; done
+  chk "a confirm failing every pass is tried HPO_RELAY_CONFIRM_TRIES (3) times, no more" 0 test "$(calls 63)" = 3
+  chk "then stays owed once on the level with its last reason" 0 test "$(grep -c "^OWED .* confirm-owed refs/heads/review/63 $(rtip 63) tries=3/3, not retried; .*: bus: REFUSE: the push of verdict/63 was refused: HTTP 502$" "$LV")" = 1
+  echo "63 $(git rev-parse "$(rtip 63)^{tree}")" >> "$t/bus/posted-signed"; pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "a review posted by hand after that leaves the level" 1 grep -q "review/63 " "$LV"
+  CONFIRM=; CF_FAILS=0; unset HPO_RELAY_CONFIRM; HPO_RELAY_PRS=$t/lister.sh; LOG=$t/pass.log
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.
   printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/tpids" & echo $! >> "%s/tpids"\nwait\n' "$t" "$t" "$t" > "$t/tree.sh"; chmod +x "$t/tree.sh"
