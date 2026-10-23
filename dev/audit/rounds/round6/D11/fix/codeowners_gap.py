@@ -959,6 +959,12 @@ NULLS = [
         "PINNED: ${{ github.event.pull_request.base.sha }}",
         "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
         " || format('origin/{0}', inputs.base) }}")),
+    # A ci.yml callee that also runs on a push: the dispatched PR's base when a
+    # dispatch names one, else the push's own commit (Arm B step 4, F-B4).
+    ("PINNED from the dispatched PR's base, else the push's", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+        " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}")),
 ]
 
 
