@@ -3736,6 +3736,7 @@ const REQUIRED_ROT = {
       'does not parse: "- a second bullet',  // a bullet after a labelled entry opens an entry; it is not folded
       'does not parse: "`budgets`: `annoying`',  // a class outside the five is refused, not read as an id
       'is red and',                      // a red check the body never names
+      "carries a tool's attribution",    // a footer or session link (R10-FLY-NO-FOOTERS)
     ],
   },
   index: {
@@ -3906,6 +3907,7 @@ function assertAcceptance(derived) {
     const rel = path.relative(ROOT, path.join(prepr, f))
     if (f === 'needs-approval.md') continue
     const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
+    if (f === 'good-claude-ai.md') continue
     if (f === 'good.md' && errs.length) {
       console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
       return 1
@@ -3929,6 +3931,24 @@ function assertAcceptance(derived) {
     }
     if (right.length || rightBot.length || absent.length) {
       console.log('\nFIXTURE VACUOUS: the author check fired on the App (either form) or on an absent author (the null controls)')
+      return 1
+    }
+  }
+
+  // The attribution arm (R10-FLY-NO-FOOTERS): attribution.md is a healthy body
+  // plus the footer and a session link, so the arm and only the arm fires on
+  // it; good-claude-ai.md names claude.ai in another sense and quotes the
+  // trailers mid-sentence, and must stay silent. One arm alone would pin a
+  // check that always fires or never does.
+  {
+    const bad = checkPrBody(path.relative(ROOT, path.join(prepr, 'attribution.md')), { head: ZERO })
+    const quiet = checkPrBody(path.relative(ROOT, path.join(prepr, 'good-claude-ai.md')), { head: ZERO })
+    if (bad.length !== 1 || !/session-link, generated-footer/.test(bad[0].message)) {
+      console.log(`\nFIXTURE VACUOUS: the attribution arm did not refuse attribution.md alone on its footer and session link (${bad.map((e) => e.message.slice(0, 60)).join(' | ')})`)
+      return 1
+    }
+    if (quiet.length) {
+      console.log(`\nFIXTURE VACUOUS: the attribution arm fired on good-claude-ai.md, which names claude.ai in another sense (${quiet.length} error(s)); it would refuse an ordinary body`)
       return 1
     }
   }
@@ -6177,9 +6197,9 @@ const FRICTION_BULLET_RE = /^[-*]\s/
 // seat wrote, 11 of them the attribution alone, and that bucket was the
 // histogram's TOP ROW -- the row `friction_issues.mjs` would have filed
 // "[policy] recurring friction: (unlabelled friction bullet)" on. Dropped
-// here, like a `none` declaration, rather than refused: the seat did not
-// write the line (a tool pasted it), and refusing would charge every body a
-// repair round for a paste. The drop is keyed on the LINE'S OWN SHAPE, a
+// here, like a `none` declaration, so the histogram never counts one. The
+// attribution lines among them are refused by `checkPrBody`'s attribution arm
+// (R10-FLY-NO-FOOTERS); a `Closes #N` line is not. The drop is keyed on the LINE'S OWN SHAPE, a
 // closed list: an attribution line, the one git co-author trailer token, and
 // the closing/linking keywords GitHub itself defines, each before an issue
 // number. None of the shapes is `<rule_id>: <event>: <evidence>`, so the drop
@@ -6559,6 +6579,26 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
+// TOOL ATTRIBUTION IS REFUSED (R10-FLY-NO-FOOTERS). The owner's ruling (tvofi,
+// 2026-10-22): "please have your seats not post claude code footers, especially
+// not with direct links to sessions", then "make this ban persistent". The
+// grammar's first reader is tools/audit/seat/ref_privacy.py's ATTRIBUTION,
+// which the push guard judges commit messages with; this one is kept here
+// because pr-contract runs only programs restored from the base, and
+// agreement.mjs's `attribution` pair holds the two to one answer. Hence the
+// same terms as there: ASCII case folding and explicit word edges. JavaScript's
+// `^` already opens a line after \r, U+2028 and U+2029; the Python reader
+// rewrites them to \n to match.
+const ATTRIBUTION = [
+  ['session-link', /claude\.ai\/code\/session_/i],
+  ['session-trailer', /^[ \t]*Claude-Session[ \t]*:/im],
+  ['co-author-trailer', /^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])/im],
+  ['generated-footer', /^[^A-Za-z0-9\n]*Generated (?:with|by) \[?Claude Code(?![A-Za-z0-9_])/im],
+]
+export function attributionClasses(text) {
+  return ATTRIBUTION.filter(([, re]) => re.test(String(text))).map(([c]) => c)
+}
+
 function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
@@ -6572,6 +6612,11 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], ex
     body = fs.readFileSync(bodyPath, 'utf8')
   } catch {
     return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
+  }
+  const attribution = attributionClasses(body)
+  if (attribution.length) {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `the body carries a tool's attribution (${attribution.join(', ')}). The owner bans it (2026-10-22): delete the footer, the session link and any trailer.` })
   }
   const secs = sections(body)
   const byTitle = /^policy:/.test(title.trim())

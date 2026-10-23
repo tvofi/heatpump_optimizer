@@ -28353,6 +28353,8 @@ def _friction_trailer_fixture():
             "none_plus_closes": "none\n\nCloses #1134",
             "none_plus_session":
                 "none\n\n🤖 Generated with Claude Code\n\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE",
+            "none_plus_session_link":
+                "none\n\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE",
             "entry_plus_attribution":
                 "`CLAUDE.md`: cost: real\n\n🤖 Generated with Claude Code",
         }.items():
@@ -28366,6 +28368,16 @@ def _friction_trailer_fixture():
 
 
 _FT = _friction_trailer_fixture()
+
+
+def _attribution_only(key):
+    """The body is refused on its attribution alone, never as friction: since
+    R10-FLY-NO-FOOTERS the contract refuses a tool's attribution in its own arm,
+    so a trailer pasted under `## Friction` reddens the body once, by that arm."""
+    rc, out = _FT[key]
+    return rc == 1 and "carries a tool's attribution" in out and "does not parse" not in out
+
+
 _FRICTION_TRAILER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
      _PL_IMPORT + ".then((m) => " +
@@ -28383,15 +28395,16 @@ _FRICTION_TRAILER = json.loads(subprocess.run(
      "})))"],
     capture_output=True, text=True).stdout or "{}")
 R.check(
-    "a trailer block pasted under `none` is not friction and refuses nothing",
+    "a trailer block pasted under `none` is not friction: only the attribution arm refuses it",
     _FRICTION_TRAILER.get("attribution") == 0
     and _FRICTION_TRAILER.get("coauthor") == 0
     and _FRICTION_TRAILER.get("closes") == 0
     and _FRICTION_TRAILER.get("session") == 0
-    and _FT["none_plus_attribution"][0] == 0
-    and _FT["none_plus_coauthor"][0] == 0
+    and _attribution_only("none_plus_attribution")
+    and _attribution_only("none_plus_coauthor")
     and _FT["none_plus_closes"][0] == 0
-    and _FT["none_plus_session"][0] == 0,
+    and _attribution_only("none_plus_session")
+    and _attribution_only("none_plus_session_link"),
     f"parsed={_FRICTION_TRAILER}, "
     f"rcs={{{', '.join(f'{k}: {v[0]}' for k, v in _FT.items())}}} -- the "
     "attribution bullet, the `Co-Authored-By:` near-miss and the `Closes #N` "
@@ -28403,7 +28416,7 @@ R.check(
     "a real entry followed by a trailer block keeps exactly its own entry",
     _FRICTION_TRAILER.get("entry_kept") == 1
     and _FRICTION_TRAILER.get("entry_total") == 1
-    and _FT["entry_plus_attribution"][0] == 0,
+    and _attribution_only("entry_plus_attribution"),
     f"parsed={_FRICTION_TRAILER}, "
     f"entry_plus_attribution rc={_FT['entry_plus_attribution'][0]} -- the "
     "trailer opened a second, unlabelled entry beside the real one",
