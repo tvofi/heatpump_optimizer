@@ -1,0 +1,7 @@
+
+== ../../../../../tmp/rev2670-roster.json ==
+  -- 0 error(s), 0 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)

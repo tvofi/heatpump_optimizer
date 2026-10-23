@@ -1,1 +1,0 @@
-Source: standing proposals assessor (P5), #2569 review. Add a self-test arm to roster_edit.py: two concurrent edits from one checkout leave no local refs/heads/<branch> created or moved (the PR-A seat's shared-branch reset of handoff/audit-r10-roster). Carry: R10-ROSTER-PUSH-RACE.

@@ -39,4 +39,3 @@ none
 ## Friction
 
 none
-
