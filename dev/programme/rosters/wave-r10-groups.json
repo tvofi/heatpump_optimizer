@@ -8635,7 +8635,8 @@
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fly-no-footers-push-paths",
-    "next_step": "cloud fixer cse_014HGxgRAzJoTMn2nvYqvCbC dispatched, topic r10-fly-no-footers-push-paths"
+    "next_step": "cloud fixer cse_014HGxgRAzJoTMn2nvYqvCbC dispatched, topic r10-fly-no-footers-push-paths",
+    "note": "Scope ruling (orchestrator, main): author identity is out of scope; the guard judges commit messages (footers, trailers, session links), not the author field."
    }
   }
  ]
