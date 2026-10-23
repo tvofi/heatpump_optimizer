@@ -91,6 +91,41 @@ from heatpump_optimizer.optimizer import _Horizon
 R = Results("Feature modules")
 
 
+def _keystone_expire_away():
+    """`_expire_away_override`'s (active, return-time) pair, which
+    `_resolve_away` unpacks, on a bare coordinator: one live override and one
+    lapsed. Its own returns, not the pair as an end-to-end cycle sees it."""
+    coord = object.__new__(Coord)
+    coord._away_state = away_mode.AwayState(override_active=True)
+    saved = []
+
+    def spawn(coro):
+        saved.append(coro.__qualname__)
+        coro.close()
+
+    coord._spawn = spawn
+    now = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
+    ret = now + timedelta(hours=6)
+    coord._away_state.override_return_iso = ret.isoformat()
+    live = coord._expire_away_override(now)
+    lapsed = coord._expire_away_override(now + timedelta(hours=7))
+    return live, lapsed, ret, saved
+
+
+# A keystone: a broken return here makes every later away cycle raise inside
+# `_resolve_away`, and the whole script outruns the mutation pin run's budget
+# (PR #2632's two timed-out pin runs). Failing, it ends the run at once.
+_ks_live, _ks_lapsed, _ks_ret, _ks_saved = _keystone_expire_away()
+if not R.check(
+    "keystone: _expire_away_override returns the live override's (True, "
+    "return time) and a lapsed one's (False, None), saving only the lapse",
+    _ks_live == (True, _ks_ret) and _ks_lapsed == (False, None)
+    and _ks_saved == ["persist_override"],
+    str((_ks_live, _ks_lapsed, _ks_saved)),
+):
+    sys.exit(R.close("FEATURE CHECKS"))
+
+
 def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
     """The physics module's weather record from this file's fixture arrays
     (#1776): the series the trajectory entry points now take as one frozen
@@ -4065,17 +4100,27 @@ def _away_house(current=16.0):
     return ThermalState(room_temperature=current, slab_temperature=current + 1.0)
 
 
+def _away_estimate(house, model=_away_model, outdoor=0.0):
+    """The coordinator's off-loop estimate, run inline: the job is the same."""
+    async def estimate(target_temp):
+        return away_mode.estimate_recovery_hours(model, house, target_temp, outdoor)
+    return estimate
+
+
+def _away_resolve(config, **kw):
+    import asyncio as _away_aio
+    return _away_aio.run(away_mode.resolve(config, **kw))
+
+
 def resolve_away(now, return_at, current=16.0):
-    return away_mode.resolve(
+    return _away_resolve(
         AWAY_CFG,
         now=now,
         presence_raw="on",
         presence_attributes=None,
         return_raw=return_at,
         comfort_temp=21.0,
-        model=_away_model,
-        thermal_state=_away_house(current),
-        outdoor_temp=0.0,
+        estimate_recovery=_away_estimate(_away_house(current)),
     )
 
 
@@ -4099,16 +4144,14 @@ R.check(
     "without a return time the setback still applies",
     no_return.active and not no_return.recovery_active,
 )
-home = away_mode.resolve(
+home = _away_resolve(
     AWAY_CFG,
     now=now,
     presence_raw="off",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(21.0),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house(21.0)),
 )
 R.check("an occupied house is never set back", not home.active)
 
@@ -4129,32 +4172,28 @@ R.check(
     away_mode.expire_override(True, None, _now) == (True, None),
 )
 
-_person_home = away_mode.resolve(
+_person_home = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=True,
     override_return_time=_future,
 )
 R.check("the service override wins over a person at home", _person_home.active)
 R.check("override source is service", _person_home.source == "service")
 
-_person_only = away_mode.resolve(
+_person_only = _away_resolve(
     away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
     now=_now,
     presence_raw="not_home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
     override_active=False,
     override_return_time=None,
 )
@@ -4202,16 +4241,14 @@ R.check(
     "and left the house ~3 °C cold at the stated return",
 )
 
-cal = away_mode.resolve(
+cal = _away_resolve(
     away_mode.AwayConfig(presence_entity="calendar.holidays"),
     now=now,
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
     return_raw=None,
     comfort_temp=21.0,
-    model=_away_model,
-    thermal_state=_away_house(),
-    outdoor_temp=0.0,
+    estimate_recovery=_away_estimate(_away_house()),
 )
 R.check(
     "a calendar event supplies its own return time",
@@ -17484,8 +17521,9 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-# D4-04 (#168): the notice prices the shortfall in the instance's currency,
-# not in the SEK the placeholder used to be named after.
+# D4-04 (#168): the notice prices the shortfall in the coordinator's currency
+# (here, with no feed, the instance's), not in the SEK the placeholder used to
+# be named after.
 _eur_hass = _FakeHass(dict(_METER))
 _eur_hass.config.currency = "EUR"
 _eur_cop = _Coord(
@@ -19408,9 +19446,13 @@ _lf_src = inspect.getsource(_Coord._async_learn_lower_floor_loss)
 # learners to calling it, or a re-inlined replay would drop the profile with
 # nothing left to notice.
 _replay_src = inspect.getsource(inspect.getmodule(_Coord)._replay_interval)
+# R10-LOOP-CPU: the step itself is the worker's job, handed the interval's hour.
+_replay_step_src = inspect.getsource(inspect.getmodule(_Coord)._replay_step)
 R.check(
     "the heat-loss replay predicts with the per-hour profile",
-    "hour_of_day=previous_time.hour" in _replay_src
+    "previous_time.hour + previous_time.minute / 60.0" in _replay_src
+    and "_replay_step," in _replay_src
+    and "hour_of_day=hour_of_day" in _replay_step_src
     and "_replay_interval(" in _hl_src
     and "_replay_interval(" in _lf_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
@@ -20336,6 +20378,18 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
 )
+# The watch judges a bucket from its COP_BASELINE_MIN_SAMPLES-th sample on,
+# so a bucket at exactly that count is watched; one short of it is not.
+_cmach_edge = {}
+for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
+    _cmach_c = _t2_coord()
+    _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
+    _cmach_edge[_cmach_n] = _cmach_c._scores_view(_rs_advice(_cmach_c))["machine"]
+R.check(
+    "the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples",
+    _cmach_edge == {COP_BASELINE_MIN_SAMPLES - 1: None, COP_BASELINE_MIN_SAMPLES: 100.0},
+    str(_cmach_edge),
+)
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
@@ -20366,6 +20420,13 @@ R.check(
     not _r9p8_coord._refit_disagrees({"refit": {"scale": 2.5, "band_percent": 25.0}}, 2.0)
     and _r9p8_coord._refit_disagrees({"refit": {"scale": 2.51, "band_percent": 25.0}}, 2.0)
     and _r9p8_coord._refit_disagrees({"refit": {"scale": 1.49, "band_percent": 25.0}}, 2.0),
+)
+# Past the alarm the Cusum keeps climbing; the grade stays at 0, never below.
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, not below",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+    str(_cmach._scores_view(_rs_advice(_cmach))["machine"]),
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
@@ -20876,6 +20937,45 @@ R.check(
     "and an unconfigured instance still prices the plan in SEK",
     any("SEK" in _l for _l in _n_view["lines"]),
     str(_n_view["lines"][:2]),
+)
+# D14-s3-01: the feed denominates the plan's money (#1657), so the narrative
+# names the code every other money surface publishes -- not the instance's
+# label. A SEK feed on the same SEK instance is the null control.
+_d14s3_codes = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _r9p8_hass("SEK", _d14s3_unit), _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._optimization_result = _r6
+    _d14s3_codes[_d14s3_unit] = sorted(
+        {_c for _l in _d14s3_c._narrative_view()["lines"]
+         for _c in _re6.findall(r"\b(EUR|SEK)\b", _l)}
+    )
+R.check(
+    "D14-s3-01: the narrative prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_codes == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_codes),
+)
+# R10-CURRENCY: the COP notice prices its shortfall from the same feed, so
+# it carries the feed's code too; the SEK feed is again the null control.
+_d14s3_cop = {}
+for _d14s3_unit in ("EUR/kWh", "SEK/kWh"):
+    _d14s3_h = _r9p8_hass("SEK", _d14s3_unit)
+    _d14s3_c = _r9p8_coord.HeatPumpOptimizerCoordinator(
+        _d14s3_h, _r9p8_Entry(data=_r9p8_cfg)
+    )
+    _d14s3_c._measured_cop.cop = 2.4
+    _d14s3_c._raise_cop_issue(3.0)
+    _d14s3_cop[_d14s3_unit] = [
+        _i[2]["translation_placeholders"]["currency"]
+        for _i in getattr(_d14s3_h, "issues", []) if _i[1] == "cop_degradation"
+    ]
+R.check(
+    "R10-CURRENCY: the COP notice prices a EUR feed on a SEK instance in EUR, "
+    "and a SEK feed in SEK",
+    _d14s3_cop == {"EUR/kWh": ["EUR"], "SEK/kWh": ["SEK"]},
+    str(_d14s3_cop),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
@@ -37978,6 +38078,63 @@ R.check(
     and _f15_cmod._PROCESS_WORKER is None,
     f"terminated={_f15_idle_worker.terminated} "
     f"cleared={_f15_cmod._PROCESS_WORKER is None}",
+)
+
+
+# R10-LOOP-CPU: `_run_in_process` pickled the job straight into the worker's
+# stdin, and a transport fault dropped the handle without reaping the child.
+# A job that will not pickle -- a model carrying a closure, as the learner
+# tests stub in -- so left one live, unheld child per call: 740 of them alive
+# at tests/features.py's exit, whose coverage writes raced the coverage lane
+# and cost it the script's data (run 39874068348). The job is now serialised
+# whole before the pipe is touched, and a stream that faults is reaped.
+def _f15_worker_faults():
+    """A job that will not pickle, then a reply stream the job corrupts."""
+    _f15_cmod._shutdown_process_pool()
+    try:
+        first = _f15_cmod._run_in_process(_os.getpid, ())
+        held = _f15_cmod._PROCESS_WORKER
+        try:
+            _f15_cmod._run_in_process(_os.getpid, (lambda: None,))
+            unpicklable = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            unpicklable = "translated"
+        again = _f15_cmod._run_in_process(_os.getpid, ())
+        kept = _f15_cmod._PROCESS_WORKER is held
+        held = _f15_cmod._PROCESS_WORKER
+        # print writes to the worker's stdout ahead of its reply frame
+        try:
+            _f15_cmod._run_in_process(print, ("not a pickle",))
+            corrupt = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            corrupt = "translated"
+        try:
+            held.wait(timeout=5)
+        except _f15_cmod.subprocess.TimeoutExpired:
+            pass
+        return unpicklable, first, again, kept, corrupt, held.poll()
+    finally:
+        _f15_cmod._shutdown_process_pool()
+
+
+(_f15_up_out, _f15_up_first, _f15_up_again, _f15_up_kept,
+ _f15_corrupt_out, _f15_corrupt_rc) = _f15_worker_faults()
+R.check(
+    "R10-LOOP-CPU: a job that will not pickle degrades without touching the "
+    "worker, which serves the next job as the same process",
+    _f15_up_out == "translated"
+    and _f15_up_first == _f15_up_again
+    and _f15_up_kept,
+    f"outcome={_f15_up_out!r} pid before={_f15_up_first} after="
+    f"{_f15_up_again} handle kept={_f15_up_kept} -- at the merge base the "
+    "handle was dropped and the next job respawned, the old child left alive",
+)
+R.check(
+    "R10-LOOP-CPU: a reply stream that faults reaps the child it came from, "
+    "never leaves it running unheld",
+    _f15_corrupt_out == "translated" and _f15_corrupt_rc is not None,
+    f"outcome={_f15_corrupt_out!r} child returncode={_f15_corrupt_rc!r} "
+    "(None: still running, with no handle left to reap it)",
 )
 
 
@@ -57267,8 +57424,8 @@ _P3_ALLOWED = {
      "state.outdoor_temperature"): "the experiment step running now",
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
-    ("coordinator.py", "_replay_interval", "simulate_step",
-     "previous_state"): "the one replay both interval learners share (R9-UX-10): "
+    ("coordinator.py", "_replay_step", "simulate_step",
+     "state"): "the one replay both interval learners share (R9-UX-10): "
     "the interval that just ended, in today's weather",
 }
 
@@ -62186,8 +62343,8 @@ _ux5_home_cfg = _ux5_home._solve_hubs(
 _ux5_away = _r9egb1_coord(away=True)
 # The update resolves away before it publishes; a payload read before that
 # still shows the configured floor, which is the defect's own shape.
-_ux5_away._resolve_away()
-_ux5_home._resolve_away()
+asyncio.run(_ux5_away._resolve_away())
+asyncio.run(_ux5_home._resolve_away())
 _ux5_away_view = _ux5_away._build_data_dict()
 _ux5_home_view = _ux5_home._build_data_dict()
 R.check(
@@ -62208,6 +62365,62 @@ R.check(
     and _ux5_away_view["configured_min_temperature"] == _ux5_away._opt_config.min_temp
     and _ux5_away_view["min_temperature"] != _ux5_away_view["configured_min_temperature"],
     str({k: _ux5_away_view.get(k) for k in ("min_temperature", "configured_min_temperature")}),
+)
+# D14-s1-01: the recovery estimate is awaited off the loop, so the Plan-page
+# switch can land inside the resolve. Its write must survive the publish.
+_lc_away = _r9egb1_coord(away=True)
+_lc_away._away_state.override_return_iso = (
+    _r9egb1_cmod.dt_util.now() + timedelta(hours=6)).isoformat()
+_lc_real_off_loop = _r9egb1_cmod._await_off_loop
+_lc_jobs = []
+
+
+async def _lc_switch_mid_estimate(hass, fn, *args):
+    _lc_jobs.append(fn.__name__)
+    await _lc_away.async_set_away(active=False, refresh=False)
+    return fn(*args)
+
+
+_r9egb1_cmod._await_off_loop = _lc_switch_mid_estimate
+try:
+    asyncio.run(_lc_away._resolve_away())
+finally:
+    _r9egb1_cmod._await_off_loop = _lc_real_off_loop
+R.check(
+    "D14-s1-01 the away recovery estimate is handed off the loop, and a switch "
+    "written during its await is not reverted by the resolve's publish",
+    _lc_jobs == ["estimate_recovery_hours"]
+    and _lc_away._away_state.override_active is False
+    and _lc_away._away_state.override_return_iso is None,
+    str((_lc_jobs, _lc_away._away_state)),
+)
+# The override expiry writes back, and persists, only an override that lapsed:
+# an unexpired one is read each cycle, never re-written and re-saved.
+_lc_exp = _r9egb1_coord(away=True)
+_lc_exp_now = _r9egb1_cmod.dt_util.now()
+_lc_exp._away_state.override_return_iso = (
+    _lc_exp_now + timedelta(hours=6)).isoformat()
+_lc_exp_saved = []
+
+
+def _lc_exp_spawn(coro):
+    _lc_exp_saved.append(coro.__qualname__)
+    coro.close()
+
+
+_lc_exp._spawn = _lc_exp_spawn
+_lc_exp_live = _lc_exp._expire_away_override(_lc_exp_now)
+_lc_exp_live_saved = list(_lc_exp_saved)
+_lc_exp_lapsed = _lc_exp._expire_away_override(_lc_exp_now + timedelta(hours=7))
+R.check(
+    "an unexpired away override is not re-persisted each cycle; a lapsed one "
+    "is cleared and saved once",
+    _lc_exp_live[0] is True
+    and _lc_exp_live_saved == []
+    and _lc_exp_lapsed == (False, None)
+    and _lc_exp_saved == ["persist_override"]
+    and _lc_exp._away_state.override_return_iso is None,
+    str((_lc_exp_live, _lc_exp_live_saved, _lc_exp_lapsed, _lc_exp_saved)),
 )
 # idle_reason is the production function the two classifiers call; a direct
 # call with nothing to go on is the null for a step the sub-codes cannot see.

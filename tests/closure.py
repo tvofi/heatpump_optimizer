@@ -1808,11 +1808,35 @@ def _fold_inert_reads(table: dict, records: dict) -> None:
             table.pop(k, None)
 
 
+def _load_recording(path: Path) -> dict:
+    """A recording, re-read under THIS tree's INERT list.
+
+    A Python child's reads reach the record only through `strace_files`,
+    which splits them by the `is_inert` of the tree that RECORDED them: an
+    INERT one goes under `inert_reads` and nowhere else. A recording kept
+    across an INERT edit -- a CI artifact merged after INERT_EXCEPT moved
+    the file out -- therefore still reads the file as unread, so `merge`
+    left it out of the closure and `check` over the same recording passed:
+    probe B2's closures job then went UNDER-SCOPED on
+    tests/harness_headers.py's reads of r10_ci_layout_u5/run_part.py and
+    unitcheck.py (job 120398407061). `_fold` filters at fold time so a rule
+    applies to records taken before it existed; this is the same rule for
+    the INERT split. Only that direction moves: an in-process INERT read is
+    already in `files`, where the #357 refusal answers it.
+    """
+    rec = json.loads(path.read_text())
+    moved = [f for f in rec.get("inert_reads", ()) if not is_inert(f)]
+    if moved:
+        rec["files"] = sorted(set(rec.get("files", ())) | set(moved))
+        rec["inert_reads"] = [f for f in rec["inert_reads"] if f not in moved]
+    return rec
+
+
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
           partial: bool = False) -> int:
     records = {}
     for f in sorted(in_dir.glob("*.json")):
-        rec = json.loads(f.read_text())
+        rec = _load_recording(f)
         name = rec["script"]
         records[name] = rec
     # DRIVEN_BY_OTHERS scripts ARE recorded (their closure folds into their
@@ -2147,7 +2171,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         return 1
     records = {}
     for f in sorted(in_dir.glob("*.json")):
-        rec = json.loads(f.read_text())
+        rec = _load_recording(f)
         records[rec["script"]] = rec
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
@@ -4250,6 +4274,7 @@ def selftest() -> int:
     _selftest_lane_plan(pin)
     print("\n=== the changed-file list keeps both sides of a rename (O17) ===")
     _selftest_renames(pin)
+    _selftest_inert_split(pin)
 
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
@@ -4802,6 +4827,47 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         finally:
             CLOSURES = orig
         return rc, buf.getvalue() + err.getvalue()
+
+
+def _selftest_inert_split(pin) -> None:
+    """A recording's INERT split is re-read under this tree's list (`_load_recording`).
+
+    The recording is the shape probe B2 merged: a child's read of a file
+    INERT_EXCEPT has since moved out, filed under `inert_reads` alone by the
+    classifier that recorded it. merge_train.py is excepted out of the
+    tools/audit/ prefix here; LICENSE stays INERT.
+    """
+    print("\n=== a recording's INERT split is this tree's (r10-rca-inert-closure-recording) ===")
+    caller, moved, inert = ("tests/harness_headers.py",
+                            "tools/audit/seat/merge_train.py", "LICENSE")
+    pin("the fixture's moved file is out of INERT and its kept one is INERT",
+        not is_inert(moved) and is_inert(inert))
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        fake, rec = td_path / "closures.json", td_path / "rec"
+        _selftest_write_records(rec, {caller: [caller]}, {caller: [moved, inert]})
+        crc, log = _selftest_phantom_check(
+            fake, {caller: [caller]}, rec, {caller: [moved, inert]})
+        pin("check reads a stale recording's INERT read of an excepted file as "
+            "UNDER-SCOPED",
+            crc == 1 and "UNDER-SCOPED" in log and moved in log, f"rc={crc} log={log[-300:]!r}")
+        crc2, log2 = _selftest_phantom_check(
+            fake, {caller: [caller, moved]}, rec, {caller: [inert]})
+        pin("check passes once the closure lists it and inert_reads keeps only "
+            "the INERT file (null control)",
+            crc2 == 0, f"rc={crc2} log={log2[-300:]!r}")
+        write_closures(fake, {"closures": {caller: [caller]}, "recorded": {},
+                              "inert_reads": {}})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mrc = merge(rec, fake, partial=True)
+        table = json.loads(fake.read_text())
+        pin("merge of the same recording writes the excepted file into the "
+            "closure and only the INERT one under inert_reads",
+            mrc == 0 and moved in table["closures"][caller]
+            and table["inert_reads"].get(caller) == [inert],
+            f"rc={mrc} closure={table['closures'].get(caller)!r} "
+            f"inert={table['inert_reads'].get(caller)!r}")
 
 
 def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,
