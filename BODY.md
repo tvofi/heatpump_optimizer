@@ -117,6 +117,12 @@ Each glue fix is red first. The red commit, mutant or plant comes before its fix
 ## Red checks
 
 - `governance / policy-docs`, `governance / env-matrix` and `governance / wave-script`: red by construction. These jobs restore their graders from the base commit (decision 0013), so main's copies judge this tree: main's policy_lint against the new required-contexts record, and main's agreement_py against a `_GOV_FILES` list naming a deleted workflow. The same commands with this tree's graders are green (Null control). No cheaper detector exists before the merge, since the merge is what replaces the base. The cut-over runs in the ruleset-off window above, which tvofi ruled for exactly this.
+- On the ancestor a0f525900 (ci-probe/all during step 10, read by the U5 dispatch pairs 39918497616 and 39918505090), each was red, fixed later in this branch, and green on every later probe head (B1 #2656, B2 #2657):
+  - `governance / instrument-self-tests`: `tmp_paths --check` refused `tests/entities.py:26932` (`"> /tmp/pr-alerts.txt" in _PC_WAIT`, U6's pin). Fixed by ff7244ac0 (an ALLOW entry).
+  - `tests / fast (3.14)`: `tests/layout.py` refused the moved-tree spellings in U9b's reads. Fixed by ff7244ac0 (`locate()`, a `layout:old` marker).
+  - `tests / briefs`: `carry-1648.json` cited the retired `pr-contract-rerun.yml` bare. Fixed by 1cce735c3 (cites 57b7b4994).
+  - `tests / closures`: INERT READS UNDER-APPROXIMATED, and then the INERT-and-read pair. Fixed by 9f7f443cc and 4a83592e3.
+  - The cheaper detector for all four: `tools/audit/seat/tmp_paths.py --check`, `tests/layout.py`, `brief_lint.mjs` and `closure.py check` over CI's recordings, run on the assembly before a probe push. Each takes seconds except the recording, which only CI's Linux recorder can produce. They were not in the step-10 battery before those pushes; the battery script now runs them (`p2b-battery.sh`, about 15 min a tip).
 - `gate`: red because it requires the three above. That is the reason `ruleset_cutover --disable` reads `reds-at-head` and not `gate`.
 
 ## Forward-carry
