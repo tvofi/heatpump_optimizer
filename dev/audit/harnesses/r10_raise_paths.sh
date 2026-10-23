@@ -18,7 +18,7 @@
 #               out of .github/workflows/pr-contract.yml and run under bash -e
 # Metric, one line per path and body:
 #   PATH <name> body=<none|section> rc=<n> raise_errors=<n>
-# raise_errors counts lines naming `Raise justification` or the raise itself;
+# raise_errors counts ERROR lines naming `Raise justification` or the raise;
 # the other refusals a synthetic body draws (the predicted budget red, for one)
 # are not this metric. pr-contract's blocks write /tmp/pr-*, as on a runner.
 set -uo pipefail
@@ -60,7 +60,7 @@ for s in yaml.safe_load(open(sys.argv[1]))["jobs"]["pr-contract"]["steps"]:
 }
 count() { # out-file path body -> the metric; R10_RAISE_PATHS_KEEP=<dir> keeps each output
   [ -z "${R10_RAISE_PATHS_KEEP:-}" ] || cp "$1" "$R10_RAISE_PATHS_KEEP/$2-$3.txt"
-  grep -cE 'Raise justification|raises [0-9]+ cap|whether it raises a cap' "$1"
+  grep -cE '^ *ERROR .*(Raise justification|raises [0-9]+ cap|whether it raises a cap)' "$1"
 }
 for b in none section; do
   body=$T/$b.md
