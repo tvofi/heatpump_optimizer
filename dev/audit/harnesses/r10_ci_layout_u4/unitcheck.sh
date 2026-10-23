@@ -9,6 +9,8 @@
 # section 8's move-PR silent revert), the input control (want rc 0) and its
 # plant, a caller given a `with:` key the callee does not declare (want rc 1).
 # The instrument is read from the design's archived ref.
+# The map also admits U10's drop of the contract re-run's self-test step
+# (pr-contract-rerun.yml retired): this harness reads the integrated file.
 set -u
 BASE=${1:-origin/main}
 TAG=archive/probe/design-ci-rev4
