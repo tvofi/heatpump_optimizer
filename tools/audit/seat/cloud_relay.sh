@@ -399,7 +399,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { ledger_open dispatch "$pr" - "no new head read after the update"; continue; }
     if nonce=$( { if [ -n "${HPO_RELAY_DISPATCH:-}" ]; then "$HPO_RELAY_DISPATCH" "$pr" "$nh" cloud; else bash "$HERE/bus.sh" dispatch "$pr" "$nh" cloud; fi; } | sed -n 's/^bus-nonce: //p' | head -n 1) \
        && printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$'; then
-      ledger_open reviewer-fire "$pr" "$nh" "nonce=$nonce"
+      :
     else ledger_open dispatch "$pr" "$nh" "bus.sh dispatch failed; run it by hand"; fi
   done < "$state/cloud-prs.$$"
   level_set handoff-update "$state/cloud-level-update.$$"
