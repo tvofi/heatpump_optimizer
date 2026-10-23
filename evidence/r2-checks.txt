@@ -1,0 +1,37 @@
+   1 Analyze (actions)	pass
+   1 Analyze (javascript-typescript)	pass
+   1 Analyze (python)	pass
+   1 CodeQL	pass
+   1 arch-score	pass
+   1 briefs	pass
+   1 browser	pass
+   1 budget-raise-gate	pass
+   2 cancel-superseded	pass
+   1 ci-ratchet	skipping
+   1 claims-autofix	skipping
+   1 closure-scope	pass
+   1 closures	pass
+   1 closures-autofix	skipping
+   1 coverage	pass
+   1 coverage-ratchet	pass
+   1 delivery-status	fail
+   1 delivery-status-publish	skipping
+   1 env-matrix	pass
+   1 fast (3.14)	pass
+   1 graders-head-copy	pass
+   1 hassfest	pass
+   1 instrument-self-tests	pass
+   1 kernel-points (${{ matrix.coretype }})	skipping
+   1 lane-proofs	pass
+   1 mutation	pass
+   1 mutation-autofix	skipping
+   1 mutation-pins	skipping
+   1 nightly-ha	skipping
+   1 nightly-status	pass
+   1 policy-docs	pass
+   1 pr-contract	pass
+   1 record	skipping
+   1 scope	pass
+   1 typing	pass
+   1 validate-hacs	pass
+   1 wave-script	pass

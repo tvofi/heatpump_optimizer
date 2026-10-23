@@ -1,46 +1,24 @@
-Fix review: blocked 9ef0633bcd6f31482a3ccf0f8da901431e5c6e01 carry-missing: not carried to R10-CI-LAYOUT-P2
+Fix review: merge 9ef0633bcd6f31482a3ccf0f8da901431e5c6e01
 
-bus-nonce: 30a9db29886998bead891d5333a5e0f9
+bus-nonce: 31dd3818d9b6312e2828c9688c2f9d20
 
-Round 1. Reviewer seat (opus-fixer), detached worktree at head `9ef0633bcd6f31482a3ccf0f8da901431e5c6e01` (merges code head `7030f1b60` and origin/main `c5e1be196`). Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` empty.
+Round 2. Reviewer seat (sonnet-seat). Head `9ef0633bcd6f31482a3ccf0f8da901431e5c6e01`, unchanged since round 1 (`gh pr view 2668 --json headRefOid`, saved `pr-r2.json`), so round 1's code checks (review/2668 `22284d6eb`) carry over unchanged: mutants M1–M9 killed, head self-tests, class enumeration, the red-check answers, `git merge-tree` clean, VERSION/claims/budgets untouched. Read in a tree at origin/main `d7cb63508`.
 
-## The block
+## Round-1 block discharged: carry-missing to R10-CI-LAYOUT-P2
 
-The body measures, and I re-measured, that item 2 refuses the next `app_push.sh` push of three open pull requests of the live group R10-CI-LAYOUT-P2 (roster `resume.stage: in-progress`, `resume.pr` 2657): the shipped guard `python3 -I tools/audit/seat/ref_privacy.py guard --ref fix/x --commits refs/rev2668/pr<N> --over refs/remotes/origin/main`, each head fetched from `refs/pull/<N>/head`:
+- **Carry in the tree.** Roster commit `54fb6f03e` (`roster_edit append-carry R10-CI-LAYOUT-P2`) is an ancestor of `origin/handoff/audit-r10-roster` tip `8a605cb3c` (`git merge-base --is-ancestor` exit 0). The entry is present at the tip: `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json | grep -c "From #2668 review round 1"` prints 1, in R10-CI-LAYOUT-P2's `carry` list. That group is live (`resume.stage: in-progress`, `resume.pr` 2657), so it is a valid destination.
+- **The text discharges the finding.** It states the constraint: after this PR merges, `app_push.sh` judges every commit over main, and `cc51e6626c91` (Co-Authored-By trailer plus a Claude-Session link) is on #2662, #2657 and #2656 and not on main, so merging main does not clear it. It gives the measurement: the guard refuses each head with rc=3, and #2670 passes with rc=0 as the null control. It gives the remedy: rebuild on a new branch without the commit, with its change re-applied as a fresh commit with no trailer, and never by force-push. It names the control: the same guard, refusing before the rebuild and passing after. It also records the sequencing (#2668 held behind #2662), so the umbrella pull request is not refused.
+- **brief_lint.** `node tools/policy/brief_lint.mjs`, run in a detached worktree at the roster tip, exits rc=0 (`r2-brief_lint.txt`). The only `ERROR` line comes from its own carry-acceptance self-test fixture (`carry-990004.json`), which reports `CARRY ok`.
+- **Body.** `## Forward-carry` names R10-CI-LAYOUT-P2, the roster branch and `54fb6f03e`, and ends `Carry: R10-CI-LAYOUT-P2`. `python3 tools/audit/carry_audit.py pr 2668` printed `3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`, rc=0 (`r2-carry_audit-pr.txt`).
 
-- RESULT pr2662 rc=3 `session-link, session-trailer, co-author-trailer in the message of cc51e6626c91`
-- RESULT pr2657 rc=3 (same commit, same classes)
-- RESULT pr2656 rc=3 (same commit, same classes)
-- RESULT pr2670 rc=0 (null control; the body's eight passing PRs are its own)
+## Checks at this head
 
-`git merge-base --is-ancestor cc51e6626 origin/main` exits 1, so a main merge does not clear it, and a history rewrite needs the force-push the session forbids. That removes an option a not-yet-finished stage was expected to have (`finding-propagation.md`: "removes an option it was expected to have — ... an interface is not available"): update_pr/app_push for those three branches. The body records it under "Existing open PRs that item 2 would refuse", and `## Forward-carry` says `none`. R10-CI-LAYOUT-P2's brief and its 18 carries at `origin/handoff/audit-r10-roster` (committed 2026-10-23T19:57:31+02:00) contain no `cc51e`, `trailer`, `attribution`, `co-author`, `no-footers` or `2668` (my `jq … | grep -niE` printed nothing). A finding written only in this PR's body or comments is not propagation (fix-review step 10). Repair: a roster carry to R10-CI-LAYOUT-P2 (through the orchestrator's `roster_edit.py`) stating the precondition, namely that a P2 branch carrying `cc51e6626c91` in `origin/main..<head>` is refused by `app_push.sh` once #2668 merges, so the branch must be rebuilt without that commit (a fresh branch and a cherry-pick with the trailers removed, not a force-push) before its next push, with the guard command above as its control. Then name the file, the stage and the roster branch SHA under `## Forward-carry`. No code change is owed.
+`gh pr checks 2668` (`r2-checks.txt`): every context passes or skips except `delivery-status`. That one grades main, and the only row the diff touches is its own `dev/programme/delivery/2668.md`, so it is not this PR's (defect-root-cause.md exemption). This is the same as round 1.
 
-## Everything else checked passes
-
-- **Step 1, mutation proof.** Driver `mutants.py` (my own, kept in the evidence dir) uses one `git clone --shared` of the head for each mutant, and asserts that the target text appears exactly once. All of the fixer's eight mutants were killed, plus one of mine:
-  - M1 (handoff_push guard line replaced by `true`): `handoff_push self-test: 3 checks, 1 failed`, `FAIL a code head carrying a co-author trailer is refused, and nothing is pushed`.
-  - M2 (body_push back to `--message "body: $TOPIC"`): `ref_privacy self-test: 90 checks, 2 failed`, failing the session-link row and the author-email row.
-  - M3 (body_push guard replaced by `true`): 90 checks, 3 failed.
-  - M4 (ci_probe `refusal(short)`): `ci_probe self-test: 42 checks, 2 failed`, `FAIL push refuses a commit carrying a co-author trailer, before any API write`.
-  - M5 (app_push drops `--over`): `app_push self-test: 199 checks, 87 failed`, including `FAIL real git: a trailer commit first published on ci-probe/* is refused when the PR carries it (got '00', want '13')`. The null-control row stays `ok`.
-  - M6 (fence ignores `over`): 90 checks, 1 failed, `FAIL --over origin/main refuses it, exit 3`.
-  - M7 (copyin drops `ref_privacy.py`): `pr_args self-test: 93 checks, 6 failed`, the three `handoff_push` reap arms plus the three Darwin arms.
-  - M8 (r9 handoffpush `cp` line deleted): `verdict: no body written … the arm never reached the read`.
-  - M9 (mine: handoff_push drops `--over`, back to first-publish scope): handoff_push 3 checks, 1 failed (the trailer row).
-- **Head self-tests**, on the seat interpreter: `ref_privacy self-test: 90 checks, 0 failed`; `ci_probe self-test: 42 checks, 0 failed`; `app_push self-test: 199 checks, 0 failed`; `handoff_push self-test: 3 checks, 0 failed`; `pr_args self-test: 93 checks, 3 failed`. The 3 are `a runner without pr_exit_trap is refused`, `a runner whose push runs in the foreground is refused …` and `mutant afterreap …`, the GNU `sed -i` arms the body names. They are environmental here (Darwin), and CI's `instrument-self-tests` runs them on Linux.
-- **Steps 2 and 3, harness and null control.** No finder's harness was committed; the finding is the #2662 round-2 observation recorded in the brief (step 9). The fixtures are the fixer's own, and the body discloses that. Each new path has a passing null in the runs above.
-- **Step 6, class.** I enumerated it with `ref_privacy.PUSHERS` plus `ref_privacy.py --check` (`25 file(s) with a push site, 12 guarded, … 0 refused`) and a `git grep` for `git … push` over `tools .github .claude/workflows`. Every path that publishes a composed commit judges its message through `refusal()`/`attribution()`:
-  - wt_sync, bus, heartbeat, roster_edit, state_docs, cloud_dispatch, stamp: on the composed message.
-  - push.sh, app_push, body_push, ci_probe: on the commits.
-  - handoff_push, plus open_pr/update_pr/remerge_main through app_push.
-  - The `republishes` entries (merge_main_bot, merge_train, tests.yml, nightly.yml) carry constant messages. The `fixture` and `prompt` entries publish nothing. The cloud harness's own push is out of tree and disclosed in the body.
-  - The grep hits that are not registered (ci_critpath, r10_deeplink_mutants, gate.py, prelude.py, cancel_superseded, codeql_scope, contract_rerun, governance.yml) hold no push of a commit.
-- **Step 11, red checks.** `instrument-self-tests` and `pr-contract` were red at 88c469c7e, and both are named and answered in `## Red checks`. No other commit in the range was red. At this head, `delivery-status` is red, but it grades main, and the only row the diff touches is its own `dev/programme/delivery/2668.md`, so it is not this PR's. The final state of every check at this head is in `checks-9ef0633.txt`.
-- **Step 13.** `git merge-tree --write-tree origin/main HEAD` exits 0.
-- **Steps 5 and 14.** VERSION, the manifest version, the notes heading, the claim files and every budget are untouched.
-- **Step 7.** The body's `## Head` names `9ef0633bc…`, which is the head I measured.
-- **Sibling.** `handoff/r10-fly-no-footers-ignore` (`227e228fa`) is already an ancestor of origin/main, so it does not overlap.
+The merge is held behind #2662 by the orchestrator. That is sequencing, not part of this verdict.
 
 ## Non-blocking
 
-- `tools/pr/push.sh` still judges only first-published commits (`--commits HEAD`, no `--over`), so hole (2) remains open there. Carry: dismissed: push.sh is the retired author path (decision 0011), and `pr-contract` refuses any PR it would author.
+- The body calls the carry "roster entry NF-2668", but no `NF-2668` label exists in the roster (`grep -c NF-2668` prints 0). The carry is an unlabelled string, and it is found by the cited SHA `54fb6f03e`, which resolves. Carry: dismissed: the SHA and group the body cites locate the entry exactly; the label is a name only.
+- The carry says "the same guard command" but does not spell out round 1's full arguments (`guard --ref … --commits <head> --over refs/remotes/origin/main`). Carry: dismissed: `app_push.sh` runs that guard itself at push time, so the next push of a P2 branch is the control whatever the fixer types.
+- `tools/pr/push.sh` still judges only first-published commits (no `--over`). Carry: dismissed: push.sh is the retired author path (decision 0011), and `pr-contract` refuses any PR it would author.
