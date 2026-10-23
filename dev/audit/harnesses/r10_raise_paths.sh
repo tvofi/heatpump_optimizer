@@ -26,9 +26,12 @@ ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 REV=$(git -C "$ROOT" rev-parse "${1:-HEAD}") || exit 2
 T=$(mktemp -d "${TMPDIR:-/tmp}/r10-raise-paths.XXXXXX")
 trap 'rm -rf "$T"' EXIT
-export GIT_AUTHOR_NAME=h GIT_AUTHOR_EMAIL=h@example.invalid GIT_COMMITTER_NAME=h GIT_COMMITTER_EMAIL=h@example.invalid
 unset GITHUB_TOKEN GH_TOKEN
-git clone -q --shared --no-checkout "$ROOT" "$T/repo" && cd "$T/repo" && git checkout -q --detach "$REV" || exit 2
+. "$ROOT/tests/throwaway_git.sh" # the one way a script builds a throwaway repository
+throwaway_git_clone -q --shared --no-checkout "$ROOT" "$T/repo" || exit 2
+(
+throwaway_git_env
+cd "$T/repo" && git checkout -q --detach "$REV" || exit 2
 python3 - <<'PY' || exit 2
 import json
 p = "tests/structure_budgets.json"
@@ -37,7 +40,7 @@ d["class_excess_loc"] += 1  # a cap the gate reads as raised when it goes up
 open(p, "w").write(json.dumps(d, indent=2) + "\n")
 PY
 git commit -qam "a raise" && HEAD=$(git rev-parse HEAD)
-git init -q --bare "$T/origin.git"
+throwaway_git_init "$T/origin.git" -q --bare
 git push -q "$T/origin.git" "$REV:refs/heads/main" "$HEAD:refs/heads/handoff/r10-raise-paths" 2>/dev/null || exit 2
 git remote set-url origin "$T/origin.git" && git fetch -q --prune origin '+refs/heads/*:refs/remotes/origin/*'
 FX=$ROOT/tools/policy/fixtures/policy-rot/prepr
@@ -79,3 +82,4 @@ for b in none section; do
     bash -e -c "$(block 'Check the body against the contract')" ) > "$T/out" 2>&1; rc=$?
   echo "PATH pr-contract body=$b rc=$rc raise_errors=$(count "$T/out" pr-contract "$b")"
 done
+)
