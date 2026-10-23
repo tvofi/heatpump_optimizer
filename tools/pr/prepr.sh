@@ -157,7 +157,9 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
   if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \}\}[[:space:]]*$/) expr = "pr"
+  # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
+  # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
   # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
   if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
@@ -2559,6 +2561,16 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   printf 'jobs:\n  only-pr:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'x.mjs'" > "$WF/pr.yml"
   [ -z "$(pinned_graders "$WF/pr.yml")$(pinned_paths "$WF/pr.yml")$(pin_read problems "$WF/pr.yml")" ]
   st $? 0 "a pin that never grades main is not counted, and is not a problem (null control)"
+  # R10-CI-LAYOUT P2b: pr-contract.yml as a workflow_call callee of ci.yml (U6)
+  # pins `... || format('origin/{0}', inputs.base)`, the PR's base on a
+  # `workflow_dispatch -f pr= -f base=`. It still never grades main, so it is
+  # the PR-only class; any other fallback stays unclassified.
+  printf 'jobs:\n  callee:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format(%s, inputs.base) }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'origin/{0}'" "'x.mjs'" > "$WF/callee.yml"
+  [ -z "$(pinned_graders "$WF/callee.yml")$(pinned_paths "$WF/callee.yml")$(pin_read problems "$WF/callee.yml")" ]
+  st $? 0 "a callee pin falling back to the dispatched PR's base is the PR-only class, not counted and not a problem"
+  sed 's/format(.origin\/{0}., inputs.base)/inputs.base/' "$WF/callee.yml" > "$WF/callee-bare.yml"
+  [ -n "$(pin_read problems "$WF/callee-bare.yml")" ]
+  st $? 0 "and a bare \`inputs.base\` fallback, a branch name no checkout resolves, stays unclassified (null control)"
   touch "$WF/empty/none.yml"
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
