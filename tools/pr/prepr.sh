@@ -2592,15 +2592,16 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   st $? 0 "a pinned grader called only above rc=0 is named"
   for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
-    PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
+    PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY' || { st 1 0 "governance.yml perturbation ($pert) changes the file"; continue; }
 import os, sys
 p = sys.argv[1]; s = open(p).read(); k = os.environ["PERT"]
+cur = "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"
 own = "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check"
 full = "if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else " + own + "; fi"
 if k == "unquoted": t = s.replace('git checkout "$PINNED" --', 'git checkout $PINNED --', 1)
 elif k == "braced": t = s.replace('git checkout "$PINNED" --', 'git checkout "${PINNED}" --', 1)
-elif k == "no-pinned-line": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n", "", 1)
-elif k == "env-indirect": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}", "PINNED: ${{ env.PIN_SHA }}", 1)
+elif k == "no-pinned-line": t = s.replace(cur + "\n", "", 1)
+elif k == "env-indirect": t = s.replace(cur, "PINNED: ${{ env.PIN_SHA }}", 1)
 elif k == "x-flag": t = s.replace(own, own.replace("-I ", "-I -X utf8 "), 1)
 elif k == "bare-python": t = s.replace(own, own.replace("python3 ", "python "), 1)
 elif k == "uv-run": t = s.replace(own, "uv run " + own.replace("python3 ", "python "), 1)
@@ -2608,8 +2609,7 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     head, _, body = s.partition("\njobs:\n")
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
-elif k == "queue-base": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}",
-                                      "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}")
+elif k == "queue-base": t = s.replace(cur, "PINNED: ${{ github.event.pull_request.base.sha || github.sha }}")
 else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
