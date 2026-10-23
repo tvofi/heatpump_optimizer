@@ -12,7 +12,8 @@
 #   mint_token <owner/repo>  makes the mode-700 private directory PRIV, writes the
 #                            JWT and the installation token as mode-600 curl
 #                            header files there (jwt.h, token.h), and installs the
-#                            EXIT trap `mint_cleanup`. Never on a command line.
+#                            EXIT trap `mint_cleanup` -- unless MINT_TRAP=caller,
+#                            whose own EXIT trap runs it. Never on a command line.
 #   mint_cleanup             revokes the installation token and removes PRIV.
 #
 # The secrets rules are app_push.sh's header: the JWT and token live only in
@@ -40,8 +41,12 @@ mint_token() { # owner/repo -> PRIV with jwt.h and token.h
   local repo=$1 now h p s inst
   umask 077
   PRIV=$(mktemp -d "${TMPDIR:-/tmp}/${MINT_NAME:-app_mint}.XXXXXX") || die "could not create a private directory"
-  trap mint_cleanup EXIT
-  trap 'exit 130' INT TERM HUP
+  # A caller that owns the EXIT trap (app_push.sh: pr_args.sh's pr_exit_trap, which runs
+  # mint_cleanup and then reaps the tree) sets MINT_TRAP=caller, so it is not replaced.
+  if [ "${MINT_TRAP:-}" != caller ]; then
+    trap mint_cleanup EXIT
+    trap 'exit 130' INT TERM HUP
+  fi
   # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
   chmod 700 "$PRIV"
   b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }

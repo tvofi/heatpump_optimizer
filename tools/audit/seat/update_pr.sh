@@ -11,7 +11,7 @@
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
 # the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
-# keeps the lock until its push has ended.
+# reaps its push's whole tree and ends (pr_args.sh's pr_exit_trap), and frees the lock only once that push has ended.
 # With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
 # own verdict replaces the full prepr with the body contract when the push is exactly this PR's
 # row added onto its live head under the body plus this run's note, and runs prepr otherwise; its
@@ -28,6 +28,10 @@ pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
+# The EXIT trap goes first, so the lock (pr_branch_lock) is freed by it after the reap: bash runs it
+# when TERM/INT/HUP end the shell too, so a stopped run ends its push rather than leaving it to burn
+# on after the shell (R10-PUSHER-REAP), and only then frees the branch.
+pr_exit_trap
 pr_branch_lock "$WT.lock" "$BR" "$WT"  # one run per branch, with open_pr.sh (pr_args.sh)
 cd "$M"
 if [ "$C" != - ]; then
@@ -68,6 +72,9 @@ s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 RO=""; [ "$C" != - ] || RO=--row-only  # mut:rowonly
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 || pr_push_failed $WT.log
+# Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+# the tree (pr_args.sh's why).
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
+pr_wait $! $WT.log
 grep -h '^app_push: ROW-ONLY:' $WT.log || :
 echo "HEAD=$H"

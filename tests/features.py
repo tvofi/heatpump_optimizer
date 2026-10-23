@@ -6034,7 +6034,7 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
         try:
             res = _grad_optmod._multi_start_minimize(
                 space_obj, [x0, np.minimum(x0 * 0.4, ubv)], bounds,
-                maxiter=25, batch_objective=space_obj_batch, fd_eps=1e-4,
+                maxiter=25, batch_objective=space_obj_batch,
             )
         finally:
             _grad_optmod._batch_fd_gradient = _real_bfd
@@ -6082,7 +6082,7 @@ def _d903_jac_f0_reuses_fun():
     bounds = [(-2.0, 2.0)] * n
     res = _grad_optmod._multi_start_minimize(
         obj, [np.zeros(n), np.full(n, 0.4)], bounds, maxiter=20,
-        batch_objective=batch_obj, fd_eps=1e-4,
+        batch_objective=batch_obj,
     )
     consecutive_dups = sum(
         1 for i in range(1, len(raw)) if raw[i] == raw[i - 1]
@@ -6310,7 +6310,7 @@ def _d901_gil_yield_inside_run():
             pool.submit(
                 _grad_optmod._multi_start_minimize,
                 obj, [np.zeros(6)], [(-2.0, 2.0)] * 6,
-                maxiter=15, batch_objective=batch_obj, fd_eps=1e-4,
+                maxiter=15, batch_objective=batch_obj,
             ).result()
     finally:
         _grad_optmod._scoped_minimize = real_minimize
@@ -20226,6 +20226,18 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view()["machine"] is None,
 )
+# The watch judges a bucket from its COP_BASELINE_MIN_SAMPLES-th sample on,
+# so a bucket at exactly that count is watched; one short of it is not.
+_cmach_edge = {}
+for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
+    _cmach_c = _t2_coord()
+    _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
+    _cmach_edge[_cmach_n] = _cmach_c._scores_view()["machine"]
+R.check(
+    "the machine grade starts at exactly COP_BASELINE_MIN_SAMPLES samples",
+    _cmach_edge == {COP_BASELINE_MIN_SAMPLES - 1: None, COP_BASELINE_MIN_SAMPLES: 100.0},
+    str(_cmach_edge),
+)
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
@@ -20235,6 +20247,13 @@ _cmach._cop_health_cusum.stat = COP_HEALTH_THRESHOLD
 R.check(
     "a machine at the alarm threshold grades 0",
     _cmach._scores_view()["machine"] == 0.0,
+)
+# Past the alarm the Cusum keeps climbing; the grade stays at 0, never below.
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, not below",
+    _cmach._scores_view()["machine"] == 0.0,
+    str(_cmach._scores_view()["machine"]),
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
@@ -57813,7 +57832,7 @@ def _f22_solve(batch):
     try:
         res = _grad_optmod._multi_start_minimize(
             counted, [np.zeros(12), np.full(12, 0.7)], [(-2.0, 2.0)] * 12,
-            maxiter=40, batch_objective=batch, fd_eps=1e-4,
+            maxiter=40, batch_objective=batch,
         )
     finally:
         _grad_optmod._scoped_minimize = real_min
@@ -59620,6 +59639,201 @@ R.check(
     "the latter with the buffer store's survival-weighted term)",
     not _f25_tbad,
     f"(arm, row) that moved: {_f25_tbad[:4]} of {len(_f25_tbad)}",
+)
+
+# -- R10-SOLVER: N-solve-recompute -- a batch-served run makes no scalar call --
+# Round 10, R10-SOLVER (D9-s1-01, Part of #2250). L-BFGS-B asks for the value
+# and the gradient at every point it visits. The multi-start's own runs take
+# both from one batch (R9 D9-s1-02); the two runs that move a start -- the
+# two-zone half-price continuation and the relaxed duty-cycle candidate --
+# took the value from the scalar objective twice per gradient (once as
+# ``fun``, once as the difference's base), two scalar horizons a batch row
+# replaces. Every run is now the driver's one ``_lbfgsb_run``.
+#
+# THE PROPERTY IS PER RUN, NOT PER SITE: every ``_scoped_minimize`` call a
+# solve makes with a supplied jac is metered for scalar trajectory
+# simulations made while it runs, and every one must read zero. That reaches
+# a third such site the day one is written, where a check keyed on the two
+# fixed here would not. The census asserts its own preconditions -- one solve
+# that runs the continuation, the relaxed candidate and the multi-start's
+# own runs, each seen at least once -- so a solve that stopped reaching a
+# kind refuses instead of passing on an empty population. Positive control:
+# the same solve with ``_lbfgsb_run`` taking ``f`` from the scalar objective
+# reads nonzero, so the meter sees a scalar evaluation when one is made.
+# Null control, exact: that scalar-valued solve ships the same plan bit for
+# bit -- the fusion is value-neutral, because a batched row is the scalar
+# objective (the batched simulation's contract, #97).
+import contextlib as _r10s_ctx  # noqa: E402
+from unittest import mock as _r10s_mock  # noqa: E402
+
+from profiles import house as _r10s_house, prices as _r10s_prices  # noqa: E402
+from profiles import weather as _r10s_weather  # noqa: E402
+from heatpump_optimizer import optimizer as _r10s_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _r10s_Opt,
+    OptimizationConfig as _r10s_Cfg,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _r10s_Model,
+    ThermalParameters as _r10s_Params,
+    ThermalState as _r10s_State,
+)
+
+
+# The reference arm spells L-BFGS-B's step itself (1e-4, the shipped value)
+# rather than reading the driver's constant, so a production step that moves
+# -- in the fused gradient, the ``eps`` option or both -- moves only the fused
+# arm and the exact null below refuses it (review O2).
+def _r10s_scalar_valued_run(objective, batch_objective, x0, bounds, args,
+                            maxiter, memo=None):
+    """The pre-fusion run: ``f`` from the scalar, the gradient from the batch."""
+    if batch_objective is None:
+        return _r10s_optmod._scoped_minimize(
+            objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+        )
+    fused = _r10s_optmod._fused_value_and_gradient(batch_objective, bounds, 1e-4)
+    return _r10s_optmod._scoped_minimize(
+        objective, x0, args=args, method="L-BFGS-B", bounds=bounds,
+        jac=lambda x, *a: fused(x, *a)[1],
+        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+    )
+
+
+def _r10s_solve(run=None):
+    """A two-zone, level-clamped space solve; every L-BFGS-B run metered."""
+    cfg = _r10s_house(two_zone=True, dhw=False)
+    params = _r10s_Params.from_config(cfg)
+    params.dhw_enabled = False
+    opt = _r10s_Opt(_r10s_Model(params), _r10s_Cfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+        clamp_planned_levels=True,
+    ))
+    t0 = datetime(2026, 1, 15, 0, 0)
+    out, wind, rain, sun = _r10s_weather("winter_cold", t0)
+    state = _r10s_State(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(out[0]),
+    )
+    runs, live = [], []
+    real_sm = _r10s_optmod._scoped_minimize
+    real_traj = _r10s_Model.simulate_trajectory
+
+    def traj(self, *a, **k):
+        for rec in live:
+            rec["scalar"] += 1
+        return real_traj(self, *a, **k)
+
+    def sm(fun, x0, *a, **kw):
+        rec = {
+            "jac": kw.get("jac") is not None, "scalar": 0,
+            "kind": ("continuation" if opt._floor_l1_scale != 1.0
+                     else "relaxed" if opt._levels_relaxed else "multi-start"),
+        }
+        runs.append(rec)
+        live.append(rec)
+        try:
+            return real_sm(fun, x0, *a, **kw)
+        finally:
+            live.remove(rec)
+
+    with _r10s_mock.patch.object(_r10s_optmod, "_scoped_minimize", sm), \
+            _r10s_mock.patch.object(_r10s_Model, "simulate_trajectory", traj), \
+            (_r10s_mock.patch.object(_r10s_optmod, "_lbfgsb_run", run, create=True)
+             if run is not None else _r10s_ctx.nullcontext()):
+        res = opt.optimize(inputs=solve_inputs(
+            initial_state=state, prices=_r10s_prices("winter_typical", t0),
+            outdoor_temps=out, wind_speeds=wind, precipitation=rain,
+            solar_radiation=sun, start_time=t0,
+        ))
+    return runs, np.asarray(res.power_schedule, dtype=float)
+
+
+_r10s_runs, _r10s_plan = _r10s_solve()
+_r10s_ref_runs, _r10s_ref_plan = _r10s_solve(_r10s_scalar_valued_run)
+
+
+def _r10s_census(runs):
+    """Per run kind: (supplied-jac runs, scalar simulations inside them)."""
+    out = {}
+    for rec in runs:
+        if rec["jac"]:
+            n, s = out.get(rec["kind"], (0, 0))
+            out[rec["kind"]] = (n + 1, s + rec["scalar"])
+    return out
+
+
+_r10s_got = _r10s_census(_r10s_runs)
+_r10s_ref = _r10s_census(_r10s_ref_runs)
+print(f"RESULT r10_solver_runs fused={_r10s_got} scalar_valued={_r10s_ref}")
+R.check(
+    "R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the "
+    "continuation, the relaxed candidate and the multi-start's own runs on "
+    "the batched jac",
+    all(_r10s_got.get(k, (0, 0))[0] > 0
+        for k in ("continuation", "relaxed", "multi-start")),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the "
+    "scalar trajectory -- the value rides in the gradient's batch",
+    all(s == 0 for _, s in _r10s_got.values()),
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the "
+    "same runs is seen by the meter",
+    _r10s_ref.get("continuation", (0, 0))[1] > 0
+    and _r10s_ref.get("relaxed", (0, 0))[1] > 0,
+    f"(supplied-jac runs, scalar simulations) per kind: {_r10s_ref}",
+)
+R.check(
+    "R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the "
+    "scalar-valued runs ship, bit for bit",
+    np.array_equal(_r10s_plan, _r10s_ref_plan),
+    f"max |dP| {float(np.max(np.abs(_r10s_plan - _r10s_ref_plan))):.3e} kW",
+)
+
+
+# The driver's bounds gate (review O1): bounds ``_bounds_supported_by_batch``
+# refuses run on scipy's own estimate and never call the batch, whatever
+# batch objective the caller hands in. Positive control: the same run on
+# finite bounds is served by the batch, so the zero is not a dead counter.
+# Null: the refused run is the plain scalar run, bit for bit.
+def _r10s_gate_run(bounds):
+    calls = [0]
+
+    def scalar(x):
+        d = np.asarray(x, dtype=float) - 0.7
+        return float(d @ d)
+
+    def batch(rows):
+        calls[0] += 1
+        d = np.asarray(rows, dtype=float) - 0.7
+        return np.einsum("ij,ij->i", d, d)
+
+    res = _r10s_optmod._lbfgsb_run(scalar, batch, np.zeros(4), bounds, (), 30)
+    plain = _r10s_optmod._scoped_minimize(
+        scalar, np.zeros(4), method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": 30, "ftol": 1e-6, "eps": 1e-4},
+    )
+    return calls[0], np.asarray(res.x, dtype=float), np.asarray(plain.x, float)
+
+
+_r10s_open = [(0.0, float("inf"))] * 4
+_r10s_refused, _r10s_refused_x, _r10s_plain_x = _r10s_gate_run(_r10s_open)
+_r10s_served = _r10s_gate_run([(0.0, 2.0)] * 4)[0]
+R.check(
+    "R10-SOLVER (O1): bounds _bounds_supported_by_batch refuses run on "
+    "scipy's own estimate -- no batch call, the plain scalar run's point",
+    not _r10s_optmod._bounds_supported_by_batch(_r10s_open)
+    and _r10s_refused == 0 and _r10s_served > 0
+    and bool(np.array_equal(_r10s_refused_x, _r10s_plain_x)),
+    f"batch calls refused={_r10s_refused} served={_r10s_served}; "
+    f"x {_r10s_refused_x} vs plain {_r10s_plain_x}",
 )
 
 # -- R9 N-fit-integrator (#1672): the fit models the continuous house ----------

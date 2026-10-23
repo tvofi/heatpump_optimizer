@@ -13,6 +13,7 @@
 [ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
+pr_exit_trap  # every exit, a stop signal's included, ends the tree this run started
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 # The soft cap gates DISPATCH, not opening (pr_cap.py; tvofi, 2026-10-20):
 # opening is how work leaves work-in-progress. --over-cap "<reason>" is still
@@ -47,7 +48,10 @@ if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%
 open(p,'w').write(s)
 E0
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || pr_push_failed $D/p1.log
+# Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+# the tree (pr_args.sh's why).
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
+pr_wait $! $D/p1.log
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
 commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
@@ -59,5 +63,6 @@ s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 || pr_push_failed $D/p2.log
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 &
+pr_wait $! $D/p2.log
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"

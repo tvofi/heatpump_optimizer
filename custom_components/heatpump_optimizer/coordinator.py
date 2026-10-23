@@ -7596,11 +7596,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "immersion_active": self._immersion_active,
             "immersion_evidence": list(self._immersion_evidence),
             "cop_health": {
-                "watched_buckets": sum(
-                    1
-                    for entry in self._cop_baseline.values()
-                    if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-                ),
+                "watched_buckets": self._cop_watch()[0],
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),
             },
@@ -9126,6 +9122,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         entry[1] = count + 1
 
+    def _cop_watch(self) -> tuple[int, float]:
+        """#12: the buckets the COP watch judges, and its Cusum's share of the alarm."""
+        watched = sum(
+            1
+            for entry in self._cop_baseline.values()
+            if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+        )
+        return watched, float(np.clip(self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))
+
     def _raise_cop_issue(self, baseline: float) -> None:
         """One repair issue with the money the shortfall costs per month."""
         now = dt_util.now()
@@ -9147,14 +9152,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         current = self._measured_cop.cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
         # The price feed's currency: its prices are (audit D4-04, #168).
-        currency = self.currency
         cost_month = monthly_kwh * mean_price * shortfall
         _LOGGER.warning(
             "Compressor efficiency has drifted %.0f%% below its own "
             "baseline (~%.0f %s/month at current usage)",
             shortfall * 100.0,
             cost_month,
-            currency,
+            self.currency,
         )
         _create_issue(
             self.hass,
@@ -9169,7 +9173,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             translation_placeholders={
                 "shortfall_percent": f"{shortfall * 100.0:.0f}",
                 "cost_month": f"{cost_month:.0f}",
-                "currency": currency,
+                "currency": self.currency,
             },
         )
 
@@ -10318,25 +10322,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tau_h = ctx._thermal_params.room_thermal_mass / loss
             envelope = float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0
 
-        machine = None
-        watched = sum(
-            1
-            for entry in self._cop_baseline.values()
-            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-        )
-        if watched:
-            # 100 while the COP watch (#12) accumulates no shortfall; the
-            # grade falls as the Cusum climbs toward its alarm.
-            machine = (
-                1.0
-                - float(
-                    np.clip(
-                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
-                        0.0,
-                        1.0,
-                    )
-                )
-            ) * 100.0
+        # 100 while the COP watch (#12) accumulates no shortfall; the grade
+        # falls as the Cusum climbs toward its alarm.
+        watched, drift = self._cop_watch()
+        machine = (1.0 - drift) * 100.0 if watched else None
 
         operation = self._operation_score
         available = [s for s in (machine, operation) if s is not None]
