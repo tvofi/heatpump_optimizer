@@ -700,6 +700,15 @@ def self_test() -> int:
         f, rc, out = ena(off, "behind")
         check("enable: refuses when the merge commit is not on main", rc == 2 and f.puts == [], out)
 
+        # --dry-run --window: the staging read for the body -- both payloads, the window's preconditions.
+        f = FakeGh(ruleset, g_win)
+        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("dry-run --window: passes on the base-pinned reds, prints both payloads, writes nothing",
+              rc == 0 and f.puts == [] and "reds-at-head: PASS" in out and "gate-at-head" not in out
+              and "DISABLE PAYLOAD" in out and "ENABLE PAYLOAD" in out and "WINDOW DRY-RUN OK" in out, out)
+        f = FakeGh(ruleset, variant(check_runs=runs_at(*window, ("tests / closures", "failure"))))
+        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        check("dry-run --window: a unit red refuses", rc == 1 and "reds-at-head: FAIL" in out, out)
         # --verify: main's push gate, every suite's newest green.
         rc, out = run(FakeGh(ruleset, green), ["--verify", "--head", H])
         check("verify: every suite's newest gate green passes", rc == 0 and "VERIFY OK" in out, out)
