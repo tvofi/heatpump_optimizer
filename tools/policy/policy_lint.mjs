@@ -4262,6 +4262,31 @@ function assertAcceptance(derived) {
     console.log('\nFIXTURE VACUOUS: the red history names a check over a range that failed nothing, so the derivation is not reading the run objects it is handed')
     rc = 1
   }
+  // THE DEFER SHAPE (R10-CI-LAYOUT P2b, Arm A #2649 at dd3d6306): two runs at one
+  // head, the first `gate` red only because it deferred to the second ("still
+  // being judged; their gate decides"), the second green, every unit green. The
+  // gate is an aggregate whose unit reds carry their own names, so nothing is
+  // owed; a unit red at that head still is (the null control).
+  pins += 2
+  const DEFER = [
+    { name: 'gate', status: 'completed', conclusion: 'failure' },
+    { name: 'gate', status: 'completed', conclusion: 'success' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'failure' },
+    { name: 'pr-contract / pr-contract', status: 'completed', conclusion: 'success' },
+    { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'success' },
+    { name: 'prelude', status: 'completed', conclusion: 'success' },
+  ]
+  const redDefer = redsOverCommits(['d1'], () => ({ ok: true, runs: DEFER }))
+  if (!redDefer.ok || redDefer.reds.length) {
+    console.log(`\nFIXTURE VACUOUS: a gate that deferred to a second run at its head leaves ${redDefer.ok ? JSON.stringify(redDefer.reds) : `not ok (${redDefer.why})`} on the red history; the aggregate's own red is owed nothing`)
+    rc = 1
+  }
+  const redDeferUnit = redsOverCommits(['d1'], () =>
+    ({ ok: true, runs: [...DEFER, { name: 'tests / fast (3.14)', status: 'completed', conclusion: 'failure' }] }))
+  if (!redDeferUnit.ok || redDeferUnit.reds.join(',') !== 'tests / fast (3.14)') {
+    console.log('\nFIXTURE VACUOUS: beside a deferred gate, a unit red at the same head is not on the red history, so the exclusion swallowed a name it does not own')
+    rc = 1
+  }
   // The enforcement, driven on the DERIVED names rather than on a hand-written
   // list: `unnamed-red.md`'s `## Red checks` says `none`, so the red a later
   // commit cleared has to reach the same refusal the head's own red does.
