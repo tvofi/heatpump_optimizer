@@ -4226,6 +4226,9 @@ def selftest() -> int:
         pin("stress.py reads the same variable name",
             f'CLOSURE_RECORDING_ENV = "{RECORDING_ENV}"'
             in (ROOT / "tests" / "stress.py").read_text())
+        pin("harness_headers.py reads the same variable name (its CPU-headroom grade)",
+            f'RECORDING_ENV = "{RECORDING_ENV}"'
+            in (ROOT / "tests" / "harness_headers.py").read_text())
         for code in (3, 0):
             stub = td_path / f"py{code}"
             stub.write_text(f"#!/bin/sh\nexit {code}\n")

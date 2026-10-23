@@ -2236,17 +2236,23 @@ R.check(
 
 # away: hours until a presence calendar's return, typed as local wall text across the fold
 # (00:45 CEST is 22:45Z; 03:45 CET is 02:45Z, a true four hours)
-_away_state = _away.resolve(
+async def _away_estimate(target_temp):
+    return _away.estimate_recovery_hours(
+        ThermalModel(ThermalParameters.from_config({})),
+        ThermalState(room_temperature=21.0, outdoor_temperature=0.0),
+        target_temp, 0.0,
+    )
+
+
+_away_state = asyncio.run(_away.resolve(
     _away.AwayConfig(presence_entity="calendar.holiday"),
     now=datetime(2026, 10, 25, 0, 45, tzinfo=STHLM),
     presence_raw="on",
     presence_attributes={"end_time": "2026-10-25 03:45:00"},
     return_raw=None,
     comfort_temp=21.0,
-    model=ThermalModel(ThermalParameters.from_config({})),
-    thermal_state=ThermalState(room_temperature=21.0, outdoor_temperature=0.0),
-    outdoor_temp=0.0,
-)
+    estimate_recovery=_away_estimate,
+))
 R.check(
     "away: hours until a presence end time typed across the fold are the true 4, not the wall 3",
     abs(_away_state.hours_until_return - 4.0) < 1e-9,

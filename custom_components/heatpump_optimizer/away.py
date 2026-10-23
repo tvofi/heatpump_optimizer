@@ -21,7 +21,7 @@ a margin before the stated return, and the estimate itself is rounded up.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
@@ -139,6 +139,12 @@ class _AwayCoord(Protocol):
 #: The coordinator's entity reader, passed in (#1739): the one
 #: coordinator-owned capability the one-off helper migration needs.
 EntityReader = Callable[[str | None], tuple[str | None, dict[str, Any]]]
+
+#: Hours full power takes to reach the given target, awaited: the coordinator
+#: runs :func:`estimate_recovery_hours` in its process worker (P10,
+#: D14-s1-01), since a cold house simulates up to ``MAX_RECOVERY_HOURS`` of
+#: model steps and the resolve sits inline in the update cycle.
+RecoveryEstimate = Callable[[float], Awaitable[float]]
 
 
 # States that switch a toggle-style away entity OFF and ON respectively. Named
@@ -431,14 +437,12 @@ def _as_num(value: object, default: float) -> float:
     return default
 
 
-def _apply_return(
+async def _apply_return(
     state: AwayState,
     return_time: datetime | None,
     now: datetime,
     comfort_temp: float,
-    model: Any,
-    thermal_state: Any,
-    outdoor_temp: float,
+    estimate_recovery: RecoveryEstimate,
 ) -> None:
     if return_time is None:
         return
@@ -447,19 +451,14 @@ def _apply_return(
     state.return_time = return_time
     hours_left = utc_elapsed_seconds(return_time, now) / 3600.0
     state.hours_until_return = hours_left
-    recovery_hours = estimate_recovery_hours(
-        model,
-        thermal_state,
-        target_temp=comfort_temp,
-        outdoor_temp=outdoor_temp,
-    )
+    recovery_hours = await estimate_recovery(comfort_temp)
     state.recovery_hours = recovery_hours
     if hours_left <= recovery_hours + RECOVERY_MARGIN_HOURS:
         state.recovery_active = True
         state.target_temperature = comfort_temp
 
 
-def resolve(
+async def resolve(
     config: AwayConfig,
     *,
     now: datetime,
@@ -467,9 +466,7 @@ def resolve(
     presence_attributes: dict[str, Any] | None,
     return_raw: str | None,
     comfort_temp: float,
-    model: Any,
-    thermal_state: Any,
-    outdoor_temp: float,
+    estimate_recovery: RecoveryEstimate,
     override_active: bool = False,
     override_return_time: datetime | None = None,
 ) -> AwayState:
@@ -485,9 +482,8 @@ def resolve(
         state.source = "service"
         state.target_temperature = config.away_temperature
         state.dhw_min_temperature = config.away_dhw_min_temperature
-        _apply_return(
-            state, override_return_time, now, comfort_temp,
-            model, thermal_state, outdoor_temp,
+        await _apply_return(
+            state, override_return_time, now, comfort_temp, estimate_recovery
         )
         return state
 
@@ -514,9 +510,7 @@ def resolve(
                     break
     if return_time is None:
         return_time = override_return_time
-    _apply_return(
-        state, return_time, now, comfort_temp, model, thermal_state, outdoor_temp
-    )
+    await _apply_return(state, return_time, now, comfort_temp, estimate_recovery)
     return state
 
 
