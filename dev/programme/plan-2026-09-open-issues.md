@@ -2001,6 +2001,24 @@ alone.
   cap headroom, so both need either an owner-approved raise or a graduation to
   pay for the lines.
 
+## Round template, from round 11
+
+Decision 0015; the Lean flow study's `SHADOW-PLAN.md` section 6 at
+`30c57744a` (branch `claude/dazzling-gauss-7l3u2b`). Each phase's exit is the
+next one's entry; the buffer is consumed by any phase.
+
+| phase | budget | exit rule |
+|---|---|---|
+| P1 find | <= 10 h | every scope's finder report in |
+| P2 verify, judge, register | <= 10 h | register merged; scope frozen |
+| P3 plan | **<= 8 h** (was 4) | the architect's plan (`architect-planner.md`) passed `plan-review.md` and approved by the owner |
+| P4 fix wave | **<= 56 h** (was 60) | every planned group merged or deferred by the owner, deviations recorded against the plan |
+| P5 drain and stamp | <= 6 h | stamp pushed, with the round's end-to-end `score.py --diff` against the plan's target |
+| buffer | 10 h | |
+
+P4 gets its 4 h back through seam-first edges: on round 10's roster,
+file-order edges cost 12-13 h.
+
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
