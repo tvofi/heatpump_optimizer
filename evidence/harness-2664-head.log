@@ -1,0 +1,24 @@
+== cloud_relay-1 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 826: kill: (72240) - No such process
+== cloud_relay-2 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 95662 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-3 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 22248 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-4 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 43775 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-5 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 64239 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-6 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 92055 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-7 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 16812 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-8 cloud_relay.sh: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== cloud_relay-9 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 28345 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-10 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 37585 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-11 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 45780 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-12 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 54036 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-13 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 62928 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-14 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822:  9433 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-15 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 88954 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-16 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 65092 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-17 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 18318 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-18 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 33876 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-19 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 46267 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-20 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 72609 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-21 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 822: 85554 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== tick_loop-3 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 12 checks, 1 failed
+RESULT survivors=1
+rc=1
