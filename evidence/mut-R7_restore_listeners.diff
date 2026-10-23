@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..a7e7c518b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9522,7 +9522,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             snap.get("taken_at"),
+         )
+         await _async_save_restored(self)
+-        await self.async_request_refresh()  # re-plan and re-take the advice, as adopt does
++        self.async_update_listeners()  # re-plan and re-take the advice, as adopt does
+         return True
+ 
+     async def _async_load_snapshots(self) -> None:
