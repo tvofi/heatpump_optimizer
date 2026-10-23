@@ -3494,7 +3494,12 @@
    "tools/audit/seat/sweep_driver.py",
    "tools/audit/seat/sweep_driver_selftest.py",
    "tools/audit/seat/tmp_paths.py",
-   "tools/policy/figure_lint.mjs"
+   "tools/policy/budget_raise_gate.py",
+   "tools/policy/figure_lint.mjs",
+   "tools/policy/fixtures/policy-rot/prepr/raise/bare-payments.md",
+   "tools/policy/fixtures/policy-rot/prepr/raise/good.md",
+   "tools/policy/fixtures/policy-rot/prepr/raise/score-no-verdict.md",
+   "tools/policy/fixtures/policy-rot/prepr/raise/verdict-outside.md"
   ],
   "tests/harness_headers.py": [
    "LICENSE",
@@ -3542,6 +3547,7 @@
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
+   "dev/audit/harnesses/r10_family_replay.mjs",
    "dev/audit/harnesses/r10_field_coverage_paths.sh",
    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
@@ -3562,7 +3568,9 @@
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
+   "dev/audit/harnesses/r10_policy_lint_family_mutants.py",
    "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
+   "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
@@ -3589,6 +3597,7 @@
    "dev/audit/harnesses/r10_tick_owed_level.py",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
+   "dev/audit/harnesses/r10_title_seam.sh",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
    "dev/audit/harnesses/r10_triage_gate_replay.py",
@@ -4453,11 +4462,11 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 361.9
+   "seconds": 936.3
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 10.4
+   "seconds": 27.6
   },
   "tests/typing_ruler.py": {
    "rc": 0,
@@ -4465,7 +4474,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 21.9
+   "seconds": 54.2
   },
   "tests/wood_advisor.py": {
    "rc": 0,

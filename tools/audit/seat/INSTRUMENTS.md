@@ -261,22 +261,48 @@ sweep's standing-seat liveness step keep them alive.
   failed listing leaves the level as it was. It relays each `rev-*` ref+sha
   once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
   or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
-  left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
-  retried until it is pushed again, so one refusal does not repeat every
-  interval. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
+  left for a later pass; a refused ref+sha (relay rc 2, a refusal of the ref
+  itself) goes to `<ledger>.refused` and is not retried until it is pushed
+  again, so one refusal does not repeat every interval. Any other failure (a
+  push or a fetch; an HTTP 400 push once left a verdict refused in silence for
+  3 h) is retried on later passes, `HPO_RELAY_TRIES` times in all (default 3),
+  then refused. A refusal prints `REFUSED <ref> <sha> <reason>` (the relay's
+  last stderr line) and is `OWED <utc> probe-refused <ref> <sha> <reason>` in
+  `<log>.level` until disposed; one refused before reasons were kept stays
+  silent. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
   quota. `--once` is one pass.
   `--confirm` (on `--watch` and on a single relay) keeps going past
   `push-verdict`: after one that passed it runs `bus.sh confirm <pr>
-  <review-sha>` (the sha `push-verdict` printed) and appends `POSTED <utc> <pr>
-  <sha>` or `OWED <utc> <pr> <sha|-> <why>` to `--log FILE` (default
+  <review-sha>` (review/<pr>'s tip as `git ls-remote` answers it, when that tip
+  carries this verdict's tree: confirm takes only a tip) and appends `POSTED
+  <utc> <pr> <sha>` or `OWED <utc> <pr> <sha|-> <why>`, `<why>` carrying
+  confirm's last output line, to `--log FILE` (default
   `cloud-relay.log` under the state directory), the file the orchestrator
   reads; two verdicts once sat relayed and unposted for 20 minutes. Confirm
   never runs after a refused relay or a failed `push-verdict`, and those write
   no line (the refusal is printed; `--watch` also keeps it in `.refused`).
+  A `push-verdict` refused non-fast-forward (review/<pr> moved under it) is
+  run again, three times at most: `bus.sh` re-reads the fresh tip and appends
+  the same verdict there, never forcing; a fresh tip already carrying this
+  verdict's tree is not re-applied. Both are printed, and so is
+  `review/<pr> remote tip <sha>` after the push.
   `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
-  (default every 120 s). A pass runs the handoff arm, then the relay arm above.
+  (default every 120 s). A pass runs the handoff arm, then the relay arm above,
+  then with `--confirm` the confirm arm. Confirm arm: the ledger is written
+  before confirm runs, so a confirm that failed, or a relay by a stale script
+  or a call without `--confirm`, was never confirmed later (#2659, #2632). For
+  every `review/<pr>` tip the relay pushed (its `bus-nonce:` matches a
+  ledgered `probe/rev-<pr>-<nonce8>`) whose tree is not in `bus.sh`'s posted
+  record (`posted-signed`), it runs `bus.sh confirm <pr> <tip>`: `POSTED` on
+  success; on failure `OWED <utc> confirm-owed refs/heads/review/<pr> <tip>
+  tries=<n>/<max>: <last output line>` in `<log>.level`, retried next pass up
+  to `HPO_RELAY_CONFIRM_TRIES` (default 3), then owed untried until the posted
+  record shows it or `dispose` takes it (`dispose` takes `review/` refs). A tip
+  with no dispatch for its PR, head and nonce is owed `undispatched` and never
+  confirmed; a tip the relay did not push waits for the orchestrator's own
+  read. It makes no `gh` call (`bus.sh confirm` posts).
   Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
   `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
   not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
@@ -783,7 +809,8 @@ sweep's standing-seat liveness step keep them alive.
   step in the same pull request. Refusal: each unwired file by path; a
   mention in a comment, a step name or a `--check` call does not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
-  pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
+  pass runs `cloud_relay.sh pass --confirm` (a relayed verdict posts with no
+  hand step) when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,
   writing the board whole to `--out` (default `$HPO_STATE_DIR/tick.txt`) and
   one `TICK-PASS <utc> relay=<ok|rc=N|running|absent> tick=<rc>` line to

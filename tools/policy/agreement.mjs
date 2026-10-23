@@ -30,6 +30,7 @@
 // exit 0: no disagreement, no unregistered or dead grammar, no refusal.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -342,6 +343,26 @@ const PAIRS = [
       return { 'ref_privacy.py attribution': (t) => rows[t], 'policy_lint.mjs attributionClasses': (t) => pl.attributionClasses(t) }
     },
   },
+  {
+    concept: 'raise-justification',
+    what: "whether a pull-request body is refused on its `## Raise justification` (Triage P-F): budget_raise_gate.py justification (the budget-raise-gate check, at merge) against policy_lint.mjs raiseJustification (the body contract), which runs the gate's own --check-body but finds the heading itself, so the heading test is the one part that can drift",
+    async corpus() {
+      return Object.keys(py('raise_justification')).map((b, i) => [`body ${i} ${JSON.stringify(b.slice(0, 30))}`, b])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('raise_justification')
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agreement-raise-'))
+      let n = 0
+      const lint = (b) => {
+        const f = path.join(dir, `body-${n++}.md`)
+        fs.writeFileSync(f, b)
+        return pl.raiseJustification(f, b) !== null
+      }
+      return { 'budget_raise_gate.py justification': (b) => rows[b], 'policy_lint.mjs raiseJustification': lint,
+        cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+    },
+  },
 ]
 
 // ---- discovery ---------------------------------------------------------------
@@ -377,9 +398,6 @@ const SHARED_GRAMMARS = {
   "\\{(\\w+)\\}": "not-a-concept:the Python format-placeholder token",
   "[^:\\s]+:\\d+ [A-Z_]+": "identical:the mutation ledger line key, mutation_table.py and ledger_merge.py",
   "\"version\": \"[^\"]*\"": "not-a-concept:two audit probe scripts editing a manifest fixture",
-  "[0-9a-f]{40}": "not-a-concept:the 40-hex commit SHA shape, in a JS linter and in ledger.py; no module can serve both languages and the shape is fixed by git",
-  "\\bledger_open ([a-z-]+) ": "identical:the cloud_relay.sh ledger_open call census, ledger.py self-test and the finder's harness r10_ledger_class_reach.py, which stays a second reader on purpose: it may not import the ledger it measures",
-  "\\blevel_line ([a-z-]+) ": "identical:the cloud_relay.sh level_line call census, ledger.py self-test and the finder's harness r10_ledger_class_reach.py, which stays a second reader on purpose: it may not import the ledger it measures",
   '\\(#(\\d+)\\)': 'pair:merge-subject-pr',
   'Merge pull request #(\\d+)\\b': 'pair:merge-subject-pr',
 }
