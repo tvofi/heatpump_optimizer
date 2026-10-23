@@ -5,7 +5,8 @@
 
 THE RULE (the enumeration, so a sibling cannot be missed). The file is parsed
 with `ast`; every node of every module-level statement is visited except the
-docstring, the imports, `ROOT`, `self_test` and its `_self_test_main` and `_self_test_seams`, type annotations
+docstring, the imports, `ROOT`, `self_test` and its `_self_test_main`, `_self_test_seams` and
+`_self_test_vocabulary`, type annotations
 and the `__main__` guard, and each
 operator class below yields one mutant per site and per replacement:
 
@@ -103,8 +104,8 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 TARGET = "tools/audit/seat/review_strength.py"
-COPY = ("tests/throwaway_git.py", "dev/audit/rounds/round10/D13/yield-probe.md")
-SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams"}
+COPY = ("tests/throwaway_git.py", "dev/audit/rounds/round10/D13/yield-probe.md", ".claude/workflows/web-fix-wave.js")
+SKIP_DEFS = {"self_test", "_self_test_main", "_self_test_seams", "_self_test_vocabulary"}
 SKIP_ASSIGN = {"ROOT"}
 TEXT_KW = {"help", "metavar", "description"}
 TEXT_CALLS = {"error", "SystemExit"}
@@ -122,19 +123,39 @@ SWAP_CALL = {"max": "min", "min": "max", "any": "all", "all": "any", "sorted": "
 # Survivors the self-test cannot see because they change nothing, keyed "<function> @ <statement>: <mutant>".
 # Every entry is an equivalent mutant and says why; one equivalent only on the bus's inputs names the input separating it.
 DISPOSED = {
+    "CLASSES_RE @ CLASSES_RE = re.compile('const VERDICT_CLASSES = \\\\[([^\\\\...: 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)\\\\]' -> 'const VERDICT_CLASSES = \\\\[([^]]*)\\\\]'":
+        "equivalent: a ']' first in a class is literal, so [^]] is [^\\]]",
+    "CLASSES_RE @ CLASSES_RE = re.compile('const VERDICT_CLASSES = \\\\[([^\\\\...: 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)\\\\]' -> 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)]'":
+        "equivalent: an unescaped ']' outside a class is a literal ']'",
+    "load @ for r in refs(repo, f'refs/remotes/{remote}/review/') + r...: swap if not m: with the next statement":
+        'equivalent: the swapped `body = git(show ...)` is a read whose result only the lines after the `continue` use',
+    "load @ for r in refs(repo, f'refs/remotes/{remote}/verdict/') + ...: 'refs/tags/archive/verdict/' -> 'refs/tags/archive/verdict'":
+        "equivalent: for-each-ref matches refs/tags/archive/verdict at a whole component, as with the '/'",
+    "load @ for r in refs(repo, f'refs/remotes/{remote}/review/') + r...: 'refs/tags/archive/review/' -> 'refs/tags/archive/review'":
+        "equivalent: for-each-ref matches refs/tags/archive/review at a whole component, as with the '/'",
+    "load @ for r in refs(repo, f'refs/remotes/{remote}/verdict/') + ...: '/verdict/' -> '/verdict'":
+        "equivalent: for-each-ref matches refs/remotes/<r>/verdict at a whole component, as with the '/'",
+    "load @ for r in refs(repo, f'refs/remotes/{remote}/review/') + r...: '/review/' -> '/review'":
+        "equivalent: for-each-ref matches refs/remotes/<r>/review at a whole component, as with the '/'",
+    'verdict_classes @ words = tuple(WORD_RE.findall(m[1])) if m else (): 1 -> 0':
+        "equivalent: m[0] adds only the literal's unquoted name and brackets to m[1], where WORD_RE finds no word",
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if '+' in by: with the next statement":
+        "equivalent: the five tests ('+' in by, == 'all', == 'kind', == 'class', == 'route') are disjoint, so their order picks nothing",
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if by == 'all': with the next statement":
+        "equivalent: the five tests ('+' in by, == 'all', == 'kind', == 'class', == 'route') are disjoint, so their order picks nothing",
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if by == 'kind': with the next statement":
+        "equivalent: the five tests ('+' in by, == 'all', == 'kind', == 'class', == 'route') are disjoint, so their order picks nothing",
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if by == 'class': with the next statement":
+        "equivalent: the five tests ('+' in by, == 'all', == 'kind', == 'class', == 'route') are disjoint, so their order picks nothing",
+    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict], tau...: swap if by == 'route': with the next statement":
+        "equivalent: the five tests ('+' in by, == 'all', == 'kind', == 'class', == 'route') are disjoint, so their order picks nothing",
     "NONCE_RE @ NONCE_RE = re.compile('^bus-nonce:\\\\s*([0-9a-f]{32})', re.M): '^bus-nonce:\\\\s*([0-9a-f]{32})' -> '^bus-nonce:\\\\s*([0-9a-f]{31})'":
         "equivalent on the bus's inputs (every bus nonce is 32 hex, and only nonce[:8] is read); "
         "separated by a VERDICT.md holding a 31-hex bus-nonce, which the tool leaves unread and the mutant reads",
     "when @ return datetime.fromisoformat(s.replace('Z', '+00:00')).a...: '+00:00' -> '+00'":
         'equivalent: datetime.fromisoformat reads +00 and +00:00 alike (3.11+)',
-    "load @ for r in refs(repo, f'refs/remotes/{remote}/review/'):: swap if not m: with the next statement":
-        'equivalent: the swapped `body = git(show ...)` is a read whose result only the lines after the `continue` use',
     "load @ for r in refs(repo, f'refs/remotes/{remote}/probe/') + re...: 'refs/tags/archive/probe/' -> 'refs/tags/archive/probe'":
         "equivalent: for-each-ref matches a pattern without its trailing '/' only at a whole path component, so archive/probe-x is not read either way",
-    "load @ for r in refs(repo, f'refs/remotes/{remote}/verdict/'):: '/verdict/' -> '/verdict'":
-        "equivalent: for-each-ref matches refs/remotes/<r>/verdict at a whole component, as with the '/'",
-    "load @ for r in refs(repo, f'refs/remotes/{remote}/review/'):: '/review/' -> '/review'":
-        "equivalent: for-each-ref matches refs/remotes/<r>/review at a whole component, as with the '/'",
     "load @ for r in refs(repo, f'refs/remotes/{remote}/probe/') + re...: '/probe/' -> '/probe'":
         "equivalent: for-each-ref matches refs/remotes/<r>/probe at a whole component, as with the '/'",
     'pr_facts @ for pr, head in last.items():: swap files.append(f) with the next statement':
@@ -161,14 +182,6 @@ DISPOSED = {
         'equivalent: the diff runs only with a merge base, so both commits exist and it cannot exit non-zero',
     "pr_facts @ for ln in git(repo, 'diff', '--numstat', mb, head, check=...: False -> True":
         'equivalent: the diff runs only with a merge base, so both commits exist and it cannot exit non-zero',
-    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict]) -> ...: swap if '+' in by: with the next statement":
-        "equivalent: the four tests ('+' in by, == 'all', == 'kind', == 'class') are disjoint, so their order picks nothing",
-    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict]) -> ...: swap if by == 'all': with the next statement":
-        "equivalent: the four tests ('+' in by, == 'all', == 'kind', == 'class') are disjoint, so their order picks nothing",
-    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict]) -> ...: swap if by == 'kind': with the next statement":
-        "equivalent: the four tests ('+' in by, == 'all', == 'kind', == 'class') are disjoint, so their order picks nothing",
-    "stratum @ def stratum(by: str, v: dict, facts: dict[int, dict]) -> ...: swap if by == 'class': with the next statement":
-        "equivalent: the four tests ('+' in by, == 'all', == 'kind', == 'class') are disjoint, so their order picks nothing",
     "tally @ for v in verdicts:: swap o['verdicts'] += 1 with the next statement":
         'equivalent: the counter and the real/book counters are different keys of o; the swap is generated only because the latter key is computed',
     "tally @ for v in verdicts:: move last 1 statement(s) of if v['kind'] == 'blocked': after it":

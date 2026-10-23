@@ -252,6 +252,8 @@ class Scores(TypedDict, total=False):
     machine: float | None
     operation: float | None
     envelope: float | None
+    #: One code per score that is None, and only for those (#2258).
+    reasons: dict[str, str]
 
 
 class CompressorStarts(TypedDict, total=False):
@@ -294,6 +296,8 @@ class Insight(TypedDict, total=False):
     monthly_report: dict[str, object] | None
     price_tiles: dict[str, PriceTile]
     last_diagnosis: DiagnosisReport | None
+    #: ``model_restart_advice``, taken once a cycle.
+    model_restart: dict[str, object]
 
 
 class ReleasedStep(TypedDict):

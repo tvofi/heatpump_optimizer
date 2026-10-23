@@ -42,7 +42,6 @@ from .const import (
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
-    model_restart_advice,
     predicted_next_room_temp,
 )
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
@@ -2661,12 +2660,12 @@ class OptimizationScoreSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
             coordinator, entry, "optimization_score", "plan_optimization_score"
         )
 
-    @property
-    def available(self) -> bool:
-        scores = (
-            ((self._data()).get("insight") or {}).get("scores")
-        ) or {}
-        return bool(super().available and scores.get("overall") is not None)
+    # No ``available`` override: with no overall grade the state is
+    # ``unknown`` and the attributes stay readable (#2258). The waiting
+    # sensors that go unavailable instead (``_WaitsForEvidenceMixin``) lose
+    # their attributes there, and the card needs this one's ``reasons`` to
+    # say why each part has no grade; ``waiting_for`` names the overall one,
+    # which is the "not measured yet, not broken" answer that mixin wants.
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2680,10 +2679,10 @@ class OptimizationScoreSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
         }
         if scores.get("overall") is None:
             # A card headline stat stays enabled for the card, so before the
-            # machine or operation sub-score has evidence it names the day
-            # book it waits for instead of reading as feature-dead (#1335),
-            # like the accuracy and savings waiters beside it.
-            attrs["waiting_for"] = "first_scored_day"
+            # machine or operation sub-score has evidence it names what it
+            # waits for instead of reading as feature-dead (#1335): the
+            # coordinator's code, never one spelled here.
+            attrs["waiting_for"] = _mapping(scores.get("reasons")).get("overall")
         return attrs
 
 
@@ -2996,13 +2995,30 @@ class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
             coordinator, entry, "model_restart_advisor", "model_restart_advisor"
         )
 
+    def _advice(self) -> dict[str, Any]:
+        """The advice the cycle took once (``insight.model_restart``).
+
+        Before the first cycle there is none: the scale in use, nothing to
+        change, as the advice reads with no alarm.
+        """
+        data = self._data()
+        advice = _mapping(_mapping(data.get("insight")).get("model_restart"))
+        if advice:
+            return dict(advice)
+        scale = _as_float(data.get("house_heat_loss_scale"))
+        return {
+            "drift_alarm": False,
+            "current_scale": None if scale is None else round(scale, 3),
+            "refit": None,
+            "restore": None,
+        }
+
     @property
     def native_value(self) -> float | None:
-        advice = model_restart_advice(self.coordinator)
-        refit = (advice["refit"] or {}).get("scale")
-        scale = refit if refit is not None else advice["current_scale"]
-        return None if scale is None else float(scale)
+        advice = self._advice()
+        refit = _as_float(_mapping(advice.get("refit")).get("scale"))
+        return refit if refit is not None else _as_float(advice.get("current_scale"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return model_restart_advice(self.coordinator)
+        return self._advice()

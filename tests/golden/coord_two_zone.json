@@ -249,6 +249,12 @@
     "wear_price_per_start": 0.0
    },
    "last_diagnosis": null,
+   "model_restart": {
+    "current_scale": 1.0,
+    "drift_alarm": false,
+    "refit": null,
+    "restore": null
+   },
    "monthly_report": null,
    "narrative": {
     "items": [],
@@ -257,10 +263,16 @@
    },
    "price_tiles": {},
    "scores": {
-    "envelope": 58.3,
+    "envelope": null,
     "machine": null,
     "operation": null,
-    "overall": null
+    "overall": null,
+    "reasons": {
+     "envelope": "heat_loss_learning",
+     "machine": "cop_watch_learning",
+     "operation": "no_scored_day",
+     "overall": "first_scored_day"
+    }
    }
   },
   "internal_gains_profile": null,
@@ -1901,11 +1913,17 @@
   },
   "optimization_score": {
    "extra_state_attributes": {
-    "envelope": 58.3,
+    "envelope": null,
     "machine": null,
     "operation": null,
     "overall": null,
     "price_tiles": {},
+    "reasons": {
+     "envelope": "heat_loss_learning",
+     "machine": "cop_watch_learning",
+     "operation": "no_scored_day",
+     "overall": "first_scored_day"
+    },
     "stat_kind": "optimization_score",
     "waiting_for": "first_scored_day"
    },
