@@ -47,6 +47,30 @@
     "validate-hacs",
     "wave-script"
   ],
+  "_gate_required": "R10-CI-LAYOUT P2a (additive; contexts stays the 17 until P2b's ruleset PUT): the union of tools/ci/gate.py REQUIRED over its event classes, as `<file stem> / <job>` names -- the 17 renamed, arch-score / arch-score (D-2), and on push every job whose failure reddens the Tests push run (B3). gate.py's self-test asserts the equality.",
+  "gate_required": [
+    "arch-score / arch-score",
+    "budget-raise-gate / budget-raise-gate",
+    "codeql / Analyze (actions)",
+    "codeql / Analyze (javascript-typescript)",
+    "codeql / Analyze (python)",
+    "governance / env-matrix",
+    "governance / policy-docs",
+    "governance / wave-script",
+    "hassfest / hassfest",
+    "pr-contract / pr-contract",
+    "tests / briefs",
+    "tests / browser",
+    "tests / ci-ratchet",
+    "tests / closure-scope",
+    "tests / closures",
+    "tests / coverage",
+    "tests / coverage-ratchet",
+    "tests / fast (3.14)",
+    "tests / mutation",
+    "tests / typing",
+    "validate / validate-hacs"
+  ],
   "ruleset_objects": {
     "23698884": {
       "id": 23698884,
