@@ -21,7 +21,7 @@ The unmodified tree passes.
 
 ## Figures
 
-`37 passed`: `node .claude/workflows/check-wave-script.mjs`
+`37 passed`: `node tools/policy/check-wave-script.mjs`
 
 ## Red checks
 
@@ -29,7 +29,7 @@ none
 
 ## Forward-carry
 
-`tools/audit/briefs/D7.md`
+`dev/governance/dimensions/D7.md`
 
 ## Friction
 
