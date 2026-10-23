@@ -26914,6 +26914,21 @@ R.check(
         for _, p, _ in _BP_GOT),
     f"sites: {[(s, p) for s, p, _ in _BP_GOT]}",
 )
+
+
+def _bp_undeclared(ci_text: str, callee_text: str) -> "list[str]":
+    caller = (_yaml.safe_load(ci_text).get("jobs") or {}).get("governance") or {}
+    on = (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(callee_text) or {})
+    return sorted(set(caller.get("with") or {}) - set((on.get("workflow_call") or {}).get("inputs") or {}))
+
+
+R.check(
+    "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
+    _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
+    and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
+    == ["base"],
+    f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
+)
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
 # `${{ github.event.pull_request.body }}` is the body as it stood when the
 # event fired, and `gh run rerun` replays that payload: a body corrected after
