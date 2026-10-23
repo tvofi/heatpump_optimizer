@@ -356,8 +356,7 @@ against the moved `de69745ff`), both caught locally before any push:
 - **R10-SENSOR-PAYLOAD**: `OptimizationScoreSensor` has no `available`
   override any more; `ModelRestartAdvisorSensor` reads
   `insight.model_restart` through `_advice()`, falling back to the
-  payload's `house_heat_loss_scale` before the first cycle. Carry:
-  R10-SENSOR-PAYLOAD.
+  payload's `house_heat_loss_scale` before the first cycle. Carry: dismissed: R10-SENSOR-PAYLOAD is done; this diff makes the change itself and records it here, nothing is owed
 - **R10-ARCH-DOCS**: `docs/architecture.md`'s `[target: R10-SCORES]` line
   claims "one view model behind the scores, Savings, Advisor and Health".
   Landed: one rule and one view model for the scores and the advisor's
@@ -365,30 +364,11 @@ against the moved `de69745ff`), both caught locally before any push:
   landed: no score reads or recomputes a Savings figure (SAV-BASELINE's
   figures are untouched, carry 2), and Health's own copy is UX-HEALTH's.
   Carry: R10-ARCH-DOCS.
-- **New finding, the card's null-as-0 siblings in the Advisor rows** (the
-  four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the
-  hot-water row writes `recommended_setpoint` when `Number(...)` is finite,
-  and `Number(null)` is 0. `readNumber` is now in the card for the fix.
-  Carry: orchestrator (R10-ADVISOR's seam; next card group R10-UX-HEALTH).
-- **New finding, the envelope band and mass basis (reported, not shipped,
-  per the design note):** on the tree's own presets the 20-100 h band
-  grades the default preset 6.2 and a post-2005 timber house 20.5 at the
-  configured prior, and every timber house before 1980 0; the time
-  constant reads `room_thermal_mass`, which on a floor-heated house
-  excludes the slow mass `presets.derive` puts in `slab_thermal_mass`, and
-  on a two-zone house is not the zone masses the dynamics use. A band or
-  mass-basis change is a behaviour no finding names yet. Carry:
-  orchestrator (owner decision).
-- **Blocked, not designed around:** the owner's bundle is not in this
-  container, so the suspected 2.6x scale drift and the band on the owner's
-  own house are unmeasured. The harness takes `--bundle PATH` and prints
-  the stored scale, split and samples and the grade on both bases. Carry:
-  orchestrator (a seat with the bundle).
+- **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix. Carry: R10-UX-HEALTH
+- **New finding, the envelope band and mass basis (reported, not shipped, per the design note):** on the tree's own presets the 20-100 h band grades the default preset 6.2 and a post-2005 timber house 20.5 at the configured prior, and every timber house before 1980 0; the time constant reads `room_thermal_mass`, which on a floor-heated house excludes the slow mass `presets.derive` puts in `slab_thermal_mass`, and on a two-zone house is not the zone masses the dynamics use. A band or mass-basis change is a behaviour no finding names yet. Main's decision under the mandate: R10-PARAMS-OWNER, the single owner of the thermal parameters, decides which mass the score's time constant reads (the dynamics' slab-inclusive and zone masses are recommended, so the score grades the house the model simulates), and re-grades the 20-100 h band on the presets at that basis. Carry: R10-PARAMS-OWNER
+- **Blocked, not designed around:** the owner's bundle is not in this container, so the suspected 2.6x scale drift and the band on the owner's own house are unmeasured. The harness takes `--bundle PATH` and prints the stored scale, split and samples and the grade on both bases. A local seat with the bundle runs the harness with `--bundle PATH` as part of that group. Carry: R10-PARAMS-OWNER
 
 ## Friction
 
+
 none
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-https://claude.ai/code/session_01LDiRr7xuyKtzhvXAeBMKfY
