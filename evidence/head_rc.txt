@@ -1,8 +1,0 @@
-189:    ("ruleset_cutover-1", "tools/ci/ruleset_cutover.py",
-190-     "    if without_checks(after) != without_checks(six(rollback)):", "    if False:"),
-191:    ("ruleset_cutover-2", "tools/ci/ruleset_cutover.py",
-192-     "    if put != want or contexts(after) != NEW_CHECKS:", "    if False:"),
-193:    ("ruleset_cutover-3", "tools/ci/ruleset_cutover.py",
-194-     'out.append(("staged-hash", a == b,', 'out.append(("staged-hash", True,'),
-195-    # R10-FLOW-RELAY-HOLD: the handoff arm's hold file, one mutant per arm
-196-    ("cloud_relay-1", "cloud_relay.sh", 'if grep -qxF "$pr" <<< "$held_prs"; then',
