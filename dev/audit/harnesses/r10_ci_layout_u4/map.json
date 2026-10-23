@@ -1,6 +1,8 @@
 {
  "renames": {},
- "dropped": [],
+ "dropped": [
+  "instrument-self-tests|Show the contract re-run deciding its own fixtures"
+ ],
  "gained": [
   "instrument-self-tests|Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes",
   "instrument-self-tests|Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal",
