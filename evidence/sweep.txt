@@ -1,0 +1,18 @@
+tools/audit/carry_audit.py:96:TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
+tools/audit/carry_audit.py:687:            "\U0001f916 Generated with [Claude Code](https://claude.com/claude-code)\n")
+tools/audit/carry_audit.py:860:                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a")]
+tools/audit/seat/cloud_dispatch.py:97:FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai "
+tools/audit/seat/ref_privacy.py:224:    ("session-trailer", r"^[ \t]*Claude-Session[ \t]*:"),
+tools/audit/seat/ref_privacy.py:225:    ("co-author-trailer", r"^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])"),
+tools/audit/seat/ref_privacy.py:683:       and email_leaks("noreply@anthropic.com", fid) == [])
+tools/audit/seat/ref_privacy.py:698:              "co-author-trailer": "fix: x\n\n" + "Co-Authored-" + "By: Claude Opus 5.5 <noreply@anthropic.com>\n",
+tools/audit/seat/ref_privacy.py:699:              "generated-footer": "body\n\n\U0001f916 " + "Generated with [Claude Code](https://claude.com/claude-code)\n"}
+tools/audit/seat/ref_privacy.py:717:       "session" not in (refusal("fix/claude-session-trailer", (), fid) or ""))
+tools/policy/agreement_py.py:408:        "fix: x\n\n" + coauthor + ": Claude Opus 5.5 <noreply@anthropic.com>",
+tools/policy/fixtures/policy-rot/prepr/attribution.md:35:🤖 Generated with [Claude Code](https://claude.com/claude-code)
+tools/policy/fixtures/policy-rot/prepr/good-claude-ai.md:3:artifact at claude.ai/code/artifact/x -- and quoting the banned `Claude-Session:`
+tools/policy/policy_lint.mjs:6128:// `Co-Authored-By:` git trailer, GitHub's `Closes #N`-family keyword lines --
+tools/policy/policy_lint.mjs:6147:  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b|<?https:\/\/claude\.ai\/code\/session_[A-Za-z0-9]+>?\s*$)/i
+tools/policy/policy_lint.mjs:6524:  ['session-trailer', /^[ \t]*Claude-Session[ \t]*:/im],
+tools/policy/policy_lint.mjs:6525:  ['co-author-trailer', /^[ \t]*Co-Authored-By[ \t]*:[ \t]*Claude(?![A-Za-z0-9_])/im],
+tools/release/stamp.py:1512:    _banned = "Co-Authored-" + "By: Claude Fable 5.1 <noreply@anthropic.com>\nClaude-Session: x\n"
