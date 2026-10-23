@@ -16,6 +16,7 @@
 # the re-execution is the proof.
 #
 #   tools/audit/prepr.sh [body.md] [intended-issue-numbers...]
+#   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
 #
@@ -780,6 +781,7 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
   else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
+  [ -z "${BODY_LOG:-}" ] || cp -f "$out" "$BODY_LOG"   # --body-check prints every ERROR
   rm -f "$out"; return "$r"
 }
 
@@ -1278,6 +1280,25 @@ if [ "${1:-}" = "--version-edit" ]; then
   exit "$ve"
 fi
 
+# `body_push.sh`'s entry point: `prepr.sh --body-check <body.md>`, step 7's
+# pr-body check alone (`body_line`, so the predicted budget red rides along),
+# over this checkout's HEAD against `origin/main`. A cloud fixer's body reached
+# `open_pr.sh` unlinted and bounced there, one orchestrator round per refusal
+# (dev/audit/rca/R10-RCA-BODY-LINT.md). Offline: the red history is read at the
+# open, never here. Step 6d's unpinned sites are not fed: the open still is.
+if [ "${1:-}" = "--body-check" ]; then
+  [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
+  BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
+  P=$(mktemp); BODY_LOG=$(mktemp)
+  if diff_paths "$BASE" "$P"; then
+    line=$(unset GITHUB_TOKEN GH_TOKEN; body_line "$2" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$P" "$BASE" HEAD); r=$?
+    grep 'ERROR' "$BODY_LOG"
+  else line="the changed-path list did not derive from $BASE...HEAD"; r=1; fi
+  rm -f "$P" "$BODY_LOG"
+  if [ "$r" -eq 0 ]; then echo "pr-body ok: $line"; else echo "REFUSE pr-body: $line"; fi
+  exit "$r"
+fi
+
 # --- the class: an early-exit grep reading a pipe under pipefail ---------------
 # `printf|echo ... | grep -q` under `set -o pipefail` reads a SIGPIPE'd writer
 # (141) as no match, on a tiny input too: driven 3,000 times at load 90-110,
@@ -1364,7 +1385,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry; do
+  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry attribution; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
     st $? 1 "a body with $f is refused"
   done
@@ -1381,6 +1402,8 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; fi
+  st $? 0 "a healthy body naming claude.ai in another sense is silent (the attribution arm's null control)"
 
   # The hooks check, driven over one fixture per way a wiring can be wrong.
   # `empty` and `broken` matter most: a settings file with no hooks, and one
@@ -2396,6 +2419,31 @@ EOF
     && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-skip "$PDX/BODY.md" 2>&1; echo "rc=$?"; mv "$PDX/ci_predict.away" tools/pr/ci_predict.py)
   grep -q 'carries no tools/pr/ci_predict.py' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a checkout with no predictor rather than passing it silently"
+  grep -q 'a result body' <<<"$(bpush pnull)"
+  st $? 0 "a topic with no handoff/<topic> is a result body, and the pr-body lint is not run on it (null control)"
+  # R10-RCA-BODY-LINT: a topic whose code is at handoff/<topic> is a PR body,
+  # and body_push runs prepr step 7 on it (`--body-check`) before the push.
+  (cd "$PDX/r" && git checkout -q -f pnull && git push -q origin HEAD:refs/heads/handoff/zz-lint)
+  bbody() { # forward-carry text, friction text -> $PDX/lint.md, at pnull's head
+    printf '## Head\n\n`%s`\n\n## Mutation proof\n\nnone\n\n## Null control\n\nnone\n\n## Figures\n\nnone\n\n## Red checks\n\nnone\n\n## Forward-carry\n\n%s\n\n## Friction\n\n%s\n' \
+      "$(cd "$PDX/r" && git rev-parse HEAD)" "$1" "$2" > "$PDX/lint.md"; }
+  lpush() { (cd "$PDX/r" && bash "$OLDPWD/tools/audit/seat/body_push.sh" zz-lint "$PDX/lint.md" 2>&1; echo "rc=$?"; git --git-dir="$PDX/bodies.git" for-each-ref --format='ref %(refname)' refs/heads/handoff-body/zz-lint); }
+  bbody '- the SIGKILL clause is owed. Carry: R10-UPDATE-PR-SIGNALS' '- a seat line that names no rule'; got=$(lpush)
+  grep -q 'ERROR .*names no destination file' <<<"$got" && grep -q 'ERROR .*line does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses a PR body whose Forward-carry names no file and whose Friction does not parse, printing each ERROR, and pushes nothing (#2524)"
+  bbody none 'none
+
+https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+  grep -q "ERROR .*carries a tool's attribution (session-link)" <<<"$got" && ! grep -q 'does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+  bbody none none; got=$(lpush)
+  grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
+  st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
+  (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
+  grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"
   (cd "$PDX/r" && git remote set-url origin "$BPO" && git checkout -q -f pnull)
   # Round-9 C1: the full arm derives its recording set from the tree
   # (`lane-plan --all-scripts`), so a new selectable script owes no lane

@@ -2,7 +2,10 @@
 
 It prints, for a diff, delta-S, the gate rises and the per-metric deltas, so a reviewer can ask for a
 stated reason. **It is a review trigger, never a target a seat is rewarded for moving**, and a gain that
-appears only without the counters did not happen.
+appears only without the counters did not happen. The programme-level target an architect's plan carries
+(dS >= +22.7 over a round, `dev/governance/roles/architect-planner.md`, decision 0015) is no exception:
+it binds that plan, admissible and checked against holdouts the score does not contain, and no seat is
+rewarded for moving it.
 
 Since R9-EG-A4 (#1774, tvofi's decision R3-6) it is a required check: `arch-score`
 (`.github/workflows/arch-score.yml`, rule in `gate.py`) passes a pull request whose change reads

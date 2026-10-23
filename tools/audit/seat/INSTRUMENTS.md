@@ -24,10 +24,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or
   account does not match — the approval names one tree or it does nothing.
-  Its GitHub reads retry on `app_push.sh`'s read-back rule (4 reads, settling
-  5/15/45 s) only on a transport error, 5xx, 429 or a secondary-rate-limit
-  403, and refuse with the last error once spent; any other failure, a wrong
-  answer and the review POST are never retried.
+  Its GitHub reads -- the four `gh api` reads and curl's JWT read of the
+  App's installation -- are under `seat/gh_read.py`'s read rule; the token
+  mint and the review POST are never retried.
 - `app_comment.sh` — posts one fix-review verdict on a PR as `hpo-approver`
   and reads the posted comment back byte-identical. When: a reviewer seat
   delivers a verdict. Refusal: a read-back that differs from what it meant to
@@ -103,6 +102,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   worktree with unpushed work is left alone.
 
 ## tools/audit/seat/
+
+The four standing seats that drive these instruments for the orchestrator each
+have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
+`dev/governance/roles/standing-merge.md` (the train and direct merges),
+`dev/governance/roles/standing-dispatch.md` (dispatch, relay, verdicts) and
+`dev/governance/roles/standing-roster.md` (roster ops). `pulse.py` and the
+sweep's standing-seat liveness step keep them alive.
 
 - `features_block.py` — runs one block of `tests/features.py`, from the line
   holding a marker to the script's close, in the namespace features.py's
@@ -319,6 +325,20 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   non-Actions check prints NO-JOB, an unserved log prints NO-LOG and exits 1
   with the count over readable logs beside the unread one; no error-marker
   match falls back to the log's tail, never a silent zero.
+- `gh_read.py` — the read rule every seat instrument's GitHub READS are
+  under, stated here once: `app_push.sh`'s read-back rule, 4 reads settling
+  5/15/45 s, retrying only a transport error, HTTP 5xx, 429 or a 403 whose
+  status line names the secondary rate limit; a failure naming a longer wait
+  (Retry-After, or a spent bucket's reset on a rate-limit response: a 429,
+  or a 403 naming a rate limit) is read no sooner, and one past 45 s refuses
+  at once naming it; any other status is judged by its code alone, whatever
+  bucket it carries. When: a new GitHub read in a seat instrument —
+  `retry` with `gh_wait` (gh's output) or `urllib_wait` (urllib's), and
+  `is_read` before retrying any `gh` call; `app_approve.sh`'s `gh_transient`
+  is the bash twin its self-test compares row for row. Refusal: every other
+  failure (401, a permission 403, 404, 422, an unclassified one) after its one
+  call, a spent budget with its last error and the attempt count; a write is
+  never retried. Its `self_test()` runs inside `record_row.py`'s.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
   its update path adds a row a refused earlier push left out). When: only where
@@ -359,7 +379,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
   `--free-holders` detaches a clean, pushed holder worktree. Every refused
   merge attempt is logged in GitHub's words; the recarry worktrees a run made
-  are removed before its closing line.
+  are removed before its closing line. Every `gh api` GET and `gh pr view`
+  it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
+  settle logged.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
@@ -542,6 +564,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
   every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
   `--mandate <comment-id>`, and refuses at launch without one.
+- `ci_probe.py` — the writes a CI-layout probe needs, each behind the same
+  guards: `push <ref> <sha>` (only `refs/heads/ci-probe/*`), `dispatch`,
+  `rerun-job`, `cancel`, `label`, `retarget`, `close`, and the owner-only
+  `review --approve --sha` and `dismiss-review`. When: the P2 probe fan-out
+  (`plans/ci-layout`). Refusals: a ref outside `ci-probe/`, a missing or other
+  `--repo`, `/rate_limit` below 20 % remaining (or unreadable), a token that is
+  not `tvofi` on a review, a host path in a ref, message or log line. One log
+  line per write (`--log`); `--dry-run` writes nothing. Nothing polls (the 60 s
+  floor holds vacuously). `--self-test` runs over fakes and a throwaway bare
+  remote, including the namespace control: a planted `ci-probe/x` leaves
+  `cloud_relay.sh`'s probe arm and `bus.sh orphans` unchanged, a planted
+  `probe/foo` is OWED. `prune_refs.py` deletes a `ci-probe/*` ref, untagged,
+  unless an open pull request has it as head.
 - `prune_refs.py` — reconciles the remote branch refs down to main plus a few
   development branches at programme closure, archive-as-tags first. When: the
   R9-CLOSURE-BRANCHES step 4 (prune by rule), and any future round's closure.
@@ -566,7 +601,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   survey (R10-RCA-ORCH-CONTINUITY). Refusal: an input it could not read is
   `UNREADABLE`, exit 2, never ok; a stamp ahead of the clock is never aged.
   `--dump` keeps the snapshot a `STOPPED` line came from; `--snapshot`
-  re-judges it.
+  re-judges it. A `STOPPED` line names the standing seat its input waits on,
+  and `--seat-queue SEAT=FILE[:MIN]` judges a standing seat on its session
+  queue file (`<epoch> <text>` lines): STOPPED past the seat's cadence, ok
+  when empty, `UNREADABLE` when missing.
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
@@ -584,7 +622,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
   `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
   table and HANDOVER are a seat's dispositions, never this generator's — and
-  a window it cannot attribute refuses rather than reports empty.
+  a window it cannot attribute refuses rather than reports empty. Every API
+  read is `_api`'s, under `gh_read.py`'s read rule.
   `--automerge-check --pr N [--head SHA] [--hold] [--require-green]` is the
   guard CI approves and merges a record pull request behind (exit 3: guard
   passes, a required check has not yet); `--replay-moved` replays one
@@ -779,6 +818,18 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--once` is one pass and returns that pass's code; without `--tip-file` a
   `--once` caller regenerates every time, so give it one to keep the loop's
   memo on disk. `--self-test` drives all three arms offline.
+- `sweep_driver.py` — the probe PR's sweep, where `workflow_run` never fires
+  (`gate-sweep.yml` runs only from the default branch): every poll (60 s floor,
+  tvofi 2026-10-19) it lists the PR's `ci.yml` runs at the live head, reads each
+  run attempt not yet swept (N5-1) and starts `python3 -I <tree>/tools/ci/gate.py
+  --sweep --run <id>` as a concurrent child for it: attempt 1 only under
+  `--nochain`, every attempt under `--chain`. It logs one line per sweep,
+  `superseded=1` for an attempt first seen already replaced, reads `/rate_limit`
+  before each poll and backs off below 20 % remaining or on a 403 (A1 item 5),
+  and exits after 900 s with every run completed and nothing new. When: a seat
+  drives a probe PR through the sweep (M-6, M-2, the combined control). It only
+  reads (`gh api` GET); the child's re-runs are the only writes. Refusal: a
+  `--poll` under 60. `--self-test` runs it over a fake `gh` and clock.
 - `sweep_render.py` — renders the orchestrator sweep from
   `sweep_template.md` and a session's JSON overlay (stdout or `--out`). The
   template's `## Placeholders` table is the one registry of names. When: a

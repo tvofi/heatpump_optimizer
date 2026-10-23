@@ -233,6 +233,10 @@ import tempfile
 import time
 from pathlib import Path
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gh_read  # noqa: E402  the bounded retry of GitHub reads (R10-FLY-GH-READ-RETRY)
+
 ROOT = Path(__file__).resolve().parents[3]
 HEX = frozenset("0123456789abcdef")
 
@@ -579,6 +583,7 @@ class Train:
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
+        self.run = self._reads_retried(self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -612,6 +617,25 @@ class Train:
                     p.kill()
                 raise
         return p.returncode, out + err
+
+    def _reads_retried(self, run):
+        """`run`, with every GitHub read under gh_read's rule: a `gh api` GET or
+        `gh pr view` failing in transport, 5xx, 429 or a secondary-limit 403
+        settles 5/15/45 s and reads again, and a spent budget answers its last
+        failure with the attempt count. Train 8 stopped on one unretried read
+        of a head commit. Every other call, and every write, is `run`'s alone."""
+        def retried(argv, **kw):
+            if not gh_read.is_read(argv):
+                return run(argv, **kw)
+
+            def attempt():
+                code, o = run(argv, **kw)
+                return (code, o), (o if code else None)
+            (code, o), _, _, why = gh_read.retry(
+                attempt, gh_read.gh_wait, self.sleep,
+                lambda line: self.log(f"merge_train: {' '.join(argv)[:120]}: {line}"))
+            return code, (f"{o.rstrip()} {why}" if why else o)
+        return retried
 
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
@@ -2927,10 +2951,80 @@ def _self_test() -> int:
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
+    _read_retry_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _read_retry_self_test(check) -> None:
+    """R10-FLY-GH-READ-RETRY: the train's GitHub reads retry on gh_read's rule.
+
+    Train 8 stopped on `the head commit at <sha> could not be read: Get
+    "https://api.github.com/...": net/http...` -- one read, no retry. Every
+    `gh` call goes through `self.run`; a read failing in a way a later read can
+    ride out settles 5/15/45 s and reads again, and nothing else does."""
+    H = "a" * 40
+    T = f'Get "https://api.github.com/repos/o/r/commits/{H}": net/http: TLS handshake timeout'
+
+    def train(queue: dict):
+        calls: list[str] = []
+        sleeps: list[float] = []
+        logged: list[str] = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            for key, fails in queue.items():
+                if key in a and fails:
+                    return 1, fails.pop(0)
+            if "/commits/" in a:
+                return 0, "someone\tfix: a subject"
+            return 0, H
+        t = Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run,
+                  sleep=sleeps.append, log=logged.append, polls=1)
+        return t, calls, sleeps, logged
+
+    def stop(fn) -> str:
+        try:
+            fn()
+        except Stop as e:
+            return str(e)
+        return ""
+
+    def n(calls, key):
+        return sum(key in c for c in calls)
+    t, calls, sleeps, logged = train({"/commits/": [T]})
+    check("read retry: train 8's shape, a transport error on the head commit's read then an answer, "
+          "clears the head after exactly 2 calls, settling 5 s",
+          stop(lambda: t.bot_tip(H)) == "" and n(calls, "/commits/") == 2 and sleeps == [5])
+    check("read retry: and the settle is logged, never implied",
+          any("read 1/4" in line and "TLS handshake timeout" in line and "sleeping 5s" in line
+              for line in logged))
+    t, calls, sleeps, _ = train({"/commits/": ["gh: Not Found (HTTP 404)"]})
+    check("read retry: a 404 on that read stops the train after exactly 1 call, with no settle",
+          "could not be read: gh: Not Found (HTTP 404)" in stop(lambda: t.bot_tip(H))
+          and n(calls, "/commits/") == 1 and sleeps == [])
+    spent = ["gh: Server Error (HTTP 500)", T, "gh: HTTP 502", "gh: Service Unavailable (HTTP 503)",
+             "gh: Gateway Timeout (HTTP 504)"]
+    t, calls, sleeps, _ = train({"/commits/": list(spent)})
+    said = stop(lambda: t.bot_tip(H))
+    check("read retry: five transient failures queued, one past the budget, stop the train after "
+          "exactly 4 calls, settling 5/15/45 s",
+          n(calls, "/commits/") == 4 and sleeps == [5, 15, 45])
+    check("read retry: naming the last error and the attempt count",
+          said.endswith("gh: Service Unavailable (HTTP 503) (after 4 attempts)"))
+    t, calls, sleeps, _ = train({"headRefOid": ['Post "https://api.github.com/graphql": EOF']})
+    check("read retry: `gh pr view` is a read: a transport error on the head read, then the head",
+          t.head(7) == H and n(calls, "headRefOid") == 2 and sleeps == [5])
+    t, calls, sleeps, _ = train({"--method POST": ["gh: Bad Gateway (HTTP 502)"]})
+    code, _ = t.run(["gh", "api", "--method", "POST", "repos/o/r/git/commits", "--input", "-"])
+    check("read retry: a write is never retried: a 502 on a POST is answered after exactly 1 call",
+          code == 1 and n(calls, "--method POST") == 1 and sleeps == [])
+    t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
+    code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
+    check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
 
 
 def _stop_self_test(check) -> None:

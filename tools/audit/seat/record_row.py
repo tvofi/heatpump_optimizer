@@ -60,14 +60,18 @@ import argparse
 import json
 import os
 import re
+import http.client
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roster_lib  # noqa: E402  the branch-to-group lookup (#1948's product)
+import gh_read  # noqa: E402  the bounded retry of GitHub reads (R10-FLY-GH-READ-RETRY)
 
 _TESTS = Path(__file__).resolve().parents[3] / "tests"
 if str(_TESTS) not in sys.path:
@@ -761,8 +765,25 @@ def _api(repo: str, path: str, token: str) -> object:
         "Authorization": f"Bearer {token}",
         "User-Agent": "hpo-record-autofix",
     })
-    with urllib.request.urlopen(req) as resp:  # nosec - fixed https host
-        return json.load(resp)
+
+    def attempt():
+        try:
+            with urllib.request.urlopen(req) as resp:  # nosec - fixed https host
+                return json.load(resp), None
+        except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+            return None, e
+    value, failure, _, why = gh_read.retry(
+        attempt, gh_read.urllib_wait, _read_sleep,
+        lambda line: print(f"record_row: GET {path}: {line}", file=sys.stderr))
+    if failure is not None:
+        if why:
+            failure.add_note(why)
+        raise failure
+    return value
+
+
+#: `_api`'s settle between reads; the self-test swaps it for a recorder.
+_read_sleep = time.sleep
 
 
 def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
@@ -1500,6 +1521,60 @@ def self_test() -> int:
     ok("failed_required names a red that is required",
        failed_required([{"name": "fast (3.14)", "conclusion": "failure"}],
                        {"fast (3.14)"}) == ["fast (3.14)"])
+
+    # R10-FLY-GH-READ-RETRY: every read of the API is `_api`'s, under
+    # gh_read's rule. P7's push run died on one unretried `HTTP Error 500`.
+    import io as _io
+    import urllib.error as _ue
+    from contextlib import redirect_stderr as _rr_redirect
+
+    def _served(answers):
+        """A stand-in urlopen answering each queued status, then 200."""
+        calls = []
+
+        def urlopen(req, *a, **k):
+            calls.append(req.full_url)
+            code = answers.pop(0) if answers else 200
+            if code != 200:
+                raise _ue.HTTPError(req.full_url, code, "Server Error", {},
+                                    _io.BytesIO(b'{"message": "Server Error"}'))
+            return _io.BytesIO(b'{"number": 7}')
+        return urlopen, calls
+    _urlopen, _sleep0 = urllib.request.urlopen, globals().get("_read_sleep")
+    _results = {}
+    try:
+        for _name, _queue in (("500x2", [500, 500]), ("404", [404]),
+                              ("spent", [500, 502, 503, 504, 500])):
+            _sleeps: list = []
+            urllib.request.urlopen, _calls = _served(list(_queue))
+            globals()["_read_sleep"] = _sleeps.append
+            with _rr_redirect(_io.StringIO()) as _said:
+                try:
+                    _results[_name] = (_real_api(DEFAULT_REPO, "/pulls/7", "t"),
+                                       len(_calls), _sleeps)
+                except _ue.HTTPError as _e:
+                    _results[_name] = (_e, len(_calls), _sleeps)
+            _results[_name] += (_said.getvalue(),)
+    finally:
+        urllib.request.urlopen = _urlopen
+        globals()["_read_sleep"] = _sleep0
+    ok("_api: a 500 twice, then 200, is read after exactly 3 calls, settling 5/15 s",
+       _results["500x2"][:3] == ({"number": 7}, 3, [5, 15]))
+    ok("_api: and each settle is printed on stderr, never implied",
+       _results["500x2"][3] == "".join(
+           f"record_row: GET /pulls/7: read {n}/4: HTTP Error 500: Server Error; "
+           f"sleeping {d}s\n" for n, d in ((1, 5), (2, 15))))
+    ok("_api: a 404 raises after exactly 1 call, with no settle",
+       isinstance(_results["404"][0], _ue.HTTPError)
+       and _results["404"][0].code == 404 and _results["404"][1:] == (1, [], ""))
+    ok("_api: five 5xx queued, one past the budget, raise the last read (504) "
+       "after exactly 4 calls, settling 5/15/45 s, the count noted on it",
+       isinstance(_results["spent"][0], _ue.HTTPError)
+       and _results["spent"][0].code == 504
+       and _results["spent"][1:3] == (4, [5, 15, 45])
+       and "(after 4 attempts)" in getattr(_results["spent"][0], "__notes__", []))
+    ok("gh_read's own self-test passes (the rule record_row reads under)",
+       globals().get("gh_read") is not None and gh_read.self_test() == 0)
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: "

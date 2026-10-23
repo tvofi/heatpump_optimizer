@@ -486,6 +486,10 @@ GATE_FILES = (
     # lanes and defines the gate's verdict, which is what a gate file means.
     # Listed from the stub on, so the replacing edit is FULL by construction.
     ".github/workflows/ci.yml",
+    # The umbrella's programs (R10-CI-LAYOUT P2a): the prelude decides the
+    # GATE_SCOPE every lane runs under and gate.py is the one required check,
+    # so a change here changes the gate's verdict as ci.yml does.
+    "tools/ci/",
     # The nightly lanes' workflow and nightly-ha's composite action
     # (R10-CI-LAYOUT PR 1, DESIGN-P1 2(a)): both run gate scripts --
     # tests/rolling.py under SLOW, mutation_table.py, tests/nightly_ha.py --
@@ -781,6 +785,10 @@ INERT_EXCEPT = (
     "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R10-FLY-GH-READ-RETRY: record_row.py imports gh_read.py, the read rule
+    # its `_api` reads under, and runs its self_test(), so entities.py's load
+    # of the generator reads it the same way -- the ref_privacy.py route below.
+    "tools/audit/seat/gh_read.py",
     # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
     # its self-test, and that self-test SPAWNS the three state-doc generators
     # on subprocess command lines -- a repo path on a command line is a real
