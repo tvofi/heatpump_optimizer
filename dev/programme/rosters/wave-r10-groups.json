@@ -1396,7 +1396,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: R10-SCORES, R10-LOOP-CPU; after you: R10-PARAMS-OWNER, R10-ARCH-SHAPES). Owning seam in this group: `_current_state`, the away state, the event callbacks, the price-tile cursor. Shape: copy, then publish whole; no in-place writes to published state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main; your merge follows R10-SCORES, R10-LOOP-CPU if both are in one pitch. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-livestate",
     "commit": null,
     "last_step": null,
