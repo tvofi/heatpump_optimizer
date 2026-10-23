@@ -1,0 +1,51 @@
+RESULT static_seams=36 sites
+  seam away.py:estimate_recovery_hours:simulate_step
+  seam coordinator.py:_replay_step:simulate_step
+  seam coordinator.py:async_simulate:simulate_wood_slots
+  seam dhw_planner.py:_apply_dhw_min_run:simulate_dhw_only
+  seam dhw_planner.py:_build_dhw_requirements:simulate_dhw_only
+  seam dhw_planner.py:_clamp_dhw_to_capacity:simulate_dhw_step
+  seam dhw_planner.py:_dhw_coil_wood_forecast:simulate_trajectory_with_dhw
+  seam dhw_planner.py:_dhw_legionella_due:simulate_dhw_only
+  seam dhw_planner.py:_dhw_plan_temps:simulate_dhw_only
+  seam dhw_planner.py:_plan_dhw_min_cost:linprog
+  seam dhw_planner.py:_plan_dhw_min_cost:simulate_dhw_only
+  seam dhw_planner.py:trajectory:simulate_dhw_only
+  seam diagnosis.py:_room_after:simulate_step
+  seam drift.py:_positive_definite:cholesky
+  seam optimizer.py:_compute_baseline_power:simulate_step
+  seam optimizer.py:_optimize_with_dhw:simulate_trajectory_with_dhw
+  seam optimizer.py:_repair_throttled_buffer_caps:solve
+  seam optimizer.py:_replay_end_state:simulate_step
+  seam optimizer.py:_scoped_minimize:minimize
+  seam optimizer.py:_solve_objectives:simulate_trajectory
+  seam optimizer.py:_solve_objectives:simulate_trajectory_batch
+  seam optimizer.py:_space_traj:simulate_trajectory
+  seam optimizer.py:_tighten_buffer_caps:simulate_trajectory
+  seam optimizer.py:objective_batch:simulate_trajectory_batch
+  seam sysid.py:_held_state:lstsq
+  seam sysid.py:_lm_solve:solve
+  seam sysid.py:_one_state_ua_halfwidth:inv
+  seam sysid.py:_slab_ua_profile_halfwidth:inv
+  seam sysid.py:_valve_drive:simulate_step
+  seam sysid.py:identify:lstsq
+  seam sysid.py:identify:solve
+  seam thermal_model.py:extend_dhw_temps:simulate_step
+  seam thermal_model.py:simulate_trajectory:simulate_step
+  seam thermal_model.py:simulate_trajectory_with_dhw:simulate_dhw_step
+  seam thermal_model.py:simulate_trajectory_with_dhw:simulate_step
+  seam topology.py:_advisor_replay:simulate_step
+RESULT cycles=6 cycles
+RESULT barrier_set_loop=0 calls
+RESULT barrier_set_executor=0 calls
+RESULT loop_kernels=0 calls
+RESULT executor_kernels=0 calls
+RESULT worker_kernels=70 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
+  site     12 worker dhw_planner.py:_plan_dhw_min_cost optimize.linprog
+  site     58 worker optimizer.py:_scoped_minimize optimize.minimize
+RESULT thread_factor=1.003
+RESULT load1=2.78
+RESULT swapins=0

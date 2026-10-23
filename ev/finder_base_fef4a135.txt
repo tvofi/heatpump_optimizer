@@ -1,0 +1,11 @@
+Python 3.14.7
+--away
+RESULT loop_kernels=0 calls
+RESULT loop_kernels_all=183 calls
+RESULT loop_kernels_away_seam=183 calls
+RESULT loop_kernels_per_cycle=30.50 calls/cycle
+--away --deficit 0
+RESULT loop_kernels=0 calls
+RESULT loop_kernels_all=0 calls
+RESULT loop_kernels_away_seam=0 calls
+RESULT loop_kernels_per_cycle=0.00 calls/cycle
