@@ -34901,6 +34901,33 @@ R.check(
     f"structure.py read in lane_units (null): {_AS_NULL in _AS_UNITS}",
 )
 
+# R10-CI-LAYOUT P2b-pre2 (U5b's payment), re-cut onto the prelude: tests.yml's
+# `arch-instrument` runs the architecture-score pair (RUN_PART=arch) beside
+# `fast` (RUN_PART=fast). Both read the scope from the same caller input, so a
+# drift between the two `GATE_SCOPE` expressions lets the pair run at another
+# scope than the suite it was split from. The null: both run steps are found.
+_AI_JOBS = ((_yaml.safe_load(_tests_workflow) or {}).get("jobs") or {})
+
+
+def _ai_step(job: str, name: str) -> dict | None:
+    return next((s for s in (_AI_JOBS.get(job) or {}).get("steps") or [] if s.get("name") == name), None)
+
+
+_AI_RUN = {"fast": _ai_step("fast", "Run the suite"),
+           "arch-instrument": _ai_step("arch-instrument", "Run the architecture-score pair")}
+_AI_ENV = {k: (r or {}).get("env") or {} for k, r in _AI_RUN.items()}
+R.check(
+    "arch-instrument takes fast's scope from the same input, and each runs its own RUN_PART",
+    all(_AI_RUN.values())
+    and "inputs.gate_scope" in str(_AI_ENV["fast"].get("GATE_SCOPE"))
+    and _AI_ENV["fast"].get("GATE_SCOPE") == _AI_ENV["arch-instrument"].get("GATE_SCOPE")
+    and _AI_ENV["fast"].get("RUN_PART") == "fast"
+    and _AI_ENV["arch-instrument"].get("RUN_PART") == "arch"
+    and (_AI_JOBS.get("arch-instrument") or {}).get("needs") == ["closure-scope"],
+    f"GATE_SCOPE: {[e.get('GATE_SCOPE') for e in _AI_ENV.values()]}; "
+    f"RUN_PART: {[e.get('RUN_PART') for e in _AI_ENV.values()]}",
+)
+
 # The CPU-bounded checker runs alone (R10-CI-LAYOUT PR 0, round 3).
 # harness_headers.py bills each harness's CPU against bounds sized from the
 # serial cost; a co-running lane inflates a CPU second (its CPU_LIMIT_S
