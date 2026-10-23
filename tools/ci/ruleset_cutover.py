@@ -364,6 +364,30 @@ def reds_at_head(gh, head: str, reaches=None):
     return ok, "; ".join(parts)
 
 
+PUSH_WORKFLOWS = ("tests.yml", "ci.yml")  # main's push runs before and after the cut-over
+RATCHET_JOBS = ("ci-ratchet", "tests / ci-ratchet")
+
+
+def main_ratchet_green(gh):
+    """(ok, detail): main's newest completed push run, of either layout, shows its
+    ci-ratchet job green (owner ruling (a), #2662 round 2: the payment lands first,
+    so no window opens while main's push gate would be red by construction)."""
+    newest = []
+    for wf in PUSH_WORKFLOWS:
+        runs = call(gh, [f"repos/{REPO}/actions/workflows/{wf}/runs?event=push&branch=main"
+                         f"&status=completed&per_page=1"]).get("workflow_runs") or []
+        newest += [(r.get("created_at") or "", r.get("id"), wf) for r in runs[:1]]
+    if not newest:
+        return False, "main has no completed push run of " + " or ".join(PUSH_WORKFLOWS)
+    at, rid, wf = max(newest)
+    jobs = call(gh, [f"repos/{REPO}/actions/runs/{rid}/jobs?per_page=100"]).get("jobs") or []
+    rj = [j for j in jobs if j.get("name") in RATCHET_JOBS]
+    if len(rj) != 1:
+        return False, f"{wf} push run {rid} ({at}) carries {len(rj)} ci-ratchet job(s), expected 1"
+    c = rj[0].get("conclusion")
+    return c == "success", f"{wf} push run {rid} ({at}): {rj[0].get('name')} {c}"
+
+
 def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=None) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
@@ -371,6 +395,7 @@ def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=No
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
     rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)))
+    rows.append(("main-ratchet-green", *main_ratchet_green(gh)))
     if not print_preconditions(rows):
         raise Refuse("a precondition failed; nothing was written")
     want = window_off(six(rollback))
@@ -438,6 +463,7 @@ def dry_run_window(gh, staged: dict | None, head: str | None, pr: int | None, re
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
     rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)) if head
                 else ("reds-at-head", None, "not evaluated: no --head"))
+    rows.append(("main-ratchet-green", *main_ratchet_green(gh)))
     ok = print_preconditions(rows)
     print(f"WINDOW DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
     return 0 if ok else 1
