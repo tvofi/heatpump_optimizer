@@ -1,0 +1,6 @@
+RESULT reds-at-head PASS :: null: the window (fast green, three base-pinned red, gate red) :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script'] (base-pinned and gate only)
+RESULT reds-at-head PASS :: plant: the whole tests unit skipped (caller check skipped, no tests / * at all) :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script'] (base-pinned and gate only)
+RESULT reds-at-head PASS :: plant: tests / closures skipped :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script'] (base-pinned and gate only)
+RESULT reds-at-head PASS :: plant: only the three base-pinned and gate exist (every other unit absent) :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script'] (base-pinned and gate only)
+RESULT reds-at-head PASS :: plant: codeql / Analyze (python) neutral :: reds: ['gate', 'governance / env-matrix', 'governance / policy-docs', 'governance / wave-script'] (base-pinned and gate only)
+RESULT reds-at-head FAIL :: control: tests / closures cancelled :: reds besides the base-pinned: ['tests / closures']

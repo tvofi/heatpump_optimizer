@@ -1,0 +1,4 @@
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: <session link redacted>
+(cherry picked from commit 767a06f7f6dd02bb0cf291377686e292c4bbe587)
+

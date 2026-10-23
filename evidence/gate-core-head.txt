@@ -1,0 +1,15 @@
+  ok  code run: hassfest skipped in the NEWEST run that owns it: never filled from an older one (12(c)) gate FAIL  hassfest / hassfest: SKIPPED (this run)
+  ok  an older code run's gate re-judged after a newer edit: still red, its code is red          gate FAIL  tests / closures: failure (this run)
+  ok  ... re-judged after a newer green code run at the same head: green (the sweep's case)      gate pass  
+
+GATE-REPLAY2 rc 0
+gate_replay2.py over tools/ci/gate.py: rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt
+== b3
+b3: enumerated from .github/workflows/tests.yml: ['arch-instrument', 'briefs', 'browser', 'ci-ratchet', 'closures', 'coverage', 'coverage-ratchet', 'fast (3.14)', 'mutation', 'typing']
+b3: REQUIRED['push'] tests / * : ['arch-instrument', 'briefs', 'browser', 'ci-ratchet', 'closures', 'coverage', 'coverage-ratchet', 'fast (3.14)', 'mutation', 'typing']
+b3: parity GREEN; only in tests.yml [], only in REQUIRED []
+== b3 plant
+b3: enumerated from .github/workflows/tests.yml: ['arch-instrument', 'briefs', 'browser', 'ci-ratchet', 'closures', 'coverage', 'coverage-ratchet', 'fast (3.14)', 'mutation', 'typing']
+b3: REQUIRED['push'] tests / * (PLANT: ci-ratchet dropped) : ['arch-instrument', 'briefs', 'browser', 'closures', 'coverage', 'coverage-ratchet', 'fast (3.14)', 'mutation', 'typing']
+b3: parity RED; only in tests.yml ['ci-ratchet'], only in REQUIRED []
+rc=0
