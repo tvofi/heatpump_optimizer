@@ -501,9 +501,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: none). Owning seam in this group: `_narrative_view` money rendering. Shape: read the currency from one owner; delete the local precedence. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-currency",
-    "commit": null,
+    "commit": "27b59c9f7975d1526529fe5aff21e8243caf19c5",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
@@ -2993,9 +2993,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-replay-lane",
-    "commit": null,
+    "commit": "0280e6efdf57878c4108dd2ec3883559122d7ebb",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -3863,12 +3863,13 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-policy-lint-family",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": null
+    "note": null,
+    "pr": 2669
    },
    "brief": "Measure first, then fix `tools/policy/policy_lint.mjs`'s family count. Issue #2410, filed by the governance cron, reads `[policy] recurring friction: mutation (family)`: the stats histogram printed \"verdict family at 3 in this window, threshold 3\" over `v7.0.0..origin/main`, counting \"3 entries in all\" as DISTINCT pull requests (`FRICTION_FAMILIES`, the `(family)` rows of the verdict and friction histograms). The orchestrator recorded the finding as a family double-count in policy_lint.mjs: the family reaches the threshold on fewer distinct occasions than the line states. The exact mechanism is not yet pinned; measuring it is the first deliverable (the family rows are additive beside the members' exact-id rows, so read where one occasion can be counted twice). Re-derive with `node tools/policy/policy_lint.mjs --stats --since v7.0.0`. Owed: (1) a failing fixture first: a window whose family reaches the threshold only by counting one occasion twice must NOT print the family would-open line, and a window that reaches it on distinct pull requests must print exactly one (the family fixture is tools/policy/fixtures/policy-loop/friction-families.json; its `controls` window already pins the union count for a pull request carrying two members, so read what it does not pin); (2) the fix in the keying/counting rule; (3) dispose #2410 per `.claude/rules/delivery-status-tracking.md`, naming which of the two things the count is a property of the change moves (the keying rule in policy_lint.mjs, or the merged bodies already in the window), or refuting the count with the distinct-PR list. Also pin the `--record-known-bad` shadowing fix in tools/policy/policy_lint_mutants.mjs (the carry below). SEQUENCING: this group starts only after the pull requests #2406 (R10-ROSTER-FASTPATH) and #2408 (R10-ROSTER-CARRY-POLICY) have merged; neither has a roster group, so the edge cannot be an `after`. Part of #201.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: policy: tools/policy/ is in POLICY_GLOBS; tvofi approves under the mandate. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
@@ -5689,7 +5690,7 @@
     "last_step": null,
     "next_step": "dispatch a fixer once R10-CI-LAYOUT-P1 is done",
     "note": null,
-    "pr": 2638
+    "pr": 2657
    },
    "brief": "Child group of R10-CI-LAYOUT (copied from R10-CI-LAYOUT's brief and issue #2495, tvofi/heatpump_optimizer): this group is PR 2 of the four-PR sequence PR 0, PR G, PR 1, PR 2, and nothing else; PR 1 must merge first (after: R10-CI-LAYOUT-P1). The other carries of R10-CI-LAYOUT stay on that group and are read there. The group's first paragraph, verbatim:\n\nCI consolidation of .github/workflows/tests.yml under one umbrella workflow and one required check, in FOUR pull requests, in this order: PR 0, PR G, PR 1, PR 2. DISPATCHABLE: the design review APPROVED at round 5 (probe/design-ci-review5, afc00bfe) on design revision 4 (probe/design-ci-rev4, 1371a0a6): the two design documents at the root of that ref (phase 1 and phase 2), the reader survey and measurements under its measure directory, the review's REVIEW.md under 'Non-blocking'. The plan addendum (A1-A6) and its design review (amended unit list and PR placement, items B1-B9) are approved; the orchestrator supplies both documents in the dispatch. Cite the design refs in the pull requests; build exactly the approved design, read from the ref, never from memory.\n\nScope, verbatim from R10-CI-LAYOUT: PR 2 (the umbrella, at a wave boundary): units U0-U11 as amended, A1 as amended (poll floor 60 s everywhere), A2/U11, A5, B3 (REQUIRED[push] gains every job whose failure reddens today's Tests push run, ci-ratchet and coverage-ratchet included, enumerated by command), carry 6 (ci_predict.py runs the same carry_audit check as pr-contract) and the ruleset instrument. Units U0 to U10 run as a cloud fan-out on their own probe/ci-layout-<unit> ref with workflow_dispatch CI, at most 4 concurrent; the driver is a seat-side harness, not a unit.\n\nDispatch order: PR 0 now; PR G after #2444 (merged); PR 1 after PR 0; PR 2 after PR 1.\n\nOwner rulings (tvofi, under the mandate): D-1 approve (record-autofix leaves the Tests push run; a unit test proves the tick still sees its failures). D-2 arch-score joins the required-gate list when the diff reaches custom_components/. D-3 keep the merge_group trigger. D-4 drop the C1 composition in phase 1, its proof covered per the design. D-5 keep CodeQL's O17 stand-down with its soundness check. Variant: the review is an event of the umbrella workflow, and a pull_request_review event re-runs only budget-raise-gate and gate (proved by a run's jobs list). R-10 option B: pr-contract lists open code-scanning alerts of the matched analyses, the lag wait is dropped, and U6 shows a planted python-only finding listed; the pr-contract change is policy and needs the owner's approval.\n\nMust-fix from the round-5 review (this programme defers nothing): N5-1, the driver keys on run attempts, not status transitions: for each run read each attempt up to run_attempt not yet swept (only attempt 1 under --nochain, every attempt under --chain) and log any attempt first seen already superseded. N5-2, the dismissed-alert subtraction reads by ref: for each alert number left after the base subtraction read the alert itself and drop it if its state is dismissed (alert-level, no ref), or add to U6 case 5 a dismissal made after case 4's upload. N5-3, pin the analyses listing's sort and direction parameters explicitly, in the entities.py row; say in R-10 that the same-M hand-upload residual is dominated by dismissal (same write grant); optionally record the severity spread of listed alerts in U6 case 6. N5-4, reword 4.3 to 'requested and not completed (queued, waiting, pending, requested or in_progress)'.\n\nRuleset cut-over: moving the main ruleset's required checks to the single gate check is a repository security setting and tvofi's own action, never the seat's or the orchestrator's. The phase 2 pull request stages it as an owner step: the exact command (the ruleset update call with the full payload, derived from the live ruleset JSON read at that time) and a rollback (the saved prior JSON and its restore call), both tested read-only in the body.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: see owner_gate (code-owned CI workflows, tests/run.sh for PR 0, and policy in PR 1 and PR 2); each PR is approved by the CODEOWNER session under mandate 6175172275. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
@@ -6974,7 +6975,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-23 ~12:40Z",
-    "note": "Started ahead of its after-edge R10-UPDATE-PR-SIGNALS by orchestrator ruling (mandate 6329234399): it blocks the critical-path merge seat (P-O, 4 instances in 2 days). TICK-OWED-LEVEL, FLOW-ANDON and FLOW-RELAY-HOLD are done. UPDATE-PR-SIGNALS (held) and ORCH-LEDGER (in flight) also edit cloud_relay.sh; whichever lands later merges main."
+    "note": "Started ahead of its after-edge R10-UPDATE-PR-SIGNALS by orchestrator ruling (mandate 6329234399): it blocks the critical-path merge seat (P-O, 4 instances in 2 days). TICK-OWED-LEVEL, FLOW-ANDON and FLOW-RELAY-HOLD are done. UPDATE-PR-SIGNALS (held) and ORCH-LEDGER (in flight) also edit cloud_relay.sh; whichever lands later merges main.",
+    "pr": 2664
    }
   },
   {
@@ -8467,8 +8469,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "done",
+    "branch": null,
+    "commit": "975fbb832bd784a786f37c7ca3c24c4f0cfefcc0"
    },
    "brief": "Suite determinism, two seams found in round 10 and left unowned: (1) tests/features.py fails under HASTUB_TZ=Europe/Stockholm at the merge base as well as on branches (the R9-F1.1 N-shared-config pair and the naive/aware timestamp check), a wall-clock or zone dependence in the suite that predates the branch that found it; (2) the gate-lease priority concurrency control in tests/entities.py failed once under CI runner load while its sibling run passed. Both carries hold the evidence. Fix each by making the check deterministic (a zone the test sets itself; a condition waited on, never a fixed window), with a failing test first and a null control that the check still catches its planted defect. Follow dev/governance/roles/fixer.md."
   },
@@ -8574,7 +8577,8 @@
     "tests/structure_budgets.json"
    ],
    "carry": [
-    "From #2620's round-3 review (comment 6359101698, item 931a23da; verdict on probe/rev-2620-654004be, head 72fbab2a719c), verbatim, section (a) and the first Findings bullet:\n\n- **Alias plant (O19).** At the head I planted `prices = self._prices` in `_raise_cop_issue`. That alone moves `seam_cut_total` to 705 (-2) with nothing improved (ev/plant_p2.diff, ev/structure_p2.txt). The instrument still counts occurrences, so the O19 carry stands and is live. This diff did not pay that way.\n\n- **Plant of the diff's own kind (rule 14).** I wrapped the same two reads in a bare getter, `_cop_state()` in `learning`, which returns `(self._cop_baseline, self._cop_health_cusum)`, and left the count logic in `views`. That also reads 707 (ev/plant_p3.diff, ev/structure_p3.txt). The instrument therefore cannot tell a narrowed interface from a raw-state getter. The diff's change is not that shape:\n  - `_cop_watch` returns derived values (the watched count and the clipped Cusum share), not state.\n  - It deletes a duplicated count that had divergent guards (`_learning_view` had `np.isfinite` and `_scores_view` did not).\n  - It shortens the class by 10 lines (11 with the one-line comment). Per rule 14 this is an instrument finding, not a block (see Findings).\n\n- **The seam-cut instrument also rewards a raw-state getter.** `tests/structure.py`'s `seam_metrics` counts a `self.<method>()` call as one cross-seam edge. So replacing k cross-seam attribute reads with one call to a getter that returns the same state lowers `seam_cut_total` by 2(k-1), with nothing encapsulated. My `_cop_state()` plant gave -2. This is the same class as O19, the alias, by another route. O19's fix needs to cover it too: either count the distinct (seam, attribute) pairs reached through the callee, or refuse a callee whose only body is a tuple of state reads. Add a null control: a getter planted on a clean tree must not move the figure."
+    "From #2620's round-3 review (comment 6359101698, item 931a23da; verdict on probe/rev-2620-654004be, head 72fbab2a719c), verbatim, section (a) and the first Findings bullet:\n\n- **Alias plant (O19).** At the head I planted `prices = self._prices` in `_raise_cop_issue`. That alone moves `seam_cut_total` to 705 (-2) with nothing improved (ev/plant_p2.diff, ev/structure_p2.txt). The instrument still counts occurrences, so the O19 carry stands and is live. This diff did not pay that way.\n\n- **Plant of the diff's own kind (rule 14).** I wrapped the same two reads in a bare getter, `_cop_state()` in `learning`, which returns `(self._cop_baseline, self._cop_health_cusum)`, and left the count logic in `views`. That also reads 707 (ev/plant_p3.diff, ev/structure_p3.txt). The instrument therefore cannot tell a narrowed interface from a raw-state getter. The diff's change is not that shape:\n  - `_cop_watch` returns derived values (the watched count and the clipped Cusum share), not state.\n  - It deletes a duplicated count that had divergent guards (`_learning_view` had `np.isfinite` and `_scores_view` did not).\n  - It shortens the class by 10 lines (11 with the one-line comment). Per rule 14 this is an instrument finding, not a block (see Findings).\n\n- **The seam-cut instrument also rewards a raw-state getter.** `tests/structure.py`'s `seam_metrics` counts a `self.<method>()` call as one cross-seam edge. So replacing k cross-seam attribute reads with one call to a getter that returns the same state lowers `seam_cut_total` by 2(k-1), with nothing encapsulated. My `_cop_state()` plant gave -2. This is the same class as O19, the alias, by another route. O19's fix needs to cover it too: either count the distinct (seam, attribute) pairs reached through the callee, or refuse a callee whose only body is a tuple of state reads. Add a null control: a getter planted on a clean tree must not move the figure.",
+    "`tests/structure.py`, `seam_metrics`: the structure instrument counts cross-seam attribute-reference occurrences, not distinct attributes. Aliasing a `self.<attr>` read into a local therefore lowers `seam_cut_total` with no structural change: round 2's reviewer planted `prices = self._prices` and measured -2. Every seam-cut payment is exposed to this. The group that owns `tests/structure.py`, R10-STRUCTURE-BLIND, is at stage `done` on both origin/main and origin/handoff/audit-r10-roster, so no live group owns it. It is therefore carried on a new group, R10-STRUCTURE-ALIAS, together with round 3's rule-14 finding (a bare getter returning a tuple of state reads also pays, item 931a23da). Landed on `handoff/audit-r10-roster` at `9169bb83487c5c6fe35596e1952347c07fdedbca`. This PR does not fix it. Carry: R10-STRUCTURE-ALIAS (item 931a23da)"
    ],
    "model": {
     "fixer": "opus",
@@ -8638,7 +8642,8 @@
     "stage": "in-progress",
     "branch": "handoff/r10-fly-no-footers-push-paths",
     "next_step": "cloud fixer cse_014HGxgRAzJoTMn2nvYqvCbC dispatched, topic r10-fly-no-footers-push-paths",
-    "note": "Scope ruling (orchestrator, main): author identity is out of scope; the guard judges commit messages (footers, trailers, session links), not the author field."
+    "note": "Scope ruling (orchestrator, main): author identity is out of scope; the guard judges commit messages (footers, trailers, session links), not the author field.",
+    "pr": 2668
    }
   },
   {
@@ -8682,7 +8687,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-rca-inert-closure-recording",
-    "next_step": "open PR from the RCA seat's handoff e9d169b7, then review"
+    "next_step": "open PR from the RCA seat's handoff e9d169b7, then review",
+    "pr": 2666
    }
   }
  ]
