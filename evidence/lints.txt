@@ -1,0 +1,11 @@
+}
+
+Node.js v22.22.0
+ref_privacy --check at HEAD: 25 file(s) with a push site, 12 guarded, 9 line(s) added since c6ef0668463b judged, 0 refused
+  ERROR   [carry-990004.json] carry: issue 990004 already has a live roster group (wave-probe-groups.json PROBE-G1), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+---
+CARRY-AUDIT #2655: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+TOTAL: 0 error(s) across 47 file(s)
