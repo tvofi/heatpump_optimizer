@@ -2830,9 +2830,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-briefs-fold",
-    "commit": null,
+    "commit": "b24cfe517bd95d30911c43184cf62e2ac781aa19",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null,
