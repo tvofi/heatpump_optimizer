@@ -1208,9 +1208,9 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 18 of 25; before you: R10-SAV-REASONS, R10-ADVISOR; next: R10-LIVESTATE, R10-CONFIG-NOTICES); heatpump-optimizer-card.js (position 4 of 5; before you: R10-UX-SETUP, R10-ADVISOR; next: R10-UX-HEALTH). Owning seam in this group: `_scores_view`, `_close_score_day`, the score sensors and the scores card section. Shape: one view model consumed by sensor and card. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-scores",
-    "commit": null,
+    "commit": "14405df59331481ac16662db64d8d8db9488026e",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
     "note": null
@@ -5213,7 +5213,7 @@
     2508
    ],
    "fixes": [],
-   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6385-6388). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
+   "brief": "Found by the 2026-10-20 slip screen of the last 500 merged pull requests, from #2393's own Forward-carry, which routed this to the dimension briefs in prose. No dimension brief ever gained the text and round 10 never reproduced it, so the defect is still in the tree. What #2393 recorded, verbatim: the heat-loss learner replays against ThermalState.room_temperature's 21.0 C default on installs with no indoor temperature entity, because _learning_frozen deliberately does not freeze an unconfigured slot (coordinator.py:6552-6559). The consequence: on such an install the learner fits house-heat-loss against a constant 21 C, so the coefficient it learns is quietly wrong, and a wrong heat-loss coefficient propagates into every plan built on it. What to build: a measured decision, not a guess -- either freeze the heat-loss learning on that install with a visible reason (the same shape (c) of #1955 used for the unmetered learner), or drive the replay from an observable that exists without an indoor sensor; choose between them by measuring which one stops the coefficient drifting on a replay of a real install, and say which in the body. Null control owed: an install WITH an indoor temperature entity must be byte-identical to today, golden fixtures included. Do not widen _learning_frozen for configured slots; the defect is the unconfigured case only.",
    "resume": {
     "stage": "not-started",
     "branch": null
@@ -6751,9 +6751,9 @@
    "architect_note": "",
    "brief": "Land the Lean flow study's measuring tools on main, generalised for any round (owner, 2026-10-21: the study's tools belong on main for future programmes; decision 0013: reusable instruments land in the tree, never only in /tmp). Three new instruments under tools/audit/seat/, each with --self-test on a recorded fixture and an INSTRUMENTS.md row. (1) A critical-path instrument (working name ci-critpath): from one workflow run's job and step timestamps, the critical path, and a counterfactual that drops a job edge or deletes a job and charges a stated bare cost; over the last N runs of a workflow, median and p90. Reuse the method behind the critical-path measurement in the CI design archive (tag archive/probe/design-ci-rev4 at 1371a0a6, its measure directory, phase 2) rather than writing a second one. (2) A review-strength instrument (working name review-strength): the study's baseline enumerator, real-catch and bookkeeping blocks per reviewed pull request over the review/<N> bus refs in a window [start, end), with the verdict-class sets read from VERDICT_CLASSES rather than copied. (3) A flow-metrics instrument (working name flow-metrics): the study's section 0 enumerators (groups closed and added per hour, records' share of merges, first-pass yield, main absorbs per fix branch, merge-to-merge re-reviews of unchanged code, share of hours with a merge). No round constant in code: repository, round prefix and window are arguments. API reads are paged, cached per run id and bounded by a stated maximum.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-flow-toolkit-measure",
-    "commit": null,
+    "commit": "a6620c30adcdf0d9529ee66977694bfa2a06d5c3",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
@@ -8432,7 +8432,8 @@
    ],
    "carry": [
     "From the #2632 (R10-LOOP-CPU) fix review (probe/rev-2632-a4ff6382, verdict.md ## Findings), reviewer-dismissed, routed here because no finding is deferred: With `HASTUB_TZ=Europe/Stockholm` set, `tests/features.py` fails at the merge base fef4a135 as well as at this head: 5 of 4299 fail at the base, 4 of 4300 at the head. Two of the failures are the R9-F1.1 N-shared-config pair (\"published mid-solve []\"), and one is the naive/aware timestamp check (ev/features_base_TZ.txt, ev/mutants.txt \"=== null\"). It does not reproduce without that variable: the head prints `ALL 4307 FEATURE CHECKS PASSED`. No workflow under .github/workflows sets HASTUB_TZ. So this is a wall-clock or zone dependence in the suite that predates this branch, outside this group's seam.",
-    "From #2632 (R10-LOOP-CPU), run 39874068348 (job 120155413953), head ab6216cee6b6: fast (3.14) failed on tests/entities.py with 1 of 2401 checks failed, and coverage-ratchet failed after it (package coverage 85.89 % against 96.0 %, 45 modules below the 95.0 % floor), while the sibling run 39874062299 on the same head passed both. Diffing the two logs' FAIL lines, the one extra failure in the red run is the gate-lease check \"concurrency control: two waiters released in one poll, exactly one holds the slot\" ([queued=True overlaps=1 order=['b', 'a']]); the other FAIL lines (hb:positive_control, a8:register_once) differ only in measured figures and are planted controls. The check is timing-dependent under runner load, and this diff does not touch gate_lock or the entities check. Make the check deterministic (wait on a condition, never a fixed window), then re-measure the pair of runs."
+    "From #2632 (R10-LOOP-CPU), run 39874068348 (job 120155413953), head ab6216cee6b6: fast (3.14) failed on tests/entities.py with 1 of 2401 checks failed, and coverage-ratchet failed after it (package coverage 85.89 % against 96.0 %, 45 modules below the 95.0 % floor), while the sibling run 39874062299 on the same head passed both. Diffing the two logs' FAIL lines, the one extra failure in the red run is the gate-lease check \"concurrency control: two waiters released in one poll, exactly one holds the slot\" ([queued=True overlaps=1 order=['b', 'a']]); the other FAIL lines (hb:positive_control, a8:register_once) differ only in measured figures and are planted controls. The check is timing-dependent under runner load, and this diff does not touch gate_lock or the entities check. Make the check deterministic (wait on a condition, never a fixed window), then re-measure the pair of runs.",
+    "From #2632 (R10-LOOP-CPU) round 3, correcting the carry above: coverage-ratchet's red in run 39874068348 (package 85.89 % against 96.0 %, 45 modules below 95.0 %) was neither the entities flake nor a flake. It was #2632's own defect, fixed in that PR: tests/features.py left 740 live process-worker children at its exit, and their coverage data files landed after the script's own process exited. tools/coverage/coverage_tree.sh's `measure()` checks `ls \"$WORK/data/$s\"/.coverage.*` the moment `tests/$s.py` returns, so it recorded `features.nodata` with no error, and the ratchet read a package-wide drop. A local run at ab6216ce reproduced the red: `features.nodata` and 85.88 % (18987/22108). A second run printed \"could not combine tests/features.py's data\" instead. The control at fef4a135 read 98.66 % (21801/22097). The seam left here is the instrument's: any measured script whose descendants outlive it loses its whole measurement silently. Make `coverage_tree.sh` refuse a measured script that exited 0 and left no data, or wait for the script's process group before the check, so a red names the script rather than 45 modules. Plant a script that leaves one child writing coverage after its exit; it must read red. Files: tools/coverage/coverage_tree.sh. Re-measure at your merge base."
    ],
    "model": {
     "fixer": "sonnet",
@@ -8531,10 +8532,10 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-trailer-emitters",
     "pr": null,
-    "commit": null,
+    "commit": "c6ef0668463b5e9291d0bf41061b06940ecb11ef",
     "last_step": null,
     "next_step": "a fixer seat is on branch fix/r10-trailer-emitters; open its pull request when the fix is pushed",
     "note": null
