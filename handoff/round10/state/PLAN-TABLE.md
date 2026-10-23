@@ -297,7 +297,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-NO-FOOTERS | FLY | 1 | done | - | sonnet/opus | - | Owner ruling (tvofi, 2026-10-22): no Claude attribution footers or session links in seat output, that is no generated-with line, no co-author or session trai... |  |
 | R10-FLY-NO-FOOTERS-EMITTERS | FLY | 1 | done | - | sonnet/opus | - | delivery_row.sh line 40 and stamp.py line 2114 hardcode Co-Authored-By trailers that ref_privacy and policy_lint have refused since #2636. |  |
 | R10-STRUCTURE-ALIAS | FLY | 1 | not-started | - | opus/opus | yes: budget: a measurement change may move a ratchet metric | seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) a... |  |
-| R10-FLY-NO-FOOTERS-PUSH-PATHS | FLY | 1 | not-started | - | opus/opus | - | From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after th... |  |
+| R10-FLY-NO-FOOTERS-PUSH-PATHS | FLY | 1 | in-progress | - | opus/opus | - | From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after th... |  |
 
 ## ETA
 
