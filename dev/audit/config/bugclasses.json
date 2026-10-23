@@ -1101,7 +1101,8 @@
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
       "BULK-2-I2",
-      "R9-RCA-stress-recording"
+      "R9-RCA-stress-recording",
+      "R10-RCA-INERT-CLOSURE-RECORDING"
     ],
     "rca_planned": [],
     "trigger": {
@@ -4417,6 +4418,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-BODY-LINT.md",
       "doc": [
         "dev/audit/rca/R10-RCA-BODY-LINT.md"
+      ]
+    },
+    "R10-RCA-INERT-CLOSURE-RECORDING": {
+      "class": "I2",
+      "level": "instance-or-process",
+      "subject": "probe B2 (#2662's code head): tests / closures UNDER-SCOPED on harness_headers.py's child reads of two files 9f7f443cc moved out of INERT; the table had merged a recording made before the edit, and check over it passed",
+      "trigger": "barriered class instance (I2); red closures run 32 min 06 s, closures-autofix skip-classifier-disagrees",
+      "date": "2026-10-23",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) merge and check were run over CI's Linux recording as ci-autofix.md routes the inert dimension, and passed: both trust the INERT split strace_files made at record time",
+      "countermeasure": "closure.py _load_recording re-reads a recording's inert_reads under the loading tree's INERT list in merge and check (7.1 ms a recording); ci_predict.py left_inert predicts the UNDER-SCOPED statically on a diff that edits closure.py (8.1 ms); against 1 escape in 28 INERT_EXCEPT edits at 32 min a red FULL run",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-INERT-CLOSURE-RECORDING.md"
       ]
     },
     "R10-RCA-RAISE-GATE-GRAMMAR": {
