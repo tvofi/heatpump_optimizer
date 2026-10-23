@@ -35,8 +35,8 @@
 #
 # --watch is the orchestrator's poll loop: every N seconds (default 120) it runs
 # the probe arm, `git ls-remote origin 'refs/heads/probe/*'`. A ref that is not
-# probe/rev-* is OWED until `dispose <ref> <sha>` writes `<ref> <sha>` to
-# <state>/cloud-disposed: a level, not a diff, so a missed line is repeated rather
+# probe/rev-* is OWED until `dispose <ref> <sha>` records it in the ledger's
+# dispositions.tsv (ledger.py): a level, not a diff, so a missed line is repeated rather
 # than lost, and a disposed ref that moves is owed again. The level is `<log>.level`
 # (beside --log), whose `OWED <utc> probe-ref <ref> <sha>` lines EVERY pass rewrites,
 # never appends; dispose drops its line at once; a failed listing leaves it as it was.
@@ -48,16 +48,20 @@
 # every interval; a re-pushed ref has a new sha and is tried again. --once makes
 # one pass (the self-test's and cron's shape). Run it detached via daemonize.py.
 #
+# THE LEDGER. Every obligation the relay writes goes through ledger.py, whose
+# stores live beside the log (--log FILE, default <state>/cloud-relay.log): an
+# event is opened there keyed on kind, PR and sha, and `dispose` writes its
+# dispositions.tsv. A push-verdict that PASSED opens `verdict-unposted <pr>
+# <head> <first line>`, closed only when the tick reads that comment back.
 # --confirm does not stop at push-verdict (two verdicts once sat relayed and
 # unposted for 20 minutes): after a push-verdict that PASSED it runs
 # `bus.sh confirm <pr> <review-sha>`, the sha being the one push-verdict printed
-# (`review/<pr> <sha>`), and appends one line to the log (--log FILE, default
-# <state>/cloud-relay.log, which the orchestrator reads):
-#   POSTED <utc> <pr> <review-sha>          confirm succeeded
-#   OWED   <utc> <pr> <review-sha|-> <why>  push-verdict passed, the verdict is not posted
-# confirm never runs after a refused relay or a failed push-verdict, and writes
-# nothing for them (a refusal prints its reason, and --watch's .refused file
-# holds it). HPO_RELAY_CONFIRM replaces the confirm command (the self-test's stub).
+# (`review/<pr> <sha>`), and on success appends `POSTED <utc> <pr> <review-sha>`
+# to the log, a journal line that closes nothing (a relayed claim is not a
+# read-back); a failure is printed and the verdict stays owed. confirm never
+# runs after a refused relay or a failed push-verdict, and writes nothing for
+# them (a refusal prints its reason, and --watch's .refused file holds it).
+# HPO_RELAY_CONFIRM replaces the confirm command (the self-test's stub).
 #
 # `pass` is the orchestrator's whole beat, ONE entry point a driver calls once
 # (and takes over relay_watch.sh, which was session-local). A pass runs two arms.
@@ -66,18 +70,21 @@
 #     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
 #     update_pr.sh <branch> <code-sha> <body> <issues> (issues = the body's
 #     closing keywords), then approve_held_runs.sh on the branch, then
-#     `bus.sh dispatch <pr> <new head> cloud`, and appends
-#       OWED reviewer-fire <pr> <head40> <nonce> <utc>
-#     to the log: firing the cloud reviewer stays with the orchestrator. It only
+#     `bus.sh dispatch <pr> <new head> cloud`, and opens `reviewer-fire <pr>
+#     <head40> nonce=<nonce>` in the ledger (a failed approve or dispatch opens
+#     `approve-held-runs` or `dispatch` instead): firing the cloud reviewer stays
+#     with the orchestrator. It only
 #     UPDATES an existing PR (the soft cap counts roster groups in progress at
 #     dispatch; an update neither opens a PR nor enters WIP).
 #     A handoff already contained in its PR, or with no body ref, does nothing;
 #     a topic whose update failed is noted in `<ledger>.handoff-failed` by
-#     `<topic> <code-sha>` and retried only when handoff/<topic> moves, with an
-#     `OWED handoff-update` line. Every handoff/* or handoff-body/* ref whose
-#     topic has no open PR is `OWED <utc> handoff-no-pr <ref> <sha>` in
-#     <log>.level, rewritten every pass, until disposed; a failed PR listing
-#     leaves those lines as they were. The log itself holds events only.
+#     `<topic> <code-sha>` and retried only when handoff/<topic> moves, owed
+#     meanwhile as `OWED <utc> handoff-update <ref> <sha>` in <log>.level. The
+#     `handoff-no-pr` lines there are `ledger.py level`'s fold of every
+#     handoff/* and handoff-body/* ref: owed unless its topic has an open PR,
+#     it is disposed at its sha, or main already carries the change (ancestry
+#     or content), each with its tip's commit time; rewritten every pass, and
+#     a failed PR listing or ledger read leaves them as they were.
 #     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
 #     lines and `#` lines allowed); only the orchestrator writes or edits it.
 #     A listed PR whose handoff is ahead is NOT updated and prints
@@ -120,7 +127,11 @@ level_set() { # level_set <kind> <lines-file>: <kind>'s lines in <log>.level bec
   rm -f "$2"
 }
 posted() { logline POSTED "$1 $2"; echo "cloud_relay: POSTED #$1 $2"; }
-owed() { logline OWED "$1 $2 $3"; echo "cloud_relay: OWED #$1: $3" >&2; }
+owed() { echo "cloud_relay: OWED #$1: $3" >&2; }
+# Every obligation the relay writes goes through ledger.py (R10-ORCH-LEDGER): an event is
+# opened there, keyed on kind, PR and sha, and the log keeps only the POSTED journal.
+ledger() { python3 -I "$HERE/ledger.py" --log "$(relay_log)" "$@"; }
+ledger_open() { ledger open "$@" >/dev/null || echo "cloud_relay: the ledger refused $1 for #$2" >&2; echo "cloud_relay: OWED $1 #$2 $3" >&2; }
 
 relay() {
   local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
@@ -156,6 +167,7 @@ relay() {
   else out=$(bash "$HERE/bus.sh" push-verdict "$pr" "$d/verdict.md" "$d/ev") || { printf '%s\n' "$out"; return 1; }; fi
   printf '%s\n' "$out"
   mkdir -p "$state" && echo "$ref $sha" >> "$led"
+  ledger_open verdict-unposted "$pr" "$head" "$first"
   if [ -n "${CONFIRM:-}" ]; then
     sha2=$(printf '%s\n' "$out" | tail -n 1 | awk '{ print $NF }')
     if ! printf '%s' "$sha2" | grep -Eq '^[0-9a-f]{40}$'; then owed "$pr" - "push-verdict printed no 40-hex review commit"
@@ -166,15 +178,14 @@ relay() {
   echo "cloud_relay: relayed $ref $sha; next: bus.sh confirm $pr <review commit>"
 }
 
-disposed() { # disposed <ref> <sha>: the orchestrator ran `dispose` on this ref at this sha
-  local f=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-disposed; [ -f "$f" ] && grep -qxF "$1 $2" "$f"; }
+disposed() { ledger disposed "$1" "$2"; }  # the orchestrator ran `dispose` on this ref at this sha
 
 dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled; it is OWED again once it moves
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
   case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/ or handoff-body/ ref"; return;; esac
   printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
-  mkdir -p "$state" && echo "$1 $2" >> "$state/cloud-disposed" || return 1
+  ledger dispose "$1" "$2" relay-dispose >/dev/null || return $?
   local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
   if [ -f "$lv" ]; then awk -v r="$1" -v s="$2" '!($4 == r && $5 == s)' "$lv" > "$lv.$$" && mv -f "$lv.$$" "$lv"; fi
   echo "cloud_relay: disposed $1 $2"
@@ -234,6 +245,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }
+  : > "$state/cloud-level-update.$$"
   while IFS=$'\t' read -r pr br head; do
     [ -n "$pr" ] || continue
     topic=${br#fix/}; topic=${topic%-pr}
@@ -244,7 +256,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git cat-file -e "$hs^{commit}" 2>/dev/null && git cat-file -e "$head^{commit}" 2>/dev/null || continue
     git merge-base --is-ancestor "$hs" "$head" && continue
     if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
-    if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi
+    if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; continue; fi
     # The body goes in a directory of this run's own, under the state dir: a file directly in a
     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
     # update failed there (#2469, #2471) -- and still raced the manual update it was meant to spare.
@@ -264,30 +276,26 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # a failure, so it is not recorded and the next pass retries once that run has ended.
     if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
     if [ "$urc" != 0 ]; then
-      echo "$topic $hs" >> "$f"; logline OWED "handoff-update $pr $topic $hs"; rm -rf "$bd"; continue
+      echo "$topic $hs" >> "$f"; level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf "$bd"; continue
     fi
     rm -rf "$bd"
-    if [ -n "${HPO_RELAY_APPROVE:-}" ]; then "$HPO_RELAY_APPROVE" "$br"; else bash "$HERE/../../pr/approve_held_runs.sh" "$repo" "$br"; fi >&2 \
-      || logline OWED "approve-held-runs $pr $br"
     nh=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"; else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | awk -F'\t' -v p="$pr" '$1 == p { print $3; exit }')
-    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { logline OWED "dispatch $pr no new head read after the update"; continue; }
+    if [ -n "${HPO_RELAY_APPROVE:-}" ]; then "$HPO_RELAY_APPROVE" "$br"; else bash "$HERE/../../pr/approve_held_runs.sh" "$repo" "$br"; fi >&2 \
+      || ledger_open approve-held-runs "$pr" "$(printf '%s' "$nh" | grep -E '^[0-9a-f]{40}$' || echo -)" "$br"
+    printf '%s' "$nh" | grep -Eq '^[0-9a-f]{40}$' || { ledger_open dispatch "$pr" - "no new head read after the update"; continue; }
     if nonce=$( { if [ -n "${HPO_RELAY_DISPATCH:-}" ]; then "$HPO_RELAY_DISPATCH" "$pr" "$nh" cloud; else bash "$HERE/bus.sh" dispatch "$pr" "$nh" cloud; fi; } | sed -n 's/^bus-nonce: //p' | head -n 1) \
        && printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$'; then
-      mkdir -p "$(dirname -- "$(relay_log)")" && printf 'OWED reviewer-fire %s %s %s %s\n' "$pr" "$nh" "$nonce" "$(date -u +%FT%TZ)" >> "$(relay_log)"
-      echo "cloud_relay: OWED reviewer-fire #$pr $nh"
-    else logline OWED "dispatch $pr $nh bus.sh dispatch failed; run it by hand"; fi
+      ledger_open reviewer-fire "$pr" "$nh" "nonce=$nonce"
+    else ledger_open dispatch "$pr" "$nh" "bus.sh dispatch failed; run it by hand"; fi
   done < "$state/cloud-prs.$$"
+  level_set handoff-update "$state/cloud-level-update.$$"
   # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
   cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
-  : > "$state/cloud-level-handoff.$$"
-  while read -r hs ref; do
-    [ -n "$ref" ] || continue
-    topic=${ref#refs/heads/handoff-body/}; topic=${topic#refs/heads/handoff/}
-    grep -qxF "$topic" "$state/cloud-topics.$$" && continue
-    disposed "$ref" "$hs" || { level_line handoff-no-pr "$ref" "$hs" >> "$state/cloud-level-handoff.$$"; echo "cloud_relay: OWED handoff-no-pr $ref $hs"; }
-  done < "$state/cloud-hrefs.$$"
-  level_set handoff-no-pr "$state/cloud-level-handoff.$$"
+  # The level is ledger.py's fold (rc 0 none owed, 1 owed, 2 unreadable: the level stays as it was).
+  ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
+  case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
+    *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
   rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$"
 }
 
@@ -309,6 +317,7 @@ self_test() {
   git remote add origin "$t/o.git"
   h=0123456789abcdef0123456789abcdef01234567; n=0123456789abcdef0123456789abcdef
   export HPO_STATE_DIR=$t/state
+  owes() { { ledger board 2>/dev/null || :; } | grep -qF -- "$1"; }  # the ledger beside the current LOG owes it
   stub=$t/stub.sh; printf '#!/bin/sh\necho "$1" >> "%s/pushed"\necho "review/$1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n' "$t" > "$stub"; chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
   mk() { # mk <pr> <subject-head> <verdict-head> <nonce-in-verdict> : push a probe ref for nonce n
     rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1))" > "$t/pr/ev/e"
@@ -370,15 +379,17 @@ self_test() {
   chk "confirm did not run after it" 0 test ! -f "$t/confirmed"
   HPO_RELAY_PUSH=$stub; HPO_RELAY_CONFIRM=$fstub
   chk "a failing confirm leaves the relay itself passed" 0 relay 7 $n $h
-  chk "and logs OWED with the review sha" 0 grep -q "^OWED .* 7 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa confirm failed$" "$LOG"
+  chk "and the log carries no OWED: the verdict stays owed in the ledger" 1 grep -q "^OWED " "$LOG"
+  chk "the ledger owes the relayed verdict's posting until a read-back (K17 4b)" 0 owes "verdict-unposted 7 $h Fix review: merge $h"
   nosha=$t/nosha.sh; printf '#!/bin/sh\necho done\n' > "$nosha"; chmod +x "$nosha"
   mk 7 $h $h $n; HPO_RELAY_PUSH=$nosha; HPO_RELAY_CONFIRM=$cstub
   chk "a push-verdict that printed no review sha logs OWED" 0 relay 7 $n $h
-  chk "and the OWED line carries a dash" 0 grep -q "^OWED .* 7 - " "$LOG"
+  chk "and the verdict is owed in the ledger, not the log" 0 owes "verdict-unposted 7 $h "
   CONFIRM=; HPO_RELAY_PUSH=$stub; unset HPO_RELAY_CONFIRM; : > "$LOG"; rm -f "$t/confirmed"
   mk 7 $h $h $n
   chk "without --confirm, relay logs nothing" 0 relay 7 $n $h
   chk "and the log stayed empty" 0 test ! -s "$LOG"
+  chk "but the ledger owes its posting: a relayed verdict is owed until it is read back" 0 owes "verdict-unposted 7 $h "
   # the watch pass
   HPO_RELAY_PUSH=$stub; rm -f "$t/pushed" "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused"
   export HPO_BUS_STATE=$t/bus; mkdir -p "$t/bus"
@@ -433,6 +444,8 @@ self_test() {
   prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   hc() { git -C "$t/pr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
   mkref() { git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/$1"; }
+  rm -rf "$t/m"; throwaway_git_init "$t/m" -q; git -C "$t/m" -c user.name=t -c user.email=t@t commit -q --allow-empty -m main
+  git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"
   rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   printf '#!/bin/sh\ncat "%s"\n' "$prs" > "$t/lister.sh"; chmod +x "$t/lister.sh"; export HPO_RELAY_PRS=$t/lister.sh
@@ -459,7 +472,8 @@ self_test() {
   chk "and that body's directory is removed after the update" 0 test ! -e "$(dirname -- "$(cat "$t/body.path")")"
   chk "held runs are approved on the branch" 0 test "$(cat "$t/approved")" = fix/topic-a-pr
   chk "dispatch runs at the NEW head" 0 test "$(cat "$t/dispatched.seen")" = "41 $N40 cloud"
-  chk "OWED reviewer-fire is logged with pr, head and nonce" 0 grep -q "^OWED reviewer-fire 41 $N40 0123456789abcdef0123456789abcdef " "$LOG"
+  chk "reviewer-fire is opened in the ledger with pr, head and nonce" 0 owes "reviewer-fire 41 $N40 nonce=0123456789abcdef0123456789abcdef"
+  chk "and the log carries no OWED line" 1 grep -q "OWED" "$LOG"
   # null control: the PR head now contains the handoff -> nothing more
   git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fix/topic-a-pr; NEW=$(git -C "$t/pr" rev-parse HEAD)
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$NEW" > "$prs"; rm -f "$t/updated"
@@ -469,13 +483,13 @@ self_test() {
   hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$hu"; HPO_RELAY_UPDATE=$hu
   printf '41\n' > "$hf"; ho=$(handoff_arm 2>&1)
   chk "a held PR whose handoff is already in its head prints no HELD (nothing to hold)" 1 grep -q HELD <<< "$ho"
-  rm -f "$t/updated" "$t/hupdated" "$t/state/cloud-handoff-failed"; : > "$LOG"
+  rm -f "$t/updated" "$t/hupdated" "$t/state/cloud-handoff-failed" "$t/events.tsv"; : > "$LOG"
   git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
   chk "a held PR whose handoff is ahead is not updated" 0 test ! -e "$t/hupdated"
   chk "and prints HELD with the handoff tip it did not apply" 0 grep -q "HELD #41 $HS\$" <<< "$ho"
   chk "the HELD line is printed once per pass" 0 test "$(grep -c '^cloud_relay: HELD ' <<< "$ho")" = 1
-  chk "and the held pass dispatches no reviewer" 1 grep -q "reviewer-fire" "$LOG"
+  chk "and the held pass dispatches no reviewer" 1 owes "reviewer-fire"
   hc held-moved; mkref handoff/topic-a; HS2=$(git -C "$t/pr" rev-parse HEAD)
   ho=$(handoff_arm 2>&1)
   chk "a held PR whose handoff tip moved is still not updated" 0 test ! -e "$t/hupdated"
@@ -533,36 +547,40 @@ self_test() {
   fu=$t/fu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 1\n' "$t" > "$fu"; chmod +x "$fu"; HPO_RELAY_UPDATE=$fu
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a failed update is tried once" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 1
-  chk "and logs OWED handoff-update" 0 grep -q "^OWED .* handoff-update 41 topic-a $HS2" "$LOG"
+  chk "and owes handoff-update in the level file, at the topic's tip" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2$" "$LOG.level"
+  chk "once after two passes (a level, rewritten)" 0 test "$(grep -c handoff-update "$LOG.level")" = 1
   # a BUSY update (75: another update_pr.sh holds the branch's worktree) is no failure: not recorded, retried next pass
   rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"
   bu=$t/bu.sh; printf '#!/bin/sh\necho x >> "%s/updated"\nexit 75\n' "$t" > "$bu"; chmod +x "$bu"; HPO_RELAY_UPDATE=$bu
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a busy update is tried again on the next pass" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 2
   chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
-  chk "nor logged OWED" 1 grep -q "handoff-update" "$LOG"
+  chk "nor owed" 1 grep -q "handoff-update" "$LOG.level"
   # handoff refs with no open PR are OWED on every pass until disposed
-  LV=$LOG.level; : > "$LOG"; rm -f "$LV"; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
+  LV=$LOG.level; : > "$LOG"; rm -f "$LV"; hc topic-b; mkref handoff/topic-b; OB=$(git -C "$t/pr" rev-parse HEAD)
   handoff_arm >/dev/null 2>&1
-  chk "a handoff ref with no open PR is OWED in the level file" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB$" "$LV"
+  chk "a handoff ref with no open PR is OWED in the level file" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB ct=" "$LV"
   chk "a handoff ref with an open PR is not (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-a " "$LV"
   chk "nor its handoff-body ref (null control)" 1 grep -q "handoff-no-pr refs/heads/handoff-body/topic-a " "$LV"
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "after three passes the no-PR ref is owed once (rewritten, never appended)" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LV")" = 1
   chk "the event log carries no level line" 1 grep -q "handoff-no-pr" "$LOG"
+  git -C "$t/o.git" update-ref refs/heads/handoff/topic-z "$PRH"; handoff_arm >/dev/null 2>&1
+  chk "a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)" 1 grep -q "handoff/topic-z" "$LV"
+  git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-z
   git -C "$t/o.git" fetch -qf "$t/b" "HEAD:refs/heads/handoff-body/topic-c"; OC=$(git -C "$t/o.git" rev-parse refs/heads/handoff-body/topic-c)
   handoff_arm >/dev/null 2>&1
-  chk "a handoff-body ref with no open PR is OWED" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff-body/topic-c $OC$" "$LV"
+  chk "a handoff-body ref with no open PR is OWED" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff-body/topic-c $OC ct=" "$LV"
   dispose refs/heads/handoff/topic-b "$OB" >/dev/null; dispose refs/heads/handoff-body/topic-c "$OC" >/dev/null
   handoff_arm >/dev/null 2>&1
   chk "disposed no-PR refs are not owed" 1 grep -q "handoff-no-pr" "$LV"
   git -C "$t/o.git" update-ref -d refs/heads/handoff-body/topic-c; git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b
   hc moved; mkref handoff/topic-b; OB2=$(git -C "$t/pr" rev-parse HEAD)
   handoff_arm >/dev/null 2>&1
-  chk "a disposed no-PR ref that moved is OWED again" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB2$" "$LV"
+  chk "a disposed no-PR ref that moved is OWED again" 0 grep -q "^OWED .* handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
   failprs=$t/failprs.sh; printf '#!/bin/sh\nexit 1\n' > "$failprs"; chmod +x "$failprs"
   HPO_RELAY_PRS=$failprs handoff_arm >/dev/null 2>&1
-  chk "a failed PR listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2$" "$LV"
+  chk "a failed PR listing leaves the level as it was (unknown is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b; : > "$LOG"
   chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
