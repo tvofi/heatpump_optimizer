@@ -2021,9 +2021,12 @@ def heat_loss_anchor_pair(
     evidence is ``void``); otherwise the total is re-expressed as one zone,
     the ratio kept -- the law blends toward the nameplate at partial
     confidence, so re-anchoring an unmoved split would pull the lower zone
-    off its measurement. ``None``: below ``step`` everywhere, keep the store.
+    off its measurement. ``None``: below ``step`` everywhere, or a total not
+    positive on either side (a store with no anchor), keep the store.
     """
     (total_then, lower_then), (total_now, lower_now) = stored, live
+    if min(total_then, total_now) <= 1e-9:
+        return None
     upper = (total_then - lower_then * ratio, total_now - (lower_now or 0.0) * ratio)
     if lower_now and lower_then > 1e-9 and min(upper) > 1e-9:
         then, now = (upper[0], lower_then), (upper[1], lower_now)

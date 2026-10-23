@@ -4989,10 +4989,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _heat_loss_anchors(self) -> dict[str, Any]:
         """The ``_HEAT_LOSS_ANCHOR_KEYS`` as the configuration in force writes them."""
         ctx = getattr(self, "_ctx", self)
-        p = ctx._thermal_params
         return {
             "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
-            "lower_floor_loss_anchor": p.lower_floor_heat_loss if p.two_zone_enabled else None,
+            "lower_floor_loss_anchor": ctx._thermal_params.lower_floor_heat_loss
+            if ctx._thermal_params.two_zone_enabled else None,
             "house_heat_loss_basis": heat_loss_basis(ctx._config),
         }
 
@@ -5027,30 +5027,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         anchor = _as_float(stored.get("house_heat_loss_anchor"), 0.0)
         live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
-        current, lower_now = live["house_heat_loss_anchor"], live["lower_floor_loss_anchor"]
-        if anchor <= 1e-9 or current <= 1e-9:
-            # A pre-fix store carries no anchor: nothing to re-express,
-            # and the caller adopts one on its next save.
-            return False
-        bases = (stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
-        void = heat_loss_basis_voids(*bases)
+        current = live["house_heat_loss_anchor"]
+        void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
         pair = heat_loss_anchor_pair(
             (anchor, _as_float(stored.get("lower_floor_loss_anchor"), 0.0)),
-            (current, lower_now), ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
+            (current, live["lower_floor_loss_anchor"]),
+            ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
         )
         if pair is None:
+            # Below the gate, or a pre-fix store with no anchor to re-express,
+            # which the caller adopts on its next save.
             return False
-        then, now = pair
         if void:
             self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
         phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
-        new_scale, new_ratio = reanchor_heat_loss(then, now, self._house_heat_loss_scale, ratio, phi)
-        new_ratio = DEFAULT_LOWER_FLOOR_LOSS_RATIO if void else new_ratio
+        new_scale, new_ratio = reanchor_heat_loss(*pair, self._house_heat_loss_scale, ratio, phi)
         if not LOWER_FLOOR_LOSS_RATIO_MIN <= new_ratio <= LOWER_FLOOR_LOSS_RATIO_MAX:
             _LOGGER.warning(
-                "Learned lower floor loss ratio %.3f (%d samples) cannot be expressed against the "
-                "newly configured %.4f kW/°C: resetting to the configuration",
-                ratio, self._lower_floor_loss_samples, now[1],
+                "Learned lower floor loss ratio %.3f (%d samples) re-anchors to %.3f against "
+                "the newly configured lower floor loss, outside its bounds: resetting to the "
+                "configuration",
+                ratio, self._lower_floor_loss_samples, new_ratio,
             )
             new_ratio, self._lower_floor_loss_samples = DEFAULT_LOWER_FLOOR_LOSS_RATIO, 0
         if not HOUSE_HEAT_LOSS_SCALE_MIN <= new_scale <= HOUSE_HEAT_LOSS_SCALE_MAX:
@@ -5067,10 +5064,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             new_scale, self._house_heat_loss_samples = DEFAULT_HOUSE_HEAT_LOSS_SCALE, 0
         _LOGGER.info(
             "Re-anchored learned house heat loss scale %.3f -> %.3f and ratio %.3f -> %.3f "
-            "against the configured UA %.4f -> %.4f kW/°C on the %s -> %s basis "
-            "(confidence %.2f, %.2f)",
+            "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "
+            "evidence voided by a later power basis: %s)",
             self._house_heat_loss_scale, new_scale, ratio, new_ratio,
-            anchor, current, *bases, *phi,
+            anchor, current, *phi, void,
         )
         self._apply_house_heat_loss_scale(new_scale)
         self._apply_lower_floor_loss_ratio(new_ratio)
