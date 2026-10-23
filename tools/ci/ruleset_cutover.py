@@ -520,6 +520,82 @@ def self_test() -> int:
         rc, out = run(FakeGh(ruleset, green), ["--rollback", "relative.json"])
         check("rollback: a relative path refuses", rc == 2, out)
 
+    # THE RULESET-OFF WINDOW (tvofi 2026-10-23, under the R10 mandate): --disable turns
+    # enforcement off for P2b's merge, --enable PUTs [gate] after it, --verify reads main's gate.
+    with tempfile.TemporaryDirectory() as td:
+        staged = os.path.join(td, "staged.json")
+        Path(staged).write_text(json.dumps(ruleset))
+        k = iter(range(10**6))
+
+        def rbp():
+            return os.path.join(td, f"rb-{next(k)}.json")
+
+        def runs_at(*named):
+            return lambda c: {"total_count": len(named), "check_runs": [
+                {"id": 910000 + i, "name": nm, "head_sha": H, "status": "completed", "conclusion": cc,
+                 "app": {"id": GATE_APP_ID}, "check_suite": {"id": 710000 + i}} for i, (nm, cc) in enumerate(named)]}
+        window = [("tests / fast (3.14)", "success"), ("governance / policy-docs", "failure"),
+                  ("governance / env-matrix", "failure"), ("governance / wave-script", "failure"),
+                  ("gate", "failure")]
+        g_win = variant(check_runs=runs_at(*window))
+
+        def dis(g, **over):
+            v = {"--rollback-file": rbp(), "--staged": staged, "--head": H, "--pr": str(PR), **over}
+            f = FakeGh(ruleset, g)
+            rc, out = run(f, ["--disable", *[x for kv in v.items() if kv[1] is not None for x in kv]])
+            return f, rc, out, v["--rollback-file"]
+        f, rc, out, rb = dis(g_win)
+        check("disable: only the base-pinned reds (and gate) at H: succeeds", rc == 0, out)
+        check("disable: one PUT, the copy with enforcement disabled and nothing else changed",
+              f.puts == [{**six(ruleset), "enforcement": "disabled"}], str(f.puts)[:300])
+        check("disable: saves the 17 copy and prints the next step",
+              os.path.exists(rb) and "--enable" in out and "reds-at-head: PASS" in out, out)
+        f, rc, out, rb = dis(g_win, **{"--staged": None})
+        check("disable: refuses outside the staged sequence (no --staged), no PUT",
+              rc == 2 and f.puts == [] and not os.path.exists(rb), out)
+        for name, extra in (("a unit red besides the three", ("tests / closures", "failure")),
+                            ("a check still running", ("tests / coverage", None))):
+            g = variant(check_runs=runs_at(*window, extra))
+            if extra[1] is None:
+                g["check_runs"]["check_runs"][-1]["status"] = "in_progress"
+            f, rc, out, _ = dis(g)
+            check(f"disable plant {name}: refuses, no PUT",
+                  rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        f, rc, out, _ = dis(variant(user=lambda u: {"login": "hpo-author[bot]"}))
+        check("disable plant caller not tvofi: refuses, no PUT", rc == 2 and f.puts == [], out)
+
+        # --enable: from the disabled copy, after P2b's merge commit is on main.
+        rb = rbp()
+        Path(rb).write_text(json.dumps(ruleset))
+        off = {**ruleset, "enforcement": "disabled"}
+
+        def ena(state, cmp_status="ahead", rbf=rb):
+            g = variant(user=lambda u: u)
+            g["compare"] = {"status": cmp_status}
+            f = FakeGh(state, g)
+            rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40])
+            return f, rc, out
+        f, rc, out = ena(off)
+        check("enable: PUTs [gate] with the copy's own enforcement, both halves read back",
+              rc == 0 and f.puts and contexts(f.puts[0]) == NEW_CHECKS
+              and f.puts[0]["enforcement"] == ruleset["enforcement"]
+              and "half 1 OK" in out and "half 2 OK" in out, out)
+        f, rc, out = ena(ruleset)
+        check("enable: refuses when the live ruleset is not the disabled copy", rc == 2 and f.puts == [], out)
+        f, rc, out = ena(off, "behind")
+        check("enable: refuses when the merge commit is not on main", rc == 2 and f.puts == [], out)
+
+        # --verify: main's push gate, every suite's newest green.
+        rc, out = run(FakeGh(ruleset, green), ["--verify", "--head", H])
+        check("verify: every suite's newest gate green passes", rc == 0 and "VERIFY OK" in out, out)
+        rc, out = run(FakeGh(ruleset, variant(check_runs=gate(conclusion="failure"))), ["--verify", "--head", H])
+        check("verify: a red newest gate fails, and names the rollback", rc == 1 and "--rollback" in out, out)
+        # --rollback restores the 17 from the disabled state too.
+        f = FakeGh(off, green)
+        rc, out = run(f, ["--rollback", rb])
+        check("rollback from the disabled window: restores the copy whole",
+              rc == 0 and f.puts == [six(ruleset)], out)
+
     print(f"ruleset_cutover self-test: {checks} checks, {failed} failed")
     return 1 if failed else 0
 
