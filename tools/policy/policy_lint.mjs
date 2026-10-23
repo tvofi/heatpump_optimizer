@@ -5167,11 +5167,11 @@ function assertAcceptance(derived) {
   const rcFixture = (contexts, rulesets = [1]) => JSON.stringify({ contexts, rulesets })
   // THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). The record names the post-PUT set
   // (`gate`) and, as `pre_cutover`, the set the ruleset holds until
-  // ruleset_cutover.py --apply. Either WHOLE shape is accepted, and the
+  // ruleset_cutover.py --enable. Either WHOLE shape is accepted, and the
   // pre-cut-over match is said out loud; a set that is neither -- half
-  // migrated, or anything else -- is refused as before. Without the arm the
-  // P2b head's `policy-docs`, and so its `gate`, is red until the PUT, and
-  // the PUT's own gate-at-head precondition refuses on that red.
+  // migrated, or anything else -- is refused as before. Without the arm P2b's
+  // own `policy-docs` reads its record against the live 17 and is red, on its
+  // head and on main's push between P2b's merge and the PUT.
   pins += 4
   const RC_POST = { contexts: ['gate'], count: 1, rulesets: [1] }
   const rcBoth = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [1] } })

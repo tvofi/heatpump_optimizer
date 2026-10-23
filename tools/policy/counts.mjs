@@ -496,7 +496,7 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
 }
 
 // THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). Between the tree that records the
-// post-PUT set and tools/ci/ruleset_cutover.py --apply, the live ruleset still
+// post-PUT set and the cut-over PUT (tools/ci/ruleset_cutover.py --enable), the live ruleset still
 // holds the old set. `pre_cutover` records that set WHOLE (contexts, rulesets,
 // ruleset_objects), and a live set equal to it passes with a line that says so;
 // a live set that is neither recorded shape reports its drift against the
@@ -512,7 +512,7 @@ export function cutoverDrift(fixtureRel, fixture, live, say = console.log) {
   }
   const asPre = { ...fixture, contexts: pre.contexts, rulesets: pre.rulesets, ruleset_objects: pre.ruleset_objects }
   if (requiredContextsDrift(fixtureRel, asPre, live).length) return drift
-  say('  note     required-contexts     the live set is the recorded PRE-CUT-OVER shape (`pre_cutover`), accepted whole until ruleset_cutover.py --apply')
+  say('  note     required-contexts     the live set is the recorded PRE-CUT-OVER shape (`pre_cutover`), accepted whole until the cut-over PUT (ruleset_cutover.py --enable)')
   return []
 }
 
