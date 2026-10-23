@@ -2579,7 +2579,7 @@ def _watched_cop_buckets(baseline: Mapping[Any, Any]) -> int:
     return sum(
         1
         for entry in baseline.values()
-        if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+        if np.isfinite(entry[1]) or int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
     )
 
 
