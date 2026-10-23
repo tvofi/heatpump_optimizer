@@ -1,0 +1,7 @@
+  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//r10-raise-paths.VwJCVv/none.md
+  ERROR   [pr-body] /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//r10-raise-paths.VwJCVv/none.md: the diff raises 1 cap(s) (tests/structure_budgets.json: class_excess_loc: 18234 -> 18235 (a cap went up)) and the body has no `## Raise justification` section, which a mandated raise owes -- budget_raise_gate.py refuses this body at merge time, so it is refused here: a raise's body carries `## Raise justification` with a `Payments tried: <what>` line and an `Architecture score: dS <n> <IMPROVES|NULL|WORSENS>` line inside it, before the next `#` or `##` heading.
+
+PR-BODY: 1 error(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//r10-raise-paths.VwJCVv/none.md
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)

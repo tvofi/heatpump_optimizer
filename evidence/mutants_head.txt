@@ -1,0 +1,44 @@
+MUTANT M1-no-exclusion rc=1
+    FIXTURE VACUOUS: with mutation over threshold on every occasion the family holds, the family line fired anyway -- the same three pull requests filed twice (#241
+    FIXTURE VACUOUS: the double window's family reaches 5 only by re-counting mutation-vacuous's 3 filed occasions, and it printed a family line (#2410, #2561 secti
+    FIXTURE VACUOUS: the residual window did not print exactly one `mutation (family)` line at 3 -- the occasions no member line counts (a fold re-counting 9333 rea
+MUTANT M2-no-synonyms rc=1
+    FIXTURE VACUOUS: the residual window did not print exactly one `mutation (family)` line at 3 -- the occasions no member line counts (a fold re-counting 9333 rea
+MUTANT M3-no-raise-call rc=1
+    FIXTURE VACUOUS: the raise-justification arm on prepr/raise/bare-payments.md drew 0 error(s) (); budget_raise_gate.py refuses this body on its `Payments tried` 
+MUTANT M4-check-body-ok rc=1
+    FAIL --check-body: a bare `Payments tried:` heading over a list exits 1 and names the clause: got (0, True), want (1, True)
+    FAIL --check-body: a score line with no verdict word exits 1 and names the clause: got (0, True), want (1, True)
+    FAIL --check-body: a verdict-bearing score line outside the section exits 1 and names the clause: got (0, True), want (1, True)
+    FAIL e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing: got (0, True, True, []), want (1, True, True, [])
+    FAIL e2e: --check-body: a malformed section is refused on a diff that raises nothing: got (0, True), want (1, True)
+MUTANT M5-js-heading-test rc=1
+    DIVERGENT     raise-justification "body 29 \"x\\n\\u001c## Raise justification\\nPaym\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustific
+    DIVERGENT     raise-justification "body 30 \"x\\n
+    DIVERGENT     raise-justification "body 32 \"x\\n﻿## Raise justification\\nPaym\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification
+    DIVERGENT     raise-justification "body 34 \"x\\n## Raise justification\\u001f\\nPaym\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustific
+    DIVERGENT     raise-justification "body 37 \"x\\r## Raise justification\\rPayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustification=
+    DIVERGENT     raise-justification "body 39 \"x\\u000b## Raise justification\\u000bPayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustif
+    DIVERGENT     raise-justification "body 40 \"x\\f## Raise justification\\fPayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustification=
+    DIVERGENT     raise-justification "body 41 \"x\\u001c## Raise justification\\u001cPayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustif
+    DIVERGENT     raise-justification "body 42 \"x\\u001d## Raise justification\\u001dPayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustif
+    DIVERGENT     raise-justification "body 43 \"x\\u001e## Raise justification\\u001ePayme\"": budget_raise_gate.py justification=true  policy_lint.mjs raiseJustif
+    DIVERGENT     raise-justification "body 44 \"x
+    DIVERGENT     raise-justification "body 45 \"x
+    DIVERGENT     raise-justification "body 46 \"x
+    RESULT divergent=13 unregistered=0 dead=0 refused=0 seconds=4.8
+MUTANT M6-gate-no-diff-raise rc=1
+    FAIL e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing: got (0, False, False, []), want (1, True, True, [])
+MUTANT M7-no-budget-trigger rc=1
+    FIXTURE VACUOUS: the raise-justification arm on a budget path, no --base drew 0 error(s) (); it must draw exactly one, naming `was not read`
+MUTANT M8-no-base-refusal rc=1
+    FIXTURE VACUOUS: the raise-justification arm on a budget path, no --base drew 1 error(s) (the body has no `## Raise justification` section, which a mandated rai
+MUTANT M9-no-base-forward rc=1
+    FIXTURE VACUOUS: the raise-justification arm on a budget path, a base git cannot read drew 1 error(s) (the body has no `## Raise justification` section, which a
+MUTANT M10-pr-contract-no-base rc=1
+    FIXTURE VACUOUS: .github/workflows/pr-contract.yml no longer passes --base in the body-check invocation; a raise whose body has no `## Raise justification` woul
+MUTANT M11-prepr-no-base rc=3
+MUTANT M12-body-patch-no-base rc=1
+    FAIL policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check (got '0', want '1')
+RESTORED 12 file(s)
+rc=0

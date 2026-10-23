@@ -1,0 +1,1 @@
+pr-body ok: PR-BODY: 0 error(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//r10-raise-paths.fhSjTa/section.md -- 1 budget raise(s), budget-raise-gate red until tvofi approves at the head: tests/structure_budgets.json: class_excess_loc: 18244 -> 18245 (a cap went up)

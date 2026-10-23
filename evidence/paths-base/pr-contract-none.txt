@@ -1,0 +1,1 @@
+bash: line 18: RED_ARGS[@]: unbound variable

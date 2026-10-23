@@ -1,0 +1,10 @@
+RESULT line=mutation-vacuous kind=verdict-class count=5
+RESULT line=mutation (family) kind=verdict-family count=7
+CLAUSE counted as DISTINCT pull requests across them (7 entries in all), less the 5 that mutation-vacuous already files on its own line
+PRS mutation 2390
+PRS mutation-vacuous 2275,2305,2365,2404,2406
+PRS mutation-survivor 2444
+PRS test-vacuous 2297,2360
+PRS vacuous-test 2391
+PRS vacuous-check 2400
+PRS mutant-survives 2376
