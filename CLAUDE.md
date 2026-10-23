@@ -79,13 +79,12 @@ and an orphan `.mdc`.
 
 `AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
 name instead of this one (ZCode, Codex); it states no policy of its own and
-binds the seat to this file. It is measured policy: `POLICY_GLOBS` matches it
-and `policy_budgets.json` caps it.
+binds the seat to this file.
 
 | rule | what it binds |
 |---|---|
 | `brief-citations.md` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric or a stated count the tree answers is an error; extending the plan format extends the linter in the same pull request |
-| `ci-autofix.md` | three jobs already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
+| `ci-autofix.md` | three jobs already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — repair a red `prepr.sh` predicts before the handoff; once a PR exists, wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
@@ -108,7 +107,7 @@ template and contract are one file.
 
 ### Role contracts — open the one you are
 
-Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
+Under `dev/governance/roles/`.
 
 | contract | the role |
 |---|---|
@@ -117,6 +116,13 @@ Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
 | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
+| `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
+| `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
+| `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
+| `standing-tick.md` | reports only owed or new tick-board items |
+| `standing-merge.md` | runs merges, critical path first, never choosing them |
+| `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
+| `standing-roster.md` | `roster_edit.py` ops only, behind the lint gate |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
@@ -152,9 +158,8 @@ individually, because a range reads as complete while covering a fraction:
 
 ### Instruments
 
-`tools/audit/seat/` is the instrument inventory (merge train, verdict bus, PR
-openers and updaters, crash-safety snapshot, merge and absorb, CI watcher, seat
-venv, tmp-path detector); the gate-check family is in `.claude/workflows/`, the
+`tools/audit/seat/` is the instrument inventory, listed in its
+instruments guide; the gate-check family is in `.claude/workflows/`, the
 architecture score in `tools/audit/archscore/`, per-group harnesses in
 `dev/audit/harnesses/` and `dev/audit/rounds/round9/`. Check it before hand-rolling
 any merge, push, body, gate or watch loop; new reusable instruments land here,
@@ -165,7 +170,7 @@ never only in /tmp (decision 0013).
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
 - `dev/audit/README.md` — how a round is run and where its evidence lands.
-- `dev/programme/HANDOVER.md` — state, not policy: the one durable handover, ruled by
+- `dev/programme/HANDOVER.md` — the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 
 ## Fix it; if you cannot, verify it independently; only then file it

@@ -17,8 +17,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
    and a vacuous mutation reads exactly like a passing check — `exit 3` on the
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
-   on every mutant, baseline included — the M0 null run attributes it to
-   the runner (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
+   on every mutant, baseline included: the runner's, not the mutant's
+   (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
    `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
    `## Unpinned sites` gives each its disposition: pinned by
    `mutation-autofix`, a value check, or a written triage.
@@ -57,8 +57,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
 
-   **Running locally does not discharge CI.** What `scope.run` names is green
-   locally and the body passes `tools/pr/prepr.sh`; the orchestrator opens
+   **Running locally does not discharge CI.** What `scope.run` names is green,
+   every red `prepr.sh` step 6d predicts is repaired before the handoff
+   (`ci-autofix.md`'s wait starts at the PR), and the body passes
+   `tools/pr/prepr.sh`; the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
@@ -93,9 +95,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    (a `--carry` head: no re-take; name bot reds), and carries every executed number,
    each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
-   Three agents counting "the same" published-attribute census (#373) got 59, 50,
-   and 124/147/50, because each asked a subtly different question; only a count whose
-   rule is written down is re-derivable by whoever reads the body next.
+   Only a count whose rule is written down is re-derivable (#373: one census, three counts).
    **Name the instrument you re-ran, and its scope.** If the block you are clearing
    was demonstrated with an *instance*, your verification may not be a search for
    that instance — it must check the property the phenomenon states, not the property
@@ -254,9 +254,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
     class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
-    `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
-    one-off probe may stay in scratch. `tools/audit/seat/tmp_paths.py` refuses
-    temp or machine paths.
+    `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`,
+    classified (step 5); a one-off probe may stay in scratch.
+    `git status` lists each (`git check-ignore -v` names a local exclude hiding
+    one); `tools/audit/seat/tmp_paths.py` refuses temp or machine paths.
 
 **When a budget blocks the work** (`tests/structure.py`, or a cap
 `policy_lint.mjs --budgets` prints), the answers come in order (tvofi,
@@ -273,10 +274,6 @@ module. A method added outside that **class** moves none of the first group, so
 the payment question does not arise there. *Class*, not file: `coordinator.py`
 holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
 Derive the split (what `measure()` keys by that name) at your merge base; never carry it.
-
-**Read the expression, not the value.** `attrbag_classes_over_30` has the
-coordinator as its only member and a `top_is_coordinator` flag beside it, yet is
-tree-wide: enough attributes on a class in any other module move it.
 
 **An empty payment pool is a halt only where a payment was owed.** Let
 `python3 tests/structure.py` name what moved at your merge base. Outside the

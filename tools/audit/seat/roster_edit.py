@@ -80,6 +80,18 @@ Ops (all group ids must exist, except append-group which must not):
   set-after    replaces the group's after-edges whole (`-` for none),
                refusing an unknown group, a self-edge, a repeated edge and
                a cycle in the resulting after-graph;
+THE TRIAGE GATE (decision 0015). Every process, tooling or instrument proposal
+passes dev/governance/roles/proposal-triage.md before it reaches the roster, so
+the write path refuses roster text a proposal sourced that cites no ACCEPT
+ruling. The text judged is what this write ADDS (a new group's brief and
+carries, a changed brief, an appended carry), so every caller of
+`write_roster()` -- this file's ops and roster_sync.py's carries -- passes it.
+Text is proposal-sourced when it names one (`triage P<n>`, `proposal P<n>`,
+any case); a citation is `triage: dev/programme/triage/<file>.md#P<n>`, read
+from the edit's base (the roster branch) and else from origin/main, and must
+name a `## P<n>:` entry whose `Verdict:` is ACCEPT. A citation that does not
+resolve is refused whether or not the text names a proposal.
+
   drop-carry   removes one carry entry by 0-based index or by the one entry
                containing --match TEXT, refusing an absent carry, an index
                out of range, no match and an ambiguous match; dropping the
@@ -113,6 +125,11 @@ SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 # checkout being linted.
 BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
 BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
+
+
+PROPOSAL_RE = re.compile(r"\b(?:triage|proposal)\s+P\d+\b", re.I)
+RULING_CITE_RE = re.compile(r"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#(P\d+)\b")
+VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
 
 
 #: One push plus two re-applications on a rival's new tip; past that the
@@ -370,6 +387,66 @@ def _text(arg):
     return arg
 
 
+def added_texts(before, after):
+    """The roster text `after` adds over `before`: a new group's brief and
+    carries, a changed brief, and carry entries `before` did not hold."""
+    old = {g.get("group"): g for g in before.get("groups", [])}
+    out = []
+    for g in after.get("groups", []):
+        o = old.get(g.get("group"))
+        carry = g.get("carry") or []
+        if o is None:
+            out += [g.get("brief") or "", *carry]
+            continue
+        if g.get("brief") != o.get("brief"):
+            out.append(g.get("brief") or "")
+        held = o.get("carry") or []
+        out += [c for c in carry if c not in held]
+    return [x for x in out if isinstance(x, str) and x]
+
+
+def ruling_verdict(src, pid):
+    """The `Verdict:` of the `## <pid>:` entry in a triage batch file: ACCEPT,
+    REJECT or DEFER; None when no such entry; "unreadable" when it has no
+    verdict line."""
+    m = re.search(rf"^## {re.escape(pid)}:.*?$(.*?)(?=^## |\Z)", src, re.M | re.S)
+    if not m:
+        return None
+    v = VERDICT_LINE_RE.search(m.group(1))
+    return v.group(1) if v else "unreadable"
+
+
+def triage_refusal(texts, read_ruling):
+    """Why the added `texts` may not land, or None. `read_ruling(path)` is the
+    batch file's source, or None when it does not exist."""
+    for text in texts:
+        cites = RULING_CITE_RE.findall(text)
+        if PROPOSAL_RE.search(text) and not cites:
+            return (f"proposal-sourced text cites no triage ruling "
+                    f"(`triage: dev/programme/triage/<file>.md#P<n>`): {text[:120]!r}")
+        for path, pid in cites:
+            src = read_ruling(path)
+            if src is None:
+                return f"the triage ruling {path} is not on the roster branch or origin/main"
+            verdict = ruling_verdict(src, pid)
+            if verdict != "ACCEPT":
+                return (f"{path}#{pid} is not an ACCEPT ruling "
+                        f"({'no such entry' if verdict is None else verdict})")
+    return None
+
+
+def ruling_reader(worktree, checkout):
+    """A triage batch file from the edit's base, else from origin/main."""
+    def read(rel):
+        f = Path(worktree) / rel
+        if f.is_file():
+            return f.read_text(encoding="utf-8")
+        r = subprocess.run(["git", "-C", str(checkout), "show", f"origin/main:{rel}"],
+                           capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+    return read
+
+
 # ----------------------------------------------------------------- flow
 def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
     """A throwaway DETACHED worktree at the branch's remote tip when one
@@ -512,8 +589,13 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
         path = Path(worktree) / rel
         print(f"roster: {rel} on {branch}")
         roster = json.loads(path.read_text(encoding="utf-8"))
+        before = json.loads(path.read_text(encoding="utf-8"))
         if not edit(roster):
             return 0
+        why = triage_refusal(added_texts(before, roster),
+                             ruling_reader(worktree, checkout))
+        if why:
+            raise Refuse(f"triage gate: {why}; nothing written")
         path.write_text(dump(roster), encoding="utf-8")
         if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
             print(f"no change: {label} wrote the roster's own bytes "
@@ -878,6 +960,54 @@ def _self_test() -> int:
     check("dup carry refused",
           edit("append-carry", "R9-A", "carry text one") == 2)
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
+
+    # The triage gate (decision 0015). The ruling batch lands on origin/main;
+    # the edit branch does not carry it, so the reader's main fallback is
+    # what finds it. Null control: the same op with an ACCEPT ruling passes.
+    ruling = "dev/programme/triage/s9-batch1.md"
+    (seed / ruling).parent.mkdir(parents=True, exist_ok=True)
+    (seed / ruling).write_text(
+        "# s9 batch 1\n\n## P1: fold the orphan discharge arm\n"
+        "Verdict: ACCEPT -> R9-B (carry)\nSource: sweep\n\n"
+        "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
+        "## P3: no verdict line\nSource: sweep\n\n"
+        "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n", encoding="utf-8")
+    run(["git", "-C", str(seed), "add", "-A"])
+    run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture triage ruling"])
+    run(["git", "-C", str(seed), "push", "-q", str(origin), "main:refs/heads/main"])
+    bare = "Triage P1 (s9): fold the orphan discharge arm."
+    cited = bare + f" triage: {ruling}#P1"
+    check("triage gate: a proposal-sourced carry citing no ruling is refused",
+          refuses("cites no triage ruling", "append-carry", "R9-B", bare)
+          and bare not in branch_roster()["groups"][1]["carry"])
+    check("triage gate null control: the same carry citing its ACCEPT ruling lands",
+          edit("append-carry", "R9-B", cited) == 0
+          and cited in branch_roster()["groups"][1]["carry"])
+    check("triage gate: a REJECT ruling is refused",
+          refuses("REJECT", "append-carry", "R9-B", f"proposal P2: a watcher. triage: {ruling}#P2"))
+    check("triage gate: a DEFER ruling is refused: only an ACCEPT is routed",
+          refuses("DEFER", "append-carry", "R9-B", f"proposal P4: a watcher. triage: {ruling}#P4"))
+    check("triage gate: an entry with no verdict line is refused",
+          refuses("unreadable", "append-carry", "R9-B", f"proposal P3. triage: {ruling}#P3"))
+    check("triage gate: a cited entry the batch lacks is refused",
+          refuses("no such entry", "append-carry", "R9-B", f"proposal P7. triage: {ruling}#P7"))
+    check("triage gate: a citation to a missing batch is refused, proposal named or not",
+          refuses("not on the roster branch", "append-carry", "R9-B",
+                  "plain text. triage: dev/programme/triage/nope.md#P1"))
+    check("triage gate: a new group's brief is judged",
+          refuses("cites no triage ruling", "edit-brief", "R9-A", "brief from proposal P4"))
+    check("triage gate: text naming no proposal passes untouched",
+          edit("append-carry", "R9-B", "a forward-carried finding, no proposal") == 0)
+    check("added_texts: only what the write adds is judged",
+          added_texts({"groups": [{"group": "A", "brief": "b", "carry": ["old"]}]},
+                      {"groups": [{"group": "A", "brief": "b", "carry": ["old", "new"]},
+                                  {"group": "N", "brief": "nb", "carry": ["nc"]}]})
+          == ["new", "nb", "nc"])
+    # Leave R9-B's carry as the drop-carry arms below expect it: empty.
+    check("triage gate fixture restored",
+          edit("drop-carry", "R9-B", None, match="orphan discharge") == 0
+          and edit("drop-carry", "R9-B", None, match="no proposal") == 0
+          and branch_roster()["groups"][1]["carry"] == [])
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
