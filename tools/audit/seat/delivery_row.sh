@@ -35,9 +35,7 @@ commit_row() { # <worktree> <N> <line>: write, add and commit the row as tvofi; 
   # exported GIT_COMMITTER_NAME beats `-c user.name`, and GIT_AUTHOR_NAME beats
   # it too, so a seat's identity variables cannot re-sign the row.
   GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git -C "$1" commit -q \
-    --author='tvofi <70032254+tvofi@users.noreply.github.com>' -m "record: the delivery row for #$2
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" || return 1
+    --author='tvofi <70032254+tvofi@users.noreply.github.com>' -m "record: the delivery row for #$2" || return 1
   echo "$p"
 }
 has_row() { # <worktree> <N>: rc 0 when HEAD carries the row
@@ -81,6 +79,9 @@ delivery_row_self_test() ( # a subshell: the throwaway git environment stays in 
   ck "no group writes no empty parentheses" $?
   [ "$(row_line 3 o/r T G)" = "- [#3](https://github.com/o/r/pull/3) — **open**, T (G)" ]
   ck "a group, when given, closes the row in parentheses (open_pr.sh's shape)" $?
+  # The row commit's whole message, read by ref_privacy's own reader (not a copy of its pattern).
+  [ -z "$(git -C "$t/r" log -1 --format=%B | python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import ref_privacy; print(" ".join(ref_privacy.attribution(sys.stdin.read())))' "$(dirname -- "${BASH_SOURCE[0]}")")" ]
+  ck "the row commit's message carries no attribution trailer (ref_privacy's reader finds none)" $?
   rm -rf "$t"
   echo "delivery_row self-test: $n checks, $f failed"
   [ "$f" = 0 ]
