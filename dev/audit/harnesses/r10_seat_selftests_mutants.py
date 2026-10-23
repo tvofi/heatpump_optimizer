@@ -173,6 +173,17 @@ MUTANTS = [
      "            self.fetch(self.remote, self.num(pr))\n        if False:\n"),
     ("ci_probe-7", "ci_probe.py", "        if not self.commit(sha):\n            raise Refuse(f\"'{sha}' is not the full SHA",
      "        if False:\n            raise Refuse(f\"'{sha}' is not the full SHA"),
+    # r10-ci-layout-p2b U6: the three added writes. -8/-9 the SARIF's commit and category shapes, -10 its ref,
+    # -11 the dismissal reason list, -12 the dismissal comment's host-path refusal, -13 the disable endpoint,
+    # -14 the workflow-name guard of workflow-disable alone (dispatch's twin guard is untouched).
+    ("ci_probe-8", "ci_probe.py", "        if not SHA_RE.match(commit):\n", "        if False:\n"),
+    ("ci_probe-9", "ci_probe.py", "        if not CATEGORY_RE.match(category):\n", "        if False:\n"),
+    ("ci_probe-10", "ci_probe.py", '"ref": f"refs/pull/{self.num(pr)}/merge"', '"ref": "refs/heads/main"'),
+    ("ci_probe-11", "ci_probe.py", "        if reason not in DISMISS_REASONS:\n", "        if False:\n"),
+    ("ci_probe-12", "ci_probe.py", "        why = ref_privacy.body_refusal(comment)\n", "        why = None\n"),
+    ("ci_probe-13", "ci_probe.py", 'self.r(f"actions/workflows/{workflow}/disable")', 'self.r(f"actions/workflows/{workflow}/enable")'),
+    ("ci_probe-14", "ci_probe.py", "def do_workflow_disable(self, workflow: str) -> str:\n        if not re.match(",
+     "def do_workflow_disable(self, workflow: str) -> str:\n        if False and re.match("),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
