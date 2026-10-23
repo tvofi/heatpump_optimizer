@@ -54,8 +54,9 @@ other bots key their guards on their own subjects (`ci-autofix.md`); after
 this commit they run as they would after a seat's merge.
 
 --dry-run decides and prints every pull request's status, and pushes nothing.
-`--pushed-file` gets one `<branch> <sha>` line per push, for the workflow's
-dispatch and held-run approval steps.
+`--pushed-file` gets one `<branch> <sha> <pr> <base>` line per push (per
+planned push under --dry-run), for the workflow's `ci.yml` dispatch and
+held-run approval steps.
 """
 from __future__ import annotations
 
@@ -239,6 +240,11 @@ def plan_pr(repo_slug: str, p: dict, main: str, repo: str = ".", api=None,
     return status, tree, head
 
 
+def pushed_line(branch: str, sha: str, pr: int, base: str) -> str:
+    """One `--pushed-file` line: the workflow's single `ci.yml` dispatch reads all four."""
+    return f"{branch} {sha} {pr} {base}"
+
+
 def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
         repo: str = ".") -> int:
     pushed = []
@@ -261,6 +267,7 @@ def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
         sha = commit_merge(repo, tree, head, main)
         if dry_run:
             print(f"MERGE-MAIN: #{n} merge (dry run, not pushed) {head[:12]} -> {sha[:12]}")
+            pushed.append(pushed_line(branch, sha, n, p["base"]["ref"]))
             continue
         auth = os.environ.get("PUSH_AUTH", "")
         cfg = ["-c", f"http.https://github.com/.extraheader=AUTHORIZATION: basic {auth}"] if auth else []
@@ -269,10 +276,10 @@ def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
             print(f"MERGE-MAIN: #{n} skip-push-refused (the head moved?) {r.stderr.strip()[-200:]}")
             continue
         print(f"MERGE-MAIN: #{n} pushed {head[:12]} -> {sha}")
-        pushed.append(f"{branch} {sha}")
+        pushed.append(pushed_line(branch, sha, n, p["base"]["ref"]))
     if pushed_file:
         Path(pushed_file).write_text("".join(f"{l}\n" for l in pushed))
-    print(f"MERGE-MAIN: {len(pushed)} pushed")
+    print(f"MERGE-MAIN: {len(pushed)} {'planned' if dry_run else 'pushed'}")
     return 0
 
 
@@ -335,6 +342,9 @@ def self_test() -> int:
                       {"name": "mutation-nightly", "status": "queued"},
                       {"name": "tests / fast (3.14)", "status": "in_progress"}],
                   6: [{"name": "tests / mutation-autofix", "status": "in_progress"}]}}
+    check("pushed_line carries branch, sha, PR number and base ref, in the order the workflow reads",
+          pushed_line("ci/x", "b" * 40, 12, "main") == f"ci/x {'b' * 40} 12 main",
+          pushed_line("ci/x", "b" * 40, 12, "main"))
     got = pins_running("o/r", "a" * 40, api=api(W))
     check("pins_running names the pin-chain jobs of a run still in progress at the head, and no other "
           "job (a completed run's jobs are not read)",

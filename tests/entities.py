@@ -19196,8 +19196,6 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
-    # D13-s1-03: the contract's re-run follower, read for its pins below.
-    ".github/workflows/pr-contract-rerun.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -27731,7 +27729,6 @@ _PT_EXEMPT = {
     ".claude/workflows/budget_raise_gate.py":
         "reads reviews and issue comments; it reads no "
         "ruleset, and needs pull-requests/issues read, which graders-head-copy lacks",
-    ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
     "tests/nightly_status.py":
         "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
     # The umbrella's programs (U0c). tests.yml's owner (U5) declined the arm:
@@ -28866,8 +28863,7 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
 # defines (`fast`, `browser`, `closures`).
 _GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
               ".github/workflows/budget-raise-gate.yml",
-              ".github/workflows/gate-sweep.yml",
-              ".github/workflows/pr-contract-rerun.yml"]
+              ".github/workflows/gate-sweep.yml"]
 _GOV_FILE_JOBS: "set[str]" = set()
 for _f in _GOV_FILES:
     _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
@@ -29774,122 +29770,56 @@ R.check(
     _TWP_WRONG == [],
     f"wrong verdicts: {[(k, _TWP_GOT[k]) for k in _TWP_WRONG]}",
 )
-# --- D13-s1-03: `pr-contract` lists the reds at the head when it runs, about
-# fifteen seconds after a push, and nothing re-ran it when a red it could not
-# yet see finished later (typing, fast, mutation). pr-contract-rerun.yml is
-# that trigger: when a run of any workflow that reports at a pull request's
-# head concludes red, it asks GitHub to re-run the newest `pr-contract`
-# run at the same head if that run started before the red finished. Its
-# properties are budget-raise-gate-rerun.yml's (above) with two changes: it
-# fires on a RED run, and it watches every workflow that runs on a pull
-# request but the contract itself -- a watched list that misses one is the
-# gap again, so the list is derived here from the workflow files.
-# R10-FOLLOWER-DEBOUNCE: one effective run per head. The runs at one head
-# share a concurrency group cancelling the older, the first step defers while
-# another watched run at the head is unfinished, and the job runs on every
-# conclusion (the last completion may be green after a red deferred to it),
-# handing the program the newest red at the head. Pinned below: an `if:` on
-# the job, a group not keyed on the head, a watched copy that drifts, or a
-# program step not gated on the deferral re-opens the lost red or the cost.
-# The CI umbrella is not watched: its `pr-contract` needs every unit of its
-# own run, so no red of that run lands after the contract read it (U0c).
-_PR_WORKFLOW_NAMES = sorted(
-    str((_yaml.safe_load(t) or {}).get("name"))
-    for t in _PRW_TEXTS.values()
-    if str((_yaml.safe_load(t) or {}).get("name")) != "CI"
-    and {"pull_request", "pull_request_review"} & set(
-        (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(t) or {})))
+# --- R10-CI-LAYOUT P2b U10: the merge-main bot's dispatch. After a token push
+# it dispatches the umbrella once per branch, naming the PR and its base (the
+# prelude verifies them), never the four unit workflows the umbrella replaced;
+# its job runs on main's ref only, so a dispatch aimed at a pull request branch
+# cannot run that branch's copy with `contents: write`; and `pushed.txt` lines
+# carry branch, sha, PR and base for both the dispatch and the approve step.
+_MM_PATH = Path(".github/workflows/merge-main.yml")
 
 
-def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
+def _mm_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
-    on = doc.get(True, doc.get("on")) or {}
     jobs = doc.get("jobs") or {}
-    job = jobs.get("rerun-stale-contract") or {}
-    steps = job.get("steps") or []
-    runs = [str(s.get("run", "")) for s in steps]
-    prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
-    restore = [i for i, r in enumerate(runs)
-               if _restores_workflow_py(r)]
     out = []
-    if set(on) != {"workflow_run"}:
-        out.append(f"triggers {sorted(map(str, on))}")
-    wr = on.get("workflow_run") or {}
-    if sorted(wr.get("workflows") or []) != [w for w in watched if w != "PR contract"] \
-            or wr.get("types") != ["completed"]:
-        out.append(f"workflow_run {wr} does not watch {watched} less the contract")
-    if list(jobs) != ["rerun-stale-contract"]:
-        out.append(f"jobs {list(jobs)}")
-    if doc.get("permissions") != {} or job.get("permissions") != {
-            "actions": "write", "contents": "read"}:
-        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
-    if "if" in job:
-        out.append(f"if: {job.get('if')!r} skips a completion a deferred red may need")
-    cc = doc.get("concurrency") or {}
-    if cc.get("group") != "pr-contract-rerun-${{ github.event.workflow_run.head_sha }}" \
-            or cc.get("cancel-in-progress") is not True:
-        out.append(f"concurrency {cc}")
-    first = steps[0] if steps else {}
-    env0 = first.get("env") or {}
-    try:
-        w0 = json.loads(str(env0.get("WATCHED", "")))
-    except ValueError:
-        w0 = None
-    if first.get("id") != "last" or "uses" in first or w0 != wr.get("workflows") \
-            or env0.get("HEAD_SHA") != "${{ github.event.workflow_run.head_sha }}" \
-            or "head_sha=$HEAD_SHA" not in str(first.get("run", "")):
-        out.append(f"first step {first.get('id')!r} does not defer on the head's watched runs")
-    if any(s.get("if") != "steps.last.outputs.red != ''" for s in steps[1:]) or \
-            (steps[-1].get("env") or {}).get("RUN_ID") != "${{ steps.last.outputs.red }}":
-        out.append("a step after the deferral is not gated on it, or the program is not handed the red")
-    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
-    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
-            or (co[0].get("with") or {}).get("persist-credentials") is not False:
-        out.append(f"checkout {[s.get('with') for s in co]}")
-    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit",
-                 text.split("\njobs:", 1)[-1]):
-        out.append("a pull-request-controlled string reaches the job")
-    if not prog or not restore or prog[0] < restore[0] or not all(
-            re.search(r"python3 -I \.claude/workflows/contract_rerun\.py --rerun ", runs[i])
-            for i in prog):
-        out.append(f"restore at {restore}, program at {prog}")
+    for jid, job in jobs.items():
+        if "github.ref == 'refs/heads/main'" not in str(job.get("if", "")):
+            out.append(f"job {jid} has no main ref guard")
+    runs = "\n".join(str(st.get("run", "")) for j in jobs.values() for st in j.get("steps") or [])
+    disp = re.findall(r"^\s*gh workflow run (\S+)", runs, re.M)
+    if disp != ["ci.yml"]:
+        out.append(f"dispatches {disp}, want exactly ['ci.yml']")
+    if not re.search(r'gh workflow run ci\.yml --ref "\$branch" -f pr="\$pr" -f base="\$base"', runs):
+        out.append("the ci.yml dispatch does not pass -f pr and -f base")
+    reads = re.findall(r"while read -r ([^;]+); do", runs)
+    if len(reads) != 2 or any(len(r.split()) != 4 for r in reads):
+        out.append(f"pushed.txt readers {reads} do not read four fields")
     return out
 
 
-_CRR_PATH = Path(".github/workflows/pr-contract-rerun.yml")
-_CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
-_CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
+_MM_TEXT = _MM_PATH.read_text()
+_MM_DEFECTS = _mm_defects(_MM_TEXT)
 R.check(
-    "a red that lands after pr-contract ran re-runs it: the follower watches every "
-    "pull-request workflow but the contract, defers to the last completion at "
-    "the head and hands it the newest red, holds `actions: write` and runs the "
-    "default branch's program (D13-s1-03, R10-FOLLOWER-DEBOUNCE)",
-    _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
-    f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
+    "merge-main dispatches ci.yml once per pushed branch with -f pr and -f base, "
+    "guards its job on main's ref, and reads four-field pushed.txt lines (U10)",
+    _MM_DEFECTS == [],
+    f"defects: {_MM_DEFECTS}",
 )
-_CRR_NULL = _crr_defects(_CRR_TEXT.replace(
-    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"),
-    _PR_WORKFLOW_NAMES + ["A new pull-request workflow"])
+_MM_NULL = {
+    "ref guard": _MM_TEXT.replace("    if: github.ref == 'refs/heads/main'\n", ""),
+    "four dispatches": _MM_TEXT.replace(
+        'gh workflow run ci.yml --ref "$branch"',
+        'gh workflow run tests.yml --ref "$branch"; gh workflow run ci.yml --ref "$branch"', 1),
+    "no pr/base": _MM_TEXT.replace(' -f pr="$pr" -f base="$base"', ""),
+    "two fields": _MM_TEXT.replace("read -r branch sha pr base;", "read -r branch sha;"),
+}
+_MM_NULL_GOT = {k: _mm_defects(v) for k, v in _MM_NULL.items()}
 R.check(
-    "and the same file checking out the pull request's head, or missing a "
-    "pull-request workflow, is refused (null control)",
-    any(d.startswith("checkout") for d in _CRR_NULL)
-    and any(d.startswith("workflow_run") for d in _CRR_NULL),
-    f"defects on the altered copy: {_CRR_NULL}",
-)
-_CRR_DNULL = _crr_defects(_CRR_TEXT.replace(
-    "  group: pr-contract-rerun-${{ github.event.workflow_run.head_sha }}",
-    "  group: pr-contract-rerun-${{ github.event.workflow_run.id }}").replace(
-    "  rerun-stale-contract:\n",
-    "  rerun-stale-contract:\n    if: github.event.workflow_run.conclusion == 'failure'\n").replace(
-    '"Kernel points", "Tests", "Validate"]\'', '"Kernel points", "Tests"]\'').replace(
-    "RUN_ID: ${{ steps.last.outputs.red }}", "RUN_ID: ${{ github.event.workflow_run.id }}"),
-    _PR_WORKFLOW_NAMES)
-R.check(
-    "and the follower with a per-run group, a red-only job, a watched copy "
-    "missing a workflow, or the trigger's id handed on, is refused (null control)",
-    {d.split(" ")[0] for d in _CRR_DNULL} >= {"concurrency", "if:", "first", "a"},
-    f"defects on the altered copy: {_CRR_DNULL}",
+    "and each of a missing ref guard, a second dispatch, a dispatch without pr/base "
+    "and a two-field reader is refused (null control)",
+    all(v for v in _MM_NULL_GOT.values()),
+    f"defects on the altered copies: {_MM_NULL_GOT}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string

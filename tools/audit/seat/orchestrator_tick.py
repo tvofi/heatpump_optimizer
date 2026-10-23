@@ -1211,7 +1211,7 @@ class Tick:
         """True when GitHub cancelled this run for a newer one in its own
         concurrency group -- its annotation is GitHub's record of why. A
         workflow_run follower of a PR head attaches to main's tip, and one
-        with cancel-in-progress (pr-contract-rerun.yml) is cancelled so by
+        with cancel-in-progress is cancelled so by
         design: its successor's conclusion is the status, and counting it red
         sent a fixer after main for a run that never had a runner. Any other
         cancellation, or an annotation list the API did not return, is red;
@@ -2736,7 +2736,7 @@ def self_test() -> int:
         # design). Its annotation is GitHub's own record of why; any other
         # cancellation, or an unreadable annotation list, stays red.
         sup = ("Canceling since a higher priority waiting request for "
-               f"pr-contract-rerun-{H2} exists")
+               f"follower-{H2} exists")
         for label, ann, want_red in (
                 ("concurrency-superseded", [{"message": sup}], False),
                 ("cancelled otherwise (null control)",

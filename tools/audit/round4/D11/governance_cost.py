@@ -56,14 +56,13 @@ import d11lib as L  # noqa: E402
 # pin only enforced the second direction for governance.yml itself, so a new
 # job added to pr-contract.yml, budget-raise-gate.yml or
 # budget-raise-gate-rerun.yml -- as `rerun-stale-verdict` was -- passed
-# uncounted), so the next job any of the five grows is refused until this
+# uncounted), so the next job any of the four grows is refused until this
 # set names it. After the layout cut-over (DESIGN-P2 section 9) the two rerun
 # workflows are gone, `gate-sweep.yml`'s job replaces them, and a check run is
 # named `<unit> / <job>` (`bare` strips the unit), so GOV stays keyed by job id.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
        "delivery-status", "delivery-status-publish", "briefs",
-       "instrument-self-tests", "budget-raise-gate", "sweep",
-       "rerun-stale-contract"}
+       "instrument-self-tests", "budget-raise-gate", "sweep"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 
