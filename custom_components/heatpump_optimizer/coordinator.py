@@ -924,7 +924,37 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     return heat_kw
 
 
-def _replay_interval(
+def _replay_step(
+    model: ThermalModel,
+    state: ThermalState,
+    power: float,
+    outdoor: float,
+    weather: tuple[float, float],
+    dt_h: float,
+    hour_of_day: float,
+    measured_heat_kw: float | None,
+) -> ThermalState:
+    """The interval replay's model step: the worker's job, shipped by name (P10)."""
+    wind_speed, precipitation = weather
+    return model.simulate_step(
+        state,
+        power,
+        outdoor,
+        wind_speed=wind_speed,
+        precipitation=precipitation,
+        solar_radiation=state.solar_radiation,
+        dt_hours=dt_h,
+        # #53: the replay must predict with the learned per-hour profile,
+        # or its residuals never re-centre and the gains learner becomes
+        # an open-loop integrator converging to α/ridge times the true
+        # correction. None-profile (flag off, nothing learned) makes this
+        # byte-inert.
+        hour_of_day=hour_of_day,
+        measured_heat_kw=measured_heat_kw,
+    )
+
+
+async def _replay_interval(
     coord: Any,
     previous_state: Any,
     previous_power: float,
@@ -941,25 +971,15 @@ def _replay_interval(
     what the interval delivered is answered once, by
     :func:`_interval_measured_heat_kw`, rather than twice, and ``label`` keeps
     the debug line a failed simulation leaves naming its learner -- the only
-    thing the two copies ever differed in besides a comment.
+    thing the two copies ever differed in besides a comment. The inputs are
+    read here, on the loop; :func:`_replay_step` runs in the process worker.
     """
     try:
-        wind_speed, precipitation = coord._current_weather()
-        return coord._thermal_model.simulate_step(
-            previous_state,
-            previous_power,
-            outdoor,
-            wind_speed=wind_speed,
-            precipitation=precipitation,
-            solar_radiation=previous_state.solar_radiation,
-            dt_hours=dt_h,
-            # #53: the replay must predict with the learned per-hour profile,
-            # or its residuals never re-centre and the gains learner becomes
-            # an open-loop integrator converging to α/ridge times the true
-            # correction. None-profile (flag off, nothing learned) makes this
-            # byte-inert.
-            hour_of_day=previous_time.hour + previous_time.minute / 60.0,
-            measured_heat_kw=_interval_measured_heat_kw(coord),
+        return await _await_off_loop(
+            coord.hass, _replay_step, coord._thermal_model, previous_state,
+            previous_power, outdoor, coord._current_weather(), dt_h,
+            previous_time.hour + previous_time.minute / 60.0,
+            _interval_measured_heat_kw(coord),
         )
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
@@ -1549,8 +1569,18 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     ``_await_optimize`` catches only ``ProcessWorkerUnavailable``, so an
     install that could not fork got neither the in-process fallback nor its
     repair notice: no plan at all.
+
+    The job is serialised whole before the pipe is touched, as the worker's
+    replies are (``process_worker._dump``): a job that will not pickle fails
+    here with the worker untouched, never as a dropped handle to a child
+    parked on half a frame. A fault after that leaves the stream in an
+    unknown state, so the child is reaped, never left running unheld.
     """
     global _PROCESS_WORKER
+    try:
+        job = pickle.dumps((fn, args), protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as err:  # noqa: BLE001 - the job's state, not the worker
+        raise ProcessWorkerUnavailable(f"job cannot be pickled: {err}") from err
     with _PROCESS_LOCK:
         worker: "subprocess.Popen[bytes] | None" = None
         try:
@@ -1558,7 +1588,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             stdin, stdout = worker.stdin, worker.stdout
             if stdin is None or stdout is None:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
-            pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+            stdin.write(job)
             stdin.flush()
             status, payload = pickle.load(stdout)
         except ProcessWorkerUnavailable:
@@ -1572,6 +1602,11 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                     f"process worker cannot start: {err}"
                 ) from err
             rc = worker.poll()
+            try:  # a no-op on a child poll() has already reaped
+                worker.kill()
+                worker.wait()
+            except Exception:  # noqa: BLE001 - must not mask the cause
+                pass
             raise ProcessWorkerUnavailable(
                 f"process worker exited rc={rc}: {err}"
             ) from err
@@ -1619,6 +1654,27 @@ async def _sysid_step_off_loop(
     state, override = await _await_off_loop(hass, step_detached, experiment, kwargs)
     vars(experiment).update(state)
     return None if override is None else float(override)
+
+
+def _recovery_off_loop(
+    hass: HomeAssistant, model: ThermalModel, live: ThermalState
+) -> away_mode.RecoveryEstimate:
+    """D14-s1-01: away's recovery ramp, simulated in the process worker.
+
+    A cold house steps the model up to ``away.MAX_RECOVERY_HOURS`` deep, and
+    the resolve is inline in the update cycle. The state is a snapshot taken
+    here, on the loop: the job is pickled off it while callbacks write the
+    live one.
+    """
+    house = replace(live)
+
+    async def estimate(target_temp: float) -> float:
+        return float(await _await_off_loop(
+            hass, away_mode.estimate_recovery_hours,
+            model, house, target_temp, house.outdoor_temperature,
+        ))
+
+    return estimate
 
 
 async def _with_sensor_advisor(coordinator: Any, data: Payload) -> Payload:
@@ -5230,14 +5286,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         outdoor = previous_state.outdoor_temperature
-        # Same zone as the residual, or the Newton step is taken about a
-        # temperature difference the residual does not describe.
-        driving_temp = _learned_zone_temperature(previous_state, ctx._thermal_params)
+        # Same zone as the residual, or the Newton step is taken about a temperature
+        # difference the residual does not describe; one params read spans the await.
+        params = ctx._thermal_params
+        driving_temp = _learned_zone_temperature(previous_state, params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "House heat loss",
         )
@@ -5253,7 +5310,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # threshold. It does not average out, so it accumulated into the learned
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
-        params = ctx._thermal_params
         predicted_room = _learned_zone_temperature(predicted_state, params)
         residual = observed - predicted_room
         if not np.isfinite(residual):
@@ -5390,7 +5446,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         # Same physics as the solve when #53 is on; inert when off.
-        predicted_state = _replay_interval(
+        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "Lower floor loss",
         )
@@ -5900,8 +5956,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 float(np.max(horizon.solar_radiation)),
             )
 
-            # Away mode resolves on the event loop before the record reads it.
-            self._resolve_away()
+            # Away mode resolves before the record reads it.
+            await self._resolve_away()
             # #1754: the override the pins come from, by identity (release write).
             pinned_override = self._manual_override
             record = self._solve_record(solve_now, horizon)
@@ -9634,40 +9690,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             attributes = {}
         return getattr(state, "state", None), attributes
 
-    def _resolve_away(self) -> away_mode.AwayState:
+    def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
+        """The override as of ``now``, written back when it lapsed; no await splits it."""
+        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
+        if active != self._away_state.override_active or ret != parsed:
+            self._away_state.override_active = active
+            self._away_state.override_return_iso = ret.isoformat() if ret else None
+            self._spawn(away_mode.persist_override(self, self._away_state))
+        return active, ret
+
+    async def _resolve_away(self) -> None:
         """Work out whether the house is empty, and when it must be warm again."""
         ctx = getattr(self, "_ctx", self)
         config = away_mode.config_from_mapping(ctx._config)
         now = dt_util.now()
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
-        active, ret = away_mode.expire_override(
-            self._away_state.override_active, parsed, now
-        )
-        migrated = self._away_state.migrated_helpers
-        if active != self._away_state.override_active or ret != parsed:
-            self._away_state.override_active = active
-            self._away_state.override_return_iso = (
-                ret.isoformat() if ret else None
-            )
-            self._spawn(away_mode.persist_override(self, self._away_state))
+        active, ret = self._expire_away_override(now)
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
-        self._away_state = away_mode.resolve(
+        written = replace(self._away_state)
+        resolved = await away_mode.resolve(
             config,
             now=now,
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
             return_raw=None,
-            comfort_temp=ctx._opt_config.get_comfort_temp(
-                now.hour + now.minute / 60.0
+            comfort_temp=ctx._opt_config.get_comfort_temp(now.hour + now.minute / 60.0),
+            estimate_recovery=_recovery_off_loop(
+                self.hass, self._thermal_model, ctx._current_state
             ),
-            model=self._thermal_model,
-            thermal_state=ctx._current_state,
-            outdoor_temp=ctx._current_state.outdoor_temperature,
             override_active=active,
             override_return_time=ret,
         )
-        self._away_state.migrated_helpers = migrated
-        return self._away_state
+        # The await lets async_set_away write the live state; never revert its write.
+        if self._away_state == written:
+            self._away_state = replace(resolved, migrated_helpers=written.migrated_helpers)
     async def async_set_away(
         self,
         active: bool | None = None,
