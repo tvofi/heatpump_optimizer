@@ -1,0 +1,8 @@
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  [10:50:31] FAILED python3 tests/doc_claims.py (0s)
+  [10:50:36] FAILED python3 tests/harness_headers.py (1s)
+ALL 112 closure shrink pins PASSED
+>>> FAILED: python3 tests/doc_claims.py
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+>>> FAILED: python3 tests/harness_headers.py
+2 TEST SCRIPT(S) FAILED
