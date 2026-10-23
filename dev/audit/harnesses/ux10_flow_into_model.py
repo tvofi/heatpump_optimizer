@@ -173,7 +173,7 @@ EXCEPT_RETURN = """    except Exception as err:  # noqa: BLE001
         _LOGGER.debug("%s learning simulation failed: %s", label, err)
         return None
 """
-PREDICTED_GUARD = """        predicted_state = _replay_interval(
+PREDICTED_GUARD = """        predicted_state = await _replay_interval(
             self, previous_state, previous_power, outdoor, previous_time,
             dt_h, "%s",
         )
