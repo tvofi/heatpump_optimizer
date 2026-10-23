@@ -1,0 +1,4 @@
+e4c92864f roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
+6322452d4 roster_edit set-stage R10-FLOW-JIDOKA in-progress
+e3d124991 roster_edit set-resume R10-FLOW-JIDOKA note
+188b84162 roster_edit append-carry R10-FLOW-JIDOKA (triage batch 9 P-Q)
