@@ -9129,7 +9129,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             for entry in self._cop_baseline.values()
             if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
         )
-        return watched, float(np.clip(self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))
+        return watched, float((self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD))
 
     def _raise_cop_issue(self, baseline: float) -> None:
         """One repair issue with the money the shortfall costs per month."""
