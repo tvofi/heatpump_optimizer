@@ -380,8 +380,6 @@ PUSHERS = {
                                     "into a scratch origin repository; the file pushes nothing else"),
     "tools/audit/seat/r9_rc_bus_fetchhead.sh": ("fixture", "a regression harness: every push goes to a "
                                                 "temp bare repository"),
-    "tools/audit/seat/cloud_relay.sh": ("fixture", "its one push is the self-test's stub push-verdict, into a "
-                                        "temp bare repository; the relay itself pushes through bus.sh"),
     "tools/pr/prepr.sh": ("fixture", "its pushes are the --self-test's handoff/zz-lint probe heads, into "
                           "the temp bare repository its origin is pointed at; prepr itself only reads"),
     ".github/workflows/release.yml": ("shape-checked", "`gh release create` makes the tag on origin, and the "
