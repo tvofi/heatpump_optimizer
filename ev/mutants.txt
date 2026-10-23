@@ -1,0 +1,37 @@
+MUTANT reorder: rc=1 gh_read self-test: 122 checks, 8 failed
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT drop-ratelimited: rc=1 gh_read self-test: 122 checks, 8 failed
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT namedwait-always-spent: rc=1 gh_read self-test: 122 checks, 1 failed
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT 403-any-msg: rc=1 gh_read self-test: 122 checks, 2 failed
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+MUTANT or-not-and: rc=1 gh_read self-test: 122 checks, 10 failed
+    FAIL the secondary-limit phrase is read in the body, past a non-UTF-8 byte
+    FAIL a body that cannot be read is no message: the status line's reason still decides
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT ratelimit-any-code: rc=1 gh_read self-test: 122 checks, 2 failed
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call

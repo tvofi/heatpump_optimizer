@@ -1,0 +1,36 @@
+== gh_read
+gh_read self-test: 122 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/merge_train.py --self-test
+  ok   ... and with nothing merged before it, main never moved: no recarry is possible and it is refused as before, [BOT-HEAD] (null control)
+  ok   a base that is neither main nor batch/ is refused
+merge_train self-test: 229 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/queue_pre_flight.py --self-test
+  ok   an unreadable pull request is a FAIL
+  ok   and a 404 on it is a FAIL after exactly 1 read (no retry masks a refusal)
+queue_pre_flight self-test: 43 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/record_row.py --self-test
+gh_read self-test: 122 checks, 0 failed
+record_row self-test: all checks passed
+rc=0
+== bash tools/pr/app_approve.sh --self-test
+ok   refused as a hand-resolved merge, whatever the diffs compare
+ok   refused by the ci: guard
+app_approve self-test: 254 checks, 0 failed
+rc=0
+== bash tools/audit/seat/pr_args.sh --self-test
+  ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 93 checks, 0 failed
+rc=0
+== bash tools/audit/seat/merge_pr.sh --self-test
+  ok   a refused merge fails the script (the line's own exit)
+merge_pr self-test: 18 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/ref_privacy.py --check
+ref_privacy --check at HEAD: 25 file(s) with a push site, 12 guarded, 1201 line(s) added since a7cf60cfd8ac judged, 0 refused
+rc=0
+== bash tools/audit/seat/pr_args.sh --pushers
+rc=0
