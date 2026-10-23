@@ -6,6 +6,8 @@
 // Run (export root): node dev/audit/rounds/round10/D14/sweep-N-gate-yield/enumerate.mjs <window.json> [--fixture=clean|reintro]
 //   --fixture=clean   strips every blocked verdict (null control: expect seams=0 instances=0)
 //   --fixture=reintro clean, then re-inserts ONE root-cause-unanswered verdict line (perturbation: instances 0->1)
+// Every taught word is placed: in ENG, or in GATE (the record and orchestration words, among them
+// #2275's root-cause-detectable and root-cause-unrecorded); an unplaced one refuses the run (exit 2).
 import fs from 'node:fs'
 import path from 'node:path'
 const L = await import(path.join(process.cwd(), 'tools/policy/policy_lint.mjs'))
@@ -21,7 +23,11 @@ const ENG = new Set(['mutation-vacuous', 'harness', 'null-control', 'product-tra
   'untaught:defect', 'untaught:mutation-unpinned', 'untaught:vacuous', 'untaught:null-control-unpinned', 'untaught:closures-under-approximated',
   'untaught:over-fire', 'untaught:d-unbounded', 'untaught:skip-abusable', 'untaught:skip-dead', 'untaught:guard', 'untaught:docs-code-mismatch',
   'untaught:resolution-docstring-corruption'])
+const GATE = new Set(['claims', 'version', 'carry-missing', 'preflight-mismatch', 'root-cause-unanswered', 'root-cause-detectable',
+  'root-cause-unrecorded', 'head-moved', 'conflict', 'other'])
 const re = L.waveVerdictRe(), taught = L.blockClasses()
+const unplaced = taught.filter((w) => !ENG.has(w) && !GATE.has(w))
+if (unplaced.length) { console.log(`UNPLACED taught block class(es): ${unplaced.join(', ')}`); process.exit(2) }
 const cls = new Map()
 for (const n of nums) for (const k of ['comments', 'reviews']) for (const c of W.prs[n][k]) {
   const first = String(c.body ?? '').trim().split('\n')[0]
