@@ -77,9 +77,22 @@ None of them lost an assertion.
 
 ## Head
 
-7668a4d0974444c9806fe83ae0656b0b6bd1e50a on merge base
-a6620c30adcdf0d9529ee66977694bfa2a06d5c3 (origin/main's tip,
-`git rev-parse origin/main`, 2026-10-23 UTC).
+89ef33c7a47b6f485a284024fbf594d59b560126 on merge base
+f046076aded786f271edba6f27a2a1d4b4a515d7 (origin/main's tip,
+`git rev-parse origin/main`, 2026-10-23T22:01Z). The authored code is
+7668a4d09; two merges of origin/main follow it, bf907fc5a (c5e1be196) and
+89ef33c7a (f046076ad), both automatic. Between them sits 7ce0f04eb, the
+mutation pins (below). `git diff --stat c5e1be196 f046076ad -- custom_components tests/features.py tests/mutation_ledger`
+prints nothing, so every production-reading figure taken at 7ce0f04eb (merge
+base c5e1be196) describes the production code at the head.
+
+Overlap with R10-LIVESTATE (`coordinator.py`, fixer running): this diff's
+`coordinator.py` hunks are the import block, `READING_SOURCES` and
+`_indoor_humidity_value`. That fixer's worktree at 5496d4255, diffed against
+origin/main, has none of them. Its nearest hunks start at origin/main lines
+8608 and 9695, and this diff's humidity hunk at 8960. Textual overlap: none. Hunk headers read with
+`git diff origin/main -- custom_components/heatpump_optimizer/coordinator.py | grep '^@@'`
+in each tree.
 
 ## Mutation proof
 
@@ -102,7 +115,25 @@ At the merge base a6620c30a, the first version of this PR's test (the
 checks: declaration, census, idle power meter and humidity. The census arm
 names flow, energy, mode, power, return and supply as stale when quiet. The
 two value checks added in 7668a4d09 call `inputs.source_polls`, which the base
-does not define.
+does not define. M0-M4 and this base run were taken at 7668a4d09 on a6620c30a;
+a6620c30a..c5e1be196 changes `away.py`, `coordinator.py` outside
+`_indoor_humidity_value` and `narrative.py`, none of them `inputs.py` or
+`const.py`, and the pin drive below re-measures every added site on the merged
+tree.
+
+Every mutation site the diff adds is pinned in 7ce0f04eb by
+`python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --jobs 4`
+at merge base c5e1be196: `PIN KILLED: 11 pinned, 0 left unpinned`. The drive
+is the kill proof per site: each mutant applied alone, `tests/features.py`
+re-run, the site pinned only on red, the tree restored. Its controls, printed
+by the same run: baseline `tests/features.py: rc=0 failed=0`, and the null
+mutant `coordinator.py:510 NULL_COMMENT` (a comment-only edit) survived. Each
+pin's `reason` in `tests/mutation_ledger/killed_by/` records its kill; the
+failed counts are in `## Unpinned sites`. The drive was limited to
+`tests/features.py` because the full driver set's run went `MUTATION TABLE
+INCONCLUSIVE`: its `tests/entities.py` baseline (4 heartbeat checks) and
+`tests/stress.py` baseline ("shoulder") are red on this Darwin seat at the
+merge base too (`## Figures`), so no driver could be graded.
 
 ## Null control
 
@@ -110,12 +141,13 @@ The finder's harness at both ends,
 `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/staleness_on_change.py`
 (in tree, sha1 6fa091e3760cf5e4e843bc763ceba27a2d4b1973):
 
-- base a6620c30a: `polling_stale_cycles=0`, `heat_pump_power_entity_stale_cycles=39`,
+- base c5e1be196 (a `git archive` of `custom_components` and `tests`, the
+  harness copied in): `polling_stale_cycles=0`, `heat_pump_power_entity_stale_cycles=39`,
   `heat_pump_power_entity_newly_unavailable_entity_cycles=78`,
   `heat_pump_mode_entity_stale_cycles=47`, `seams=2`; its unbounded arm
   `perturb_unbounded_*_stale_cycles=0` for both.
-- head 61d9fdb09 (production code identical to the head; later commits
-  touch tests only): `polling_stale_cycles=0`, power 0, mode 0, `seams=0`; dhw, indoor and
+- head 7ce0f04eb (production code identical to 89ef33c7a, `## Head`):
+  `polling_stale_cycles=0`, power 0, mode 0, `seams=0`; dhw, indoor and
   outdoor 0 at both ends.
 
 The polling day reads 0 at both ends, but its sources never die, so it cannot
@@ -136,21 +168,24 @@ head it passes.
 
 ## Figures
 
-- power 39, mode 47, polling 0 stale cycles at the base; power 0, mode 0,
+- power 39, mode 47, polling 0 stale cycles at the base c5e1be196; power 0, mode 0,
   polling 0 at the head: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/staleness_on_change.py`
   (null control: its `perturb_unbounded` arm, 0 and 0 at the base).
 - Instance probe, `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-staleness/probe.py <KEY>`
-  (sha1 311f0e029f449ce180f569b1f515ba245daea59a): CONF_POWER, MODE, ENERGY,
-  SUPPLY, RETURN and FLOW rc=1 (stale) at the base and rc=0 at the head.
-  The controls stay rc=1 at both ends: CONF_INDOOR_TEMP held 361 min,
-  CONF_HEAT_PUMP_DEFROST held 31 min and CONF_WOOD_TANK_TOP held 61 min, keys
-  that keep their bound. The `HUMIDITY` arm reads the deleted
+  (sha1 311f0e029f449ce180f569b1f515ba245daea59a), at base c5e1be196 and
+  head 89ef33c7a: `CONF_POWER_ENTITY`, `CONF_HEAT_PUMP_MODE_ENTITY`,
+  `CONF_ENERGY_ENTITY`, `CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY`,
+  `CONF_HEAT_PUMP_RETURN_TEMP_ENTITY` and `CONF_FLOW_METER_ENTITY` rc=1
+  (stale) at the base and rc=0 at the head. The controls stay rc=1 at both
+  ends: `CONF_INDOOR_TEMP_ENTITY` held 361 min,
+  `CONF_HEAT_PUMP_DEFROST_ENTITY` held 31 min and `CONF_WOOD_TANK_TOP_ENTITY`
+  held 61 min, keys that keep their bound. The `HUMIDITY` arm reads the deleted
   `coordinator.HUMIDITY_MAX_AGE_MINUTES` and raises at the head. The humidity
   census check stands in for it: 121 min on-change keeps the floor, while
   121 min polled and 361 min on-change both drop it.
 - Class enumerator (step 8), `python3 dev/audit/rounds/round10/D14/sweep-N-staleness/enumerate.py`
   (sha1 2028e7571822cdeac46e414cf8adb1226a57ea83): `RESULT seams=29 flagged=20`
-  at both ends, with `--controls` `RESULT controls_ok=True` at both. It reads
+  at both ends (c5e1be196, 89ef33c7a), with `--controls` `RESULT controls_ok=True` at both. It reads
   only the polling table, which this fix rightly leaves alone, so it reads flat.
   The companion that reads the defect at the base and not at the head is the
   census above. Every flagged seam is dispositioned:
@@ -175,38 +210,89 @@ head it passes.
   The census asserts its own precondition: the declaration check fails if a
   key is added to the polling table without an on-change decision.
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`
-  printed `MODE: SCOPED -- 29 script(s) run, 4 scoped out` at 61d9fdb09. The
-  run: `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh`
-  at the head -> `31 TEST SCRIPT(S) PASSED; 3 SCOPED OUT AND NOT RUN`, rc=0 (`tests/arch_score.py`, `tests/ha_contract.py`, `tests/md_tables.mjs` scoped out).
-- `python3 tests/structure.py`: rc=0 after `--record`. `class_excess_loc` and
-  `max_class_loc` are both down 8 (the humidity read). The reason is in commit
+  printed `MODE: SCOPED -- 29 script(s) run, 4 scoped out` at 7ce0f04eb and
+  again at 89ef33c7a. The run at 7ce0f04eb (Darwin arm64, Python 3.14.7):
+  `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=c5e1be196 PYTHONPATH=tests/hastub bash tests/run.sh`
+  -> `5 TEST SCRIPT(S) FAILED` of 31 dispatched, the other 26 green;
+  `tests/arch_score.py`, `tests/ha_contract.py`, `tests/md_tables.mjs` scoped
+  out. Each of the five, and its control:
+  - `tests/stress.py` and `tests/harness_headers.py`: refused by `flock-wrap`
+    because the seat had not taken the gate lease (no check ran). Re-run alone
+    under `tests/gate_lock.py take`: `ALL 112 HARNESS HEADER CHECKS PASSED`;
+    `stress.py` `1 of 113 STRESS CHECKS FAILED`, "shoulder: cheaper than
+    holding the setpoint [4.67 vs 3.96]".
+  - `tests/entities.py`: `4 of 2408 ENTITY CHECKS FAILED` (2409 at
+    89ef33c7a, re-run under the lease: the same 4), all in "Nightly A15
+    loop-stall heartbeat (#1758)": "hb:positive_control survives one hung
+    py-spy sample ...", "and a try whose sample misses the spin ...", "the
+    control rests between tries ..." and "the control survives two hung
+    samples ...".
+  - `tests/optimality.py`: `1 of 84 OPTIMALITY CHECKS FAILED`,
+    "one|summer_negative|shoulder: a recorded claim still has a gap (not
+    stale) [... the claim closed and should be removed]".
+  - `node tests/card.mjs`: V8 heap exhaustion, `Abort trap: 6`, with no check
+    reported. Re-run at 89ef33c7a after `tests/plan_view.py` with
+    `NODE_OPTIONS=--max-old-space-size=8192`: `ALL CARD CHECKS PASSED`.
+
+  The control for the first three: the same scripts at merge base c5e1be196,
+  from a detached worktree on this seat under the lease. `stress.py` fails the
+  same "shoulder" check at the same `[4.67 vs 3.96]` (its other 7 failures
+  there are the self-comparison `GOLDEN_REF=c5e1be196` at c5e1be196 forces).
+  `optimality.py` fails the same claim check, and `entities.py` the same 4. So
+  none of these three is this diff's; they belong to this seat (py-spy on Darwin,
+  the arm64 solver floats `fixer.md` step 15 names). CI's Linux runners grade
+  them on the PR.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at 7ce0f04eb and
+  89ef33c7a. The authored code recorded `class_excess_loc` and
+  `max_class_loc` down 8 (the humidity read), with the reason in commit
   "structure: record class_excess_loc and max_class_loc down 8 (#2234)".
-- `python3 tools/pr/ci_predict.py --base origin/main`: "no closures or fast red
-  predicted", and 10 unpinned sites (below).
+- `python3 tools/pr/ci_predict.py --base origin/main`: at 89ef33c7a, "no
+  closures or fast red predicted against f046076aded7" with no unpinned site.
+  At 28e238127 it listed 10 (below).
 
 ## Architecture score
 
 `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`:
 `Architecture score: dS +0.3221 IMPROVES`; `duplication_copies 40 -> 39 +0.3180`
 (the humidity read's hand-rolled float/finite/age copy is gone);
-`coord_footprint 2471 -> 2464 +0.0041`.
+`coord_footprint 2473 -> 2466 +0.0041` (at 7ce0f04eb on c5e1be196).
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/coordinator.py:8911 BOOLOP: pinned by mutation-autofix (killed by "an unusable humidity reading disarms the guard": an unavailable reading reaches `0.0 < None`)
-- custom_components/heatpump_optimizer/coordinator.py:8911 CMP_BOUND*2: pinned by mutation-autofix (the "0" humidity check kills `0.0 <=`; the new "100 % is a reading" value check kills `< 100.0`)
-- custom_components/heatpump_optimizer/coordinator.py:8911 RETURN_DEL: pinned by mutation-autofix (every humidity floor check)
-- custom_components/heatpump_optimizer/inputs.py:259 GUARD_OFF: pinned by mutation-autofix (the idle power meter check asserts `max_age_minutes is None`; without the guard it reads inf)
-- custom_components/heatpump_optimizer/inputs.py:285 CMP_BOUND: pinned by mutation-autofix (M2 above, three checks red)
-- custom_components/heatpump_optimizer/inputs.py:287 GUARD_OFF: pinned by mutation-autofix (the new "source_polls with no owner" value check: `setdefault(None)` raises)
-- custom_components/heatpump_optimizer/inputs.py:290 GUARD_OFF: pinned by mutation-autofix (the census: every entity becomes polling on its first read, so a quiet on-change key reads stale)
-- custom_components/heatpump_optimizer/inputs.py:292 RETURN_DEL: pinned by mutation-autofix (the census)
-- custom_components/heatpump_optimizer/inputs.py:306 RETURN_DEL: pinned by mutation-autofix (the census)
-- custom_components/heatpump_optimizer/inputs.py:874 GUARD_OFF: pinned by mutation-autofix (M1 above, three checks red)
+None at the head: `prepr.sh` step 6d lists none at 89ef33c7a. The 10 sites it
+listed at 28e238127 are each pinned in 7ce0f04eb by the `--pin-killed` drive
+(`## Mutation proof`), killed by `tests/features.py`, baseline rc=0 failed=0.
+Each failed count is the pin's own recorded `reason`:
+
+- custom_components/heatpump_optimizer/coordinator.py:8968 BOOLOP: pinned in this diff (`or` for `and`: rc=1 failed=1)
+- custom_components/heatpump_optimizer/coordinator.py:8968 CMP_BOUND*2: pinned in this diff (`0.0 <= value`: rc=1 failed=2; "Each of the 2 sites under this anchor was killed")
+- custom_components/heatpump_optimizer/coordinator.py:8968 RETURN_DEL: pinned in this diff (rc=1 failed=8)
+- custom_components/heatpump_optimizer/inputs.py:259 GUARD_OFF: pinned in this diff (rc=1 failed=4)
+- custom_components/heatpump_optimizer/inputs.py:285 CMP_BOUND: pinned in this diff (`>=`: rc=1 failed=5; M2 above names three of them)
+- custom_components/heatpump_optimizer/inputs.py:287 GUARD_OFF: pinned in this diff (rc=1 failed=1)
+- custom_components/heatpump_optimizer/inputs.py:290 GUARD_OFF: pinned in this diff (rc=1 failed=19)
+- custom_components/heatpump_optimizer/inputs.py:292 RETURN_DEL: pinned in this diff (rc=1 failed=19)
+- custom_components/heatpump_optimizer/inputs.py:306 RETURN_DEL: pinned in this diff (rc=1 failed=48)
+- custom_components/heatpump_optimizer/inputs.py:874 GUARD_OFF: pinned in this diff (rc=1 failed=4; M1 above names three of them)
 
 ## Red checks
 
-none. Locally the first gate run at 61d9fdb09 had `tests/features.py` and `tests/entities.py` red. These were 13 checks that aged an on-change stamp as a dead sensor, plus the P2 `state_age` registry, which did not yet disposition `source_polls`. Both were repaired before the handoff (the third commit), and no CI check ran on this branch.
+- `mutation`, predicted by `prepr.sh` step 6d at 28e238127 (no CI check has run
+  on this branch): the 10 unpinned sites above. The cheaper detector exists and
+  fired: step 6d itself (`tools/pr/ci_predict.py`), whose standing cost is one
+  `ci_predict.py --base origin/main` per `prepr.sh` run, already paid. It
+  caught this before any push. Repaired before the handoff: pinned in
+  7ce0f04eb, and step 6d lists none at the head. The refusal was the body's
+  omission, not a missed detector, and `prepr.sh`'s `pr-body` arm refused it as
+  it is built to.
+- The local reds in `## Figures` (`tests/stress.py` "shoulder",
+  `tests/optimality.py` "summer_negative|shoulder", 4 `tests/entities.py`
+  heartbeat checks, the `tests/card.mjs` heap abort) are not checks of this
+  branch. Each reproduces at merge base c5e1be196 on this seat (card: passes
+  with a larger heap), so it is the seat's environment, not a red this diff
+  turned.
+
+Locally the first gate run at 61d9fdb09 had `tests/features.py` and `tests/entities.py` red. These were 13 checks that aged an on-change stamp as a dead sensor, plus the P2 `state_age` registry, which did not yet disposition `source_polls`. Both were repaired before the handoff (the third commit).
 
 ## Forward-carry
 
@@ -237,6 +323,7 @@ of these into the named brief:
   suite's dependencies (no voluptuous); the seat venv is `/opt/hpo/venv-ci`,
   and a first harness run failed on it before `PATH` named it. Carry: none
   (environment; `tools/audit/seat/cloud-setup.sh` owns PATH).
+- dev/governance/roles/fixer.md#5: unclear: on the Darwin seat the shims directory holds `seat-python3`, not `python3`, so `python3` on PATH stayed the system 3.11. The first `--pin-killed` drive died on a 3.12 f-string in `tests/entities.py` (`SyntaxError: f-string: expecting '}'`), and it ran again only after a `python3` symlink to the shim. Carry: none (environment; `seat_venv.sh --install-shims` owns the shim names).
 - dev/governance/roles/fixer.md#3: stale: the sweep's `probe.py HUMIDITY` arm reads a
   module constant this fix deletes, so it cannot run at the head; the
   in-tree census replaces it. Carry: none (a round record recounts and stays
