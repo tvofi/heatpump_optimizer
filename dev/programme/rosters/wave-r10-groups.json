@@ -1808,7 +1808,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Validate against synthetic ground truth (the study's harness); a day count shown for a settling learner is the defect."
+    "Validate against synthetic ground truth (the study's harness); a day count shown for a settling learner is the defect.",
+    "(from R10-SCORES #2647, Forward-carry) **R10-LEARNER-ETA**: `house_loss_converged(samples)` (and `_HOUSE_LOSS_CONVERGED_CONFIDENCE`) in `coordinator.py` is the one convergence predicate for the heat-loss learner: the learning view's `house_heat_loss_learned` and the envelope dash read it. Learner progress, phase and ETA for the heat-loss learner must read it, never a second threshold."
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER). Owning seam in this group: the learner status published to the payload. Shape: read-only view, no new state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
