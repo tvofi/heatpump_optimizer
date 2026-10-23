@@ -2,10 +2,12 @@
 # autofix_statuses.sh <out-dir> [pages]: what the two repairing autofix jobs
 # actually answered, re-derived from their job logs (R9-CI-1).
 #
-# For the newest <pages> x 100 pull_request runs of tests.yml (default 3), it
-# lists every mutation-autofix and closures-autofix job that ran, reads the
+# For the newest <pages> x 100 pull_request runs of ci.yml (default 3), it
+# lists every `tests / mutation-autofix` and `tests / closures-autofix` job
+# that ran (the umbrella names a called job `<unit> / <job>`; runs before the
+# R10-CI-LAYOUT P2b cut-over are tests.yml's and are not read), reads the
 # `AUTOFIX: <status>` line from each job's log, and, for a closures-autofix
-# skip, names the failure heading the same run's `closures` job printed
+# skip, names the failure heading the same run's `tests / closures` job printed
 # (UNDER-SCOPED, INERT READS UNDER-APPROXIMATED, PHANTOM, NOT A FILE). It
 # prints the status counts, then the API failures beside them: a log GitHub
 # no longer serves (they expire) is counted, never read as a status, so a
@@ -26,7 +28,7 @@ rf=0
 # Not `seq 1 "$PAGES"`: BSD seq counts DOWN from 1 when PAGES is 0.
 case $PAGES in ''|*[!0-9]*) echo "pages must be a whole number" >&2; exit 2 ;; esac
 for ((p = 1; p <= PAGES; p++)); do
-  api -X GET "repos/$R/actions/workflows/tests.yml/runs" -f event=pull_request \
+  api -X GET "repos/$R/actions/workflows/ci.yml/runs" -f event=pull_request \
     -f per_page=100 -f page="$p" \
     --jq '.workflow_runs[] | [.id, .head_branch, .head_sha[0:10]] | @tsv' >> runs.tsv \
     || rf=$((rf + 1))
@@ -38,7 +40,7 @@ while IFS=$'\t' read -r run br sha; do
   [ -s "$j" ] || api "repos/$R/actions/runs/$run/jobs?per_page=100" > "$j" \
     || { jf=$((jf + 1)); rm -f "$j"; continue; }
   out=$(jq -r '.jobs[]
-      | select(.name == "mutation-autofix" or .name == "closures-autofix")
+      | select(.name == "tests / mutation-autofix" or .name == "tests / closures-autofix")
       | select(.conclusion != "skipped" and .conclusion != null)
       | [.id, .name, .conclusion] | @tsv' "$j")
   [ -n "$out" ] && printf '%s\n' "$out" \
@@ -52,8 +54,8 @@ while IFS=$'\t' read -r run br sha jid name concl; do
     || { lf=$((lf + 1)); rm -f "$f"; continue; }
   st=$(grep -m1 -oE 'AUTOFIX: [a-z-]+' "$f" | cut -d' ' -f2)
   why=-
-  if [ "$name" = closures-autofix ] && [ "${st:-}" != changed ]; then
-    cj=$(jq -r '.jobs[] | select(.name == "closures") | .id' "jobs/$run.json")
+  if [ "$name" = "tests / closures-autofix" ] && [ "${st:-}" != changed ]; then
+    cj=$(jq -r '.jobs[] | select(.name == "tests / closures") | .id' "jobs/$run.json")
     c=logs/closures-$cj.log
     if [ -n "$cj" ] && { [ -s "$c" ] || api --allow-escape-sequences \
         "repos/$R/actions/jobs/$cj/logs" > "$c" 2>/dev/null; }; then

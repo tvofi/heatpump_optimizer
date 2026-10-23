@@ -134,7 +134,8 @@ const HOOKS = {
 }
 
 // The tree's only reader of the live ruleset is `counts.mjs:liveRequiredContexts`
-// and the only comparison is `requiredContextsDrift`, run here unmodified in a
+// and the only comparison is `cutoverDrift` (requiredContextsDrift, either recorded
+// shape whole -- R10-CI-LAYOUT P2b), run here unmodified in a
 // fresh process (the reader memoizes) with `gh` answered from the object under
 // test. The branch view is derived from that object, as GitHub derives it.
 const GH_STUB = `#!/usr/bin/env node
@@ -148,18 +149,18 @@ if (/\\/rules\\/branches\\/main$/.test(p)) {
 } else { process.stderr.write('gh stub: ' + p); process.exit(1) }
 `
 const RULESET_PROBE = `
-import { liveRequiredContexts, liveRequiredContextsWhy, requiredContextsDrift, at } from ${JSON.stringify(pathToFileURL(path.join(HERE, 'counts.mjs')).href)}
+import { liveRequiredContexts, liveRequiredContextsWhy, cutoverDrift, at } from ${JSON.stringify(pathToFileURL(path.join(HERE, 'counts.mjs')).href)}
 import fs from 'node:fs'
 const rel = '.claude/workflows/fixtures/required-contexts.json'
 const fixture = JSON.parse(fs.readFileSync(at(rel), 'utf8'))
 const live = liveRequiredContexts()
-const drift = live == null ? [] : requiredContextsDrift(rel, fixture, live)
+const drift = live == null ? [] : cutoverDrift(rel, fixture, live, () => {})
 process.stdout.write(JSON.stringify({ live: live != null, why: liveRequiredContextsWhy(), drift: drift.length }))
 `
 let rulesetSource = null
 const RULESET = {
   name: 'ruleset',
-  check: 'counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts)',
+  check: 'counts.mjs liveRequiredContexts + cutoverDrift (policy-docs: required-contexts)',
   artifact: 'the live main-protect-checks ruleset object',
   skipOnLoad: true,
   load: () => {

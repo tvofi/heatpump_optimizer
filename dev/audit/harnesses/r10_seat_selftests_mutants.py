@@ -60,6 +60,9 @@ _FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 # name, file, old (exactly once in the file), new
 MUTANTS = [
     ("S01", "ci-watch.sh", '[ -n "$RS" ] && REQ=$(gh api', '[ -n "$RS" ] || REQ=$(gh api'),
+    # r10-ci-layout-p2-u9a: A5, gate read per check suite and success only.
+    ("ci-watch-1", "ci-watch.sh", 'k = ($1 == "gate") ? $1 SUBSEP $5 : $1;', "k = $1;"),
+    ("ci-watch-2", "ci-watch.sh", '($2 == "completed" && $3 != "success")', '($3 == "failure")'),
     ("S02", "cloud_dispatch.py", "return len(head) == 40 and set(head) <= LOWER_HEX",
      "return len(head) != 40 and set(head) <= LOWER_HEX"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
@@ -79,8 +82,11 @@ MUTANTS = [
      '        ids[g] = _task_id(g, ids)\n    lanes = sorted({open_[g].get("lane") and "?"'),
     ("S14", "pr_args.sh", '"$*" >&2; exit 1; }', '"$*" >&2; exit 0; }'),
     ("S15", "pr_cap.py", 'a = pr.get("author") or {}', 'a = pr.get("author") and {}'),
-    ("S16", "proof_watch.py", 'and last[n].get("conclusion") not in GREEN)',
-     'and last[n].get("conclusion") in GREEN)'),
+    ("S16", "proof_watch.py", '_, pending, red = _train().classify(last, self.required_names())',
+     '_, red, pending = _train().classify(last, self.required_names())'),
+    # r10-ci-layout-p2-u9a: the watch reads the train's per-suite gate (A5), never newest-wins.
+    ("proof_watch-1", "proof_watch.py", "return _train().latest_runs(_json_docs(raw))",
+     'return {c["name"]: c for c in _json_docs(raw)}'),
     ("S17", "prune_refs.py", "    if sha in main_reachable:\n        return DELETE_MERGED",
      "    if sha not in main_reachable:\n        return DELETE_MERGED"),
     ("S18", "queue_pre_flight.py", "if not mt.is_sha(v):", "if mt.is_sha(v):"),
@@ -116,7 +122,7 @@ MUTANTS = [
     # self-tests did not reach. Each mutant is the carry's, verbatim.
     ("S35", "handoff_push.sh", "push_app 2  # mut:push-update",
      "true  # mut:push-update"),
-    ("S36", "handoff_push.sh", "out=$(push_app 2)  # mut:push-open",
+    ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
      "true  # mut:push-open"),
     ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
     ("S38", "merge_pr.sh",
@@ -156,12 +162,27 @@ MUTANTS = [
      "    if False:\n        return None\n    names"),
     ("merge_train-18", "merge_train.py", "        if drivers is None:\n            raise Stop(\"build\"",
      "        if False:\n            raise Stop(\"build\""),
+    # r10-ci-layout-p2-u9a (A5): gate per check suite, success only, and GitHub's own evaluation.
+    ("merge_train-19", "merge_train.py", "    if suites:\n        out[GATE] = min(", "    if False:\n        out[GATE] = min("),
+    ("merge_train-20", "merge_train.py", "(GATE_GREEN if cr.get(\"name\") == GATE else GREEN)", "GREEN"),
+    ("merge_train-21", "merge_train.py", "        if GATE in req:\n            self.cross_check(", "        if False:\n            self.cross_check("),
+    ("merge_train-22", "merge_train.py", "    if not gates or other:\n", "    if not gates:\n"),
+    ("merge_train-23", "merge_train.py", "    if commit.get(\"oid\") != head:\n", "    if False:\n"),
+    ("merge_train-24", "merge_train.py", "    return sorted(set(required) | set(owed))", "    return required"),
+    # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
+    ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
+     'PIN_CHAIN = re.compile(r"^(?:'),
+    # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
+    ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
+    ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
     ("merge_pr-1", "merge_pr.sh", 'python3 -I "$PWD/tools/audit/seat/merge_train.py" unstale', "true"),
     ("orchestrator_tick-1", "orchestrator_tick.py", "req_bad = mt.classify(latest, req)[2]", "req_bad = red"),
     ("orchestrator_tick-2", "orchestrator_tick.py", "            if req_red:\n", "            if False:\n"),
     ("orchestrator_tick-3", "orchestrator_tick.py", "mt.dirty_repair(files, CLAIM_FILES) if files else",
      '"absorb main locally with the claimnotes driver" if files else'),
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
+    # r10-ci-layout-p2-u9a: a unit's red under the gate ruleset is REQUIRED (DESIGN-P2 9 item 11).
+    ("orchestrator_tick-5", "orchestrator_tick.py", "gating = mt.gating_names(req) or []", "gating = req or []"),
     # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
     ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
     ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),
@@ -173,6 +194,17 @@ MUTANTS = [
      "            self.fetch(self.remote, self.num(pr))\n        if False:\n"),
     ("ci_probe-7", "ci_probe.py", "        if not self.commit(sha):\n            raise Refuse(f\"'{sha}' is not the full SHA",
      "        if False:\n            raise Refuse(f\"'{sha}' is not the full SHA"),
+    # r10-ci-layout-p2b U6: the three added writes. -8/-9 the SARIF's commit and category shapes, -10 its ref,
+    # -11 the dismissal reason list, -12 the dismissal comment's host-path refusal, -13 the disable endpoint,
+    # -14 the workflow-name guard of workflow-disable alone (dispatch's twin guard is untouched).
+    ("ci_probe-8", "ci_probe.py", "        if not SHA_RE.match(commit):\n", "        if False:\n"),
+    ("ci_probe-9", "ci_probe.py", "        if not CATEGORY_RE.match(category):\n", "        if False:\n"),
+    ("ci_probe-10", "ci_probe.py", '"ref": f"refs/pull/{self.num(pr)}/merge"', '"ref": "refs/heads/main"'),
+    ("ci_probe-11", "ci_probe.py", "        if reason not in DISMISS_REASONS:\n", "        if False:\n"),
+    ("ci_probe-12", "ci_probe.py", "        why = ref_privacy.body_refusal(comment)\n", "        why = None\n"),
+    ("ci_probe-13", "ci_probe.py", 'self.r(f"actions/workflows/{workflow}/disable")', 'self.r(f"actions/workflows/{workflow}/enable")'),
+    ("ci_probe-14", "ci_probe.py", "def do_workflow_disable(self, workflow: str) -> str:\n        if not re.match(",
+     "def do_workflow_disable(self, workflow: str) -> str:\n        if False and re.match("),
     # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
     ("body_patch-1", "body_patch.sh",
      '[ "$rbok" = 1 ] || die "#$pr could not be read back',
@@ -258,6 +290,18 @@ MUTANTS = [
     ("sweep_driver-1", "sweep_driver.py", "if n > 1 and not self.chain:", "if n > 1 and self.chain:"),
     ("sweep_driver-2", "sweep_driver.py", "if status in (403, 429):\n            reset", "if status in (429,):\n            reset"),
     ("sweep_driver-3", "sweep_driver.py", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.20", "POLL_FLOOR, IDLE_S, LOW_FRACTION = 60, 900, 0.0"),
+    # r10-ci-layout-p2-u9d: the harness and CI readers. failure_logs' unit-prefix join, the
+    # merge_throughput series join, and (steps owed by the coordinator) the predictor's carry
+    # arm and the local alert read.
+    ("failure_logs-1", "failure_logs.sh", "sed 's# / #-#g' | ", ""),
+    ("merge_throughput-1", "tools/audit/merge_throughput.py", "            rows += json.load(fh)\n",
+     "            rows = json.load(fh)\n"),
+    ("ci_predict-1", "tools/pr/ci_predict.py", 'for r in res["rows"] if r["status"] != "routed"]',
+     'for r in res["rows"] if False]'),
+    ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
+    ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
+     "        if False:\n            return 3,"),
+    ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).

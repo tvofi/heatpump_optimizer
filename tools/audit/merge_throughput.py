@@ -10,15 +10,16 @@ is worth having.
 
 THE RULE, in full:
 
-    A Tests workflow run with event=push on branch main is the forced-full
-    gate. Consecutive such runs, ordered by created_at, form gaps. A gap
+    A `CI` workflow run (ci.yml; `Tests`, tests.yml, before the layout
+    cut-over) with event=push on branch main is the forced-full gate. Consecutive such runs, ordered by created_at, form gaps. A gap
     is an overlap when the later run's created_at is earlier than the
     earlier run's completed_at. The wait predicate is true when the latest
     such run is still queued or in_progress.
 
 Nothing here talks to the network. Live data is a JSON file the caller
-already fetched (`gh run list --workflow tests.yml --branch main --event
-push --json ...`). The window is still open, so a figure this script
+already fetched (`gh run list --workflow ci.yml --branch main --event
+push --json ...`, and `--workflow tests.yml` for the runs before the
+cut-over: `--from-runs` repeats and the files are one series). The window is still open, so a figure this script
 prints is restated only in ## Figures, next to the command that produced
 it.
 
@@ -36,6 +37,15 @@ import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
+
+
+def load_rows(paths: list[str]) -> list[dict]:
+    """One series from one or more run listings (ci.yml's, and tests.yml's before it)."""
+    rows: list[dict] = []
+    for path in paths:
+        with open(path) as fh:
+            rows += json.load(fh)
+    return rows
 
 
 def parse_iso(value: str | None) -> datetime | None:
@@ -287,6 +297,17 @@ def self_test() -> int:
         ),
     ]), False)
 
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        paths = []
+        for i, (sha, t) in enumerate((("aaa", "2026-10-01T00:00:00Z"), ("bbb", "2026-10-02T00:00:00Z"))):
+            paths.append(f"{d}/{i}.json")
+            with open(paths[-1], "w") as fh:
+                json.dump([{"headSha": sha, "createdAt": t, "status": "completed"}], fh)
+        check("two listings (tests.yml's, then ci.yml's) are one series of two merges",
+              analyze(runs_from_gh(load_rows(paths)))["merges"], 2)
+        check("one listing is one merge (null)", analyze(runs_from_gh(load_rows(paths[:1])))["merges"], 1)
+
     print(f"{'FAILED' if failures else 'ok'}: merge_throughput.py self-test")
     return 1 if failures else 0
 
@@ -294,7 +315,7 @@ def self_test() -> int:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--from-runs", metavar="FILE")
+    ap.add_argument("--from-runs", metavar="FILE", action="append", default=[])
     ap.add_argument("--since", metavar="ISO")
     ap.add_argument("--wait", action="store_true")
     args = ap.parse_args(argv)
@@ -306,8 +327,7 @@ def main(argv: list[str]) -> int:
         ap.error("--from-runs FILE is required (fetch with gh run list; this "
                  "script does not call the network)")
 
-    with open(args.from_runs) as fh:
-        rows = json.load(fh)
+    rows = load_rows(args.from_runs)
     since = parse_iso(args.since) if args.since else None
     if since is not None and since.tzinfo is None:
         since = since.replace(tzinfo=timezone.utc)
@@ -319,7 +339,7 @@ def main(argv: list[str]) -> int:
         if busy:
             latest = max(runs, key=lambda r: r.created)
             print(
-                f"REFUSED: main's latest forced-full Tests run is {latest.status} "
+                f"REFUSED: main's latest forced-full CI run is {latest.status} "
                 f"({latest.sha[:12] or 'unknown'}); wait until it completes",
                 file=sys.stderr,
             )

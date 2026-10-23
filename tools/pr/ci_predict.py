@@ -29,7 +29,8 @@ scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script.
 
-    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert]
+    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE]
+    python3 -I tools/pr/ci_predict.py --self-test
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
 `CI PREDICT: ...`. rc 1 when a closures or `fast` red is predicted, 0 when
@@ -39,6 +40,15 @@ so `prepr.sh` step 6d warns and the body owes each one a disposition.
 `--apply-inert` adds every predicted INERT READS entry to `tests/closures.json`
 through `closure.write_closures`, then predicts again; the entry it writes is
 an over-approximation at worst, the direction `_fold_inert_reads` keeps.
+
+`--body FILE` adds a fifth arm, the carry check `pr-contract` runs on the body
+(R10-CI-LAYOUT-P2 carry 6): `tools/audit/carry_audit.py`'s own `audit`, imported
+from the checkout under test and never restated, so a finding item routed to a
+destination the roster lacks is predicted as `PREDICT pr-contract / pr-contract
+CARRY ...` and sets the rc. It runs only when a body is given.
+
+Job names are the check names of `ci.yml`'s units (`tests / closures`, ...,
+`JOB` below); `ledger` is no check, only the file a stale pin leaves behind.
 
 What it cannot see, said so the quiet line is not over-read: a data file a
 script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
@@ -55,6 +65,12 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+
+# The check name each internal arm key is CI's after the layout cut-over
+# (DESIGN-P2 section 9); gate.REQUIRED pins every value but `ledger`.
+JOB = {"closures": "tests / closures", "fast": "tests / fast (3.14)",
+       "mutation": "tests / mutation", "carry": "pr-contract / pr-contract"}
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -281,6 +297,26 @@ def no_recording(root, base, changed, closure):
     return []
 
 
+def carry_preds(root: Path, body: str) -> list[tuple[str, str]]:
+    """`pr-contract`'s carry_audit check over the body: CI's own function.
+
+    `carry_audit.audit` is the check `pr-contract` runs (`carry_audit.py check
+    --body`); a row that is not routed is the line it would print.
+    """
+    sys.path.insert(0, str(root / "tools" / "audit"))
+    try:
+        import carry_audit
+        res = carry_audit.audit(Path(body).read_text(), [], carry_audit.load_dests(root))
+    except Exception as e:  # a roster the tree cannot read is a red CI would also print
+        return [("carry", f"CARRY UNREADABLE {type(e).__name__}: {e}")]
+    finally:
+        sys.path.pop(0)
+    return [("carry", f"CARRY {r['status'].upper()} item {r['id']}"
+             + (f" ({'; '.join(r['bad'])})" if r["bad"] else "")
+             + f": {' '.join(r['text'].split())[:80]!r}")
+            for r in res["rows"] if r["status"] != "routed"]
+
+
 def orphans(changed, closure):
     """A changed file in no closure and on no list: entities.py's refusal."""
     return [("fast", f"UNCLASSIFIED {f}: in no measured closure and not on "
@@ -335,7 +371,7 @@ def unpinned(base):
 
 
 def predict(root: Path, base_ref: str, pairs: set | None = None,
-            scripts: set | None = None) -> tuple[int, list[tuple[str, str]], str]:
+            scripts: set | None = None, body: str | None = None) -> tuple[int, list[tuple[str, str]], str]:
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
@@ -354,6 +390,8 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     preds += inert_siblings(changed, inert_reads, closure, pairs)
     preds += left_inert(changed, closures, inert_reads, closure, scripts)
     preds += unpinned(base)
+    if body:
+        preds += carry_preds(root, body)
     seen, out = set(), []
     for p in preds:
         if p not in seen:
@@ -412,28 +450,32 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base", default="origin/main")
     ap.add_argument("--apply-inert", action="store_true",
                     help="write every predicted INERT READS entry, then predict again")
+    ap.add_argument("--body", help="the pull-request body: also predict pr-contract's carry check")
+    ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args(argv)
+    if args.self_test:
+        return self_test()
     root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
     pairs: set[tuple[str, str]] = set()
     scripts: set[str] = set()
-    rc, preds, base = predict(root, args.base, pairs, scripts)
+    rc, preds, base = predict(root, args.base, pairs, scripts, args.body)
     if args.apply_inert and rc != 2:
         added = apply_inert(root, pairs)
         for script, f in added:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
             scripts = set()
-            rc, preds, base = predict(root, args.base, None, scripts)
+            rc, preds, base = predict(root, args.base, None, scripts, args.body)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
     for job, line in preds:
-        print(f"PREDICT {job:<8} {line}")
+        print(f"PREDICT {JOB.get(job, job):<8} {line}")
     if any(j == "ledger" for j, _ in preds):
         print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
               "deleted by hand; `mutation-autofix` never drops one, and pins "
               "the edited line afresh once it is gone")
-    jobs = sorted({j for j, _ in preds if j != "mutation"})
+    jobs = sorted({JOB.get(j, j) for j, _ in preds if j != "mutation"})
     sites = sum(1 for j, l in preds if j == "mutation" and l.startswith("ADDED"))
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
@@ -459,6 +501,38 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: no closures or fast red predicted against "
               f"{base[:12]} (a data-file read is not seen)")
     return rc
+
+
+def self_test() -> int:
+    """The carry arm over a plant and a null, through carry_audit's own audit."""
+    import tempfile
+    root = Path((git(Path.cwd(), "rev-parse", "--show-toplevel") or ".").strip())
+    sys.path.insert(0, str(root / "tools" / "audit"))
+    import carry_audit
+    grp = next(n for n, g in carry_audit.load_dests(root).groups.items()
+               if carry_audit.roster_lib.is_open(g))
+    body = "## Forward-carry\n\n- %s\n\n  Carry: %s\n"
+    cases = [("a carry to a group of the roster is predicted green", body % ("a finding", grp), 0),
+             ("a carry to a group the roster lacks is predicted red", body % ("a finding", "R10-NO-SUCH-GROUP"), 1),
+             ("a finding with no carry at all is predicted red", "## Forward-carry\n\n- a finding\n", 1)]
+    bad = 0
+    for label, text, want in cases:
+        with tempfile.NamedTemporaryFile("w", suffix=".md") as f:
+            f.write(text)
+            f.flush()
+            got = 1 if carry_preds(root, f.name) else 0
+        print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+        bad += got != want
+    gate = root / "tools" / "ci" / "gate.py"
+    if gate.exists():
+        sys.path.insert(0, str(root / "tools" / "ci"))
+        import gate as g
+        pinned = set(g.REQUIRED["pr"])
+        miss = [v for k, v in JOB.items() if k != "carry" and v not in pinned]
+        print(f"  {'ok  ' if not miss else 'FAIL'} every JOB value is a name gate.REQUIRED owes{' -- ' + str(miss) if miss else ''}")
+        bad += bool(miss)
+    print(f"ci_predict self-test: {bad} failed")
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":
