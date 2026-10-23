@@ -4329,7 +4329,7 @@ function assertAcceptance(derived) {
     ['a merged row deleted', ['governance / delivery-status'],
       ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['governance / delivery-status']],
     ['a merged row deleted, old spelling', ['governance / delivery-status'],
-      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['governance / delivery-status']],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['governance / delivery-status']],  // layout:old=docs/delivery (the old spelling, on purpose)
     ['the moved plan edited', ['governance / delivery-status'],
       ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['governance / delivery-status']],
     ["the reporter's own script", ['tests / nightly-status'],

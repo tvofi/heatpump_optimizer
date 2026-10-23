@@ -113,6 +113,7 @@ ALLOW = (
     ("tools/audit/worktree_gc.sh", "/tmp/hpo-orch", "the seats' scratch root: worktrees that are meant to die, which this tool collects"),
     ("tests/card.mjs", "/tmp/plandata.json", "the legacy payload path the card accepts only as a loud last resort"),
     ("tests/entities.py", "> /tmp/pr-reds.txt", "pins pr-contract.yml's runner-side derivation by its text"),
+    ("tests/entities.py", '"> /tmp/pr-alerts.txt" in _PC_WAIT', "pins pr-contract.yml's runner-side code-scanning wait output by its text (R10-CI-LAYOUT P2b, U6)"),
     ("tests/entities.py", "/tmp/pr-reds.txt` fail-closed", "the docstring of that pin"),
     ("tests/entities.py", "`gh api ... | jq ... > /tmp/pr-reds.txt`", "the comment over that pin"),
     ("tests/entities.py", '"HPO_PLANDATA": "/tmp/plandata"', "a fixture environment for the plan-data path check"),
