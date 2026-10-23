@@ -3,7 +3,7 @@
 
     python3 -I tools/audit/seat/pulse.py [--repo OWNER/REPO] [--remote R]
         [--checkout DIR] [--opener-h H] [--verdict-h H] [--state-min M]
-        [--dump FILE]
+        [--seat-queue SEAT=FILE[:MIN]]... [--dump FILE]
     python3 -I tools/audit/seat/pulse.py --snapshot FILE [--now EPOCH] [bounds]
     python3 -I tools/audit/seat/pulse.py --self-test
 
@@ -40,8 +40,21 @@ is what makes it usable after the host is gone. Three arms:
               older than --state-min (default 45 min): the beat regenerates on
               every main move, so a main that keeps moving cannot hide it.
 
-Each arm prints one line, `PULSE <arm> ok|STOPPED|UNREADABLE <detail>`, then
-`pulse: 3 arms, S stopped, U unreadable at <utc>`. Exit 1 when any arm is
+THE STANDING SEATS (decision 0015). The four standing seats the orchestrator
+keeps alive -- tick, merge, dispatch, roster, each a contract under
+dev/governance/roles/standing-*.md -- are judged the same way. Each origin arm
+names the seat that consumes its input: opener -> dispatch, verdict -> merge
+for a merge verdict and dispatch for any other, state-beat -> merge. A seat
+whose input is session-local is judged on its queue file, one arm per
+`--seat-queue SEAT=FILE[:MIN]`: each non-blank line is `<epoch> <text>`, an
+input the orchestrator queued and the seat removes when it acts, and the seat
+is STOPPED when the oldest line has waited past its cadence (STANDING below, or
+MIN). An empty file is an idle seat with nothing owed: ok. A missing or
+unparseable file is UNREADABLE.
+
+Each arm prints one line, `PULSE <arm> ok|STOPPED|UNREADABLE <detail>`, a
+STOPPED detail opening `seat <name>:`, then
+`pulse: N arms, S stopped, U unreadable at <utc>`. Exit 1 when any arm is
 STOPPED, else 2 when any is UNREADABLE, else 0. An input it could not read is
 UNREADABLE and never ok: a shut fetch or a refused API call is not a clean
 board. A stamp ahead of the reading clock is an unknowable age (fixer.md step
@@ -71,6 +84,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ARMS = ("opener", "verdict", "state-beat")
+#: The standing seats and their cadences in minutes: the longest a queued input
+#: may wait before the seat counts as stopped. tick runs in windows of about
+#: 70 min; merge matches the verdict arm's default bound; dispatch and roster
+#: act within a sweep, so one hour is two missed sweeps.
+STANDING = {"tick": 70, "merge": 120, "dispatch": 60, "roster": 60}
+ARM_SEAT = {"opener": "dispatch", "state-beat": "merge"}
 NS = "refs/hpo-pulse"
 VERDICT_RE = re.compile(r"^verdict: #(\d+) Fix review: (\S+) ([0-9a-f]{7,40})\b")
 ORPHAN_RE = re.compile(r"^ORPHAN (\S+) (\S+) (\S+?)h? ")
@@ -161,9 +180,47 @@ def judge_state(snap: dict, now: float, bound: float) -> tuple[str, str]:
 JUDGES = {"opener": judge_opener, "verdict": judge_verdict, "state-beat": judge_state}
 
 
+def judge_queue(q: dict | None, now: float, seat: str) -> tuple[str, str]:
+    """One standing seat's local queue: STOPPED when its oldest owed input has
+    waited past the seat's cadence; an empty queue is an idle seat, ok."""
+    if not isinstance(q, dict) or not isinstance(q.get("entries"), list):
+        return "UNREADABLE", f"seat {seat}: its queue could not be read"
+    cadence = float(q.get("cadence_min") or STANDING[seat]) * 60
+    ages = [a for a in (_age(now, t) for t in q["entries"]) if a is not None]
+    skew = len(q["entries"]) - len(ages)
+    extra = f"; {skew} skew" if skew else ""
+    if ages and max(ages) > cadence:
+        return "STOPPED", (f"seat {seat}: {sum(a > cadence for a in ages)} queued input(s) past its "
+                           f"{cadence / 60:g} min cadence, oldest {max(ages) / 60:.0f} min{extra}")
+    if not q["entries"]:
+        return "ok", f"seat {seat}: idle, nothing queued"
+    return "ok", f"seat {seat}: {len(q['entries'])} queued, each under its {cadence / 60:g} min cadence{extra}"
+
+
+def seat_of(arm: str, snap: dict, now: float, bound: float) -> str:
+    """The standing seat an origin arm's owed input waits on. The verdict arm's
+    is the merge seat when its oldest owed verdict is a merge, else dispatch."""
+    if arm != "verdict":
+        return ARM_SEAT[arm]
+    heads = snap.get("open_heads") or {}
+    owed = [v for v in snap.get("verdicts") or []
+            if (h := heads.get(str(v["pr"]))) and (h.startswith(v["sha"]) or v["sha"].startswith(h))
+            and (a := _age(now, v["t"])) is not None and a > bound]
+    oldest = min(owed, key=lambda v: v["t"], default=None)
+    return "merge" if oldest and oldest["kind"] == "merge" else "dispatch"
+
+
 def judge(snap: dict, bounds: dict) -> list[tuple[str, str, str]]:
     now = snap["now"]
-    return [(arm, *JUDGES[arm](snap, now, bounds[arm])) for arm in ARMS]
+    rows = []
+    for arm in ARMS:
+        word, detail = JUDGES[arm](snap, now, bounds[arm])
+        if word == "STOPPED":
+            detail = f"seat {seat_of(arm, snap, now, bounds[arm])}: {detail}"
+        rows.append((arm, word, detail))
+    for seat, q in (snap.get("seat_queues") or {}).items():
+        rows.append((f"seat-{seat}", *judge_queue(q, now, seat)))
+    return rows
 
 
 def report(rows: list[tuple[str, str, str]], now: float) -> int:
@@ -272,6 +329,18 @@ def repo_of(cwd: str, remote: str) -> str | None:
         return None
     m = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?/?$", url)
     return m.group(1) if m else None
+
+
+def read_queue(spec: str) -> tuple[str, dict | None]:
+    """`SEAT=FILE[:MIN]` -> (seat, {"entries": [epoch...], "cadence_min": MIN}),
+    the entries None when the file is missing or a line is not `<epoch> <text>`."""
+    seat, _, rest = spec.partition("=")
+    path, _, mins = rest.partition(":") if re.search(r":\d+(\.\d+)?$", rest) else (rest, "", "")
+    try:
+        entries = [int(l.split()[0]) for l in Path(path).read_text().splitlines() if l.strip()]
+    except (OSError, ValueError):
+        entries = None
+    return seat, {"entries": entries, "cadence_min": float(mins) if mins else None}
 
 
 def snapshot_live(cwd: str, remote: str, repo: str | None) -> dict:
@@ -390,6 +459,59 @@ def self_test() -> int:
     unk = snap(orphans={"rc": 1, "out": "ORPHAN r10-y 1a2b3c4 unknown-age uncovered=? repair=review\n" + clean})
     rr = {arm: (w, d) for arm, w, d in judge(unk, B)}
     check("an orphan of unknown age is named, never aged", rr["opener"][0] == "ok" and "1 of unknown age" in rr["opener"][1])
+    # The standing seats (decision 0015). Each origin arm's STOPPED line names the
+    # seat its input waits on: the 10-21 blocked verdict is dispatch's to route,
+    # a merge verdict and a dead state beat are the merge seat's, a starved
+    # opener is dispatch's.
+    check("a STOPPED blocked verdict names the dispatch seat",
+          r["verdict"][1].startswith("seat dispatch: 1 verdict(s)"))
+    mv = snap(verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 5 * H}])
+    check("a STOPPED merge verdict names the merge seat",
+          dict((a, d) for a, _, d in judge(mv, B))["verdict"].startswith("seat merge: "))
+    check("a STOPPED state beat names the merge seat, a starved opener the dispatch seat",
+          dict((a, d) for a, _, d in judge(beat, B))["state-beat"].startswith("seat merge: ")
+          and ro["opener"][1].startswith("seat dispatch: "))
+    check("an ok arm names no seat", not r["opener"][1].startswith("seat "))
+    roles = HERE.parents[2] / "dev/governance/roles"
+    check("every standing seat pulse judges is a tracked contract, and every contract a seat",
+          sorted(p.name for p in roles.glob("standing-*.md")) == sorted(f"standing-{s}.md" for s in STANDING))
+    # Null control: an idle seat with nothing owed is not STOPPED, however long idle.
+    idle = snap(seat_queues={"roster": {"entries": []}, "tick": {"entries": []}})
+    wi, di = words(idle), {a: d for a, _, d in judge(idle, B)}
+    check("null control: idle standing seats with nothing queued are ok, and add one arm each",
+          wi["seat-roster"] == wi["seat-tick"] == "ok" and len(wi) == len(ARMS) + 2
+          and di["seat-roster"] == "seat roster: idle, nothing queued")
+    late = snap(seat_queues={"roster": {"entries": [now - 61 * 60, now - 5 * 60]},
+                             "tick": {"entries": [now - 69 * 60]}})
+    rl = {a: (w, d) for a, w, d in judge(late, B)}
+    check("a queued input older than the seat's cadence is STOPPED, naming the seat",
+          rl["seat-roster"][0] == "STOPPED"
+          and rl["seat-roster"][1].startswith("seat roster: 1 queued input(s) past its 60 min cadence, oldest 61 min"))
+    check("a queued input under the seat's cadence is ok", rl["seat-tick"][0] == "ok")
+    check("perturbation: a 90 min override reads the 61 min input ok",
+          words(snap(seat_queues={"roster": {"entries": [now - 61 * 60], "cadence_min": 90}}))["seat-roster"] == "ok")
+    check("an unread queue is UNREADABLE, never ok",
+          words(snap(seat_queues={"merge": {"entries": None, "cadence_min": None}}))["seat-merge"] == "UNREADABLE")
+    check("a queued stamp ahead of the clock is never aged",
+          words(snap(seat_queues={"tick": {"entries": [now + 600]}}))["seat-tick"] == "ok")
+    with tempfile.TemporaryDirectory() as td:
+        qf, mf = Path(td) / "roster.q", Path(td) / "gone.q"
+        qf.write_text(f"{now - 61 * 60} append-carry R10-X\n\n")
+        seat, q = read_queue(f"roster={qf}")
+        check("read_queue reads `<epoch> <text>` lines and skips blanks",
+              seat == "roster" and q == {"entries": [now - 61 * 60], "cadence_min": None})
+        check("read_queue takes a :MIN override and reads a missing file as unreadable",
+              read_queue(f"tick={qf}:90")[1]["cadence_min"] == 90.0
+              and read_queue(f"tick={mf}")[1]["entries"] is None)
+        f = Path(td) / "late.json"
+        f.write_text(json.dumps(late))
+        out = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f)], capture_output=True, text=True)
+        check("--snapshot judges the seat queues: exit 1, the STOPPED line names the seat, five arms",
+              out.returncode == 1 and "PULSE seat-roster STOPPED seat roster:" in out.stdout
+              and "pulse: 5 arms, 1 stopped" in out.stdout)
+        bad = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"janitor={qf}"],
+                             capture_output=True, text=True)
+        check("--seat-queue refuses a seat no contract defines", bad.returncode == 2 and "janitor" in bad.stderr)
     # The CLI: --snapshot judges a dumped board, and the exit codes are 1 / 2 / 0.
     with tempfile.TemporaryDirectory() as td:
         codes = []
@@ -418,8 +540,13 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--snapshot", type=Path, help="judge this dumped snapshot instead of origin")
     ap.add_argument("--now", type=int, help="with --snapshot: the reading clock (epoch seconds)")
     ap.add_argument("--dump", type=Path, help="write the live snapshot judged here")
+    ap.add_argument("--seat-queue", action="append", default=[], metavar="SEAT=FILE[:MIN]",
+                    help="judge a standing seat on its local queue file (repeatable)")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
+    bad = [s for s in a.seat_queue if s.partition("=")[0] not in STANDING or not s.partition("=")[2]]
+    if bad:
+        ap.error(f"--seat-queue takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)}: {bad}")
     if a.self_test:
         return self_test()
     b = bounds_s(a.opener_h, a.verdict_h, a.state_min)
@@ -429,6 +556,7 @@ def main(argv: list[str]) -> int:
             snap["now"] = a.now
     else:
         snap = snapshot_live(a.checkout, a.remote, a.repo or repo_of(a.checkout, a.remote))
+        snap["seat_queues"] = dict(map(read_queue, a.seat_queue))
         if a.dump:
             a.dump.write_text(json.dumps(snap, indent=1) + "\n")
     return report(judge(snap, b), snap["now"])

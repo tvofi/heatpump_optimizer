@@ -45,6 +45,7 @@ rendered text that no overlay value supplied.
 | `transcript` | the session transcript `policy_reread_check.py` reads |
 | `policy_stamp` | the policy re-read stamp `policy_reread_check.py` reads and writes |
 | `disk_floor_gib` | free GiB on `/` below which finished worktrees are cleaned |
+| `seat_queues` | `pulse.py`'s `--seat-queue SEAT=FILE` arguments, one per standing seat's session queue file |
 
 <!-- sweep:begin -->
 ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} first. Run each instrument from its path in the tree, from {{orch_checkout}}, with `tools/audit/seat/shims` first on PATH. Then, briefly:
@@ -53,17 +54,21 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
 
 (1) Seats. Run at most {{local_seat_cap}} local seats; cloud seats count above that cap: {{cloud_above_cap}}. Below the cap, resume the next queued seat from {{seat_ledger}}. Seat worktrees live under {{seat_root}}, each named absolute in its brief (`dev/governance/roles/orchestrator.md` section 5). A handed-off seat is not resumed and an unblocked roster group gets a fixer (`dev/governance/roles/nudge.md` steps 14 and 16).
 
+(1b) Standing-seat liveness. The four standing seats are `dev/governance/roles/standing-tick.md`, `dev/governance/roles/standing-merge.md`, `dev/governance/roles/standing-dispatch.md` and `dev/governance/roles/standing-roster.md`. Run `python3 -I tools/audit/seat/pulse.py --repo {{repo}} {{seat_queues}}`; a seat that is absent from {{seat_ledger}}, that finished with work still owed, or that a `PULSE` line reports `STOPPED seat <name>:` is restarted in this sweep on its contract with its queue, and the restart is logged in {{seat_ledger}}. Routine work goes to these seats as queue lines, never inline (`dev/governance/roles/orchestrator.md` section 5).
+
 (2) Handoffs. Compare `git ls-remote --heads origin 'handoff/r{{round}}-*'` with the open pull-request heads, and run `tools/audit/seat/bus.sh orphans`. A handoff with no pull request gets `tools/audit/seat/open_pr.sh`; one ahead of its pull request gets `tools/audit/seat/update_pr.sh`; each runs detached under `tools/audit/seat/daemonize.py`, then `tools/pr/approve_held_runs.sh` on that branch, then `tools/audit/seat/bus.sh dispatch` and a reviewer seat at the printed head (`dev/governance/roles/orchestrator.md` section 5b; `dev/governance/roles/nudge.md` steps 1, 2 and 8).
 
 (3) Merges. Verdicted pull requests go to one batch through `tools/audit/seat/train.sh --repo {{repo}} --mandate {{mandate}} --overlap`, its queue and `--state-dir` under {{orch_scratch}}, detached under `tools/audit/seat/daemonize.py`, never a second live train (`dev/governance/roles/nudge.md` step 3; `dev/governance/roles/orchestrator.md` section 11). Budget-file and policy heads stay off the train and merge directly under mandate {{mandate}} (`dev/governance/roles/nudge.md` steps 5 and 7; `CLAUDE.md` rule 2). A record or autofix pull request merges behind `tools/audit/seat/record_row.py --automerge-check` (`dev/governance/roles/nudge.md` step 6).
 
 (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), the finished seat's worktrees under {{seat_root}} and its scratch removed, `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, and the plan artifact regenerated with `{{plan_generator}}` and republished at {{plan_artifact}}.
 
-(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). Then run `python3 -I tools/audit/seat/pulse.py --repo {{repo}}`: each `STOPPED` line names a consumer whose owed input is waiting on it (opener, verdict router or train, state beat), so restart or drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board.
+(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board.
 
 (6) Verdicts and CI. Read any moved `review/*` or `probe/*` refs and the cloud runs; confirm each verdict at its exact head with `tools/audit/seat/bus.sh confirm` (`dev/governance/roles/nudge.md` step 1). A red required check at an open head goes back to its fixer with the line `tools/audit/seat/failure_logs.sh` prints (`dev/governance/roles/nudge.md` steps 4 and 15).
 
-(7) Disk. If `df -h /` shows under {{disk_floor_gib}} GiB free, collect finished worktrees with `tools/audit/worktree_gc.sh {{repo}}`.
+(7) Proposals. A process, tooling or instrument proposal this sweep met (a seat's result, a verdict's optimisation note, your own) is sent to triage on `dev/governance/roles/proposal-triage.md`, never implemented or routed before its ruling; an ACCEPT reaches the roster through the roster seat, citing its ruling.
+
+(8) Disk. If `df -h /` shows under {{disk_floor_gib}} GiB free, collect finished worktrees with `tools/audit/worktree_gc.sh {{repo}}`.
 
 Keep the turn short; update {{seat_ledger}}.
 <!-- sweep:end -->
