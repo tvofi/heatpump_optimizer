@@ -8,7 +8,7 @@ Run from the branch's worktree with its work committed. Each mutant gets its
 own detached worktree of HEAD (removed afterwards), one text substitution per
 edit that must apply exactly once, and a full
 `PYTHONPATH=tests/hastub python3 tests/entities.py` run. M0 is the unmutated
-head: it must fail no check outside KNOWN_RED. A mutant is KILLED when entities
+head: exactly the KNOWN_RED checks may fail (judged on the summary count). A mutant is KILLED when entities
 exits non-zero AND one of the checks it is aimed at is among the FAIL lines;
 any other red reads OFF-TARGET.
 
@@ -93,8 +93,15 @@ def run_one(name: str) -> tuple[str, int, list[str], str]:
         fails = [ln[len("  FAIL "):].split("  [")[0] for ln in res.stdout.splitlines()
                  if ln.startswith("  FAIL ")]
         tail = [ln for ln in res.stdout.splitlines() if "ENTITY CHECKS" in ln]
-        hit = ([f for f in fails if not any(f.startswith(k) for k in KNOWN_RED)] if not aimed
-               else [f for f in fails if any(f.startswith(a) for a in aimed)])
+        if aimed:
+            hit = [f for f in fails if any(f.startswith(a) for a in aimed)]
+        else:
+            # The suite's own null controls print indented `FAIL` sub-lines on
+            # a healthy tree, so M0 is judged by the summary: exactly the
+            # KNOWN_RED checks failed, and each is among the FAIL lines.
+            want = f"{len(KNOWN_RED)} of "
+            hit = [] if (tail and tail[-1].startswith(want) and all(
+                any(f.startswith(k) for f in fails) for k in KNOWN_RED)) else (tail[-1:] or ["no summary"])
         return name, res.returncode, hit, tail[-1] if tail else "(no summary line)"
     finally:
         subprocess.run(["git", "-C", str(ROOT), "worktree", "remove", "--force", str(wt)],
