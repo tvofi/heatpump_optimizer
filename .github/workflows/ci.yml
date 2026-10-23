@@ -198,6 +198,8 @@ jobs:
     needs: prelude
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' governance ')
     uses: ./.github/workflows/governance.yml
+    with:
+      base: ${{ needs.prelude.outputs.base }}
     permissions:
       contents: read
       pull-requests: read

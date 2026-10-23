@@ -156,7 +156,8 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   if ($0 ~ /PINNED/ || $0 ~ /git (checkout|restore) [^#]*--/) mentions = 1
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  # A ci.yml callee's dispatch naming a PR takes its base before `github.sha`.
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
   # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
   else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
