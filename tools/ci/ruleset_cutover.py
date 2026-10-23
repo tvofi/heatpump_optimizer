@@ -157,11 +157,22 @@ def preconditions(gh, live: dict, staged: dict | None, head: str | None, pr: int
         if not cr or len(cr) >= PAGE:
             out.append(("gate-at-head", False, f"{len(cr)} gate check runs at {head}"))
         else:
-            n = max(cr, key=lambda r: r["id"])
-            ok = (n.get("conclusion") == "success" and (n.get("app") or {}).get("id") == GATE_APP_ID
-                  and n.get("head_sha") == head)
-            out.append(("gate-at-head", ok, f"newest id {n['id']}: {n.get('conclusion')} "
-                        f"app {(n.get('app') or {}).get('id')} head {n.get('head_sha')}"))
+            # GitHub reads the newest `gate` of EVERY check suite at the head
+            # (#2009): a deferred red in an older run's suite blocks the merge
+            # beside a newer green one, and the sweep is what turns it green.
+            # A run whose suite cannot be read is refused, never guessed.
+            suites: dict = {}
+            for r in cr:
+                suites.setdefault((r.get("check_suite") or {}).get("id"), []).append(r)
+            if None in suites:
+                out.append(("gate-at-head", False, f"{len(suites[None])} gate check run(s) with no check_suite"))
+            else:
+                newest = [max(rs, key=lambda r: r["id"]) for rs in suites.values()]
+                bad = [n for n in newest if not (n.get("conclusion") == "success"
+                       and (n.get("app") or {}).get("id") == GATE_APP_ID and n.get("head_sha") == head)]
+                out.append(("gate-at-head", not bad, f"{len(newest)} suite(s); " + (
+                    "; ".join(f"newest id {n['id']}: {n.get('conclusion')} app {(n.get('app') or {}).get('id')} "
+                              f"head {n.get('head_sha')}" for n in bad) or "every suite's newest gate is green")))
     login = call(gh, ["user"]).get("login")
     out.append(("caller-is-owner", login == OWNER, f"gh api user reads {login!r}"))
     wr = call(gh, [f"repos/{REPO}/actions/runs?branch=main&event=push&status=in_progress&per_page={PAGE}"])
@@ -412,9 +423,16 @@ def self_test() -> int:
         def gate(**kv):
             return lambda c: {**c, "check_runs": [*c["check_runs"],
                               {"id": 900003, "name": "gate", "head_sha": H, "status": "completed",
-                               "conclusion": "success", "app": {"id": GATE_APP_ID}, **kv}]}
+                               "conclusion": "success", "app": {"id": GATE_APP_ID}, "check_suite": {"id": 700001}, **kv}]}
         plants = {
             "gate newest failure": variant(check_runs=gate(conclusion="failure")),
+            # GitHub reads every check suite's newest `gate` (#2009): a deferred
+            # red in an older suite blocks the merge beside a newer green one.
+            "an older gate suite red beside a newer green suite": variant(check_runs=lambda c: {
+                **c, "check_runs": [{**r, "check_suite": {"id": 700000 + (r["id"] == 900002)}}
+                                    for r in c["check_runs"]]}),
+            "a gate run whose suite is unreadable": variant(check_runs=lambda c: {
+                **c, "check_runs": [{k: v for k, v in r.items() if k != "check_suite"} for r in c["check_runs"]]}),
             "gate from another app": variant(check_runs=gate(app={"id": 99})),
             "gate at another head": variant(check_runs=gate(head_sha="0" * 40)),
             "no gate at all": variant(check_runs=lambda c: {"total_count": 0, "check_runs": []}),
