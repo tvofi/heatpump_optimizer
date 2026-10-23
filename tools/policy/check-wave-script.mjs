@@ -645,6 +645,18 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const taughtWords = examples.map(([f, ex]) => [f, ex.match(/^blocked <sha> ([a-z][a-z0-9-]*):/)?.[1]]).filter(([, w]) => w)
   t('the briefs teach at least one block class word (floor, not a count)', taughtWords.length > 0, `found ${taughtWords.length}`)
   for (const [f, w] of taughtWords) t(`${f} teaches block class "${w}", and VERDICT_CLASSES carries it`, classes.includes(w), `routed to \`other\`; taught: ${classes.join(', ')}`)
+  // ...and the other direction for the classes the wave routes to the root-cause
+  // seat: a hand-run review reads fix-review.md, not the wave's prompt, so a
+  // class the prompt teaches and the contract does not is one only the wave's
+  // reviewers can return (#2275 split root-cause-unanswered in the prompt alone).
+  const rc = src.match(/const ROOT_CAUSE_CLASSES = \[([^\]]*)\]/)
+  const rootCause = [...(rc?.[1] ?? '').matchAll(/'([a-z-]+)'/g)].map((m) => m[1])
+  t('ROOT_CAUSE_CLASSES is read from the wave script (floor, not a count)', rootCause.length > 0, 'no ROOT_CAUSE_CLASSES list found')
+  const contractTeaches = (text) => new Set([...text.matchAll(/`(?:blocked <sha> )?([a-z][a-z0-9-]*)(?::[^`]*)?`/g)].map((m) => m[1]))
+  const contract = briefs.find(([f]) => f === 'fix-review.md')?.[1] ?? ''
+  for (const w of rootCause) t(`fix-review.md teaches "${w}", a class the wave routes to the root-cause seat`, contractTeaches(contract).has(w), 'taught by the wave prompt only')
+  t('...and a contract without the detectable example is refused (negative control)',
+    !contractTeaches(contract.replace(/`blocked <sha> root-cause-detectable:[^`]*`/g, '')).has('root-cause-detectable'), 'the predicate cannot fail')
   // A TAUGHT WORD MUST NOT BE TAUGHT AS ANOTHER WORD'S REASON (R10-RCA-HARNESS-
   // FRICTION). #1414 added `class-open` to VERDICT_CLASSES and, in the same
   // commit, taught fix-review.md step 6's spelling `blocked <sha> harness:

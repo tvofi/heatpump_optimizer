@@ -19335,6 +19335,117 @@ R.check(
     "request heads before the umbrella replaces it",
 )
 
+# --- the umbrella engine's pins (R10-CI-LAYOUT P2a glue) ---------------------
+#
+# REQUIRED. `tools/ci/gate.py`'s `REQUIRED` (contract item 4, keyed by event
+# class) is what the one required check `gate` demands; the fixture's
+# `gate_required` is the list the ruleset and the seat readers will key on. The
+# check reads the module itself (loaded by path, as stamp.py is above), never a
+# copy, and pins its sorted union equal to the fixture list, which must hold no
+# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
+# red check, not a truncated run.
+_CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
+import importlib.util as _cig_util
+try:
+    _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
+    _cig = _cig_util.module_from_spec(_cig_spec)
+    _cig_spec.loader.exec_module(_cig)
+    _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
+except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
+    _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
+_CIG_FIXTURE = json.loads((_closure.ROOT / "tools" / "policy" / "fixtures"
+                           / "required-contexts.json").read_text())
+
+
+def _cig_mismatch(required: "dict[str, tuple[str, ...]]", fixture: dict) -> "list[str]":
+    union = sorted({n for names in required.values() for n in names})
+    listed = list(fixture.get("gate_required") or [])
+    out = []
+    if not union:
+        out.append("REQUIRED is empty")
+    if listed != sorted(set(listed)):
+        out.append("gate_required is not sorted and duplicate-free")
+    out += [f"only in REQUIRED: {n}" for n in union if n not in listed]
+    out += [f"only in gate_required: {n}" for n in listed if n not in union]
+    if len(fixture.get("contexts") or []) != 17:
+        out.append(f"contexts holds {len(fixture.get('contexts') or [])}, not the 17")
+    return out
+
+
+_CIG_DEFECTS = _cig_mismatch(_cig_required, _CIG_FIXTURE)
+# Null controls: a name dropped from every class, a name added to the fixture,
+# and a duplicated fixture entry must each be named, so a reader that compares
+# nothing fails.
+_cig_listed = list(_CIG_FIXTURE.get("gate_required") or [])
+_CIG_PLANTS = {
+    "REQUIRED loses a name": (
+        {k: tuple(n for n in v if n not in _cig_listed[:1])
+         for k, v in _cig_required.items()}, _CIG_FIXTURE),
+    "the fixture gains a name": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + ["zz / planted"])}),
+    "a duplicated fixture entry": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + _cig_listed[:1])}),
+}
+_CIG_PLANT_MISSED = sorted(k for k, (req, fx) in _CIG_PLANTS.items() if not _cig_mismatch(req, fx))
+R.check(
+    "tools/ci/gate.py's REQUIRED union equals required-contexts.json's "
+    "gate_required, and contexts stays the 17 (P2a)",
+    not _cig_err and not _CIG_DEFECTS and not _CIG_PLANT_MISSED,
+    f"load={_cig_err or 'ok'} defects={_CIG_DEFECTS} plants the reader missed="
+    f"{_CIG_PLANT_MISSED}; the gate and the ruleset would demand different checks",
+)
+
+# Forgery (DESIGN-P2 2.1, rev1 item 12(b)), the half that needs no umbrella:
+# no workflow but ci.yml defines a job whose id or `name:` can render `gate`
+# (a `${{ }}` in a name matches any text), and no workflow grants `checks:
+# write` -- neither at the top nor in a job, and never through `write-all`.
+# Every workflow declares a top-level `permissions:`, so no job falls back to
+# the repository's default token, which the tree cannot read. The other half,
+# "exactly one job in ci.yml carries `gate`", is P2b's: the stub has none.
+def _forgery_defects(docs: "dict[str, dict]") -> "list[str]":
+    out = []
+    for name, doc in docs.items():
+        if "permissions" not in doc:
+            out.append(f"{name}: no top-level permissions (the default token)")
+        grants = [("top", doc.get("permissions"))]
+        for jid, job in (doc.get("jobs") or {}).items():
+            job = job or {}
+            label = str(job.get("name") or jid)
+            pat = ".+".join(re.escape(p) for p in re.split(r"\$\{\{.*?\}\}", label))
+            if name != "ci.yml" and (jid == "gate" or re.fullmatch(pat, "gate")):
+                out.append(f"{name}: job {jid} can report as `gate`")
+            grants.append((jid, job.get("permissions")))
+        for where, perm in grants:
+            if perm == "write-all" or (isinstance(perm, dict) and perm.get("checks") == "write"):
+                out.append(f"{name}: {where} grants checks: write")
+    return out
+
+
+_FORGERY_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
+                 for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
+_FORGERY_DEFECTS = _forgery_defects(_FORGERY_DOCS)
+_fg_tests = _FORGERY_DOCS.get("tests.yml") or {}
+_fg_jobs = _fg_tests.get("jobs") or {}
+_FORGERY_PLANTS = {
+    "a gate job id": {"jobs": {**_fg_jobs, "gate": {"runs-on": "x"}}},
+    "a job named by an expression": {"jobs": {**_fg_jobs, "x": {"name": "${{ inputs.n }}"}}},
+    "a job grant": {"jobs": {**_fg_jobs, "x": {"permissions": {"checks": "write"}}}},
+    "write-all": {"permissions": "write-all"},
+    "no top-level permissions": None,
+}
+_FORGERY_PLANT_MISSED = sorted(
+    k for k, over in _FORGERY_PLANTS.items()
+    if not _forgery_defects({"tests.yml": (
+        {k2: v for k2, v in _fg_tests.items() if k2 != "permissions"} if over is None
+        else {**_fg_tests, **over})}))
+R.check(
+    "forgery: no workflow but ci.yml defines a `gate` job, none grants "
+    "checks: write, and every workflow declares its top-level permissions",
+    bool(_FORGERY_DOCS) and not _FORGERY_DEFECTS and not _FORGERY_PLANT_MISSED,
+    f"defects={_FORGERY_DEFECTS} plants the reader missed={_FORGERY_PLANT_MISSED}; "
+    "a second producer of `gate` could write a newer green at a PR head",
+)
+
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
@@ -27619,6 +27730,8 @@ def _friction_trailer_fixture():
             "none_plus_coauthor":
                 "none\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
             "none_plus_closes": "none\n\nCloses #1134",
+            "none_plus_session":
+                "none\n\n🤖 Generated with Claude Code\n\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE",
             "entry_plus_attribution":
                 "`CLAUDE.md`: cost: real\n\n🤖 Generated with Claude Code",
         }.items():
@@ -27639,6 +27752,8 @@ _FRICTION_TRAILER = json.loads(subprocess.run(
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
      "closes: m.frictionEntries('none\\n\\nCloses #1134').length,"
+     "session: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE').length,"
+     "session_prose: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_01 is where it ran').length,"
      "entry_kept: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\nCloses #1134')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
      "entry_total: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\n🤖 Generated with Claude Code').length,"
@@ -27651,14 +27766,17 @@ R.check(
     _FRICTION_TRAILER.get("attribution") == 0
     and _FRICTION_TRAILER.get("coauthor") == 0
     and _FRICTION_TRAILER.get("closes") == 0
+    and _FRICTION_TRAILER.get("session") == 0
     and _FT["none_plus_attribution"][0] == 0
     and _FT["none_plus_coauthor"][0] == 0
-    and _FT["none_plus_closes"][0] == 0,
+    and _FT["none_plus_closes"][0] == 0
+    and _FT["none_plus_session"][0] == 0,
     f"parsed={_FRICTION_TRAILER}, "
     f"rcs={{{', '.join(f'{k}: {v[0]}' for k, v in _FT.items())}}} -- the "
     "attribution bullet, the `Co-Authored-By:` near-miss and the `Closes #N` "
     "line each became an unlabelled histogram entry the filer would have "
-    "counted (#1238)",
+    "counted (#1238); the cloud harness's session link refused the body "
+    "(R10-RCA-BODY-LINT)",
 )
 R.check(
     "a real entry followed by a trailer block keeps exactly its own entry",
@@ -27673,7 +27791,8 @@ R.check(
     "and the drop buys no amnesty: junk still refuses, trailer words "
     "mid-evidence still parse (null controls)",
     _FN["junk_only"][0] == 1
-    and _FRICTION_TRAILER.get("midline_control") == 1,
+    and _FRICTION_TRAILER.get("midline_control") == 1
+    and _FRICTION_TRAILER.get("session_prose") == 1,
     f"junk_only rc={_FN['junk_only'][0]}, parsed={_FRICTION_TRAILER} -- the "
     "trailer shapes are line-anchored, so the same words inside an entry's "
     "evidence must not drop it, and a line that is neither an entry nor a "
@@ -37766,6 +37885,39 @@ R.check(
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
     and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+
+# THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
+# unit-pinned in `policy_lint.mjs`'s acceptance, but the saving only exists if
+# every invocation of the three modes in the `record` job carries the same
+# `--window-cache` file: drop it from one and that mode walks the window again
+# on the GITHUB_TOKEN bucket, with every other check green (the reviewer's
+# mutants M1-yaml and Y1). Both spellings of the `.claude` / `tools` arm count.
+# This reads the job text, so it pins the artifact the runner executes.
+import re as _re_wc
+_WC_JOB = _workflow_job(
+    Path(".github/workflows/governance.yml").read_text(), "record")
+_WC_SEEN = {}
+for _wc_m in _re_wc.finditer(r"node\s+(?:\S*policy_lint\.mjs|\"\$_pl\")\s+--(record|stats|sunset)\b", _WC_JOB):
+    _wc_rest = _WC_JOB[_wc_m.end():]
+    _wc_seg = _re_wc.split(r"\bnode\s|\n\s*- name:|\n\n", _wc_rest, maxsplit=1)[0]
+    _WC_SEEN.setdefault(_wc_m.group(1), []).append(
+        _re_wc.findall(r"--window-cache\s+(\"[^\"]+\")", _wc_seg))
+_WC_SHAPE = {k: len(v) for k, v in sorted(_WC_SEEN.items())}
+R.check(
+    "the record job's three modes are all found, so the wiring check below reads something",
+    _WC_SHAPE == {"record": 1, "sunset": 2, "stats": 2} or _WC_SHAPE == {"record": 1, "stats": 2, "sunset": 2},
+    f"invocations found per mode: {_WC_SHAPE} (--record once, --stats and "
+    "--sunset once per `.claude`/`tools` arm). A pattern that matched nothing "
+    "would make the next check vacuously true",
+)
+_WC_FILES = {tuple(f) for v in _WC_SEEN.values() for f in v}
+R.check(
+    "every record-job invocation of --record, --stats and --sunset passes the same --window-cache file",
+    bool(_WC_SEEN) and _WC_FILES == {('"$RUNNER_TEMP/window.json"',)},
+    f"distinct --window-cache arguments per invocation: {sorted(_WC_FILES)}. "
+    "An invocation without it walks the window itself (834 calls against 370 "
+    "in `record_api_calls.sh`); two different files would share nothing",
 )
 
 
