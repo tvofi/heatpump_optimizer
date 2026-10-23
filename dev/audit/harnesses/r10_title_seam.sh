@@ -17,7 +17,7 @@
 # Limit: a title the train refused and someone then edited merges clean and is
 # not seen; train Stop lines are not in the tree.
 set -uo pipefail
-ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
+ROOT=$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel) || exit 2
 RANGE=${1:-v7.0.0..origin/main}
 refused() { # title -> 0 when preflight refuses it
   local out

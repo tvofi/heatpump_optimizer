@@ -22,7 +22,7 @@
 # the other refusals a synthetic body draws (the predicted budget red, for one)
 # are not this metric. pr-contract's blocks write /tmp/pr-*, as on a runner.
 set -uo pipefail
-ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
+ROOT=$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel) || exit 2
 REV=$(git -C "$ROOT" rev-parse "${1:-HEAD}") || exit 2
 T=$(mktemp -d "${TMPDIR:-/tmp}/r10-raise-paths.XXXXXX")
 trap 'rm -rf "$T"' EXIT
