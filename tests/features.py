@@ -21188,7 +21188,7 @@ R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(price_tiles.book(_ctile2)) == ["target_minus_1"]
     and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
-    and _ctile2._price_tile_cursor == 1,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 1,
 )
 
 
@@ -21211,7 +21211,7 @@ R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
     _ctile2_limited_seen.get("limited") is False
-    and _ctile2._price_tile_cursor == 2,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 2,
     str(_ctile2_limited_seen),
 )
 R.check(
@@ -21438,7 +21438,7 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    _ctile4._price_tile_cursor == 1 and not price_tiles.book(_ctile4),
+    price_tiles._CURSORS.get(_ctile4, 0) == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
@@ -40774,7 +40774,7 @@ async def _rc2_boot(entry):
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
     await boost_mod.restore_session(
-        coord, coord._away_state, coord._config, coord._entity_state
+        coord, coord._adopt_away_override, coord._config, coord._entity_state
     )
     await coord._async_load_manual_plan()
     return coord
@@ -43541,10 +43541,10 @@ def _t3_tile(answer, **config):
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
-    _t3_tile_boom._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_boom, 0) == 1
     and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
-    f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
+    f"cursor {price_tiles._CURSORS.get(_t3_tile_boom, 0)} tiles "
     f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
@@ -43558,13 +43558,13 @@ _t3_tile_good = _t3_tile(
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
-    _t3_tile_error._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_error, 0) == 1
     and dict(price_tiles.book(_t3_tile_error)) == {}
-    and _t3_tile_good._price_tile_cursor == 1
+    and price_tiles._CURSORS.get(_t3_tile_good, 0) == 1
     and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
-    f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
+    f"errored -> cursor {price_tiles._CURSORS.get(_t3_tile_error, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
-    f"{_t3_tile_good._price_tile_cursor}, tiles "
+    f"{price_tiles._CURSORS.get(_t3_tile_good, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
@@ -47830,6 +47830,8 @@ class _G8AwayCoord:
     def _entity_state(self, entity_id):
         return self._entity_states.get(entity_id, (None, {}))
 
+    _adopt_away_override = Coord._adopt_away_override
+
 
 _g8_away_real_store = _g8_away.QuarantiningStore
 try:
@@ -47854,7 +47856,7 @@ try:
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
     _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord, _g8_load_coord._adopt_away_override, _g8_load_coord._config,
         _g8_load_coord._entity_state,
     ))
     _g8_load_saved = list(_G8AwayStore.saved)
@@ -47868,7 +47870,7 @@ try:
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
     _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord, _g8_done_coord._adopt_away_override, _g8_done_coord._config,
         _g8_done_coord._entity_state,
     ))
     _g8_done_saved = list(_G8AwayStore.saved)
