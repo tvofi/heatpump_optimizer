@@ -394,7 +394,9 @@ PINNED_OK = {"${{ github.event.pull_request.base.sha || github.sha }}",
              "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}",
              # R10-CI-LAYOUT P2b: a ci.yml callee dispatched with `-f base=`.
              "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
-             " || format('origin/{0}', inputs.base) }}"}
+             " || format('origin/{0}', inputs.base) }}",
+             "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
+             " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"}
 # A bare interpreter name, resolved on the job's PATH, which nothing admitted
 # can change; never a path (round 4: `tools/shim/python3`).
 INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
