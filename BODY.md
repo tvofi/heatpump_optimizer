@@ -25,6 +25,10 @@ The keying change alone, without the synonyms, reads 2 there, below the threshol
 
 ## Head
 
+`48dbc2c8137298d4085a5ee6b946811de3b15608` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2669.md`. The authored code head is `4963b53d09797e42155668214a182d8b7cd7fdaa`.
+
+`e6b0e84cdc5e542cf02424bb7c9211a634ba045e` merges origin/main `12032c43c` into the authored code head `4963b53d09797e42155668214a182d8b7cd7fdaa` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `4963b53d09797e42155668214a182d8b7cd7fdaa`, on merge base `a6620c30adcdf0d9529ee66977694bfa2a06d5c3` (`origin/main` at the time of measurement, 2026-10-23T13:16Z). Round 2: the round-1 handoff head `e884b8900` already contained `origin/main`, so `git merge origin/main` was a no-op. Round 2's commits add the C1-C4 barrier and the title-seam record on top of it, and every figure below was re-taken at `4963b53d09797e42155668214a182d8b7cd7fdaa`.
 
 ## Root cause
@@ -138,7 +142,7 @@ Owner approval is owed for the policy paths (`POLICY_GLOBS`). In `tools/policy/`
 
 ## Red checks
 
-none
+- `closures`, red at `48dbc2c` (job 120456986792), repaired by the bot, never by a seat: `INERT READS UNDER-APPROXIMATED` for `tests/entities.py` on `tools/policy/budget_raise_gate.py` and the four `tools/policy/fixtures/policy-rot/prepr/raise/*.md` fixtures. `entities.py` runs `policy_lint.mjs` as node child processes, and this diff's `raiseJustification` arm there spawns `python3 -I budget_raise_gate.py --check-body`: a grandchild read the recording saw and the table did not list. `closures-autofix` (job 120472970719) printed `AUTOFIX: changed` and pushed `7637022` (`ci: re-record closures`), which adds exactly those 5 `inert_reads` entries and re-times 3 recordings (`stress.py`, `structure.py`, `validate.py`). Cheaper detector: none exists. `python3 tools/pr/ci_predict.py --base 12032c43c` at `48dbc2c` prints `CI PREDICT: no closures or fast red predicted ... (a data-file read is not seen)`, rc 0. Its import arm models Python top-level imports only, and its sibling arm needs 3 listed siblings in the directory, while `entities.py` lists 0 under `tools/policy/fixtures/`. A Darwin `--single` records through `sys.addaudithook`, which does not see a node child's reads, and the inert dimension is Linux `strace`-only (`ci-autofix.md`; `dev/audit/rca/R10-RCA-INERT-PREDICT.md`, the child-process class). So the cheapest detector that sees the read is the gate that saw it, and its autofix repaired it with no seat action.
 
 ## Forward-carry
 
