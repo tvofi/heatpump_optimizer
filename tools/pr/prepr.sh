@@ -2173,7 +2173,7 @@ EOS
     && $G commit -qam rowedit) >/dev/null 2>&1
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
-    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
     >/dev/null 2>&1; echo $?); }
   st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
   st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"

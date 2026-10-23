@@ -79,7 +79,7 @@ import {
   ROSTER_FILE_RE,
   CARRY_FILE_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, cutoverDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -1094,10 +1094,11 @@ function requiredContextsOverTree() {
   }
   const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
   return [
-    ...requiredContextsDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
+    ...cutoverDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
     ...sites.flatMap((rel) => checkRequiredContexts(rel, read(rel), live)),
   ]
 }
+
 
 function checkOrphanCaps(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
@@ -5144,6 +5145,33 @@ function assertAcceptance(derived) {
   }
   const RC_THREE = { contexts: ['policy-docs', 'probe-a', 'probe-b'], count: 3, rulesets: [1] }
   const rcFixture = (contexts, rulesets = [1]) => JSON.stringify({ contexts, rulesets })
+  // THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). The record names the post-PUT set
+  // (`gate`) and, as `pre_cutover`, the set the ruleset holds until
+  // ruleset_cutover.py --apply. Either WHOLE shape is accepted, and the
+  // pre-cut-over match is said out loud; a set that is neither -- half
+  // migrated, or anything else -- is refused as before. Without the arm the
+  // P2b head's `policy-docs`, and so its `gate`, is red until the PUT, and
+  // the PUT's own gate-at-head precondition refuses on that red.
+  pins += 4
+  const RC_POST = { contexts: ['gate'], count: 1, rulesets: [1] }
+  const rcBoth = JSON.stringify({ contexts: ['gate'], rulesets: [1], pre_cutover: { contexts: RC_THREE.contexts, rulesets: [1] } })
+  const preMatch = driveRC(RC_THREE, rcBoth, [])
+  if (preMatch.found.length || !preMatch.said.some((l) => /PRE-CUT-OVER/.test(l))) {
+    console.log(`\nFIXTURE VACUOUS: a live set equal to the recorded pre_cutover shape produced ${preMatch.found.length} finding(s)${preMatch.said.some((l) => /PRE-CUT-OVER/.test(l)) ? '' : ' and no PRE-CUT-OVER line'}; the cut-over window must pass, and say why`)
+    rc = 1
+  }
+  if (driveRC(RC_POST, rcBoth, []).found.length) {
+    console.log('\nFIXTURE VACUOUS: a live set equal to the recorded post-PUT shape is refused once pre_cutover is recorded beside it')
+    rc = 1
+  }
+  if (!driveRC({ contexts: ['gate', 'policy-docs'], count: 2, rulesets: [1] }, rcBoth, []).found.length) {
+    console.log('\nFIXTURE VACUOUS: a half-migrated live set (gate plus one of the old contexts) passed; only a whole recorded shape may')
+    rc = 1
+  }
+  if (!driveRC(RC_THREE, rcFixture(['gate']), []).found.length) {
+    console.log('\nFIXTURE VACUOUS: the old set passed a record with no pre_cutover, so the comparison is not reading the record at all (null control)')
+    rc = 1
+  }
   const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
   const rcRotText = read(rcRot)
   if (rcRotText == null) {

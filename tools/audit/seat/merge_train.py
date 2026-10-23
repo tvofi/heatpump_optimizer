@@ -3162,7 +3162,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
           and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
-    old17 = [cr(n) for n in json.loads(REQUIRED_CONTEXTS.read_text())["contexts"]]
+    # The 17 are recorded as `pre_cutover` since P2b set `contexts` to the post-PUT
+    # `gate`; this layout pair goes with `pre_cutover` after the cut-over.
+    old17 = [cr(n) for n in json.loads(REQUIRED_CONTEXTS.read_text())["pre_cutover"]["contexts"]]
     new_layout = [cr(n) for n in json.loads(REQUIRED_CONTEXTS.read_text())["gate_required"]] + [gt()]
     check("A5 layouts: an old-layout head (the 17 green, no gate) under the gate ruleset is a wait on gate, "
           "never green; a new-layout head under the 17 waits on every old name, never green",
