@@ -3536,7 +3536,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     @callback
     def _async_handle_ecl110_state_message(self, msg: Any) -> None:
         """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         try:
             window = self._ecl110_displace_min, self._ecl110_displace_max
             displace, effective = _parse_ecl110_state(msg.payload, window)
@@ -8533,7 +8533,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``async_create_task`` raises and the tracker accumulators race the
         update loop.
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         new_state = getattr(event, "data", {}).get("new_state")
         if new_state is None:
             return
