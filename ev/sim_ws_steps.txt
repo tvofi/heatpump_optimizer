@@ -1,0 +1,17 @@
+  ok   a throwing block is reported as a failure rather than ending the run
+
+209 passed, 0 failed
+check-wave-script rc=0
+agreement_py restore: 14 closure file(s), 14 covered by the wave-script restore list, 0 missing
+agreement_py rc=0
+  UNREGISTERED  "DERIVED=\\$\\(.*?\\)" in tests/entities.py, tools/audit/harnesses/r10_ci_layout_u5/script_runs.py
+  UNREGISTERED  "fast\\)\\s+(SCRIPTS=.*?) ;;" in tests/entities.py, tools/audit/harnesses/r10_ci_layout_u5/script_runs.py
+RESULT divergent=0 unregistered=3 dead=0 refused=0 seconds=0.3
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+agreement rc=1
+  ok   a disposition of no known kind is refused
+SELF-TEST 27 of 27 probes held
+selftest rc=0
+ok   a workflow with no generated block is refused, never skipped
+fold_ledger: 0 violation(s)
+fold rc=0

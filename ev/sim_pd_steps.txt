@@ -1,0 +1,14 @@
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+RESULT pinned_by_base_restore=94 count
+RESULT of_which_no_pr_job_runs=94 count
+RESULT uncovered_files=0 count
+rc=0
+policy_lint rc=0
+FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+rc=0
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  26 passed, 0 failed
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0

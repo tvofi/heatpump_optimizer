@@ -1,0 +1,5 @@
+b31fe0812: FIXTURE VACUOUS: a live set equal to the recorded pre_cutover shape produced 4 finding(s) and no PRE-CUT-OVER line; the cut-over window must pass, and say why
+b9e408c7a:   FAIL a listed governance file the tree lacks adds no jobs and does not raise
+b9e408c7a:   FAIL and a present one still adds its jobs (null control)
+b9e408c7a: agreement_py self-test: 9 checks, 2 failed
+f17e09d63: self-test exits non-zero on NameError: name '_sleep' is not defined (red by crash, before any new row is judged)

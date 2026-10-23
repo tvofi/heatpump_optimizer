@@ -1,0 +1,1 @@
+no footer/trailer/session link in 7 commits
