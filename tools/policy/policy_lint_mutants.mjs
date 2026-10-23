@@ -263,6 +263,91 @@ function entryExitControl() {
     "0 on the corpus as it stands, each driven as a process with this one's environment" }
 }
 
+// ---------------------------------------------------------------------------
+// THE RESEED IS NOT THE DEFAULT RUN, SO NO ARM ABOVE REACHED IT (#2408).
+//
+// `--record-known-bad` dispatches to `cmdRecord`, which the default run and
+// `assertAcceptance` never call. #2408 found it crashing: a local `const at`
+// holding the provenance SHA shadowed the module's `at(path)`, so the write
+// `fs.writeFileSync(at(KNOWN_BAD_FILE), ...)` threw `at is not a function`,
+// and every check here stayed green. This arm drives `cmdRecord` with the
+// write captured rather than made -- the ledger is a tracked file, and a reseed
+// rewrites it -- at both ends: the unmutated module must write exactly one
+// document, to the ledger, carrying a `recorded_at` that names a commit; the
+// mutant, which restores the shadowing binding beside the line #2408 renamed,
+// must not. A clone with no merge base with origin/main refuses to record at
+// all (`process.exit(2)`), so that case is SKIP, never PIN.
+const RECORD_ANCHOR = '  const sha = recordedAtSha()\n'
+
+function mutateRecordShadow(src) {
+  const n = src.split(RECORD_ANCHOR).length - 1
+  if (n !== 1) {
+    return { error: `the anchor ${JSON.stringify(RECORD_ANCHOR.trim())} appears ${n} time(s) in ${ENTRY}, expected exactly 1; nothing was mutated` }
+  }
+  return { text: src.replace(RECORD_ANCHOR, `${RECORD_ANCHOR}  const at = sha // MUTANT\n`) }
+}
+
+// `{ wrote }` (the captured writes), `{ threw }` or `{ skip }`; console, the
+// write and `process.exit` are each restored however the drive ends.
+async function driveRecord(modUrl) {
+  const mod = await import(modUrl)
+  const writes = []
+  const real = { write: fs.writeFileSync, log: console.log, exit: process.exit }
+  fs.writeFileSync = (file, data) => { writes.push({ file: String(file), data: String(data) }) }
+  console.log = () => {}
+  process.exit = (code) => { throw Object.assign(new Error(`process.exit(${code})`), { exitCode: code }) }
+  try {
+    mod.cmdRecord([], {})
+    return { wrote: writes, ledger: mod.KNOWN_BAD_FILE }
+  } catch (e) {
+    if (e && e.exitCode === 2) return { skip: 'no merge base with origin/main here, so the reseed refuses before its write' }
+    return { threw: String(e && e.message || e).split('\n')[0].slice(0, 140) }
+  } finally {
+    fs.writeFileSync = real.write
+    console.log = real.log
+    process.exit = real.exit
+  }
+}
+
+// The write the unmutated reseed must make, or why it did not.
+function recordWriteFault(r) {
+  if (r.threw) return `it threw: ${r.threw}`
+  if (r.wrote.length !== 1) return `it wrote ${r.wrote.length} file(s), expected exactly 1`
+  const [{ file, data }] = r.wrote
+  if (!file.endsWith(r.ledger)) return `it wrote ${file}, not ${r.ledger}`
+  let doc
+  try { doc = JSON.parse(data) } catch { return `what it wrote to ${r.ledger} does not parse` }
+  const sha = typeof doc.recorded_at === 'string' ? doc.recorded_at : ''
+  if (!sha || spawnSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: ROOT }).status !== 0) {
+    return `the ledger it wrote carries recorded_at ${JSON.stringify(doc.recorded_at)}, which names no commit here`
+  }
+  return null
+}
+
+async function recordKnownBadArm() {
+  const control = await driveRecord(pathToFileURL(TARGET).href + '?record-control')
+  if (control.skip) return { lane: 'record', name: 'record-known-bad', verdict: 'SKIP', why: control.skip }
+  const fault = recordWriteFault(control)
+  if (fault) {
+    return { fail: `MUTANTS: --record-known-bad's writer failed its null control -- ${fault}. ` +
+      'The unmutated reseed must write the ledger, or the mutant below proves nothing.' }
+  }
+  const m = mutateRecordShadow(fs.readFileSync(TARGET, 'utf8'))
+  if (m.error) return { lane: 'record', name: 'record-known-bad', verdict: 'CRASH', why: m.error }
+  const mutant = mutantName(ENTRY, 'recordKnownBad')
+  try {
+    fs.writeFileSync(path.join(HERE, mutant), m.text)
+    const r = await driveRecord(pathToFileURL(path.join(HERE, mutant)).href)
+    if (r.skip) return { lane: 'record', name: 'record-known-bad', verdict: 'SKIP', why: r.skip }
+    const caught = recordWriteFault(r)
+    return caught
+      ? { lane: 'record', name: 'record-known-bad', verdict: 'PIN', why: `with a local \`at\` shadowing \`at(path)\`, ${caught}` }
+      : { lane: 'record', name: 'record-known-bad', verdict: 'ACCEPTED', why: 'the reseed wrote the ledger with a local `at` shadowing `at(path)`' }
+  } finally {
+    fs.rmSync(path.join(HERE, mutant), { force: true })
+  }
+}
+
 async function main() {
   sweep()
   const srcs = new Map()
@@ -291,6 +376,12 @@ async function main() {
   const entry = entryExitControl()
   if (entry.fail) { console.log(entry.fail); return 1 }
   rows.push({ lane: 'entry', name: 'exit-status', verdict: 'DRIVEN', why: entry.note })
+
+  // The reseed's writer, which no drive inside the acceptance reaches (#2408);
+  // the block above `main()` carries why its write is captured, not made.
+  const record = await recordKnownBadArm()
+  if (record.fail) { console.log(record.fail); return 1 }
+  rows.push(record)
 
   // A CHECK THE CLONE CANNOT EXERCISE IS NOT A CHECK THAT SURVIVED ITS DELETION.
   // In a clone with no `origin/main` the acceptance says so out loud and skips

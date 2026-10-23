@@ -91,7 +91,7 @@ contract() { # pr-json base head body -> rc
       | select(.status == "completed" and .conclusion == "failure")
       | select(.name != "pr-contract") | .name' 2>/dev/null | sort -u > "$d/reds" \
     || { echo "body_patch: the check runs at $head could not be listed" >&2; rm -rf "$d"; return 1; }
-  local args=(--pr-body "$body" --head "$head" --title "$title" --author "$author"
+  local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
   node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
@@ -319,7 +319,7 @@ l1=$(grep -n '^gh api repos/o/r/pulls/7$' "$W/ok/log" | head -1 | cut -d: -f1); 
 l3=$(grep -n '^curl GET repos/o/r/installation$' "$W/ok/log" | head -1 | cut -d: -f1); l4=$(grep -n '^curl PATCH ' "$W/ok/log" | head -1 | cut -d: -f1)
 if [ "$l1" -lt "$l2" ] && [ "$l2" -lt "$l3" ] && [ "$l3" -lt "$l4" ]; then ORD=ordered; else ORD="head=$l1 lint=$l2 mint=$l3 patch=$l4"; fi
 st "$ORD" ordered "live head read, then the contract, then the mint, then the PATCH (#678's ordering)"
-st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, title, author, paths, existing, one --red per check"
+st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --base $BASE --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check"
 st "$(cat "$W/ok/paths")" "$(printf 'a.txt\nb.txt')" "its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt"
 st "$(cat "$W/ok/existing")" "a.txt" "its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt"
 st "$(grep -c "^carry_audit check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body"
