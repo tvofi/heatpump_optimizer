@@ -25756,8 +25756,8 @@ def _ns_stale_collect(first, windowed):
 
     _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
     try:
-        _c, _f, _j = _nstatus.collect("o/r", "tests.yml", None, None,
-                                      now=_ns_stale_now)
+        _c, _f, _j, _w = _nstatus.collect("o/r", "tests.yml", None, None,
+                                          now=_ns_stale_now)
     finally:
         _nstatus._get, _nstatus._sleep = (_ns_stale_real_get,
                                           _ns_stale_real_sleep)
@@ -25806,6 +25806,91 @@ R.check(
     "is neither timezone slack nor the #533 incident",
 )
 
+
+# --- a workflow younger than its first slot is not a dead schedule ---------
+#
+# nightly.yml reached main at 2026-10-22T08:05Z, after that day's 02:17Z slot,
+# and the reporter turned every pull request red with "GitHub disables
+# schedules on repositories with no recent activity" while GitHub reported the
+# workflow `active`. The arm guessed a cause it never read. Three fixtures, one
+# property varied in each: the workflow nine hours old reads NEW and green; the
+# SAME record 26 h on, still with no run, reads ABSENT -- the null control that
+# the window does not hide a schedule that never fired; and a disabled record
+# reads ABSENT naming GitHub's own state.
+# The record's shape is the live one, offset included: GitHub stamps a
+# workflow's `created_at` with `+02:00` where a run's carries `Z`.
+_ns_wf = {"path": ".github/workflows/nightly.yml", "state": "active",
+          "created_at": "2026-10-22T10:05:56+02:00"}
+_ns_wf_made = datetime(2026, 10, 22, 8, 5, 56, tzinfo=UTC)
+_ns_young = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                             workflow=_ns_wf)
+_ns_late = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=26),
+                            workflow=_ns_wf)
+_ns_off = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                           workflow={**_ns_wf, "state": "disabled_inactivity"})
+_ns_late_txt = "\n".join(_ns_late[2])
+R.check(
+    "a workflow younger than its first cron slot reads NEW and green, the same "
+    "one 26 h on with no run reads ABSENT, and a disabled one names its state",
+    _ns_young[:2] == (_nstatus.NEW, _nstatus.EXIT_GREEN)
+    and _ns_late[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "inactivity" not in _ns_late_txt and "'active'" in _ns_late_txt
+    and _ns_off[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "'disabled_inactivity'" in "\n".join(_ns_off[2]),
+    f"9 h -> {_ns_young[:2]}; 26 h -> {_ns_late[:2]} "
+    f"(inactivity claimed={'inactivity' in _ns_late_txt}); disabled -> "
+    f"{_ns_off[:2]} {_ns_off[2][1:2]}",
+)
+# The window is one cron PERIOD plus an hour, so the period must be the cron's.
+# Read from the workflow's own `cron:`: a daily one is minute and hour fields
+# and three stars. A cron that fires more often than daily would leave the
+# window merely generous; one that fires less often would read ABSENT before
+# its first slot -- either way the constant is restated, not derived, and this
+# refuses the drift.
+_ns_crons = re.findall(r'^\s+- cron: "([^"]+)"', _NIGHTLY_YML, re.M)
+R.check(
+    "the reporter's schedule period is the nightly cron's: daily",
+    len(_ns_crons) == 1
+    and re.fullmatch(r"\d{1,2} \d{1,2} \* \* \*", _ns_crons[0]) is not None
+    and _nstatus.SCHEDULE_PERIOD == timedelta(days=1),
+    f"cron lines {_ns_crons}; SCHEDULE_PERIOD={_nstatus.SCHEDULE_PERIOD}",
+)
+# The one extra read is spent only where it can change the answer: a discovery
+# that finds a run never asks for the workflow's record, and one that finds
+# none asks for it once.
+_ns_wf_real_get, _ns_wf_real_sleep = _nstatus._get, _nstatus._sleep
+
+
+def _ns_wf_collect(runs):
+    _calls = []
+
+    def _fake_get(url, _token):
+        _calls.append(url)
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if url.endswith("/actions/workflows/nightly.yml"):
+            return _ns_wf
+        return {"workflow_runs": [r for r in runs if r["event"] in url]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _out = _nstatus.collect("o/r", "nightly.yml", None, None,
+                                now=_ns_wf_made + timedelta(hours=9))
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_wf_real_get, _ns_wf_real_sleep
+    return _out, sum(1 for _u in _calls if _u.endswith("/workflows/nightly.yml"))
+
+
+(_, _, _, _ns_wf_none), _ns_wf_reads_none = _ns_wf_collect([])
+_ns_wf_fresh = {**_ns_run(7, "2026-10-22T07:00:00Z"), "event": "schedule"}
+(_, _, _, _ns_wf_some), _ns_wf_reads_some = _ns_wf_collect([_ns_wf_fresh])
+R.check(
+    "the workflow's record is read once when no run exists, and never otherwise",
+    _ns_wf_none == _ns_wf and _ns_wf_reads_none == 1
+    and _ns_wf_some is None and _ns_wf_reads_some == 0,
+    f"no runs: record={_ns_wf_none is not None} reads={_ns_wf_reads_none}; "
+    f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
+)
 
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
@@ -27693,6 +27778,70 @@ R.check(
     and _FRICTION_PARSED.get("entry_only") == 1,
     f"none_only rc={_FN['none_only'][0]}, junk_only rc={_FN['junk_only'][0]}, "
     f"parsed={_FRICTION_PARSED}",
+)
+
+# The contract workflow is the ONE file that DEFINES the `pr-contract` job
+# (policy_lint.mjs, #1514). A reusable-workflow CALLER of that job -- a job
+# `pr-contract:` whose body is `uses: ./.github/workflows/pr-contract.yml` --
+# defines nothing: it runs the definer. The umbrella (R10-CI-LAYOUT-P2, #2495)
+# adds such a caller to ci.yml, and a text match on `\n  pr-contract:\n` read
+# it as a second definition (FIXTURE VACUOUS, 2 files). `policy-docs` grades
+# with the BASE's policy_lint.mjs, so the reader must learn this on main before
+# the caller lands. Plants: a caller, a caller carrying `with:`, a tree holding
+# a definer and a caller. Nulls: the real job, including one whose STEPS use
+# actions (a step `uses:` is not a call) and one followed by another job's call
+# (the body ends at the next job); two real definers are still two (the
+# "exactly one" refusal stands); and the tree itself names exactly one definer.
+_PCJ_DEFINER = ("on: pull_request\njobs:\n  pr-contract:\n    runs-on: ubuntu-latest\n"
+                "    steps:\n      - uses: actions/checkout@v4\n      - run: node x.mjs\n"
+                "  later:\n    uses: ./.github/workflows/other.yml\n")
+_PCJ_CALLER = ("on: push\njobs:\n  pr-contract:\n    needs: [prelude]\n"
+               "    uses: ./.github/workflows/pr-contract.yml\n  gate:\n    runs-on: x\n")
+_PCJ_CALLER_WITH = ("jobs:\n  pr-contract:\n    if: ${{ !cancelled() }}\n"
+                    "    uses: ./.github/workflows/pr-contract.yml\n"
+                    "    with: { pr: '1' }\n")
+_PCJ_OTHER = "jobs:\n  tests:\n    runs-on: x\n    steps:\n      - run: true\n"
+import shutil as _pcj_shutil  # noqa: E402
+_PCJ_ROOTS = {}
+for _k, _files in {"one": {"a.yml": _PCJ_DEFINER, "ci.yml": _PCJ_CALLER},
+                   "two": {"a.yml": _PCJ_DEFINER, "b.yml": _PCJ_DEFINER}}.items():
+    _d = Path(tempfile.mkdtemp())
+    (_d / ".github" / "workflows").mkdir(parents=True)
+    for _n, _t in _files.items():
+        (_d / ".github" / "workflows" / _n).write_text(_t)
+    _PCJ_ROOTS[_k] = str(_d)
+_PCJ = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     _PL_IMPORT + ".then((m) => { const t = JSON.parse(process.argv[1]); "
+     "console.log(JSON.stringify({"
+     "definer: m.definesJob(t.definer, 'pr-contract'),"
+     "caller: m.definesJob(t.caller, 'pr-contract'),"
+     "caller_with: m.definesJob(t.caller_with, 'pr-contract'),"
+     "other: m.definesJob(t.other, 'pr-contract'),"
+     "tree: m.contractWorkflowFiles(),"
+     "plant_one: m.contractWorkflowFiles(t.one),"
+     "plant_two: m.contractWorkflowFiles(t.two)"
+     "})) })",
+     json.dumps({"definer": _PCJ_DEFINER, "caller": _PCJ_CALLER,
+                 "caller_with": _PCJ_CALLER_WITH, "other": _PCJ_OTHER,
+                 **_PCJ_ROOTS})],
+    capture_output=True, text=True).stdout or "{}")
+for _d in _PCJ_ROOTS.values():
+    _pcj_shutil.rmtree(_d, ignore_errors=True)
+R.check(
+    "policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is not a "
+    "definition of the contract job, so ci.yml's caller cannot make the wiring pin vacuous",
+    _PCJ.get("caller") is False and _PCJ.get("caller_with") is False
+    and _PCJ.get("plant_one") == ["a.yml"],
+    f"parsed={_PCJ}; a `uses:` caller was read as the job's definition",
+)
+R.check(
+    "and the real job, steps using actions included, still defines it; another job "
+    "does not; the tree has exactly one definer (null controls)",
+    _PCJ.get("definer") is True and _PCJ.get("other") is False
+    and _PCJ.get("tree") == ["pr-contract.yml"]
+    and _PCJ.get("plant_two") == ["a.yml", "b.yml"],
+    f"parsed={_PCJ}",
 )
 # `## Friction` AND THE TRAILER BLOCK A TOOL PASTES UNDER IT (#1238, D13-01).
 # The lines a tool or an assistant appends to a body -- the Claude Code

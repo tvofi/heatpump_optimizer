@@ -352,6 +352,8 @@ PUSHERS = {
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    "tools/audit/seat/gh_read.py": ("fixture", "its self-test's `gh api` ref-write argvs are strings fed to "
+                                    "is_read, which must refuse them; the module runs no subprocess"),
     "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
                                            "(a roster branch tail), ref_privacy.refusal on the ref and message; "
                                            "its reviewer prompt names probe/rev-<pr>-<nonce8> from a PR number "

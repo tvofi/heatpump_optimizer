@@ -3770,6 +3770,37 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // rot fixture is rotten, and must produce nothing.
 const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
+// Does this workflow text DEFINE the top-level job `id`? A job is defined when
+// `  <id>:` opens it under `jobs:`; it is only CALLED when its own body (the
+// lines indented under it, before the next two-space key) carries a job-level
+// `    uses:` -- a reusable-workflow call runs another file's job. A step's
+// `- uses:` sits deeper and is not a call.
+export function definesJob(text, id) {
+  const lines = String(text ?? '').split('\n')
+  const start = lines.indexOf(`  ${id}:`)
+  if (start < 0) return false
+  for (let i = start + 1; i < lines.length; i++) {
+    const l = lines[i]
+    if (l.trim() === '' || /^\s*#/.test(l)) continue
+    if (!/^   /.test(l)) break
+    if (/^    uses:\s/.test(l)) return false
+  }
+  return true
+}
+
+// The workflow files under .github/workflows that define the `pr-contract`
+// job, sorted. Exactly one is the contract's workflow (#1514).
+export function contractWorkflowFiles(root = ROOT) {
+  const dir = path.join(root, '.github', 'workflows')
+  let names = []
+  try { names = fs.readdirSync(dir).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
+  return names.filter((n) => {
+    let t = ''
+    try { t = fs.readFileSync(path.join(dir, n), 'utf8') } catch {}
+    return definesJob(t, 'pr-contract')
+  })
+}
+
 function assertAcceptance(derived) {
   const dir = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures', 'policy-rot'))
   if (!fs.existsSync(dir)) {
@@ -3892,10 +3923,10 @@ function assertAcceptance(derived) {
   // grades with the base's copy of this file, so a named path must be right
   // on both sides of the move at once. Exactly one file may define the job;
   // none, or two, is itself a refusal below.
+  // A reusable-workflow CALLER (`pr-contract:` whose body is `uses: <file>`)
+  // runs the definer and defines nothing, so it is not counted (definesJob).
   const WF_DIR = '.github/workflows'
-  let wfNames = []
-  try { wfNames = fs.readdirSync(path.join(ROOT, WF_DIR)).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
-  const contractFiles = wfNames.filter((n) => /\n  pr-contract:\n/.test(read(`${WF_DIR}/${n}`) ?? ''))
+  const contractFiles = contractWorkflowFiles()
   const WORKFLOW = contractFiles.length === 1 ? `${WF_DIR}/${contractFiles[0]}` : `${WF_DIR}/(${contractFiles.length} files define pr-contract)`
   const wf = contractFiles.length === 1 ? read(WORKFLOW) : null
   if (wf == null) {
