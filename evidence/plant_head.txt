@@ -1,0 +1,10 @@
+PASS 404 Not Found, bucket 0, reset +3s, Retry-After absent: calls=1 ok=False sleeps=[] HTTPError 404 notes=[]
+PASS 404 Not Found, bucket 0, plus Retry-After 2: calls=1 ok=False sleeps=[] HTTPError 404 notes=[]
+PASS 403 Resource not accessible, bucket 0: calls=1 ok=False sleeps=[] HTTPError 403 notes=[]
+PASS 422 bucket 0: calls=1 ok=False sleeps=[] HTTPError 422 notes=[]
+PASS real 429, Retry-After 2, then 200: calls=2 ok=True sleeps=[5] 
+PASS real 429 spent bucket: calls=2 sleeps=[5] (max of the 5 s settle and the ~3 s reset: never undercut)
+PASS 403 API rate limit exceeded, bucket 0, reset 20 min: refused at once: calls=1 ok=False sleeps=[] HTTPError 403 notes=['(it names a 1199 s wait, past the 45 s cap: not retried)']
+PASS five 500s: bound 4 calls: calls=4 ok=False sleeps=[5, 15, 45] HTTPError 500 notes=['(after 4 attempts)']
+PASS 500 on spent bucket reset 20 min then 200: schedule: calls=2 ok=True sleeps=[5] 
+PLANT RESULT 10/10 pass

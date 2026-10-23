@@ -1,0 +1,67 @@
+PRECONDITION Train.run wrapped=True _api retried=True
+tools/audit/seat/merge_train.py:647	gh pr view X --repo X --json headRefOid --jq .headRefOid	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:650	git fetch -q origin main X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:675	gh api X --jq [(.author.login // .commit.author.name), (.commit.messag	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:725	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:791	gh pr merge X --repo X --merge --match-head-commit X	write or local: never retried
+tools/audit/seat/merge_train.py:792	gh pr view X --repo X --json state,mergeCommit --jq "\(.state) \(.merg	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:804	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:816	gh api --paginate --jq .check_runs[] X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:897	gh api X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:905	gh api --paginate --slurp X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1006	gh api --paginate --slurp X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1015	gh pr view X --repo X --json body --jq .body	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1108	gh pr review X --repo X --approve --body-file X	write or local: never retried
+tools/audit/seat/merge_train.py:1200	gh pr review X --repo X --approve --body-file X	write or local: never retried
+tools/audit/seat/merge_train.py:1328	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1381	gh pr ready X --repo X	write or local: never retried
+tools/audit/seat/merge_train.py:1382	gh pr view X --repo X --json title --jq .title	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1445	gh api --method POST X --input - --jq .sha	write or local: never retried
+tools/audit/seat/merge_train.py:1461	gh api --method X X --input -	write or local: never retried
+tools/audit/seat/merge_train.py:1483	gh api --method DELETE X	write or local: never retried
+tools/audit/seat/merge_train.py:1556	gh api X --jq X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1558	gh api X --jq .rules[] | select(.type == "required_status_checks") | .	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1575	gh pr view X --repo X --json baseRefName --jq .baseRefName	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1583	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1659	gh api --paginate --jq .check_runs[] X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:773	gh auth token	write or local: never retried
+tools/audit/seat/merge_train.py:957	gh api --paginate --slurp X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1113	gh api --paginate --slurp X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1391	gh pr merge X --repo X --merge --match-head-commit X	write or local: never retried
+tools/audit/seat/merge_train.py:1394	gh pr view X --repo X --json state,mergeCommit --jq "\(.state) \(.merg	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1464	gh api --method PATCH X --input -	write or local: never retried
+tools/audit/seat/merge_train.py:1650	gh workflow run X --repo X --ref X X	write or local: never retried
+tools/audit/seat/merge_train.py:1767	gh api X --jq .status	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1828	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1961	git push -q origin --delete X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:996	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1223	gh pr view X --repo X --json headRefName --jq .headRefName	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1226	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1352	git fetch -q origin main	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1771	gh api -X POST X	write or local: never retried
+tools/audit/seat/merge_train.py:1785	gh pr view X --repo X --json state,mergeCommit --jq "\(.state) \(.merg	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1857	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1239	gh pr view X --repo X --json body --jq .body	read: retried, self.out is Train._reads_retried
+tools/audit/seat/merge_train.py:1667	gh api --allow-escape-sequences X	read: retried, self.run is Train._reads_retried
+tools/audit/seat/merge_train.py:1883	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1897	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/merge_train.py:1410	gh api graphql -f X	graphql query, log-only: its answer is printed and stops nothing; not retried
+tools/audit/seat/merge_train.py:1914	git fetch -q origin X	git transport: a distinct seam, not an API read
+tools/audit/seat/queue_pre_flight.py:120	gh pr view X --repo X --json state,headRefOid,headRefName	read: retried, self.t.run is Train._reads_retried
+tools/audit/seat/queue_pre_flight.py:181	gh api X --jq .body // ""	read: retried, self.t.run is Train._reads_retried
+tools/audit/seat/queue_pre_flight.py:184	gh api --paginate --slurp X	read: retried, self.t.run is Train._reads_retried
+tools/audit/seat/queue_pre_flight.py:208	gh api X --jq .state	read: retried, self.t.run is Train._reads_retried
+tools/audit/seat/record_row.py:771	urllib.request.urlopen	read: retried, `_api`'s attempt under gh_read.retry
+tools/pr/app_approve.sh:137	read_with() {	the loop itself
+tools/pr/app_approve.sh:160	gh_read() { read_with "$1" gh api "${@:2}"; }	the loop itself
+tools/pr/app_approve.sh:170	out=$(curl -sS -w '\n%{http_code}' "$@"); rc=$?	read: the fetcher read_with retries
+tools/pr/app_approve.sh:183	gh_read js "repos/$1/pulls/$2" || die "could not read pull request #$2	read: retried, read_with
+tools/pr/app_approve.sh:324	curl -fsS -X DELETE -H @"$PRIV/token.h" -H "$ACCEPT" "$API/installatio	write: never retried
+tools/pr/app_approve.sh:347	gh_read comments --paginate "repos/$repo/issues/$pr/comments?per_page=	read: retried, read_with
+tools/pr/app_approve.sh:378	git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "	git transport: a distinct seam, not an API read
+tools/pr/app_approve.sh:487	gh_read owners "repos/$repo/contents/.github/CODEOWNERS?ref=main" \	read: retried, read_with
+tools/pr/app_approve.sh:489	gh_read files --paginate "repos/$repo/pulls/$pr/files?per_page=100" \	read: retried, read_with
+tools/pr/app_approve.sh:536	read_with inst curl_get -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$re	read: retried, read_with
+tools/pr/app_approve.sh:540	curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installatio	write: never retried
+tools/pr/app_approve.sh:554	resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/	write: never retried
+SEAMS unretried_reads=0

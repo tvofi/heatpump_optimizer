@@ -1,44 +1,37 @@
-MUTANT M-E ::   FAIL null control: the merge records the reviewed head (STALE: a re-run did not clear #42's head)
-  ok   a refused merge fails the script (the line's own exit)
-merge_pr self-test: 18 checks, 1 failed
-  restored
-MUTANT M-F ::   ok   null control: update_pr with code sha '7bc840c' passes every check, and its failed push names its log
-  ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
-  ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 93 checks, 1 failed
-  restored
-MUTANT M-G :: ref_privacy --check at HEAD: 25 file(s) with a push site, 12 guarded, 1161 line(s) added since 4200ea4c4275 judged, 2 refused
-  restored
-152:  # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
-200:    && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
-253:gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
-MUTANT R-bound :: FAIL five transient failures queued, one past the budget: refused after exactly 4 calls
-FAIL naming the last error read, settling 5/15/45 s
-gh_read self-test: 112 checks, 2 failed
-RET 1
-  restored
-MUTANT R-tries :: FAIL a 429 naming an hour refuses at once, naming the wait (never sleeps it out)
-FAIL a spent hourly bucket resetting in 20 min refuses after 1 call, naming the wait
-gh_read self-test: 112 checks, 5 failed
-RET 1
-  restored
-MUTANT R-4xx :: FAIL (the table keys exactly the alternatives gh_read's source holds)
-FAIL (and every alternative but default holds both a transient input and a refused near-miss)
-gh_read self-test: 112 checks, 19 failed
-RET 1
-  restored
-MUTANT R-cap :: FAIL a 429 naming an hour refuses at once, naming the wait (never sleeps it out)
-FAIL a spent hourly bucket resetting in 20 min refuses after 1 call, naming the wait
-gh_read self-test: 112 checks, 2 failed
-RET 1
-  restored
-MUTANT R-write :: FAIL is_read(gh api repos/o/r/x --field=a=b) is False
-FAIL is_read(gh api repos/o/r/x --input=f.json) is False
-gh_read self-test: 112 checks, 9 failed
-RET 1
-  restored
-MUTANT R-wrap ::   ok   K15 (a): the --overlap gate logs main RED for a failed required context
-  ok   ... and with nothing merged before it, main never moved: no recarry is possible and it is refused as before, [BOT-HEAD] (null control)
-  ok   a base that is neither main nor batch/ is refused
-merge_train self-test: 229 checks, 5 failed
-  restored
+MUTANT reorder: rc=1 gh_read self-test: 122 checks, 8 failed
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT drop-ratelimited: rc=1 gh_read self-test: 122 checks, 8 failed
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT namedwait-always-spent: rc=1 gh_read self-test: 122 checks, 1 failed
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT 403-any-msg: rc=1 gh_read self-test: 122 checks, 2 failed
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+MUTANT or-not-and: rc=1 gh_read self-test: 122 checks, 10 failed
+    FAIL the secondary-limit phrase is read in the body, past a non-UTF-8 byte
+    FAIL a body that cannot be read is no message: the status line's reason still decides
+    FAIL a 404 'Not Found' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'Bad credentials' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 422 'Validation Failed' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 'Resource not accessible by integration' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 403 "the limit on this repository's rate of forks" on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 500 on a spent bucket keeps the schedule's 5 s: its reset is no wait a 500 names
+MUTANT ratelimit-any-code: rc=1 gh_read self-test: 122 checks, 2 failed
+    FAIL a 404 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call
+    FAIL a 401 'API rate limit exceeded' on a spent bucket resetting in 20 s refuses after exactly 1 call

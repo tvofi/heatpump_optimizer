@@ -1,0 +1,3 @@
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL
