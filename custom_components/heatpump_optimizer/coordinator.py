@@ -9715,7 +9715,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             override_return_time=ret,
         )
         # The await lets async_set_away write the live state; never revert its write.
-        if self._away_state is written:
+        if False:
             self._away_state = replace(resolved, migrated_helpers=written.migrated_helpers)
 
     def _adopt_away_override(self, payload: dict[str, Any]) -> away_mode.AwayState:
