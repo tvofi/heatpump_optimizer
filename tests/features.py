@@ -37646,6 +37646,63 @@ R.check(
 )
 
 
+# R10-LOOP-CPU: `_run_in_process` pickled the job straight into the worker's
+# stdin, and a transport fault dropped the handle without reaping the child.
+# A job that will not pickle -- a model carrying a closure, as the learner
+# tests stub in -- so left one live, unheld child per call: 740 of them alive
+# at tests/features.py's exit, whose coverage writes raced the coverage lane
+# and cost it the script's data (run 39874068348). The job is now serialised
+# whole before the pipe is touched, and a stream that faults is reaped.
+def _f15_worker_faults():
+    """A job that will not pickle, then a reply stream the job corrupts."""
+    _f15_cmod._shutdown_process_pool()
+    try:
+        first = _f15_cmod._run_in_process(_os.getpid, ())
+        held = _f15_cmod._PROCESS_WORKER
+        try:
+            _f15_cmod._run_in_process(_os.getpid, (lambda: None,))
+            unpicklable = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            unpicklable = "translated"
+        again = _f15_cmod._run_in_process(_os.getpid, ())
+        kept = _f15_cmod._PROCESS_WORKER is held
+        held = _f15_cmod._PROCESS_WORKER
+        # print writes to the worker's stdout ahead of its reply frame
+        try:
+            _f15_cmod._run_in_process(print, ("not a pickle",))
+            corrupt = "returned"
+        except _f15_cmod.ProcessWorkerUnavailable:
+            corrupt = "translated"
+        try:
+            held.wait(timeout=5)
+        except _f15_cmod.subprocess.TimeoutExpired:
+            pass
+        return unpicklable, first, again, kept, corrupt, held.poll()
+    finally:
+        _f15_cmod._shutdown_process_pool()
+
+
+(_f15_up_out, _f15_up_first, _f15_up_again, _f15_up_kept,
+ _f15_corrupt_out, _f15_corrupt_rc) = _f15_worker_faults()
+R.check(
+    "R10-LOOP-CPU: a job that will not pickle degrades without touching the "
+    "worker, which serves the next job as the same process",
+    _f15_up_out == "translated"
+    and _f15_up_first == _f15_up_again
+    and _f15_up_kept,
+    f"outcome={_f15_up_out!r} pid before={_f15_up_first} after="
+    f"{_f15_up_again} handle kept={_f15_up_kept} -- at the merge base the "
+    "handle was dropped and the next job respawned, the old child left alive",
+)
+R.check(
+    "R10-LOOP-CPU: a reply stream that faults reaps the child it came from, "
+    "never leaves it running unheld",
+    _f15_corrupt_out == "translated" and _f15_corrupt_rc is not None,
+    f"outcome={_f15_corrupt_out!r} child returncode={_f15_corrupt_rc!r} "
+    "(None: still running, with no handle left to reap it)",
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
@@ -61901,6 +61958,34 @@ R.check(
     and _lc_away._away_state.override_active is False
     and _lc_away._away_state.override_return_iso is None,
     str((_lc_jobs, _lc_away._away_state)),
+)
+# The override expiry writes back, and persists, only an override that lapsed:
+# an unexpired one is read each cycle, never re-written and re-saved.
+_lc_exp = _r9egb1_coord(away=True)
+_lc_exp_now = _r9egb1_cmod.dt_util.now()
+_lc_exp._away_state.override_return_iso = (
+    _lc_exp_now + timedelta(hours=6)).isoformat()
+_lc_exp_saved = []
+
+
+def _lc_exp_spawn(coro):
+    _lc_exp_saved.append(coro.__qualname__)
+    coro.close()
+
+
+_lc_exp._spawn = _lc_exp_spawn
+_lc_exp_live = _lc_exp._expire_away_override(_lc_exp_now)
+_lc_exp_live_saved = list(_lc_exp_saved)
+_lc_exp_lapsed = _lc_exp._expire_away_override(_lc_exp_now + timedelta(hours=7))
+R.check(
+    "an unexpired away override is not re-persisted each cycle; a lapsed one "
+    "is cleared and saved once",
+    _lc_exp_live[0] is True
+    and _lc_exp_live_saved == []
+    and _lc_exp_lapsed == (False, None)
+    and _lc_exp_saved == ["persist_override"]
+    and _lc_exp._away_state.override_return_iso is None,
+    str((_lc_exp_live, _lc_exp_live_saved, _lc_exp_lapsed, _lc_exp_saved)),
 )
 # idle_reason is the production function the two classifiers call; a direct
 # call with nothing to go on is the null for a step the sub-codes cannot see.
