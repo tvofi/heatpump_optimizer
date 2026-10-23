@@ -208,7 +208,7 @@ relay() {
     out=$(push_run "$pr" "$d/verdict.md" "$d/ev" 2> "$d/push.err") && { cat "$d/push.err" >&2; break; }
     cat "$d/push.err" >&2; printf '%s\n' "$out"
     grep -Eq 'non-fast-forward|fetch first' "$d/push.err" || return 1
-    if tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ]; then
+    if false; then
       echo "cloud_relay: review/$pr refused non-fast-forward; its fresh tip $tip already carries this verdict: not re-applied"; out=; break
     fi
     [ "$tries" -lt 3 ] || { echo "cloud_relay: review/$pr refused non-fast-forward $tries times; giving up this pass" >&2; return 1; }
