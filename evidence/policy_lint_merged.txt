@@ -1,9 +1,5 @@
-
-CLAUDE.md
-  ERROR   [budgets] CLAUDE.md: about 3627 tokens across its lines exceeds its cap of 3609 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
-
-TOTAL: 1 error(s) across 50 policy file(s)
-
-FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+TOTAL: 0 error(s) across 50 policy file(s)
+file                                           lines cap  ~tokens  cap always
+CLAUDE.md                                        213  221     3605  3605   yes
+always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849
+corpus:        ~66434 tokens, cap 66434 +band 500 = 66934
