@@ -92,22 +92,51 @@ reads exactly 0.0 and the epsilon separated nothing.
 
 ## Head
 
-`19319cc135899015bfc34e8832580665e43a3b80` is the measured code head.
-- Merge base: `f38f91852ea0251a9043378f76f907794874b2be`, origin/main's tip
-  at 2026-10-23T04:06Z (`date -u`). It contains #2635 and #2637, so the
-  head's roster holds the three carries this body cites as landed.
-- Since the previous handoff head `9b6423818`, this seat merged `origin/main`
-  four times (`f9458e55c`, `f5995d517`, `65d6f349c`, `19319cc13`; each
-  clean, none touching `coordinator.py`, `sensor.py`, `payload.py`, the card
-  or `tests/features.py`) and committed:
-  - `c79cb51a3`: the score composition moved into `machine_score`,
-    `operation_reason` and `compose_scores` (the payment below);
-  - `80043426f`: the 16 pins `--pin-killed` recorded, three killing checks
-    for its survivors, and the `loss <= 0.0` floor;
-  - `f464d3dfa`: the retired `1e-6` line's pin dropped;
-  - `a9099faf3`: the six new pins recorded.
-- Steps 2-8 were re-run at this head where a commit reached them: the pin
-  drive (`## Mutation proof`), `tests/structure.py`, `tools/pr/ci_predict.py`,
+`902acfe28c6045f27e9ed4966b400050b4fd2688` is the measured code head (round 3, from `19319cc135899015bfc34e8832580665e43a3b80`).
+- Merge base: `a243a79f4b97776e25063bb18a4c4c3062aa61b8`, origin/main's tip at
+  2026-10-23T06:26Z (`date -u`); `git merge origin/main` was clean (no
+  conflict) and left `custom_components` byte-identical to the previous head.
+- Round 3 adds one commit, test-only (`tests/features.py`, two checks; no
+  production line, no budget file): the two pins the round-2 review found
+  missing (`## Round 2's block`). The production diff against the previous
+  head is empty: `git diff --quiet 19319cc13 HEAD -- custom_components`
+  exits 0, and the commit's `--stat` names `tests/features.py` alone.
+- Steps 2-8 re-run at this head: features, entities, structure, archscore,
+  `ci_predict`; the pin drive is not re-run (no production site was added).
+
+## Round 2's block
+
+- **R7, restore re-plan**: `async_restore_learned_snapshot`'s
+  `await self.async_request_refresh()` mutated to
+  `self.async_update_listeners()` survived features, entities and
+  finite_boundary. New check `#2258: a restore asks for a cycle, and that
+  cycle's advice offers no refit and grades the house on the restored scale`
+  (`tests/features.py`, after the adopt arm M11): a drift coordinator with a
+  refit on offer at scale 1.4, restored to the ring's 1.0; it asserts one
+  refresh request, `model_restart.refit.scale is None` and `current_scale ==
+  1.0` from the cycle's `_insight_view()`. The ledger draws no site for an
+  awaited expression statement, so this is a features check, not a ledger
+  row, and `## Unpinned sites` cannot show it.
+- **R13, one view**: `"scores": self._scores_view(advice)` mutated to
+  `self._scores_view({})` survived all three. New check `#2258: one cycle
+  view offers the refit and grades the house against it`: ONE
+  `_insight_view()` on a converged coordinator (5000 samples) whose refit
+  (1.16 against 1.0, band 10 %) sits outside its band; it asserts, from that
+  same view, `model_restart.refit.scale` offered, `scores.reasons.envelope ==
+  "heat_loss_refit_disagrees"` and `scores.envelope is None`. The cycle path,
+  not a hand-built advice.
+- Mutation proof, each planted alone in a copy of this head, `tests/features.py`
+  (null control: the unmutated head, same script, `ALL 4330 FEATURE CHECKS
+  PASSED`):
+  - R7: `FAIL #2258: a restore asks for a cycle, and that cycle's advice
+    offers no refit and grades the house on the restored scale` (the only
+    new-check failure);
+  - R13: `FAIL #2258: one cycle view offers the refit and grades the house
+    against it`.
+  Both are green at the head. The checks encode a design choice: restore is
+  held to the adopt path's contract (the design verdict's "both must refresh").
+
+## Mutation proof`), `tests/structure.py`, `tools/pr/ci_predict.py`,
   `tools/audit/archscore/score.py`, and the envelope harness. Figures taken
   at an earlier commit name it.
 
@@ -161,7 +190,9 @@ site at this head):
 | M8 | the `available` override restored (`overall is not None`) | `tests/entities.py` | `the score sensor reads unknown, not unavailable, before any grade has evidence: its reasons stay readable (#2258)`; `the optimization score is unknown, still available, before any sub-score has evidence (#1335, #2258)` |
 | M9 | `house_heat_loss_learned` back to `samples > 0` | `tests/features.py` | `#2258: the grade dashes exactly while the Health tab reads the learner as learning`; `#2258: Health's learned and the score's heat_loss_learning are one predicate, …` |
 | M10 | `"model_restart": advice` dropped from `_insight_view` (the holder) | `tests/features.py` | `#1936: the advisor sensor reads the recommended scale and both options`; `#1936: with no alarm the sensor reads the scale in use (nothing to change)` |
-| M11 | the adopt's `await coord.async_request_refresh()` -> `coord.async_update_listeners()` | `tests/features.py` | `#2258: an adopt asks for a cycle, and that cycle's advice offers no refit and grades the house on the adopted scale` |
+| M11 (adopt arm) | the adopt's `await coord.async_request_refresh()` -> `coord.async_update_listeners()` | `tests/features.py` | `#2258: an adopt asks for a cycle, and that cycle's advice offers no refit and grades the house on the adopted scale` |
+| R7 | the restore's `await self.async_request_refresh()` -> `self.async_update_listeners()` | `tests/features.py` | `#2258: a restore asks for a cycle, and that cycle's advice offers no refit and grades the house on the restored scale` |
+| R13 | `_insight_view`'s `self._scores_view(advice)` -> `self._scores_view({})` | `tests/features.py` | `#2258: one cycle view offers the refit and grades the house against it` |
 | M12 | `healthWaiting` back to `state === "unavailable"` | `node tests/card.mjs` | `still learning lists unavailable waiting sensors with a reason in words` |
 | M14 | `envelope_score`'s `max(params.house_heat_loss_scale, 0.1)` floor dropped | `tests/features.py` | `#2258: a configured scale under the learner's clamp is floored at 0.1, not read as a house with no loss` |
 | M15 | the band's `np.clip(…, 0.0, 1.0)` dropped | `tests/features.py` | `#2258: a house past 100 hours grades 100, not more`; `#2258: a house under 20 hours grades 0, not less` (and the floor check) |
@@ -199,10 +230,12 @@ tests/features.py` (each `PIN RE-VERIFICATION: 1 reproduced`, null control
 
 ## Unpinned sites
 
-none -- `tests/mutation_table.py --pin-killed --base origin/main` at this
-seat's commits pinned every site the diff adds (16, then 6: `PIN KILLED: 6
-pinned, 0 left unpinned`), and `tools/pr/ci_predict.py --base origin/main`
-at `19319cc13` lists no added unpinned site.
+none -- `tests/mutation_table.py --pin-killed --base origin/main` at the
+round-2 commits pinned every site the diff adds (16, then 6: `PIN KILLED: 6
+pinned, 0 left unpinned`). Round 3 adds no production line, so it adds no
+site and the drive was not re-run; `tools/pr/ci_predict.py --base origin/main`
+at `902acfe28` prints `CI PREDICT: no closures or fast red predicted`. R7's
+line is invisible to the ledger by construction (see `## Round 2's block`).
 
 ## Null control
 
@@ -220,19 +253,22 @@ at `19319cc13` lists no added unpinned site.
   `Number(null)` = 0 -- the base card under the head's card tests prints the
   `0/100` checks red; at the head they are green. This seat did not touch
   the card.
-- Item 2's harness, `dev/audit/harnesses/r10_scores_envelope.py`
-  (`--ratio-override 1.0`): every split forced to 1.0, where the configured
+- Item 2's harness, `dev/audit/harnesses/r10_scores_envelope.py`, is **this
+  PR's instrument, not the finder's**: the finder's harness
+  (`dev/audit/rounds/round10/study-reseed/live_store.py`) needs the owner's
+  bundle, which stays carried to R10-PARAMS-OWNER (`c3711a1f0`). It runs with
+  `--ratio-override 1.0`): every split forced to 1.0, where the configured
   total and the model's figure are one number; it reads
   `split_max_abs_gap=0.0` at the merge base and at this head, so the base's
   gap is the split's and not a scale-only drift.
 
 ## Figures
 
-Every figure below was taken at `19319cc135899015bfc34e8832580665e43a3b80`
+Every figure below was taken at `902acfe28c6045f27e9ed4966b400050b4fd2688`
 (or at a seat commit whose production code it shares, named) unless it names
 another commit.
 
-- `python3 tools/audit/archscore/score.py --diff origin/main`:
+- `python3 tools/audit/archscore/score.py --diff origin/main` at the head:
   `Architecture score: dS +0.0105 IMPROVES` (`coord_footprint 2489 -> 2471`).
   Before `c79cb51a3`, at `f9458e55c`: `dS +0.0023 IMPROVES`
   (`coord_footprint 2489 -> 2485`); `--diff HEAD` across `c79cb51a3` alone:
@@ -255,15 +291,11 @@ another commit.
   `ends` arm `samples=0` at scales 0.3 and 3.0 `envelope=None
   reason=heat_loss_learning`, `samples=2000` grades 79.2 and 0.0; with
   `--ratio-override 1.0`, `split_max_abs_gap=0.0`.
-- `PYTHONPATH=tests/hastub python3 tests/features.py` at `c79cb51a3`:
-  `ALL 4325 FEATURE CHECKS PASSED`; at `80043426f` its pin-drive baseline
-  rc=0 failed=0.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2399 ENTITY
-  CHECKS FAILED` at `65d6f349c` and `4 of 2402 ENTITY CHECKS FAILED` on a
-  detached `origin/main` at `4e38e7d7b`, the same four checks (the
-  `hb:positive_control` retry arm: `survives one hung py-spy sample`, `a try
-  whose sample misses the spin ... is retried`, `the control rests between
-  tries`, `survives two hung samples`).
+- `PYTHONPATH=tests/hastub python3 tests/features.py` at the head:
+  `ALL 4330 FEATURE CHECKS PASSED` (4328 at the previous head plus the two
+  round-3 checks).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at the head: `ALL 2406
+  ENTITY CHECKS PASSED`.
 
 Taken by the previous rounds of this seat, at the commits they name (none of
 these inputs moved since):
@@ -357,16 +389,18 @@ extraction is duplicated for `async_adopt_heat_loss_refit`; (7) carrying the
 sample count inside the advice so the grade reads no learner state -- not
 taken, it hides the same read inside a dict to move a metric.
 
+Round 3 touched no production code, so no payment changed: structure reads `seam_cut_total 714 <= 714` and archscore `dS +0.0105 IMPROVES` at the head (re-taken, `date -u` 2026-10-23T06:26Z). The round-2 review hunted a payment (advice taken in the learning seam and stored) and found it trades this raise for one on `coordinator_attrs`, which sits at its cap.
+
 Architecture score: dS +0.0105
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff origin/main` at this head:
+`python3 tools/audit/archscore/score.py --diff origin/main` at this head, re-taken after round 3 (no production line moved):
 `dS +0.0105 IMPROVES`; no gate metric rises; `coord_footprint 2489 -> 2471`.
 
 ## Red checks
 
-- `budget-raise-gate` is red until an approving review at the head: this
+- `budget-raise-gate` is red until main's mandate approval at the head (the one it answers; it stays red until then): this
   branch raises one row of `tests/structure_budgets.json`
   (`seam_cut_total`). It is the gate working as designed, not a defect; the
   answer is `## Raise justification` (mandate 6175172275, scope `all`),
@@ -380,12 +414,13 @@ Architecture score: dS +0.0105
   same `--pin-killed` drive run before the handoff instead of after the
   opener refuses; it costs one drive of the changed files' drivers (two runs
   here, the longer over an hour on this loaded box).
-- `tests/entities.py` reads `4 of 2402 ENTITY CHECKS FAILED` on a detached
-  `origin/main` at `4e38e7d7b`, the same four `hb:positive_control` retry
-  checks it fails here; nothing in this diff reaches `tests/nightly_ha.py`'s
-  heartbeat control. Not this branch's: if `fast` carries it, main carries it
-  too. The pin drive left `tests/entities.py` out for that reason
-  (`MUTATION TABLE INCONCLUSIVE -- the baseline is already red`).
+- `tests/entities.py` reads `ALL 2406 ENTITY CHECKS PASSED` at this head on
+  this seat's machine. Round 2 recorded a `hb:positive_control` py-spy retry
+  arm failing on another machine; that arm depends on the environment, and
+  CI `fast` is the arbiter. Nothing in this diff reaches `tests/nightly_ha.py`'s
+  heartbeat control.
+- `nightly-status` grades main's nightly run; this diff touches nothing it
+  reads. Not this branch's.
 - From the previous rounds, both caught locally before any push:
   `tests/finite_boundary.py`'s `every number state publishes None, never the
   bool or the text` (fixed in `9ed756d3f`; the census itself is the cheapest
@@ -400,13 +435,13 @@ Architecture score: dS +0.0105
   convergence predicate for the heat-loss learner: the learning view's
   `house_heat_loss_learned` and the envelope dash read it. Learner
   progress, phase and ETA for the heat-loss learner must read it, never a
-  second threshold. Carry: R10-LEARNER-ETA.
+  second threshold. Landed on the roster at 59c2ebc0276decf74d29b81d1895687ba0b15c00 (`handoff/audit-r10-roster`). Carry: R10-LEARNER-ETA.
 - **R10-UX-HEALTH**: the score sensor is `unknown` (available) while it
   waits, with `waiting_for` and `reasons`; `healthWaiting` lists it. The
   card ships `score.reason_*` strings (en, sv) for every code; UX-HEALTH
   renders `reasons` on the Health `score` row and owns its copy. The Health
   tab's heat-loss "learned" now means converged (50 samples), not one
-  sample. Carry: R10-UX-HEALTH.
+  sample. Landed on the roster at 524d335a0a104d4972495acd37542286541db0c2 (`handoff/audit-r10-roster`). Carry: R10-UX-HEALTH.
 - **R10-SENSOR-PAYLOAD**: `OptimizationScoreSensor` has no `available`
   override any more; `ModelRestartAdvisorSensor` reads
   `insight.model_restart` through `_advice()`, falling back to the
@@ -417,7 +452,7 @@ Architecture score: dS +0.0105
   restart advice, and one convergence predicate shared with Health; not
   landed: no score reads or recomputes a Savings figure (SAV-BASELINE's
   figures are untouched, carry 2), and Health's own copy is UX-HEALTH's.
-  Carry: R10-ARCH-DOCS.
+  Landed on the roster at 1f27f9daf4da8798c5b796513348e7d2d0ea3cbf (`handoff/audit-r10-roster`). Carry: R10-ARCH-DOCS.
 - **New finding, the card's null-as-0 siblings in the Advisor rows** (the four `Number(attrs.*)` sites in Figures; R10-ADVISOR is done): the hot-water row writes `recommended_setpoint` when `Number(...)` is finite, and `Number(null)` is 0. `readNumber` is now in the card for the fix. Landed on R10-UX-HEALTH at 9a4953627ba02add3175dd80cbd3c5b4d8c87af6. Carry: R10-UX-HEALTH
 - **New finding, the envelope band and mass basis (reported, not shipped, per the design note):** on the tree's own presets the 20-100 h band grades the default preset 6.2 and a post-2005 timber house 20.5 at the configured prior, and every timber house before 1980 0; the time constant reads `room_thermal_mass`, which on a floor-heated house excludes the slow mass `presets.derive` puts in `slab_thermal_mass`, and on a two-zone house is not the zone masses the dynamics use. A band or mass-basis change is a behaviour no finding names yet. Main's decision under the mandate: R10-PARAMS-OWNER, the single owner of the thermal parameters, decides which mass the score's time constant reads (the dynamics' slab-inclusive and zone masses are recommended, so the score grades the house the model simulates), and re-grades the 20-100 h band on the presets at that basis. Landed on R10-PARAMS-OWNER at 75c891e28f19142fc44f550b792c1442bff89715. Carry: R10-PARAMS-OWNER
 - **Blocked, not designed around:** the owner's bundle is not in this container, so the suspected 2.6x scale drift and the band on the owner's own house are unmeasured. The harness takes `--bundle PATH` and prints the stored scale, split and samples and the grade on both bases. A local seat with the bundle runs the harness with `--bundle PATH` as part of that group. Landed on R10-PARAMS-OWNER at c3711a1f09213ef1a5c072c5e77297c2b674bac7. Carry: R10-PARAMS-OWNER
