@@ -390,6 +390,35 @@ def budget_raise():
     return out
 
 
+def attribution():
+    """The attribution classes of a text, read by ref_privacy.py's `attribution`
+    (the push guard's, on commit messages) for agreement.mjs to compare with
+    policy_lint.mjs's body contract (R10-FLY-NO-FOOTERS). The corpus: the last
+    400 commit messages at HEAD, the shape the ban was measured on, and the
+    boundary probes below, each a case where the two languages' regex engines
+    part unless the grammar holds them together. The probes are built, so this
+    file states no footer of its own."""
+    sys.path.insert(0, str(ROOT / "tools/audit/seat"))
+    import ref_privacy
+    msgs = [m.strip("\n") for m in git("log", "-n", "400", "--format=%B%x1e").split("\x1e") if m.strip()]
+    sess, trailer, coauthor = "claude.ai/code/" + "session_", "Claude-" + "Session", "Co-Authored-" + "By"
+    gen = "Generated " + "with [Claude Code](https://claude.com/claude-code)"
+    probes = [
+        "fix: x\n\n" + trailer + ": https://" + sess + "011AbC",
+        "fix: x\n\n" + coauthor + ": Claude Opus 5.5 <noreply@anthropic.com>",
+        "fix: x\n\n" + coauthor + ": Someone Else <s@example.com>",
+        "fix: x\n\n" + coauthor + ": Claudette <c@example.com>",
+        "fix: x\n\n" + coauthor + ": Claude\u00e9 <c@example.com>",
+        "body\n\n\U0001f916 " + gen, "body\n\n- " + gen, "LGTM\n\n---\n_Generated " + "by [Claude Code](https://claude.ai/code)_",
+        "body\n\nGenerated " + "with Claude Code", "the `Generated " + "with Claude Code` line, quoted mid-line",
+        "quotes the `" + trailer + ":` trailer mid-line", "x\r" + trailer + ": y", "x\r\n" + trailer + ": y",
+        "x\u2028" + trailer + ": y", "x\u2029" + coauthor + ": Claude", "  \t" + trailer + " : y",
+        "see https://claude.ai/code and claude.ai/code/artifact/x", "claude.ai/code/" + "sessions", "CLAUDE.AI/CODE/" + "SESSION_X",
+        "x\n" + trailer.replace("s", "\u017f") + ": y", "x\nGENERATED " + "BY CLAUDE CODE", "",
+    ]
+    return {t: ref_privacy.attribution(t) for t in dict.fromkeys(msgs + probes)}
+
+
 def main(argv, root=ROOT, reader=Path(__file__).resolve()):
     if argv == ["--self-test"]:
         return self_test()
@@ -401,7 +430,7 @@ def main(argv, root=ROOT, reader=Path(__file__).resolve()):
     if restore_check(root, reader):
         return 1  # the precondition: an answer from unrestored readers is no verdict
     data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs(),
-            "budget_raise": budget_raise()}
+            "budget_raise": budget_raise(), "attribution": attribution()}
     if argv[:1] == ["--out"] and len(argv) == 2:
         Path(argv[1]).write_text(json.dumps(data))
         return 0
