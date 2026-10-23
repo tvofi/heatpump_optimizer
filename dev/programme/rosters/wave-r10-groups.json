@@ -8043,7 +8043,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": null,
     "pr": 2671,
     "commit": "6120fb5138dccca84a5f5ca1e8bd3ef8487a1efa"
