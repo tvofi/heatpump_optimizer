@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cut ruleset 23698884's required contexts over from the 17 to `gate`, and back.
 
-    python3 -I tools/ci/ruleset_cutover.py --dry-run [--staged F --head H --pr N]
+    python3 -I tools/ci/ruleset_cutover.py --dry-run [--window] [--staged F --head H --pr N]
     python3 -I tools/ci/ruleset_cutover.py --apply --rollback-file /abs/path.json \\
         --staged F --head H --pr N
     python3 -I tools/ci/ruleset_cutover.py --rollback /abs/path.json
@@ -381,6 +381,22 @@ def verify(gh, head: str) -> int:
     return 0 if ok else 1
 
 
+def dry_run_window(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
+    """--dry-run --window: what --disable and --enable would PUT, and --disable's preconditions."""
+    live = call(gh, [RULESET])
+    assert_old(six(live), "the live ruleset")
+    off = {**six(live), "enforcement": "disabled"}
+    print("DISABLE PAYLOAD (PUT " + RULESET + "): the live six keys with enforcement disabled")
+    print(diff(six(live), off, "live", "disable"), end="")
+    print("ENABLE PAYLOAD (PUT " + RULESET + "): the rollback copy with [gate] and its own enforcement")
+    print(diff(six(live), payload(live), "live", "enable"), end="")
+    rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
+    rows.insert(1, ("reds-at-head", *reds_at_head(gh, head)) if head else ("reds-at-head", None, "not evaluated: no --head"))
+    ok = print_preconditions(rows)
+    print(f"WINDOW DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
+    return 0 if ok else 1
+
+
 def load(path: str | None):
     if path is None:
         return None
@@ -400,6 +416,7 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
     mode.add_argument("--disable", action="store_true")
     mode.add_argument("--enable", action="store_true")
     mode.add_argument("--verify", action="store_true")
+    ap.add_argument("--window", action="store_true", help="with --dry-run: the ruleset-off order's read")
     ap.add_argument("--merged", help="P2b's merge commit on main (--enable)")
     ap.add_argument("--rollback-file", help="absolute path the --apply GET is saved to")
     ap.add_argument("--staged", help="the ruleset JSON staged in PR 2's body")
@@ -410,6 +427,8 @@ def main(argv: list[str], gh=gh_subprocess) -> int:
         return self_test()
     try:
         if a.dry_run:
+            if a.window:
+                return dry_run_window(gh, load(a.staged), a.head, a.pr)
             return dry_run(gh, load(a.staged), a.head, a.pr)
         if a.rollback:
             return rollback(gh, a.rollback)
