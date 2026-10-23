@@ -1,0 +1,10 @@
+custom_components/heatpump_optimizer/away.py
+custom_components/heatpump_optimizer/coordinator.py
+dev/audit/harnesses/ux10_flow_into_model.py
+dev/programme/delivery/2632.md
+tests/arch_score_head.py
+tests/dst_checks.py
+tests/features.py
+tests/replay.py
+tests/seam_map.json
+tests/structure_budgets.json
