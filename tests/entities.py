@@ -28265,6 +28265,11 @@ _PCJ_CALLER = ("on: push\njobs:\n  pr-contract:\n    needs: [prelude]\n"
 _PCJ_CALLER_WITH = ("jobs:\n  pr-contract:\n    if: ${{ !cancelled() }}\n"
                     "    uses: ./.github/workflows/pr-contract.yml\n"
                     "    with: { pr: '1' }\n")
+# A blank line, or a comment at column 0, between the key and its `uses:` is
+# not the end of the job's body (the #2638 review's survivor: dropping the
+# skip of those lines read such a caller as a definer).
+_PCJ_CALLER_GAP = ("jobs:\n  pr-contract:\n\n# the contract, called\n"
+                   "    uses: ./.github/workflows/pr-contract.yml\n")
 _PCJ_OTHER = "jobs:\n  tests:\n    runs-on: x\n    steps:\n      - run: true\n"
 import shutil as _pcj_shutil  # noqa: E402
 _PCJ_ROOTS = {}
@@ -28282,6 +28287,7 @@ _PCJ = json.loads(subprocess.run(
      "definer: m.definesJob(t.definer, 'pr-contract'),"
      "caller: m.definesJob(t.caller, 'pr-contract'),"
      "caller_with: m.definesJob(t.caller_with, 'pr-contract'),"
+     "caller_gap: m.definesJob(t.caller_gap, 'pr-contract'),"
      "other: m.definesJob(t.other, 'pr-contract'),"
      "tree: m.contractWorkflowFiles(),"
      "plant_one: m.contractWorkflowFiles(t.one),"
@@ -28289,6 +28295,7 @@ _PCJ = json.loads(subprocess.run(
      "})) })",
      json.dumps({"definer": _PCJ_DEFINER, "caller": _PCJ_CALLER,
                  "caller_with": _PCJ_CALLER_WITH, "other": _PCJ_OTHER,
+                 "caller_gap": _PCJ_CALLER_GAP,
                  **_PCJ_ROOTS})],
     capture_output=True, text=True).stdout or "{}")
 for _d in _PCJ_ROOTS.values():
@@ -28297,6 +28304,7 @@ R.check(
     "policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is not a "
     "definition of the contract job, so ci.yml's caller cannot make the wiring pin vacuous",
     _PCJ.get("caller") is False and _PCJ.get("caller_with") is False
+    and _PCJ.get("caller_gap") is False
     and _PCJ.get("plant_one") == ["a.yml"],
     f"parsed={_PCJ}; a `uses:` caller was read as the job's definition",
 )
