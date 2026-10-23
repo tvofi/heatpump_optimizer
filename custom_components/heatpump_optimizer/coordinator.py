@@ -1357,7 +1357,7 @@ def house_loss_converged(samples: int) -> bool:
     Health tab's "learned") and the envelope grade both read, so the two
     cannot disagree about whether the learner has converged.
     """
-    return house_loss_confidence(samples) >= _HOUSE_LOSS_CONVERGED_CONFIDENCE
+    return house_loss_confidence(samples) > _HOUSE_LOSS_CONVERGED_CONFIDENCE
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
