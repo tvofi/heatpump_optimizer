@@ -13,6 +13,9 @@ set the ledger has instead, never a list of kinds:
                  by the tree's own `level_set`), and every kind ledger.py's
                  `handoff_level` writes (`OWED {now} <kind> ...`).
 
+The relay's two writer sets are ledger.py's `relay_writers` census, the one
+grammar for them (the agreement lane refuses a second copy).
+
 Each event writer's row is opened through the production CLI (`ledger.py
 open`) in a scratch home, under a PR of its own and a sha of its own. A writer
 whose kind the ledger refuses is `refused`. The production `fold` then reads
@@ -43,8 +46,6 @@ from pathlib import Path
 
 RELAY = Path(sys.argv[1] if len(sys.argv) > 1 else "tools/audit/seat/cloud_relay.sh")
 LEDGER = Path(sys.argv[2] if len(sys.argv) > 2 else "tools/audit/seat/ledger.py")
-EVENT = re.compile(r"\bledger_open ([a-z-]+) ")
-LEVEL = re.compile(r"\blevel_line ([a-z-]+) ")
 LEDGER_LEVEL = re.compile(r'f"OWED \{now\} ([a-z-]+) ')
 PASSES = 2
 
@@ -72,14 +73,7 @@ def main() -> int:
     sys.modules["hpo_ledger"] = lg
     spec.loader.exec_module(lg)
     text = RELAY.read_text()
-    writers = []  # (where, kind, sink)
-    for n, line in enumerate(text.splitlines(), 1):
-        if line.startswith("self_test()"):
-            break
-        if line.lstrip().startswith(("#", "ledger_open()", "level_line()", "level_set()")):
-            continue
-        writers += [(f"cloud_relay.sh:{n}", m.group(1), "event") for m in EVENT.finditer(line)]
-        writers += [(f"cloud_relay.sh:{n}", m.group(1), "level") for m in LEVEL.finditer(line)]
+    writers = [(f"cloud_relay.sh:{n}", kind, sink) for n, kind, sink in lg.relay_writers(text)]
     for n, line in enumerate(LEDGER.read_text().splitlines(), 1):
         writers += [(f"ledger.py:{n}", m.group(1), "level") for m in LEDGER_LEVEL.finditer(line)]
     ev = {"cleared": 0, "uncleared": 0, "unreported": 0, "refused": 0}
