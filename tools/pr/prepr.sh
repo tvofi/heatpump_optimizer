@@ -681,6 +681,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
     args+=(--existing-file "$ex")
   fi
+  # The base too, so a raise whose body has no `## Raise justification` is
+  # refused here (policy_lint's raise arm reads the diff with the gate's own
+  # raises_between), and at body_push.sh's --body-check, not first at the train.
+  [ -n "${BASE:-}" ] && args+=(--base "$BASE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
   rc=$?
   rm -f "$ex"
@@ -1783,6 +1787,8 @@ EOS
   st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
+  case "$(declare -f body_check)" in *'args+=(--base "$BASE")'*) true ;; *) false ;; esac
+  st $? 0 "body_check hands policy_lint the base, so a raise with no \`## Raise justification\` is refused here and at body_push, not first at the train"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
@@ -2338,6 +2344,12 @@ EOF
     && $G checkout -q -b pglobsib pexsib \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pglobsib \
+    && $G checkout -q -b pleft origin/main \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;t=json.loads(c.CLOSURES.read_text());h='tests/harness_headers.py';f=next(x for x in t['inert_reads'][h] if x.startswith('dev/audit/harnesses/') and x not in t['closures'][h] and c.is_inert(x));p=P.Path('tests/closure.py');s=p.read_text();p.write_text(s.replace('INERT_EXCEPT = (\\n','INERT_EXCEPT = (\\n    \\'%s\\',\\n'%f,1));P.Path('$PDX/left').write_text(f)" \
+    && $G commit -qam pleft \
+    && $G checkout -q -b pleftrec pleft \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());f=P.Path('$PDX/left').read_text();[p['closures'].__setitem__(k,sorted(set(p['closures'][k])|{f})) for k,v in p['inert_reads'].items() if f in v];c.write_closures(c.CLOSURES,p)" \
+    && $G commit -qam pleftrec \
     && $G checkout -q -b pedge origin/main && echo "import tools.audit.seat.moved_paths  # planted" >> tests/wood_advisor.py \
     && $G commit -qam pedge \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
@@ -2379,6 +2391,11 @@ EOF
   st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
   got=$(predict_at pglobsib); grep -q 'PREDICT closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
   st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
+  LEFT=$(cat "$PDX/left" 2>/dev/null)
+  got=$(predict_at pleft); [ -n "$LEFT" ] && grep -qF "PREDICT closures UNDER-SCOPED tests/harness_headers.py: $LEFT leaves INERT" <<<"$got" && grep -q '^rc=1$' <<<"$got"
+  st $? 0 "6d predicts UNDER-SCOPED for a file an INERT edit takes out while the table lists it under inert_reads alone (r10-rca-inert-closure-recording)"
+  got=$(predict_at pleftrec); grep -q 'leaves INERT' <<<"$got"
+  st $? 1 "and is quiet once the closure lists it, the INERT edit otherwise the same (null control)"
   got=$(predict_at pedge); grep -q 'PREDICT closures .*INERT READS tools/audit/seat/moved_paths.py: read by .*a new import from tests/wood_advisor.py' <<<"$got" \
     && grep -q '^rc=1$' <<<"$got"
   st $? 0 "6d refuses an INERT READS a new top-level import adds (the import-edge arm)"
