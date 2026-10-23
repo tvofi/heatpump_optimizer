@@ -36450,8 +36450,6 @@ _P8_ALLOWED = {
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
     ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
-    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
-        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
 }
 
 

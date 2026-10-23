@@ -1996,9 +1996,12 @@ _r9f41_stamp_sites = sorted(
         )
     }
 )
+# source_polls reads the re-report FACT (last_reported past last_updated),
+# not a freshness stamp, so it is the one other reader (R10 N-staleness).
 R.check(
-    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp",
-    _r9f41_stamp_sites == ["state_stamp"],
+    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp, "
+    "beside source_polls' re-report test",
+    _r9f41_stamp_sites == ["source_polls", "state_stamp"],
     f"functions reading a stamp: {_r9f41_stamp_sites}",
 )
 
@@ -2515,9 +2518,16 @@ for _bad in ("unavailable", "unknown"):
 
 # -- stale ------------------------------------------------------------------
 # The whole reason this method exists rather than a bespoke hand-read: a mode
-# nobody has reported for ninety minutes is not evidence about the pump now.
+# a polling source has not re-reported for ninety minutes is not evidence
+# about the pump now (a source seen only on change is #2234's case).
 _old_mode = signals(
-    {"select.pump_mode": FakeState("cool", last_updated=minutes_ago(90, NOW))}
+    {
+        "select.pump_mode": FakeState(
+            "cool",
+            last_updated=minutes_ago(120, NOW),
+            last_reported=minutes_ago(90, NOW),
+        )
+    }
 ).read_state("heat_pump_mode_entity")
 R.check(
     "an over-age string is rejected exactly like an over-age number",
@@ -2566,7 +2576,13 @@ R.check(
     .ok,
 )
 _stale_odd = signals(
-    {"select.pump_mode": FakeState("turbo", last_updated=minutes_ago(90, NOW))}
+    {
+        "select.pump_mode": FakeState(
+            "turbo",
+            last_updated=minutes_ago(120, NOW),
+            last_reported=minutes_ago(90, NOW),
+        )
+    }
 ).read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
 R.check(
     "staleness outranks an unrecognised value",
@@ -19803,6 +19819,144 @@ R.check(
     is None,
 )
 
+# --- R10 N-staleness (#2234): a quiet on-change source is not a dead one ------
+R.section("R10 N-staleness: the age limit keyed on how a source reports (D14-s3-02)")
+
+# Every key whose on-change limit is its polling limit, and why. A key the
+# const table adds without a decision fails the first check below, and an
+# entry here that names no such key fails it too.
+_r10st_same = {
+    # The R9 quiet-store bound (D1-s5-51): a dead room probe stops in 6 h.
+    "indoor_temp_entity": "quiet store",
+    "dhw_temp_entity": "quiet store",
+    "floor_return_temp_entity": "quiet store",
+    "lower_floor_temp_entity": "quiet store",
+    "buffer_tank_temp_entity": "quiet store",
+    # Outdoor air moves within its 3 h bound.
+    "outdoor_temp_entity": "moves within the bound",
+    "house_power_entity": "moves within the bound",
+    # Stale is the safe direction: a pump signal demotes to silence, a wood-side
+    # probe or flue reads as no free heat, solar falls back to Open-Meteo.
+    "heat_pump_fault_entity": "fails safe",
+    "heat_pump_defrost_entity": "fails safe",
+    "heat_pump_online_entity": "fails safe",
+    "heat_pump_backup_heater_entity": "fails safe",
+    "heat_pump_dhw_booster_entity": "fails safe",
+    "heat_pump_capacity_limited_entity": "fails safe",
+    "valve_outlet_temp_entity": "fails safe",
+    "wood_tank_top_entity": "fails safe",
+    "wood_tank_bottom_entity": "fails safe",
+    "external_heat_entity": "fails safe",
+    "solar_radiation_entity": "fails safe",
+    # No read applies its limit (class P6, not this one).
+    "pv_production_entity": "no reader",
+}
+_r10st_poll = _r9f41_const.INPUT_MAX_AGE_MINUTES
+_r10st_change = getattr(_r9f41_const, "INPUT_ON_CHANGE_MAX_AGE_MINUTES", {})
+_r10st_equal = {k for k in _r10st_poll if _r10st_change.get(k) == _r10st_poll[k]}
+R.check(
+    "every age-limited key declares its on-change limit, no lower than its "
+    "polling one, and each kept equal is named with its reason",
+    set(_r10st_change) == set(_r10st_poll)
+    and all(_r10st_change[k] >= _r10st_poll[k] for k in _r10st_poll)
+    and _r10st_equal == set(_r10st_same),
+    f"undeclared {sorted(set(_r10st_poll) - set(_r10st_change))}, "
+    f"equal unnamed {sorted(_r10st_equal - set(_r10st_same))}, "
+    f"named not equal {sorted(set(_r10st_same) - _r10st_equal)}",
+)
+
+
+def _r10st_read(key, held_min, reported_min=None, hass=None):
+    """``key`` read with its last change ``held_min`` ago and, for a polling
+    source, its last unchanged re-report ``reported_min`` ago."""
+    state = FakeState(
+        "1.0",
+        last_updated=minutes_ago(held_min, NOW),
+        last_reported=(
+            None if reported_min is None else minutes_ago(reported_min, NOW)
+        ),
+    )
+    hass = hass or FakeHass()
+    hass.states.set("sensor.x", state)
+    return InputReader(hass, {key: "sensor.x"}, now=lambda: NOW).read_state(key)
+
+
+# The census: every key, driven alike. An on-change source held one minute
+# past its polling limit is stale only where the on-change limit is that same
+# limit; a polling source silent as long is stale on every key (the null
+# control: the bound polling sources have today); and the polling evidence is
+# remembered, so a source whose last write was a change keeps that bound.
+_r10st_wrong = []
+for _r10st_key, _r10st_limit in sorted(_r10st_poll.items()):
+    _r10st_quiet = _r10st_read(_r10st_key, _r10st_limit + 1)
+    _r10st_polled = _r10st_read(
+        _r10st_key, _r10st_limit + 60, reported_min=_r10st_limit + 1
+    )
+    _r10st_hass = FakeHass()
+    _r10st_read(_r10st_key, 10, reported_min=5, hass=_r10st_hass)
+    _r10st_changed = _r10st_read(_r10st_key, _r10st_limit + 1, hass=_r10st_hass)
+    if (
+        _r10st_quiet.stale != (_r10st_key in _r10st_same)
+        or not _r10st_polled.stale
+        or not _r10st_changed.stale
+    ):
+        _r10st_wrong.append(
+            (_r10st_key, _r10st_quiet.problem, _r10st_polled.problem,
+             _r10st_changed.problem)
+        )
+R.check(
+    f"all {len(_r10st_poll)} age-limited keys: a quiet on-change source is "
+    "stale only on a key named equal; a silent polling source is stale on "
+    "every key, remembered past a changing write (D14-s3-02)",
+    not _r10st_wrong and len(_r10st_poll) >= 25,
+    f"wrong (key, quiet, polled, changed): {_r10st_wrong}",
+)
+_r10st_gone = InputReader(
+    FakeHass({"sensor.x": FakeState("unavailable", last_updated=NOW)}),
+    {"heat_pump_power_entity": "sensor.x"},
+    now=lambda: NOW,
+).read_power_kw("heat_pump_power_entity")
+_r10st_idle = InputReader(
+    FakeHass({"sensor.x": FakeState("0", unit="W", last_updated=minutes_ago(600, NOW))}),
+    {"heat_pump_power_entity": "sensor.x"},
+    now=lambda: NOW,
+).read_power_kw("heat_pump_power_entity")
+R.check(
+    "an on-change power meter idle at 0 W for 10 h reads 0 kW with no limit, "
+    "and an unavailable one is still refused",
+    _r10st_idle.ok and _r10st_idle.value == 0.0
+    and _r10st_idle.max_age_minutes is None
+    and _r10st_gone.problem == "unavailable",
+    f"idle {_r10st_idle.problem} {_r10st_idle.value} "
+    f"limit {_r10st_idle.max_age_minutes}, gone {_r10st_gone.problem}",
+)
+
+
+def _r10st_floor(held_min, reported_min=None):
+    c = _mold_coord("60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh")
+    c.hass.states.set(
+        "sensor.rh",
+        FakeState(
+            "60", unit="%", last_updated=minutes_ago(held_min),
+            last_reported=None if reported_min is None else minutes_ago(reported_min),
+        ),
+    )
+    return c._mold_floor_series(_out5)
+
+
+# The coordinator's humidity read takes the same rule: an on-change probe
+# quiet past the 120 min polling limit keeps the mold floor, a polling one
+# silent as long drops it, and past the room's quiet-store bound both do.
+R.check(
+    "humidity: an on-change probe quiet 121 min keeps the mold floor; a "
+    "polling one silent 121 min, or an on-change one past 360 min, drops it",
+    _r10st_floor(121) is not None
+    and _r10st_floor(300, reported_min=121) is None
+    and _r10st_floor(361) is None,
+    f"quiet {_r10st_floor(121)}, polled {_r10st_floor(300, reported_min=121)}, "
+    f"past {_r10st_floor(361)}",
+)
+
 # --- the T5 review round's regressions ------------------------------------------------
 
 # The scoring window follows the caller's cadence: an hourly scorer must not
@@ -23198,7 +23352,15 @@ R.check(
     and _g_hfresh._mold_floor_series(np.array([-5.0, -10.0])) is not None,
 )
 _g_hstale = HeatPumpOptimizerCoordinator(
-    FakeHass({"sensor.rh": FakeState("70", last_updated=minutes_ago(300))}),
+    FakeHass(
+        {
+            "sensor.rh": FakeState(
+                "70",
+                last_updated=minutes_ago(400),
+                last_reported=minutes_ago(300),
+            )
+        }
+    ),
     FakeEntry(data=_g_hum_cfg),
 )
 R.check(
