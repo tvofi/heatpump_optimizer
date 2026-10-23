@@ -5014,3 +5014,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+# PROBE twin (R10-CI-LAYOUT P2b Arm B): main on its layout, FULL scope.
