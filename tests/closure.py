@@ -254,6 +254,9 @@ PRODUCERS = {
 #     an inconsistency waiting to be believed.
 INERT = (
     "LICENSE",
+    # PROBE CUT only (ci-probe/u0c, never P2b): the one trivial unit the cut
+    # ci.yml calls; it runs `true` and no gate script.
+    ".github/workflows/probe.yml",
     # The private-advisory pointer (#801). GitHub renders it; no gate script
     # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
     # file forced the FULL suite and failed the orphan check on #819.
