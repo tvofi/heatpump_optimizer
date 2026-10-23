@@ -231,7 +231,7 @@ relay() {
   ledger_open verdict-unposted "$pr" "$head" "$first"
   # The remote's tip, not the commit push-verdict built here: confirm takes only a tip (bus.sh
   # unpack), and it is confirmed only when it carries this verdict's tree.
-  sha2=-; tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ] && sha2=$tip
+  sha2=-; tip=$(review_tip "$pr") && [ -n "$tip" ] && [ "$(git rev-parse "$tip^{tree}")" = "$wt" ] && sha2=$(printf '%s\n' "$out" | awk 'END { print $NF }')
   echo "cloud_relay: review/$pr remote tip ${tip:-none}"
   if [ -n "${CONFIRM:-}" ]; then
     if [ "$sha2" = - ]; then unposted "$pr" - "review/$pr's remote tip ${tip:-none} does not carry this verdict"
