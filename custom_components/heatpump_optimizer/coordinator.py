@@ -2614,8 +2614,9 @@ def envelope_score(
     # The scale's own writers clamp it; a configured or service-written
     # value does not pass through that clamp, hence the floor.
     scale = max(params.house_heat_loss_scale, 0.1)
+    # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
-    if loss <= 1e-6 or params.room_thermal_mass <= 0:
+    if loss <= 0.0 or params.room_thermal_mass <= 0:
         return None, "no_house_model"
     if not house_loss_converged(samples):
         return None, "heat_loss_learning"

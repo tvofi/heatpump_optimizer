@@ -20299,6 +20299,27 @@ R.check(
     "a machine at the alarm threshold grades 0",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
 )
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, never below (#2258)",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+)
+_cedge = _t2_coord()
+_cedge._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES]
+_cedge_view = _cedge._scores_view(_rs_advice(_cedge))
+R.check(
+    "a COP bucket at exactly the minimum sample count is watched, and the "
+    "machine is graded (#12, #2258)",
+    _cedge_view["machine"] == 100.0 and "machine" not in _cedge_view["reasons"],
+    f"{_cedge_view}",
+)
+R.check(
+    "a refit exactly on its own band edge agrees with the scale; only one "
+    "past it disagrees (#2258)",
+    not _r9p8_coord._refit_disagrees({"refit": {"scale": 2.5, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 2.51, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 1.49, "band_percent": 25.0}}, 2.0),
+)
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
     _cop6._fold_score_sample(_T6, 1.0, 1.6 * 1.0, _spot6, 0.25, True)
