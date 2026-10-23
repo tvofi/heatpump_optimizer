@@ -1,0 +1,9 @@
+2026-10-23T13:10:34.9727942Z   GOLDEN_MODE: drift
+2026-10-23T13:10:34.9728121Z   RUN_PART: fast
+2026-10-23T13:10:35.6136627Z   MODE: FULL -- every test script runs, nothing is scoped out.
+2026-10-23T13:24:51.4330662Z ########## alone on the box: stress, then harness_headers ##########
+2026-10-23T13:31:22.6601541Z   ok   arch-instrument takes fast's scope by equal copies of fast's two steps, and each runs its own RUN_PART
+2026-10-23T13:31:22.7076660Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2026-10-23T13:31:22.7136611Z SKIP: tests/arch_score.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)
+2026-10-23T13:31:22.7136868Z SKIP: tests/arch_score_head.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)
+2026-10-23T13:31:22.7514801Z ALL TEST SCRIPTS PASSED
