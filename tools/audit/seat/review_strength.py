@@ -12,7 +12,9 @@ R10-FLOW-YIELD-PROBE (owner ruling R13). Everything is read over git: no
 REST call, so no rate limit and no 403. `--fetch` first fetches
 `refs/heads/{review,verdict,probe}/*` and the tags from the remote.
 
-THE RULE. A verdict is a commit on a `review/<pr>` ref whose subject matches
+THE RULE. A verdict is a commit on a `review/<pr>` ref, or on its
+`archive/review/<pr>` tag once prune_refs.py has archived the ref (and a
+`verdict/<pr>` copy likewise), whose subject matches
 `verdict: #<pr> Fix review: merge|blocked <40hex>`; a blocked one carries
 `<class>:` after the sha. A commit reachable from several review refs counts
 once. A window holds the verdicts whose COMMITTER time falls in
@@ -20,7 +22,17 @@ once. A window holds the verdicts whose COMMITTER time falls in
 A blocked verdict is REAL when its class is in REAL_CATCH (the flow study's
 "Guardrail baselines" list) or in `--real-extra`, otherwise BOOKKEEPING. A subject that names the
 grammar's prefix but not its shape is printed on its own `outside` row,
-never folded in. Each subject names ONE class, so a verdict blocked for two
+never folded in.
+
+THE VOCABULARY. The block classes the reviewer is taught are read from
+`--tree`'s web-fix-wave.js VERDICT_CLASSES literal, never copied here; a
+tree without one refuses. REAL_CATCH is the study's judgement of which words
+name a catch, and is the one list this file types: the header prints it
+split into the taught real words, the taught words it leaves bookkeeping
+(so a newly taught class shows there until REAL_CATCH judges it) and the
+untaught real words reviewers wrote. `--by route` keys a block on the class
+the wave routes it to: its word when taught, else `other` (parseVerdict's
+rule). Each subject names ONE class, so a verdict blocked for two
 reasons counts once, under the class its reviewer wrote first.
 
     real per PR = real blocks / reviewed PRs  (one PR blocked in 6 rounds
@@ -31,7 +43,7 @@ STRATA (`--by`). kind: `cloud` when the verdict's bus nonce prefix names a
 probe return, a ref `probe/rev-<pr>-<nonce[:8]>` or tag
 `archive/probe/rev-<pr>-<nonce[:8]>` (cloud_relay.sh's return path), or its
 `verdict/<pr>` copy's `bus-confirmed:` id starts with `cloud` or ends in
-`-cloud`; `local` otherwise. prior-merge: the PR already had a `merge`
+`-cloud`; `local` otherwise. route: above. prior-merge: the PR already had a `merge`
 verdict on the bus (a re-review a carry could replace). class: the raw class
 word, `(merge)` for a merge verdict, `(no class)` for a block naming none. origin, fixer: from the roster file at `--roster REF:PATH`, joined on
 the first `R<n>-...` group token of `dev/programme/delivery/<pr>.md` at
@@ -84,7 +96,10 @@ PROBE_RE = re.compile(r"rev-(\d+)-([0-9a-f]{8})$")
 CONFIRMED_RE = re.compile(r"^bus-confirmed:\s*(\S+) \(review/\d+ at ([0-9a-f]{40})\)", re.M)
 GROUP_RE = re.compile(r"\b(R\d+-[A-Z0-9][A-Z0-9-]*[A-Z0-9])\b")
 MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
-STRATA = ("kind", "class", "prior-merge", "origin", "size", "product", "fixer")
+STRATA = ("kind", "class", "route", "prior-merge", "origin", "size", "product", "fixer")
+WAVE_SCRIPT = ".claude/workflows/web-fix-wave.js"
+CLASSES_RE = re.compile(r"const VERDICT_CLASSES = \[([^\]]*)\]")
+WORD_RE = re.compile(r"'([a-z][a-z0-9-]*)'")
 FACT_STRATA = {"origin", "fixer", "size", "product"}
 
 
@@ -109,11 +124,11 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
         if m:
             probes.add((int(m[1]), m[2]))
     confirmed = {}
-    for r in refs(repo, f"refs/remotes/{remote}/verdict/"):
+    for r in refs(repo, f"refs/remotes/{remote}/verdict/") + refs(repo, "refs/tags/archive/verdict/"):
         for m in CONFIRMED_RE.finditer(git(repo, "log", "--format=%B", r)):
             confirmed[m[2]] = m[1]
     seen, out, outside = set(), [], []
-    for r in refs(repo, f"refs/remotes/{remote}/review/"):
+    for r in refs(repo, f"refs/remotes/{remote}/review/") + refs(repo, "refs/tags/archive/review/"):
         for line in git(repo, "log", "--format=%H%x09%cI%x09%s", r).splitlines():
             sha, t, subj = line.split("\t", 2)
             if sha in seen or not PREFIX_RE.match(subj):
@@ -138,6 +153,21 @@ def load(repo: Path, remote: str, real: frozenset = REAL_CATCH) -> tuple[list[di
         if v["kind"] == "merge":
             merged.add(v["pr"])
     return out, outside
+
+
+def verdict_classes(text: str) -> tuple[str, ...]:
+    """The block classes the wave script teaches, read from its VERDICT_CLASSES literal; refuses without one."""
+    m = CLASSES_RE.search(text)
+    words = tuple(WORD_RE.findall(m[1])) if m else ()
+    if not words:
+        raise SystemExit(f"review_strength: no VERDICT_CLASSES literal in {WAVE_SCRIPT}")
+    return words
+
+
+def class_sets(taught: tuple[str, ...], real: frozenset) -> dict[str, list[str]]:
+    """REAL's words split by whether the vocabulary teaches them, and the taught words REAL leaves out."""
+    return {"taught real": sorted(set(taught) & real), "taught bookkeeping": sorted(set(taught) - real),
+            "untaught real": sorted(real - set(taught))}
 
 
 def as_of(repo: Path, ref: str, t: datetime) -> str:
@@ -194,15 +224,17 @@ def pr_facts(repo: Path, tree: str, roster: str | None, verdicts: list[dict],
     return facts
 
 
-def stratum(by: str, v: dict, facts: dict[int, dict]) -> str:
+def stratum(by: str, v: dict, facts: dict[int, dict], taught: tuple[str, ...] = ()) -> str:
     if "+" in by:
-        return "+".join(stratum(b, v, facts) for b in by.split("+"))
+        return "+".join(stratum(b, v, facts, taught) for b in by.split("+"))
     if by == "all":
         return "all"
     if by == "kind":
         return v["reviewer"]
     if by == "class":
         return v["cls"] or ("(merge)" if v["kind"] == "merge" else "(no class)")
+    if by == "route":
+        return "(merge)" if v["kind"] == "merge" else v["cls"] if v["cls"] in taught else "other"
     if by == "prior-merge":
         return "after-a-merge-verdict" if v["prior_merge"] else "no-merge-yet"
     return str(facts[v["pr"]][by]) if v["pr"] in facts else "(unreviewed at T)"
@@ -282,9 +314,12 @@ def main(argv: list[str]) -> int:
     print(f"verdicts on the bus: {len(verdicts)}; outside the grammar: {len(outside)}")
     for s in outside:
         print(f"  outside: {s[:100]}")
+    taught = verdict_classes(git(repo, "show", f"{a.tree}:{WAVE_SCRIPT}"))
+    for k, words in class_sets(taught, REAL_CATCH | extra).items():
+        print(f"{k}: {', '.join(words) or '-'}")
     for by in ["all", *a.by]:
         print(f"## {by}")
-        rows = {name: tally(verdicts, f, u, lambda v: stratum(by, v, facts)) for name, f, u in wins}
+        rows = {name: tally(verdicts, f, u, lambda v: stratum(by, v, facts, taught)) for name, f, u in wins}
         for k in sorted({k for r in rows.values() for k in r}):
             for name, _, _ in wins:
                 o = rows[name].get(k) or dict(prs=set(), verdicts=0, real=0, book=0, caught=set(), first=[])
@@ -399,6 +434,7 @@ def self_test() -> int:
         g("update-ref", "refs/remotes/origin/roster", r2)
         m0 = g("rev-parse", "main")
         m1 = mk(m0, {"dev/programme/delivery/6.md": "| 6 | R1-GRP |\n", "dev/programme/delivery/8.md": "| 8 | R1-FINDS |\n",
+                     WAVE_SCRIPT: "const VERDICT_CLASSES = [\n  'harness', 'carry-missing',\n]\n",
                      "docs/base.md": lines(300)}, "row 6", "2026-10-01T12:00:00Z")
         c1 = mk(m1, {"custom_components/x.py": lines(20)}, "pr 5 first", "2026-10-02T01:00:00Z")
         c2 = mk(c1, {"custom_components/x.py": lines(160)}, "pr 5 second", "2026-10-02T03:00:00Z")
@@ -553,8 +589,62 @@ def self_test() -> int:
               set(tally(fv, when("2026-10-05T03:30Z"), when("2026-10-05T04:30Z"),
                         lambda v: stratum("class", v, {}))) == {"(merge)"})
         _self_test_seams(R, g, mk, verdict, lines, m1, RP, r2, check)
+        _self_test_vocabulary(R, g, verdict, check)
     print(f"review_strength self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _self_test_vocabulary(R: Path, g, verdict, check) -> None:
+    """The archived bus (prune_refs.py's tags) and the vocabulary read from the wave script."""
+    H = "b" * 40
+    n = len(load(R, "origin")[0])
+    s40 = verdict("refs/tags/archive/review/40", f"verdict: #40 Fix review: blocked {H} defect: x",
+                  "40" * 16, "2026-08-01T00:00:00Z")
+    vs = g("commit-tree", g("write-tree"), "-m", f"verdict: #40\n\nbus-confirmed: cloud-40 (review/40 at {s40})")
+    g("update-ref", "refs/tags/archive/verdict/40", vs)
+    got = [v for v in load(R, "origin")[0] if v["pr"] == 40]
+    check("a review ref archived as archive/review/<pr> is still read, once",
+          len(got) == 1 and len(load(R, "origin")[0]) == n + 1)
+    check("its archive/verdict/<pr> copy's cloud id still marks it cloud", got[0]["reviewer"] == "cloud")
+    # Decoys before the literal, each read by a looser extractor: another *_CLASSES list, the name in a
+    # comment and after a non-`const` word; inside it, a comment's apostrophe, a word opening with a
+    # digit, and words holding each digit.
+    decoy = ("Konst VERDICT_CLASSES = ['k1']\n// VERDICT_CLASSES = ['c1']\nconst ROOT_CLASSES = ['r1']\n"
+             "const VERDICT_CLASSES = [\n  // the wave's own words, never '9lives'\n  'r0', 'x5', 'b9', 'a-b',\n]\n")
+    check("verdict_classes reads only the VERDICT_CLASSES literal, and only its quoted words opening with a letter",
+          verdict_classes(decoy) == ("r0", "x5", "b9", "a-b"))
+    # Eight and six words each, given out of order: a set's iteration order matching sorted order by chance
+    # is then about 1 in 40320 and 1 in 720, where two words match it every other run.
+    letters = "abcdefghijklmn"
+    check("class sets are sorted", class_sets(tuple(reversed(letters)), frozenset("hgfedcbazy"))
+          == {"taught real": list("abcdefgh"), "taught bookkeeping": list("ijklmn"), "untaught real": ["y", "z"]})
+    check("route crosses with another stratum (kind+route)",
+          stratum("kind+route", dict(kind="blocked", cls="conflict", reviewer="local"), {}, ("conflict",))
+          == "local+conflict")
+    # A bus-confirmed copy or a verdict commit under any other archive family is not the bus.
+    s41 = verdict("refs/tags/archive/handoff/41", f"verdict: #41 Fix review: merge {H}", "41" * 16, "2026-08-01T00:00:00Z")
+    s43 = verdict("refs/remotes/origin/review/43", f"verdict: #43 Fix review: merge {H}", "43" * 16, "2026-08-01T00:00:00Z")
+    g("update-ref", "refs/tags/archive/other/43",
+      g("commit-tree", g("write-tree"), "-m", f"verdict: #43\n\nbus-confirmed: cloud-43 (review/43 at {s43})"))
+    got = {v["pr"]: v for v in load(R, "origin")[0]}
+    check("a verdict commit under another archive family (archive/handoff/) is not read", 41 not in got and s41)
+    check("a bus-confirmed copy under another archive family (archive/other/) marks nothing cloud",
+          got[43]["reviewer"] == "local")
+    try:
+        verdict_classes("const VERDICT_RE = 1\n")
+        check("a wave script without VERDICT_CLASSES refuses", False)
+    except SystemExit as e:
+        check("a wave script without VERDICT_CLASSES refuses", "no VERDICT_CLASSES" in str(e))
+    live = verdict_classes((ROOT / WAVE_SCRIPT).read_text())
+    sets = class_sets(live, REAL_CATCH)
+    check("the live vocabulary is read: harness and conflict are taught, defect is not",
+          {"harness", "conflict"} <= set(live) and "defect" not in live)
+    check("class sets: taught real and untaught real are REAL_CATCH; taught bookkeeping shares no word with it",
+          set(sets["taught real"]) | set(sets["untaught real"]) == REAL_CATCH
+          and not set(sets["taught bookkeeping"]) & REAL_CATCH and "conflict" in sets["taught bookkeeping"])
+    route = lambda kind, cls: stratum("route", dict(kind=kind, cls=cls), {}, live)
+    check("route: a taught word is itself, an untaught one other, a merge (merge)",
+          (route("blocked", "conflict"), route("blocked", "defect"), route("merge", "harness")) == ("conflict", "other", "(merge)"))
 
 
 def _self_test_seams(R: Path, g, mk, verdict, lines, m1: str, RP: str, r2: str, check) -> None:
@@ -708,6 +798,11 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
         f"facts as of 2026-10-06T00:00Z: tree {tip[:12]} roster {roster[:12]}\n"
         "verdicts on the bus: 18; outside the grammar: 1\n"
         "  outside: verdict: #4 Fix review: PASS\tmerge aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        "taught real: harness\n"
+        "taught bookkeeping: carry-missing\n"
+        "untaught real: architecture-unsound, class-open, defect, figures-false, metric-gamed, mutant-survives, mutation, "
+        "mutation-survivor, mutation-untriaged, mutation-vacuous, policy-regression, product-tradeoff-regression, "
+        "test-vacuous, vacuous-check, vacuous-test\n"
         "## all\n"
         "  all                      E      PRs 3 verdicts 7 real 2 (0.67/PR) book 2 (0.67/PR) incidence 2/3 (0.67) first-pass 0/3\n"
         "  all                      L      PRs 10 verdicts 11 real 3 (0.30/PR) book 0 (0.00/PR) incidence 3/10 (0.30) first-pass 7/10\n"
@@ -727,6 +822,17 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
         "  harness                  L      PRs 3 verdicts 3 real 2 (0.67/PR) book 0 (0.00/PR) incidence 2/3 (0.67) first-pass 1/3\n"
         "  mutation-survivor        E      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
         "  mutation-survivor        L      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
+        # route: PR 11's merge verdict naming a class is a merge (the class stratum keys it harness), the
+        # classless block and the untaught mutation-survivor route to other, which keeps its realness.
+        "## route\n"
+        "  (merge)                  E      PRs 2 verdicts 3 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/2 (0.00) first-pass 0/0\n"
+        "  (merge)                  L      PRs 8 verdicts 8 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/8 (0.00) first-pass 7/7\n"
+        "  carry-missing            E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1\n"
+        "  carry-missing            L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
+        "  harness                  E      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
+        "  harness                  L      PRs 2 verdicts 2 real 2 (1.00/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2\n"
+        "  other                    E      PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0\n"
+        "  other                    L      PRs 1 verdicts 1 real 1 (1.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1\n"
         "## prior-merge\n"
         "  after-a-merge-verdict    E      PRs 2 verdicts 2 real 0 (0.00/PR) book 1 (0.50/PR) incidence 0/2 (0.00) first-pass 0/0\n"
         "  after-a-merge-verdict    L      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0\n"
@@ -786,6 +892,8 @@ def _self_test_main(R: Path, d: str, tip: str, roster: str, path: str, check) ->
     check("main --real-extra names the words, sorted, and moves PR 2's block to real (E: real 3, book 1)",
           text.startswith("REAL = the study's list + beta, carry-missing, delta, kappa, omega, zeta\n") and " E      PRs 3 verdicts 7 real 3 " in text
           and "book 1 (0.33/PR)" in text)
+    check("main: a class set left empty prints '-' (carry-missing judged real leaves no taught bookkeeping word)",
+          "\ntaught bookkeeping: -\n" in text)
     rc, text = run(*wins, "--by", "size", "--as-of", "2026-10-04T00:00Z")
     check("main --as-of takes the facts at T, not at the latest until; a PR first reviewed after T is its own row",
           text.startswith("facts as of 2026-10-04T00:00Z: ")
