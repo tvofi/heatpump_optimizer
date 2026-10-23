@@ -24,6 +24,9 @@ Plants, one per refusal of the two ops and per round-trip property:
   P1-P3  the argparse refusals: index and --match together, neither, and
          --match on another op.
   D1     the dump's indent, the byte round-trip itself.
+  T1-T5  the triage gate (decision 0015): the uncited proposal arm, a
+         non-ACCEPT verdict passing, a missing batch read as an empty one, the gate's call
+         in write_roster, and added_texts blind to appended carries.
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -76,6 +79,14 @@ PLANTS = {
     "P3": ('p.error("--match is a drop-carry flag")', "pass"),
     "D1": ("return json.dumps(roster, indent=1)",
            "return json.dumps(roster, indent=2)"),
+    "T1": ("        if PROPOSAL_RE.search(text) and not cites:\n",
+           "        if False:\n"),
+    "T2": ('            if verdict != "ACCEPT":\n',
+           "            if verdict is None:\n"),
+    "T3": ("        return r.stdout if r.returncode == 0 else None\n",
+           '        return r.stdout if r.returncode == 0 else ""\n'),
+    "T4": ("        if why:\n            raise Refuse(f\"triage gate: {why}; nothing written\")\n", ""),
+    "T5": ("        out += [c for c in carry if c not in held]\n", ""),
 }
 
 
