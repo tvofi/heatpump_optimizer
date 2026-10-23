@@ -2,5 +2,5 @@
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._expire_away_override RETURN_DEL 67e36ad4",
   "killed_by": "tests/features.py",
   "old": "        return active, ret",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against f38f91852ea0251a9043378f76f907794874b2be: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c6ef0668463b5e9291d0bf41061b06940ecb11ef: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 }
