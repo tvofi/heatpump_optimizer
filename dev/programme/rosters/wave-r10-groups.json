@@ -8029,8 +8029,9 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "in-progress",
+    "branch": null,
+    "pr": 2671
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern A, the obligations ledger (note section 3 row A). Design: one revision pass, re-measured at current main against 09174d94e (carry 20 premise: the approved design stands); no full new design. The design was read 1503 commits before the note's base, so re-measure its premises (cloud_relay.sh, orchestrator_tick.py, tick_loop.sh, state_docs.py, roster_lib.py, roster_sync.py, plan_page.py all moved) before building. Scope: (1) An obligations ledger replacing the relay's log scan and the tick's OWED scan: keyed by kind, subject and sha; a disposal written by the producer; a moved subject closes the old entry and opens one; an unclassifiable ref is a refusal; an obligation with no ledger kind is a refusal; a missing store is a first run and an unreadable one prints UNREADABLE, never a clean board. Its import must classify the three prefixes the relay actually writes (probe, handoff, handoff-body) and take the last disposition per ref. Corrections from the round-3 review that bind the implementation: the folded approve-held-runs and dispatch reasons have no backing state in the relay's failure file today, so either that file's format gains a reason field or they become their own derived kinds; an instrument is wired in the same pull request that lands it, and the reason is that pr-contract makes the body answer a red on the wiring check (not that the check is required); and the two remaining figure corrections in the review's round-3 findings are carried into whatever the body states. Ledger extension owed (round-10 orphaned-handoff RCA, accepted 2026-10-20; the record lands under dev/audit/rca/): the obligations ledger's handoff-no-pr kind carries an age -- at 24 h a stranded handoff becomes a DISPATCH line naming its group and opener, oldest first; at 48 h it raises an owner flag. It records an opener attempt (the 11:50Z openers ended Terminated: 15 with no retry), closes a ref whose change main already carries by content rather than only by ancestry, and adds the design-to-build dispatch as its own kind: an approved design ref owes a build dispatch, not a pull request. The aging thresholds are policy and belong to tvofi: build the mechanics behind a switch and leave the defaults for approval. An unreadable store prints UNREADABLE, never a clean board and never a silent finding. Landing order: A, then R10-ORCH-DISPATCH-REG, then R10-ORCH-BEATD, then R10-ORCH-PLANPAGE. Carry 13 is copied here whole; parts (2) and (4b) are this group's, the rest belong to its siblings. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
@@ -8694,10 +8695,11 @@
    "carry": [],
    "brief": "Barrier for audit class I2 (RCA R10-RCA-INERT-CLOSURE-RECORDING, root-cause seat beside #2662, 2026-10-23). A closures recording carries an inert_reads split decided by the recording tree's INERT list; a later INERT_EXCEPT edit voids it, but merge and check trusted the split, so check passed vacuously and #2662's probe d5b053e went UNDER-SCOPED (32 min red FULL closures). Countermeasure built by the RCA seat: closure.py _load_recording re-splits each recording under the loading tree's INERT list for merge and check; ci_predict.py left_inert predicts UNDER-SCOPED statically when a diff edits tests/closure.py and a committed inert_reads file has left INERT while its script's closure omits it (prepr 6d, body_push). The countermeasure is built at handoff commit e9d169b7 (handoff/r10-rca-inert-closure-recording).",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-inert-closure-recording",
     "next_step": "open PR from the RCA seat's handoff e9d169b7, then review",
-    "pr": 2666
+    "pr": 2666,
+    "commit": "c5e1be1967de4b1d29b203aaf73162046dc85bd1"
    }
   }
  ]
