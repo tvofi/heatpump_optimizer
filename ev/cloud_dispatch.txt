@@ -1,0 +1,5 @@
+  ok   an explicit roster ref is read, not the round's roster branch
+  ok   the --group CLI passes --head and --roster-ref through
+  ok   the --group CLI passes --role, --group, --model, --pr and --nonce through
+  ok   a re-dispatch from a second clone fast-forwards the existing ref
+cloud_dispatch self-test: 68 checks, 0 failed

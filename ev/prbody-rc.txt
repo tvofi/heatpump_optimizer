@@ -1,0 +1,2 @@
+attribution rc=1
+good-claude-ai rc=0
