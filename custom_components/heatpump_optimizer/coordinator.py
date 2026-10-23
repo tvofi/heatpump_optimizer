@@ -3455,7 +3455,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         row: dict[str, Any] = {
             MODE_COMFORT: {"mode": "comfort", "power_normalized": 0.7, "heat_pump_on": True,
                            "setpoint": ctx._opt_config.target_temp,
-                           "displace_value": min(4.0, self._ecl110_displace_max),
+                           "displace_value": (4.0),
                            "space_reason": REASON_COMFORT_MODE, "dhw_reason": REASON_COMFORT_MODE},
             MODE_BOOST: {"mode": "boost", "power_normalized": 1.0, "heat_pump_on": True,
                          "setpoint": ctx._opt_config.max_temp, "displace_value": self._ecl110_displace_max,
