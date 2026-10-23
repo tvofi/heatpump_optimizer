@@ -1284,6 +1284,7 @@
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
+   ".github/workflows/gate-sweep.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
    ".github/workflows/kernel-points.yml",
@@ -1403,6 +1404,8 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "dev/audit/README.md",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round4/D11/dora_keys.py",
    "dev/audit/rounds/round4/D12/cells.py",
    "dev/audit/rounds/round4/D12/d12lib.py",
@@ -1608,6 +1611,7 @@
    "tools/policy/vendor/markdown-it.min.js",
    "tools/pr/README.md",
    "tools/pr/cancel_superseded.py",
+   "tools/pr/codeql_scope.py",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
@@ -2385,6 +2389,7 @@
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/ci.yml",
    ".github/workflows/codeql.yml",
+   ".github/workflows/gate-sweep.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
    ".github/workflows/kernel-points.yml",
@@ -3467,6 +3472,8 @@
   ],
   "tests/entities.py": [
    "LICENSE",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
@@ -3488,7 +3495,8 @@
    "tools/audit/seat/sweep_driver.py",
    "tools/audit/seat/sweep_driver_selftest.py",
    "tools/audit/seat/tmp_paths.py",
-   "tools/policy/figure_lint.mjs"
+   "tools/policy/figure_lint.mjs",
+   "tools/pr/codeql_scope.py"
   ],
   "tests/harness_headers.py": [
    "LICENSE",
@@ -3532,6 +3540,19 @@
    "dev/audit/harnesses/r10_ci_layout_p1/critpath.py",
    "dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh",
    "dev/audit/harnesses/r10_ci_layout_p1/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_p2_u1u2u7/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u0c/mutants.py",
+   "dev/audit/harnesses/r10_ci_layout_u0c/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u10/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u11/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u3/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u4/mutants.py",
+   "dev/audit/harnesses/r10_ci_layout_u4/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/script_runs.py",
+   "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+   "dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh",
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
@@ -4335,7 +4356,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 84.3
+   "seconds": 33.0
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -4347,11 +4368,11 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 752.2
+   "seconds": 214.0
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 141.4
+   "seconds": 68.5
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -4375,7 +4396,7 @@
   },
   "tests/dst_checks.py": {
    "rc": 0,
-   "seconds": 0.8
+   "seconds": 62.0
   },
   "tests/edge.py": {
    "rc": 0,
@@ -4435,7 +4456,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 219.6
+   "seconds": 93.0
   },
   "tests/plan_view.py": {
    "rc": 0,
