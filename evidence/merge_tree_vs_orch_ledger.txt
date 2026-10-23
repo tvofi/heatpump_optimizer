@@ -1,6 +1,0 @@
-tools/audit/seat/cloud_relay.sh
-
-Auto-merging tools/audit/seat/INSTRUMENTS.md
-Auto-merging tools/audit/seat/cloud_relay.sh
-CONFLICT (content): Merge conflict in tools/audit/seat/cloud_relay.sh
-rc=1

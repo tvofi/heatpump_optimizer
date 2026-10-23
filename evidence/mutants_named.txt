@@ -1,13 +1,13 @@
-== cloud_relay-12 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 6 failed
-== cloud_relay-13 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 3 failed
-== cloud_relay-14 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 2 failed
-== cloud_relay-15 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 2 failed
-== cloud_relay-16 cloud_relay.sh: KILLED rc=1 | cat: /tmp/cloud_relay_st.XrGhyV/confirmed: No such file or directory
-== cloud_relay-17 cloud_relay.sh: KILLED rc=1 | cat: /tmp/cloud_relay_st.TI36vJ/confirmed: No such file or directory
-== cloud_relay-18 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 2 failed
-== cloud_relay-19 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 4 failed
-== cloud_relay-20 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 1 failed
-== cloud_relay-21 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 230 checks, 1 failed
+== cloud_relay-12 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 72113 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-13 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 85956 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-14 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 96337 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-15 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797:  6945 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-16 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 16700 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-17 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 26752 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-18 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 36990 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-19 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 44555 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-20 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 53468 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+== cloud_relay-21 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 797: 65055 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
 == tick_loop-3 tick_loop.sh: KILLED rc=1 | tick_loop self-test: 12 checks, 1 failed
 RESULT survivors=0
 rc=0

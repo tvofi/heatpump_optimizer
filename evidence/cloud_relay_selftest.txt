@@ -225,8 +225,11 @@
   ok   a confirm failing every pass is tried HPO_RELAY_CONFIRM_TRIES (3) times, no more
   ok   then stays owed once on the level with its last reason
   ok   a review posted by hand after that leaves the level
+tools/audit/seat/cloud_relay.sh: line 797: 44652 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)
+tools/audit/seat/cloud_relay.sh: line 797: 45077 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
+tools/audit/seat/cloud_relay.sh: line 797: 45707 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
 cloud_relay self-test: 230 checks, 0 failed
 rc=0

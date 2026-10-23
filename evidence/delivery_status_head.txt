@@ -1,0 +1,18 @@
+DELIVERY STATUS OVERDUE — 40 rowed, 12 pending, 2 overdue (overdue at 12 commits)
+  pending  #2666 c5e1be1 0 commit(s) since — R10-FLY-INERT-LOAD-TIME: closures re-split a recording's
+  pending  #2667 fd7e289 1 commit(s) since — Merge remote-tracking branch 'origin/handoff/audit-r10-r
+  pending  #2620 27b59c9 2 commit(s) since — fix(narrative): price the plan narrative in the feed's c
+  pending  #2663 12032c4 3 commit(s) since — Merge remote-tracking branch 'origin/handoff/audit-r10-r
+  pending  #2632 7108101 4 commit(s) since — Move the away recovery estimate and interval replay off 
+  pending  #2661 4c31eb1 5 commit(s) since — Merge remote-tracking branch 'origin/handoff/audit-r10-r
+  pending  #2659 975fbb8 6 commit(s) since — fix: a closure recording does not grade the harness CPU 
+  pending  #2645 a6620c3 7 commit(s) since — R10-FLOW-TOOLKIT-MEASURE: the flow study's measuring too
+  pending  #2647 14405df 8 commit(s) since — R10-SCORES: one rule for every score, the house graded a
+  pending  #2655 bfd61aa 9 commit(s) since — roster: batch 23 (twenty-third landing)
+  pending  #2652 c6ef066 10 commit(s) since — fix: stop the delivery-row and stamp commits writing a C
+  pending  #2651 8a6e582 11 commit(s) since — roster: batch 21 (twenty-first landing)
+  overdue  #2650 8cea0d2 12 commit(s) since — record: delivery rows for #2636, #2648 (autofix)
+  overdue  #2639 57b7b49 13 commit(s) since — R10-FLY-GH-READ-RETRY PR 2: merge_train, record_row and 
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+rc=1
