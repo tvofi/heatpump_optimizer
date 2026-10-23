@@ -1,0 +1,5 @@
+ghapi self-test: 19 checks, 0 failed
+rc=0
+  ok   a listed governance file the tree lacks adds no jobs and does not raise
+  ok   and a present one still adds its jobs (null control)
+agreement_py self-test: 9 checks, 0 failed

@@ -1,0 +1,24 @@
+lane count: nproc=4 as the environment answers it, nproc=4 with OMP_NUM_THREADS and OMP_THREAD_LIMIT unset (OMP_NUM_THREADS=''); lanes = min(that, 3)
+
+########## environment ##########
+  python   3.14.6 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.80GHz
+  blas     SkylakeX
+  stack    numpy 2.4.6, scipy 1.17.1
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/ghapi.py changes the gate itself, so every closure is suspect
+
+########## 3 lanes in parallel: units golden e2e ##########
+  [09:35:34] start  .venv/bin/python tests/validate.py
+  [09:35:34] start  .venv/bin/python tests/env_drift.py --claims-only c6ef0668463b5e9291d0bf41061b06940ecb11ef
+  [09:35:34] start  .venv/bin/python tests/env_drift.py --all c6ef0668463b5e9291d0bf41061b06940ecb11ef
+  [09:35:35] ok     .venv/bin/python tests/env_drift.py --claims-only c6ef0668463b5e9291d0bf41061b06940ecb11ef (1s)
+  [09:35:35] start  .venv/bin/python tests/closure.py selftest
+  [09:35:39] ok     .venv/bin/python tests/closure.py selftest (4s)
+  [09:35:39] start  .venv/bin/python tests/features.py
+  [09:36:14] ok     .venv/bin/python tests/validate.py (40s)
+  [09:36:14] start  .venv/bin/python tests/edge.py
+  [09:36:55] ok     .venv/bin/python tests/edge.py (41s)
+  [09:36:55] start  .venv/bin/python tests/backtest.py
+local gate stopped by the reviewer after the MODE line (fix-review.md 11: cite CI's heavy runs, never re-run the gate)

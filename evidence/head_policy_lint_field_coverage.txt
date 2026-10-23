@@ -1,0 +1,3 @@
+TOTAL: 0 error(s) across 50 policy file(s)
+RESULT read=69 ignored=28 declared_none=34 blind=0 dead=0 refused=0 runs=159 seconds=166.7
+FIELD COVERAGE ok

@@ -1,0 +1,5 @@
+  UNREGISTERED  "[0-9a-f]{40}" in .claude/workflows/policy_lint.mjs, tools/audit/seat/ci_probe.py
+  UNREGISTERED  "DERIVED=\\$\\(.*?\\)" in tests/entities.py, tools/audit/harnesses/r10_ci_layout_u5/script_runs.py
+  UNREGISTERED  "fast\\)\\s+(SCRIPTS=.*?) ;;" in tests/entities.py, tools/audit/harnesses/r10_ci_layout_u5/script_runs.py
+RESULT divergent=0 unregistered=3 dead=0 refused=0 seconds=0.3
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

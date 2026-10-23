@@ -1,0 +1,5 @@
+  pair dead-member-liveness: 2 readers, 148 items, 0 divergent
+  DEAD          SHARED_GRAMMARS "[0-9a-f]{40}" no longer spans two files
+  DEAD          SHARED_GRAMMARS "DERIVED=\\$\\(.*?\\)" no longer spans two files
+  DEAD          SHARED_GRAMMARS "fast\\)\\s+(SCRIPTS=.*?) ;;" no longer spans two files
+RESULT divergent=0 unregistered=0 dead=3 refused=0 seconds=0.4
