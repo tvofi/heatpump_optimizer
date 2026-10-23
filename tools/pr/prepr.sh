@@ -681,6 +681,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
     args+=(--existing-file "$ex")
   fi
+  # The base too, so a raise whose body has no `## Raise justification` is
+  # refused here (policy_lint's raise arm reads the diff with the gate's own
+  # raises_between), and at body_push.sh's --body-check, not first at the train.
+  [ -n "${BASE:-}" ] && args+=(--base "$BASE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
   rc=$?
   rm -f "$ex"
@@ -1783,6 +1787,8 @@ EOS
   st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step hands body_line the unpinned-site file, so mutation reaches the red check before the push"
+  case "$(declare -f body_check)" in *'args+=(--base "$BASE")'*) true ;; *) false ;; esac
+  st $? 0 "body_check hands policy_lint the base, so a raise with no \`## Raise justification\` is refused here and at body_push, not first at the train"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must

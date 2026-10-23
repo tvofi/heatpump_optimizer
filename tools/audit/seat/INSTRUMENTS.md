@@ -41,6 +41,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `carry_audit.py check`) only when the head
   is the live head plus one commit adding exactly that PR's own open row and
   the body is the live one under one new `## Head` note; else prepr runs.
+  Every commit the PR adds over a freshly fetched `origin/main`, wherever it
+  was first published (a `ci-probe/*` or `handoff/*` ref included), is
+  judged by `ref_privacy.py guard --over` before anything is minted.
 - `head_note.py` (tools/pr/) — prefixes a note under a body's `## Head`
   heading, found as `checkPrBody`'s `sections()` reads it (outside a fence,
   `##`, whitespace, `Head`), never the first substring `## Head`.
@@ -124,7 +127,9 @@ sweep's standing-seat liveness step keep them alive.
   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
   before anything is pushed, with each arm's repair printed; a fetch that
   half-failed leaves a parentless commit the push refuses as a
-  non-fast-forward — a rewrite is never forced through.
+  non-fast-forward — a rewrite is never forced through; the body commit it
+  wrote is read back through `ref_privacy.py guard --commits`, message and
+  identity, before the push.
 - `body_patch.sh` — repairs an open pull request's BODY without moving its
   head: `body_patch.sh [--dry-run] [--repo O/R] <pr> <expected-head-sha>
   <body.md>`. Reads the live head, runs the body contract offline at it
@@ -261,22 +266,48 @@ sweep's standing-seat liveness step keep them alive.
   failed listing leaves the level as it was. It relays each `rev-*` ref+sha
   once, taking the head and full nonce from the dispatch record (`$HPO_BUS_STATE`
   or `~/.zcode/bus`, `pr head thread nonce`). A ref with no record is logged and
-  left for a later pass; a refused ref+sha goes to `<ledger>.refused` and is not
-  retried until it is pushed again, so one refusal does not repeat every
-  interval. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
+  left for a later pass; a refused ref+sha (relay rc 2, a refusal of the ref
+  itself) goes to `<ledger>.refused` and is not retried until it is pushed
+  again, so one refusal does not repeat every interval. Any other failure (a
+  push or a fetch; an HTTP 400 push once left a verdict refused in silence for
+  3 h) is retried on later passes, `HPO_RELAY_TRIES` times in all (default 3),
+  then refused. A refusal prints `REFUSED <ref> <sha> <reason>` (the relay's
+  last stderr line) and is `OWED <utc> probe-refused <ref> <sha> <reason>` in
+  `<log>.level` until disposed; one refused before reasons were kept stays
+  silent. Run it detached (`daemonize.py`); it uses ls-remote, not the REST
   quota. `--once` is one pass.
   `--confirm` (on `--watch` and on a single relay) keeps going past
   `push-verdict`: after one that passed it runs `bus.sh confirm <pr>
-  <review-sha>` (the sha `push-verdict` printed) and appends `POSTED <utc> <pr>
-  <sha>` or `OWED <utc> <pr> <sha|-> <why>` to `--log FILE` (default
+  <review-sha>` (review/<pr>'s tip as `git ls-remote` answers it, when that tip
+  carries this verdict's tree: confirm takes only a tip) and appends `POSTED
+  <utc> <pr> <sha>` or `OWED <utc> <pr> <sha|-> <why>`, `<why>` carrying
+  confirm's last output line, to `--log FILE` (default
   `cloud-relay.log` under the state directory), the file the orchestrator
   reads; two verdicts once sat relayed and unposted for 20 minutes. Confirm
   never runs after a refused relay or a failed `push-verdict`, and those write
   no line (the refusal is printed; `--watch` also keeps it in `.refused`).
+  A `push-verdict` refused non-fast-forward (review/<pr> moved under it) is
+  run again, three times at most: `bus.sh` re-reads the fresh tip and appends
+  the same verdict there, never forcing; a fresh tip already carrying this
+  verdict's tree is not re-applied. Both are printed, and so is
+  `review/<pr> remote tip <sha>` after the push.
   `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
-  (default every 120 s). A pass runs the handoff arm, then the relay arm above.
+  (default every 120 s). A pass runs the handoff arm, then the relay arm above,
+  then with `--confirm` the confirm arm. Confirm arm: the ledger is written
+  before confirm runs, so a confirm that failed, or a relay by a stale script
+  or a call without `--confirm`, was never confirmed later (#2659, #2632). For
+  every `review/<pr>` tip the relay pushed (its `bus-nonce:` matches a
+  ledgered `probe/rev-<pr>-<nonce8>`) whose tree is not in `bus.sh`'s posted
+  record (`posted-signed`), it runs `bus.sh confirm <pr> <tip>`: `POSTED` on
+  success; on failure `OWED <utc> confirm-owed refs/heads/review/<pr> <tip>
+  tries=<n>/<max>: <last output line>` in `<log>.level`, retried next pass up
+  to `HPO_RELAY_CONFIRM_TRIES` (default 3), then owed untried until the posted
+  record shows it or `dispose` takes it (`dispose` takes `review/` refs). A tip
+  with no dispatch for its PR, head and nonce is owed `undispatched` and never
+  confirmed; a tip the relay did not push waits for the orchestrator's own
+  read. It makes no `gh` call (`bus.sh confirm` posts).
   Handoff arm: for each OPEN pull request, topic = `headRefName` less `fix/` and
   `-pr`; if `handoff-body/<topic>` and `handoff/<topic>` exist and the handoff is
   not an ancestor of the PR head, it runs `update_pr.sh <branch> <code-sha>
@@ -365,7 +396,9 @@ sweep's standing-seat liveness step keep them alive.
   `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
   `--self-test` runs `delivery_row.sh`'s and its own: the three push calls
   (open, update, row) over a scratch origin with a stub `app_push.sh`, so a
-  push line replaced by `true` reddens it (#2444).
+  push line replaced by `true` reddens it (#2444). Every commit the code head
+  adds over `origin/main` passes `ref_privacy.py guard --over` before any
+  worktree or push, so a trailer the cloud harness pushed is refused there.
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -590,7 +623,9 @@ sweep's standing-seat liveness step keep them alive.
   `review --approve --sha` and `dismiss-review`. When: the P2 probe fan-out
   (`plans/ci-layout`). Refusals: a ref outside `ci-probe/`, a missing or other
   `--repo`, `/rate_limit` below 20 % remaining (or unreadable), a token that is
-  not `tvofi` on a review, a host path in a ref, message or log line. One log
+  not `tvofi` on a review, a host path in a ref, message or log line, and a
+  commit the push publishes first whose message carries a tool's attribution
+  or whose identity names a machine (`ref_privacy.published`). One log
   line per write (`--log`); `--dry-run` writes nothing. Nothing polls (the 60 s
   floor holds vacuously). `--self-test` runs over fakes and a throwaway bare
   remote, including the namespace control: a planted `ci-probe/x` leaves
@@ -653,9 +688,11 @@ sweep's standing-seat liveness step keep them alive.
 - `ref_privacy.py` — the one owner of what a push may say about the host
   (#2310): `slug <path>` names a local path for a ref (`<root>-<rest>` under
   a named root, else `ext-<leaf>-<hash>`); `guard --ref R [--message M]
-  [--commits REV -C DIR]` refuses a ref name or commit message carrying the
+  [--commits REV [--over BASE] -C DIR]` refuses a ref name or commit message carrying the
   home directory, an account name, the uid, a session temp root or a host
-  path (exit 3, the class named, the text not echoed); `--check` refuses a
+  path, or a message carrying a tool's attribution (exit 3, the class named,
+  the text not echoed); `--commits` reads what the push publishes first,
+  `--over BASE` every commit REV adds over BASE; `--check` refuses a
   tracked file with a push site its `PUSHERS` registry does not name, and a
   `guarded` entry that calls no guard. When: before every push an instrument
   composes; a new pusher registers in `PUSHERS` in the same diff. Refusal: a
@@ -756,7 +793,8 @@ sweep's standing-seat liveness step keep them alive.
   step in the same pull request. Refusal: each unwired file by path; a
   mention in a comment, a step name or a `--check` call does not wire it.
 - `tick_loop.sh` — the tick's driver loop (tvofi approved, 2026-10-18): each
-  pass runs `cloud_relay.sh pass` when the tree carries it (#2419; skipped
+  pass runs `cloud_relay.sh pass --confirm` (a relayed verdict posts with no
+  hand step) when the tree carries it (#2419; skipped
   and said so before), then `orchestrator_tick.py` with the given args,
   writing the board whole to `--out` (default `$HPO_STATE_DIR/tick.txt`) and
   one `TICK-PASS <utc> relay=<ok|rc=N|running|absent> tick=<rc>` line to
