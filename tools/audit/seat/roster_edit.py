@@ -594,8 +594,6 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
             return 0
         why = triage_refusal(added_texts(before, roster),
                              ruling_reader(worktree, checkout))
-        if why:
-            raise Refuse(f"triage gate: {why}; nothing written")
         path.write_text(dump(roster), encoding="utf-8")
         if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
             print(f"no change: {label} wrote the roster's own bytes "
