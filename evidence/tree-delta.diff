@@ -1,0 +1,28 @@
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 145670159..6efc10669 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -337,7 +337,6 @@ sweep's standing-seat liveness step keep them alive.
+   non-Actions check prints NO-JOB, an unserved log prints NO-LOG and exits 1
+   with the count over readable logs beside the unread one; no error-marker
+   match falls back to the log's tail, never a silent zero.
+-<<<<<<< 05b9c1d5383cf9ca7e2cd5310914897960244301
+ - `flow_metrics.py` — a round's flow over one window, from git alone:
+   roster groups added and closed per hour (`--roster REF:PATH`, `--prefix`),
+   records' share of main's PR merges (`--record-prefix`), first-pass yield of
+@@ -346,7 +345,6 @@ sweep's standing-seat liveness step keep them alive.
+   a merge. When: a flow guardrail or a round's close reads throughput.
+   Refusal: a re-review whose heads git does not hold prints `unresolved`,
+   never counted; no round constant in code.
+-=======
+ - `gh_read.py` — the read rule every seat instrument's GitHub READS are
+   under, stated here once: `app_push.sh`'s read-back rule, 4 reads settling
+   5/15/45 s, retrying only a transport error, HTTP 5xx, 429 or a 403 whose
+@@ -361,7 +359,6 @@ sweep's standing-seat liveness step keep them alive.
+   failure (401, a permission 403, 404, 422, an unclassified one) after its one
+   call, a spent budget with its last error and the attempt count; a write is
+   never retried. Its `self_test()` runs inside `record_row.py`'s.
+->>>>>>> 57b7b4994
+ - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
+   `hpo-author` with body, title and its own delivery row (`delivery_row.sh`;
+   its update path adds a row a refused earlier push left out). When: only where
