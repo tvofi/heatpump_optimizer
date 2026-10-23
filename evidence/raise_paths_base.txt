@@ -1,0 +1,9 @@
+PATH prepr body=none rc=0 raise_errors=0
+PATH body_push body=none rc=0 raise_errors=0
+PATH body_patch body=none rc=0 raise_errors=0
+PATH pr-contract body=none rc=1 raise_errors=0
+PATH prepr body=section rc=0 raise_errors=0
+PATH body_push body=section rc=0 raise_errors=0
+PATH body_patch body=section rc=0 raise_errors=0
+PATH pr-contract body=section rc=1 raise_errors=0
+rc=0
