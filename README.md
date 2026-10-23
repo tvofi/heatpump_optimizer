@@ -533,7 +533,7 @@ every sensor is created on every install regardless of which group it is in.
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
 | Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
-| Plan Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence, and says so (`waiting_for`) in attributes |
+| Plan Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unknown until the machine or operation score has evidence, and says why in attributes (`waiting_for`, and `reasons` for each part with no grade) |
 | Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | Optimization Status | — | Solver result for the current plan | Diagnostic |
 

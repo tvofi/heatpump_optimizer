@@ -233,6 +233,7 @@
   "coordinator._warm_seeded": "core",
   "coordinator._watch_lift": "learning",
   "coordinator._with_sensor_advisor": "core",
+  "coordinator.model_restart_advice": "views",
   "describe_setup": "core",
   "device_info": "core",
   "dhw_temperature": "dhw",
