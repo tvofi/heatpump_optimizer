@@ -79,7 +79,7 @@ import {
   ROSTER_FILE_RE,
   CARRY_FILE_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, cutoverDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -1094,10 +1094,11 @@ function requiredContextsOverTree() {
   }
   const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
   return [
-    ...requiredContextsDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
+    ...cutoverDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
     ...sites.flatMap((rel) => checkRequiredContexts(rel, read(rel), live)),
   ]
 }
+
 
 function checkOrphanCaps(budget) {
   const b = budget !== undefined ? budget : policyBudgets()

@@ -495,6 +495,27 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
   return out
 }
 
+// THE CUT-OVER WINDOW (R10-CI-LAYOUT P2b). Between the tree that records the
+// post-PUT set and tools/ci/ruleset_cutover.py --apply, the live ruleset still
+// holds the old set. `pre_cutover` records that set WHOLE (contexts, rulesets,
+// ruleset_objects), and a live set equal to it passes with a line that says so;
+// a live set that is neither recorded shape reports its drift against the
+// post-PUT record, as before. The arm is deleted in the beat after the cut-over,
+// and while it remains a post-PUT match says that it is stale.
+export function cutoverDrift(fixtureRel, fixture, live, say = console.log) {
+  const drift = requiredContextsDrift(fixtureRel, fixture, live)
+  const pre = fixture.pre_cutover
+  if (!pre) return drift
+  if (!drift.length) {
+    say('  note     required-contexts     the live set is the recorded post-PUT shape; `pre_cutover` is stale -- delete it')
+    return drift
+  }
+  const asPre = { ...fixture, contexts: pre.contexts, rulesets: pre.rulesets, ruleset_objects: pre.ruleset_objects }
+  if (requiredContextsDrift(fixtureRel, asPre, live).length) return drift
+  say('  note     required-contexts     the live set is the recorded PRE-CUT-OVER shape (`pre_cutover`), accepted whole until ruleset_cutover.py --apply')
+  return []
+}
+
 export function checkCounts(rel, text, derived) {
   const out = []
   const lines = text.split('\n')
