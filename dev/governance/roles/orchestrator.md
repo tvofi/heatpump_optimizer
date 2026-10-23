@@ -60,6 +60,15 @@ reviewer and you cannot be it, so every task you take yourself removes a check.
 
 The test: *could a seat have done this with a brief?* If yes, write it.
 
+## 2b. From round 11, you execute the approved plan
+
+P3 is the architect's plan (`architect-planner.md`), reviewed
+(`plan-review.md`) and approved by the owner (decision 0015). Your P4 executes
+it: groups, edges, hot-file order and designs as approved. Every deviation (a
+group added, split, dropped or re-chained, an edge or move changed) is
+recorded against the plan on its `plan/r<N>` branch with its reason; one the
+target or the critical chain would feel goes back to the owner first.
+
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
 `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
@@ -78,32 +87,9 @@ and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. Roster text applies too: a seat will
-paraphrase it into its own body.
-
-**Run `tools/pr/preflight.sh` over the merge body before you merge — as a
-filter, not as proof.** It checks **four** reference forms and names seven
-further shapes that still pass; a keyword and a number split across a newline
-are invisible to it.
-
-It reads the body on **stdin** and takes the issues you *intend* to close as
-**arguments**:
-
-```
-printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
-```
-
-It misleads three ways. **Empty stdin prints `clean` and exits 0 having read
-nothing** (a filename argument does this); **held-open stdin blocks silently**
-and reports 143 when killed; neither looks like a failure. The declared-argument
-escape is **per number, not per occurrence**: declare it once and every armed
-keyword bound to it passes, even in a body quoting the incident.
-
-**So the load-bearing check is after the merge, not before it.** Read which
-issues the merge actually closed. No pull-request-scoped field shows it
-beforehand, and on 2026-09-07 merge commits shut two issues that had to be
-reopened (#224, whose merge text denied it, and #195). A pre-merge scan that asks *which form was used* rather
-than *whether every keyword binds an intended number* reports clean through
-exactly that.
+paraphrase it into its own body. `preflight.sh` as a filter and the
+closed-issue read-back after the merge are `standing-merge.md`'s, and bind you
+whenever you merge.
 
 ## 5. Before dispatching a seat
 
@@ -111,6 +97,23 @@ exactly that.
   2026-10-20): `pr_cap.py dispatch-gate` counts roster `in-progress` groups and
   refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
   Opening or updating a pull request for an owed handoff is never refused by it.
+- **A ready critical-path group starts regardless of every cap** (tvofi,
+  2026-10-22, restated three times): a group in the current plan's
+  `critical_path` whose `after` groups are all done, and whose design verdict
+  is approved where it has one, is dispatched at the WIP cap, a drain-first
+  hold, a coordinator K/2 limit or the seat cap alike, with `pr_cap.py
+  dispatch-gate --over-cap "critical path: <group>"`. Critical-path work goes
+  first in every queue you control: reviewer dispatch, delivery-row and body
+  repairs, and the front of the merge-train queue (the gate lease takes its
+  priority from `gate_priority.py`).
+- **Four standing seats do the routine work, never you inline**:
+  `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
+  `standing-roster.md`. You send queue lines and act on their reports; the
+  sweep restarts any that is absent or stopped with work owed.
+- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
+  tooling or instrument proposal from the sweep, a seat's result or a verdict.
+  Where a mandate lets you act on a recommendation absent the owner, that means
+  sending it to triage; an ACCEPT reaches the roster citing its ruling.
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
@@ -141,28 +144,8 @@ exactly that.
 
 ## 5b. Before dispatching a seat to a lane, read the ref, not the record
 
-The roster's `resume.stage` and `resume.branch` are a seat's own claim, written
-at the moment it acted; `roster_edit.py set-stage` accepts any non-empty string
-and nothing verifies `branch` against the remote. Measured 2026-10-10: three of
-five orphaned lanes' `branch` values named refs the remote does not have, while
-the refs that do exist held 7-9 commits no pull request carried. Where the
-record carries `resume.commit`, `git merge-base --is-ancestor <commit> main` is
-one call and catches a lane called `done` at a commit main does not have.
-
-So before dispatching, ask the repository, not the record:
-
-    git ls-remote --heads origin "refs/heads/handoff/<topic>" \
-        "refs/heads/handoff-body/<topic>" "refs/heads/fix/<topic>" \
-        "refs/heads/fix/<topic>-pr"
-
-A `handoff-body/<topic>` ref with a `handoff/<topic>` ref and no pull request at
-either `fix/` name is a lane that **handed off and was never opened**: dispatch
-an opener (`tools/audit/seat/open_pr.sh`), never a fresh implementer. A pull
-request that exists but whose head is an ancestor of the ref is a different
-repair -- `tools/audit/seat/update_pr.sh` -- and dispatching an opener at it
-opens a second pull request for work one already carries; a ref and its pull
-request that have diverged needs your judgement, not a pattern's. `bus.sh
-orphans` answers it for every ref at once.
+`standing-dispatch.md` states it: a handoff with no pull request gets an
+opener, never a fresh implementer.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -238,12 +221,7 @@ additionally, because you write the rosters and you decide the merge order.
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
-`brief_lint.mjs` reads the roster and the carry files and never
-`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a
-load-bearing citation left only in markdown is unchecked, and putting one there
-is not carrying it. A symbol that does not exist yet has that rule's remedies.
-Read the **exit code and the error lines**: `FIXTURE ok: N error(s)` prints
-beside a clean exit by design, the shape that lets a real error be waved through.
+Through the roster seat, on `standing-roster.md`'s terms.
 
 ## 11. Before you merge
 

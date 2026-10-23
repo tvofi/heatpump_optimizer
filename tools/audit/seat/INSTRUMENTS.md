@@ -103,6 +103,13 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 
 ## tools/audit/seat/
 
+The four standing seats that drive these instruments for the orchestrator each
+have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
+`dev/governance/roles/standing-merge.md` (the train and direct merges),
+`dev/governance/roles/standing-dispatch.md` (dispatch, relay, verdicts) and
+`dev/governance/roles/standing-roster.md` (roster ops). `pulse.py` and the
+sweep's standing-seat liveness step keep them alive.
+
 - `features_block.py` — runs one block of `tests/features.py`, from the line
   holding a marker to the script's close, in the namespace features.py's
   header builds. When: a mutation proof or a body figure that needs only the
@@ -322,8 +329,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   under, stated here once: `app_push.sh`'s read-back rule, 4 reads settling
   5/15/45 s, retrying only a transport error, HTTP 5xx, 429 or a 403 whose
   status line names the secondary rate limit; a failure naming a longer wait
-  (Retry-After, a spent bucket's reset) is read no sooner, and one past 45 s
-  refuses at once naming it. When: a new GitHub read in a seat instrument —
+  (Retry-After, or a spent bucket's reset on a rate-limit response: a 429,
+  or a 403 naming a rate limit) is read no sooner, and one past 45 s refuses
+  at once naming it; any other status is judged by its code alone, whatever
+  bucket it carries. When: a new GitHub read in a seat instrument —
   `retry` with `gh_wait` (gh's output) or `urllib_wait` (urllib's), and
   `is_read` before retrying any `gh` call; `app_approve.sh`'s `gh_transient`
   is the bash twin its self-test compares row for row. Refusal: every other
@@ -592,7 +601,10 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   survey (R10-RCA-ORCH-CONTINUITY). Refusal: an input it could not read is
   `UNREADABLE`, exit 2, never ok; a stamp ahead of the clock is never aged.
   `--dump` keeps the snapshot a `STOPPED` line came from; `--snapshot`
-  re-judges it.
+  re-judges it. A `STOPPED` line names the standing seat its input waits on,
+  and `--seat-queue SEAT=FILE[:MIN]` judges a standing seat on its session
+  queue file (`<epoch> <text>` lines): STOPPED past the seat's cadence, ok
+  when empty, `UNREADABLE` when missing.
 - `queue_pre_flight.py` — runs a merge queue's admission reads offline, before
   the train launches: per entry PASS, PARK (the train's own Stop wording — a
   carry that fails, a missing or stale delivery row, a GITHUB_TOKEN bot tip, a
