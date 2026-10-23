@@ -195,14 +195,10 @@ def render(
     "kr" stand in the English table unnoticed, and a caller that cannot say
     which currency it means is a caller that should not be rendering money.
 
-    The coordinator resolves it per render (``resolve_currency`` over the
-    live instance config) rather than passing its own frozen
-    ``self.currency``. The two are the same decision — ``currency.py`` is
-    still the only place it is made — and they differ only in when it is
-    taken. ``self.currency`` is fixed at setup because it becomes
-    ``unit_of_measurement``, where a change would orphan the long-term
-    statistics already recorded under the old unit. A narrative line is
-    recorded nowhere, so it can simply follow the instance.
+    The coordinator passes its ``currency``: the price feed's declared code
+    where it has one, the instance's otherwise (#1657). The feed denominates
+    the figures, so a line naming the instance's label instead would price a
+    EUR plan in SEK beside sensors publishing EUR (D14-s3-01).
     """
     table = TEMPLATES.get(language) or TEMPLATES["en"]
     lines = []

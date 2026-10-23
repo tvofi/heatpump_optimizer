@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._resolve_away GUARD_OFF aa347208",
+  "killed_by": "tests/features.py",
+  "old": "        if self._away_state == written:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cf01e82eec281c0d4e4141beb8fd5a8834cf99de: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
