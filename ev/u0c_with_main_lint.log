@@ -1,0 +1,6 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 43 policy file(s)
+
+FIXTURE VACUOUS: .github/workflows/(2 files define pr-contract) is unreadable, so the approval gate's wiring is unpinned

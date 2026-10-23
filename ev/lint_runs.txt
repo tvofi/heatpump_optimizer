@@ -1,0 +1,9 @@
+u0c_with_main_lint: rc=1 FIXTURE_VACUOUS=1
+FIXTURE VACUOUS: .github/workflows/(2 files define pr-contract) is unreadable, so the approval gate's wiring is unpinned
+u0c_with_head_lint: rc=0 FIXTURE_VACUOUS=0
+u0c_with_own_lint: rc=1 FIXTURE_VACUOUS=1
+FIXTURE VACUOUS: .github/workflows/(2 files define pr-contract) is unreadable, so the approval gate's wiring is unpinned
+main_tree_with_head_lint: rc=0 FIXTURE_VACUOUS=0
+main_tree_with_main_lint: rc=0 FIXTURE_VACUOUS=0
+head_tree_with_head_lint: rc=0 FIXTURE_VACUOUS=0
+merged_tree(origin/main 4e38e7d7b + head, tree 2b19347aa) with head lint: rc=0 FIXTURE_VACUOUS=0
