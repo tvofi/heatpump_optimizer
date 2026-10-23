@@ -3,7 +3,8 @@
  "dropped": [],
  "gained": [],
  "changed": [
-  "|triggers"
+  "|triggers",
+  "record|"
  ],
  "after": {}
 }

@@ -1148,8 +1148,13 @@ jobs:
   # can clear would block every unrelated merge, the `nightly-status` precedent
   # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
   # merge.
+  #
+  # `github.ref == 'refs/heads/main'` (U4 resume): called from ci.yml, a dispatch
+  # at a PR branch (autofix, merge-main) carries `governance` in its workset and
+  # would run `issues: write` over the branch's code and walk the whole window
+  # on the token bucket. Push, schedule and a dispatch at main still reach it.
   record:
-    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # ONE RECORD RUN PER BURST (dev/audit/rca/install-ratelimit.md, M2). Every
