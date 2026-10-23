@@ -1,0 +1,12 @@
+SEAM C config_flow.py:553 _money ok
+SEAM C config_flow.py:3777 async_step_grid_fees ok
+SEAM C config_flow.py:3736 async_step_grid ok
+SEAM C config_flow.py:3795 async_step_grid_fees ok
+SEAM C config_flow.py:3737 async_step_grid ok
+SEAM C config_flow.py:3796 async_step_grid_fees ok
+SEAM C coordinator.py:2081 _audit_price_units ok
+SEAM C coordinator.py:2678 __init__ ok
+SEAM C coordinator.py:2094 _audit_price_units ok
+SEAM C coordinator.py:10379 _narrative_view FLAG
+SEAM T coordinator.py:10622 _command_frequency ok
+RESULT flagged=1 seams=11
