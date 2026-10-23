@@ -349,7 +349,7 @@ def self_test() -> int:
     for code, msg in ((404, "Not Found"), (401, "Bad credentials"),
                       (422, "Validation Failed"), (403, "Resource not accessible by integration"),
                       (403, "the limit on this repository's rate of forks"),
-                      (404, "API rate limit exceeded")):
+                      (404, "API rate limit exceeded"), (401, "API rate limit exceeded")):
         got, n, sleeps, _ = run([hterr(code, msg, **{"x-ratelimit-remaining": "0",
                                                      "x-ratelimit-reset": str(int(now) + 20)})],
                                 lambda f: urllib_wait(f, lambda: now))
