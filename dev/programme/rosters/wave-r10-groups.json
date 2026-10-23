@@ -8634,7 +8634,7 @@
    "brief": "From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after the guard a4b27986 reached main at 7deeef1b6 06:08Z) reach a PR head. (1) Cloud and handoff pushes run no message guard: the cloud harness's own git push of handoff/<topic> and handoff_push.sh call no ref_privacy/attribution check. The u4 session's base 4200ea4c4 lacked both the guard and the .claude/settings.json attribution off-switch. (2) A commit first published through a ci-probe/* ref (ci_probe.py judges only the ref name and log lines, line ~180) is then exempt from app_push.sh's first-publish scope (line ~481), so cc51e6626 rode into #2662 unjudged. Fix both: judge commit messages on every push path that publishes commits, and make app_push judge every commit the PR adds over main, not only first-published ones. Each needs a failing fixture first and a null control. Open question for this group's design: 19 commits in P2b are AUTHORED 'Claude <noreply@anthropic.com>' (the cloud seat default identity). The owner's rule names footers, trailers and session links, not authors, so decide and record whether author identity is in scope; do not widen it silently.",
    "resume": {
     "stage": "not-started",
-    "branch": null
+    "branch": "handoff/r10-fly-no-footers-push-paths"
    }
   }
  ]
