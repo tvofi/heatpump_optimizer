@@ -1,5 +1,0 @@
-CI PREDICT: no closures or fast red predicted against c26499e01f9d (a data-file read is not seen)
-
-real	0m10.732s
-user	0m6.950s
-sys	0m1.637s

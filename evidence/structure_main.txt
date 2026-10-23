@@ -1,0 +1,4 @@
+  views          19      3     81     28    109
+RESULT class_excess_loc=18244 count
+RESULT max_class_loc=8480 count
+RESULT seam_cut_total=714 count
