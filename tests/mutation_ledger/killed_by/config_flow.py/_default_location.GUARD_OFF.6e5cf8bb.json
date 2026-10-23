@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_default_location GUARD_OFF 6e5cf8bb",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if isinstance(existing, dict) and \"latitude\" in existing:",
+  "reason": "Recorded by `mutation_table.py --drain` against e30b24bbc45afd1174f64f7051d05021e31b6a89: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

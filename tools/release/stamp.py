@@ -1507,6 +1507,12 @@ def self_test() -> int:
     check("register dry run: main calls it before returning from --dry-run",
           -1 < _main_src.find("if args.dry_run:") < _main_src.find("dry_run_register(nxt")
           < _main_src.find('sh("git", "commit"'))
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+    from ref_privacy import attribution as _attribution
+    _banned = "Co-Authored-" + "By: Claude Fable 5.1 <noreply@anthropic.com>\nClaude-Session: x\n"
+    check("stamp message: ref_privacy's own reader finds no attribution in it",
+          _attribution(stamp_message("7.0.1", "t")) == [] and "stamp_message(nxt, args.title)" in _main_src
+          and _attribution("x\n\n" + _banned) != [])
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -1925,6 +1931,13 @@ def publish_stamp(args, nxt: str, head: str, push_via=push_via, refresh_origin=r
 
 # --- the stamp ---------------------------------------------------------------
 
+def stamp_message(nxt: str, title: str) -> str:
+    """The stamp commit's message: the subject alone. No attribution trailer of any
+    kind -- app_push's ref_privacy refuses a push whose commit carries one
+    (R10-FLY-NO-FOOTERS), which is why this is a function --self-test can drive."""
+    return f"v{nxt}: stamp {title}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bump", choices=("patch", "minor", "major"))
@@ -2110,8 +2123,7 @@ def main() -> int:
         raise
     sh("git", "add", str(VERSION_FILE), str(MANIFEST), str(CARD_JS), str(NOTES),
        *map(str, CLAIM_FILES), *map(str, REGISTER_FILES))
-    sh("git", "commit", "-q", "-m",
-       f"v{nxt}: stamp {args.title}\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
+    sh("git", "commit", "-q", "-m", stamp_message(nxt, args.title))
     sh("git", "tag", f"v{nxt}")
     return publish_stamp(args, nxt, head)
 
