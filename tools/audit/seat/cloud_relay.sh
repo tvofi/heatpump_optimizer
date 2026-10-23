@@ -421,8 +421,10 @@ self_test() {
   git remote add origin "$t/o.git"
   h=0123456789abcdef0123456789abcdef01234567; n=0123456789abcdef0123456789abcdef
   export HPO_STATE_DIR=$t/state
-  # push-verdict's stand-in pushes review/<pr> after its tip with bus.sh's tree (VERDICT.md,
+  # push-verdict's stand-in puts review/<pr> after its tip with bus.sh's tree (VERDICT.md,
   # evidence/), and prints `review/<pr> <commit>`, or $STUB_SAYS in place of the commit.
+  # It fetches into the bare origin rather than pushing: a push site here would need a PUSHERS
+  # entry (ref_privacy.py), keyed on the file, which would also pass an unguarded relay push.
   export RELAY_T=$t; stub=$t/stub.sh; cat > "$stub" <<'EOF'
 #!/bin/bash
 echo "$1" >> "$RELAY_T/pushed"
@@ -431,7 +433,8 @@ gd=$(git rev-parse --absolute-git-dir)
 tree=$(cd "$s/w" && export GIT_DIR="$gd" GIT_INDEX_FILE="$s/index" GIT_WORK_TREE="$s/w" && git add -A -f . && git write-tree) || exit 1
 p=$(git ls-remote origin "refs/heads/review/$1" | awk 'NF { print "-p " $1; exit }')
 [ -z "$p" ] || git fetch -q origin "refs/heads/review/$1" || exit 1
-c=$(git commit-tree "$tree" $p -m "verdict: #$1") && git push -q origin "$c:refs/heads/review/$1" || exit 1
+o=$(git remote get-url origin) && c=$(git commit-tree "$tree" $p -m "verdict: #$1") \
+  && git -C "$o" fetch -q "$gd" "$c:refs/heads/review/$1" || exit 1
 echo "review/$1 ${STUB_SAYS:-$c}"
 EOF
   chmod +x "$stub"; export HPO_RELAY_PUSH=$stub
