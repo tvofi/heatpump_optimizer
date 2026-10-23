@@ -1,0 +1,8 @@
+head 5d874ec6309675a391f1a97acf6e5a77781d3f78 ; merge-base 12032c43cc32 == origin/main (no main commits since base)
+groups before 169 after 171 (+R10-FLY-NO-FOOTERS-PUSH-PATHS, +R10-FLY-INERT-LOAD-TIME); removed none; order kept; top-level keys unchanged
+RESULT diff-files=2 (roster, delivery/2667.md)
+RESULT merge-tree exit=0 (no conflict, no MERGE-CLAIM lines)
+RESULT brief_lint 0 error(s) 0 warning(s)
+RESULT VERSION diff 0 lines
+RESULT footer grep over commit bodies: no match
+RESULT scoped gate: MODE: SCOPED -- 1 script(s) run, 32 scoped out. doc_claims.py and harness_headers.py failed locally on ModuleNotFoundError (voluptuous / homeassistant), identical on origin/main
