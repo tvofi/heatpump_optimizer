@@ -3866,7 +3866,11 @@ def _p2_registry(sources):
                      "row's own last_updated, the export's SQL window rule",
                  "debugger.py::_record":
                      "writes a recorded row's last_updated and last_reported "
-                     "verbatim, the export's row shape; nothing reads them as an age"}),
+                     "verbatim, the export's row shape; nothing reads them as an age",
+                 # #2234: which age TABLE applies, never the age itself.
+                 "inputs.py::source_polls":
+                     "compares last_reported with last_updated, the re-report "
+                     "that marks a polling source; the age stays state_stamp's"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(

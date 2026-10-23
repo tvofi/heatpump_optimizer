@@ -19931,6 +19931,18 @@ R.check(
     f"limit {_r10st_idle.max_age_minutes}, gone {_r10st_gone.problem}",
 )
 
+# With no owner the state alone decides, remembering nothing.
+_r10st_polled_state = FakeState(
+    "1", last_updated=minutes_ago(10, NOW), last_reported=minutes_ago(5, NOW)
+)
+_r10st_changed_state = FakeState("1", last_updated=minutes_ago(10, NOW))
+R.check(
+    "source_polls with no owner judges the state alone: a re-report polls, "
+    "a change does not",
+    inputs_mod.source_polls(None, "sensor.x", _r10st_polled_state) is True
+    and inputs_mod.source_polls(None, "sensor.x", _r10st_changed_state) is False,
+)
+
 
 def _r10st_floor(held_min, reported_min=None):
     c = _mold_coord("60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh")
@@ -19955,6 +19967,12 @@ R.check(
     and _r10st_floor(361) is None,
     f"quiet {_r10st_floor(121)}, polled {_r10st_floor(300, reported_min=121)}, "
     f"past {_r10st_floor(361)}",
+)
+_r10st_rh = _mold_coord("100", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh")
+R.check(
+    "humidity read through InputReader keeps its window: 100 % is a reading",
+    _r10st_rh._indoor_humidity_value() == 100.0,
+    f"got {_r10st_rh._indoor_humidity_value()}",
 )
 
 # --- the T5 review round's regressions ------------------------------------------------
@@ -27126,14 +27144,22 @@ _PS_SELECT_OPTIONS = [
 
 
 def _ps_state(entity: str, state, age: float):
-    """A FakeState shaped like the entity it stands for."""
+    """A FakeState shaped like the entity it stands for.
+
+    Polled, as the reference integration polls the Tuya cloud every 3 min:
+    its last write ``age`` minutes ago re-reported an unchanged value, so its
+    silence since is evidence (a source seen only on change is #2234's).
+    """
     attributes = (
         {"options": list(_PS_SELECT_OPTIONS)}
         if entity.split(".")[0] in ("select", "input_select")
         else None
     )
     return FakeState(
-        state, last_updated=minutes_ago(age, _PS_NOW), attributes=attributes
+        state,
+        last_updated=minutes_ago(age + 3, _PS_NOW),
+        last_reported=minutes_ago(age, _PS_NOW),
+        attributes=attributes,
     )
 
 
@@ -28092,17 +28118,21 @@ R.check(
     "a slot nobody can read must be reportable; it just must not act",
 )
 _FL_HORIZON = INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]
+# Polled probes (re-reported, then silent): an on-change probe holding its
+# value is current at any age (#2234).
 (_fl_stale_s, _fl_stale_r), _fl_stale_reader = _fl_read(
     {
         "sensor.hp_supply": FakeState(
             "48.5",
             unit="°C",
-            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+            last_updated=minutes_ago(_FL_HORIZON * 3.0, _PS_NOW),
+            last_reported=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
         ),
         "sensor.hp_return": FakeState(
             "41.0",
             unit="°C",
-            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+            last_updated=minutes_ago(_FL_HORIZON * 3.0, _PS_NOW),
+            last_reported=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
         ),
     }
 )
@@ -30675,8 +30705,10 @@ def _um_read(
     if options is None and entity.split(".")[0] in ("select", "input_select"):
         options = _UM_OPTIONS
     attrs = {"options": list(options)} if options else None
+    # Polled: the last write re-reported an unchanged value (#2234).
     hass = FakeHass(
-        {entity: FakeState(state, last_updated=minutes_ago(age, _um_now),
+        {entity: FakeState(state, last_updated=minutes_ago(age + 3, _um_now),
+                           last_reported=minutes_ago(age, _um_now),
                            attributes=attrs)}
     )
     return pump_signals.read(
@@ -63115,9 +63147,12 @@ def _sp_write(kw, slots, stale=()):
     states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
     for key in slots:
         config[key] = f"sensor.sp_{key}"
+        # A stale rung is a polled probe silent a day (#2234: one seen only
+        # on change holds its value at any age).
         states[config[key]] = FakeState(
             str(_SP_READ[key]), unit="°C",
-            last_updated=minutes_ago(24 * 60) if key in stale else None,
+            last_updated=minutes_ago(25 * 60) if key in stale else None,
+            last_reported=minutes_ago(24 * 60) if key in stale else None,
         )
     return _pa._flow_target(
         _PaNS(
@@ -65160,8 +65195,11 @@ R.check(
 
 def _fm_reader(cfg, flow_state, unit="L/min", flow_age_min=1):
     states = {
+        # Polled: re-reported ``flow_age_min`` ago (#2234's on-change flow
+        # holding 0 is current at any age).
         "sensor.flow": FakeState(
-            flow_state, last_updated=minutes_ago(flow_age_min, NOW), unit=unit
+            flow_state, last_updated=minutes_ago(flow_age_min + 3, NOW),
+            last_reported=minutes_ago(flow_age_min, NOW), unit=unit
         ),
         "sensor.sup": FakeState("45.0", last_updated=minutes_ago(1, NOW), unit="°C"),
         "sensor.ret": FakeState("40.0", last_updated=minutes_ago(1, NOW), unit="°C"),
@@ -65594,7 +65632,9 @@ def _fm_plant(coord, flow="15.0", unit="L/min", age_min=1):
     """Plant this cycle's three water states and run the production fold."""
     coord.hass.states.set(
         "sensor.flow",
-        FakeState(flow, last_updated=minutes_ago(age_min, NOW), unit=unit),
+        # Polled: re-reported ``age_min`` ago (#2234).
+        FakeState(flow, last_updated=minutes_ago(age_min + 3, NOW),
+                  last_reported=minutes_ago(age_min, NOW), unit=unit),
     )
     coord.hass.states.set(
         "sensor.sup",

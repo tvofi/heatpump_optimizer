@@ -907,9 +907,15 @@ async def _mode_source_after_outage(night):
         # "heating" alone is status-ambiguous for a plain sensor
         # (pump_mode._STATUS_AMBIGUOUS); a multi-duty spelling is accepted
         # from any domain, so this is a LIVE read.
+        # Polled: the write re-reports an unchanged mode, so the silence
+        # that follows is evidence (a source seen only on change is #2234's).
         coord.hass.states.set(
             "sensor.mode",
-            FakeState("heating + hot water", last_updated=dt_util.now()),
+            FakeState(
+                "heating + hot water",
+                last_updated=dt_util.now() - timedelta(minutes=3),
+                last_reported=dt_util.now(),
+            ),
         )
         await coord._update_current_state()
         stamped = coord._pump_mode_last_good_at
