@@ -1,0 +1,29 @@
+@@ -5 +5 @@
+@@ -46,3 +46,10 @@
+@@ -50,0 +58,7 @@
+@@ -53,3 +67,4 @@
+@@ -57 +72,2 @@
+@@ -63 +79,2 @@
+@@ -93,0 +111,15 @@
+@@ -115 +147 @@ logline() { mkdir -p "$(dirname -- "$(relay_log)")" && printf '%s %s\n' "$1" "$(
+@@ -123,0 +156,15 @@ owed() { logline OWED "$1 $2 $3"; echo "cloud_relay: OWED #$1: $3" >&2; }
+@@ -135 +182 @@ relay() {
+@@ -154,4 +201,17 @@ relay() {
+@@ -158,0 +219,4 @@ relay() {
+@@ -160,5 +224,2 @@ relay() {
+@@ -166 +227 @@ relay() {
+@@ -175 +236 @@ dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled
+@@ -184 +245 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -188 +249 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -193 +254,7 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -199,2 +266,10 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -202,2 +277,39 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -300 +412 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
+@@ -312 +424,15 @@ self_test() {
+@@ -314 +440 @@ self_test() {
+@@ -358 +484 @@ self_test() {
+@@ -362,2 +488,2 @@ self_test() {
+@@ -373 +499 @@ self_test() {
+@@ -376,2 +502,25 @@ self_test() {
+@@ -402,0 +552,24 @@ self_test() {
+@@ -570,0 +744,46 @@ self_test() {

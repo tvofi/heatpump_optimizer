@@ -1,0 +1,6 @@
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 84 checks, 0 failed
+rc=0
+ref_privacy: REFUSE tools/audit/seat/cloud_relay.sh:434: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 297 line(s) added since 4c31eb16e575 judged, 1 refused
+check rc=1
