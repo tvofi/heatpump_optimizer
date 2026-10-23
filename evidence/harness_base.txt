@@ -25,6 +25,6 @@ RESULT narrative_fixed_mismatched_seams=0 count
 #   mismatched sensor.heat_pump_optimizer_space_heating_cost unit: ['SEK']
 RESULT reintroduce_money_seams=14 count
 RESULT reintroduce_mismatched_seams=14 count
-RESULT thread_factor=0.053
-RESULT load1=0.44
+RESULT thread_factor=0.020
+RESULT load1=4.96
 RESULT swapins=0

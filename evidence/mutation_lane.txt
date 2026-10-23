@@ -1,0 +1,11 @@
+mutation job 120262485090 (run 39907429588), at refs/pull/2620/merge 59ddeff24 = 72fbab2a7 into c26499e01
+  4030 unpinned site(s) of 6283 candidate sites, 4034 at the ratchet base c26499e01
+  baseline tests/env_drift.py: rc=0 failed=0
+  baseline tests/features.py: rc=0 failed=0 658s
+  null control coordinator.py:509 NULL_COMMENT survived every driver
+PIN RE-VERIFICATION: 3 reproduced, 0 not reproduced, 0 not re-verified
+  ok coordinator.py:9130 CMP_BOUND  -- killed by tests/features.py
+  ok coordinator.py:9132 CLAMP_DROP -- killed by tests/features.py
+  ok coordinator.py:9132 RETURN_DEL -- killed by tests/features.py
+  0 survivor(s) of 3 evaluated = 0.0%, cap 20.0%
+MUTATION TABLE PASSED

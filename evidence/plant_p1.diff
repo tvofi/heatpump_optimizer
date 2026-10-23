@@ -1,0 +1,19 @@
+--- /tmp/tmp.LO9uW6aikJ/wt/custom_components/heatpump_optimizer/coordinator.py	2026-10-23 05:46:35.966982326 +0000
++++ /tmp/tmp.LO9uW6aikJ/p1/custom_components/heatpump_optimizer/coordinator.py	2026-10-23 05:47:42.598980802 +0000
+@@ -10324,8 +10324,14 @@
+ 
+         # 100 while the COP watch (#12) accumulates no shortfall; the grade
+         # falls as the Cusum climbs toward its alarm.
+-        watched, drift = self._cop_watch()
+-        machine = (1.0 - drift) * 100.0 if watched else None
++        machine = None
++        watched = sum(
++            1
++            for entry in self._cop_baseline.values()
++            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
++        )
++        if watched:
++            machine = (1.0 - float(np.clip(self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0
+ 
+         operation = self._operation_score
+         available = [s for s in (machine, operation) if s is not None]

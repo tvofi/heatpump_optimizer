@@ -1,4 +1,3 @@
-reviewed head: 08ba3d9d7b115bf4f8b0f592d34397862622c5a3
-merge base:    4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b
-origin/main at review: 86425b9ad471c752baca652b9189f75b78514931
-git merge-tree --write-tree origin/main 08ba3d9d7b115bf4f8b0f592d34397862622c5a3 -> exit 0 (tree a9504a81 vs 4d407a35; also exit 0 vs 86425b9ad)
+72fbab2a719ce14870aa3284a35d043ea1b9588d
+merge-base c26499e01f9dd380cd66705f505d6902be2b534b (= origin/main at review)
+branch head at verdict time (git ls-remote refs/heads/fix/r10-currency): 72fbab2a719ce14870aa3284a35d043ea1b9588d
