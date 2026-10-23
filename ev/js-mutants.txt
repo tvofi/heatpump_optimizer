@@ -1,0 +1,66 @@
+== HEAD (no mutant)
+  ok   a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=0
+policy_lint acceptance rc=0 FIXTURE 
+prepr fixture check 'a body with attribution is refused': rc=1 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 0 divergent
+  planted link rc=1 attr=1
+  planted footer rc=1 attr=1
+  planted coauth rc=1 attr=1
+  planted three rc=1 attr=1
+== drop session-link row
+  FAIL a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=1
+policy_lint acceptance rc=1 FIXTURE VACUOUS
+prepr fixture check 'a body with attribution is refused': rc=1 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 64 divergent
+  planted link rc=0 attr=0
+  planted footer rc=1 attr=1
+  planted coauth rc=1 attr=1
+  planted three rc=1 attr=1
+== drop co-author-trailer row
+  FAIL a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=1
+policy_lint acceptance rc=0 FIXTURE 
+prepr fixture check 'a body with attribution is refused': rc=1 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 104 divergent
+  planted link rc=1 attr=1
+  planted footer rc=1 attr=1
+  planted coauth rc=0 attr=0
+  planted three rc=1 attr=1
+== drop generated-footer row
+  FAIL a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  FAIL a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=2
+policy_lint acceptance rc=1 FIXTURE VACUOUS
+prepr fixture check 'a body with attribution is refused': rc=1 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 5 divergent
+  planted link rc=1 attr=1
+  planted footer rc=0 attr=0
+  planted coauth rc=1 attr=1
+  planted three rc=1 attr=1
+== drop session-trailer row
+  ok   a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=0
+policy_lint acceptance rc=0 FIXTURE 
+prepr fixture check 'a body with attribution is refused': rc=1 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 67 divergent
+  planted link rc=1 attr=1
+  planted footer rc=1 attr=1
+  planted coauth rc=1 attr=1
+  planted three rc=1 attr=1
+== arm disabled
+  FAIL a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  FAIL a real entry followed by a trailer block keeps exactly its own entry
+RESULT pin_fails=2
+policy_lint acceptance rc=1 FIXTURE VACUOUS
+prepr fixture check 'a body with attribution is refused': rc=0 (want 1)
+agreement:   pair attribution: 2 readers, 301 items, 0 divergent
+  planted link rc=0 attr=0
+  planted footer rc=0 attr=0
+  planted coauth rc=0 attr=0
+  planted three rc=0 attr=0
