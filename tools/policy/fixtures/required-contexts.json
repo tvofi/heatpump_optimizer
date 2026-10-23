@@ -29,25 +29,9 @@
     23698884
   ],
   "contexts": [
-    "Analyze (actions)",
-    "Analyze (javascript-typescript)",
-    "Analyze (python)",
-    "briefs",
-    "browser",
-    "budget-raise-gate",
-    "closure-scope",
-    "closures",
-    "env-matrix",
-    "fast (3.14)",
-    "hassfest",
-    "mutation",
-    "policy-docs",
-    "pr-contract",
-    "typing",
-    "validate-hacs",
-    "wave-script"
+    "gate"
   ],
-  "_gate_required": "R10-CI-LAYOUT P2a (additive; contexts stays the 17 until P2b's ruleset PUT): the union of tools/ci/gate.py REQUIRED over its event classes, as `<file stem> / <job>` names -- the 17 renamed, arch-score / arch-score (D-2), and on push every job whose failure reddens the Tests push run (B3). gate.py's self-test asserts the equality.",
+  "_gate_required": "R10-CI-LAYOUT P2a (P2b: `contexts` is `gate` alone since the cut-over, the ruleset PUT of tools/ci/ruleset_cutover.py): the union of tools/ci/gate.py REQUIRED over its event classes, as `<file stem> / <job>` names -- the 17 renamed, arch-score / arch-score (D-2), and on push every job whose failure reddens the Tests push run (B3). gate.py's self-test asserts the equality.",
   "gate_required": [
     "arch-score / arch-score",
     "budget-raise-gate / budget-raise-gate",
@@ -93,55 +77,7 @@
             "do_not_enforce_on_create": false,
             "required_status_checks": [
               {
-                "context": "fast (3.14)"
-              },
-              {
-                "context": "browser"
-              },
-              {
-                "context": "briefs"
-              },
-              {
-                "context": "closure-scope"
-              },
-              {
-                "context": "closures"
-              },
-              {
-                "context": "typing"
-              },
-              {
-                "context": "hassfest"
-              },
-              {
-                "context": "validate-hacs"
-              },
-              {
-                "context": "policy-docs"
-              },
-              {
-                "context": "wave-script"
-              },
-              {
-                "context": "pr-contract"
-              },
-              {
-                "context": "env-matrix"
-              },
-              {
-                "context": "Analyze (actions)"
-              },
-              {
-                "context": "Analyze (javascript-typescript)"
-              },
-              {
-                "context": "Analyze (python)"
-              },
-              {
-                "context": "mutation"
-              },
-              {
-                "context": "budget-raise-gate",
+                "context": "gate",
                 "integration_id": 15368
               }
             ]

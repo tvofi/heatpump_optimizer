@@ -671,7 +671,10 @@ def self_test_only_required(have: set[str]) -> list[str]:
     try:
         import json
 
-        ctx = set(json.loads((ROOT / locate(".claude/workflows/fixtures/required-contexts.json")).read_text())["contexts"])
+        fx = json.loads((ROOT / locate(".claude/workflows/fixtures/required-contexts.json")).read_text())
+        # `contexts` is `gate` alone since the cut-over; the jobs it stands for
+        # are `gate_required`'s `<file stem> / <job>`, matched by job id.
+        ctx = set(fx["contexts"]) | {n.split(" / ", 1)[-1] for n in fx.get("gate_required") or []}
     except (OSError, ValueError, KeyError):
         return []
     bad = []
