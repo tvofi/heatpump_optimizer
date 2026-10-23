@@ -5,7 +5,7 @@
  "coordinator_multiassigned_attrs": 115,
  "coordinator_private_reach": 0,
  "dead_methods": 0,
- "dead_top_level_symbols": 1,
+ "dead_top_level_symbols": 2,
  "duplication_copies": 17,
  "functions_cc_over_15": 30,
  "functions_cc_over_25": 8,
