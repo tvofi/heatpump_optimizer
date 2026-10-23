@@ -27,6 +27,27 @@ if ! PRED=$(cd "$ROOT" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py
   echo "body_push: the predictor refuses this head (above); repair it, push the code, then the body" >&2
   exit 1
 fi
+# The pr-body gate (dev/audit/rca/R10-RCA-BODY-LINT.md). A body for the head
+# published at handoff/<topic> is the pull-request body `open_pr.sh` lints in
+# prepr step 7, so that step runs here first (`prepr.sh --body-check`, this
+# script's sibling copy) and its refusal is this push's. No handoff/<topic>
+# means a result (probe, design, verdict), which is no PR body. A handoff/<topic>
+# that is not this checkout's HEAD names a head the open will not run on.
+HERE=$(cd "$(dirname "$0")" && pwd)
+HREF=$(git ls-remote origin "refs/heads/handoff/$TOPIC") || { echo "body_push: could not read handoff/$TOPIC from origin" >&2; exit 1; }
+HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
+if [ -n "$HREF" ]; then
+  [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
+  ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
+  if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" 2>&1); then
+    printf '%s\n' "$LINT" >&2
+    echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2
+    exit 1
+  fi
+  printf '%s\n' "$LINT" | tail -1
+else
+  echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
+fi
 P=""
 # The parent is what ORIGIN ANSWERED, never FETCH_HEAD. `git fetch` rewrites
 # FETCH_HEAD as per-worktree state of the checkout it runs in, so any other

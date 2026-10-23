@@ -7,8 +7,11 @@
 //   ordered by time) parsed by the wave's VERDICT_RE; class = taught word, else its own row
 //   (`untaught:<word>`), bare -> `other`. Bucketing (mine): engineering = mutation-vacuous, harness,
 //   null-control, product-tradeoff-regression, metric-gamed, architecture-unsound, class-open;
-//   record-and-body = claims, version, carry-missing, preflight-mismatch, root-cause-unanswered;
+//   record-and-body = claims, version, carry-missing, preflight-mismatch, root-cause-unanswered,
+//   root-cause-detectable, root-cause-unrecorded (#2275's split of root-cause-unanswered);
 //   orchestration = head-moved, conflict, other, untaught:*. Also: statsHistogram's verdict rows.
+//   Precondition: a taught word no bucket names refuses the run (exit 2), so a word the wave
+//   teaches later is placed rather than filed under orchestration by the fallback.
 // M6 metric: per friction entry (statsHistogram's frictionKey output keyed by entry), the brief's
 //   rule: id k (# dropped, backticks stripped) names each policy_budgets.json `files` path p with
 //   p==k or p endswith '/'+k, '/'+k+'.md', '/'+k+'/SKILL.md' (or equal to those). One path = one
@@ -31,8 +34,10 @@ const budgets = JSON.parse(fs.readFileSync(path.join(ROOT, 'dev/governance/confi
 const files = Object.keys(budgets.files)
 const re = L.waveVerdictRe(), taught = L.blockClasses()
 const B = { engineering: ['mutation-vacuous', 'harness', 'null-control', 'product-tradeoff-regression', 'metric-gamed', 'architecture-unsound', 'class-open'],
-  'record-and-body': ['claims', 'version', 'carry-missing', 'preflight-mismatch', 'root-cause-unanswered'],
+  'record-and-body': ['claims', 'version', 'carry-missing', 'preflight-mismatch', 'root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded'],
   orchestration: ['head-moved', 'conflict', 'other'] }
+const unplaced = taught.filter((c) => !Object.values(B).flat().includes(c))
+if (unplaced.length) { console.log(`UNPLACED taught block class(es): ${unplaced.join(', ')}`); process.exit(2) }
 const bucketOf = (c) => Object.entries(B).find(([, v]) => v.includes(c))?.[0] ?? 'orchestration'
 const cls = new Map(), bk = new Map(), outside = []
 let blocked = 0

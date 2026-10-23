@@ -125,6 +125,8 @@ ALLOW = (
      "a workflow program: RUNNER_TEMP is set on the runner; /tmp is a one-shot body's local fallback"),
     ("tests/plan_view.py", '"/tmp", "plandata-%s.json" % hashlib.sha256',
      "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (dev/audit/README.md)"),
+    ("tools/audit/seat/ci_probe.py", '"see /tmp/" + "claude-1000/x"',
+     "a self-test fixture: the dismissal message whose session scratch path ci_probe must refuse"),
     (SELF, "", "this file names every class in its own patterns, docstring and fixtures"),
 )
 

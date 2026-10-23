@@ -19335,6 +19335,117 @@ R.check(
     "request heads before the umbrella replaces it",
 )
 
+# --- the umbrella engine's pins (R10-CI-LAYOUT P2a glue) ---------------------
+#
+# REQUIRED. `tools/ci/gate.py`'s `REQUIRED` (contract item 4, keyed by event
+# class) is what the one required check `gate` demands; the fixture's
+# `gate_required` is the list the ruleset and the seat readers will key on. The
+# check reads the module itself (loaded by path, as stamp.py is above), never a
+# copy, and pins its sorted union equal to the fixture list, which must hold no
+# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
+# red check, not a truncated run.
+_CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
+import importlib.util as _cig_util
+try:
+    _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
+    _cig = _cig_util.module_from_spec(_cig_spec)
+    _cig_spec.loader.exec_module(_cig)
+    _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
+except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
+    _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
+_CIG_FIXTURE = json.loads((_closure.ROOT / "tools" / "policy" / "fixtures"
+                           / "required-contexts.json").read_text())
+
+
+def _cig_mismatch(required: "dict[str, tuple[str, ...]]", fixture: dict) -> "list[str]":
+    union = sorted({n for names in required.values() for n in names})
+    listed = list(fixture.get("gate_required") or [])
+    out = []
+    if not union:
+        out.append("REQUIRED is empty")
+    if listed != sorted(set(listed)):
+        out.append("gate_required is not sorted and duplicate-free")
+    out += [f"only in REQUIRED: {n}" for n in union if n not in listed]
+    out += [f"only in gate_required: {n}" for n in listed if n not in union]
+    if len(fixture.get("contexts") or []) != 17:
+        out.append(f"contexts holds {len(fixture.get('contexts') or [])}, not the 17")
+    return out
+
+
+_CIG_DEFECTS = _cig_mismatch(_cig_required, _CIG_FIXTURE)
+# Null controls: a name dropped from every class, a name added to the fixture,
+# and a duplicated fixture entry must each be named, so a reader that compares
+# nothing fails.
+_cig_listed = list(_CIG_FIXTURE.get("gate_required") or [])
+_CIG_PLANTS = {
+    "REQUIRED loses a name": (
+        {k: tuple(n for n in v if n not in _cig_listed[:1])
+         for k, v in _cig_required.items()}, _CIG_FIXTURE),
+    "the fixture gains a name": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + ["zz / planted"])}),
+    "a duplicated fixture entry": (
+        _cig_required, {**_CIG_FIXTURE, "gate_required": sorted(_cig_listed + _cig_listed[:1])}),
+}
+_CIG_PLANT_MISSED = sorted(k for k, (req, fx) in _CIG_PLANTS.items() if not _cig_mismatch(req, fx))
+R.check(
+    "tools/ci/gate.py's REQUIRED union equals required-contexts.json's "
+    "gate_required, and contexts stays the 17 (P2a)",
+    not _cig_err and not _CIG_DEFECTS and not _CIG_PLANT_MISSED,
+    f"load={_cig_err or 'ok'} defects={_CIG_DEFECTS} plants the reader missed="
+    f"{_CIG_PLANT_MISSED}; the gate and the ruleset would demand different checks",
+)
+
+# Forgery (DESIGN-P2 2.1, rev1 item 12(b)), the half that needs no umbrella:
+# no workflow but ci.yml defines a job whose id or `name:` can render `gate`
+# (a `${{ }}` in a name matches any text), and no workflow grants `checks:
+# write` -- neither at the top nor in a job, and never through `write-all`.
+# Every workflow declares a top-level `permissions:`, so no job falls back to
+# the repository's default token, which the tree cannot read. The other half,
+# "exactly one job in ci.yml carries `gate`", is P2b's: the stub has none.
+def _forgery_defects(docs: "dict[str, dict]") -> "list[str]":
+    out = []
+    for name, doc in docs.items():
+        if "permissions" not in doc:
+            out.append(f"{name}: no top-level permissions (the default token)")
+        grants = [("top", doc.get("permissions"))]
+        for jid, job in (doc.get("jobs") or {}).items():
+            job = job or {}
+            label = str(job.get("name") or jid)
+            pat = ".+".join(re.escape(p) for p in re.split(r"\$\{\{.*?\}\}", label))
+            if name != "ci.yml" and (jid == "gate" or re.fullmatch(pat, "gate")):
+                out.append(f"{name}: job {jid} can report as `gate`")
+            grants.append((jid, job.get("permissions")))
+        for where, perm in grants:
+            if perm == "write-all" or (isinstance(perm, dict) and perm.get("checks") == "write"):
+                out.append(f"{name}: {where} grants checks: write")
+    return out
+
+
+_FORGERY_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
+                 for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
+_FORGERY_DEFECTS = _forgery_defects(_FORGERY_DOCS)
+_fg_tests = _FORGERY_DOCS.get("tests.yml") or {}
+_fg_jobs = _fg_tests.get("jobs") or {}
+_FORGERY_PLANTS = {
+    "a gate job id": {"jobs": {**_fg_jobs, "gate": {"runs-on": "x"}}},
+    "a job named by an expression": {"jobs": {**_fg_jobs, "x": {"name": "${{ inputs.n }}"}}},
+    "a job grant": {"jobs": {**_fg_jobs, "x": {"permissions": {"checks": "write"}}}},
+    "write-all": {"permissions": "write-all"},
+    "no top-level permissions": None,
+}
+_FORGERY_PLANT_MISSED = sorted(
+    k for k, over in _FORGERY_PLANTS.items()
+    if not _forgery_defects({"tests.yml": (
+        {k2: v for k2, v in _fg_tests.items() if k2 != "permissions"} if over is None
+        else {**_fg_tests, **over})}))
+R.check(
+    "forgery: no workflow but ci.yml defines a `gate` job, none grants "
+    "checks: write, and every workflow declares its top-level permissions",
+    bool(_FORGERY_DOCS) and not _FORGERY_DEFECTS and not _FORGERY_PLANT_MISSED,
+    f"defects={_FORGERY_DEFECTS} plants the reader missed={_FORGERY_PLANT_MISSED}; "
+    "a second producer of `gate` could write a newer green at a PR head",
+)
+
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
 #
 # tests/lane_skip.py decides whether the heavy Tests lanes may report
@@ -25645,8 +25756,8 @@ def _ns_stale_collect(first, windowed):
 
     _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
     try:
-        _c, _f, _j = _nstatus.collect("o/r", "tests.yml", None, None,
-                                      now=_ns_stale_now)
+        _c, _f, _j, _w = _nstatus.collect("o/r", "tests.yml", None, None,
+                                          now=_ns_stale_now)
     finally:
         _nstatus._get, _nstatus._sleep = (_ns_stale_real_get,
                                           _ns_stale_real_sleep)
@@ -25695,6 +25806,91 @@ R.check(
     "is neither timezone slack nor the #533 incident",
 )
 
+
+# --- a workflow younger than its first slot is not a dead schedule ---------
+#
+# nightly.yml reached main at 2026-10-22T08:05Z, after that day's 02:17Z slot,
+# and the reporter turned every pull request red with "GitHub disables
+# schedules on repositories with no recent activity" while GitHub reported the
+# workflow `active`. The arm guessed a cause it never read. Three fixtures, one
+# property varied in each: the workflow nine hours old reads NEW and green; the
+# SAME record 26 h on, still with no run, reads ABSENT -- the null control that
+# the window does not hide a schedule that never fired; and a disabled record
+# reads ABSENT naming GitHub's own state.
+# The record's shape is the live one, offset included: GitHub stamps a
+# workflow's `created_at` with `+02:00` where a run's carries `Z`.
+_ns_wf = {"path": ".github/workflows/nightly.yml", "state": "active",
+          "created_at": "2026-10-22T10:05:56+02:00"}
+_ns_wf_made = datetime(2026, 10, 22, 8, 5, 56, tzinfo=UTC)
+_ns_young = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                             workflow=_ns_wf)
+_ns_late = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=26),
+                            workflow=_ns_wf)
+_ns_off = _nstatus.verdict(None, None, [], _ns_wf_made + timedelta(hours=9),
+                           workflow={**_ns_wf, "state": "disabled_inactivity"})
+_ns_late_txt = "\n".join(_ns_late[2])
+R.check(
+    "a workflow younger than its first cron slot reads NEW and green, the same "
+    "one 26 h on with no run reads ABSENT, and a disabled one names its state",
+    _ns_young[:2] == (_nstatus.NEW, _nstatus.EXIT_GREEN)
+    and _ns_late[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "inactivity" not in _ns_late_txt and "'active'" in _ns_late_txt
+    and _ns_off[:2] == (_nstatus.ABSENT, _nstatus.EXIT_RED)
+    and "'disabled_inactivity'" in "\n".join(_ns_off[2]),
+    f"9 h -> {_ns_young[:2]}; 26 h -> {_ns_late[:2]} "
+    f"(inactivity claimed={'inactivity' in _ns_late_txt}); disabled -> "
+    f"{_ns_off[:2]} {_ns_off[2][1:2]}",
+)
+# The window is one cron PERIOD plus an hour, so the period must be the cron's.
+# Read from the workflow's own `cron:`: a daily one is minute and hour fields
+# and three stars. A cron that fires more often than daily would leave the
+# window merely generous; one that fires less often would read ABSENT before
+# its first slot -- either way the constant is restated, not derived, and this
+# refuses the drift.
+_ns_crons = re.findall(r'^\s+- cron: "([^"]+)"', _NIGHTLY_YML, re.M)
+R.check(
+    "the reporter's schedule period is the nightly cron's: daily",
+    len(_ns_crons) == 1
+    and re.fullmatch(r"\d{1,2} \d{1,2} \* \* \*", _ns_crons[0]) is not None
+    and _nstatus.SCHEDULE_PERIOD == timedelta(days=1),
+    f"cron lines {_ns_crons}; SCHEDULE_PERIOD={_nstatus.SCHEDULE_PERIOD}",
+)
+# The one extra read is spent only where it can change the answer: a discovery
+# that finds a run never asks for the workflow's record, and one that finds
+# none asks for it once.
+_ns_wf_real_get, _ns_wf_real_sleep = _nstatus._get, _nstatus._sleep
+
+
+def _ns_wf_collect(runs):
+    _calls = []
+
+    def _fake_get(url, _token):
+        _calls.append(url)
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if url.endswith("/actions/workflows/nightly.yml"):
+            return _ns_wf
+        return {"workflow_runs": [r for r in runs if r["event"] in url]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _out = _nstatus.collect("o/r", "nightly.yml", None, None,
+                                now=_ns_wf_made + timedelta(hours=9))
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_wf_real_get, _ns_wf_real_sleep
+    return _out, sum(1 for _u in _calls if _u.endswith("/workflows/nightly.yml"))
+
+
+(_, _, _, _ns_wf_none), _ns_wf_reads_none = _ns_wf_collect([])
+_ns_wf_fresh = {**_ns_run(7, "2026-10-22T07:00:00Z"), "event": "schedule"}
+(_, _, _, _ns_wf_some), _ns_wf_reads_some = _ns_wf_collect([_ns_wf_fresh])
+R.check(
+    "the workflow's record is read once when no run exists, and never otherwise",
+    _ns_wf_none == _ns_wf and _ns_wf_reads_none == 1
+    and _ns_wf_some is None and _ns_wf_reads_some == 0,
+    f"no runs: record={_ns_wf_none is not None} reads={_ns_wf_reads_none}; "
+    f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
+)
 
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
@@ -27619,6 +27815,8 @@ def _friction_trailer_fixture():
             "none_plus_coauthor":
                 "none\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
             "none_plus_closes": "none\n\nCloses #1134",
+            "none_plus_session":
+                "none\n\n🤖 Generated with Claude Code\n\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE",
             "entry_plus_attribution":
                 "`CLAUDE.md`: cost: real\n\n🤖 Generated with Claude Code",
         }.items():
@@ -27639,6 +27837,8 @@ _FRICTION_TRAILER = json.loads(subprocess.run(
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
      "closes: m.frictionEntries('none\\n\\nCloses #1134').length,"
+     "session: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE').length,"
+     "session_prose: m.frictionEntries('none\\n\\nhttps://claude.ai/code/session_01 is where it ran').length,"
      "entry_kept: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\nCloses #1134')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
      "entry_total: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\n🤖 Generated with Claude Code').length,"
@@ -27651,14 +27851,17 @@ R.check(
     _FRICTION_TRAILER.get("attribution") == 0
     and _FRICTION_TRAILER.get("coauthor") == 0
     and _FRICTION_TRAILER.get("closes") == 0
+    and _FRICTION_TRAILER.get("session") == 0
     and _FT["none_plus_attribution"][0] == 0
     and _FT["none_plus_coauthor"][0] == 0
-    and _FT["none_plus_closes"][0] == 0,
+    and _FT["none_plus_closes"][0] == 0
+    and _FT["none_plus_session"][0] == 0,
     f"parsed={_FRICTION_TRAILER}, "
     f"rcs={{{', '.join(f'{k}: {v[0]}' for k, v in _FT.items())}}} -- the "
     "attribution bullet, the `Co-Authored-By:` near-miss and the `Closes #N` "
     "line each became an unlabelled histogram entry the filer would have "
-    "counted (#1238)",
+    "counted (#1238); the cloud harness's session link refused the body "
+    "(R10-RCA-BODY-LINT)",
 )
 R.check(
     "a real entry followed by a trailer block keeps exactly its own entry",
@@ -27673,7 +27876,8 @@ R.check(
     "and the drop buys no amnesty: junk still refuses, trailer words "
     "mid-evidence still parse (null controls)",
     _FN["junk_only"][0] == 1
-    and _FRICTION_TRAILER.get("midline_control") == 1,
+    and _FRICTION_TRAILER.get("midline_control") == 1
+    and _FRICTION_TRAILER.get("session_prose") == 1,
     f"junk_only rc={_FN['junk_only'][0]}, parsed={_FRICTION_TRAILER} -- the "
     "trailer shapes are line-anchored, so the same words inside an entry's "
     "evidence must not drop it, and a line that is neither an entry nor a "
