@@ -108,10 +108,6 @@ _PRESOLVE = '        getattr(self, "_ctx", self)._opt_config.peak_count = 3\n'
 #: the table shrinks only by a deliberate edit that says the function went
 #: under. Keyed ``module.qualname``, never a line number.
 PARAMS_OVER_10_LEFT = {
-    "away.resolve":
-        "the operating-mode resolver's five option groups, each keyword-only "
-        "with its own default; a record would re-wrap the mode dict its "
-        "callers already hold",
     "comfort_band._pair_violations":
         "two (key, default) quartets read out of the candidate and current "
         "option dicts; those dicts are the records, and a schedule record "
