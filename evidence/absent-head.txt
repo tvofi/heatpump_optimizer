@@ -1,0 +1,4 @@
+NOT A FILE: a closure recorded something that is not a regular file;
+  a directory carries no content a closure can be stale against,
+  and recording one makes the scoped and full re-derives disagree (#365).
+    tests/harness_headers.py: tests/zz_absent_on_this_tree.py

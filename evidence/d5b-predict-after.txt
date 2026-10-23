@@ -1,0 +1,4 @@
+PREDICT tests / closures UNDER-SCOPED tests/harness_headers.py: dev/audit/harnesses/r10_ci_layout_u5/run_part.py leaves INERT in this diff; the table lists it under inert_reads only, and a recording at this head files it in the closure
+PREDICT tests / closures UNDER-SCOPED tests/harness_headers.py: dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py leaves INERT in this diff; the table lists it under inert_reads only, and a recording at this head files it in the closure
+CI PREDICT: an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: tests/derive_closures.sh --single tests/harness_headers.py (CI's last recordings of the 1 took 241 s in all)
+CI PREDICT: 2 predicted red(s) on tests / closures against a6620c30adcd -- repair before the handoff; the lines above name each arm's repair

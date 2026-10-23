@@ -1,0 +1,41 @@
+40
+Analyze (actions)	success
+Analyze (javascript-typescript)	success
+Analyze (python)	cancelled
+CodeQL	neutral
+arch-score	success
+arch-score	success
+briefs	success
+browser	success
+budget-raise-gate	success
+budget-raise-gate	success
+cancel-superseded	success
+cancel-superseded	success
+ci-ratchet	cancelled
+claims-autofix	cancelled
+closure-scope	success
+closures	cancelled
+closures-autofix	cancelled
+coverage	cancelled
+coverage-ratchet	cancelled
+delivery-status	success
+delivery-status-publish	skipped
+env-matrix	success
+fast (3.14)	cancelled
+graders-head-copy	cancelled
+hassfest	success
+instrument-self-tests	cancelled
+lane-proofs	cancelled
+mutation	success
+mutation-autofix	skipped
+mutation-pins	skipped
+nightly-ha	skipped
+nightly-status	success
+policy-docs	success
+pr-contract	failure
+pr-contract	failure
+record	skipped
+scope	success
+typing	success
+validate-hacs	success
+wave-script	success
