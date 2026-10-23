@@ -26930,7 +26930,7 @@ R.check(
     0 <= _PC_WAIT_I < _PC_LIST_I
     and _PC_WAIT.find("set -euo pipefail") < _PC_WAIT.find("python3 -I tools/ci/codescan_wait.py")
     and "> /tmp/pr-alerts.txt" in _PC_WAIT
-    and "cat /tmp/pr-alerts.txt >> /tmp/pr-reds.txt" in _PC_STEPS[_PC_LIST_I]
+    and "sort -u /tmp/pr-reds-api.txt /tmp/pr-alerts.txt > /tmp/pr-reds.txt" in _PC_STEPS[_PC_LIST_I]
     and "'tools/ci/*.py'" in _PC_BODY_STEP,
     f"wait step at {_PC_WAIT_I}, listing at {_PC_LIST_I}; a listing that cannot see the python leg's "
     "alerts lets a finding only the last uploading leg reports reach the merge unanswered (R-10)",

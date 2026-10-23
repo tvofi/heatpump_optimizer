@@ -53,6 +53,13 @@ jobs:
     name: kernel-points (${{ matrix.coretype }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # A measurement, never a verdict: no `gate` REQUIRED row names this job, so
+    # the pull request's own harness copy needs no pin (codeowners_gap.py's
+    # rule, which refuses the marker on any required context). Since ci.yml
+    # calls it on a labelled pull request (R10-CI-LAYOUT P2b, U11), the
+    # reachability the job's old event `if:` hid is read.
+    env:
+      HPO_JOB_GRADES: nothing
     strategy:
       fail-fast: false
       matrix:

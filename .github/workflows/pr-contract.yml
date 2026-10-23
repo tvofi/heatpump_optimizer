@@ -301,9 +301,10 @@ jobs:
                    | select(.status == "completed" and .conclusion == "failure")
                    | select(.name != "pr-contract / pr-contract")
                    | select(.name != "gate")
-                   | .name' | sort -u > /tmp/pr-reds.txt
-          cat /tmp/pr-alerts.txt >> /tmp/pr-reds.txt
-          sort -u /tmp/pr-reds.txt -o /tmp/pr-reds.txt
+                   | .name' | sort -u > /tmp/pr-reds-api.txt
+          # One admitted merge (codeowners_gap's allowlist refuses `sort -o`,
+          # which then left every later grader in this job unpinned).
+          sort -u /tmp/pr-reds-api.txt /tmp/pr-alerts.txt > /tmp/pr-reds.txt
           printf 'red checks the body must answer: %s\n' \
             "$(paste -sd, /tmp/pr-reds.txt)"
 
