@@ -5695,9 +5695,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-ci-layout-p2b-v2",
-    "commit": "5056615a28b861abb32a9b8ff2111340b7487146",
+    "commit": "b927f431abad03249ba91de5535f7e179f392d00",
     "last_step": null,
     "next_step": "P2b re-cut ca1bc2b0e being opened as a new PR (supersedes #2662); then review and the step-12 ruleset window. roster_sync set done at 20:08Z from #2638 (P2a), wrong: P2b unmerged.",
     "note": null,
