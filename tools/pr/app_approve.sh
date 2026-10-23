@@ -112,7 +112,8 @@ while True:
 # answers but answers wrong (head moved, no verdict, an owned path): those are
 # judged by the callers, after a COMPLETED read, and never reach this loop. The
 # exhausted budget refuses with the last error kept. Writes (the token mint,
-# the review POST) are never retried: they go through curl, not this.
+# the review POST) are never retried: they go through a bare curl, never
+# read_with.
 READ_TRIES=4
 READ_SLEEP=5
 GH_ERR=""
@@ -130,14 +131,15 @@ gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
   printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
 }
 
-# gh_read <var> <gh api args...>: sets <var> to the answer; on a refusal or a
-# spent budget returns 1 with GH_ERR holding gh's last stderr.
-gh_read() {
-  local _var=$1 _out _ef _try=1 _delay=$READ_SLEEP
-  shift
+# read_with <var> <fetcher> <args...>: sets <var> to the fetcher's answer; on a
+# refusal or a spent budget returns 1 with GH_ERR holding its last stderr. A
+# fetcher prints the answer on stdout and, on a failure, gh's stderr shape.
+read_with() {
+  local _var=$1 _fetch=$2 _out _ef _try=1 _delay=$READ_SLEEP
+  shift 2
   _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }
   while :; do
-    if _out=$(gh api "$@" 2>"$_ef"); then
+    if _out=$("$_fetch" "$@" 2>"$_ef"); then
       rm -f "$_ef"; printf -v "$_var" '%s' "$_out"; return 0
     fi
     GH_ERR=$(tr '\n' ' ' < "$_ef" | sed 's/ *$//')
@@ -152,6 +154,28 @@ gh_read() {
     _delay=$((_delay * 3))
     _try=$((_try + 1))
   done
+}
+
+# gh_read <var> <gh api args...>: a `gh api` read under the rule.
+gh_read() { read_with "$1" gh api "${@:2}"; }
+
+# curl_get <curl args...>: a curl GET in gh's shape, for the App's JWT read of
+# its installation, which gh cannot make. `-f` exits 22 for every status of 400
+# and over, so the status is read off `-w`, and a failure prints the status line
+# gh would have printed (with the API's message); a curl transport failure --
+# resolve, connect, timeout, TLS, an empty, unsent or broken reply -- prints gh's
+# `error connecting to`. Any other curl failure prints only curl's own stderr.
+curl_get() {
+  local out rc code msg
+  out=$(curl -sS -w '\n%{http_code}' "$@"); rc=$?
+  code=${out##*$'\n'}; out=${out%$'\n'*}
+  [ "$rc" -eq 0 ] && [ "${code#2}" != "$code" ] && { printf '%s' "$out"; return 0; }
+  case "$rc" in
+    0) msg=$(printf '%s' "$out" | python3 -c 'import sys,json; print(json.load(sys.stdin)["message"])' 2>/dev/null)
+       printf 'gh: %s(HTTP %s)\n' "${msg:+$msg }" "$code" >&2 ;;
+    6|7|28|35|52|55|56) printf 'error connecting to %s\n' "${API#https://}" >&2 ;;
+  esac
+  return 1
 }
 
 check_pr() { # repo pr sha -> refuses unless open at exactly sha
@@ -509,9 +533,10 @@ for path in sorted(paths):
   s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] \
     || die "signing the App JWT with $key failed"
   printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$PRIV/jwt.h"
-  inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
-    | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') \
-    || die "the App has no installation on $repo, or its JWT was refused"
+  read_with inst curl_get -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
+    || die "the App has no installation on $repo, or its JWT was refused: $GH_ERR"
+  inst=$(printf '%s' "$inst" | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') \
+    || die "the App's installation on $repo answered no id"
   curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
     | python3 -c 'import sys,json
 t = json.load(sys.stdin)["token"]
@@ -626,8 +651,18 @@ for a in "$@"; do
   case "$a" in https://*) url="$a" ;; @*.json) data="${a#@}" ;; @*.h) hdr="${a#@}" ;; esac
 done
 printf 'curl %s\n' "${url#https://api.github.com/}" >> "$STUB/log"
+w=""; for a in "$@"; do [ "$a" = -w ] && w=1; done
+# A queued answer: `curlfail-installation` holds `<curl exit>\t<status>\t<body>`
+# per call, popped in order; a non-zero exit fails after writing the body and
+# status it was given (`56` after a `200`: the connection dropped mid-body).
+if [ "${url##*/}" = installation ] && [ -s "$STUB/curlfail-installation" ]; then
+  IFS=$'\t' read -r rc code body < "$STUB/curlfail-installation"
+  tail -n +2 "$STUB/curlfail-installation" > "$STUB/cf.n"; mv "$STUB/cf.n" "$STUB/curlfail-installation"
+  [ "$rc" = 0 ] || { echo "curl: ($rc) stub transport failure" >&2; [ -z "$w" ] || printf '%s\n%s' "$body" "$code"; exit "$rc"; }
+  printf '%s' "$body"; [ -z "$w" ] || printf '\n%s' "$code"; exit 0
+fi
 case "$url" in
-  */repos/o/r/installation) cp "$hdr" "$STUB/jwtcopy"; printf '{"id": 99}' ;;
+  */repos/o/r/installation) cp "$hdr" "$STUB/jwtcopy"; printf '{"id": 99}'; [ -z "$w" ] || printf '\n200' ;;
   */app/installations/99/access_tokens)
     printf '{"token": "ghs_STUBTOKEN_must_never_print", "permissions": {"pull_requests": "write"}}' ;;
   */installation/token) grep -q 'ghs_STUBTOKEN' "$hdr" || exit 22 ;;
@@ -1280,6 +1315,116 @@ st "$(cut -f1 "$W/alts" | sort -u | tr '\n' '|')" "$(printf '%s\n' "$ALTS" | tr 
 st "$(cut -f1,2 "$W/alts" | sort -u | cut -f1 | uniq -c | awk '$1 != 2' | wc -l | tr -d ' ')" 0 \
    "(and every alternative holds both a transient input and a refused near-miss)"
 st "$(printf '%s\n' "$ALTS" | wc -l | tr -d ' ')" 9 "(nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default)"
+
+# The App's JWT read of its installation is a GitHub read too, made by curl:
+# its status is read off `-w`, put in gh's shape by curl_get, and classified by
+# the same gh_transient. cqueue <case> <class> <exit>\t<status>\t<body>...: an
+# arm's queued answers, each entered in the curl census below.
+cqueue() { local c=$1 k=$2 l; shift 2
+  for l; do printf '%b\n' "$l" >> "$W/$c/curlfail-installation"; printf '%s\t%s\t%b\n' "$k" "$c" "$l" >> "$W/curlcensus"; done; }
+mkcase ci502 open false "$SHA" "$GOOD"; cqueue ci502 transient '0\t502\t{"message": "Bad Gateway"}'
+run ci502 o/r 7 "$SHA"; st $? 0 "a 502 on the installation read, then an answer, is approved"
+st "$(calls ci502 'curl repos/o/r/installation')" 2 "with exactly 2 calls to that read"
+st "$(grep -c 'read 1/4 of https://api.github.com/repos/o/r/installation: gh: Bad Gateway (HTTP 502); sleeping 5s' "$W/ci502/err")" 1 "after a printed settle of 5 s"
+mkcase citransport open false "$SHA" "$GOOD"; cqueue citransport transient '28\t000\t'
+run citransport o/r 7 "$SHA"; st $? 0 "a curl timeout (exit 28) on the installation read, then an answer, is approved"
+st "$(calls citransport 'curl repos/o/r/installation')" 2 "with exactly 2 calls to that read"
+mkcase ci404 open false "$SHA" "$GOOD"; cqueue ci404 refuse '0\t404\t{"message": "Not Found"}'
+run ci404 o/r 7 "$SHA"; st $? 1 "REFUSE: a 404 on the installation read (the App is not installed)"
+st "$(calls ci404 'curl repos/o/r/installation')" 1 "after exactly 1 call: no retry masks a refusal"
+st "$(grep -c 'REFUSE: the App has no installation on o/r, or its JWT was refused: gh: Not Found (HTTP 404)$' "$W/ci404/err")" 1 "naming the status and message the API gave"
+st "$(calls ci404 'curl app/installations')" 0 "and no token was minted"
+mkcase ci401 open false "$SHA" "$GOOD"; cqueue ci401 refuse '0\t401\t{"message": "A JSON web token could not be decoded"}'
+run ci401 o/r 7 "$SHA"; st $? 1 "REFUSE: a 401 on the installation read (a refused JWT)"
+st "$(calls ci401 'curl repos/o/r/installation')" 1 "after exactly 1 call"
+mkcase cicert open false "$SHA" "$GOOD"; cqueue cicert refuse '60\t000\t'
+run cicert o/r 7 "$SHA"; st $? 1 "REFUSE: a curl failure that is not transport (exit 60, a certificate)"
+st "$(calls cicert 'curl repos/o/r/installation')" 1 "after exactly 1 call"
+mkcase ci200 open false "$SHA" "$GOOD"; cqueue ci200 answer '0\t200\t{"message": "no id"}'
+run ci200 o/r 7 "$SHA"; st $? 1 "REFUSE: an installation read that answers without an id"
+st "$(grep -c "REFUSE: the App's installation on o/r answered no id$" "$W/ci200/err")" 1 "judged after the completed read, never retried"
+st "$(calls ci200 'curl repos/o/r/installation')" 1 "after exactly 1 call"
+mkcase cispent open false "$SHA" "$GOOD"
+cqueue cispent transient '0\t500\t{"message": "Server Error"}' '7\t000\t' '0\t502\t' \
+  '0\t503\t{"message": "Service Unavailable"}' '0\t504\t'
+run cispent o/r 7 "$SHA"; st $? 1 "REFUSE: four transient failures on the installation read spend the budget"
+st "$(calls cispent 'curl repos/o/r/installation')" 4 "after exactly 4 calls"
+st "$(grep '^sleep' "$W/cispent/log" | tr '\n' ' ')" "sleep 5 sleep 15 sleep 45 " "settling 5/15/45 s between them"
+st "$(grep -c 'JWT was refused: gh: Service Unavailable (HTTP 503) (after 4 attempts)$' "$W/cispent/err")" 1 "naming the last error"
+st "$(calls cispent 'curl app/installations')" 0 "and no token was minted"
+# The curl census: every queued answer above goes through the production
+# curl_get against the stub, and its stderr through gh_transient, and must
+# carry the class its arm needs (`answer` for a 2xx); its precondition: every
+# curlfail file an arm made was entered in it, and all three classes are there.
+curl_bad=0; mkdir -p "$W/cc"
+while IFS=$'\t' read -r k c rc code body; do
+  printf '%s\t%s\t%s\n' "$rc" "$code" "$body" > "$W/cc/curlfail-installation"
+  if (export STUB="$W/cc" PATH="$W/bin:$PATH"; curl_get "$API/repos/o/r/installation" >/dev/null 2>"$W/cc/err"); then got=answer
+  elif gh_transient "$(cat "$W/cc/err")"; then got=transient; else got=refuse; fi
+  [ "$got" = "$k" ] || { echo "     curl census: $c '$rc $code $body' classifies $got, its arm needs $k"; curl_bad=$((curl_bad + 1)); }
+done < "$W/curlcensus"
+st "$curl_bad" 0 "every queued curl answer classifies as its arm needs (production curl_get and gh_transient)"
+st "$(cut -f2 "$W/curlcensus" | sort -u | wc -l | tr -d ' ')" "$(ls "$W"/*/curlfail-installation | grep -vc '/cc/')" "(the census covers every curlfail file an arm made)"
+st "$(cut -f1 "$W/curlcensus" | sort -u | tr '\n' ' ')" "answer refuse transient " "(and holds all three classes)"
+
+# Every alternative of curl_get, pinned from both sides through the stub: an
+# answer it must put in a retried shape and a near-miss it must not. CALTS
+# derives them from curl_get's own source -- each `|` alternative of each
+# `case` label -- plus `default`, which holds near-misses only (an exit no
+# label names prints curl's stderr alone), and the table must key exactly that.
+CALTS=$( { sed -n '/^curl_get() {/,/^}/p' "$SELF" | grep -v '^ *#' | grep -oE "^ +[^ ()]+\)" \
+  | sed -E 's/^ +//; s/\)$//' | tr '|' '\n'; echo default; } | sort -u)
+cat > "$W/calts" <<'CALT'
+0	transient	0	503	{"message": "Service Unavailable"}
+0	transient	0	502	
+0	refuse	0	404	{"message": "Not Found"}
+0	refuse	0	403	{"message": "Resource not accessible by integration"}
+0	transient	0	403	{"message": "You have exceeded a secondary rate limit"}
+0	refuse	0	301	
+6	transient	6	000	
+6	refuse	5	000	
+7	transient	7	000	
+7	refuse	8	000	
+28	transient	28	000	
+28	refuse	27	000	
+35	transient	35	000	
+35	refuse	34	000	
+52	transient	52	000	
+52	refuse	51	000	
+55	transient	55	000	
+55	refuse	54	000	
+56	transient	56	000	
+56	transient	56	200	{"id": 9
+56	refuse	57	000	
+default	refuse	60	000	
+default	refuse	22	000	
+CALT
+calt_bad=0
+while IFS=$'\t' read -r a k rc code body; do
+  printf '%s\t%s\t%s\n' "$rc" "$code" "$body" > "$W/cc/curlfail-installation"
+  if (export STUB="$W/cc" PATH="$W/bin:$PATH"; curl_get "$API/repos/o/r/installation" >/dev/null 2>"$W/cc/err"); then got=answer
+  elif gh_transient "$(cat "$W/cc/err")"; then got=transient; else got=refuse; fi
+  [ "$got" = "$k" ] || { echo "     curl alternative '$a': '$rc $code $body' classifies $got, want $k"; calt_bad=$((calt_bad + 1)); }
+done < "$W/calts"
+st "$calt_bad" 0 "every alternative of curl_get classifies as the table needs (production curl_get and gh_transient)"
+st "$(cut -f1 "$W/calts" | sort -u | tr '\n' '|')" "$(printf '%s\n' "$CALTS" | tr '\n' '|')" \
+   "(the curl table keys exactly the alternatives curl_get's source holds)"
+st "$(grep -v '^default' "$W/calts" | cut -f1,2 | sort -u | cut -f1 | uniq -c | awk '$1 != 2' | wc -l | tr -d ' ')" 0 \
+   "(and every curl alternative but default holds both a transient input and a refused near-miss)"
+
+# The twin: gh_read.py is this classifier in Python, for merge_train.py and
+# record_row.py. Both read the alternatives table above, and must agree on
+# every row (the Python twin's own rows are in its own self-test).
+twin_bad=0; twin_n=0
+while IFS=$'\t' read -r a k l; do
+  twin_n=$((twin_n + 1))
+  x=$(printf '%b' "$l")
+  if gh_transient "$x"; then b=transient; else b=refuse; fi
+  if printf '%s' "$x" | python3 "$(dirname -- "$SELF")/../audit/seat/gh_read.py" --classify; then p=transient; else p=refuse; fi
+  [ "$b" = "$p" ] || { echo "     twin: '$l' is $b here and $p in gh_read.py"; twin_bad=$((twin_bad + 1)); }
+done < "$W/alts"
+st "$twin_bad" 0 "gh_read.py's gh_transient agrees with this one on every row of the alternatives table"
+st "$twin_n" "$(wc -l < "$W/alts" | tr -d ' ')" "(and read every row)"
 
 mkcase post502 open false "$SHA" "$GOOD"; echo 'curl: (22) The requested URL returned error: 502' > "$W/post502/refuse-post"
 run post502 o/r 7 "$SHA"; st $? 1 "a 502 on the review POST refuses: a write is never retried"
