@@ -1,0 +1,27 @@
+        pass
+    reset = headers.get("x-ratelimit-reset") or ""
+    if headers.get("x-ratelimit-remaining") == "0" and reset.isdigit():
+        return int(reset) - now
+    return None
+
+
+def urllib_wait(failure: BaseException, now: Callable[[], float] = time.time) -> float | None:
+    """`retry`'s classifier for urllib: an HTTPError by its status, message and
+    headers; a connection-level failure as transport; anything else refuses."""
+    if isinstance(failure, urllib.error.HTTPError):
+        headers = failure.headers or {}
+        wait = named_wait(headers, now())
+        if headers.get("x-ratelimit-remaining") == "0":
+            return wait  # a spent bucket: only its reset, never the schedule
+        try:
+            body = failure.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001 -- an unreadable body is no message
+            body = ""
+        if not http_transient(failure.code, f"{failure.reason} {body}"):
+            return None
+        return wait or 0.0
+    if isinstance(failure, (urllib.error.URLError, http.client.HTTPException,
+                            ConnectionError, TimeoutError)):
+        return 0.0
+    return None
+
