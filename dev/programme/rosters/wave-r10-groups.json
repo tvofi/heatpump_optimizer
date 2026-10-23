@@ -8588,6 +8588,49 @@
     "branch": null
    },
    "brief": "seam_cut_total in tests/structure.py counts cross-seam attribute-reference occurrences, so a local alias pays (O19, planted as `prices = self._prices`, -2) and a bare getter that returns a tuple of state reads pays (rule 14, planted as `_cop_state()`, -2). Count distinct (seam, attribute) pairs reached, including through a callee, or refuse a callee whose only body is a tuple of state reads. A failing test first: plant the alias and the getter on a clean tree; neither may move the figure, and that plant is also the null control. Use the finder's harness, the plants plant_p2.diff and plant_p3.diff in the ev/ directory of probe/rev-2620-654004be. Any budget re-record the metric change forces goes in the commit message, per CLAUDE.md rule 2, and a raise needs the owner's confirmation before the branch is pushed. Follow dev/governance/roles/fixer.md."
+  },
+  {
+   "group": "R10-FLY-NO-FOOTERS-PUSH-PATHS",
+   "lane": "FLY",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "wave": 4,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/handoff_push.sh",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/ci_probe.py",
+    "tools/pr/app_push.sh",
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "hot_files": [
+    "tools/pr/app_push.sh"
+   ],
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "severity": "medium",
+   "findings": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "From #2662 round 2 (P2b coordinator, 2026-10-23): two holes let commit 767a06f7f (Co-Authored-By plus Claude-Session, authored 03:51Z on 2026-10-23, after the guard a4b27986 reached main at 7deeef1b6 06:08Z) reach a PR head. (1) Cloud and handoff pushes run no message guard: the cloud harness's own git push of handoff/<topic> and handoff_push.sh call no ref_privacy/attribution check. The u4 session's base 4200ea4c4 lacked both the guard and the .claude/settings.json attribution off-switch. (2) A commit first published through a ci-probe/* ref (ci_probe.py judges only the ref name and log lines, line ~180) is then exempt from app_push.sh's first-publish scope (line ~481), so cc51e6626 rode into #2662 unjudged. Fix both: judge commit messages on every push path that publishes commits, and make app_push judge every commit the PR adds over main, not only first-published ones. Each needs a failing fixture first and a null control. Open question for this group's design: 19 commits in P2b are AUTHORED 'Claude <noreply@anthropic.com>' (the cloud seat default identity). The owner's rule names footers, trailers and session links, not authors, so decide and record whether author identity is in scope; do not widen it silently.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
