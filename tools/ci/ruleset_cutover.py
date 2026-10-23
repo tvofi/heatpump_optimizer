@@ -524,6 +524,14 @@ class FakeGh:
         if path == RULESET:
             return (1, "gh: HTTP 502") if self.fail_get else (0, json.dumps(self.state))
         g = self.green
+        if path.startswith(f"repos/{REPO}/actions/workflows/"):
+            wf = path[len(f"repos/{REPO}/actions/workflows/"):].split("/", 1)[0]
+            pr = g.get("push_runs", {"tests.yml": [{"id": 820001, "created_at": "2026-10-23T10:00:00Z"}]})
+            return 0, json.dumps({"workflow_runs": pr.get(wf, [])})
+        if path.startswith(f"repos/{REPO}/actions/runs/") and "/jobs" in path:
+            rid = int(path[len(f"repos/{REPO}/actions/runs/"):].split("/", 1)[0])
+            jb = g.get("jobs", {820001: [{"name": "ci-ratchet", "conclusion": "success"}]})
+            return 0, json.dumps({"jobs": jb.get(rid, jb.get(str(rid), []))})
         if path.startswith(f"repos/{REPO}/commits/") and "/" not in path[len(f"repos/{REPO}/commits/"):]:
             return 0, json.dumps(g.get("commit", {"parents": [{"sha": g["head"]}]}))
         for prefix, key in ((f"repos/{REPO}/commits/", "check_runs"), (f"repos/{REPO}/compare/", "compare"), ("user", "user"),
@@ -808,6 +816,30 @@ def self_test() -> int:
         check("disable: the pr-cc set with arch-score green succeeds", rc == 0, out)
         f, rc, out, _ = dis(variant(user=lambda u: {"login": "hpo-author[bot]"}))
         check("disable plant caller not tvofi: refuses, no PUT", rc == 2 and f.puts == [], out)
+        # No window while main's newest completed push run shows ci-ratchet red (owner
+        # ruling (a), #2662 round 2): the payment lands first and main goes green alone.
+        check("disable: the null passes main-ratchet-green", "main-ratchet-green: PASS" in dis(g_win)[2])
+
+        def ratchet(push_runs, jobs):
+            g = copy.deepcopy(g_win)
+            g["push_runs"], g["jobs"] = push_runs, jobs
+            return g
+        t_old = {"tests.yml": [{"id": 820001, "created_at": "2026-10-23T10:00:00Z"}]}
+        both = {**t_old, "ci.yml": [{"id": 820002, "created_at": "2026-10-23T11:00:00Z"}]}
+        for name, g in (
+                ("main's newest push run shows ci-ratchet red",
+                 ratchet(t_old, {820001: [{"name": "ci-ratchet", "conclusion": "failure"}]})),
+                ("main has no completed push run", ratchet({}, {})),
+                ("the newest push run has no ci-ratchet job", ratchet(t_old, {820001: [{"name": "fast (3.14)", "conclusion": "success"}]})),
+                ("an older push run green, the newer umbrella run's tests / ci-ratchet red",
+                 ratchet(both, {820001: [{"name": "ci-ratchet", "conclusion": "success"}],
+                                820002: [{"name": "tests / ci-ratchet", "conclusion": "failure"}]}))):
+            f, rc, out, _ = dis(g)
+            check(f"disable plant {name}: refuses, no PUT",
+                  rc == 2 and f.puts == [] and "main-ratchet-green: FAIL" in out, out)
+        f, rc, out, _ = dis(ratchet(both, {820001: [{"name": "ci-ratchet", "conclusion": "failure"}],
+                                           820002: [{"name": "tests / ci-ratchet", "conclusion": "success"}]}))
+        check("disable: the newest push run's green ci-ratchet decides, over an older red", rc == 0, out)
 
         # --enable: from the window state, after P2b's merge commit is on main.
         rb = rbp()
