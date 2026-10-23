@@ -1115,7 +1115,13 @@ def predicted_next_room_temp(coord: Any) -> float | None:
     return predict() if callable(predict) else None
 
 
-def model_restart_advice(coord: Any) -> dict[str, Any]:
+def restart_advice(
+    ring: SnapshotRing | None,
+    scale: float,
+    params: ThermalParameters,
+    tracker: AccuracyTracker,
+    dt_hours: float,
+) -> dict[str, Any]:
     """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
 
     Nothing until the #42 alarm is raised. Then the last known-good
@@ -1124,9 +1130,6 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
     evidence that raised the alarm. Recommend-only: nothing here applies
     anything; the restore service does, on an explicit request.
     """
-    ctx = getattr(coord, "_ctx", coord)
-    ring = getattr(coord, "_snapshot_ring", None)
-    scale = getattr(coord, "_house_heat_loss_scale", None)
     advice: dict[str, Any] = {
         "drift_alarm": bool(getattr(ring, "alarmed", False)),
         "current_scale": None if scale is None else round(float(scale), 3),
@@ -1142,19 +1145,31 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
             "taken_at": snap.get("taken_at"),
             "scale": thermal.get("house_heat_loss_scale"),
         }
-    base_u, capacity = _house_loss_terms(ctx._thermal_params)
+    base_u, capacity = _house_loss_terms(params)
     advice["refit"] = heat_loss_refit(
-        coord._accuracy.samples,
-        current_scale=float(coord._house_heat_loss_scale),
+        tracker.samples,
+        current_scale=float(scale),
         base_u=base_u,
         capacity=capacity,
-        dt_hours=ctx._config.optimization_interval / 60.0,
+        dt_hours=dt_hours,
         min_delta=HOUSE_LOSS_MIN_DELTA,
         max_residual=HOUSE_LOSS_MAX_RESIDUAL,
         settle=boost.SPACE_SETTLE_TAIL,
-        since=coord._accuracy.evidence_since,
+        since=tracker.evidence_since,
     )
     return advice
+
+
+def model_restart_advice(coord: Any) -> dict[str, Any]:
+    """``restart_advice`` read off the coordinator's own learners."""
+    ctx = getattr(coord, "_ctx", coord)
+    return restart_advice(
+        getattr(coord, "_snapshot_ring", None),
+        coord._house_heat_loss_scale,
+        ctx._thermal_params,
+        coord._accuracy,
+        ctx._config.optimization_interval / 60.0,
+    )
 
 
 async def async_adopt_heat_loss_refit(coord: Any) -> bool:
@@ -1184,7 +1199,9 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
     )
     await coord._async_save_thermal_learning()
     await coord._async_save_accuracy()
-    coord.async_update_listeners()
+    # A cycle re-plans on the adopted scale and re-takes the advice the
+    # inbox and the house grade read (``_insight_view``, once a cycle).
+    await coord.async_request_refresh()
     return True
 
 #: Which configured entity backs each published temperature -- the table
@@ -1325,6 +1342,22 @@ def house_loss_confidence(samples: int) -> float:
     level so tests import it rather than re-implement it (issue #91).
     """
     return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))
+
+
+#: The confidence one EWMA time constant (``1 / HOUSE_LOSS_ALPHA`` samples)
+#: reaches, about ``1 - 1/e``: from here on more of the scale is measurement
+#: than starting prior. Derived from the learner's constant, no tuning of its own.
+_HOUSE_LOSS_CONVERGED_CONFIDENCE = house_loss_confidence(round(1.0 / HOUSE_LOSS_ALPHA))
+
+
+def house_loss_converged(samples: int) -> bool:
+    """Whether the heat-loss scale is the house as measured (#2258).
+
+    The one predicate the learning view's ``house_heat_loss_learned`` (the
+    Health tab's "learned") and the envelope grade both read, so the two
+    cannot disagree about whether the learner has converged.
+    """
+    return house_loss_confidence(samples) >= _HOUSE_LOSS_CONVERGED_CONFIDENCE
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -2534,6 +2567,108 @@ def _effective_house_heat_loss(
     else:
         base = params.heat_loss_coefficient
     return round(base * scale, 4)
+
+
+def _watched_cop_buckets(baseline: Mapping[Any, Any]) -> int:
+    """COP baseline buckets with enough samples for the health watch (#12).
+
+    The machine grade and the learning view's ``cop_health`` count the same
+    buckets through this, so the Health tab and the score agree on whether
+    the watch has evidence.
+    """
+    return sum(
+        1
+        for entry in baseline.values()
+        if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+    )
+
+
+def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
+    """The drift advisor's heat-loss refit sits outside its own band of ``scale``.
+
+    The refit is the learner's own Newton relation pooled over settled pairs,
+    so it attributes a bias to the heat loss; a bias alarm the refit does not
+    move the scale for (solar, COP, a sensor) is no reason to doubt the grade.
+    """
+    refit = advice.get("refit") or {}
+    fitted = refit.get("scale")
+    if fitted is None:
+        return False
+    band = float(refit.get("band_percent") or 0.0) / 100.0
+    return abs(float(fitted) - scale) > band * scale
+
+
+def envelope_score(
+    params: ThermalParameters, samples: int, advice: Mapping[str, Any]
+) -> tuple[float | None, str | None]:
+    """The house grade (#65) and, when it is None, the one code saying why.
+
+    The time constant ``room_thermal_mass / loss`` in hours, mapped from
+    20 h (a leaky house) to 100 h (a well-insulated one). ``loss`` is the
+    model's own whole-house figure, both zones with the learned split --
+    the one the Health tab publishes (#2239) -- so the grade is the house
+    as measured, not as configured. The codes, in precedence (#2258):
+    nothing to grade; the learner still walking from its prior; a refit
+    of settled evidence outside its band of the learned scale.
+    """
+    # The scale's own writers clamp it; a configured or service-written
+    # value does not pass through that clamp, hence the floor.
+    scale = max(params.house_heat_loss_scale, 0.1)
+    # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
+    loss = _effective_house_heat_loss(params, scale)
+    if loss <= 0.0 or params.room_thermal_mass <= 0:
+        return None, "no_house_model"
+    if not house_loss_converged(samples):
+        return None, "heat_loss_learning"
+    if _refit_disagrees(advice, scale):
+        return None, "heat_loss_refit_disagrees"
+    tau_h = params.room_thermal_mass / loss
+    return float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0, None
+
+
+def machine_score(
+    baseline: Mapping[Any, Any], cusum_stat: float
+) -> tuple[float | None, str | None]:
+    """The heat pump grade (#65) and, when it is None, the code saying why.
+
+    100 while the COP watch (#12) accumulates no shortfall; the grade falls
+    as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    """
+    if not _watched_cop_buckets(baseline):
+        return None, "cop_watch_learning"
+    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+
+
+def operation_reason(score_day: Mapping[str, Any]) -> str:
+    """Why the operation grade is None: a free-price reset, or no day scored yet."""
+    free = _as_float(score_day.get("free_streak"), 0.0)
+    return "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
+
+
+def compose_scores(
+    envelope: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None],
+    operation: tuple[float | None, str | None],
+) -> Scores:
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+
+    Envelope is the house; it stays in the breakdown. Overall is machine and
+    operation only -- averaging the house in is how a DHW-only cheap-hour plan
+    reads as 5/100. None is no evidence and is never 0: each None carries one
+    code in ``reasons`` (#2258), and a grade carries none.
+    """
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
+    available = [g for g, _why in (machine, operation) if g is not None]
+    if not available:
+        reasons["overall"] = "first_scored_day"
+    return {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "machine": None if machine[0] is None else round(machine[0], 1),
+        "operation": None if operation[0] is None else round(operation[0], 1),
+        "overall": round(float(np.mean(available)), 1) if available else None,
+        "reasons": reasons,
+    }
 
 
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
@@ -7552,10 +7687,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The scale is re-anchored on load when an options edit changes
             # the configured loss (#110, _reanchor_house_heat_loss_scale), so
             # the effective figure is the configured one times a scale fitted
-            # against it; "learned" counts samples, not certainty.
+            # against it; "learned" is the envelope grade's convergence rule.
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
-            "house_heat_loss_learned": self._house_heat_loss_samples > 0,
+            "house_heat_loss_learned": house_loss_converged(
+                self._house_heat_loss_samples
+            ),
             "house_heat_loss_effective": _effective_house_heat_loss(
                 ctx._thermal_params, self._house_heat_loss_scale
             ),
@@ -7595,11 +7732,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "immersion_active": self._immersion_active,
             "immersion_evidence": list(self._immersion_evidence),
             "cop_health": {
-                "watched_buckets": sum(
-                    1
-                    for entry in self._cop_baseline.values()
-                    if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-                ),
+                "watched_buckets": _watched_cop_buckets(self._cop_baseline),
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),
             },
@@ -9389,7 +9522,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             snap.get("taken_at"),
         )
         await _async_save_restored(self)
-        self.async_update_listeners()
+        await self.async_request_refresh()  # re-plan and re-take the advice, as adopt does
         return True
 
     async def _async_load_snapshots(self) -> None:
@@ -10296,57 +10429,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._operation_score = sample
         self._schedule_ledger_save()
 
-    def _scores_view(self) -> Scores:
-        """#65: envelope, machine and operation on one 0–100 scale.
+    def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
+        """#65's scores off this coordinator's learners (``compose_scores``).
 
-        Envelope is the house; it stays in the breakdown. Overall is
-        machine and operation only — averaging the house in is how a
-        DHW-only cheap-hour plan reads as 5/100. None is no evidence.
+        ``advice`` is this cycle's ``model_restart_advice``, taken once.
         """
-        ctx = getattr(self, "_ctx", self)
-        envelope = None
-        loss = (
-            ctx._thermal_params.heat_loss_coefficient
-            * max(ctx._thermal_params.house_heat_loss_scale, 0.1)
-        )
-        if loss > 1e-6 and ctx._thermal_params.room_thermal_mass > 0:
-            # The house's time constant in hours: how long the stored heat
-            # lasts against the losses. ~20 h is a leaky house, ~100 h a
-            # well-insulated one; the learned loss scale keeps the grade
-            # honest about the house as measured, not as configured.
-            tau_h = ctx._thermal_params.room_thermal_mass / loss
-            envelope = float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0
-
-        machine = None
-        watched = sum(
-            1
-            for entry in self._cop_baseline.values()
-            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
-        )
-        if watched:
-            # 100 while the COP watch (#12) accumulates no shortfall; the
-            # grade falls as the Cusum climbs toward its alarm.
-            machine = (
-                1.0
-                - float(
-                    np.clip(
-                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
-                        0.0,
-                        1.0,
-                    )
-                )
-            ) * 100.0
-
         operation = self._operation_score
-        available = [s for s in (machine, operation) if s is not None]
-        return {
-            "envelope": round(envelope, 1) if envelope is not None else None,
-            "machine": round(machine, 1) if machine is not None else None,
-            "operation": round(operation, 1) if operation is not None else None,
-            "overall": (
-                round(float(np.mean(available)), 1) if available else None
+        return compose_scores(
+            envelope_score(
+                getattr(self, "_ctx", self)._thermal_params,
+                self._house_heat_loss_samples,
+                advice,
             ),
-        }
+            machine_score(self._cop_baseline, self._cop_health_cusum.stat),
+            (operation, None if operation is not None else operation_reason(self._score_day)),
+        )
+
     def _narrative_view(self) -> Narrative:
         """#29: the current plan grouped by reason, with rendered lines."""
         result = self._optimization_result
@@ -10470,9 +10568,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
         reports = self._month_reports
+        # Once per cycle: the advisor sensor and the envelope grade read it.
+        advice = model_restart_advice(self)
         return {
             "narrative": self._narrative_view(),
-            "scores": self._scores_view(),
+            "scores": self._scores_view(advice),
+            "model_restart": advice,
             "compressor_starts": {
                 "lifetime": self._start_counter.lifetime,
                 "month": self._start_counter.month_count(

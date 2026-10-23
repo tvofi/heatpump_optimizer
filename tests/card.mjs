@@ -5433,7 +5433,7 @@ function ctxL(card, key) {
     /House: 90\/100/.test(scoreTitle) && /Heat pump: 75\/100/.test(scoreTitle),
     scoreTitle);
   check("and says the unmeasured part has no evidence, not zero",
-    /Driving: No evidence yet/.test(scoreTitle), scoreTitle);
+    /Driving: — No evidence yet/.test(scoreTitle), scoreTitle);
   check("and invites the click that opens the panel",
     /Click for/.test(scoreTitle), scoreTitle);
 
@@ -5458,7 +5458,7 @@ function ctxL(card, key) {
     /buying at or above flat scores 0/.test(openDump),
     (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
   check("an unmeasured part shows no-evidence, never 0/100",
-    /sb-na">No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
+    /sb-na">— No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
   check("a measured part gets its bar and value",
     /sb-fill[^>]*width:90%/.test(openDump) && /sb-val">90\/100/.test(openDump));
   hl.shadowRoot.querySelector('[data-stat="score"]')
@@ -5496,6 +5496,91 @@ function ctxL(card, key) {
     /Körningen/.test(svOpen) && /Inget underlag ännu/.test(svOpen),
     (svOpen.match(/score-breakdown[\s\S]{0,500}/) || [""])[0]);
   build(full); // back to English
+}
+
+// --- Scenario: a score with no evidence is a dash and a reason (#2258) --------
+// The coordinator publishes a sub-score it has no evidence for as None, which
+// reaches the card as JSON null, with one code per None in `reasons`.
+// `Number(null)` is 0, so a null read without `readNumber` printed 0/100 for a
+// heat pump with too little COP data -- the owner's report.
+{
+  const SCORE = "sensor.heat_pump_optimizer_optimization_score";
+  const withScore = (state, attributes) => ({
+    ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    [SCORE]: { state, last_updated: "t1", attributes: { stat_kind: "optimization_score", ...attributes } },
+  });
+  const surfaces = (states) => {
+    const card = build(states);
+    const closed = collect(card.shadowRoot).join("\n");
+    const title = (closed.match(/data-stat="score" title="([^"]*)"/) || [null, null])[1];
+    const tile = card.shadowRoot.querySelector('[data-stat="score"]');
+    if (tile) tile.dispatchEvent({ type: "click", stopPropagation() {} });
+    const open = collect(card.shadowRoot).join("\n");
+    const row = (key) => (open.match(new RegExp(`data-part="${key}"[\\s\\S]*?sb-text`)) || [""])[0];
+    return { closed, title, row, headline: (closed.match(/hl-score[\s\S]*?hl-value">([^<]*)</) || [null, null])[1] };
+  };
+  const nullParts = surfaces(withScore("60", {
+    envelope: null, machine: null, operation: 60, overall: 60,
+    reasons: { envelope: "heat_loss_learning", machine: "cop_watch_learning" } }));
+  check("a heat pump with no COP evidence is never 0/100 in the hover",
+    !!nullParts.title && !/Heat pump: 0\/100/.test(nullParts.title) && !/House: 0\/100/.test(nullParts.title)
+    && /Heat pump: — Not enough COP data yet/.test(nullParts.title)
+    && /House: — Still learning the house's heat loss/.test(nullParts.title), nullParts.title);
+  check("nor in the breakdown: a dash and the reason the coordinator named",
+    /sb-na">— Not enough COP data yet/.test(nullParts.row("machine"))
+    && /sb-na">— Still learning/.test(nullParts.row("envelope"))
+    && !/0\/100/.test(nullParts.row("machine")) && !/sb-fill/.test(nullParts.row("machine")),
+    nullParts.row("machine"));
+
+  // One message everywhere: for every score input -- a grade, or null with
+  // each code the coordinator can publish for it -- the headline, the hover
+  // and the breakdown say one number or one reason, never both and never a
+  // grade the input does not carry.
+  const CODES = {
+    envelope: ["no_house_model", "heat_loss_learning", "heat_loss_refit_disagrees"],
+    machine: ["cop_watch_learning"],
+    operation: ["no_scored_day", "free_price_reset"],
+  };
+  const LABEL = { envelope: "House", machine: "Heat pump", operation: "Driving" };
+  const walked = [];
+  for (const key of Object.keys(CODES)) {
+    for (const input of [42, ...CODES[key]]) {
+      const attrs = { envelope: 70, machine: 80, operation: 90, reasons: {} };
+      attrs[key] = typeof input === "number" ? input : null;
+      if (typeof input !== "number") attrs.reasons[key] = input;
+      // Overall is the mean of machine and operation, as the coordinator takes it.
+      const driven = [attrs.machine, attrs.operation].filter((v) => v !== null);
+      attrs.overall = driven.reduce((a, b) => a + b, 0) / driven.length;
+      const got = surfaces(withScore(String(attrs.overall), attrs));
+      const text = typeof input === "number" ? null : fn("STRINGS.en")[`score.reason_${input}`];
+      const hover = (got.title || "").split(/\n| · /).find((l) => l.startsWith(`${LABEL[key]}:`)) || "";
+      const row = got.row(key);
+      const ok = got.headline === `${Math.round(attrs.overall)}/100` && (text === null
+        ? hover.includes(`${LABEL[key]}: 42/100`) && /sb-val">42\/100/.test(row) && !/sb-na"/.test(row)
+        : !!text && hover.includes(`— ${text}`) && row.includes(`sb-na">— ${text}`)
+          && !/\d+\/100/.test(hover) && !/sb-val|sb-fill/.test(row));
+      walked.push(`${key}=${input}`);
+      check(`score input ${key}=${input}: headline, hover and breakdown say one thing`, ok,
+        `${got.headline} | ${hover} | ${row}`);
+    }
+  }
+  // The walk's own precondition: it drives every code the card has words
+  // for, so a code added to the string table and not here is red.
+  const worded = Object.keys(fn("STRINGS.en")).filter((k) => k.startsWith("score.reason_"))
+    .map((k) => k.slice("score.reason_".length)).sort();
+  const driven = [...Object.values(CODES).flat(), "first_scored_day"].sort();
+  check("the walk drove every code the card has words for",
+    walked.length === Object.values(CODES).reduce((n, c) => n + 1 + c.length, 0)
+    && JSON.stringify(worded) === JSON.stringify(driven), `${walked.join(" ")} | ${worded}`);
+  // No overall grade: the sensor stays `unknown` with its attributes, and no
+  // surface invents a headline number for it.
+  const unscored = surfaces(withScore("unknown", {
+    envelope: 70, machine: null, operation: null, overall: null, waiting_for: "first_scored_day",
+    reasons: { machine: "cop_watch_learning", operation: "no_scored_day", overall: "first_scored_day" } }));
+  check("with no overall grade the headline shows no score at all",
+    unscored.headline === null && unscored.title === null
+    && !/class="score-breakdown"/.test(unscored.closed), `${unscored.headline} ${unscored.title}`);
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 }
 
 // --- Scenario: reduced motion is honored (v4.2.0) ---------------------------
@@ -11441,7 +11526,10 @@ check("without an indoor reading the corner now label is absent",
     s[`${PFX}_plan_monthly_savings`] = { state: "unavailable", attributes: {} };
     s[`${PFX}_learning_observed_cop`] = { state: "unavailable", attributes: {} };
     s[`${PFX}_prediction_accuracy`] = { state: "0.3", last_updated: "t1", attributes: { waiting_for: null } };
-    s[`${PFX}_plan_optimization_score`] = { state: "unavailable", attributes: {} };
+    // The score stays `unknown` with its attributes while it waits (#2258).
+    s[`${PFX}_plan_optimization_score`] = { state: "unknown", last_updated: "t1", attributes: {
+      waiting_for: "first_scored_day", overall: null,
+      reasons: { machine: "cop_watch_learning", operation: "no_scored_day", overall: "first_scored_day" } } };
     return s;
   };
   const mkHealth = (states, lang) => {
