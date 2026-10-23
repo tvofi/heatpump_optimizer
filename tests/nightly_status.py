@@ -43,7 +43,7 @@ every night teaches people to re-run the check rather than read it, which is
 the same blindness this exists to remove. A newer run still in flight is
 reported as an extra line, never as the verdict.
 
-THE FOUR STATES, AND WHY EACH DOES WHAT IT DOES
+THE FIVE STATES, AND WHY EACH DOES WHAT IT DOES
 -----------------------------------------------
 FAILED   the run's OWN conclusion is outside {success, skipped, neutral}, or at
          least one job of it is. RED. Names every failing job, the age in
@@ -62,15 +62,24 @@ RUNNING  no scheduled run has concluded inside the window, and one is in
          flight. RED, and worded as "no concluded result", because a lane whose
          only answer is "ask again later" is a dark lane. It is a distinct
          state from FAILED and prints as one.
-ABSENT   no scheduled run at all; or the newest concluded one is older than
-         `--max-age-nights`; or it concluded without running one of
-         `REQUIRED_LANES`. RED. The cron is daily, so a gap is either the
-         schedule not firing -- GitHub disables schedules on repositories with
-         no activity -- or a run that never finished. "No scheduled run found"
-         must never read as "passed", which is the whole failure mode of a
-         check that treats missing evidence as good evidence; and neither must
-         "the run concluded and the lane inside it was skipped", which is the
-         same error one level down.
+ABSENT   no scheduled run at all, from a workflow GitHub reports disabled or
+         one registered longer ago than `NEW_WINDOW`; or the newest concluded
+         run is older than `--max-age-nights`; or it concluded without running
+         one of `REQUIRED_LANES`. RED. "No scheduled run found" must never read
+         as "passed", which is the whole failure mode of a check that treats
+         missing evidence as good evidence; and neither must "the run
+         concluded and the lane inside it was skipped", which is the same error
+         one level down. The report names the cause it READ -- GitHub's own
+         `state` for the workflow -- and never one it guessed: the arm used to
+         say "GitHub disables schedules on repositories with no recent
+         activity" of a workflow that was active and nine hours old, and every
+         pull request had to answer that false diagnosis in its body.
+NEW      no run at all, the workflow is `active`, and GitHub registered it less
+         than `NEW_WINDOW` ago -- one cron period plus an hour, so its first
+         slot has not yet been owed a run. GREEN, and it says why. Bounded, so
+         a schedule that never fires still turns ABSENT within a day of the
+         workflow reaching `main`: the window hides no dead cron for longer
+         than the first one it would have missed.
 
 Staleness is decided on the newest concluded run whatever its conclusion, and
 it wins over FAILED: a failure from nine nights ago is not "the last nightly
@@ -142,6 +151,22 @@ DEFAULT_WORKFLOW = "nightly.yml"
 # instead would have left the flag meaning "the first age refused".
 MAX_AGE_NIGHTS = 2
 
+# How long a workflow with no run at all reads NEW rather than ABSENT, measured
+# from GitHub's `created_at` for it. `nightly.yml`'s cron is daily -- the same
+# fact `MAX_AGE_NIGHTS` counts in -- so its first slot falls within one period
+# of whenever the file reached `main`, whatever the slot's clock time; the hour
+# is slack for the delay GitHub documents for scheduled runs under load. The
+# bound needs only the period, not the cron's clock fields, so it reads no YAML.
+# `tests/entities.py` pins the period against the workflow's own `cron:`.
+SCHEDULE_PERIOD = dt.timedelta(days=1)
+SCHEDULE_LATENCY = dt.timedelta(hours=1)
+NEW_WINDOW = SCHEDULE_PERIOD + SCHEDULE_LATENCY
+
+# GitHub's word for a workflow whose schedule may fire. Every other `state`
+# (`disabled_inactivity`, `disabled_manually`, `disabled_fork`, `deleted`) is a
+# reason it will not, and the report prints that word rather than a guess.
+ACTIVE_STATE = "active"
+
 # Conclusions that are not this repository saying no. `skipped` matters: a
 # scheduled run of this workflow skips `fast`, `browser`, `typing`,
 # `closure-scope` and every autofix job by design, so treating a skip as a
@@ -183,6 +208,7 @@ FAILED = "FAILED"
 PASSED = "PASSED"
 RUNNING = "RUNNING"
 ABSENT = "ABSENT"
+NEW = "NEW"
 UNREADABLE = "UNREADABLE"
 
 EXIT_GREEN = 0
@@ -321,17 +347,74 @@ def missing_lanes(jobs: list[dict]) -> list[str]:
     return [lane for lane in REQUIRED_LANES if lane not in ran]
 
 
+def never_ran(workflow: dict | None, now: dt.datetime) -> tuple[str, int, list[str]]:
+    """NEW or ABSENT for a workflow with no scheduled or verifying run at all.
+
+    Decided on what GitHub says of the workflow, never on a guessed cause. No
+    record (the `--run` path, or a caller that did not read it) is ABSENT: the
+    window is a reason to stay green, and an unread reason is not one.
+    """
+    headline = (f"NIGHTLY {ABSENT}: no scheduled run of the workflow was found "
+                "at all.")
+    if workflow is None:
+        return ABSENT, EXIT_RED, [
+            headline,
+            "  The workflow's own record was not read, so neither its state nor "
+            "its age is known; no run is not a pass.",
+        ]
+    state = workflow.get("state")
+    if not isinstance(state, str):
+        raise Unreadable(f"the workflow record carried no 'state' ({state!r})")
+    if state != ACTIVE_STATE:
+        return ABSENT, EXIT_RED, [
+            headline,
+            f"  GitHub reports the workflow's state as {state!r}: its schedule "
+            "does not fire. Re-enable it (`gh workflow enable "
+            f"{workflow.get('path', DEFAULT_WORKFLOW).rsplit('/', 1)[-1]}`) "
+            "and verify with a dispatch.",
+        ]
+    # GitHub writes this stamp with the server's offset (`+02:00` observed on
+    # 2026-10-22), unlike a run's Zulu one; the report states it in UTC.
+    created = parse_ts(workflow.get("created_at")).astimezone(dt.timezone.utc)
+    if created > now:
+        # An age read from a stamp ahead of the reading clock is unknowable,
+        # never zero -- and zero is the age that would read NEW.
+        raise Unreadable(
+            f"the workflow's created_at {created.isoformat()} is ahead of this "
+            f"clock ({now.isoformat()}); its age is unknowable")
+    age_h = (now - created).total_seconds() / 3600
+    window_h = NEW_WINDOW.total_seconds() / 3600
+    if now - created < NEW_WINDOW:
+        return NEW, EXIT_GREEN, [
+            f"NIGHTLY {NEW}: the workflow is active and GitHub registered it "
+            f"{age_h:.1f} h ago ({created.isoformat()}); no scheduled run "
+            "exists yet, and none is owed before its first cron slot.",
+            f"  This turns ABSENT at {window_h:.0f} h -- one cron period plus "
+            "an hour of schedule latency -- if no run has appeared by then. It "
+            "is not a pass: nothing has run.",
+        ]
+    return ABSENT, EXIT_RED, [
+        headline,
+        f"  GitHub reports the workflow 'active', registered {age_h:.1f} h ago "
+        f"({created.isoformat()}), longer than the {window_h:.0f} h in which "
+        "its first scheduled slot falls; the schedule should have fired and "
+        "did not.",
+    ]
+
+
 def verdict(
     concluded: dict | None,
     in_flight: dict | None,
     jobs: list[dict],
     now: dt.datetime,
     max_age_nights: int = MAX_AGE_NIGHTS,
+    workflow: dict | None = None,
 ) -> tuple[str, int, list[str]]:
     """Classify. Returns (state, exit code, report lines).
 
-    Pure: every input is data, so the four states are drivable from
-    `tests/entities.py` without a network.
+    Pure: every input is data, so the five states are drivable from
+    `tests/entities.py` without a network. `workflow` is GitHub's record of the
+    workflow itself (`state`, `created_at`), read only when no run exists.
     """
     if concluded is None:
         if in_flight is not None:
@@ -343,13 +426,7 @@ def verdict(
                 f"  {in_flight.get('html_url', '')}",
                 "  There is no answer about the nightly yet. This is not a pass.",
             ]
-        return ABSENT, EXIT_RED, [
-            f"NIGHTLY {ABSENT}: no scheduled run of the workflow was found at "
-            "all.",
-            "  The cron is daily, so this is the schedule not firing -- GitHub "
-            "disables schedules on repositories with no recent activity -- and "
-            "not a pass.",
-        ]
+        return never_ran(workflow, now)
 
     started = parse_ts(concluded.get("created_at"))
     nights = nights_ago(started, now)
@@ -535,8 +612,13 @@ def collect(repo: str, workflow: str, token: str | None,
             default_branch: str = DEFAULT_BRANCH,
             now: dt.datetime | None = None,
             max_age_nights: int = MAX_AGE_NIGHTS,
-            ) -> tuple[dict | None, dict | None, list[dict]]:
-    """Fetch what `verdict` classifies. Three GETs on the discovery path."""
+            ) -> tuple[dict | None, dict | None, list[dict], dict | None]:
+    """Fetch what `verdict` classifies. Three GETs on the discovery path.
+
+    A fourth, the workflow's own record, only when no run was found at all:
+    that is the one question a run cannot answer, and asking it on every pull
+    request would spend the API for nothing.
+    """
     if run_id is not None:
         run = _get(f"{API}/repos/{repo}/actions/runs/{run_id}", token)
         if run.get("event") not in VERIFYING_EVENTS:
@@ -582,7 +664,10 @@ def collect(repo: str, workflow: str, token: str | None,
             concluded, in_flight = pick_runs(
                 [*more, *(r for r in (concluded, in_flight) if r is not None)])
     jobs = _jobs(repo, concluded["id"], token) if concluded else []
-    return concluded, in_flight, jobs
+    record = (_get(f"{API}/repos/{repo}/actions/workflows/{workflow}", token)
+              if run_id is None and concluded is None and in_flight is None
+              else None)
+    return concluded, in_flight, jobs, record
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -602,11 +687,11 @@ def main(argv: list[str] | None = None) -> int:
 
     now = dt.datetime.now(dt.timezone.utc)
     try:
-        concluded, in_flight, jobs = collect(
+        concluded, in_flight, jobs, record = collect(
             args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run,
             args.default_branch, now, args.max_age_nights)
         state, code, lines = verdict(
-            concluded, in_flight, jobs, now, args.max_age_nights)
+            concluded, in_flight, jobs, now, args.max_age_nights, record)
     except Unreadable as exc:
         state, code = UNREADABLE, EXIT_UNREADABLE
         lines = [
