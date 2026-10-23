@@ -867,6 +867,27 @@ jobs:
           python3 -I tools/audit/seat/ci_probe.py --self-test | tee "$RUNNER_TEMP/ci-probe-self-test.txt"
           grep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"
 
+      - name: Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/codescan_wait.py --self-test | tee "$RUNNER_TEMP/codescan-wait-self-test.txt"
+          grep -Eq '^codescan_wait self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/codescan-wait-self-test.txt"
+
+      - name: Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/ci_predict.py --self-test | tee "$RUNNER_TEMP/ci-predict-self-test.txt"
+          grep -Eq '^ci_predict self-test: 0 failed$' "$RUNNER_TEMP/ci-predict-self-test.txt"
+
+      - name: Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/local_alerts.py --self-test | tee "$RUNNER_TEMP/local-alerts-self-test.txt"
+          grep -Eq '^local_alerts self-test: 0 failed$' "$RUNNER_TEMP/local-alerts-self-test.txt"
+
       # alert_list.py's rules, each deleted in turn: the self-test must refuse every
       # mutant (the script takes no other mode; --self-test names the run).
       - name: Show the alert lister's mutants each refused by its self-test
