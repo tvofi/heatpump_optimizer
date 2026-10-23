@@ -6967,7 +6967,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud fixer dispatched 2026-10-23 ~12:40Z",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+    "note": "Started ahead of its after-edge R10-UPDATE-PR-SIGNALS by orchestrator ruling (mandate 6329234399): it blocks the critical-path merge seat (P-O, 4 instances in 2 days). TICK-OWED-LEVEL, FLOW-ANDON and FLOW-RELAY-HOLD are done. UPDATE-PR-SIGNALS (held) and ORCH-LEDGER (in flight) also edit cloud_relay.sh; whichever lands later merges main."
    }
   },
   {
