@@ -8965,7 +8965,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
         )
         value = reading.value if reading.ok else None
-        return value if value is not None and 0.0 < value <= 100.0 else None
+        return value if value is not None and 0.0 <= value <= 100.0 else None
 
     def _mold_floor_series(
         self, outdoor: np.ndarray, target_cap: float | None = None
