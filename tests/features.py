@@ -20236,6 +20236,13 @@ R.check(
     "a machine at the alarm threshold grades 0",
     _cmach._scores_view()["machine"] == 0.0,
 )
+# Past the alarm the Cusum keeps climbing; the grade stays at 0, never below.
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, not below",
+    _cmach._scores_view()["machine"] == 0.0,
+    str(_cmach._scores_view()["machine"]),
+)
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
     _cop6._fold_score_sample(_T6, 1.0, 1.6 * 1.0, _spot6, 0.25, True)
