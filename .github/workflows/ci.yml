@@ -109,16 +109,6 @@ jobs:
           python3 -I tools/ci/prelude.py --changed-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
 
   # >>> units: PROBE CUT (U0c probe ref, never P2b): one trivial unit.
-  probe:
-    needs: prelude
-    if: contains(format(' {0} ', needs.prelude.outputs.workset), ' probe ')
-    uses: ./.github/workflows/probe.yml
-    with:
-      pr: ${{ needs.prelude.outputs.pr }}
-      base: ${{ needs.prelude.outputs.base }}
-      head: ${{ needs.prelude.outputs.head }}
-    permissions:
-      contents: read
   # <<< units
 
   # An event can make an earlier green `gate` at this head stale: re-run the
@@ -144,7 +134,7 @@ jobs:
   # The one required check. Never skippable: a skipped required check passes.
   # It trusts no guard; gate.py derives what the event owes from the event.
   gate:
-    needs: [prelude, probe]
+    needs: [prelude]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
