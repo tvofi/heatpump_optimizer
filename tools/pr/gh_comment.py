@@ -133,12 +133,15 @@ def read_body(path: str) -> str:
 def privacy_check(body: str, ident=None) -> None:
     """Refuse a body that names this host: its home, account name, uid or a
     session temp root (#2310's class; a verdict's evidence line carried the
-    home path). ref_privacy.py owns the classes; the text is not echoed."""
+    home path), or one carrying a tool's attribution (R10-FLY-NO-FOOTERS: a
+    session link, the generated-by footer). ref_privacy.py owns the classes;
+    the text is not echoed."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "audit", "seat"))
     import ref_privacy
     why = ref_privacy.body_refusal(body, ident)
     if why:
-        die(f"{why} would publish this host (#2310); post it home-relative (~/...) or without the path")
+        die(f"{why} would publish this host (#2310) or a tool's attribution; post it home-relative (~/...) "
+            "or without the path, and with no footer")
 
 
 def positive_int(value: str, what: str) -> int:

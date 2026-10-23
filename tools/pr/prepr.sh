@@ -1405,7 +1405,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry; do
+  for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry attribution; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
     st $? 1 "a body with $f is refused"
   done
@@ -1422,6 +1422,8 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; fi
+  st $? 0 "a healthy body naming claude.ai in another sense is silent (the attribution arm's null control)"
 
   # The hooks check, driven over one fixture per way a wiring can be wrong.
   # `empty` and `broken` matter most: a settings file with no hooks, and one
@@ -2472,8 +2474,12 @@ EOF
   bbody none 'none
 
 https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+  grep -q "ERROR .*carries a tool's attribution (session-link)" <<<"$got" && ! grep -q 'does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+  bbody none none; got=$(lpush)
   grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
-  st $? 0 "and pushes a body the lint passes, the cloud harness's session-link line under Friction included"
+  st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
   (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
   grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"
