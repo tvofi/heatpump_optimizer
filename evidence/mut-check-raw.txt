@@ -1,0 +1,136 @@
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+  ok   a push diff no closure mentions selects a FULL plan
+  ok   the FULL plan reuses nothing from a fully populated base
+  ok   a FULL plan measures even the script its own skip names
+  ok   the push marker at the expected base is trusted
+  ok   a non-push run's marker is discarded: reuse never engages from a non-push run
+  ok   a push marker naming another commit is discarded
+  ok   a missing marker is a discard, never a trust
+  ok   coverage-trust exits 0 only on the trusted marker
+  ok   the summary line states the reuse count and the backstop loss
+  ok   a run that reused nothing says so
+  ok   the push arm restores through the same key formula
+  ok   the push arm's plan comes from select at the restored base
+  ok   the coverage job states the reuse count in its summary
+  ok   coverage_tree.sh provenances every entry it leaves in per/
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+=== the batch proof's recordings fail closed (round-9 C2) ===
+  ok   proof-consume accepts recordings whose manifest names this tree
+  ok   proof-consume refuses a manifest naming ANOTHER tree
+  ok   proof-consume refuses no manifest at all
+  ok   proof-consume refuses an artifact with no recordings
+  ok   proof-consume refuses an unhealthy recording
+  ok   proof-consume refuses a set missing selectable scripts
+  ok   proof-consume refuses a malformed recording
+
+=== the scoped re-derive's lane plan (round-9 R1) ===
+  ok   the lanes cover every script exactly once
+  ok   LPT balances the recorded seconds across the lanes
+  ok   an unrecorded script plans at 0.0s rather than refusing
+  ok   more lanes than scripts leaves no empty lane behind
+  ok   a duplicate input script is refused
+  ok   plan_view.py shares a lane with both card scripts it feeds
+  ok   and is recorded ahead of them, from a list that put it last
+  ok   a driven child shares its driver's lane, driver first
+  ok   the CI bound is three lanes
+  ok   and a request past it is clamped, never honoured
+  ok   the seat bound is four lanes
+  ok   a seat request past four is clamped too
+  ok   $DERIVE_LANES requests the lane count (the serial control)
+  ok   the CLI plans every input script over the live table
+  ok   the live-table plan keeps plan_view.py ahead of the card in its lane
+  ok   and never exceeds the owner's lane bound
+  ok   the runner records every listed script exactly once
+  ok   two recordings ran at the same time (a lane MAX, not a serial SUM)
+  ok   a script recorded by no lane fails the derive loudly
+  ok   the full arm's plan covers every recorded script exactly once
+  ok   every producer/driver edge stays inside one lane, in order
+  ..   full-arm lane walls (recorded s): lane 1 1234.2, lane 2 1234.2, lane 3 1234.2
+  ok   the planned max lane is under half the table's recorded seconds, or equals the heaviest indivisible script no plan can beat
+  ok   the CLI derives the full arm's recording set from the tree
+  ok   and refuses both inputs at once
+  ok   the full arm records every derived script through the planner
+
+=== the changed-file list keeps both sides of a rename (O17) ===
+  ok   the changed list keeps both sides of a rename onto a delivery row
+  ok   null control: porcelain git diff lists the row alone (the seam is real)
+  ok   so the gate does not scope a deleted entry point to zero scripts
+  ok   no rename-detecting --name-only diff under RENAME_SITES
+  ok   no stale RENAME_ALLOW entry
+  ok   the census reads .mjs: it refuses the porcelain JS diff, not its twin or the comment
+  ok   the census joins a backslash continuation: it refuses the split porcelain diff at its first line
+  ok   the census refuses a planted rename-detecting diff, and only it
+  ok   and reports every allow entry nothing matches as stale
+
+=== a recording's INERT split is this tree's (r10-rca-inert-closure-recording) ===
+  ok   the fixture's moved file is out of INERT and its kept one is INERT
+  FAIL check reads a stale recording's INERT read of an excepted file as UNDER-SCOPED  [rc=0 log='closure: committed closures cover every file this run touched\n']
+  FAIL check passes once the closure lists it and inert_reads keeps only the INERT file (null control)  [rc=1 log='DS UNDER-APPROXIMATED: a recording opened an INERT file the\n  committed `inert_reads` does not list for it; the merge fast path\n  would treat a change to it as unread (R9-F10.9d). Re-derive:\n  ./tests/derive_closures.sh --single <script>\n    tests/harness_headers.py: tools/audit/seat/merge_train.py\n']
+  ok   merge of the same recording writes the excepted file into the closure and only the INERT one under inert_reads
+
+2 of 117 closure shrink pins FAILED

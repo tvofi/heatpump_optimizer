@@ -1,0 +1,5 @@
+measured head: 0dda6260a8261233bb435442e52c219f3117a747 (authored code head e9d169b79b16355cdfa64d50d11daab2d7475c54)
+merge base: 4c31eb16e5756579e1c951ff560bd3d7a8e39c4c
+origin/main at publish: fd7e289d0 (git merge-tree --write-tree origin/main 0dda6260a rc=0)
+stale CI recording: artifact 12493224545 (closure-recordings, head_sha d0ff8268bfd592acaae772affefa4ef481ef7975), file harness_headers.py.json, copied to art/hh/
+throwaway clone: see clone-dir.txt (git clone --no-checkout of the local repo, mktemp -d)

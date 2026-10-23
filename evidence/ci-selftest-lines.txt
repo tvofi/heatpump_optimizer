@@ -1,0 +1,5 @@
+ * [new branch]          fix/r10-rca-inert-closure-recording -> origin/fix/r10-rca-inert-closure-recording
+ * [new branch]          handoff-body/r10-rca-inert-closure-recording -> origin/handoff-body/r10-rca-inert-closure-recording
+ * [new branch]          handoff/r10-rca-inert-closure-recording -> origin/handoff/r10-rca-inert-closure-recording
+  ok   6d predicts UNDER-SCOPED for a file an INERT edit takes out while the table lists it under inert_reads alone (r10-rca-inert-closure-recording)
+  ok   and is quiet once the closure lists it, the INERT edit otherwise the same (null control)
