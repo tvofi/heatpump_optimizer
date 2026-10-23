@@ -970,7 +970,8 @@ def _self_test() -> int:
         "# s9 batch 1\n\n## P1: fold the orphan discharge arm\n"
         "Verdict: ACCEPT -> R9-B (carry)\nSource: sweep\n\n"
         "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
-        "## P3: no verdict line\nSource: sweep\n", encoding="utf-8")
+        "## P3: no verdict line\nSource: sweep\n\n"
+        "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n", encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
     run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture triage ruling"])
     run(["git", "-C", str(seed), "push", "-q", str(origin), "main:refs/heads/main"])
@@ -984,6 +985,8 @@ def _self_test() -> int:
           and cited in branch_roster()["groups"][1]["carry"])
     check("triage gate: a REJECT ruling is refused",
           refuses("REJECT", "append-carry", "R9-B", f"proposal P2: a watcher. triage: {ruling}#P2"))
+    check("triage gate: a DEFER ruling is refused: only an ACCEPT is routed",
+          refuses("DEFER", "append-carry", "R9-B", f"proposal P4: a watcher. triage: {ruling}#P4"))
     check("triage gate: an entry with no verdict line is refused",
           refuses("unreadable", "append-carry", "R9-B", f"proposal P3. triage: {ruling}#P3"))
     check("triage gate: a cited entry the batch lacks is refused",

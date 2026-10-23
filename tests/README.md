@@ -269,7 +269,7 @@ and key the verdict on what does not move (#1725: the ftol check's loosened arm
 read 60.54-63.48 SEK across four BLAS kernels (same tree and wheels)
 against a 0.1% bound, while the production arm held 61.24-61.28: a bound
 set from two environments). Instrument:
-`tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
+`dev/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via
 `OPENBLAS_CORETYPE`; the AVX-512 point is CI's own green logs. Prefer a
 same-run quantity whose basin choice cancels (`env_drift.py`'s capture-twice)
 or an arm measured bit-stable across kernels. `run.sh` prints the kernel class each run, so a red coinciding with a pool

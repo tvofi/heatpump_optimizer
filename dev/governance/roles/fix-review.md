@@ -51,7 +51,10 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
-    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`, posted
+    `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
+    could have shown the red before the handoff (name it),
+    `blocked <sha> root-cause-unrecorded: <check>` where that check is the
+    cheapest, `root-cause-unanswered` only if you cannot tell; each posted
     only once the head's workflows all concluded and a `pr-contract` run started after
     the last to conclude red, else the push-time run, checked the body (tvofi,
     2026-10-08); while it refuses, wait or hand back unverdicted, saying so.
@@ -83,8 +86,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
     The handoff makes the head yours from then on, so one that moved under you
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
-    instead is yours to offer and is never owed — a violation the reviewer
-    absorbs silently costs the seat that committed it nothing, which is how it recurs.
+    instead is yours to offer, never owed.
 
     **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
     section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
@@ -124,12 +126,9 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
     kind of move on the same instrument with nothing improved. If it reproduces
     the movement, block only where the diff's change is that shape; under a sound
-    change it is an instrument finding, carried by `finding-propagation.md`.
-    Reviewers planting unasked caught junk splitting a clone read as score gain
-    (#1874), a `killed_by` its own lane refuted and an `entities.py` self-kill
-    (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
-    body lists and hunt one it missed: one that truly improves the code is
-    `metric-gamed` too.
+    change it is an instrument finding, carried by `finding-propagation.md`
+    (#1874, #1867, #1868). On a raise, judge each payment the body lists and
+    hunt one it missed: one that truly improves the code is `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
