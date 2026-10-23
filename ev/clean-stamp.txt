@@ -1,0 +1,1 @@
+RESULT stamp_self_test=pass

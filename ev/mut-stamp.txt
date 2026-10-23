@@ -1,0 +1,2 @@
+  FAIL stamp message: ref_privacy's own reader finds no attribution in it
+RESULT stamp_self_test=fail

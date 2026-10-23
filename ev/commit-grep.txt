@@ -1,0 +1,1 @@
+fix: stop the delivery-row and stamp commits writing a Co-Authored-By trailer
