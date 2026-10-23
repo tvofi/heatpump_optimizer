@@ -37768,5 +37768,38 @@ R.check(
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
 )
 
+# THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
+# unit-pinned in `policy_lint.mjs`'s acceptance, but the saving only exists if
+# every invocation of the three modes in the `record` job carries the same
+# `--window-cache` file: drop it from one and that mode walks the window again
+# on the GITHUB_TOKEN bucket, with every other check green (the reviewer's
+# mutants M1-yaml and Y1). Both spellings of the `.claude` / `tools` arm count.
+# This reads the job text, so it pins the artifact the runner executes.
+import re as _re_wc
+_WC_JOB = _workflow_job(
+    Path(".github/workflows/governance.yml").read_text(), "record")
+_WC_SEEN = {}
+for _wc_m in _re_wc.finditer(r"node\s+(?:\S*policy_lint\.mjs|\"\$_pl\")\s+--(record|stats|sunset)\b", _WC_JOB):
+    _wc_rest = _WC_JOB[_wc_m.end():]
+    _wc_seg = _re_wc.split(r"\bnode\s|\n\s*- name:|\n\n", _wc_rest, maxsplit=1)[0]
+    _WC_SEEN.setdefault(_wc_m.group(1), []).append(
+        _re_wc.findall(r"--window-cache\s+(\"[^\"]+\")", _wc_seg))
+_WC_SHAPE = {k: len(v) for k, v in sorted(_WC_SEEN.items())}
+R.check(
+    "the record job's three modes are all found, so the wiring check below reads something",
+    _WC_SHAPE == {"record": 1, "sunset": 2, "stats": 2} or _WC_SHAPE == {"record": 1, "stats": 2, "sunset": 2},
+    f"invocations found per mode: {_WC_SHAPE} (--record once, --stats and "
+    "--sunset once per `.claude`/`tools` arm). A pattern that matched nothing "
+    "would make the next check vacuously true",
+)
+_WC_FILES = {tuple(f) for v in _WC_SEEN.values() for f in v}
+R.check(
+    "every record-job invocation of --record, --stats and --sunset passes the same --window-cache file",
+    bool(_WC_SEEN) and _WC_FILES == {('"$RUNNER_TEMP/window.json"',)},
+    f"distinct --window-cache arguments per invocation: {sorted(_WC_FILES)}. "
+    "An invocation without it walks the window itself (834 calls against 370 "
+    "in `record_api_calls.sh`); two different files would share nothing",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

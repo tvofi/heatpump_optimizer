@@ -4598,7 +4598,7 @@ function assertAcceptance(derived) {
   // window that resolves in every shape. Then the WIRING, as a subprocess per
   // mode: a seeded file for that window must reach each mode's `WINDOW_CACHE:`
   // line as served, and without the flag the line must say `off`.
-  pins += 5
+  pins += 7
   const wcFail = []
   const wcDir = fs.mkdtempSync(path.join(os.tmpdir(), 'policy-lint-window-'))
   try {
@@ -4622,6 +4622,27 @@ function assertAcceptance(derived) {
     fetchWindowShared([{ pr: '7' }, { pr: '8' }], wcSince, wcFile, okReads)
     pullsByShaShared(commits, wcSince, null, okPulls)
     if (calls !== 2) wcFail.push('a cache missing a pull request, or no cache file at all, served a read it does not hold (null control)')
+    // A failed enumeration writes nothing: two reads over a 403 must fetch twice
+    // and the file must not exist, or the saturation case this cache exists for
+    // reaches --stats/--sunset as a measured window with no pull requests.
+    const badPulls = () => (calls++, { ok: false, why: 'HTTP 403 from fixture' })
+    const failFile = path.join(wcDir, 'failed.json')
+    calls = 0
+    const failed = pullsByShaShared(commits, wcSince, failFile, badPulls)
+    pullsByShaShared(commits, wcSince, failFile, badPulls)
+    if (calls !== 2 || failed.ok || fs.existsSync(failFile)) wcFail.push('a failed commit-to-PR enumeration was cached or served: it must fetch again and write nothing')
+    const refetched = pullsByShaShared(commits, wcSince, failFile, okPulls)
+    if (!refetched.ok || refetched.fromCache || refetched.map.get('a1') !== '7') wcFail.push('a read after a failed enumeration did not fetch for itself (null control)')
+    // A file left from another window or head is ignored, not trusted.
+    const foreignFile = path.join(wcDir, 'foreign.json')
+    const foreignSeed = JSON.stringify({ key: `${windowKey(wcSince)}-foreign`, pullsBySha: { map: [['zz', '9']], gapShas: [] }, prReads: { 7: { body: 'stale' } } })
+    fs.writeFileSync(foreignFile, foreignSeed)
+    const foreignFile2 = path.join(wcDir, 'foreign2.json')
+    fs.writeFileSync(foreignFile2, foreignSeed)
+    calls = 0
+    const foreign = pullsByShaShared(commits, wcSince, foreignFile, okPulls)
+    const foreignReads = fetchWindowShared([{ pr: '7' }], wcSince, foreignFile2, okReads)
+    if (calls !== 2 || foreign.fromCache || foreign.map.has('zz') || foreignReads.fromCache || foreignReads.fetched.get('7')?.body === 'stale') wcFail.push('a window cache keyed on another window was served instead of ignored')
     const seeded = path.join(wcDir, 'seeded.json')
     fs.writeFileSync(seeded, JSON.stringify({ key: windowKey(wcSince), pullsBySha: { map: [], gapShas: [] }, prReads: {} }))
     const wants = { '--record': ['commit-to-PR map'], '--stats': ['commit-to-PR map', 'per-PR reads'], '--sunset': ['commit-to-PR map', 'per-PR reads'] }
