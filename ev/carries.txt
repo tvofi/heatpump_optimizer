@@ -1,0 +1,25 @@
+== c137945d6ad3b9a2d3e475e860dfdacba9216756
+on-ref
+roster_edit append-carry R10-FLY-YIELD-GUARD (tools/audit/seat/roster_edit.py)
+
+ dev/programme/rosters/wave-r10-groups.json | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
++    "From #2579's round-6 review (review/2579 f7a6bdf0c), the R10-FLOW-YIELD-PROBE measurement: two corrected points bind the yield-probe guardrail that this group owns (item b8b28b28).\n(1) P(X <= 4 | n=30, p=0.28) = 0.0495, so the 30-PR arm trips at 4 or fewer first-pass merges, not 3.\n(2) Any ALPHA the guardrail adopts must be checked at P = 0.0526 (k = 2 of 20) for the 20-PR arm.\nRe-derive both figures from dev/audit/rounds/round10/D13/yield-probe.md at this group's merge base before adopting them. The control is the one already carried: a planted defect of each class trips the guardrail, and a null window does not.",
++    "From R10-FLOW-TOOLKIT-MEASURE (#2645, handoff-body/r10-flow-toolkit-measure at a7ef03069016), Forward-carry: review_strength.py could not read a pruned bus: from the first `prune_refs.py` archive pass, every review-strength figure taken at the base reads only the live `review/*` refs (103 of 655 verdicts here). Any guardrail that reads review strength, and every #201 state comment that runs it (R13), must run it at or after this head."
+== 5e70cc5cee8e7f1e27747cf523a558ba1f061700
+on-ref
+roster_edit append-carry R10-CI-LAYOUT-P2 (tools/audit/seat/roster_edit.py)
+
+ dev/programme/rosters/wave-r10-groups.json | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
++    "From #2627 (R10-NIGHTLY-ABSENT): **The NEW window's precondition on `nightly.yml`'s schedule.** `tests/nightly_status.py`'s no-run arm reads NEW (green) for one cron period plus an hour after the workflow's `created_at`, then ABSENT. The period is `SCHEDULE_PERIOD` (one day), and a `tests/entities.py` check refuses it unless `nightly.yml` carries exactly one cron of the daily shape `M H * * *`. So a change to `nightly.yml`'s schedule (a second cron, or a non-daily one) turns that check red and must re-derive the window rather than edit the regex. A new scheduled workflow is watched by no reporter until one names it, because `DEFAULT_WORKFLOW` is `nightly.yml` alone. Control: `verdict(None, None, [], created+26h, workflow={'state': 'active', ...})` reads ABSENT; at `created+9h` it reads NEW. Re-measure at your merge base.",
++    "From R10-FLOW-TOOLKIT-MEASURE (#2645, handoff-body/r10-flow-toolkit-measure at a7ef03069016), Forward-carry: `ci_critpath.py --drop-edge` refuses on a run whose workflow has no such edge, so a `--last N` window that straddles a job-graph change refuses rather than mixing two graphs; R10-CI-LAYOUT's next fixer reads its figure over runs on one side of the change (`--event`, `--branch`, or `--run` lists)."
+== 2ad8710e4682c61ad7ef74a98c3d4b5e483e85e0
+on-ref
+roster_edit append-carry R10-FLOW-JIDOKA (tools/audit/seat/roster_edit.py)
+
+ dev/programme/rosters/wave-r10-groups.json | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
++    "From #2629 (R10-RECORD-API-BUDGET), Friction: tools/pr/prepr.sh: cost: its agreement lane runs the branch copy only, so the base-copy run the dispatch asked for was hand-built from wave-script's restore step. It took about 5 minutes and one wrong pass, because `governance.yml` holds three `Restore the check source from the base commit` steps and the first match is not wave-script's.",
++    "From R10-FLOW-TOOLKIT-MEASURE (#2645, handoff-body/r10-flow-toolkit-measure at a7ef03069016), Friction: r10_seat_selftests_mutants: stale: `S36`'s pattern (`out=$(push_app 2)  # mut:push-open`) is no longer in `tools/audit/seat/handoff_push.sh` at origin/main, so the harness reports `S36 ... NOT RUN` and `RESULT survivors=1` on every branch, this one included; the pin #2444 asked for no longer runs."
+CARRY-AUDIT #2645: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
