@@ -478,6 +478,8 @@ class FakeGh:
         if path == RULESET:
             return (1, "gh: HTTP 502") if self.fail_get else (0, json.dumps(self.state))
         g = self.green
+        if path.startswith(f"repos/{REPO}/commits/") and "/" not in path[len(f"repos/{REPO}/commits/"):]:
+            return 0, json.dumps(g.get("commit", {"parents": [{"sha": g["head"]}]}))
         for prefix, key in ((f"repos/{REPO}/commits/", "check_runs"), (f"repos/{REPO}/compare/", "compare"), ("user", "user"),
                             (f"repos/{REPO}/actions/runs", "runs"), (f"repos/{REPO}/pulls", "pulls")):
             if path.startswith(prefix):
@@ -507,6 +509,13 @@ def self_test() -> int:
         with contextlib.redirect_stdout(o), contextlib.redirect_stderr(e):
             rc = main(argv, gh=fake)
         return rc, o.getvalue() + e.getvalue()
+
+    # The integration id is pinned by a literal, not by NEW_CHECKS itself: the App
+    # `gate` must come from is the GitHub Actions App, 15368 (#2662 review).
+    check("NEW_CHECKS is [gate @ the GitHub Actions App 15368], by literal",
+          NEW_CHECKS == [{"context": "gate", "integration_id": 15368}] and GATE_APP_ID == 15368, str(NEW_CHECKS))
+    check("the payload's one context carries integration_id 15368",
+          [c.get("integration_id") for c in contexts(payload(six(ruleset)))] == [15368])
 
     with tempfile.TemporaryDirectory() as td, contextlib.chdir(td):
         staged = os.path.join(td, "staged.json")
@@ -645,6 +654,7 @@ def self_test() -> int:
         f = FakeGh(payload(ruleset) | {"id": RULESET_ID}, green)
         argv, rb = apply_argv()
         Path(rb).write_text(json.dumps(ruleset))
+        Path(rb + DIGEST_SUFFIX).write_text(digest(six(ruleset)) + "\n")
         rc, out = run(f, ["--rollback", rb])
         check("rollback: restores the 17 and reads all six back",
               rc == 0 and f.puts == [six(ruleset)] and "ROLLBACK READBACK OK" in out, out)
@@ -653,6 +663,33 @@ def self_test() -> int:
         check("rollback: a read-back mismatch refuses", rc == 2 and "ROLLBACK READBACK FAILED" in out, out)
         rc, out = run(FakeGh(ruleset, green), ["--rollback", "relative.json"])
         check("rollback: a relative path refuses", rc == 2, out)
+        # The copy is bound to the digest written beside it at save time (#2662 review):
+        # a copy edited between --disable and --rollback is never PUT.
+        f = FakeGh(payload(ruleset), green)
+        argv, rbx = apply_argv()
+        rc, out = run(f, argv)
+        check("save writes the six-key digest beside the copy",
+              Path(rbx + DIGEST_SUFFIX).read_text().strip() == digest(six(ruleset)), out)
+        edited = json.loads(Path(rbx).read_text())
+        edited["enforcement"] = "evaluate"
+        Path(rbx).write_text(json.dumps(edited))
+        f = FakeGh(payload(ruleset), green)
+        rc, out = run(f, ["--rollback", rbx])
+        check("rollback plant: a copy edited after save refuses, no PUT",
+              rc == 2 and f.puts == [] and "digest" in out, out)
+        Path(rbx + DIGEST_SUFFIX).unlink()
+        Path(rbx).write_text(json.dumps(ruleset))
+        f = FakeGh(payload(ruleset), green)
+        rc, out = run(f, ["--rollback", rbx])
+        check("rollback plant: a copy with no digest beside it refuses, no PUT", rc == 2 and f.puts == [], out)
+        short16 = copy.deepcopy(ruleset)
+        contexts(short16).pop()
+        Path(rbx).write_text(json.dumps(short16))
+        Path(rbx + DIGEST_SUFFIX).write_text(digest(six(short16)) + "\n")
+        f = FakeGh(payload(ruleset), green)
+        rc, out = run(f, ["--rollback", rbx])
+        check("rollback plant: a self-consistent copy of 16 contexts refuses, no PUT",
+              rc == 2 and f.puts == [] and "expected exactly 17" in out, out)
 
     # THE RULESET-OFF WINDOW (tvofi 2026-10-23, under the R10 mandate): --disable turns
     # enforcement off for P2b's merge, --enable PUTs [gate] after it, --verify reads main's gate.
@@ -668,20 +705,26 @@ def self_test() -> int:
             return lambda c: {"total_count": len(named), "check_runs": [
                 {"id": 910000 + i, "name": nm, "head_sha": H, "status": "completed", "conclusion": cc,
                  "app": {"id": GATE_APP_ID}, "check_suite": {"id": 710000 + i}} for i, (nm, cc) in enumerate(named)]}
-        window = [("tests / fast (3.14)", "success"), ("governance / policy-docs", "failure"),
-                  ("governance / env-matrix", "failure"), ("governance / wave-script", "failure"),
-                  ("gate", "failure")]
+        import gate as gate_mod
+        owed = [n for n in gate_mod.REQUIRED["pr"] if n not in BASE_PINNED]
+        window = [*[(n, "success") for n in owed], *[(n, "failure") for n in BASE_PINNED],
+                  ("kernel-points / kernel-points", "skipped"), ("gate", "failure")]
         g_win = variant(check_runs=runs_at(*window))
 
-        def dis(g, **over):
+        def dis(g, reaches=False, **over):
             v = {"--rollback-file": rbp(), "--staged": staged, "--head": H, "--pr": str(PR), **over}
             f = FakeGh(ruleset, g)
-            rc, out = run(f, ["--disable", *[x for kv in v.items() if kv[1] is not None for x in kv]])
-            return f, rc, out, v["--rollback-file"]
+            o, e = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(o), contextlib.redirect_stderr(e):
+                rc = main(["--disable", *[x for kv in v.items() if kv[1] is not None for x in kv]],
+                          gh=f, reaches=lambda base, head: reaches)
+            return f, rc, o.getvalue() + e.getvalue(), v["--rollback-file"]
         f, rc, out, rb = dis(g_win)
-        check("disable: only the base-pinned reds (and gate) at H: succeeds", rc == 0, out)
-        check("disable: one PUT, the copy with enforcement disabled and nothing else changed",
-              f.puts == [{**six(ruleset), "enforcement": "disabled"}], str(f.puts)[:300])
+        check("disable: every owed unit green, only the base-pinned reds (and gate) at H: succeeds", rc == 0, out)
+        check("disable: one PUT, the copy with only required_status_checks removed, enforcement kept",
+              f.puts == [window_off(six(ruleset))] and f.puts[0]["enforcement"] == ruleset["enforcement"]
+              and [r["type"] for r in f.puts[0]["rules"]] == [r["type"] for r in ruleset["rules"] if r["type"] != RSC],
+              str(f.puts)[:300])
         check("disable: saves the 17 copy and prints the next step",
               os.path.exists(rb) and "--enable" in out and "reds-at-head: PASS" in out, out)
         f, rc, out, rb = dis(g_win, **{"--staged": None})
@@ -695,19 +738,43 @@ def self_test() -> int:
             f, rc, out, _ = dis(g)
             check(f"disable plant {name}: refuses, no PUT",
                   rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        # reds-at-head stands in for `gate` during the window, so it owes what gate owes:
+        # every REQUIRED name less BASE_PINNED present at H with success (#2662 review).
+        def without(*names):
+            return [x for x in window if x[0] not in names]
+
+        def setc(name, concl):
+            return [(n, concl if n == name else c) for n, c in window]
+        tests_all = [n for n in owed if n.startswith("tests / ")]
+        for name, runs in (("tests / closures absent", without("tests / closures")),
+                           ("tests / closures skipped", setc("tests / closures", "skipped")),
+                           ("codeql / Analyze (python) neutral", setc("codeql / Analyze (python)", "neutral")),
+                           ("the tests caller skipped, no tests / * job at all", without(*tests_all)),
+                           ("only the base-pinned three and gate exist",
+                            [*[(n, "failure") for n in BASE_PINNED], ("gate", "failure")])):
+            f, rc, out, _ = dis(variant(check_runs=runs_at(*runs)))
+            check(f"disable plant {name}: refuses, no PUT",
+                  rc == 2 and f.puts == [] and "reds-at-head: FAIL" in out, out)
+        f, rc, out, _ = dis(g_win, reaches=True)
+        check("disable plant a PR reaching custom_components without arch-score: refuses (pr-cc owes it)",
+              rc == 2 and f.puts == [] and "arch-score / arch-score" in out, out)
+        f, rc, out, _ = dis(variant(check_runs=runs_at(*window, ("arch-score / arch-score", "success"))), reaches=True)
+        check("disable: the pr-cc set with arch-score green succeeds", rc == 0, out)
         f, rc, out, _ = dis(variant(user=lambda u: {"login": "hpo-author[bot]"}))
         check("disable plant caller not tvofi: refuses, no PUT", rc == 2 and f.puts == [], out)
 
-        # --enable: from the disabled copy, after P2b's merge commit is on main.
+        # --enable: from the window state, after P2b's merge commit is on main.
         rb = rbp()
         Path(rb).write_text(json.dumps(ruleset))
-        off = {**ruleset, "enforcement": "disabled"}
+        Path(rb + DIGEST_SUFFIX).write_text(digest(six(ruleset)) + "\n")
+        off = {**ruleset, **window_off(six(ruleset))}
 
-        def ena(state, cmp_status="ahead", rbf=rb):
+        def ena(state, cmp_status="ahead", rbf=rb, parents=(H,)):
             g = variant(user=lambda u: u)
             g["compare"] = {"status": cmp_status}
+            g["commit"] = {"parents": [{"sha": "b" * 40}, *({"sha": x} for x in parents)]}
             f = FakeGh(state, g)
-            rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40])
+            rc, out = run(f, ["--enable", "--rollback-file", rbf, "--merged", "a" * 40, "--head", H])
             return f, rc, out
         f, rc, out = ena(off)
         check("enable: PUTs [gate] with the copy's own enforcement, both halves read back",
@@ -718,15 +785,36 @@ def self_test() -> int:
         check("enable: refuses when the live ruleset is not the disabled copy", rc == 2 and f.puts == [], out)
         f, rc, out = ena(off, "behind")
         check("enable: refuses when the merge commit is not on main", rc == 2 and f.puts == [], out)
+        f, rc, out = ena(off, parents=())
+        check("enable: refuses when the merge commit's parents do not include H", rc == 2 and f.puts == []
+              and "merge-of-head: FAIL" in out, out)
+        rc, out = run(FakeGh(off, green), ["--enable", "--rollback-file", rb, "--merged", "a" * 40])
+        check("enable: refuses without --head", rc == 2 and "--head" in out, out)
+        rbe = rbp()
+        bad = copy.deepcopy(ruleset)
+        bad["enforcement"] = "evaluate"
+        Path(rbe).write_text(json.dumps(bad))
+        Path(rbe + DIGEST_SUFFIX).write_text(digest(six(ruleset)) + "\n")
+        f, rc, out = ena({**bad, **window_off(six(bad))}, rbf=rbe)
+        check("enable plant: a copy whose digest is not the one saved beside it refuses, no PUT",
+              rc == 2 and f.puts == [] and "digest" in out, out)
 
         # --dry-run --window: the staging read for the body -- both payloads, the window's preconditions.
         f = FakeGh(ruleset, g_win)
-        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        o, e = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(o), contextlib.redirect_stderr(e):
+            rc = main(["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)],
+                      gh=f, reaches=lambda base, head: False)
+        out = o.getvalue() + e.getvalue()
         check("dry-run --window: passes on the base-pinned reds, prints both payloads, writes nothing",
               rc == 0 and f.puts == [] and "reds-at-head: PASS" in out and "gate-at-head" not in out
               and "DISABLE PAYLOAD" in out and "ENABLE PAYLOAD" in out and "WINDOW DRY-RUN OK" in out, out)
         f = FakeGh(ruleset, variant(check_runs=runs_at(*window, ("tests / closures", "failure"))))
-        rc, out = run(f, ["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)])
+        o, e = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(o), contextlib.redirect_stderr(e):
+            rc = main(["--dry-run", "--window", "--staged", staged, "--head", H, "--pr", str(PR)],
+                      gh=f, reaches=lambda base, head: False)
+        out = o.getvalue() + e.getvalue()
         check("dry-run --window: a unit red refuses", rc == 1 and "reds-at-head: FAIL" in out, out)
         # --verify: main's push gate, every suite's newest green.
         rc, out = run(FakeGh(ruleset, green), ["--verify", "--head", H])
@@ -736,7 +824,7 @@ def self_test() -> int:
         # --rollback restores the 17 from the disabled state too.
         f = FakeGh(off, green)
         rc, out = run(f, ["--rollback", rb])
-        check("rollback from the disabled window: restores the copy whole",
+        check("rollback from the window state: restores the copy whole",
               rc == 0 and f.puts == [six(ruleset)], out)
 
     print(f"ruleset_cutover self-test: {checks} checks, {failed} failed")
