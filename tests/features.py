@@ -8913,6 +8913,25 @@ R.check(
     f"basis adopted {_ra_old.saved.get('house_heat_loss_basis')!r}",
 )
 
+# The pair's own refusals: a total not positive on either side has nothing
+# to re-express against, the guard ``_reanchor_house_heat_loss_scale`` used
+# to hold on both anchors (a zero live total divides the law by zero).
+from heatpump_optimizer.thermal_model import heat_loss_anchor_pair as _ra_pair  # noqa: E402
+
+_ra_refused = {
+    label: _ra_v
+    for label, _ra_v in (
+        ("no live total", _ra_pair((0.3, 0.1), (0.0, 0.1), 1.0, void=True, step=0.05)),
+        ("a stored total at the floor", _ra_pair((1e-9, 0.0), (0.3, 0.0), 1.0, void=True, step=0.05)),
+    )
+}
+R.check(
+    "the anchor pair refuses a total not positive on either side, void or not",
+    all(v is None for v in _ra_refused.values())
+    and _ra_pair((0.3, 0.1), (0.3, 0.1), 1.0, void=True, step=0.05) is not None,
+    f"{_ra_refused!r} -- and a void basis over the same live total must still re-express",
+)
+
 # --- The savings baseline follows the comfort schedule ---------------------
 #
 # The reference thermostat used to hold the flat day target around the clock,
