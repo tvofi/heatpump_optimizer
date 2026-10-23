@@ -18361,6 +18361,8 @@ R.check(
     _rs_ca2["refit"]["scale"] == _rs_want2 and _rs_want2 != _rs_want,
     f"refit={_rs_ca2['refit']} want={_rs_want2}",
 )
+# The sensor republishes the cycle's advice (#2258): built as the cycle does.
+_rs_c.data = {"insight": _rs_c._insight_view()}
 _rs_sensor_entity = _rs_sensor.ModelRestartAdvisorSensor(_rs_c, _FakeEntry(data={}))
 R.check(
     "#1936: the advisor sensor reads the recommended scale and both options",
@@ -18370,10 +18372,20 @@ R.check(
     and _rs_sensor_entity.entity_category == _rs_sensor.EntityCategory.DIAGNOSTIC,
     f"{_rs_sensor_entity.native_value} {_rs_sensor_entity.extra_state_attributes}",
 )
+_rs_quiet.data = {"insight": _rs_quiet._insight_view()}
 R.check(
     "#1936: with no alarm the sensor reads the scale in use (nothing to change)",
     _rs_sensor.ModelRestartAdvisorSensor(_rs_quiet, _FakeEntry(data={}))
     .native_value == round(_rs_quiet._house_heat_loss_scale, 3),
+)
+_rs_unbuilt = _t2_coord()
+_rs_unbuilt.data = {"house_heat_loss_scale": 1.2345}
+_rs_unbuilt_sensor = _rs_sensor.ModelRestartAdvisorSensor(_rs_unbuilt, _FakeEntry(data={}))
+R.check(
+    "#2258: before a cycle publishes the advice the sensor reads the scale in use, no refit",
+    _rs_unbuilt_sensor.native_value == 1.234
+    and _rs_unbuilt_sensor.extra_state_attributes["refit"] is None,
+    f"{_rs_unbuilt_sensor.native_value} {_rs_unbuilt_sensor.extra_state_attributes}",
 )
 _rs_before = _rs_c._house_heat_loss_scale
 _real_now_rs = _dt_mod_t4b.now
@@ -18390,6 +18402,7 @@ R.check(
 )
 _rs_payload_before = _rs_c._thermal_learning_payload()
 _rs_accept_at = _rs_rolled_at + timedelta(days=3, hours=14)
+_rs_refreshes = getattr(_rs_c, "refresh_requests", 0)
 try:
     _dt_mod_t4b.now = lambda: _rs_accept_at
     _rs_ok = _asyncio.run(_rs_adopt(_rs_c))
@@ -18400,6 +18413,17 @@ R.check(
     "#1936: accepting applies the refit through the restore path",
     _rs_ok is True and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
     f"ok={_rs_ok} scale={_rs_c._house_heat_loss_scale}",
+)
+_rs_next_cycle = _rs_c._insight_view()
+R.check(
+    "#2258: an adopt asks for a cycle, and that cycle's advice offers no refit "
+    "and grades the house on the adopted scale",
+    getattr(_rs_c, "refresh_requests", 0) == _rs_refreshes + 1
+    and _rs_next_cycle["model_restart"]["refit"]["scale"] is None
+    and _rs_next_cycle["model_restart"]["current_scale"]
+    == round(_rs_c._house_heat_loss_scale, 3),
+    f"refreshes {getattr(_rs_c, 'refresh_requests', 0) - _rs_refreshes} "
+    f"{_rs_next_cycle['model_restart']}",
 )
 # ``updated_at`` is the payload's own write stamp, not learned state.
 _rs_moved = sorted(
@@ -18429,6 +18453,53 @@ R.check(
     "#1936: and with no alarm there is nothing to accept",
     _asyncio.run(_rs_adopt(_rs_quiet)) is False
     and _rs_quiet._house_heat_loss_scale == _rs_quiet_scale,
+)
+
+# The restore service re-plans as adopt does (#2258): it asks for a cycle, and
+# that cycle's advice offers no refit for the restored scale and grades the
+# house on it. A features check, not a ledger row: an awaited expression
+# statement draws no generated mutation site.
+_rs_r = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_r._accuracy.record(_rs_row)
+_rs_r._apply_house_heat_loss_scale(1.4)
+_rs_r_before = _rs_advice(_rs_r)
+_rs_r_refreshes = getattr(_rs_r, "refresh_requests", 0)
+try:
+    _dt_mod_t4b.now = lambda: _rs_accept_at
+    _rs_r_ok = _asyncio.run(_rs_r.async_restore_learned_snapshot())
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+_rs_r_view = _rs_r._insight_view()
+R.check(
+    "#2258: a restore asks for a cycle, and that cycle's advice offers no refit "
+    "and grades the house on the restored scale",
+    _rs_r_before["refit"] is not None
+    and _rs_r_ok is True
+    and getattr(_rs_r, "refresh_requests", 0) == _rs_r_refreshes + 1
+    and _rs_r_view["model_restart"]["refit"]["scale"] is None
+    and _rs_r_view["model_restart"]["current_scale"]
+    == round(_rs_r._house_heat_loss_scale, 3) == 1.0,
+    f"before={_rs_r_before} view={_rs_r_view['model_restart']} "
+    f"refreshes {getattr(_rs_r, 'refresh_requests', 0) - _rs_r_refreshes}",
+)
+
+# The cycle path itself: ONE ``_insight_view()`` on a coordinator whose refit
+# sits outside its band offers the refit to the advisor and dashes the grade
+# with the matching reason, both read from that one view.
+_rs_d = _drift_run()
+for _rs_row in _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt):
+    _rs_d._accuracy.record(_rs_row)
+_rs_d._house_heat_loss_samples = 5000  # converged: only the refit can dash
+_rs_d_view = _rs_d._insight_view()
+_rs_d_refit = _rs_d_view["model_restart"]["refit"]
+R.check(
+    "#2258: one cycle view offers the refit and grades the house against it",
+    _rs_d_refit is not None
+    and _rs_d_refit["scale"] is not None
+    and _rs_d_view["scores"]["reasons"].get("envelope") == "heat_loss_refit_disagrees"
+    and _rs_d_view["scores"]["envelope"] is None,
+    f"{_rs_d_view['model_restart']} {_rs_d_view['scores']}",
 )
 
 # --- persistence: the detectors' memory rides the thermal store ----------------------
@@ -20183,23 +20254,45 @@ R.check(
 
 # --- #65 the scores --------------------------------------------------------------
 _ce = _t2_coord()
+# A converged heat-loss learner: the grade is the house as measured (#2258).
+_ce._house_heat_loss_samples = 1000
 _ce._thermal_params.room_thermal_mass = 10.0
 _ce._thermal_params.heat_loss_coefficient = 0.1
 _ce._thermal_params.house_heat_loss_scale = 1.0
 R.check(
     "a 100-hour house grades 100 on the envelope",
-    _ce._scores_view()["envelope"] == 100.0,
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
 )
 _ce._thermal_params.heat_loss_coefficient = 0.5
 R.check(
     "a 20-hour house grades 0 — the learned loss scale keeps it honest",
-    _ce._scores_view()["envelope"] == 0.0,
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+)
+_ce._thermal_params.heat_loss_coefficient = 0.05
+R.check(
+    "#2258: a house past 100 hours grades 100, not more",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "tau = 10 / 0.05 = 200 h, clipped to the top of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 1.0
+R.check(
+    "#2258: a house under 20 hours grades 0, not less",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 0.0,
+    "tau = 10 / 1.0 = 10 h, clipped to the bottom of the band",
+)
+_ce._thermal_params.heat_loss_coefficient = 0.5
+_ce._thermal_params.house_heat_loss_scale = 0.0
+R.check(
+    "#2258: a configured scale under the learner's clamp is floored at 0.1, "
+    "not read as a house with no loss",
+    _ce._scores_view(_rs_advice(_ce))["envelope"] == 100.0,
+    "loss = 0.5 x 0.1 = 0.05 kW/K -> tau 200 h; with no floor the loss is 0",
 )
 _ce._thermal_params.heat_loss_coefficient = 0.25
 _ce._thermal_params.house_heat_loss_scale = 0.5
 R.check(
     "the envelope grade follows the house as measured, not as configured",
-    abs(_ce._scores_view()["envelope"] - 75.0) < 0.1,
+    abs(_ce._scores_view(_rs_advice(_ce))["envelope"] - 75.0) < 0.1,
     "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
 )
 # The time constant needs both halves: a house with no thermal mass, or one
@@ -20208,32 +20301,71 @@ R.check(
 _ce0 = _t2_coord()
 _ce0._thermal_params.heat_loss_coefficient = 0.25
 _ce0._thermal_params.room_thermal_mass = 0.0
-_ce0_env = _ce0._scores_view()["envelope"]
+_ce0_env = _ce0._scores_view(_rs_advice(_ce0))["envelope"]
 _ce0._thermal_params.room_thermal_mass = 10.0
 _ce0._thermal_params.heat_loss_coefficient = 0.0
 try:
-    _ce0_env_loss = _ce0._scores_view()["envelope"]
+    _ce0_env_loss = _ce0._scores_view(_rs_advice(_ce0))["envelope"]
 except ZeroDivisionError as _ce0_err:
     _ce0_env_loss = repr(_ce0_err)
 R.check(
     "no thermal mass, or no loss, is no envelope evidence (None), not a grade",
-    _ce0_env is None and _ce0_env_loss is None,
+    _ce0_env is None and _ce0_env_loss is None
+    and _ce0._scores_view(_rs_advice(_ce0))["reasons"]["envelope"] == "no_house_model",
     f"massless {_ce0_env!r}, lossless {_ce0_env_loss!r}",
+)
+_ce1 = _t2_coord()
+_ce1._house_heat_loss_samples = 1000
+_ce1._thermal_params.heat_loss_coefficient = 0.25
+_ce1._thermal_params.room_thermal_mass = 0.0
+_ce1_massless = _ce1._scores_view(_rs_advice(_ce1))
+_ce1._thermal_params.room_thermal_mass = 10.0
+_ce1._thermal_params.heat_loss_coefficient = 1e-6
+_ce1_lossless = _ce1._scores_view(_rs_advice(_ce1))
+R.check(
+    "#2258: a converged learner on a massless house, or one at the loss floor, "
+    "has no house model -- not a grade of 0",
+    _ce1_massless["envelope"] is None
+    and _ce1_massless["reasons"]["envelope"] == "no_house_model"
+    and _ce1_lossless["envelope"] is None
+    and _ce1_lossless["reasons"]["envelope"] == "no_house_model",
+    f"massless {_ce1_massless} lossless {_ce1_lossless}",
 )
 _cmach = _t2_coord()
 R.check(
     "no COP evidence means no machine grade, not a failing one",
-    _cmach._scores_view()["machine"] is None,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
 )
 _cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
-    _cmach._scores_view()["machine"] == 100.0,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 100.0,
 )
 _cmach._cop_health_cusum.stat = COP_HEALTH_THRESHOLD
 R.check(
     "a machine at the alarm threshold grades 0",
-    _cmach._scores_view()["machine"] == 0.0,
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+)
+_cmach._cop_health_cusum.stat = 2.0 * COP_HEALTH_THRESHOLD
+R.check(
+    "a machine past the alarm threshold still grades 0, never below (#2258)",
+    _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
+)
+_cedge = _t2_coord()
+_cedge._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES]
+_cedge_view = _cedge._scores_view(_rs_advice(_cedge))
+R.check(
+    "a COP bucket at exactly the minimum sample count is watched, and the "
+    "machine is graded (#12, #2258)",
+    _cedge_view["machine"] == 100.0 and "machine" not in _cedge_view["reasons"],
+    f"{_cedge_view}",
+)
+R.check(
+    "a refit exactly on its own band edge agrees with the scale; only one "
+    "past it disagrees (#2258)",
+    not _r9p8_coord._refit_disagrees({"refit": {"scale": 2.5, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 2.51, "band_percent": 25.0}}, 2.0)
+    and _r9p8_coord._refit_disagrees({"refit": {"scale": 1.49, "band_percent": 25.0}}, 2.0),
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
@@ -20383,25 +20515,232 @@ R.check(
     "a restart mid-summer must not re-present the stale value for another "
     "memory horizon: this restored streak is one free close from the reset",
 )
-_fresh6 = _t2_coord()._scores_view()
+_fresh6_c = _t2_coord()
+_fresh6 = _fresh6_c._scores_view(_rs_advice(_fresh6_c))
 R.check(
-    "a fresh install does not publish the house grade as overall",
+    "a fresh install grades nothing, and says why for each part (#2258)",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
     and _fresh6["overall"] is None
-    and _fresh6["envelope"] is not None,
-    "envelope stays in the breakdown; overall needs driving evidence",
+    and _fresh6["envelope"] is None
+    and _fresh6["reasons"] == {
+        "envelope": "heat_loss_learning", "machine": "cop_watch_learning",
+        "operation": "no_scored_day", "overall": "first_scored_day",
+    },
+    f"{_fresh6}",
 )
 _ce._operation_score = None
 _ce._cop_baseline.clear()
 _ce._thermal_params.heat_loss_coefficient = 0.417
 _ce._thermal_params.house_heat_loss_scale = 1.0
-_leaky = _ce._scores_view()
+_leaky = _ce._scores_view(_rs_advice(_ce))
 R.check(
     "a ~24 h house is not 5/100 overall while nothing has been driven",
     _leaky["overall"] is None
     and _leaky["envelope"] is not None
     and _leaky["envelope"] < 10.0,
+)
+
+# --- #2258 one rule for every score: None is no evidence, with its reason --------
+from heatpump_optimizer import coordinator as _sc_mod  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HOUSE_LOSS_ALPHA as _SC_ALPHA,
+    _effective_house_heat_loss as _sc_effective,
+    house_loss_converged as _sc_converged,
+)
+
+
+def _sc_view(coord, advice=None):
+    return coord._scores_view(_rs_advice(coord) if advice is None else advice)
+
+
+def _sc_invariant(view):
+    """None if and only if a reason, one code per None."""
+    nones = {k for k in ("envelope", "machine", "operation", "overall") if view[k] is None}
+    return nones == set(view["reasons"]) and all(
+        isinstance(code, str) and code for code in view["reasons"].values()
+    )
+
+
+# The UA basis: the model's own whole-house loss, both zones with the learned
+# split, which is the figure the Health tab publishes. A single-zone house
+# whose coefficient IS that figure must grade the same.
+_sc_two = _t2_coord()
+_sc_two._house_heat_loss_samples = 1000
+_sc_tp = _sc_two._thermal_params
+_sc_tp.two_zone_enabled = True
+_sc_tp.room_thermal_mass = 8.0
+_sc_tp.heat_loss_coefficient = 0.14
+_sc_tp.upper_floor_heat_loss = 0.07
+_sc_tp.lower_floor_heat_loss = 0.07
+_sc_tp.lower_floor_loss_ratio = 0.5
+_sc_tp.house_heat_loss_scale = 1.0
+_sc_health = _sc_two._learning_view()["house_heat_loss_effective"]
+_sc_one = _t2_coord()
+_sc_one._house_heat_loss_samples = 1000
+_sc_one._thermal_params.room_thermal_mass = 8.0
+_sc_one._thermal_params.heat_loss_coefficient = _sc_health
+_sc_one._thermal_params.house_heat_loss_scale = 1.0
+R.check(
+    "#2258: a two-zone house is graded on the Health tab's heat loss, learned split included",
+    _sc_health == _sc_effective(_sc_tp, 1.0) and _sc_health < 0.14
+    and _sc_view(_sc_two)["envelope"] == _sc_view(_sc_one)["envelope"]
+    and _sc_view(_sc_two)["envelope"] is not None,
+    f"health {_sc_health} two-zone {_sc_view(_sc_two)} single {_sc_view(_sc_one)}",
+)
+_sc_tp.lower_floor_loss_ratio = 1.0
+_sc_one._thermal_params.heat_loss_coefficient = 0.14
+R.check(
+    "#2258: at split 1.0 the configured total and the model's figure agree (null arm)",
+    _sc_view(_sc_two)["envelope"] == _sc_view(_sc_one)["envelope"],
+)
+
+# Convergence: one predicate for the Health tab's "learned" and the grade.
+_sc_n = round(1.0 / _SC_ALPHA)
+_sc_sweep = []
+for _sc_samples in (0, 1, _sc_n - 1, _sc_n, _sc_n + 1, 5 * _sc_n):
+    _sc_c = _t2_coord()
+    _sc_c._house_heat_loss_samples = _sc_samples
+    _sc_v = _sc_view(_sc_c)
+    _sc_learned = _sc_c._learning_view()["house_heat_loss_learned"]
+    _sc_sweep.append((
+        _sc_samples, _sc_learned, _sc_v["reasons"].get("envelope"),
+        _sc_learned == _sc_converged(_sc_samples)
+        and (_sc_v["envelope"] is None) == (not _sc_learned)
+        and (_sc_v["reasons"].get("envelope") == "heat_loss_learning") == (not _sc_learned)
+        and _sc_invariant(_sc_v),
+    ))
+R.check(
+    "#2258: the grade dashes exactly while the Health tab reads the learner as learning",
+    all(row[-1] for row in _sc_sweep)
+    and [row[1] for row in _sc_sweep] == [False, False, False, True, True, True],
+    f"{_sc_sweep}",
+)
+# The same sweep through the published sensors, on the payload as the cycle
+# lays it out (the learning view at the top level, insight beside it): the
+# Health tab's model state and the score's reason never disagree, and the
+# score stays available, naming the coordinator's overall code.
+_sc_pub = []
+for _sc_samples in (0, _sc_n - 1, _sc_n, 5 * _sc_n):
+    _sc_c = _t2_coord()
+    _sc_c._house_heat_loss_samples = _sc_samples
+    _sc_c.data = {**_sc_c._learning_view(), "insight": _sc_c._insight_view()}
+    _sc_status = _rs_sensor.ModelStatusSensor(_sc_c, _FakeEntry(data={}))
+    _sc_score = _rs_sensor.OptimizationScoreSensor(_sc_c, _FakeEntry(data={}))
+    _sc_reasons = _sc_c.data["insight"]["scores"]["reasons"]
+    _sc_pub.append((
+        _sc_samples, _sc_status.native_value, _sc_reasons.get("envelope"),
+        (_sc_status.native_value == "learned") == _sc_converged(_sc_samples)
+        and (_sc_status.native_value == "learned")
+        == ("heat_loss_learning" not in _sc_reasons.values())
+        and _sc_score.available and _sc_score.native_value is None
+        and _sc_score.extra_state_attributes["waiting_for"] == _sc_reasons["overall"],
+    ))
+R.check(
+    "#2258: Health's learned and the score's heat_loss_learning are one predicate, "
+    "and the unscored sensor stays available with the coordinator's code",
+    all(row[-1] for row in _sc_pub),
+    f"{_sc_pub}",
+)
+R.check(
+    "#2258: converged is one EWMA time constant, 1/alpha samples, from the prior",
+    not _sc_converged(_sc_n - 1) and _sc_converged(_sc_n) and not _sc_converged(-5),
+    f"n={_sc_n}",
+)
+
+# Precedence: one code per None, no_house_model > heat_loss_learning >
+# heat_loss_refit_disagrees.
+_sc_far = {"drift_alarm": True, "current_scale": 1.0, "restore": None,
+           "refit": {"scale": 1.5, "band_percent": 10}}
+_sc_near = {**_sc_far, "refit": {"scale": 1.05, "band_percent": 10}}
+_sc_p = _t2_coord()
+_sc_p._house_heat_loss_samples = 0  # the restore paths zero the samples
+_sc_arm1 = _sc_view(_sc_p, _sc_far)
+_sc_p._thermal_params.heat_loss_coefficient = 0.0
+_sc_arm2 = _sc_view(_sc_p, _sc_far)
+_sc_p._thermal_params.heat_loss_coefficient = 0.2
+_sc_p._house_heat_loss_samples = 1000
+_sc_arm3 = _sc_view(_sc_p, _sc_far)
+_sc_arm4 = _sc_view(_sc_p, _sc_near)
+R.check(
+    "#2258: an unconverged learner with a refit outside the band reads learning alone",
+    _sc_arm1["reasons"]["envelope"] == "heat_loss_learning" and _sc_invariant(_sc_arm1),
+    f"{_sc_arm1}",
+)
+R.check(
+    "#2258: no house loss reads no_house_model alone, learner state aside",
+    _sc_arm2["reasons"]["envelope"] == "no_house_model" and _sc_invariant(_sc_arm2),
+    f"{_sc_arm2}",
+)
+R.check(
+    "#2258: a converged learner the refit disagrees with is dashed, not graded",
+    _sc_arm3["envelope"] is None
+    and _sc_arm3["reasons"]["envelope"] == "heat_loss_refit_disagrees"
+    and _sc_invariant(_sc_arm3),
+    f"{_sc_arm3}",
+)
+R.check(
+    "#2258: a refit inside its own band does not dash the grade",
+    _sc_arm4["envelope"] is not None and "envelope" not in _sc_arm4["reasons"],
+    f"{_sc_arm4}",
+)
+
+# The machine counts the buckets the Health tab counts: a non-finite sample
+# count is no evidence, never a raise and never a watched bucket.
+_sc_m = _t2_coord()
+_sc_m._cop_baseline[(3, False)] = [3.0, float("nan")]
+_sc_mv = _sc_view(_sc_m)
+R.check(
+    "#2258: a bucket with a non-finite count is not watched, here or on Health",
+    _sc_mv["machine"] is None
+    and _sc_mv["reasons"]["machine"] == "cop_watch_learning"
+    and _sc_m._learning_view()["cop_health"]["watched_buckets"] == 0,
+    f"{_sc_mv}",
+)
+R.check(
+    "#2258: after a free-price reset the operation part says so",
+    _sc_view(_q908)["operation"] is None
+    and _sc_view(_q908)["reasons"]["operation"] == "free_price_reset"
+    and _sc_invariant(_sc_view(_q908)),
+    f"{_sc_view(_q908)}",
+)
+_sc_all = [_fresh6, _leaky, _sc_view(_ce), _sc_view(_cmach), _sc_view(_cop6),
+           _sc_arm1, _sc_arm2, _sc_arm3, _sc_arm4, _sc_mv]
+R.check(
+    "#2258: across every view built here, a None carries a reason and a value none",
+    all(_sc_invariant(v) for v in _sc_all),
+    f"{[v for v in _sc_all if not _sc_invariant(v)]}",
+)
+
+# The advice holder: the cycle takes model_restart_advice once, and the
+# advisor sensor and the envelope grade read that one take.
+_sc_calls = []
+_sc_real_advice = _sc_mod.model_restart_advice
+
+
+def _sc_counting(coord):
+    _sc_calls.append(coord)
+    return _sc_real_advice(coord)
+
+
+_sc_h = _t2_coord()
+_sc_mod.model_restart_advice = _sc_counting
+try:
+    _sc_insight = _sc_h._insight_view()
+    _sc_per_cycle = len(_sc_calls)
+    _sc_h.data = {"insight": _sc_insight, "house_heat_loss_scale": 1.0}
+    _sc_adv_sensor = _rs_sensor.ModelRestartAdvisorSensor(_sc_h, _FakeEntry(data={}))
+    for _ in range(3):
+        _sc_adv_sensor.native_value
+        _sc_adv_sensor.extra_state_attributes
+    _sc_per_write = len(_sc_calls) - _sc_per_cycle
+finally:
+    _sc_mod.model_restart_advice = _sc_real_advice
+R.check(
+    "#2258: one advice per cycle, none per advisor-sensor write",
+    _sc_per_cycle == 1 and _sc_per_write == 0
+    and _sc_adv_sensor.extra_state_attributes == _sc_insight["model_restart"],
+    f"cycle {_sc_per_cycle} writes {_sc_per_write}",
 )
 
 # --- #29 the narrative -----------------------------------------------------------
@@ -20794,9 +21133,11 @@ R.check(
         "monthly_report",
         "price_tiles",
         "last_diagnosis",
+        "model_restart",
     }
     and _iview["monthly_report"] is None
-    and _iview["compressor_starts"]["lifetime"] == 0,
+    and _iview["compressor_starts"]["lifetime"] == 0
+    and _iview["model_restart"]["refit"] is None,
 )
 
 _cp6 = _t2_coord()

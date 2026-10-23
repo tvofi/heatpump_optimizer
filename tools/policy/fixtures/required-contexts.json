@@ -31,7 +31,7 @@
   "contexts": [
     "gate"
   ],
-  "_pre_cutover": "R10-CI-LAYOUT P2b: the set ruleset 23698884 holds until tools/ci/ruleset_cutover.py --apply, copied whole from main's record before the cut-over. policy_lint.mjs accepts a live set equal to EITHER this or the post-PUT shape above, never a mix, so the P2b head is not red (and its gate-at-head precondition not refused) before the PUT. Delete `_pre_cutover`, `pre_cutover`, tools/ci/gate.py's 17-renamed self-check and merge_train.py's A5 layouts pair in the beat after the cut-over; until then a post-PUT match prints that it is stale.",
+  "_pre_cutover": "R10-CI-LAYOUT P2b: the set ruleset 23698884 holds until the cut-over PUT, tools/ci/ruleset_cutover.py --enable, copied whole from main's record before the cut-over. policy_lint.mjs accepts a live set equal to EITHER this or the post-PUT shape above, never a mix, so the P2b head is not red (and its gate-at-head precondition not refused) before the PUT. Delete `_pre_cutover`, `pre_cutover`, tools/ci/gate.py's 17-renamed self-check and merge_train.py's A5 layouts pair in the beat after the cut-over; until then a post-PUT match prints that it is stale.",
   "pre_cutover": {
     "contexts": [
       "Analyze (actions)",

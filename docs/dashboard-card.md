@@ -174,8 +174,8 @@ reason, ordered by spend, then the hours the plan leaves idle. The lines are
 the narrative sensor's own, already in Home Assistant's language. Set
 `show_stats: false` to leave out both rows.
 
-Every part is optional, because every source sensor is. The score is
-unavailable until enough history exists, the savings sensors go blank between
+Every part is optional, because every source sensor is. The score has no
+value until enough history exists, the savings sensors go blank between
 optimizer runs, and older integrations publish none of them. A row with nothing
 to say draws no chrome at all rather than an empty strip.
 

@@ -469,6 +469,18 @@ jobs:
           python3 -I tools/audit/seat/review_strength.py --self-test | tee "$RUNNER_TEMP/review-strength-self-test.txt"
           grep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"
 
+      # The flow study's other two instruments (R10-FLOW-TOOLKIT-MEASURE): the
+      # critical path over its recorded runs, its API stubbed; the flow
+      # enumerators over a throwaway repository. No network.
+      - name: Show the critical-path and flow instruments deciding their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ci_critpath.py --self-test | tee "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          grep -Eq '^ci_critpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-critpath-self-test.txt"
+          python3 -I tools/audit/seat/flow_metrics.py --self-test | tee "$RUNNER_TEMP/flow-metrics-self-test.txt"
+          grep -Eq '^flow_metrics self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/flow-metrics-self-test.txt"
+
       # The body-only PATCH (R10-FLOW-BODY-PATCH): a moved head refuses before
       # any write, a body the contract refuses is never sent, --dry-run prints
       # the request, and a mutant of each of the head, contract and read-back

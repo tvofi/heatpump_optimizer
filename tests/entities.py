@@ -395,6 +395,7 @@ DATA = {
             "machine": 100.0,
             "operation": None,
             "overall": 100.0,
+            "reasons": {"operation": "no_scored_day"},
         },
         "compressor_starts": {
             "lifetime": 412,
@@ -2523,13 +2524,23 @@ no_scores = FakeCoordinator(
                 "machine": None,
                 "operation": None,
                 "overall": None,
+                "reasons": {
+                    "envelope": "heat_loss_learning",
+                    "machine": "cop_watch_learning",
+                    "operation": "no_scored_day",
+                    "overall": "first_scored_day",
+                },
             },
         },
     }
 )
+_no_scores_sensor = sensor.OptimizationScoreSensor(no_scores, ENTRY)
 R.check(
-    "the score sensor is unavailable before any grade has evidence",
-    not sensor.OptimizationScoreSensor(no_scores, ENTRY).available,
+    "the score sensor reads unknown, not unavailable, before any grade has "
+    "evidence: its reasons stay readable (#2258)",
+    _no_scores_sensor.available and _no_scores_sensor.native_value is None
+    and _no_scores_sensor.extra_state_attributes["reasons"]["machine"]
+    == "cop_watch_learning",
 )
 starts = sensor.CompressorStartsSensor(FakeCoordinator(DATA), ENTRY)
 R.check(
@@ -11806,6 +11817,12 @@ _unscored_score = sensor.OptimizationScoreSensor(
                     "machine": None,
                     "operation": None,
                     "overall": None,
+                    "reasons": {
+                        "envelope": "heat_loss_learning",
+                        "machine": "cop_watch_learning",
+                        "operation": "no_scored_day",
+                        "overall": "first_scored_day",
+                    },
                 },
             },
         }
@@ -11813,8 +11830,9 @@ _unscored_score = sensor.OptimizationScoreSensor(
     ENTRY,
 )
 R.check(
-    "the optimization score is unavailable before any sub-score has evidence (#1335)",
-    not _unscored_score.available,
+    "the optimization score is unknown, still available, before any sub-score "
+    "has evidence (#1335, #2258)",
+    _unscored_score.available and _unscored_score.native_value is None,
 )
 R.check(
     "and names what it is waiting for (#1335)",
