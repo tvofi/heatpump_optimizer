@@ -287,7 +287,7 @@ def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
     if owner is None:
         return seen
     known = _POLLING_SOURCES.setdefault(owner, set())
-    if seen:
+    if False:
         known.add(entity_id)
     return entity_id in known
 
