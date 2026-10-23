@@ -22,8 +22,9 @@ REQUIRED is keyed by event class (contract item 4). The 17 contexts of ruleset
 23698884 are renamed `<file stem> / <job>`; `arch-score / arch-score` joins
 when the diff reaches custom_components/ (D-2); on `push`, every job whose
 failure reddens today's Tests push run joins (B3, enumerated from tests.yml by
-the harness's `b3` arm, never from memory). `tests / arch-instrument` is
-P2b's (U5b), added to REQUIRED and to that enumeration together.
+the harness's `b3` arm, never from memory). `tests / arch-instrument`, the
+architecture-score pair's own job beside `fast` (P2b, U5b), is a tests name
+like the rest: required on pull requests and push alike.
 """
 from __future__ import annotations
 
@@ -40,7 +41,8 @@ import ghapi  # noqa: E402
 from prelude import BODY_UNITS, CODE_UNITS, context, derive, parse_title, title, workset  # noqa: E402,F401
 
 UNITS = {                                          # every name a unit owes at a PR head
-    "tests": ("fast (3.14)", "browser", "briefs", "typing", "mutation", "closures", "closure-scope"),
+    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+              "closure-scope"),
     "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
     "governance": ("policy-docs", "wave-script", "env-matrix"),
     "hassfest": ("hassfest",),
@@ -306,14 +308,16 @@ def self_test() -> int:
             print(f"FAIL {name}: got {got!r}, want {want!r}")
 
     fixture = json.loads((HERE.parent / "policy" / "fixtures" / "required-contexts.json").read_text())
-    check("REQUIRED['pr'] is the 17 contexts, renamed", sorted(n.split(" / ", 1)[1] for n in REQUIRED["pr"]),
+    check("REQUIRED['pr'] is the 17 contexts, renamed, and arch-instrument (U5b)",
+          sorted(n.split(" / ", 1)[1] for n in REQUIRED["pr"] if n != "tests / arch-instrument"),
           sorted(fixture["contexts"]))
     check("D-2: arch-score only when the diff reaches custom_components/",
           set(REQUIRED["pr-cc"]) - set(REQUIRED["pr"]), {"arch-score / arch-score"})
     check("B3: push owes the Tests push run's ratchets", {"tests / ci-ratchet", "tests / coverage-ratchet"} <= set(REQUIRED["push"]), True)
     check("push owes no closure-scope and no body unit", [x for x in REQUIRED["push"] if "closure-scope" in x
                                                             or x.split(" / ")[0] in BODY], [])
-    check("arch-instrument is P2b's", any("arch-instrument" in x for x in gate_required()), False)
+    check("arch-instrument is required on every event class (U5b)",
+          [c for c, names in sorted(REQUIRED.items()) if "tests / arch-instrument" not in names], [])
     check("fixture gate_required == REQUIRED's union", fixture.get("gate_required"), gate_required())
     repo, head = "o/r", "H"
     env = {"GITHUB_SHA": "M", "GITHUB_REPOSITORY": repo, "GITHUB_RUN_ID": "100", "GITHUB_RUN_ATTEMPT": "1"}
@@ -344,6 +348,9 @@ def self_test() -> int:
     check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
     skip = [dict(j, conclusion="skipped") if j["name"] == "tests / browser" else j for j in green]
     check("a skipped required job (4.2)", judge(ctx, claim, fake(skip), cc)[0], "FAIL tests / browser: SKIPPED (this run)")
+    check("a run without tests / arch-instrument (U5b)",
+          judge(ctx, claim, fake([j for j in green if j["name"] != "tests / arch-instrument"]), cc)[0],
+          "FAIL tests / arch-instrument: ABSENT (this run)")
     check("D-2 null: arch-score red, diff misses custom_components/",
           judge(ctx, claim, fake([dict(j, conclusion="failure") if j["name"].startswith("arch") else j for j in green]),
                 lambda b, h: False)[0], "PASS")
