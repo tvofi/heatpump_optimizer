@@ -1,0 +1,10 @@
+                                   "--match-head-commit", h])
+                                   "--subject", "Merge pull request #%s (x)" % pr, "--match-head-commit", h])
+== base perturbed
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.3
+                                   "--match-head-commit", h])
+                                   "--subject", "Merge pull request #%s (x)" % pr, "--match-head-commit", h])
+== wt perturbed
+  REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:1482: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with
+RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=2.5
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

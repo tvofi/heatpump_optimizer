@@ -1,0 +1,10 @@
+== base 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
+  pair merge-subject-pr: 4 readers, 1071 items, 0 divergent
+  merge-subject guard: 265 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.6
+AGREEMENT ok
+== wt 96ad30e87ad6a52a879e6c94364021535fe6f5ae
+  pair merge-subject-pr: 4 readers, 1059 items, 0 divergent
+  merge-subject guard: 265 first-parent commit(s) past 07a09406a, 55 merge call(s) in 11 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.2
+AGREEMENT ok
