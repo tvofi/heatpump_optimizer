@@ -1,0 +1,15 @@
+head reviewed: 35cb7e8cc9380d134c61675a4aedba692e938593 (still the head of triage/s6-batch4 at verdict time)
+merge base: e97f5749b441b282e43bd99dbcbb762e9d10a369
+git merge-tree --write-tree origin/main 35cb7e8cc9380d134c61675a4aedba692e938593 -> 84908aa09b5a3528d9558d9a42735df5e125416b rc=0
+roles diff merge-base...origin/main: empty
+RESULT verdict counts: 4 ACCEPT, 5 DEFER
+RESULT owner-gated open groups at bbe44258e: 38; with mandate id 35 (6175172275:19, 6319294694:9, 6329234399:7); none: R10-REPLAY-SCOPED, R10-MERGE-SUBJECT-HARDEN, R10-STRUCTURE-ALIAS
+RESULT same filter at 50c690758: 43; 39 with id (snapshot moved after the body's ref)
+RESULT orchestrator_tick.py 1804 '# owner-gated age' .. 1823 'flag=True)' at head
+RESULT ruling_verdict P54..P62 = DEFER ACCEPT DEFER DEFER DEFER DEFER ACCEPT ACCEPT ACCEPT; P99 None
+RESULT mutant (P55 verdict line removed): unreadable, triage_refusal refuses; unmutated: None
+RESULT R10-ROUTING-INVARIANTS present at 50c690758 (ancestor of origin/handoff/audit-r10-roster), stage not-started; absent at bbe44258e
+RESULT owners present at 50c690758: R10-ORCH-ROSTER-SCHEMA, R10-FLY-DAEMONIZE-ARGV, R10-ORCH-BEATD, R10-CI-LAYOUT-P2 (carries-open), R10-FLY-PRUNE-REFS, R10-FLOW-MQ-PROBE
+RESULT carries/carry-triage-s6v9.md: absent at head, origin/main, origin/handoff/audit-r10-roster, and on no remote ref
+RESULT VERSION, manifest, RELEASE_NOTES untouched
+CI: 52 check runs on head (runs 40102153485, 40102154724): all success or skipped, none red
