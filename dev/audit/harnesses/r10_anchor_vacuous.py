@@ -87,8 +87,8 @@ def drive(budgets, by_anchor, anchors, jobs, timeout, new=None, hide=True):
         bases = list(cf.ThreadPoolExecutor(jobs).map(
             lambda t: mt.run_script(JUDGE, t, timeout), trees))
         for b in bases:
-            print(f"baseline {JUDGE}: rc={b.rc} failed={b.failed} {b.seconds:.0f}s",
-                  flush=True)
+            print(f"baseline {JUDGE}: rc={b.rc} failed={b.failed} {b.seconds:.0f}s"
+                  + (f" {mt.failed_checks(b)}" if b.rc else ""), flush=True)
         if any(b.rc for b in bases):
             raise SystemExit("baseline red: no verdict can be read")
         tasks = [(a, s) for a in anchors for s in by_anchor.get(a, [])]
