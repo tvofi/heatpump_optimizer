@@ -27,20 +27,35 @@ reader. (c) Use a heat-meter-only path. The brief forbids it (every install, no 
 
 To pay the budgets, the DHW tracking block in `_update_current_state` moved to
 `_track_dhw` (seam `dhw`), and `_settle_interval_diag`'s inline space share now calls
-`draw_range.space_share`.
+`draw_range.space_share`. Most of the `max_class_loc` re-record (8449 -> 8425) is spent prose,
+not that move: three coordinator-class comment blocks were trimmed (the v5.3.0 history in
+`_interval_space_power`'s docstring, the floor-return stand-in history in `_update_current_state`,
+and the legionella latch comment, kept shortened in `_track_dhw`), about 19 lines. The code change
+alone moves the row by -5, which would still pass the old budget (the review's
+`evidence/structure_comments_restored.txt` on `verdict/2712`: 8444 with the three blocks restored).
+Spent prose is a payment `fixer.md` allows, and every re-recorded row moved down.
 
-This repair round (the `tests / mutation` and `pr-contract` reds at 398daa3e5) adds no production
-line. It adds five `#2499` checks to `tests/features.py` that drive the six sites the ratchet counted
-unpinned, records their six `killed_by` pins, and merges `origin/main`.
+Repair rounds add no production line. Round 1 (the `tests / mutation` and `pr-contract` reds at
+398daa3e5) added five `#2499` checks driving the six sites the ratchet counted unpinned and their
+six `killed_by` pins (df2737ed4). Round 2 (the blocked review of 5fb0a083b on `verdict/2712`) adds
+two coordinator-level value checks that pin the `shared` and `space_served` wiring in
+`_propagated_slab` (an immersion latch, and an observed hot-water-only mode against an observed
+heating mode), points two Forward-carry markers at the group that holds them, and merges `origin/main`.
+It is built on round 1's handoff 65d37a7cb, which descends from 5fb0a083b and had not reached the PR head.
 
 ## Head
 
-65d37a7cbb83111e8cb0e929bbe91e571ed1ed4d, merge base 343fb2a2c23dbb1a78142ce869be495187b8d481
-(`origin/main` at 2026-10-24T18:45Z). Rule for the production-tree claims below:
-`git diff --stat 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 343fb2a2c23dbb1a78142ce869be495187b8d481 -- custom_components tests/golden tests/structure_budgets.json tests/mutation_budgets.json tests/mutation_ledger tests/features.py`
-prints nothing, and `git diff --stat df2737ed4 65d37a7cb -- custom_components tests/features.py tests/mutation_ledger tests/golden`
-prints nothing. So figures taken at base 4a00a3f05 and head df2737ed4 (or f3ca049bf, which differs
-from it only by ledger files) describe the same production and test trees as this base and head.
+4995e8a7a43e0bffabebb63010869163f5a7531a, merge base fe58844454525da612f7a06e44700287b55d0275
+(`origin/main` at 2026-10-24T22:55Z). Its ancestry holds the PR head a126c8b3fa820bbac01f53f8e66c99a278af7c1e, so it
+carries `a717ded9a` (`ci: pin killed mutants`, github-actions) and `5fb0a083b` (`record: the delivery row for #2712`,
+the orchestrator's, not github-actions). Rule for the production-tree claims below:
+`git diff --stat cdec092e5f93c85345f616a2c50492e1d9d883cb 4995e8a7a43e0bffabebb63010869163f5a7531a -- custom_components tests/features.py tests/golden tests/structure_budgets.json tests/mutation_ledger`
+prints nothing, so the checks, mutants and gate taken at cdec092e5 (merge base 0810d5b8f30a81adbbc074640c6d95a1b358c5f6)
+describe this head's production and test trees; structure, the predictor, the mutation ratchet, the architecture score and
+`tests/entities.py` (main changed it) were re-taken at 4995e8a7a.
+`git diff --stat 65d37a7cbb83111e8cb0e929bbe91e571ed1ed4d 4995e8a7a43e0bffabebb63010869163f5a7531a -- custom_components` prints nothing, and
+`git diff --stat 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 0810d5b8f30a81adbbc074640c6d95a1b358c5f6 -- custom_components tests/golden tests/structure_budgets.json`
+prints nothing, so harness figures taken at base 4a00a3f05 and head f3ca049bf (round 1) describe this base's and head's production trees.
 
 ## Mutation proof
 
@@ -58,7 +73,22 @@ Re-run at df2737ed4 from detached worktrees, `PYTHONPATH=tests/hastub python3 te
   `#2499: a learned idle draw above the fixed floor raises it to IDLE_MARGIN times the idle draw [idle_kw=0.4]`.
   Both restored; worktrees discarded.
 
-The six ratcheted mutants of this round, driven by
+Round 2, at cdec092e5 from detached worktrees, the same command (unmutated head: `ALL 4369 FEATURE CHECKS PASSED`, rc=0):
+
+- M3, `_propagated_slab`'s `shared=coord._immersion_active or signals.electric_heat.resistive_heat` -> `shared=False`.
+  Red (`1 of 4369 FEATURE CHECKS FAILED`, rc=1):
+  `#2499: an immersion element latched on the pump's meter leaves the slab on the plan's trajectory, not advanced by its resistive kW as space heat [slab=24.170]`.
+- M4, `space_served=signals.space_heat or not signals.mode_observed` -> `space_served=True`.
+  Red (`1 of 4369 FEATURE CHECKS FAILED`, rc=1):
+  `#2499: a pump observed in a hot-water-only mode books 0 kW of space heat (the slab cools as with the pump off); observed heating rooms, its draw [slab dhw-only/off=24.170/22.840 heating/full=24.170/24.170]`.
+  The `Heating` arm is that check's control: it books the full draw both with and without the mutant.
+- M5, the review's survivor: `0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and` -> `0.0 < dt_h and`.
+  Red (`1 of 4369 FEATURE CHECKS FAILED`, rc=1):
+  `#2499: a gap of exactly the sample window still advances the slab by the meter; a minute past it follows the plan [slab edge/past=22.520/22.515]`.
+  That check is round 1's (df2737ed4); the reviewed head 5fb0a083b did not carry it.
+  All restored; worktrees discarded.
+
+The six ratcheted mutants of round 1, driven by
 `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --jobs 4`
 at f3ca049bf (baseline `tests/features.py: rc=0 failed=0`; null control `coordinator.py:510 NULL_COMMENT` survived):
 each took `tests/features.py` from `rc=0 failed=0` to `rc=1 failed=2`, and the run printed
@@ -81,7 +111,8 @@ At the head `ALL 4367 FEATURE CHECKS PASSED` (`PYTHONPATH=tests/hastub python3 t
   owner_ideal 0.611 -> 0.611 against 0.6). With no shortfall, the fix has nothing to correct.
 - Slab oracle (`*_oracle` arms seed the TRUE slab): the rows are identical at both ends, by
   construction. They are the upper bound: owner_i01_oracle scale 0.619, plan/deliv 0.854.
-- In-test nulls: `#2499: without a power meter the slab follows the plan (null control)`,
+- In-test nulls: `#2499: a pump observed in a hot-water-only mode ...; observed heating rooms, its draw`
+  carries its own control (the `Heating` arm equals the unmoded 4 kW slab); `#2499: without a power meter the slab follows the plan (null control)`,
   `with no previous sample time the slab follows the plan` and
   `a zero or negative gap replays nothing; the slab follows the plan` pass at the head.
 - Mutation-table null: the comment-only edit `coordinator.py:510 NULL_COMMENT` survived `tests/features.py`.
@@ -123,26 +154,29 @@ learned model and on the true house:
 This is one window, and the two ends start from different states. It is a reference, not an
 optimality proof (see Forward-carry).
 
-Architecture: `python3 tools/audit/archscore/score.py --diff 343fb2a2c23dbb1a78142ce869be495187b8d481 HEAD`
-at 65d37a7cb prints `dS +0.3249` (duplication_copies 39 -> 38, coord_footprint 2463 -> 2465); see
-`## Architecture score`. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` at 65d37a7cb. Nothing is raised.
+Architecture: `python3 tools/audit/archscore/score.py --diff fe58844454525da612f7a06e44700287b55d0275 HEAD`
+at 4995e8a7a prints `dS +0.3249` (duplication_copies 39 -> 38, coord_footprint 2463 -> 2465); see
+`## Architecture score`. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` at 4995e8a7a. Nothing is raised.
 
 Mutation ratchet: `python3 tests/mutation_table.py --scope changed --base origin/main` at
-65d37a7cb prints `3987 unpinned site(s) of 6309 candidate sites, 3990 at the ratchet base
-343fb2a2c23dbb1a78142ce869be495187b8d481`; at 425972d27 (398daa3e5 merged with that base, before the pins)
+4995e8a7a prints `3987 unpinned site(s) of 6309 candidate sites, 3990 at the ratchet base
+fe58844454525da612f7a06e44700287b55d0275` (the same at cdec092e5 against 0810d5b8f); at 425972d27 (398daa3e5 merged with an earlier base, before the round-1 pins)
 it printed `MUTATION TABLE REFUSED -- 3993 unpinned site(s) against 3990 ..., 6 of them added by this diff`
-(the null arm of the same command). `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
-at df2737ed4 prints `CI PREDICT: no closures or fast red predicted`.
+(the null arm of the same command). The cdec092e5 run's own mutant pass over its six sampled mutants was stopped
+after its baselines (null control `coordinator.py:510 NULL_COMMENT` survived each driver it reached); the
+count line above is the ratchet's. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
+at 4995e8a7a prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against fe5884445452`.
 
 Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
-at 65d37a7cb prints `MODE: SCOPED -- 28 script(s) run, 5 scoped out.` and `1 TEST SCRIPT(S) FAILED`: `tests/entities.py`,
+at cdec092e5 prints `MODE: SCOPED -- 28 script(s) run, 5 scoped out.` and `1 TEST SCRIPT(S) FAILED`: `tests/entities.py`,
 `2 of 2425 ENTITY CHECKS FAILED` (`gate-sweep.yml: on CI's completion ...` and `graders-head-copy's delivery_status step ...`).
-Both fail identically on `origin/main` 343fb2a2c in this seat's environment (`PYTHONPATH=tests/hastub python3 tests/entities.py`
-there prints `3 of 2425 ENTITY CHECKS FAILED`, the same two plus `gate lease priority`), so they are the environment's, not this diff's;
-CI is the judge. Every other script in the scope passed.
+Both fail identically on `origin/main` 0810d5b8f in this seat's environment (`PYTHONPATH=tests/hastub python3 tests/entities.py`
+there prints `2 of 2425 ENTITY CHECKS FAILED`, the same two by name), so they are the environment's, not this diff's; CI is the judge.
+At 4995e8a7a, after main changed `tests/entities.py`, `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `2 of 2429 ENTITY CHECKS FAILED`, the same two by name.
+Every other script in the scope passed, `tests/features.py` (`ALL 4369 FEATURE CHECKS PASSED`) and `tests/stress.py` included.
 
-Golden: `GOLDEN_MODE=drift GOLDEN_REF=4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3 PYTHONPATH=tests/hastub python3 tests/golden.py`
-at f3ca049bf prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `no committed fixture is stale`.
+Golden: the scoped gate above (`GOLDEN_MODE=drift` against the merge base) at cdec092e5 prints
+`NO UNCLAIMED DRIFT: 56 scenario(s) checked against 0810d5b8f30a81adbbc074640c6d95a1b358c5f6` and `no committed fixture is stale`.
 Nothing is claimed, and both claim files are untouched.
 
 Class census (step 8). Rule: `grep -n "_open_loop_plan_value(" custom_components/heatpump_optimizer/*.py`
@@ -164,19 +198,23 @@ Every site the diff adds now carries a `killed_by` pin; `ci_predict.py` predicts
 - `custom_components/heatpump_optimizer/coordinator.py:7657 GUARD_OFF` and `custom_components/heatpump_optimizer/coordinator.py:7668 RETURN_DEL` (the moved `_track_dhw` block): value check `a tank reading reaches the DHW learner, and its freeze reason the coordinator; no reading reaches neither`; pinned `HeatPumpOptimizerCoordinator._track_dhw.GUARD_OFF.ba409d06` and `.RETURN_DEL.1b8c73f7`.
 - `custom_components/heatpump_optimizer/draw_range.py:295 CLAMP_DROP`: value check `a learned idle draw above the fixed floor raises it to IDLE_MARGIN times the idle draw`; pinned `running_kw.CLAMP_DROP.c0bdb768`.
 - `custom_components/heatpump_optimizer/draw_range.py:296 CMP_BOUND`: value check `a draw at the running floor is standby, not heat`; pinned `running_kw.CMP_BOUND.5f36889b`.
+- `custom_components/heatpump_optimizer/coordinator.py` `_propagated_slab`'s `shared=` and `space_served=` arguments (the review's M3 and M4, not inventory operators): value checks `an immersion element latched on the pump's meter leaves the slab on the plan's trajectory ...` and `a pump observed in a hot-water-only mode books 0 kW of space heat ...; observed heating rooms, its draw` (round 2; `## Mutation proof`).
 - Earlier rounds: `draw_range.py` `running_kw`/`space_draw_kw`/`space_share` and `coordinator.py` `_propagated_slab.RETURN_DEL`, `_update_current_state` GUARD_OFF sites: pinned by `mutation-autofix` (398daa3e5, `ci: pin killed mutants`).
 
 ## Red checks
 
+- `tests / mutation` (red at the reviewed head 5fb0a083b, 6 unpinned sites added by the diff): that head predates round 1. Answer: round 1's checks and pins (df2737ed4) are in this head. `python3 tests/mutation_table.py --scope changed --base origin/main` at cdec092e5 prints `3987 unpinned site(s) of 6309 candidate sites, 3990 at the ratchet base 0810d5b8f30a81adbbc074640c6d95a1b358c5f6`, so the diff adds none. Survivor triage of the review's M5 (`coordinator.py` `_propagated_slab` `dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS`, the `CMP_BOUND*2` site): not a survivor here; the gap-edge check kills it (`## Mutation proof`) and `_propagated_slab.CMP_BOUND.28c622e7` records the pin. `draw_range.py:296 CMP_BOUND` is pinned by `running_kw.CMP_BOUND.5f36889b`, from the value check `a draw at the running floor is standby, not heat` (round 1), not by `mutation-autofix` as the reviewed body said. The cheaper detector is the round-1 line below.
 - `tests / mutation` (red at 398daa3e5): `MUTATION TABLE REFUSED -- 3993 unpinned site(s) against 3990`, 6 added by this diff. The previous body gave those six "pinned by `mutation-autofix` if killed", but no check drove them, so the autofix had nothing to pin. Answer: five checks that drive each site, and six pins measured locally (`## Mutation proof`). The cheaper detector exists: `tests/mutation_table.py --pin-killed --scripts tests/features.py`, run before the handoff, names every survivor. Standing cost: one features run per mutant, about 380 s each on a 4-core seat (about 20 min wall here for six mutants at `--jobs 4`).
 - `pr-contract` (red at 398daa3e5): `## Red checks` named `mutation`, not `tests / mutation`. prepr's step 7 feeds the bare `mutation` to `policy_lint.mjs --pr-body`; CI feeds the check-run name, and the match is a substring test, so the local check passed a body CI refuses. This body names `tests / mutation`. There is no cheaper detector until prepr feeds CI's name; see `## Friction`.
 
 ## Forward-carry
 
+All four carries are on the roster branch `handoff/audit-r10-roster` at 1558cf55fb9073f3d3dbe72c536a186906657775, `dev/programme/rosters/wave-r10-groups.json`, each a `carry` entry opening `From r10-demand-overbook`: R10-UX-HEALTH (appended 4bdb4c470), R10-LEARNER-DEFAULT (78c843bb0), and two under R10-BUFFER-STORE (e11909cff, the DP lead with its flat-price null control; 0b19947d0, the tank seed). The reviewed body named R10-COP-PARTLOAD and R10-HEAT-METER for the last two, which hold nothing from this PR; those markers now name the group that holds them.
+
 - No-power-meter installs cannot tell a draw shortfall from UA. Harness `dev/audit/harnesses/r10_demand_overbook.py`, arm `nometer_half` (true scale 1.0, the pump delivers half of what is commanded, no power entity): the learned scale stays 1.858 and plan/deliv stays 1.908, identical at base 4a00a3f05 and head f3ca049bf. Against that, the metered arms move (owner_i01 1.221 -> 0.616, true 0.6; meter_half 2.041 -> 1.289). The ideal-delivery null arms stay on the truth at both ends (null 1.011 -> 0.98, true 1.0). So the residual is unobservability, not an unfixed bias. On such an install the health surface must report the learned heat-loss scale as unobservable, not as trustworthy. Carry: R10-UX-HEALTH (orchestrator ruling under mandate 6329234399).
 - House learner gets zero evidence on a standby-drawing, under-delivering pump: owner_i03 accepted 0 samples at both ends, because `COP_TRACKING_ERROR_GATE` in `_interval_space_power` refuses every interval. Carry: R10-LEARNER-DEFAULT
-- Optimality: on its own learned model, the plan books more kWh than the relaxed DP optimum at both ends (one window: base 6.95 against 5.38, head 5.27 against 3.75). Carry: R10-COP-PARTLOAD
-- `dhw_temp_trajectory` open-loop tank seed (class census): Carry: R10-HEAT-METER
+- Optimality: on its own learned model, the plan books more kWh than the relaxed DP optimum at both ends (one window: base 6.95 against 5.38, head 5.27 against 3.75). Carry: R10-BUFFER-STORE
+- `dhw_temp_trajectory` open-loop tank seed (class census): seed it from the measured tank temperature where one exists, failing test first. Carry: R10-BUFFER-STORE
 
 ## Friction
 
