@@ -1,0 +1,30 @@
+== main 0810d5b8f30a81adbbc074640c6d95a1b358c5f6
+R10-ORCH-MACHINERY absorbed hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-LEDGER carries-open hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-DISPATCH-REG not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-BEATD not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-PLANPAGE not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-ROSTER-SCHEMA not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-REVIEW-PACKET not-started hits(guardrail|planted|reviewer model|2765): 0
+== handoff/audit-r10-roster 1558cf55fb9073f3d3dbe72c536a186906657775
+R10-ORCH-MACHINERY absorbed hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-LEDGER carries-open hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-DISPATCH-REG not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-BEATD not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-PLANPAGE not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-ROSTER-SCHEMA not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-REVIEW-PACKET not-started hits(guardrail|planted|reviewer model|2765): 0
+== handoff/r10-roster-runq aa5b7e069ccb1c80e02095cfafe0491d173db15e
+R10-ORCH-MACHINERY absorbed hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-LEDGER not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-DISPATCH-REG not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-BEATD not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-PLANPAGE not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-ROSTER-SCHEMA not-started hits(guardrail|planted|reviewer model|2765): 0
+== handoff/r10-roster-sync-carries-open 05d056931b54d9226e2af4bd8611622fd5963812
+R10-ORCH-MACHINERY absorbed hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-LEDGER not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-DISPATCH-REG not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-BEATD not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-PLANPAGE not-started hits(guardrail|planted|reviewer model|2765): 0
+R10-ORCH-ROSTER-SCHEMA not-started hits(guardrail|planted|reviewer model|2765): 0
