@@ -38926,17 +38926,17 @@ R.check(
 _cal_tiny = _SavLedger()
 _cal_tiny.add_savings_settlement(
     _SavDT(2026, 1, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
-    planned_kw=_SAV_MIN_CAL * 0.99,
+    planned_kw=0.99,
 )
 _cal_tiny.add_savings_settlement(
     _SavDT(2026, 2, 3), baseline_kw=1.0, actual_kwh=3.0, spot=1.0, dt=1.0,
-    planned_kw=_SAV_MIN_CAL,
+    planned_kw=1.0,
 )
 R.check(
-    "#2492: a month whose plan booked under the calibration floor stays modelled "
-    "(at the floor it calibrates)",
+    "#2492: a month whose plan booked under one modelled kWh stays modelled "
+    "(at one kWh it calibrates)",
     _cal_tiny.meter_calibration("2026-01") is None
-    and _cal_tiny.meter_calibration("2026-02") == 3.0 / _SAV_MIN_CAL,
+    and _cal_tiny.meter_calibration("2026-02") == 3.0 / 1.0 and _SAV_MIN_CAL == 1.0,
     repr(_cal_tiny.months),
 )
 
