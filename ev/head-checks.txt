@@ -1,0 +1,11 @@
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 263 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+.claude/rules/gate-scoping.md                     56   61      794   794 
+corpus:        ~66417 tokens, cap 66434 +band 500 = 66934
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+brief_lint rc=0
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 92 checks, 0 failed
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 103 line(s) added since d0ae3ca9f480 judged, 0 refused

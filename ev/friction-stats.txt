@@ -1,0 +1,8 @@
+friction rule id (PRs / entries):
+     8 / 8     .claude/rules/gate-scoping.md   <- at or over threshold
+CENSUS	friction rule id	26	32	tools/audit/briefs/fixer.md
+CENSUS	friction rule id	8	9	.claude/rules/finding-propagation.md
+CENSUS	friction rule id	8	8	.claude/rules/gate-scoping.md
+CENSUS	friction rule id	4	6	fixer
+CENSUS	friction rule id	4	5	.claude/rules/ci-autofix.md
+CENSUS	friction rule id	4	5	.claude/rules/defect-root-cause.md
