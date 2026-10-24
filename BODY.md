@@ -24,7 +24,7 @@ Not run locally; the structure ratchet above moved down on five rows.
 
 ## Red checks
 
-none
+`mutation` (tests / mutation): predicted red at this head by `ci_predict.py --base origin/main` (merged with main `145bfe197`): five `ADDED UNPINNED` sites, listed in the Unpinned sites section below. It fails on mutants no pin kills until `mutation-autofix` records them. Cheaper detector: `prepr.sh` step 6d, which already lists them before the push; its standing cost is seconds. A local `mutation_table.py --pin-killed` drive was started at this head and stopped before a verdict (a box at load near 570 ran one mutant's drivers for 17 minutes), so no kill is claimed from it; the two sites named in the mutation proof are measured, the rest are owed to the autofix job. A `mutation-autofix` run that leaves any site unpinned is a survivor and goes back to the fixer for a test, not to triage.
 
 ## Forward-carry
 
@@ -36,6 +36,10 @@ none
 
 ## Unpinned sites
 
-- coordinator.py CMP_BOUND on the grid_fee_magnitude and grid_fee_sign `notices.report` lines: pinned by `mutation-autofix` after the PR opens (ci-autofix.md); the threshold comparisons were unchanged in meaning from the replaced `if worst > fee_bound(...)` / `if lowest < 0.0` and the existing fee-notice checks in tests/features.py cover them.
-- issues.py `if persistent:` and setpoint_check.py `if offending is None:`: pinned by `mutation-autofix`; the latter is killed by the new "fresh instance still clears" check (mutation proof above).
-- setpoint_check.py `if self._raised.get(issue_id) == offending:`: pinned by `mutation-autofix`; killed by the "same offending value raised once" check where the stub registry records each create.
+Re-derived at the current head with `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` after merging main `145bfe197` into `5b067738b`: exactly five sites, all disposed here.
+
+- custom_components/heatpump_optimizer/coordinator.py:7295 CMP_BOUND (the `grid_fee_magnitude` `notices.report` line): pinned by `mutation-autofix` after the PR opens (ci-autofix.md); the comparison is unchanged in meaning from the replaced `if worst > fee_bound(...)` and the existing grid-fee magnitude notice checks in tests/features.py cover it.
+- custom_components/heatpump_optimizer/coordinator.py:7298 CMP_BOUND (the `grid_fee_sign` `notices.report` line): pinned by `mutation-autofix`; unchanged in meaning from the replaced `if lowest < 0.0`, covered by the existing grid-fee sign notice checks in tests/features.py.
+- custom_components/heatpump_optimizer/issues.py:54 GUARD_OFF (`if persistent:`): pinned by `mutation-autofix`.
+- custom_components/heatpump_optimizer/setpoint_check.py:57 GUARD_OFF (`if offending is None:`): killed by the "fresh instance still clears" check in tests/features.py (the mutation proof above); pinned by `mutation-autofix`.
+- custom_components/heatpump_optimizer/setpoint_check.py:61 GUARD_OFF (`if self._raised.get(issue_id) == offending:`): killed by the "same offending value raised once" check, where the stub registry records each create; pinned by `mutation-autofix`.
