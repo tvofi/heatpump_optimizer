@@ -3571,6 +3571,7 @@
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
+   "dev/audit/harnesses/r10_envmatrix_noremote.sh",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
    "dev/audit/harnesses/r10_family_replay.mjs",
    "dev/audit/harnesses/r10_field_coverage_paths.sh",
