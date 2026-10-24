@@ -1,17 +1,17 @@
-# Proposal triage, session s6, batch 2 (P45-P51)
+# Proposal triage, session s6, batch 2 (P45-P52)
 
-Seven proposals from the s6 orchestrator's out-of-tree `proposals.md`: items
+Eight proposals from the s6 orchestrator's out-of-tree `proposals.md`: items
 I, J, K, L, M (the s5 orchestrator's, left unruled -- `s5-batch2.md` ruled
 A-H as P34-P41, and no file under `dev/programme/triage/` names any of I-M)
-and the s6 items Q and R. Ruled in the order the orchestrator listed them as
-P45-P51 from `dev/governance/roles/proposal-triage.md`. Numbering continues
+and the s6 items Q, R and S6-S (appended at 08:55Z). Ruled in the order the
+orchestrator listed them as P45-P52 from `dev/governance/roles/proposal-triage.md`. Numbering continues
 after `s6-batch1.md` (P42-P44, pull request #2688, unmerged at this base).
 
 Base: origin/main `50af6174f`; roster origin/handoff/audit-r10-roster
 `4c54758d7`, read with
 `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
 Logs cited by file name are in the orchestrators' scratch directories
-(`/Users/timmalmstrom/hpo-orch/r10s5/` and `.../r10s6/`, out of tree).
+(the s5 and s6 orchestrators' scratch directories, out of tree).
 GitHub calls: 0.
 
 A roster op citing an ACCEPT below resolves only once this file is on the
@@ -224,3 +224,57 @@ cheapest fix is the statement. The proposed helper is the same loop in a file
 and costs a maintained script plus mutants; REJECTED as the surface, kept as
 the paragraph. The paragraph is a policy change to four contracts, so the
 owner approves its merge (CLAUDE.md, "Where the policy is").
+
+## P52: a barrier for the class "P2b assembly: a reader meets a sibling unit's change"
+Verdict: REJECT (the barrier); the class entry is not a roster carry (route below)
+Source: s6 proposals.md item S6-S (08:55Z, orchestrator).
+Instances: 4 incidents, 0 judged survivors. Three are fixes inside the
+R10-CI-LAYOUT P2b assembly, committed 2026-10-23 09:29Z-09:53Z, before the
+assembly's first push run on main (`b927f431a`, 23:53Z, per the RCA below):
+`69a26d2a2` (the required-contexts record accepts either whole shape),
+`bd0d4d603` (the gate-at-head precondition reads every check suite) and
+`168365196` (two prepr refusals "the Arm B probe found on the assembly") --
+`git log -1 --format=%ad%n%s <sha>`. The fourth is the one that reached main:
+`tests / ci-ratchet` red from `d5dc3e26a` (02:36Z) to at least 08:35Z, 6.0 h
+and 5 red push runs, because `ci_ratchet.py` keyed on a run's `.name` that a
+sibling unit's `run-name:` rewrote
+(`dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md` at
+`origin/handoff/r10-rca-ci-ratchet-run-name` `776d37392`, sections 1-3).
+Cost: M for the first candidate (re-run every unit's self-test on the assembled
+tree: each unit's suite is already run on the assembled tree by the assembly
+PR's own `gate`, so the new step would be a second run of the same scripts,
+minutes on the critical path per assembly); S for the second (an API-shaped
+stub convention, prose in `fixer.md` plus a reviewer check, a standing review
+cost on every fix that stubs an API).
+Binding: neither candidate would have caught the instance that shipped. The RCA
+establishes (section 2, "Why the assembly's gate did not notice") that U9a's
+self-test was correct in its own tree, where a run is named `CI`; the assembly
+PR passed with all units' tests re-run on the sum, since the precondition (push
+runs titled by `run-name`) did not exist on any PR run and the failing grade
+needs 8 such push runs. A faithful stub would also have been correct for U9a's
+tree (the RCA's state (d), "not (c)"). The other three were found by the
+assembly's own probes before main, so the existing detector worked for them. The
+RCA ran the cost test on the one countermeasure that does map (a job classifying
+its own run: 129 runner-seconds a day against 21 600 s of defect, break-even one
+recurrence in 167 days) and recorded a refusal because the reader now keys on
+`.path` and the enabling condition, a multi-unit assembly changing what an
+earlier unit reads, ended with P2b (the cut-over is live since 2026-10-24
+00:34Z). On the audit-class rule: `defect-root-cause.md` counts judged
+survivors and sweep seams; these are process incidents found by probes, which
+`bugclasses.json` carries as `non_round_instances`, "listed, not counted"
+(`_counting`), as the existing class `N-postreview-merge-red` does (total 0,
+`non_round_instances` 15, `rca` listed, `barrier` null, `trigger` all false);
+so the three-instance trigger has not fired, and the cost test, which the rule
+says picks the barrier's form, picks none here. What would change the answer:
+a second assembly of independently-gated units (the merge-queue adoption after
+`R10-FLOW-MQ-PROBE` would be one) that fails the same way, at which point the
+RCA's own suggestion applies, a `plan-review.md` brief line naming the readers
+of workflow-run fields to check against the post-assembly API answer.
+Registration: the proposer asks for a `bugclasses.json` entry either way. That
+is a data row on the RCA seat's own pull request, in the shape of
+`N-postreview-merge-red` (`kind` process, `total` 0, the four incidents under
+`non_round_instances`, `rca` `R10-RCA-CI-RATCHET-RUN-NAME`, `barrier` null,
+`status` open); the RCA says it did not register them (its section 5). No live
+roster group owns that RCA, so there is no carry; the orchestrator asks that
+seat to add the row before its pull request merges. `R10-FLY-INERT-LOAD-TIME`
+(in-progress) also edits that file, so the row should not ride on it.
