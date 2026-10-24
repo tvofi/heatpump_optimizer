@@ -1,4 +1,3 @@
-dispatch/fixer-r10-ratio-anchor
 dispatch/fixer-r10-thermal-power-option
 dispatch/fixer-r10-config-notices
 dispatch/fixer-r10-replay-scoped
@@ -10,3 +9,4 @@ dispatch/fixer-r10-mutation-anchor
 dispatch/fixer-r10-fly-envmatrix-noremote
 dispatch/fixer-r10-codeql-dependabot
 dispatch/fixer-r10-demand-overbook
+dispatch/fixer-r10-ratio-anchor
