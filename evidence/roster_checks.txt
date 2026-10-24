@@ -1,0 +1,7 @@
+re-dump(indent=1) byte-identical: True
+handoff blob == head blob: a1673a3a2 (git rev-parse 78f195461:F and H:F)
+ARCH-DOCS after added: ['R10-FLY-LEDGER-SAMPLE']
+CIPREDICT resume main->head: {'stage': 'in-progress', 'branch': None} -> {'stage': 'done', 'branch': None, 'commit': '0c7d6ca4faf974807abbe31da852afaa25ee4744'}
+R10-HEAT-METER carries 8 -> 9 prefix kept: True stage: not-started
+R10-COP-GATE carries 4 -> 5 prefix kept: True stage: not-started
+LEDGER-SAMPLE after edge resolves: True
