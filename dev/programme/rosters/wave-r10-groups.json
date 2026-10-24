@@ -2946,7 +2946,8 @@
    "carry": [
     "Forward-carry from #2209: add a per-row version stamp to the diagnostics cycle rows, so version attribution no longer needs the restart-gap rule (the worked case: the 12054 s gap at the upgrade).",
     "The new shared module is a new tracked file: classify it (a measured closure or INERT).",
-    "This runs before the D15 finder box."
+    "This runs before the D15 finder box.",
+    "D15 production triage (2026-10-24, owner bundle, version 7.0.4): the diagnostics bundle's replay half was refused because 2 credential values that redaction drops still appear elsewhere in the same payload. Redaction is incomplete. Before the replay is wired into Download diagnostics, find every path the dropped keys reach (a full-payload scan for each redacted value) and redact them all. Pin this with a fixture that plants a credential in each path, plus a null control showing a clean bundle passes."
    ],
    "architect_note": null,
    "resume": {
