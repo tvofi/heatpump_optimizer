@@ -444,7 +444,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: const.py (position 1 of 2; before you: none; next: R10-HEAT-METER); coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER, R10-ARCH-SHAPES). Owning seam in this group: the max-age table and the freshness check that reads it. Shape: one freshness rule keyed on the source's reporting kind. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-input-staleness",
     "commit": null,
     "last_step": null,
