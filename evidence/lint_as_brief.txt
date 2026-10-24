@@ -1,0 +1,12 @@
+== carry text linted as brief (real)
+  ERROR   [R10-ORCH-LEDGER] path: dev/programme/triage/s6-batch10.md: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e]
+  -- 1 error(s), 0 warning(s)
+TOTAL: 1 error(s) across 1 file(s)
+== carry text linted as brief (null)
+  ERROR   [R10-ORCH-LEDGER] path: dev/programme/triage/s6-batch10.md: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e]
+  ERROR   [R10-ORCH-LEDGER] path:line: tools/audit/seat/nope_zz9.py:12: not in the tree, and not present at its cited tag ref(s) [09174d94e24faa0a02cda531164ec55ac2c49577, 0bd5d12f0d13690a509e350e81efc1a63c9c1639, 2fc665c61, 09174d94e]
+  -- 2 error(s), 0 warning(s)
+TOTAL: 2 error(s) across 1 file(s)
+== with the batch file tracked (post-merge state): carry text as brief and as carry
+  -- 0 error(s), 0 warning(s)
+TOTAL: 0 error(s) across 1 file(s)

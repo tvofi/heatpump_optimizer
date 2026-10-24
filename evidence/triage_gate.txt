@@ -1,0 +1,3 @@
+ruling_verdict P79: ACCEPT
+triage_refusal: None
+triage_refusal (bare, with 'triage P79'): proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'triage P79 x'
