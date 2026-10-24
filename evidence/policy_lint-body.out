@@ -1,0 +1,3 @@
+  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+PR-BODY: 0 error(s) in /tmp/r10s5-body2.md
