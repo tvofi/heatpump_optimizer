@@ -8891,6 +8891,50 @@
     "note": "owner card 1 recommendation (b), 2026-10-24"
    },
    "brief": "Per-role policy pack from the SessionStart hook (owner ruling tvofi 2026-10-24, recommendation (b) of the token pre-study). Today every seat opens by re-reading CLAUDE.md, its role contract and tools/audit/seat/INSTRUMENTS.md with tool calls, which re-sends the same text in each seat's context. Change: a new module under tools/policy renders, for a named role (fixer, fix-review, designer, design-review, root-cause, verifier, judge, and the finder's COMMON.md), one pack made of the verbatim text of CLAUDE.md, that role's contract under dev/governance/roles/, the rules under dev/governance/rules/ whose paths: globs the role's files match, and only the INSTRUMENTS.md entries for the instruments the role's contract names. The in-tree SessionStart hook .claude/hooks/session-start.sh prints the pack when the role environment variable is set, after its existing clone-fact lines, and prints nothing extra when it is unset, so the main session and every other clone are unchanged. cloud_dispatch.py (R10-FLOW-DESIGN-STAGES) sets the variable in the cloud payload for each role it renders; a seat launched without it reads the files as today. Measure first: the tokens a fixer, a reviewer and a designer spend on the policy re-read at the base, from the local session transcripts (the token section of R10-FLOW-BOARD is the reader if it has landed; otherwise count the Read results of those files in a sample of seat transcripts); the change is justified by that number falling, with the pack's own size beside it. Controls: the pack for a role contains every line of its contract (byte-equal), and a file removed from the role's list fails the check; with the variable unset the hook output is byte-equal to today's; a pack never exceeds the policy files' current text (it is a subset); each rule has a mutant. Open point, not decided here: Agent-tool subagents launched inside a local session may not run SessionStart at all. Measure that at the base. If they do not, the local seat brief carries the pack path instead, and say so in the handoff rather than claiming the saving for local seats."
+  },
+  {
+   "lane": "C",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "group": "R10-CLOSEOUT-CLEANUP",
+   "after": [
+    "R10-FLY-PRUNE-REFS",
+    "R10-FLY-WORKTREE-GC",
+    "R10-ARCH-DOCS",
+    "R10-ROUND-PLAYBOOK"
+   ],
+   "files": [
+    "tools/audit/seat/prune_refs.py",
+    "tools/audit/worktree_gc.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-closeout-cleanup"
+   },
+   "brief": "Programme-closeout work, and it runs LAST: after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, after the roster and the state docs have moved into main, and before the closure stamp. Owner request (tvofi, 2026-10-24): the programme must contain a group that cleans up after itself and drives the open branches down to the owner's 1-3 target. Round-10 end state: main plus at most two development branches, remote and local, every other ref archived as a tag first, GitHub's merged pull request branches already deleted. This group is the single owner of that end state; R10-FLY-PRUNE-REFS owns only the two defects in tools/audit/seat/prune_refs.py and must land first, so this group uses prune_refs.py as its ref instrument and never a session-local loop (decision 0013).\n\nDeliver a self-tested closeout instrument under tools/audit/seat/ that composes the existing instruments (tools/audit/seat/prune_refs.py, tools/audit/worktree_gc.sh, tools/audit/seat/state_docs.py) and is a dry plan by default, acting only under --apply, with the ordering below written as code. Then run it with --apply as the final act of the round (the orchestrator's step; the pull request lands the instrument and its fixtures, the run leaves the end state and the report). Steps, each gated by the one before:\n(1) Move the roster and the state docs into main, because the roster branch and the state ref are read at run time and must not be deleted while a workflow or a citation reads them (see the R9-CLOSURE-BRANCHES brief in dev/programme/rosters/wave-r9-groups.json for the hazard list). Sweep in-tree citations of every ref family about to go and retarget each to the archive tag at the same sha; prove it with node tools/policy/brief_lint.mjs (dev/governance/rules/brief-citations.md).\n(2) Archive before delete: every remaining handoff/*, handoff-body/*, fix/*, design/*, review/*, probe/*, claim/*, dispatch/* and record/* ref (and the other families prune_refs.py enumerates, verdict/* only once --verdicts-drained) is retagged under archive/<family>/<name> at its own commit, then its branch is deleted. origin keeps main plus at most two branches. Derive the counts with git ls-remote and a prefix histogram; carry none.\n(3) Local state: remove every seat worktree under ~/hpo-seats and under ~/.local/state/hpo/pr (a worktree holding an unpushed commit is reported and kept until the owner rules; worktree_gc.sh must already leave such a worktree alone, which is R10-FLY-WORKTREE-GC); clear scratch under ~/hpo-orch except the final ledger and state; prune git worktrees; reduce local branches to main plus at most two; run a final worktree_gc.\n(4) Issues and sessions: close or disposition every open issue except the coordination issue's successor, each with the number that closes it or the re-scope that keeps it; archive merged cloud sessions.\n(5) Closure report: write counts before and after for refs by family, tags added, worktrees, local branches, open issues and open pull requests, plus every ref left and the rule that kept it, to the round-10 evidence directory under dev/audit/rounds/.\nControls: a fixture where a ref to be deleted lacks its archive tag must refuse (every tag precedes every delete); an open-PR ref and main are kept (null control); a worktree with an unpushed commit survives; a dry run writes nothing. Spare the API: batch ref writes (R10-FLY-PRUNE-REFS carry (i)). Part of #201."
   }
  ]
 }
