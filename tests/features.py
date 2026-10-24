@@ -7796,7 +7796,7 @@ class _CopGate:
         self.cop_health_calls.append((observed_cop, dhw_curve))
         return None
 
-    def _fold_capacity_envelope(self, observed_cop):
+    def _fold_capacity_envelope(self, observed_cop, heat_kw=None):
         # T4b's envelope is likewise exercised on the real coordinator.
         return None
 
@@ -57407,15 +57407,23 @@ R.check(
 # state a learner replays), so a forecast-step call added inside one of these
 # functions (``outdoor_temps[i]``) is not silenced by its entry.
 _P3_FUNCS = (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)
-_P3_FILES = ("optimizer.py", "dhw_planner.py", "thermal_model.py", "coordinator.py")
+_P3_FILES = (
+    "optimizer.py", "dhw_planner.py", "thermal_model.py", "coordinator.py",
+    # #1955 fold (e): the reference a just-measured interval is judged
+    # against moved here from ``_cop_reference_curve``, so its calls stay
+    # under the rule instead of leaving it with the move.
+    "flow_meter.py",
+)
 _P3_ALLOWED = {
     # (file, function, callee, first argument): why the current humidity
     ("coordinator.py", "_dhw_setpoint_sweep", "compute_cop_dhw", "outdoor"):
         "ranks setpoints at the current outdoor temperature",
     ("coordinator.py", "_max_pump_rise", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the pump's rise right now",
-    ("coordinator.py", "_cop_reference_curve", "compute_cop", "outdoor"):
+    ("flow_meter.py", "space_reference_cop", "compute_cop", "outdoor_c"):
         "the reference the just-measured interval is judged against",
+    ("flow_meter.py", "space_reference_cop", "compute_cop_dhw", "outdoor_c"):
+        "the same reference, at the supply a metered interval ran at",
     ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
         "the same reference, for a hot-water interval",
     ("coordinator.py", "_record_accuracy", "compute_cop_dhw", "sample.outdoor_temp"):
@@ -68393,6 +68401,294 @@ R.check(
     "next solve takes the next spec (behaviour change, stated in the PR)",
     _ls_tiles_seen == _ls_tiles_specs[:2],
     f"seen={_ls_tiles_seen} specs={_ls_tiles_specs[:2]}",
+)
+
+
+# --- #1955 fold (e): an optional thermal power entity -------------------------
+# A heat meter is the direct reading of what the flow meter estimates. It
+# answers ``read_heat_output_kw`` alone whenever it is configured; with an
+# electrical meter it makes COP an observable, so ``cop_scale`` is judged at the
+# supply the pump ran at and stops walking with the weather (``flow_lift``'s
+# documented failure); the interval learners replay it; and the capacity
+# envelope takes it at every load as a floor. Absent the key, every path below
+# is the one it was. The production symbols, never a re-implemented formula.
+from heatpump_optimizer.flow_meter import (  # noqa: E402
+    cop_evidence as _tp_evidence,
+    replay_freeze as _tp_replay_freeze,
+    space_reference_cop as _tp_reference,
+)
+
+_TP_KEY = _fb_const.CONF_THERMAL_POWER_ENTITY
+_TP_FORGET = _fb_const.CAPACITY_FORGET
+
+
+def _tp_reader(cfg, heat_state, unit="W", heat_age_min=1, flow=True):
+    """A reader over a planted heat meter, beside the R9-UX-9 flow states."""
+    reader, full = _fm_reader(cfg if flow else {}, "15.0")
+    if not flow:
+        full.pop(_fb_const.CONF_FLOW_METER_ENTITY)
+    reader.hass.states.set("sensor.heat", FakeState(
+        heat_state, last_updated=minutes_ago(heat_age_min, NOW), unit=unit
+    ))
+    full[_TP_KEY] = "sensor.heat"
+    full.update(cfg)
+    return reader, full
+
+
+_tp_kw = _fm.read_heat_output_kw(*_tp_reader({}, "4200"))
+_tp_kw_kw = _fm.read_heat_output_kw(*_tp_reader({}, "4.2", unit="kW"))
+_tp_flow_kw = _fm.read_heat_output_kw(*_fm_reader({}, "15.0"))
+R.check(
+    "a configured heat meter answers in kW, and outranks the flow meter's "
+    "estimate (null control: the same flow states without it read the flow)",
+    _tp_kw is not None and abs(_tp_kw - 4.2) < 1e-9
+    and _tp_kw_kw is not None and abs(_tp_kw_kw - 4.2) < 1e-9
+    and _tp_flow_kw is not None and abs(_tp_flow_kw - 4.2) > 0.5,
+    f"heat meter {_tp_kw!r} / {_tp_kw_kw!r}, flow alone {_tp_flow_kw!r}",
+)
+_tp_outranked = _fm.read_heat_output_kw(*_tp_reader({
+    _fb_const.CONF_POWER_ENTITY: "sensor.p",
+    _fb_const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+}, "4200"))
+R.check(
+    "a power and a frequency signal do not switch the heat meter off, as they "
+    "do the flow meter",
+    _tp_outranked is not None and abs(_tp_outranked - 4.2) < 1e-9,
+    f"{_tp_outranked!r}",
+)
+_tp_refused = {
+    label: _fm.read_heat_output_kw(*_tp_reader({}, state, **kw))
+    for label, state, kw in (
+        ("unavailable", "unavailable", {}),
+        ("negative", "-300", {}),
+        ("stale", "4200", {"heat_age_min": 45}),
+        ("unknown unit", "4200", {"unit": "BTU/h"}),
+    )
+}
+_tp_fresh = _fm.read_heat_output_kw(*_tp_reader({}, "4200", heat_age_min=20))
+R.check(
+    "an unusable heat reading is absent, and the flow meter is not consulted in "
+    "its place (null control: 20 min old is read)",
+    all(v is None for v in _tp_refused.values())
+    and _tp_fresh is not None and abs(_tp_fresh - 4.2) < 1e-9,
+    f"{_tp_refused} fresh {_tp_fresh!r}",
+)
+R.check(
+    "the one install probe reports the heat meter, and nothing else moves it",
+    _pp_probe({_TP_KEY: "sensor.heat"}).measured_heat is True
+    and _pp_probe({}).measured_heat is False
+    and _pp_probe(_PP_METERED).measured_heat is False
+    and _pp_probe({**_PP_METERED, _TP_KEY: "sensor.heat"}).fully_metered()
+    == _pp_probe(_PP_METERED).fully_metered(),
+)
+R.check(
+    "the options step asks for the heat meter beside the electrical one",
+    any(f.key == _TP_KEY and f.group == "meters" for f in _fm_fields),
+)
+
+# The evidence a fold takes. Without a heat reading it is the v4.0.5
+# inference in its own float order, so every install without the key folds
+# bit for bit what it folded; with one, COP is heat over electricity.
+_tp_cmd = _tp_evidence(3.1, 2.7, 2.3, None, 0.97)
+_tp_met = _tp_evidence(3.1, 2.7, 2.3, 6.9, 0.97)
+R.check(
+    "without a heat reading the evidence is the commanded inference, bit for "
+    "bit; with one, COP is heat over electricity",
+    _tp_cmd == (3.1 * 2.7 / 2.3, 0.97 * 2.7 / 2.3)
+    and _tp_met == (6.9 / 2.3, 0.97 * (6.9 / 2.3) / 3.1),
+    f"commanded {_tp_cmd} metered {_tp_met}",
+)
+
+# The weather walk ``flow_lift`` documents, driven through the production fold
+# (``_CopGate``'s real ``_fold_measured_cop``). A direct plant whose supply
+# follows the weather curve, whose true COP is 0.9 x the model's own law at that
+# supply (a pump 10 % below nameplate, at every temperature), delivering a
+# fixed 9 kW the plan asks for at its own price. Commanded inference: the scale
+# converges to true / priced COP, which carries the lift, so it moves with
+# outdoor. Metered: it converges to 0.9 at every outdoor. Outdoor points stay
+# outside the frost band, which hands its intervals to the defrost derate.
+_TP_TRUE_K = 0.9
+_TP_OUTDOORS = (-15.0, -10.0, -5.0, -2.0, 5.0, 8.0, 12.0)
+
+
+def _tp_supply(outdoor):
+    return 50.0 - 0.8 * outdoor
+
+
+def _tp_walk(metered, folds=400):
+    gate = _CopGate(outdoor=_TP_OUTDOORS[0])
+    law = ThermalModel(ThermalParameters())  # cop_scale 1.0: the bare law
+    scales = {}
+    for outdoor in _TP_OUTDOORS:
+        gate._current_state.outdoor_temperature = outdoor
+        true_cop = _TP_TRUE_K * law.compute_cop_dhw(outdoor, _tp_supply(outdoor))
+        for _ in range(folds):
+            gate._current_action = {"power": 9.0 / gate._thermal_model.compute_cop(outdoor)}
+            gate._measured_power = 9.0 / true_cop
+            gate._flow_bias.observe_temps(
+                _tp_supply(outdoor), _tp_supply(outdoor) - 5.0,
+                heat_output_kw=9.0 if metered else None,
+            )
+            gate._learn_measured_cop()
+        scales[outdoor] = gate._cop_scale
+    return scales, gate
+
+
+_tp_walk_met, _tp_gate_met = _tp_walk(True)
+_tp_walk_cmd, _tp_gate_cmd = _tp_walk(False)
+_tp_spread_met = max(_tp_walk_met.values()) - min(_tp_walk_met.values())
+_tp_spread_cmd = max(_tp_walk_cmd.values()) - min(_tp_walk_cmd.values())
+R.check(
+    "a measured COP holds cop_scale at the pump's own 0.9 across the weather "
+    "(null control: the commanded inference walks with the lift)",
+    _tp_gate_met._cop_samples > 0
+    and all(abs(v - _TP_TRUE_K) < 0.01 for v in _tp_walk_met.values())
+    and _tp_spread_met < 0.01
+    and _tp_spread_cmd > 0.1,
+    f"metered {_tp_walk_met} (spread {_tp_spread_met:.4f}); commanded "
+    f"{_tp_walk_cmd} (spread {_tp_spread_cmd:.4f})",
+)
+# The reference itself: judged at the supply only with a heat reading AND a
+# fresh supply; either missing is the plan's own price, as before.
+_tp_ref_model = ThermalModel(ThermalParameters())
+R.check(
+    "a metered interval is judged at the supply it ran at; no heat reading or no "
+    "supply is the plan's own price",
+    _tp_reference(_tp_ref_model, -5.0, 6.0, 55.0)
+    == _tp_ref_model.compute_cop_dhw(-5.0, 55.0)
+    and _tp_reference(_tp_ref_model, -5.0, None, 55.0)
+    == _tp_ref_model.compute_cop(-5.0)
+    and _tp_reference(_tp_ref_model, -5.0, 6.0, None)
+    == _tp_ref_model.compute_cop(-5.0)
+    and _tp_ref_model.compute_cop_dhw(-5.0, 55.0) < _tp_ref_model.compute_cop(-5.0),
+)
+# A heat reading takes the fold past the tracking gates, which exist because
+# delivered heat was not measured: a pump drawing half what was asked folds
+# when its heat was measured, and is refused on the commanded path.
+_tp_track = {}
+for _tp_heat in (None, 6.0):
+    _g = _CopGate(outdoor=8.0, action={"power": 3.0})
+    _g._measured_power = 1.4
+    _g._flow_bias.observe_temps(40.0, 35.0, heat_output_kw=_tp_heat)
+    _g._learn_measured_cop()
+    _tp_track[_tp_heat] = (_g._cop_samples, _g._measured_cop.refusal, _g._measured_cop.cop)
+R.check(
+    "a measured heat is not judged by the commanded-ratio gates (null control: "
+    "the same draw without it is refused)",
+    _tp_track[6.0][0] == 1 and _tp_track[6.0][1] is None
+    and abs(_tp_track[6.0][2] - round(6.0 / 1.4, 2)) < 1e-9
+    and _tp_track[None][0] == 0 and _tp_track[None][1] is not None,
+    f"{_tp_track}",
+)
+
+# The capacity envelope. Today a partial-load interval is censored (#17's
+# docstring); a measured heat at partial load is a floor on what the unit can
+# deliver: it may raise its bucket, never decays it or counts towards a cap.
+_tp_bucket = int(np.floor(-10.0 / 3.0))
+
+
+def _tp_env(power, heat_kw, seed=None):
+    c = _t2_coord(capacity_curve_enabled=True)
+    c._current_state.outdoor_temperature = -10.0
+    c._current_action = {"power": power}
+    c._measured_power = power
+    if seed is not None:
+        c._capacity_envelope[_tp_bucket] = list(seed)
+    c._fold_capacity_envelope(2.0, heat_kw)
+    return c._capacity_envelope.get(_tp_bucket)
+
+
+R.check(
+    "a measured partial-load heat seeds or raises its bucket, never counts and "
+    "never lowers it (null control: the same interval unmetered is censored)",
+    _tp_env(2.0, 6.5) == [6.5, 0]
+    and _tp_env(2.0, 6.5, seed=[5.0, 7]) == [6.5, 7]
+    and _tp_env(2.0, 3.0, seed=[5.0, 7]) == [5.0, 7]
+    and _tp_env(2.0, None) is None,
+    f"{_tp_env(2.0, 6.5)} {_tp_env(2.0, 6.5, seed=[5.0, 7])} "
+    f"{_tp_env(2.0, 3.0, seed=[5.0, 7])} {_tp_env(2.0, None)}",
+)
+_tp_np_met = _tp_env(5.0, 11.0, seed=[12.0, 3])
+_tp_np_cmd = _tp_env(5.0, None, seed=[12.0, 3])
+R.check(
+    "at nameplate a measured heat is the sample, forgotten and counted as "
+    "before (null control: unmetered folds the modelled 2.0 x 5.0 kW)",
+    _tp_np_met is not None
+    and abs(_tp_np_met[0] - max(11.0, 12.0 * _TP_FORGET)) < 1e-12
+    and _tp_np_met[1] == 4
+    and _tp_np_cmd is not None
+    and abs(_tp_np_cmd[0] - max(10.0, 12.0 * _TP_FORGET)) < 1e-12
+    and _tp_np_cmd[1] == 4,
+    f"metered {_tp_np_met} commanded {_tp_np_cmd}",
+)
+
+# The interval learners. The unmetered-power freeze (#1955 c) lifts for an
+# interval a heat meter measured, and only for it: every other reason, an
+# interval without a reading and a flow-meter figure all keep it.
+_tp_heat_cfg = {_TP_KEY: "sensor.heat"}
+R.check(
+    "the unmetered freeze lifts only for a heat-metered interval with a reading",
+    _tp_replay_freeze(_PP_FREEZE, _tp_heat_cfg, 4.2) is None
+    and _tp_replay_freeze(_PP_FREEZE, _tp_heat_cfg, None) == _PP_FREEZE
+    and _tp_replay_freeze(_PP_FREEZE, _FM_FLOW_CFG, 4.2) == _PP_FREEZE
+    and _tp_replay_freeze("ventilation", _tp_heat_cfg, 4.2) == "ventilation"
+    and _tp_replay_freeze(None, _tp_heat_cfg, 4.2) is None,
+)
+
+
+def _tp_replay(method, heat_state="4200", heat_age_min=1, config=None, **kw):
+    """One learner run with a heat meter planted on the R9-UX-10 fixture."""
+    dt_util.freeze(NOW)
+    try:
+        cfg = {_TP_KEY: "sensor.heat", **(config or {})}
+        coord = _t2_house(**cfg, **kw)
+        coord.hass.states.set(
+            "sensor.heat",
+            FakeState(heat_state, last_updated=minutes_ago(heat_age_min, NOW), unit="W"),
+        )
+        reader = _fmReader(coord.hass, coord.effective_config, now=lambda: NOW)
+        _fm.observe_water(coord._flow_bias, reader, coord.effective_config)
+        coord._input_health = reader.health
+        seen = _fm_spy(coord)
+        _t2_drive(coord, method)
+    finally:
+        dt_util.freeze(None)
+    return seen, coord
+
+
+_tp_un_seen, _tp_un = _tp_replay(_HOUSE_LEARNER, config=_PP_UNMETERED)
+_tp_un_lf_seen, _tp_un_lf = _tp_replay(_LOWER_LEARNER, config=_PP_UNMETERED, two_zone=True)
+_tp_unk_seen, _tp_unk = _tp_replay(_HOUSE_LEARNER, config=_PP_UNMETERED, heat_state="unavailable")
+_fm_un_seen, _fm_un = _fm_replay(_HOUSE_LEARNER, config=_PP_UNMETERED)
+R.check(
+    "on an unmetered switch-plus-setpoint install both interval learners replay "
+    "the measured heat (null controls: an unreadable heat meter freezes, and "
+    "the flow meter keeps today's freeze)",
+    _tp_un._t2_escaped is None
+    and _tp_un._house_heat_loss_samples == 1
+    and abs((_tp_un_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
+    and _tp_un_lf._t2_escaped is None
+    and abs((_tp_un_lf_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
+    and _tp_unk._house_heat_loss_samples == 0
+    and _tp_unk._learner_freeze_reason is not None
+    and _fm_un._house_heat_loss_samples == 0
+    and _fm_un._learner_freeze_reason == _PP_FREEZE,
+    f"house {_tp_un_seen['kwargs'].get('measured_heat_kw')!r} samples "
+    f"{_tp_un._house_heat_loss_samples}; lower "
+    f"{_tp_un_lf_seen['kwargs'].get('measured_heat_kw')!r}; unreadable "
+    f"{_tp_unk._learner_freeze_reason!r}; flow meter {_fm_un._learner_freeze_reason!r}",
+)
+_tp_met_seen, _tp_met_c = _tp_replay(_HOUSE_LEARNER)
+_tp_stale_seen, _tp_stale = _tp_replay(_HOUSE_LEARNER, heat_age_min=45)
+R.check(
+    "where the learner already runs it replays the measured heat, and a stale "
+    "heat reading freezes it rather than falling back to the commanded draw",
+    abs((_tp_met_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
+    and _tp_met_c._house_heat_loss_samples == 1
+    and _tp_stale._house_heat_loss_samples == 0
+    and str(_tp_stale._learner_freeze_reason).endswith(_TP_KEY),
+    f"{_tp_met_seen['kwargs'].get('measured_heat_kw')!r} "
+    f"stale {_tp_stale._learner_freeze_reason!r}",
 )
 
 
