@@ -5695,7 +5695,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-ci-layout-p2b-v2",
     "commit": "b927f431abad03249ba91de5535f7e179f392d00",
     "last_step": null,
