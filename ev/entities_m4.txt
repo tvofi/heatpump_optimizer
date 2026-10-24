@@ -1,0 +1,4 @@
+# m4 (head a5146153e9b5bdbf0bf4bd6248a944bc8c45a47b unless noted; bc=50af6174f+climate rewrite, hc=head+climate rewrite)
+1 of 2428 ENTITY CHECKS FAILED
+real	6m46.064s
+  FAIL two pins of one mutant are byte-identical whatever base measured them, and pins of different mutants differ (P-L)  [rows -> ('{\n  "anchor": "f.py:g GUARD_OFF bbbb",\n  "killed_by": "tests/x.py",\n  "old": "    if b:",\n  "reason": "Recorded by `mutation_table.py --pin-killed` against a5146153e9b5bdbf0bf4bd6248a944bc8c45a47b: GUARD_OFF (`if False:`) took tests/x.py from rc=0 failed=0 to rc=
