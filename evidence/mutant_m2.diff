@@ -1,0 +1,13 @@
+diff --git a/tests/mutation_table.py b/tests/mutation_table.py
+index 580ad9075..fabe1928c 100644
+--- a/tests/mutation_table.py
++++ b/tests/mutation_table.py
+@@ -3747,8 +3747,6 @@ def main(argv: list[str] | None = None) -> int:
+                     (trees[w] / rows_at / r for r in hidden[id(mut)])
+                     if p.is_file()}
+             path.write_text(mutated[id(mut)])
+-            for p in rows:
+-                p.unlink()
+             try:
+                 extra_args, extra_env = drive_spec(s, ref)
+                 limit = driver_timeout(args.timeout, own_s.get(s, 0.0))

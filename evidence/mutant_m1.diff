@@ -1,0 +1,12 @@
+diff --git a/tests/mutation_table.py b/tests/mutation_table.py
+index 580ad9075..de489921b 100644
+--- a/tests/mutation_table.py
++++ b/tests/mutation_table.py
+@@ -698,6 +698,7 @@ def invalidated_rows(budgets: dict, rel: str, before: str,
+         sites = anchor_sites(src, list(candidates(ROOT / rel, RATCHETED, src)))
+         return {(s["anchor"], s["old"]) for s in sites}
+ 
++    return []
+     was, now = named(before), named(after)
+     out: list[str] = []
+     for m in LEDGER_MAPS:

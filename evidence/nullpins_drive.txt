@@ -1,0 +1,15 @@
+baseline tests/entities.py: rc=0 failed=0 418s
+baseline tests/entities.py: rc=0 failed=0 415s
+  site custom_components/heatpump_optimizer/diagnostics.py:_coordinator_snapshot GUARD_OFF ed7bba5c line 216 GUARD_OFF: killed rc=1 failed=1 hidden=1
+  site custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._comfort_weight GUARD_OFF 650279fe line 10822 GUARD_OFF: killed rc=1 failed=1 hidden=1
+  site custom_components/heatpump_optimizer/sensor.py:PredictedIndoorTempSensor._waiting_for RETURN_DEL fa3a01ba line 1955 RETURN_DEL: killed rc=1 failed=2 hidden=1
+  site custom_components/heatpump_optimizer/services.py:handle_apply_topology GUARD_OFF 2815080e line 913 GUARD_OFF: killed rc=1 failed=2 hidden=1
+  site custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 0e9335b9 line 220 GUARD_OFF: killed rc=1 failed=1 hidden=1
+  site custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF e2abc943 line 95 GUARD_OFF: killed rc=1 failed=1 hidden=1
+PIN custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 0e9335b9 SURVIVES 1/1 site(s) killed; hidden rows 1; checks ["AttributeError: 'NoneType' object has no attribute 'tzinfo'"]
+PIN custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._comfort_weight GUARD_OFF 650279fe SURVIVES 1/1 site(s) killed; hidden rows 1; checks ['a10:no_credential  [token(s) in payload: secret-token]', "a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar
+PIN custom_components/heatpump_optimizer/diagnostics.py:_coordinator_snapshot GUARD_OFF ed7bba5c SURVIVES 1/1 site(s) killed; hidden rows 1; checks ['a10:no_credential  [token(s) in payload: secret-token]', "a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 
+PIN custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF e2abc943 SURVIVES 1/1 site(s) killed; hidden rows 1; checks ['a10:no_credential  [token(s) in payload: secret-token]', "a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]", 
+PIN custom_components/heatpump_optimizer/sensor.py:PredictedIndoorTempSensor._waiting_for RETURN_DEL fa3a01ba SURVIVES 1/1 site(s) killed; hidden rows 1; checks ['UX-7: and unavailable while no plan governs the room, rather than a stale number  [available=True]', "UX-7: waiting_for names why: no pla
+PIN custom_components/heatpump_optimizer/services.py:handle_apply_topology GUARD_OFF 2815080e SURVIVES 1/1 site(s) killed; hidden rows 1; checks ['a10:no_credential  [token(s) in payload: secret-token]', "a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)
+DRIVEN 6 pin(s): 6 kill(s) survive the fix, 0 vacuous

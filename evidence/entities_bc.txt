@@ -1,0 +1,4 @@
+# bc (head a5146153e9b5bdbf0bf4bd6248a944bc8c45a47b unless noted; bc=50af6174f+climate rewrite, hc=head+climate rewrite)
+1 of 2425 ENTITY CHECKS FAILED
+real	6m31.999s
+  FAIL --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)  [has pin=True real=(1, "MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.current_temperature 

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/climate.py b/custom_components/heatpump_optimizer/climate.py
+index 8a55778ac..8460527c8 100644
+--- a/custom_components/heatpump_optimizer/climate.py
++++ b/custom_components/heatpump_optimizer/climate.py
+@@ -142,7 +142,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+         flags = self.coordinator.data.get("reading_ok") or {}
+         if flags.get("upper_floor_temperature"):
+             indoor = payload_number(self.coordinator.data.get("indoor_temperature"))
+-            if indoor is not None:
++            if None is not indoor:
+                 return float(indoor)
+         return None
+ 

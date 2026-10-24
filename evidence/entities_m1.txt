@@ -1,0 +1,5 @@
+# m1 (head a5146153e9b5bdbf0bf4bd6248a944bc8c45a47b unless noted; bc=50af6174f+climate rewrite, hc=head+climate rewrite)
+2 of 2428 ENTITY CHECKS FAILED
+real	6m33.048s
+  FAIL a re-driven pin is not reproduced by a driver that only sees the row the mutant made stale: the row is hidden from the mutant's tree, and a code check still kills it (R10 mutation-anchor)  [has pin=True judge-pinned=(0, '  6298 unpinned site(s) of 6299 candidate sites, 3990 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harnes
+  FAIL invalidated_rows names exactly the rows pinned to a rewritten line, the ledger without them agrees with the rewritten file, and an unpinned line names none (R10 mutation-anchor)  [pinned line 266 -> ([], ["custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f: disposition names no site the inventory generates (old pin '    return text')"]), want rows ['killed_by/topology.

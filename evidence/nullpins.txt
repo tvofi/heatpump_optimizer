@@ -1,0 +1,6 @@
+custom_components/heatpump_optimizer/diagnostics.py:_coordinator_snapshot GUARD_OFF ed7bba5c 1
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._comfort_weight GUARD_OFF 650279fe 1
+custom_components/heatpump_optimizer/sensor.py:PredictedIndoorTempSensor._waiting_for RETURN_DEL fa3a01ba 1
+custom_components/heatpump_optimizer/services.py:handle_apply_topology GUARD_OFF 2815080e 1
+custom_components/heatpump_optimizer/entity.py:effective_outdoor GUARD_OFF e2abc943 1
+custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 0e9335b9 1

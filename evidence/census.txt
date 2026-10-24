@@ -1,0 +1,2 @@
+CENSUS: 145 killed_by tests/entities.py pin(s); 22 on a line carrying a second ledger row
+CENSUS: 175 killed_by tests/entities.py pin(s); 52 on a line carrying a second ledger row
