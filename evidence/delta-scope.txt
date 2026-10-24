@@ -1,0 +1,6 @@
+git rev-list --left-right --count c70c3e46...46dc1dda86b4e9d79f72f9a1d48bc0cc8c674f3e
+0	1
+files outside tests/mutation_ledger/ moved:
+0
+author: github-actions[bot]
+subject: ci: pin killed mutants
