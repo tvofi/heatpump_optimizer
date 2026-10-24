@@ -1,0 +1,12 @@
+head 16d3ee72ad7de8ed0ec2a14b40d5bda23e500310
+RESULT fold_ledger check @head: 0 violation(s), 120 rca entries, rc 0
+RESULT carry_audit --roster-ref origin/handoff/audit-r10-roster pr 2681: 2 routed, 0 unrouted, 0 bad destination(s), rc 0
+RESULT ref_privacy --check @head: 0 refused; @338c9ba49: 1 refused (tools/audit/seat/ledger.py:726)
+RESULT grep -c ref_privacy tools/pr/prepr.sh @head: 0
+RESULT agreement.mjs on 338c9ba49 agreement_py --out JSON: branch copy unregistered=0; fd7e289d0 copy unregistered=3 (same three grammars); refused=1 both = live-origin/main artifact (RCA section 1 trap); merge tree + full restore not rebuilt
+RESULT run 39996377402: 17:35:53Z..17:45:40Z = 9m47s, head 338c9ba49
+RESULT #2423 MERGED, final head 58dbe46a0 wave-script=failure
+RESULT roster origin/handoff/audit-r10-roster: R10-FLY-CIPREDICT-LAYOUT carry[2] = A+B with controls/precondition; R10-MERGE-SUBJECT-HARDEN carry[2] = C (10692eba5 ancestor of tip f643b8527), both groups not-started
+RESULT merge-tree --write-tree origin/main HEAD: rc 0
+RESULT roles diff merge-base...origin/main: empty
+RESULT check-runs @head: all success/skipped/neutral except pr-contract run 120732707724 (00:48Z) failure in codescan_wait step; later pr-contract run 120732444754 started 00:57Z success
