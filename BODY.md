@@ -1,4 +1,8 @@
-Closes #2234.
+Closes #2234. This fully delivers it: the finding D14-s3-02 and all six sweep
+instances the issue lists (energy, supply, return, flow, humidity, and power and
+mode beyond the finding) are closed in this diff (`## Figures`, instance probe
+and class enumerator), and the countermeasure of the class's RCA,
+`dev/audit/rca/R10-N-staleness.md`, ships here as the declaration check.
 
 A source that reports only on change writes nothing while its value holds, so
 its age measures how still the value is, not whether the source is alive.
@@ -77,12 +81,13 @@ None of them lost an assertion.
 
 ## Head
 
-89ef33c7a47b6f485a284024fbf594d59b560126 on merge base
-f046076aded786f271edba6f27a2a1d4b4a515d7 (origin/main's tip,
-`git rev-parse origin/main`, 2026-10-23T22:01Z). The authored code is
-7668a4d09; two merges of origin/main follow it, bf907fc5a (c5e1be196) and
-89ef33c7a (f046076ad), both automatic. Between them sits 7ce0f04eb, the
-mutation pins (below). `git diff --stat c5e1be196 f046076ad -- custom_components tests/features.py tests/mutation_ledger`
+5d5b807e05b50e7d80bd17a61fbba37e2153ae96 on merge base
+144fb4f900768195c64469f9647ece583a54a52b (origin/main's tip,
+`git rev-parse origin/main`, 2026-10-24T01:13Z). The authored code is
+7668a4d09; three merges of origin/main follow it, bf907fc5a (c5e1be196),
+89ef33c7a (f046076ad) and 5d5b807e0 (144fb4f90), all automatic. Between the
+first two sits 7ce0f04eb, the mutation pins (below).
+`git diff --stat c5e1be196 144fb4f90 -- custom_components tests/features.py tests/mutation_ledger`
 prints nothing, so every production-reading figure taken at 7ce0f04eb (merge
 base c5e1be196) describes the production code at the head.
 
@@ -308,23 +313,21 @@ of these into the named brief:
    check is red at a6620c30a and green at this head. A test of a dead meter
    must re-report before going silent (`last_reported` past `last_updated`).
    An aged on-change stamp now reads as a quiet value, not a dead sensor.
-   Carry: roster `wave-r10-groups.json` group R10-HEAT-METER, carry.
+   Carry: R10-HEAT-METER
 2. R10-ARCH-SHAPES (later on `inputs.py`) adds a power-kW reader there. The
    default age limit is now chosen per read by `age_limit_for` inside
    `InputReader._begin`, and a new stamp reader in `inputs.py` is refused by
    `tests/entities.py`'s P2 `state_age` registry unless it is dispositioned
    (`source_polls` is, as the re-report fact). The `_RANGE_KEYS` comment that
    group also holds is fixed here (`git grep -n ATTR_MIN_TEMP custom_components`
-   returns nothing at the head). Carry: roster group R10-ARCH-SHAPES, carry.
+   returns nothing at the head). Carry: R10-ARCH-SHAPES
 
 ## Friction
 
 - dev/governance/roles/fixer.md#5: unclear: the environment's `python3` on PATH lacks the
   suite's dependencies (no voluptuous); the seat venv is `/opt/hpo/venv-ci`,
-  and a first harness run failed on it before `PATH` named it. Carry: none
-  (environment; `tools/audit/seat/cloud-setup.sh` owns PATH).
-- dev/governance/roles/fixer.md#5: unclear: on the Darwin seat the shims directory holds `seat-python3`, not `python3`, so `python3` on PATH stayed the system 3.11. The first `--pin-killed` drive died on a 3.12 f-string in `tests/entities.py` (`SyntaxError: f-string: expecting '}'`), and it ran again only after a `python3` symlink to the shim. Carry: none (environment; `seat_venv.sh --install-shims` owns the shim names).
+  and a first harness run failed on it before `PATH` named it. Carry: dismissed: a cloud seat's environment, not a tree rule; `tools/audit/seat/cloud-setup.sh` owns PATH
+- dev/governance/roles/fixer.md#5: unclear: on the Darwin seat the shims directory holds `seat-python3`, not `python3`, so `python3` on PATH stayed the system 3.11. The first `--pin-killed` drive died on a 3.12 f-string in `tests/entities.py` (`SyntaxError: f-string: expecting '}'`), and it ran again only after a `python3` symlink to the shim. Carry: dismissed: the seat's PATH recipe is the out-of-tree session block, relayed to the orchestrator in this seat's return
 - dev/governance/roles/fixer.md#3: stale: the sweep's `probe.py HUMIDITY` arm reads a
   module constant this fix deletes, so it cannot run at the head; the
-  in-tree census replaces it. Carry: none (a round record recounts and stays
-  as written).
+  in-tree census replaces it. Carry: dismissed: a round record recounts and stays as written
