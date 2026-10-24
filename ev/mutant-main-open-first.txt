@@ -1,0 +1,28 @@
+FAIL the same body with a Carry: to a live group passes (null control)
+FAIL an item routed by reference from the body counts as routed
+FAIL the same id inside the marker, `Carry: R10-LIVE (item <id>)`, routes it (null control)
+FAIL the same line with the paren form routes it (null control)
+FAIL the same paragraph with the id inside the marker's segment routes it (null control)
+FAIL the same finding with a plain marker routes (null control)
+FAIL grammar: a `Carry:` right after a closing backtick is a marker
+FAIL grammar: an unmatched double backtick opens no span
+FAIL grammar: a destination ending a sentence reads
+FAIL grammar: prose ends the destinations: a token after it is not one
+FAIL items: a thematic break is not an item
+FAIL items: a whitespace-only line ends a paragraph
+FAIL items: a blank line ends a paragraph
+FAIL items: an indented line after a bullet's blank continues it
+FAIL items: a tab-indented line after a bullet's blank continues it
+FAIL items: an unindented line right after a bullet continues it
+FAIL items: each table row is an item, its separator none
+FAIL items: a Friction-shaped line starts an item only under Friction
+FAIL items: a section name reads in any case
+FAIL items: under Friction an unshaped unindented line continues the item
+FAIL items: an indented Friction-shaped line continues the item
+FAIL items: an indented `#` line is not a heading
+FAIL items: a lead paragraph's bullets inherit it
+FAIL items: a CRLF body reads as its LF twin
+FAIL items: `#2404` opening a line is no heading
+FAIL items: under Friction a `word:` line without the kind's colon continues the item
+FAIL items: a numbered list item is a bullet
+carry_audit self-test: 196 checks, 27 failed

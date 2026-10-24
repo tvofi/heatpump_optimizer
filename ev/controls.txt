@@ -1,0 +1,37 @@
+HEAD 72ee6a18a606fa25d5469a051ecdc43a99b87c97; round ref fa71e0be9ee79649faf0d21783c551af303bff55 (synthetic: main roster + R10-ONLYROUND open, R10-RDONE done)
+== c1 only on round ref -> pass, note names ref [R10-ONLYROUND] 
+NOTE body item c6d6c628: R10-ONLYROUND: R10-ONLYROUND resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== c2 on neither ref -> fail [R10-NOWHERE] 
+BAD-DEST body item ca8d88b3: R10-NOWHERE: R10-NOWHERE is not a group of the roster or of origin/handoff/audit-r10-roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== c3a done on both -> fail [R10-FEEDS] 
+BAD-DEST body item ad08f7aa: R10-FEEDS: R10-FEEDS is done (resume.stage done)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== c3b done on round ref only -> fail [R10-RDONE] 
+BAD-DEST body item 642fbc0e: R10-RDONE: R10-RDONE is done (resume.stage done)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== control: open on main -> pass [R10-RATIO-ANCHOR] 
+NOTE body item 7ee09676: R10-RATIO-ANCHOR
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== c5 explicit --roster-ref origin/main: round-only group -> fail (single-ref meaning) [R10-ONLYROUND] --roster-ref origin/main
+BAD-DEST body item c6d6c628: R10-ONLYROUND: R10-ONLYROUND is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== c5b explicit --roster-ref round ref -> pass [R10-ONLYROUND] --roster-ref origin/handoff/audit-r10-roster
+NOTE body item c6d6c628: R10-ONLYROUND
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== c4 clone without round ref: round-only group -> fail [R10-ONLYROUND] 
+BAD-DEST body item c6d6c628: R10-ONLYROUND: R10-ONLYROUND is not a group of the roster
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== c4b clone without round ref: open main group -> pass [R10-RATIO-ANCHOR] 
+NOTE body item 7ee09676: R10-RATIO-ANCHOR
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0

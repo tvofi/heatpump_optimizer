@@ -1,0 +1,5 @@
+base c176ee55:
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+head:
+NOTE body item 7ee09676: R10-RATIO-ANCHOR
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
