@@ -1,0 +1,7 @@
+head: 7765613293f0ac49037ef90ef9cd046a6999d9dc
+merge-base: 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
+origin/main: 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
+merge-tree: 1e3782865bc3ae49a3afc63bfc35f3bd7e73885a rc=0
+ dev/programme/delivery/2741.md    |  1 +
+ dev/programme/triage/s6-batch7.md | 11 +++++++++++
+ 2 files changed, 12 insertions(+)
