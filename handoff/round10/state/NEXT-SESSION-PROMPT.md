@@ -14,7 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-INPUT-STALENESS (stage in-progress, branch `handoff/r10-input-staleness`): `git fetch origin handoff/r10-input-staleness && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DEMAND-OVERBOOK (stage queued): no branch pushed yet, so nothing to fetch
+- R10-DEMAND-OVERBOOK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
