@@ -1,0 +1,11 @@
+head 583219fa8a44c79e038ae091ce907dafa3e847d0; merge base 50af6174f53c0f9bec3f705c3a4bb99615f71acc
+verdict counts: 4 ACCEPT, 2 DEFER, 2 REJECT; 8 entries
+P49: 48 first-parent 'Merge pull request' since 2026-10-23T00:00Z at 50af6174f; 14 record/autofix
+#2676 #2679 #2680 #2682 #2684 #2685 #2686 each add only their own delivery/<N>.md
+TZ=UTC iso-strict-local: 69a26d2a2 07:29:46Z, bd0d4d603 07:31:44Z, 168365196 07:53:28Z, d5dc3e26a 2026-10-24T02:05:44Z, b927f431a 2026-10-23T23:53:31Z
+N-postreview-merge-red: kind instrument, total 0, non_round_instances 15, barrier None, trigger per_round/cross_round/barriered_any False, class_rca_on_record True
+ruling_verdict: P45 ACCEPT P46 ACCEPT P47 DEFER P48 DEFER P49 ACCEPT P50 REJECT P51 ACCEPT P52 REJECT P53 None
+triage_refusal: #P45/#P46/#P49/#P51 None; #P47 DEFER refused; #P50 REJECT refused; #P53 no such entry refused
+mutant (P45 Verdict line deleted): #P45 refused (unreadable)
+ref_privacy --check: 284 line(s) added since 50af6174f53c judged, 0 refused
+merge-tree --write-tree origin/main(e8a08cf9e) 583219fa8a44c79e038ae091ce907dafa3e847d0: rc 0, tree 48fe6c63f11a678e8e39db25b61cbd327f618c38
