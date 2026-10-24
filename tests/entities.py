@@ -34584,11 +34584,16 @@ R.check(
 
 
 def _cir_retry_runner(calls: list):
+    # The list is read per lane by name (ci_ratchet.ARTIFACTS_URL), so the
+    # stub answers as the server does: the fast lane gets the good listing,
+    # every other lane its own (empty) one.
     def run(argv, **_kw):
         calls.append(argv)
         if len(calls) < 3:
             return _subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
-        return _subprocess.CompletedProcess(argv, 0, _CIR_GOOD_ARTIFACTS, "")
+        body = (_CIR_GOOD_ARTIFACTS if "name=ci-metrics-fast&" in argv[-1]
+                else '{"artifacts": []}')
+        return _subprocess.CompletedProcess(argv, 0, body, "")
     return run
 
 
@@ -34597,7 +34602,7 @@ _CIR_RETRIED = [a["id"] for a in _cir.fetch_window(
     "o/r", "77", runner=_cir_retry_runner(_CIR_ATTEMPTS), sleep=lambda _s: None)]
 R.check(
     "the CI ratchet retries the artifacts list and uses the retry's window",
-    len(_CIR_ATTEMPTS) == 3 and _CIR_RETRIED == [2, 1],
+    len(_CIR_ATTEMPTS) == 2 + len(_cir.WINDOW_LANES) and _CIR_RETRIED == [2, 1],
     f"attempts={len(_CIR_ATTEMPTS)} ids={_CIR_RETRIED}",
 )
 
