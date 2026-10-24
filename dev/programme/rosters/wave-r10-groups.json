@@ -5695,7 +5695,8 @@
     "ruleset_cutover --enable readback is rule-order-sensitive (refused falsely 2026-10-23T23:54Z; self-test echoes payload order) -- compare order-insensitively, fixture with GitHub's reordering",
     "delete the pre_cutover shape from tools/policy/fixtures/required-contexts.json (policy_lint reports it stale)",
     "reds_at_head mutant fixture (passed first attempt + failed re-run in one suite must refuse)",
-    "carry 15: key the window on push runs at/after #2665's merge"
+    "carry 15: key the window on push runs at/after #2665's merge",
+    "delete probe refs for #2654 #2656 #2657"
    ],
    "architect_note": null,
    "resume": {
