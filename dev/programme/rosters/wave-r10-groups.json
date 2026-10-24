@@ -3448,7 +3448,8 @@
     "R10-FLY-RECORD-BEAT",
     "R10-RCA-CODESCAN-WAIT",
     "R10-GATE-DEFER",
-    "R10-TRAIN-UPGRADE"
+    "R10-TRAIN-UPGRADE",
+    "R10-FLY-LEDGER-SAMPLE"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
