@@ -1,7 +1,0 @@
-## P57: two writers on one queue or branch across rotation (S6-V4)
-Verdict: DEFER; re-triage on a third instance
-Source: s6 proposals.md S6-V4.
-Instances: 2 (roster w5/w6; #2698 fixer vs update).
-Cost: a flock named in a brief is prose.
-Binding: rotated seats share no process, so the lock binds only a seat that remembers it. The enforceable form is atomic rename of the queue to an .inflight file in the queue readers; unmeasured benefit beyond one PR cycle.
-

@@ -1,0 +1,5 @@
+check-runs API, head 5a03e901be80782cfacabf69b6bff1895dddb864, 52 runs, all completed when read.
+RED  governance / instrument-self-tests  job 120901210622 (run 40103755905): step 22 "Refuse a push that names the host, and an unregistered pusher" = failure; steps 23-25, 64-67 skipped after it; every other step success.
+RED  pr-contract / pr-contract  job 120904133512 (run 40103755905) and job 120905148712 (run 40103756119, started 15:02:12Z, after the self-tests concluded 14:56:51Z): step 10 "Check the body against the contract" = failure; steps 11-14 success.
+RED  gate  job 120904492908 (run 40103755905) and job 120905287861 (run 40103756119): step 4 "Judge this head" = failure.
+All other runs are success or skipped.
