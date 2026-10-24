@@ -7703,9 +7703,7 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [
-    "R10-FLOW-MQ-PROBE"
-   ],
+   "after": [],
    "carry": [
     "From #2595 (root cause owed for the red main at merge 6077bf70e): a semantic merge of two edits to a capped policy file, each green alone (#2561 took orchestrator.md to 4506 tokens, #2586's branch to 4511, the merge summed them to 4515 against a 4513 cap with no headroom band). The countermeasure is this group's barrier: grade the would-be merge tree before a car whose base moved by the batch's own merges is merged. Re-routed here from R10-POLICY-LINT-FAMILY, where #2595's body named it.",
     "merge_train.py retries a car 8 times on \"base branch policy prohibits the merge\" when the cause is a missing code-owner approval at the (recarried) head (#2577, train 17: 8 refusals then a recarry). Check for an approving review at the live head before the merge attempt and park the car with that reason, not retry.",
