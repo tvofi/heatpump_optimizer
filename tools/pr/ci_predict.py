@@ -16,10 +16,12 @@ push, because that repair costs a red `closures` run and a bot commit on the
 reviewer's head; `--apply-inert` writes the entry the recording would, which
 for a child process's read (harness_headers' scan) is the one repair a Darwin
 seat can make, since only Linux `strace` sees it
-(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Three arms call CI's own functions: UNCLASSIFIED
+(dev/audit/rca/R10-RCA-INERT-PREDICT.md). Four arms call CI's own functions: UNCLASSIFIED
 (`closure.orphan_files`), the INERT test inside both closure arms
-(`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s source-only
-ratchet). One is this predictor's own model, because CI learns the answer by
+(`closure.is_inert`), ADDED UNPINNED (`mutation_table`'s source-only
+ratchet), and LAYOUT (`layout.guard`, the guard `fast` runs, which refuses a
+diff re-adding a moved path or citing one: #2554's forward-carry, since
+`prepr.sh` ran it and `body_push.sh`, which runs only this, did not). One is this predictor's own model, because CI learns the answer by
 running: the import arm resolves imports statically where CI records them at
 run time. (A fourth arm, NO RECORDING, read the `rec tests/...` lines of
 `tests/derive_closures.sh`; round-9 C1 derived the full arm's recording set
@@ -317,6 +319,27 @@ def carry_preds(root: Path, body: str) -> list[tuple[str, str]]:
             for r in res["rows"] if r["status"] != "routed"]
 
 
+def layout_preds(root: Path, base: str) -> list[tuple[str, str]]:
+    """The layout guard `fast` runs (`tests/layout.py`, run_always): CI's own
+    `guard`, over the commit HEAD against the merge base and with HEAD's
+    manifest, so what is predicted is what is pushed, as every other arm.
+
+    CI runs it on a checkout of the head, whose index is that commit; the
+    guard's `rev` form reads the commit instead of the index, the form its
+    own `--replay` uses. A tree with no layout guard has none to predict; a
+    guard that raises is a red CI would also print.
+    """
+    if not (root / "tests" / "layout.py").exists():
+        return []
+    try:
+        import layout
+        manifest = json.loads(show(root, "HEAD", layout.MANIFEST) or "")
+        found = layout.guard(root, manifest, base, "HEAD")
+    except Exception as e:
+        return [("fast", f"LAYOUT UNREADABLE {type(e).__name__}: {e}")]
+    return [("fast", f"LAYOUT {f}") for f in found]
+
+
 def orphans(changed, closure):
     """A changed file in no closure and on no list: entities.py's refusal."""
     return [("fast", f"UNCLASSIFIED {f}: in no measured closure and not on "
@@ -384,6 +407,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
     preds: list[tuple[str, str]] = []
     preds += orphans(changed, closure)
+    preds += layout_preds(root, base)
     preds += no_recording(root, base, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
                           closure, pairs, scripts)
@@ -438,6 +462,10 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
                    + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
                       if many else ""))
+    if any(j == "fast" and l.startswith("LAYOUT") for j, l in preds):
+        out.append("a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` "
+                   "names it: a re-added moved path goes where it lives, a citation is re-pointed to "
+                   "its new path, and a new file goes where tests/layout.json says")
     if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
         out.append("an UNCLASSIFIED file is classified in the diff (CLAUDE.md): one a test script reads joins "
                    "that script's closure through tests/derive_closures.sh --single <script>; one no script "
@@ -523,6 +551,7 @@ def self_test() -> int:
             got = 1 if carry_preds(root, f.name) else 0
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
+    bad += layout_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
@@ -533,6 +562,73 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def layout_self_test(root: Path) -> int:
+    """The layout arm, end to end: the predictor as a process over a throwaway
+    clone of this head, one commit per plant on a base holding this file.
+
+    The plants are the guard's own refusals of a landed move, read from this
+    tree's tests/layout.json: the file re-added at its old path (placement)
+    and a new line citing it (new-reference). The null is a comment in the
+    same script that cites nothing, which must stay quiet.
+    """
+    import shutil
+    import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    try:
+        from throwaway_git import throwaway_git_clone
+    finally:
+        sys.path.pop(0)
+    manifest = json.loads((root / "tests" / "layout.json").read_text())
+    tracked = set((git(root, "ls-files") or "").split())
+    dirs = {p[:i + 1] for p in tracked for i, c in enumerate(p) if c == "/"}
+    old = next((r["old"] for r in manifest["retired"] if r.get("new") and not r["old"].endswith("/")
+                and r["old"] not in tracked | dirs), None)
+    if old is None:
+        print("  FAIL the layout plant has a landed retired file to re-add")
+        return 1
+    head = (git(root, "rev-parse", "HEAD") or "").strip()
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-layout-"))
+    r = tmp / "r"
+    try:
+        env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
+
+        def run(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+
+        run("git", "checkout", "-q", "--detach", head)
+        shutil.copy(Path(__file__), r / "tools" / "pr" / "ci_predict.py")
+        run("git", "commit", "-qam", "predictor", "--allow-empty")
+        base = run("git", "rev-parse", "HEAD").stdout.strip()
+        cases = [("a file re-added at a path whose move landed is predicted red",
+                  {old: ""}, f"LAYOUT placement: {old} re-adds a moved path", 1),
+                 ("a new line citing a landed path is predicted red",
+                  {"tests/wood_advisor.py": f"# see {old}\n"},
+                  f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}", 1),
+                 ("a comment citing nothing is predicted green (null control)",
+                  {"tests/wood_advisor.py": "# a comment\n"}, None, 0)]
+        bad = 0
+        for label, plant, want, rc in cases:
+            run("git", "checkout", "-q", "-f", "--detach", base)
+            for p, text in plant.items():
+                (r / p).parent.mkdir(parents=True, exist_ok=True)
+                with open(r / p, "a") as f:
+                    f.write(text)
+            run("git", "add", "-A")
+            run("git", "commit", "-qm", label)
+            out = run(sys.executable, "-I", "tools/pr/ci_predict.py", "--base", base)
+            lines = out.stdout.splitlines()
+            hit = (any(l.startswith(f"PREDICT {JOB['fast']}") and want in l for l in lines) if want
+                   else not any(" LAYOUT " in l for l in lines))
+            ok = hit and out.returncode == rc
+            print(f"  {'ok  ' if ok else 'FAIL'} {label} (rc {out.returncode})")
+            if not ok:
+                print("\n".join(f"         {l}" for l in (lines + out.stderr.splitlines())[-6:]))
+            bad += not ok
+        return bad
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":
