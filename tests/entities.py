@@ -32159,6 +32159,10 @@ if os.environ.get("RCH_FORK"):
     os.waitpid(pid, 0)
 if os.environ.get("RCH_GIT"):
     subprocess.run(["git", "--version"], capture_output=True)
+if os.environ.get("RCH_SPAWN"):
+    import shutil
+    os.waitpid(os.posix_spawn(shutil.which("git"), ["git", "--version"],
+                              os.environ), 0)
 sys.exit(int(os.environ.get("RCH_RC", "0")))
 """
 _RCH_FX = "def hit():\n    return 1\n\n\ndef missed():\n    return 2\n\n\ndef child_only():\n    return 3\n"
@@ -32194,6 +32198,7 @@ R.check(
 )
 _rch_refused = {}
 for _k, _env in (("read", {"READ": "1"}), ("git", {"GIT": "1"}),
+                 ("spawn", {"SPAWN": "1"}),
                  ("strip", {"STRIP": "1"}), ("path", {"PATH": "1"}),
                  ("red", {"RC": "1"})):
     _r, _x, _e = _rch_run(**_env)
@@ -32201,10 +32206,12 @@ for _k, _env in (("read", {"READ": "1"}), ("git", {"GIT": "1"}),
                         _x is not None and _mut.never_reaches(_x, _RCH_REL, 6, _e))
 R.check(
     "and every way the row can be blind refuses the skip: a source read, a "
-    "non-Python child, a Python child without the tracer's environment or "
+    "non-Python child (through subprocess or a bare os.posix_spawn), a "
+    "Python child without the tracer's environment or "
     "its PYTHONPATH (started, never recorded), and a red run, which "
     "returns no row at all",
     _rch_refused == {"read": (0, True, False), "git": (0, True, False),
+                     "spawn": (0, True, False),
                      "strip": (0, True, False), "path": (0, True, False),
                      "red": (1, False, False)},
     f"(rc, has row, skipped) per arm: {_rch_refused}",
