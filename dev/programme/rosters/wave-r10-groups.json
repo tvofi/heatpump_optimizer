@@ -8876,7 +8876,8 @@
    "carry": [
     "tvofi 2026-10-24 recommendation (b) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this group is the home of the per-role pack. After-edges: R10-POLICY-FIXER-MD, so the pack renders the final fixer.md and fix-review.md, and R10-FLOW-DESIGN-STAGES, which owns cloud_dispatch.py and so the place the role is named at dispatch.",
     "Policy-adjacent: the pack is built verbatim from the policy files and never paraphrases them (a paraphrase made a seat read real policy as something else). Whether the hook change needs the owner's approving review is read from CODEOWNERS and policy_lint at the base, not assumed.",
-    "A new tracked file must be classified in a measured closure or on the INERT list in tests/closure.py, or tests/entities.py fails; classify that new module deliberately."
+    "A new tracked file must be classified in a measured closure or on the INERT list in tests/closure.py, or tests/entities.py fails; classify that new module deliberately.",
+    "R10-FLOW-AUTOTRAIN forward-carry item 1 (PR body at b3dceb5ca): nudge.md step 3 says to leave budget-file and policy-path heads out of the queue and direct-merge them (step 7). The pitch queues them for the batch's serial route instead, where `--pre-flight` parks a budget raise or policy head the owner has not approved at that head. Step 3's hand procedure, which names `merge_train.py run` (serial, no admission routing), now disagrees with the mechanism it describes. The orchestrator or R10-POLICY-ROLE-PACK should bring step 3 into line, or rule that the builder filters them. Control: diff nudge.md step 3 against `Train.admit_verdict` and `sweep_template.md` item (3); no contradiction remains. Not yet in that group's roster carry: this seat writes no roster. Carry: R10-POLICY-ROLE-PACK"
    ],
    "resume": {
     "stage": "not-started",
