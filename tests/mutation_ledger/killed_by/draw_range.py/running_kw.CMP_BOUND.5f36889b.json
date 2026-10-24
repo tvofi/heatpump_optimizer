@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:running_kw CMP_BOUND 5f36889b",
+  "killed_by": "tests/features.py",
+  "old": "    return float(drawn_kw) if drawn_kw > floor else 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3: CMP_BOUND (`return float(drawn_kw) if drawn_kw >= floor else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

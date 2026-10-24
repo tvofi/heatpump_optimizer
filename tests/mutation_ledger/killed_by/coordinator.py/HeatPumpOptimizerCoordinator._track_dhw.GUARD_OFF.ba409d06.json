@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_dhw GUARD_OFF ba409d06",
+  "killed_by": "tests/features.py",
+  "old": "        if tank is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
