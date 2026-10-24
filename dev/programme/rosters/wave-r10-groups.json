@@ -7204,7 +7204,9 @@
     "R10-FLY-GH-READ-RETRY",
     "R10-FLOW-MQ-PROBE"
    ],
-   "carry": [],
+   "carry": [
+    "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): held behind R10-FLOW-MQ-PROBE; if the owner adopts the merge queue, heads no longer absorb main and this carry condition is moot, so close this group as not needed rather than build it."
+   ],
    "architect_note": "",
    "brief": "P17: app_approve.sh carry condition (3): a context-only line difference introduced by main carries in *.md files, where only ' '-prefixed context lines may differ and their count must be unchanged; +/- lines byte-identical; code files strict. Fixture controls: md-context yes / py-context no / +line no. Evidence #2547 90bab078->71a577c9 INSTRUMENTS.md L166 context.",
    "resume": {
