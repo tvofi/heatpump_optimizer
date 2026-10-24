@@ -1,56 +1,57 @@
-Fix review: blocked 5fb0a083bec51dd84b816c9b965c56c6365cb9f2 carry-missing: not carried to R10-COP-PARTLOAD, R10-HEAT-METER
+Fix review: blocked a126c8b3fa820bbac01f53f8e66c99a278af7c1e mutation-vacuous: _propagated_slab shared=False and space_served=True survive tests/features.py (also carry-missing, see Block)
 
-bus-nonce: e678ff42b858dc9dd692e476c754eb67
+bus-nonce: 8b423cb52f5dedffd3472bb47aa5ca36
 
-Round 1 of review for #2712 (no earlier `Fix review:` on the PR). Measured head 5fb0a083bec51dd84b816c9b965c56c6365cb9f2, still the PR head when this was written. fix-review.md read from origin/main 2636ce9e9; `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+This is review round 2 for #2712; the first `Fix review:` on the PR blocked 5fb0a083b. The brief calls this fixer round r4. I measured head a126c8b3fa820bbac01f53f8e66c99a278af7c1e, and it was still the PR head when this was written (`ev/HEAD.txt`). I read fix-review.md from origin/main; `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. I worked from detached worktrees at the head and ran every mutant on a fresh worktree.
 
 ## Block
 
-- **carry-missing (step 10).** The body's `## Forward-carry` lines 3 and 4 end `Carry: R10-COP-PARTLOAD` (the 38-40% DP optimality lead) and `Carry: R10-HEAT-METER` (the open-loop `dhw_temp_trajectory` tank seed). Neither group holds a carry from this PR, on origin/main or on the roster branch `handoff/audit-r10-roster` at 1558cf55f. The roster holds both findings under **R10-BUFFER-STORE** instead (commits e11909cff, 0b19947d0, appended 09:06Z, before the PR opened). The PR body was last edited at 19:53Z and now points elsewhere. So the stage the body names was never written, and the body names no roster-branch SHA for the reviewer to open (`finding-propagation.md` Enforcement). Repair: either append both carries to the groups the body names, or point the two body markers back at R10-BUFFER-STORE. Then state the roster SHA in the body. The UX-HEALTH and LEARNER-DEFAULT carries are present and state their control or re-measurement instruction. Evidence: `ev/carries.txt`.
-- **The fix's coordinator wiring is unpinned (step 1, step 6).** Two mutants of added production lines in `_propagated_slab` survive the whole suite (`ev/mutants.txt`):
-  - M3: `shared=... -> shared=False`.
-  - M4: `space_served=... -> space_served=True`.
-  
-  Only `tests/features.py` reaches this code. Its `#2499` checks test `draw_range.space_draw_kw` with `shared`/`space_served` in isolation, never through the coordinator. The body's claim "a resistive element on the meter ... falls back to the plan's trajectory" is therefore not pinned. With M3 in place, an immersion element's draw is booked as heat-pump space heat into the slab, which is this finding's own bias class. Owed: a coordinator-level value check for the immersion/resistive case and for a mode not serving rooms.
+- **mutation-vacuous (step 1): both survivors that round 1 of review blocked on still survive.** The body claims a resistive element on the meter falls back to the plan's trajectory. Nothing at the coordinator pins that claim, and nothing pins the space-not-served case either:
+  - M3: `shared=coord._immersion_active or signals.electric_heat.resistive_heat` -> `shared=False` leaves `ALL 4367 FEATURE CHECKS PASSED`, rc=0 (`ev/M3_shared_false.*`).
+  - M4: `space_served=signals.space_heat or not signals.mode_observed` -> `space_served=True` leaves `ALL 4367 FEATURE CHECKS PASSED`, rc=0 (`ev/M4_spaceserved_true.*`).
+
+  With M3 in place, an immersion element's draw is booked into the slab as heat-pump space heat, which is this finding's own bias class. With M4 in place, a DHW-only interval heats the slab. This round's body does not mention either mutant. They are not among the six ratchet sites, because the ratchet's inventory does not mutate call arguments. Owed: a coordinator-level value check for an immersion or resistive interval and one for a mode not serving rooms, each killing its mutant. Owed by this PR (fixer re-cut).
+- **carry-missing (step 10): three `Carry:` markers name stages that hold no carry from this PR.** Evidence: `ev/carries.txt`, read on `handoff/audit-r10-roster` at 4937d60fe and on origin/main.
+  - `## Forward-carry` line 3 (the DP optimality lead) names `R10-COP-PARTLOAD`, which holds 0 carries from this PR.
+  - Line 4 (the open-loop `dhw_temp_trajectory` tank seed) names `R10-HEAT-METER`, which holds 0.
+  - Both texts sit under `R10-BUFFER-STORE` instead, written for body a7a683d1. That is the same mismatch round 1 of review blocked on, and it is unrepaired.
+  - The `## Friction` item `R10-PREPR-UNPINNED-RED` names `R10-ORCH-MACHINERY`. That group's stage is `absorbed`; its note says the concerns moved to R10-ORCH-* groups. It holds no carry for this item, and no live group holds it either.
+  - The body names no roster-branch SHA (`finding-propagation.md` Enforcement).
+
+  Repair: point the line 3 and line 4 markers at R10-BUFFER-STORE, or append them to the named groups. Carry the friction item to a live group, for example R10-FLOW-JIDOKA, which owns prepr's mutation-red line (P67). Then name the roster SHA in the body.
 
 ## Findings
 
-- M5 survives: removing the `dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS` cap passes every check. The body declares this site (`coordinator.py:1008 CMP_BOUND*2`) as unkilled locally and owes it a survivor triage or a pin. At this head CI's `tests / mutation` is red, with 6 unpinned sites added by the diff, and `mutation-pins (1)/(2)` were still in progress. `draw_range.py:296 CMP_BOUND` is among the unpinned, although the body lists it as "pinned by mutation-autofix". Carry: R10-DEMAND-OVERBOOK
-- The body's `max_class_loc` payment is mostly spent prose, which the body does not name. With the three trimmed coordinator-class comment blocks restored, `max_class_loc` is 8444 against the 8425 re-record. The code change alone moves it −5 and still passes the old budget of 8449 (`ev/structure_comments_restored.txt`). Spent prose is a payment `fixer.md` allows, and the ratchet only tightens, so nothing is gamed. But the body attributes the payment to the `_track_dhw` move, and the class loses about 19 lines of explanatory history it never mentions. Carry: dismissed: allowed payment class and the re-record only tightens; the body wording is a record nit, settled by the body repair above.
-- `_track_dhw` is added with no blank line after the preceding method's closing `}` (`coordinator.py` near 7654). Carry: dismissed: style only, no check reads it.
+- `tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check` prints `5 routed, 0 unrouted, 0 bad destination(s)` for this body. That passes `Carry: R10-ORCH-MACHINERY`, a group at stage `absorbed`, which `finding-propagation.md` says is refused ("a destination gone or done"). It also never checks that the named group holds the text. Carry: R10-FLY-CARRY-DISPOSITION
+- The `killed_by` reasons this round recorded say each mutant "took tests/features.py from rc=0 failed=0 to rc=1 failed=2", and the body repeats it. At this head every one of the five sites gives `1 of 4367 FEATURE CHECKS FAILED`; only M1 gives 3. The kill is real either way, but the recorded `failed=2` figure does not re-derive here. Carry: R10-DEMAND-OVERBOOK
+- `fixer.md` "Past three rounds, re-cut rather than repair": the brief names this r4. The body still describes itself as a "repair round" and keeps earlier-round history: mutation proof at df2737ed4, figures at f3ca049bf/65d37a7cb, red checks at 398daa3e5. A re-cut body was owed at the fourth round. Carry: R10-DEMAND-OVERBOOK
+- The UX-HEALTH carry on the roster quotes `nometer_half scale 1.828, plan/deliv 1.936`, but the current body and round 1's re-measure give 1.858 and 1.908. The carry names the harness to re-measure with, so the stage can re-derive the numbers, but the copies disagree. Carry: R10-UX-HEALTH
 
 ## Evidence
 
-- Mutation proof (step 1): M1 gives 2 of 4362 failed, the two named `#2499` checks, rc=1. M2 gives 1 of 4362 failed, the standby check, rc=1. The unmutated head passes all 4362 checks (`ev/features_*.txt`). The body's count is 4356; that was measured at an older merge (428a758e5), and main has since added 6 checks.
-- My extra mutant M6 (dropping `space_share` from `space_draw_kw`) is killed by the resistive/split check.
-- Harness (step 2): `dev/audit/harnesses/r10_demand_overbook.py`, sha1 f0575c58b587d9a41e922fb5393e1a30a7ddba0b, matching the body. It is the fixer's own instrument; there is no committed finder harness. The roster brief prescribes "root-cause by replay on synthetic installs", which this harness implements, and the PR lands it (fixer.md 18). It ran `--dp` at merge base fa4dad4a7 and at head from the same copy (`ev/harness_base.txt`, `ev/harness_head.txt`). My RESULT, base -> head (body in brackets):
+- RESULT mutation (step 1), at head a126c8b3f, `PYTHONPATH=tests/hastub python3 tests/features.py`; full lines in `ev/mutants_summary.txt`, failing check names in `ev/*.fails.txt`:
+  - unmutated: `ALL 4367 FEATURE CHECKS PASSED` rc=0. The body's 4367 reproduces.
+  - M1 (`if False and kw is not None ...`): rc=1, 3 failed, the three `#2499` slab checks the body names.
+  - `draw_range.py running_kw CMP_BOUND` (`>` -> `>=`): rc=1. Failed: `#2499: a draw at the running floor is standby, not heat`.
+  - `running_kw CLAMP_DROP` (the floor kept at `RUNNING_FLOOR_KW`): rc=1. Failed: `a learned idle draw above the fixed floor raises it to IDLE_MARGIN times the idle draw`.
+  - `_propagated_slab CMP_BOUND` lower bound (`0.0 <= dt_h`): rc=1. Failed: `a zero or negative gap replays nothing; the slab follows the plan`.
+  - `_propagated_slab CMP_BOUND` upper bound (`dt_h < MAX`): rc=1. Failed: `a gap of exactly the sample window still advances the slab ...`.
+  - M5, cap removed: rc=1, the same check fails.
+  - `_track_dhw GUARD_OFF` (`if False:`) and `_track_dhw RETURN_DEL` (`pass`): rc=1 each. Failed: `a tank reading reaches the DHW learner, and its freeze reason the coordinator; no reading reaches neither`.
+  - Null control, a comment-only line above `_propagated_slab`: rc=0, all 4367 passed.
 
-  | arm | scale | plan/deliv |
-  |---|---|---|
-  | owner_i01 | 1.221 -> 0.616 [1.185 -> 0.628] | 1.674 -> 0.854 [1.634 -> 1.18] |
-  | owner_i01_spread | 1.584 -> 0.733 [1.572 -> 0.724] | 1.847 -> 0.666 |
-  | meter_half | 2.041 -> 1.289 [2.102 -> 1.247] | — |
-  | meter_sat3 | 1.099 -> 0.994 [1.302 -> 1.099] | 1.25 -> 1.194 |
-  | slab3x | 0.911 -> 0.888 | — |
-  | owner_i03 | 1.0 / 1.0, 0 samples at both ends | — |
-
-  The direction of every metered arm reproduces. The head reaches the oracle on owner_i01 (0.616 against oracle 0.619). The body's exact figures do not reproduce: they were taken at 428a758e5, and main's fa4dad4a7 merge since changed `inputs.py` and `coordinator.py` (+97/−24). Even the oracle arms, which the fix cannot move, differ (owner_i01_oracle plan/deliv 0.854 here against 1.193 in the body). I verified the body's figures as directions only, not as values.
-- Null controls (step 3), all reproduced:
-  - nometer_half is byte-identical at both ends (1.858 / 1.908).
-  - The `*_oracle` arms are identical at both ends.
-  - Flat-price ideal arms stay on the truth: null 1.011 -> 0.98, true0.5 0.511 -> 0.504, owner_ideal 0.611 -> 0.611.
-  - The in-test nulls (no meter, no previous sample) pass.
-- DP reference, owner_i01 last window:
-  - Learned model: base plan 6.95 / DP 5.38 kWh (gap 0.0665); head 5.27 / 3.75 (gap 0.158).
-  - True house: base DP 1.5 against plan 6.95 (gap 0.9027); head DP 3.75 against 5.27 (gap 0.1598).
-  
-  These differ from the body's values, for the same base reason. The qualitative claim (the plan still books more than the DP optimum) holds.
-- Golden and claims (step 4): `GOLDEN_MODE=drift GOLDEN_REF=fa4dad4a7 tests/golden.py` prints `NO UNCLAIMED DRIFT: 56 scenario(s)` and `no committed fixture is stale`. Both claim files are untouched.
-- Versions (step 5): `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (`ev/untouched.txt`).
-- Class (step 6): the rule `grep -n "_open_loop_plan_value(" custom_components/heatpump_optimizer/*.py` returns the definition, the slab call (closed via `_propagated_slab`) and the tank seed at coordinator.py:6369. The tank seed is dispositioned in the body (`ev/class_census.txt`), so the class is closed.
-- Double-count check: `prior_at` is captured before `_async_learn_house_heat_loss` advances `_last_house_sample_time`. Both callers of `_update_current_state` are consistent, and the light first refresh has no prior time, so it falls back to the plan. No double replay found.
-- Head (step 7): the body's `## Head` names 53efa142e. It was followed by 398daa3e5 (the bot's `ci: pin killed mutants`) and 5fb0a083b (the delivery row). Neither changes production or test code.
-- Structure: `python3 tests/structure.py` at head prints STRUCTURE RATCHET PASSED. The absolute values in the body come from an older budget base; the deltas match (−2, −1, −24, −2).
-- Architecture (step 15): `score.py --diff fa4dad4a7 HEAD` prints `dS +0.3249 WORSENS (inadmissible: coord_footprint 2463->2465)`. The body quotes `dS +0.3168` without the verdict word, but it explains the +2 rise under `## Architecture score`, which is the gate's admission path. The `arch-score` check is green. `_propagated_slab` orchestrates: it reads, delegates to `draw_range` and `_replay_interval`, and falls back. The arithmetic lives in `draw_range.py`, which has no HA import. No step-17 breach.
-- Merge (step 13): `git merge-tree --write-tree origin/main 5fb0a083b` exits 0. `LEDGER-MERGE: resolved tests/closures.json`; no claim-file conflict.
-- CI on this head (step 11), run 40127348701: `tests / mutation` is failure. The body names it under `## Red checks` with step 6d's prediction as the cheaper detector, so the trigger is answered. Green: closures, fast (3.14), coverage, coverage-ratchet, arch-instrument, typing, browser, briefs, arch-score, budget-raise-gate, delivery-status, nightly-status, env-matrix, policy-docs, instrument-self-tests, hassfest, validate-hacs, codeql. `mutation-pins (1)/(2)` were still in progress.
+  So each of the five named sites is killed by the named check, and the null survives.
+- Coordinator's conflict ruling, checked against the commits:
+  - Which side named which script is the reverse of the brief. Bot head a717ded9 names `tests/entities.py`, recorded against 2636ce9e. Handoff 65d37a7cb names `tests/features.py`, recorded against 4a00a3f0.
+  - Merge cb9ef4223 kept the handoff's version, `tests/features.py`, and the head carries it.
+  - Recomputing that merge with `git merge-tree` differs from cb9ef4223 only in that conflicted file. cb9ef4223 differs from 65d37a7cb only by `dev/programme/delivery/2712.md`, which came from the bot side.
+  - 31b8dbecd and a126c8b3f reproduce exactly from their parents. No other file was changed by hand (`ev/merge.txt`).
+- `tests/entities.py` against the CMP_BOUND mutant: rc=1, `3 of 2425 ENTITY CHECKS FAILED` against 2 on the unmutated head. That is not a kill of the behaviour. The extra failure is the mutation-table self-test `--anchor re-drives one site ... (R9-F10.13)`, which refuses because "the ledger disagrees with the deterministic inventory" once the pinned source line changes (`ev/CMPB_running_entities.fails.txt`). The bot's entities.py pin was therefore an instrument artifact, and keeping the handoff's `tests/features.py` pin, a real value kill, was right.
+- `tests/entities.py` unmutated at the head: `2 of 2425` fail, `gate-sweep.yml: on CI's completion ...` and `graders-head-copy's delivery_status step ...`. These are the two the body attributes to the seat environment. CI's `tests / graders-head-copy` is green on this head.
+- Head (step 7): the body's `## Head` says a126c8b3f merges code head cb9ef4223 and then origin/main c176ee55d, and the commit graph matches. The identity rules the body quotes print nothing, and 65d37a7cb..a126c8b3f changes no production, `tests/features.py` or golden file (`ev/rules.txt`). The figures carried from 4a00a3f05/f3ca049bf/65d37a7cb therefore describe this tree. I did not re-run the harness this round. Round 1 of review re-ran it at both ends: directions reproduced and nulls held, with exact values verified as directions only. Production is unchanged since then.
+- Versions and claims (steps 4, 5): `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched against merge base c176ee55d.
+- Structure and architecture: `tests/structure.py` prints `STRUCTURE RATCHET PASSED`. Every metric `structure_budgets.json` moves goes down: class_excess_loc -2, duplication_copies -1, max_class_loc -24, seam_cut_total -2. `score.py --diff c176ee55d HEAD` prints `dS +0.3249 WORSENS (inadmissible: coord_footprint 2463->2465)`; the body quotes dS +0.3249 and explains the +2 under `## Architecture score`. `arch-score` is green on this head (`ev/structure_arch.txt`).
+- Class (step 6): the rule `grep -n "_open_loop_plan_value("` returns the definition, the slab call at coordinator.py:1012 (closed here) and the tank seed at coordinator.py:6369 (dispositioned in the body). That matches the body.
+- Merge (step 13): `git merge-tree --write-tree origin/main a126c8b3f` exits 0 at main c6ef25a65. Its stderr is `LEDGER-MERGE: resolved tests/closures.json`, with no claim-file conflict.
+- CI on this head (step 11; `ev/ci_checkruns.txt`): no check has concluded red. `tests / mutation` and `tests / arch-instrument` were still in progress and `pr-contract` had not reported when this was written. The earlier heads' reds on `tests / mutation` and `pr-contract` (398daa3e5, 5fb0a083b, a717ded9) are named and answered under the body's `## Red checks`. The red-check trigger cannot be judged final for this head until its workflows conclude.
+- Harness (step 9): `dev/audit/harnesses/r10_demand_overbook.py` is the fixer's own instrument, landed by this PR, and no finder harness was committed. Round 1 of review recorded the same; the body states it.

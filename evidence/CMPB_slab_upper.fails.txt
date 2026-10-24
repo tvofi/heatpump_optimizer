@@ -1,0 +1,3 @@
+# CMPB_slab_upper at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
+  FAIL #2499: a gap of exactly the sample window still advances the slab by the meter; a minute past it follows the plan  [slab edge/past=25.000/25.000]
+1 of 4367 FEATURE CHECKS FAILED
