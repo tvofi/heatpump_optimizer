@@ -1,0 +1,27 @@
+== base 145bfe197
+script sha1 de09983785a7b6a15d5a164cc76e5b2eba2d705d (~/.bashrc hook: yes)
+ARM bare: /usr/local/bin/python3 numpy-missing
+ARM remedy: /usr/local/bin/python3 numpy-missing
+ARM remedy-nul: /opt/hpo/venv-ci/bin/python3 numpy-ok
+ARM variables: n/a (no --variables mode)
+ARM nested: /opt/hpo/venv-ci/bin/python3
+verdict: toolchain reaches the agent's shell: no
+rc=0
+== head
+script sha1 40fdfa19eb13dfa4b7964ef014c118ddb2e3d3fd (~/.bashrc hook: no)
+ARM bare: /usr/local/bin/python3 numpy-missing
+ARM remedy: /usr/local/bin/python3 numpy-missing
+ARM remedy-nul: /opt/hpo/venv-ci/bin/python3 numpy-ok
+ARM variables: /opt/hpo/venv-ci/bin/python3 numpy-ok
+ARM nested: <tmp>/stub/python3
+verdict: toolchain reaches the agent's shell: yes
+rc=0
+== head with M9
+script sha1 88da3850017d8aa3aee4c25cda4a228b3cb8bf0f (~/.bashrc hook: no)
+ARM bare: /usr/local/bin/python3 numpy-missing
+ARM remedy: /usr/local/bin/python3 numpy-missing
+ARM remedy-nul: /opt/hpo/venv-ci/bin/python3 numpy-ok
+ARM variables: /opt/hpo/venv-ci/bin/python3 numpy-ok
+ARM nested: <tmp>/stub/python3
+verdict: toolchain reaches the agent's shell: yes
+rc=0
