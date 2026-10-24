@@ -59,8 +59,12 @@ the published view.
 
 ## Head
 
-`681db9f0f96f678543d35e4b2601fa1faaef216c` is the measured code head; every
-figure below was taken at it unless it names another commit.
+`70292720d116e655824ae1f372c644522347dbc1` is the code head: `681db9f0f96f678543d35e4b2601fa1faaef216c`, the
+measured head every figure below was taken at unless it names another commit,
+plus one commit that adds only the 28 `tests/mutation_ledger/killed_by/` pins
+(no production, test or fixture file moves, so no figure below changes).
+At `70292720d`: the pin run, `ci_predict`, `structure.py`, the changed-scope
+table's refusal count and the body check.
 - Merge base `e97f5749b441b282e43bd99dbcbb762e9d10a369`, origin/main's tip
   when `681db9f0f` merged it; at 2026-10-24T15:05Z (`date -u`) origin/main
   was `73b69fe0a`, which `git merge-tree --write-tree` merges with this head
@@ -111,48 +115,20 @@ Each mutant is one production text in a detached worktree (M at
 | S12 | the rate clamp `> 0.0` -> `>= 0.0` | `tests/features.py` | stops at `ZeroDivisionError: division by zero` |
 | S13 | `lambda n: n >= SOLAR_APERTURE_MIN_SAMPLES` -> `>` | `tests/features.py` | `R10-LEARNER-ETA: a counting gate's ETA is its remaining count at the measured rate` |
 
-`tests/mutation_table.py --pin-killed --base origin/main` (drivers: the
-defaults less `tests/entities.py`, red at the merge base, and `tests/stress.py`,
-never run per mutant locally; `--jobs 3`) was started at `a7971ec3c` and
-stopped at this seat's two-hour job limit having finished the drivers'
-baselines -- every baseline rc=0 and the null mutant `coordinator.py:511
-NULL_COMMENT` survived every driver -- and no mutant. The pins are left to
-`mutation-autofix`; `## Unpinned sites` names, per site, the check that kills
-it, from the M and S runs above or, where marked, by reading.
-
-## Unpinned sites
-
-Each is pinned by `mutation-autofix` on the PR; the killing check is named,
-from the M/S runs above or, marked "(read)", from the code path:
-
-- custom_components/heatpump_optimizer/coordinator.py:1388 CMP_BOUND: `#2223: a heat-loss level exactly on the confidence threshold has converged` (read; M5 turns it red the same way)
-- custom_components/heatpump_optimizer/coordinator.py:1388 RETURN_DEL: the gate answers None: `R10-LEARNER-ETA: the gates are counted on the learners' own predicates` (read)
-- custom_components/heatpump_optimizer/coordinator.py:1393 CLAMP_DROP: S11
-- custom_components/heatpump_optimizer/coordinator.py:1394 RETURN_DEL: settling progress None: `R10-LEARNER-ETA: settling progress is the learner's own EWMA walk, never a time` (read)
-- custom_components/heatpump_optimizer/coordinator.py:1419 CMP_BOUND: S2
-- custom_components/heatpump_optimizer/coordinator.py:1424 CMP_BOUND: S3
-- custom_components/heatpump_optimizer/coordinator.py:1431 BOOLOP: S4
-- custom_components/heatpump_optimizer/coordinator.py:1437 CMP_BOUND: S13
-- custom_components/heatpump_optimizer/coordinator.py:1447 RETURN_DEL: the view is None and the first `["learner_progress"]["house"]` raises, stopping `tests/features.py` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:36 CONST: S5
-- custom_components/heatpump_optimizer/learner_progress.py:80 GUARD_OFF: S6
-- custom_components/heatpump_optimizer/learner_progress.py:83 CMP_BOUND: S7
-- custom_components/heatpump_optimizer/learner_progress.py:83 GUARD_OFF: M2
-- custom_components/heatpump_optimizer/learner_progress.py:87 GUARD_OFF: S8
-- custom_components/heatpump_optimizer/learner_progress.py:90 RETURN_DEL: `rates["house"]` on None raises in the view, stopping `tests/features.py` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:97 GUARD_OFF: M11 (`tests/finite_boundary.py`), and `R10-LEARNER-ETA: a malformed or count-less snapshot gives no rate and never raises` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:100 GUARD_OFF: S9
-- custom_components/heatpump_optimizer/learner_progress.py:102 RETURN_DEL: no snapshot count ever reads, so no rate: `R10-LEARNER-ETA: a counting gate's ETA is its remaining count at the measured rate` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:114 RETURN_DEL: no gate count, so nothing counts: the same check, and `... the gates are counted on the learners' own predicates` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:119 GUARD_OFF: a disabled learner is reported: `R10-LEARNER-ETA: off when disabled or unmeasurable; zero evidence counts with no ETA` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:123 CMP_BOUND: S12
-- custom_components/heatpump_optimizer/learner_progress.py:127 BOOLOP: `or` keeps a learner past its gate counting, as M1: `... no settling learner carries a day count, on any weather or rate` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:127 CMP_BOUND: S10
-- custom_components/heatpump_optimizer/learner_progress.py:127 GUARD_OFF: M1 (its text is this guard's effect for every gated learner)
-- custom_components/heatpump_optimizer/learner_progress.py:129 GUARD_OFF: a counting learner with no rate divides by None, stopping `tests/features.py` at the zero-evidence arm (read)
-- custom_components/heatpump_optimizer/learner_progress.py:134 BOOLOP: `or` makes a fresh, unblocked learner wait: `... off when disabled or unmeasurable; zero evidence counts with no ETA` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:134 GUARD_OFF: every learner waits: `R10-LEARNER-ETA: a counting gate's ETA is its remaining count at the measured rate` (read)
-- custom_components/heatpump_optimizer/learner_progress.py:136 RETURN_DEL: the view's entries are None, stopping `tests/features.py` (read)
+Pins, at `681db9f0f` (commit `70292720d` records them):
+`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 4
+--scripts tests/features.py,tests/finite_boundary.py` -- the two drivers the
+M and S runs above named as killers, so each site's own killer drives it;
+baselines `tests/features.py` rc=0 (368 s) and `tests/finite_boundary.py`
+rc=0 (67 s), the null control `coordinator.py:512 NULL_COMMENT` survived both,
+and `PIN KILLED: 28 pinned, 0 left unpinned`, every one under `killed_by` by
+`tests/features.py`. Every site the previous body listed as unpinned (28:
+`coordinator.py` 1388-1447, `learner_progress.py` 36-136) is now pinned; no
+survivor exists, so no disposition or new test was owed. After it,
+`python3 tests/mutation_table.py --scope changed --base origin/main --max 0`
+reads `3990 unpinned site(s) of 6326 candidate sites, 3990 at the ratchet
+base e97f5749b`: this diff adds no unpinned site and the table does not
+refuse.
 
 ## Null control
 
@@ -234,6 +210,18 @@ Instruments; the figures they print are in their output at the head named.
 
 ## Red checks
 
+- `mutation` (`tests / mutation`; `prepr.sh` step 6d listed 28 `ADDED
+  UNPINNED` sites at `681db9f0f`, and the pr-body check refused the body
+  for not naming it): unpinned new sites, not a survivor -- the handoff left
+  the pins to `mutation-autofix`, which runs only after a PR exists, and the
+  pin run here had stopped at its two-hour limit driving every default driver.
+  Repaired in `70292720d` by the pin flow with the killers' two drivers (above,
+  28 of 28 killed). The cheaper detector already exists and fired:
+  `ci_predict.py` / `prepr.sh` step 6d names each added unpinned site in
+  seconds before the handoff; the cost was in the repair, where `--scripts`
+  restricted to the scripts a mutation proof already names pins in ~45
+  minutes on 4 cores against a default-driver run that did not finish in two
+  hours. No new detector is owed.
 - `tests/entities.py` (`tests / fast`): `gate-sweep.yml: on CI's completion,
   no concurrency, ...` and `graders-head-copy's delivery_status step is red
   only when this copy's exit differs from the base copy's, ...` fail here and
