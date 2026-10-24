@@ -1,14 +1,14 @@
-Adds `dev/programme/triage/s6-batch2.md`: seven proposals from the s6 orchestrator's `proposals.md` (the s5 items I-M that `s5-batch2.md` never ruled, and s6's Q and R) ruled as P45-P51 under `dev/governance/roles/proposal-triage.md`. The file is under `dev/programme/`, which `tests/closure.py` lists as INERT, the route the earlier batches took.
+Adds `dev/programme/triage/s6-batch2.md`: eight proposals from the s6 orchestrator's `proposals.md` (the s5 items I-M that `s5-batch2.md` never ruled, and s6's Q, R and S6-S) ruled as P45-P52 under `dev/governance/roles/proposal-triage.md`. The file is under `dev/programme/`, which `tests/closure.py` lists as INERT, the route the earlier batches took.
 
-Verdicts: P45 ACCEPT, P46 ACCEPT narrowed, P51 ACCEPT narrowed (all three to the existing `R10-ORCH-BEATD`; the file says the work may later be split into its own group); P49 ACCEPT (measure first) to `R10-FLOW-RECORD-PITCH`; P47 and P48 DEFER; P50 REJECT.
+Verdicts: P45 ACCEPT, P46 ACCEPT narrowed, P51 ACCEPT narrowed (all three to the existing `R10-ORCH-BEATD`; the file says the work may later be split into its own group); P49 ACCEPT (measure first) to `R10-FLOW-RECORD-PITCH`; P47 and P48 DEFER; P50 and P52 REJECT.
 
 ## Head
 
-`1dc67949505875052d731dfc297a71f816871630`, on origin/main `50af6174f`; roster read at origin/handoff/audit-r10-roster `4c54758d7`.
+`e06c58981e10fae40a077294c8af41f4485dadaf`, on origin/main `50af6174f`; roster read at origin/handoff/audit-r10-roster `4c54758d7`.
 
 ## Mutation proof
 
-n/a: no code or check changes; the file is a ruling record. Its consumer is the triage gate: `roster_edit.ruling_verdict` reads the seven entries.
+n/a: no code or check changes; the file is a ruling record. Its consumer is the triage gate: `roster_edit.ruling_verdict` reads the eight entries.
 
 ## Null control
 
