@@ -181,10 +181,15 @@ sweep's standing-seat liveness step keep them alive.
 - `cloud-setup.sh` — the cloud seat environment's setup script (interpreter,
   CI-run pinning): it builds `venv-ci` and `venv-ha` under `/opt/hpo` and
   writes the toolchain profile. When: tvofi pastes it into Project settings; a
-  seat cannot apply its own environment. A seat does not source that profile:
-  a non-interactive Bash call skips it, so the toolchain reaches a seat
-  through the environment's variables (see `cloud_dispatch.py`). Refusal: a
-  missing checkout warns and exits 0, so a session still starts, without pins.
+  seat cannot apply its own environment. A seat's Bash call inherits the
+  agent's environment and reads neither the profile nor `BASH_ENV`, so the
+  toolchain reaches it only through the environment's variables, which
+  `--variables` prints and the setup run's last line names; `--check`, in a
+  seat: `OK` (exit 0) only when all three hold, or `REFUSE` naming them (exit
+  1). The profile prepends `venv-ci/bin` only
+  when absent, so a PATH a caller narrowed is left alone; `--self-test`: the
+  profile, variables and check arms. Refusal: a missing checkout warns and
+  exits 0, so a session still starts, without pins.
 - `cloud_dispatch.py` — renders the whole cloud-runner trigger payload
   (`job_config.ccr`: `environment_id`, `session_context` with `allowed_tools`,
   `model` and `sources`, and one user-message event) for a `reviewer`,
@@ -229,7 +234,8 @@ sweep's standing-seat liveness step keep them alive.
   refusal against a rendering that passes, offline.
   Two measured traps when driving the runner: an update and a run fired in
   parallel start the run on the PREVIOUS config, so a launch is update, wait
-  for it, then run, sequentially; and the container's `BASH_ENV` puts the venv
+  for it, then run, sequentially; and, until the pasted setup script writes
+  `cloud-setup.sh`'s idempotent profile, the container's `BASH_ENV` puts the venv
   python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
   anything else resolving `homeassistant`) with `env -u BASH_ENV`.
 - `cloud_relay.sh` — the orchestrator's half of a cloud reviewer's return:
