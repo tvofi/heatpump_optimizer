@@ -1610,6 +1610,8 @@ INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: math.inf,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: math.inf,
     CONF_FLOW_METER_ENTITY: math.inf,
+    # Heat holds 0 kW while the pump idles, as electricity does.
+    CONF_THERMAL_POWER_ENTITY: math.inf,
     # The room probe's own humidity channel: the room's quiet-store bound.
     CONF_INDOOR_HUMIDITY_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
 }

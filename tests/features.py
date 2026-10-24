@@ -68630,7 +68630,8 @@ def _tp_reader(cfg, heat_state, unit="W", heat_age_min=1, flow=True):
     if not flow:
         full.pop(_fb_const.CONF_FLOW_METER_ENTITY)
     reader.hass.states.set("sensor.heat", FakeState(
-        heat_state, last_updated=minutes_ago(heat_age_min, NOW), unit=unit
+        heat_state, last_updated=minutes_ago(heat_age_min + 3, NOW),
+        last_reported=minutes_ago(heat_age_min, NOW), unit=unit
     ))
     full[_TP_KEY] = "sensor.heat"
     full.update(cfg)
@@ -68869,7 +68870,8 @@ def _tp_replay(method, heat_state="4200", heat_age_min=1, config=None, **kw):
         coord = _t2_house(**cfg, **kw)
         coord.hass.states.set(
             "sensor.heat",
-            FakeState(heat_state, last_updated=minutes_ago(heat_age_min, NOW), unit="W"),
+            FakeState(heat_state, last_updated=minutes_ago(heat_age_min + 3, NOW),
+                      last_reported=minutes_ago(heat_age_min, NOW), unit="W"),
         )
         reader = _fmReader(coord.hass, coord.effective_config, now=lambda: NOW)
         _fm.observe_water(coord._flow_bias, reader, coord.effective_config)
@@ -68923,7 +68925,8 @@ def _tp_cop_freeze(heat_age_min):
     c = _t2_coord(heat_pump_power_entity="sensor.hp_power", **{_TP_KEY: "sensor.heat"})
     c.hass.states.set(
         "sensor.heat",
-        FakeState("6000", last_updated=minutes_ago(heat_age_min, NOW), unit="W"),
+        FakeState("6000", last_updated=minutes_ago(heat_age_min + 3, NOW),
+                  last_reported=minutes_ago(heat_age_min, NOW), unit="W"),
     )
     reader = _fmReader(c.hass, c.effective_config, now=lambda: NOW)
     _fm.observe_water(c._flow_bias, reader, c.effective_config)
