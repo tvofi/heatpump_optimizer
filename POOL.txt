@@ -3,7 +3,6 @@ dispatch/fixer-r10-thermal-power-option
 dispatch/fixer-r10-config-notices
 dispatch/fixer-r10-mutant-skip
 dispatch/fixer-r10-structure-alias
-dispatch/fixer-r10-fly-cloud-setup-toolchain
 dispatch/fixer-r10-fly-yield-guard
 dispatch/fixer-r10-fly-envmatrix-noremote
 dispatch/fixer-r10-replay-scoped
@@ -17,3 +16,4 @@ dispatch/fixer-r10-codeql-dependabot
 dispatch/fixer-r10-rca-codescan-wait
 dispatch/fixer-r10-policy-fixer-md
 dispatch/fixer-r10-fly-cipredict-layout
+dispatch/fixer-r10-fly-cloud-setup-toolchain
