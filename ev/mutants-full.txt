@@ -1,0 +1,8 @@
+RESULT R0F full rc=1 failing=1
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+RESULT R7 full rc=1 failing=2
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    FAIL #2492: a plan adopted mid-step re-freezes the step's planned duty; the same plan's later duty does not  [re-solved {'start': '2026-01-15T13:00:00+00:00', 'planned': 'dhw', 'actual': 'space', 'ver
+RESULT R11 full rc=1 failing=2
+    FAIL #2257: the held figure prices a degree from a steady start: a coasted and a pre-heated house read it alike, while the plan's single-solve spend tells them apart  [held {(3, 19.0): (-11.15, 11.3),
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
