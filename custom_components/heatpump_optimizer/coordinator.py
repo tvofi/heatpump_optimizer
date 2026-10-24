@@ -94,6 +94,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     PRICE_SOURCE_ENTITY,
+    CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
@@ -1276,12 +1277,9 @@ READING_SOURCES: dict[str, str] = {
     "outdoor_temperature": CONF_OUTDOOR_TEMP_ENTITY,
 }
 
-# Age limits for the optional sensors read outside InputReader. Humidity
-# drives the mold floor — a frozen sensor would hold a raised floor
-# forever, so it gets the reader's indoor-scale limit. The DHW inlet probe
-# is genuinely slow-moving (ground temperature), so a day; past that the
+# Age limit for the DHW inlet probe, read outside InputReader. It is
+# genuinely slow-moving (ground temperature), so a day; past that the
 # seasonal model is the honest fallback.
-HUMIDITY_MAX_AGE_MINUTES = 120.0
 DHW_INLET_MAX_AGE_MINUTES = 24.0 * 60.0
 
 
@@ -8953,22 +8951,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = getattr(self, "_ctx", self)._config.indoor_humidity_entity
         if not entity_id:
             return None
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return None
         # A frozen sensor holds a raised mold floor forever; with no live
         # reading the floor vanishes instead — the fail-safe direction the
         # inputs module prescribes for every optional sensor.
-        age = age_of(state, dt_util.utcnow())
-        if age is None or age > timedelta(minutes=HUMIDITY_MAX_AGE_MINUTES):
-            return None
-        try:
-            value = float(state.state)
-        except (TypeError, ValueError):
-            return None
-        if not np.isfinite(value) or not 0.0 < value <= 100.0:
-            return None
-        return value
+        reading = InputReader(self.hass, {}).read(
+            CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
+        )
+        value = reading.value if reading.ok else None
+        return value if value is not None and 0.0 < value <= 100.0 else None
 
     def _mold_floor_series(
         self, outdoor: np.ndarray, target_cap: float | None = None
