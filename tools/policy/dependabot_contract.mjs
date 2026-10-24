@@ -37,7 +37,9 @@ const ECOSYSTEM_FILES = {
   'github-actions': () => /^\.github\/(?:workflows\/[^/]+\.ya?ml|actions\/[^/]+\/action\.ya?ml)$/,
 }
 
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// The one regexp-escape in the policy lint (policy_lint.mjs imports it): a
+// grammar written twice is the agreement lane's refusal.
+export const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // The (ecosystem, directory) entries of a dependabot.yml, in file order. The
 // file's own header fixes the shape this reads (`package-ecosystem:` then
