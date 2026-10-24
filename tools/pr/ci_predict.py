@@ -353,8 +353,9 @@ def privacy_preds(root: Path) -> list[tuple[str, str]]:
     ran (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure B): its own
     registry and content checks over the commit HEAD, judged with the
     runner's identity as CI's run is. Its run on a seat adds the seat's home
-    and name, which CI never judges by, and a root seat's home `/root` matches
-    inside `roles/root-cause.md`.
+    and name, which CI never judges by, and matches the home as a substring:
+    the root account's home is inside the path of the root-cause role
+    contract, which 28 tracked files cite.
     """
     seat = root / "tools" / "audit" / "seat"
     if not (seat / "ref_privacy.py").is_file():
@@ -437,7 +438,7 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
                                     f"and CI runs nothing on a conflict; merge the base first")]
         shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
         specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text())
-        (tmp / "pinned.list").write_text(run("git", "diff", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
+        (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
         run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
         py = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
         out = run(sys.executable, "-I", py, "--out", str(tmp / "agreement.json"))
