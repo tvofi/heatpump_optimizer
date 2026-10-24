@@ -3437,7 +3437,11 @@
     "R10-POLICY-ROLE-PACK",
     "R10-ARCH-DOCS-FIRST",
     "R10-IMMERSION-LATCH",
-    "R10-DIAG-REDACT"
+    "R10-DIAG-REDACT",
+    "R10-ADVISOR-RESIDUE",
+    "R10-BRIEFS-FOLD-D0",
+    "R10-REPLAY-REAL-DAY",
+    "R10-ARCHSCORE-SPELLINGS"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
