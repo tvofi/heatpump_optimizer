@@ -1,0 +1,4 @@
+NULL CONTROL: base text + the #2341 sentences, nothing cut
+.claude/rules/gate-scoping.md
+  ERROR   [budgets] .claude/rules/gate-scoping.md: about 830 tokens across its lines exceeds its cap of 794 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 1 error(s) across 50 policy file(s)
