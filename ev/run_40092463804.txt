@@ -1,0 +1,39 @@
+refresh skipped 2026-10-24T12:05:00Z 2026-10-24T12:04:59Z
+cancel-superseded skipped 2026-10-24T12:05:00Z 2026-10-24T12:04:59Z
+prelude success 2026-10-24T12:05:02Z 2026-10-24T12:05:16Z
+arch-score skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+tests / closure-scope skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+budget-raise-gate skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+kernel-points skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+governance / delivery-status skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+tests / nightly-ha skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+tests / nightly-status skipped 2026-10-24T12:05:17Z 2026-10-24T12:05:17Z
+governance / wave-script success 2026-10-24T12:05:19Z 2026-10-24T12:05:41Z
+hassfest / hassfest success 2026-10-24T12:05:20Z 2026-10-24T12:05:44Z
+governance / delivery-status-publish success 2026-10-24T12:05:20Z 2026-10-24T12:05:46Z
+tests / briefs success 2026-10-24T12:05:20Z 2026-10-24T12:05:54Z
+tests / mutation success 2026-10-24T12:05:20Z 2026-10-24T12:06:02Z
+tests / coverage success 2026-10-24T12:05:20Z 2026-10-24T12:06:02Z
+tests / graders-head-copy skipped 2026-10-24T12:06:02Z 2026-10-24T12:06:02Z
+tests / mutation-pins skipped 2026-10-24T12:06:03Z 2026-10-24T12:06:03Z
+tests / mutation-autofix skipped 2026-10-24T12:06:03Z 2026-10-24T12:06:03Z
+validate / validate-hacs success 2026-10-24T12:05:20Z 2026-10-24T12:06:05Z
+tests / coverage-ratchet success 2026-10-24T12:06:04Z 2026-10-24T12:06:12Z
+governance / policy-docs success 2026-10-24T12:05:20Z 2026-10-24T12:06:15Z
+codeql / Analyze (actions) success 2026-10-24T12:05:20Z 2026-10-24T12:06:18Z
+codeql / Analyze (javascript-typescript) success 2026-10-24T12:05:19Z 2026-10-24T12:06:34Z
+tests / typing success 2026-10-24T12:05:20Z 2026-10-24T12:06:37Z
+governance / record success 2026-10-24T12:05:20Z 2026-10-24T12:07:22Z
+governance / env-matrix success 2026-10-24T12:05:20Z 2026-10-24T12:09:03Z
+tests / browser success 2026-10-24T12:05:19Z 2026-10-24T12:09:19Z
+governance / instrument-self-tests success 2026-10-24T12:05:19Z 2026-10-24T12:15:34Z
+tests / fast (3.14) success 2026-10-24T12:05:20Z 2026-10-24T12:20:43Z
+tests / claims-autofix skipped 2026-10-24T12:20:43Z 2026-10-24T12:20:43Z
+tests / closures success 2026-10-24T12:05:20Z 2026-10-24T12:23:32Z
+tests / closures-autofix skipped 2026-10-24T12:23:33Z 2026-10-24T12:23:32Z
+tests / ci-ratchet success 2026-10-24T12:23:35Z 2026-10-24T12:24:57Z
+codeql / Analyze (python) success 2026-10-24T12:05:20Z 2026-10-24T12:34:57Z
+tests / arch-instrument success 2026-10-24T12:05:20Z 2026-10-24T12:36:18Z
+tests / lane-proofs skipped 2026-10-24T12:36:18Z 2026-10-24T12:36:18Z
+pr-contract skipped 2026-10-24T12:36:18Z 2026-10-24T12:36:18Z
+gate success 2026-10-24T12:36:21Z 2026-10-24T12:36:37Z
