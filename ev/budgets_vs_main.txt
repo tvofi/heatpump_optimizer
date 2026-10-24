@@ -1,0 +1,19 @@
+class_excess_loc main 18217 pr-side 18225 head 18209 down
+const_modules_over_50 main 3 pr-side 3 head 3 
+coordinator_attrs main 146 pr-side 147 head 146 
+coordinator_multiassigned_attrs main 114 pr-side 115 head 114 
+coordinator_private_reach main 0 pr-side 0 head 0 
+dead_methods main 0 pr-side 0 head 0 
+dead_top_level_symbols main 1 pr-side 1 head 1 
+duplication_copies main 17 pr-side 17 head 17 
+functions_cc_over_15 main 30 pr-side 30 head 30 
+functions_cc_over_25 main 8 pr-side 8 head 8 
+import_cycle_modules main 0 pr-side 0 head 0 
+max_cc main 44 pr-side 45 head 44 
+max_class_loc main 8457 pr-side 8471 head 8449 down
+max_method_loc main 373 pr-side 373 head 373 
+methods_over_150 main 17 pr-side 17 head 17 
+methods_over_200 main 9 pr-side 9 head 9 
+name_kept_members main 38 pr-side 38 head 38 
+recorded_at main f046076aded786f271edba6f27a2a1d4b4a515d7 pr-side a6620c30adcdf0d9529ee66977694bfa2a06d5c3 head f046076aded786f271edba6f27a2a1d4b4a515d7 
+seam_cut_total main 710 pr-side 715 head 710 
