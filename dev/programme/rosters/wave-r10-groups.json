@@ -6692,7 +6692,7 @@
     "branch": "handoff/r10-flow-autotrain",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
