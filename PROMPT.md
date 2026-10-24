@@ -1,0 +1,16 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-roster-freeze-b, at head 93931ab2b2750ed13a0dd8706513f65ffdb0caf2. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 93931ab2b2750ed13a0dd8706513f65ffdb0caf2 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-roster-freeze-b, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-roster-freeze-b <body.md>`, which pushes refs/heads/handoff-body/r10-roster-freeze-b; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Group R10-FLOW-ROSTER-FREEZE, arm (b) ONLY, as its own small PR from origin/main. Arm (a), the relay freeze, is out of scope. Read the full ruling at dev/programme/triage/s6-batch19.md#P89 on origin/triage/s6-batch19 (git show origin/triage/s6-batch19:dev/programme/triage/s6-batch19.md).
+Change: tools/audit/carry_audit.py's `Dests` also loads the round's roster ref (`roster_lib.round_ref`) and accepts a group that is open on main's roster or on that ref, naming which ref resolved it; a group on neither still fails. .github/workflows/pr-contract.yml fetches that ref before `carry_audit.py check --body`. Cause: `Dests.check` returns "is not a group of the roster" for any group absent from the one roster it loaded, while finding-propagation.md counts a carry on `handoff/audit-r<N>-roster` as in the tree. Cost about 15 to 30 lines; this is on the critical path, so keep it small.
+Controls (failing test first, then the fix):
+- a fixture carry to a group present only on the round ref passes and the output names that ref;
+- null: a group on neither ref fails;
+- null: a done group fails, on main and on the round ref;
+- one mutant that drops the round-ref load must be killed by the first control; run it and show the kill.
+Run the finder's harness at base and head: the opener refusal 'R10-RCA-CODESCAN-WAIT is not a group of the roster' as seen by carry_audit.py check --body against a roster-branch-only group. carry_audit.py and the workflow are code-owned; the mandate covers it. Follow fixer.md. Do not touch VERSION, claim files, or RELEASE_NOTES.
+no host or home paths in anything you push
