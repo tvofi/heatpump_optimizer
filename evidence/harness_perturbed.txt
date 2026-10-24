@@ -1,0 +1,15 @@
+                                   "--match-head-commit", h])
+            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+                                   "--subject", "Merge pull request #%s (x)" % pr, "--match-head-commit", h])
+== b perturbed
+  merge-subject guard: 249 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=3.2
+AGREEMENT ok
+                                   "--match-head-commit", h])
+            code, said = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
+                                   "--subject", "Merge pull request #%s (x)" % pr, "--match-head-commit", h])
+== h perturbed
+  merge-subject guard: 249 first-parent commit(s) past 07a09406a, 55 merge call(s) in 11 file(s)
+  REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:1482: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with
+RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=3.0
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
