@@ -1,0 +1,23 @@
+RESULT ruling_verdict P82 = ACCEPT
+RESULT ruling_verdict P99 (null) = None
+RESULT triage_refusal(cite P82) = None
+RESULT verdict count:
+      1 Verdict: ACCEPT
+  File "$W/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+268:    # living handover is the hole is_handover cuts, under dev/programme/ as
+273:    "dev/programme/",
+521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+agreement.mjs
+agreement_py.py
+brief_lint.mjs
+budget_raise_gate.py
+check-wave-script.mjs
+counts.mjs
+field_coverage.mjs
+figure_census.mjs
+figure_lint.mjs
+fixtures
+RESULT mutant (Verdict line deleted): ruling_verdict P82 = unreadable
+RESULT mutant (ACCEPT->DEFER): triage_refusal = dev/programme/triage/s6-batch13.md#P82 is not an ACCEPT ruling (DEFER)
