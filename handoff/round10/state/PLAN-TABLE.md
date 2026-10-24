@@ -122,7 +122,7 @@ gantt
 | R10-VENT-DETECTOR | LR | 1 | done | **#2241** | opus/opus | - | G-ID-2 from STUDY R10-IDENT. |  |
 | R10-NIGHT-FOLDS | LR | 1 | done | **#2223** | opus/opus | - | G-ID-1. |  |
 | R10-RATIO-ANCHOR | LR | 1 | not-started | #2239 | opus/opus | - | D-3 (D12-s2-71, medium, verified): the lower-floor learned ratio has no re-anchor, so a nameplate edit or a snapshot restore misattributes the change, upper... |  |
-| R10-INPUT-STALENESS | FD | 1 | not-started | **#2234** | opus/opus | - | `INPUT_MAX_AGE_MINUTES` in custom_components/heatpump_optimizer/const.py is shorter than a report-on-change source's legitimate quiet interval: D14-s3-02 (me... |  |
+| R10-INPUT-STALENESS | FD | 1 | in-progress | **#2234** | opus/opus | - | `INPUT_MAX_AGE_MINUTES` in custom_components/heatpump_optimizer/const.py is shorter than a report-on-change source's legitimate quiet interval: D14-s3-02 (me... |  |
 | R10-CURRENCY | SP | 1 | done | **#2222**, **#2243** | opus/opus | - | A money figure is resolved by divergent currency precedence on different surfaces: D14-s3-01 (medium, verified; D14-s2-01 merged) finds 1 of 14 money seams m... |  |
 | R10-STORE | PS | 1 | done | **#2224**, #2232, #2236, #2238 | opus/opus | - | Persistence: defects first, then the owner moves. |  |
 | R10-TARIFF | TF | 1 | done | **#2230**, #2238 | opus/opus | - | 1. |  |
