@@ -1312,14 +1312,16 @@ cold January day in bidding zone SE3 with a target of 21 °C and a minimum of
 
 | Comfort weight | Average room temperature | Savings |
 |---|---|---|
-| 5 (default) | 19.4 °C | 53% |
-| 10 | 19.8 °C | 51% |
-| 20 | 20.2 °C | 49% |
+| 5 (default) | 19.4 °C | 51% |
+| 10 | 19.8 °C | 50% |
+| 20 | 20.2 °C | 48% |
 | 40 | 20.4 °C | 47% |
 
 Your house will give different numbers. The shape is the useful part: raising
 the comfort weight buys warmth and gives back savings, roughly linearly, and so
-does raising your minimum temperature. Both work.
+does raising your minimum temperature. Both work. The savings are against a
+thermostat holding the comfort the plan delivered, so a colder plan books no
+saving for the warmth it gave up.
 
 ---
 

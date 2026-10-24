@@ -5318,7 +5318,8 @@ class HeatPumpOptimizer:
             cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
-            # power is what determines energy use; a clamp burnt it all day.
+            # power is what determines energy use; a clamp burnt
+            # min_electrical_power * 24 h per day on a house needing no heat.
             power = float(
                 np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
             )

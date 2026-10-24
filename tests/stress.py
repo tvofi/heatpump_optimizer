@@ -5751,7 +5751,7 @@ if __name__ == "__main__":
     )
     # The README's own table, reproduced. If this drifts, either the optimizer
     # changed or the documentation is now lying to users.
-    documented = {5.0: (19.4, 53), 10.0: (19.8, 51), 20.0: (20.2, 49), 40.0: (20.4, 47)}
+    documented = {5.0: (19.4, 51), 10.0: (19.8, 50), 20.0: (20.2, 48), 40.0: (20.4, 47)}
     drift = [
         f"w={w:.0f}: {t:.1f}°C/{s:.0f}% vs documented "
         f"{documented[w][0]}°C/{documented[w][1]}%"
