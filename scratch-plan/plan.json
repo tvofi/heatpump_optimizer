@@ -1,0 +1,3779 @@
+{
+ "batches": [
+  {
+   "at": "2026-10-22T05:17:00Z",
+   "groups": [
+    "R10-ADVISOR",
+    "R10-NIGHT-FOLDS",
+    "R10-REPLAY-LANE"
+   ],
+   "id": 1
+  },
+  {
+   "at": "2026-10-22T06:28:00Z",
+   "groups": [
+    "R10-PREPR-CAP",
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "id": 2
+  },
+  {
+   "at": "2026-10-22T16:41:00Z",
+   "groups": [
+    "R10-FLOW-DESIGN-POLICY"
+   ],
+   "id": 3
+  },
+  {
+   "at": "2026-10-22T17:52:00Z",
+   "groups": [
+    "R10-BRIEFS-FOLD"
+   ],
+   "id": 4
+  },
+  {
+   "at": "2026-10-22T18:23:00Z",
+   "groups": [
+    "R10-LOOP-CPU"
+   ],
+   "id": 5
+  },
+  {
+   "at": "2026-10-22T18:26:00Z",
+   "groups": [
+    "R10-CI-LAYOUT"
+   ],
+   "id": 6
+  },
+  {
+   "at": "2026-10-22T19:34:00Z",
+   "groups": [
+    "R10-REPLAY-SCOPED"
+   ],
+   "id": 7
+  },
+  {
+   "at": "2026-10-23T01:23:00Z",
+   "groups": [
+    "R10-SCORES"
+   ],
+   "id": 8
+  },
+  {
+   "at": "2026-10-23T04:05:00Z",
+   "groups": [
+    "R10-SOLVER"
+   ],
+   "id": 9
+  },
+  {
+   "at": "2026-10-23T05:47:00Z",
+   "groups": [
+    "R10-RATIO-ANCHOR"
+   ],
+   "id": 10
+  },
+  {
+   "at": "2026-10-23T06:58:00Z",
+   "groups": [
+    "R10-FLOW-BODY-PATCH"
+   ],
+   "id": 11
+  },
+  {
+   "at": "2026-10-23T08:40:00Z",
+   "groups": [
+    "R10-FLOW-PULL"
+   ],
+   "id": 12
+  },
+  {
+   "at": "2026-10-23T18:53:00Z",
+   "groups": [
+    "R10-INPUT-STALENESS"
+   ],
+   "id": 13
+  },
+  {
+   "at": "2026-10-23T20:04:00Z",
+   "groups": [
+    "R10-FLOW-RELAY-HOLD"
+   ],
+   "id": 14
+  },
+  {
+   "at": "2026-10-23T21:46:00Z",
+   "groups": [
+    "R10-FLY-OPENPR-ATOMIC"
+   ],
+   "id": 15
+  },
+  {
+   "at": "2026-10-24T00:11:00Z",
+   "groups": [
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "id": 16
+  },
+  {
+   "at": "2026-10-24T00:38:00Z",
+   "groups": [
+    "R10-CI-LAYOUT-P1"
+   ],
+   "id": 17
+  },
+  {
+   "at": "2026-10-24T06:17:00Z",
+   "groups": [
+    "R10-LEARNER-ETA"
+   ],
+   "id": 18
+  },
+  {
+   "at": "2026-10-24T07:28:00Z",
+   "groups": [
+    "R10-FLOW-ARCH-PLANNER"
+   ],
+   "id": 19
+  },
+  {
+   "at": "2026-10-24T07:35:00Z",
+   "groups": [
+    "R10-LIVESTATE"
+   ],
+   "id": 20
+  },
+  {
+   "at": "2026-10-24T09:10:00Z",
+   "groups": [
+    "R10-FLOW-TOOLKIT-MEASURE"
+   ],
+   "id": 21
+  },
+  {
+   "at": "2026-10-24T09:21:00Z",
+   "groups": [
+    "R10-RCA-FRICTION"
+   ],
+   "id": 22
+  },
+  {
+   "at": "2026-10-24T15:27:00Z",
+   "groups": [
+    "R10-PLAN-ARTIFACT"
+   ],
+   "id": 23
+  },
+  {
+   "at": "2026-10-24T17:41:00Z",
+   "groups": [
+    "R10-THERMAL-POWER-OPTION"
+   ],
+   "id": 24
+  },
+  {
+   "at": "2026-10-24T22:27:00Z",
+   "groups": [
+    "R10-FLOW-ANDON"
+   ],
+   "id": 25
+  },
+  {
+   "at": "2026-10-25T04:33:00Z",
+   "groups": [
+    "R10-FLOW-BOARD"
+   ],
+   "id": 26
+  },
+  {
+   "at": "2026-10-25T05:16:00Z",
+   "groups": [
+    "R10-ORCH-MACHINERY"
+   ],
+   "id": 27
+  },
+  {
+   "at": "2026-10-25T06:50:00Z",
+   "groups": [
+    "R10-CI-LAYOUT-P2"
+   ],
+   "id": 28
+  },
+  {
+   "at": "2026-10-25T11:33:00Z",
+   "groups": [
+    "R10-FLOW-BODY-ONLY"
+   ],
+   "id": 29
+  },
+  {
+   "at": "2026-10-25T13:47:00Z",
+   "groups": [
+    "R10-ARCH-SHAPES",
+    "R10-PARAMS-OWNER"
+   ],
+   "id": 30
+  },
+  {
+   "at": "2026-10-25T17:39:00Z",
+   "groups": [
+    "R10-FLOW-DISPATCH"
+   ],
+   "id": 31
+  },
+  {
+   "at": "2026-10-25T18:14:00Z",
+   "groups": [
+    "R10-FLOW-MQ-PROBE"
+   ],
+   "id": 32
+  },
+  {
+   "at": "2026-10-25T18:22:00Z",
+   "groups": [
+    "R10-FLOW-JIDOKA"
+   ],
+   "id": 33
+  },
+  {
+   "at": "2026-10-26T00:39:00Z",
+   "groups": [
+    "R10-FLOW-POSTMERGE"
+   ],
+   "id": 34
+  },
+  {
+   "at": "2026-10-26T02:53:00Z",
+   "groups": [
+    "R10-CONFIG-NOTICES"
+   ],
+   "id": 35
+  },
+  {
+   "at": "2026-10-26T06:45:00Z",
+   "groups": [
+    "R10-FLOW-ROSTER-FREEZE"
+   ],
+   "id": 36
+  },
+  {
+   "at": "2026-10-26T07:20:00Z",
+   "groups": [
+    "R10-FLOW-RECORD-PITCH"
+   ],
+   "id": 37
+  },
+  {
+   "at": "2026-10-26T07:28:00Z",
+   "groups": [
+    "R10-FLOW-WIP"
+   ],
+   "id": 38
+  },
+  {
+   "at": "2026-10-26T13:45:00Z",
+   "groups": [
+    "R10-FLOW-YIELD-PROBE"
+   ],
+   "id": 39
+  },
+  {
+   "at": "2026-10-26T15:59:00Z",
+   "groups": [
+    "R10-CURRENCY"
+   ],
+   "id": 40
+  },
+  {
+   "at": "2026-10-26T19:51:00Z",
+   "groups": [
+    "R10-MERGE-SUBJECT-HARDEN"
+   ],
+   "id": 41
+  },
+  {
+   "at": "2026-10-26T19:59:00Z",
+   "groups": [
+    "R10-HEAT-METER"
+   ],
+   "id": 42
+  },
+  {
+   "at": "2026-10-26T20:26:00Z",
+   "groups": [
+    "R10-POLICY-FIXER-MD"
+   ],
+   "id": 43
+  },
+  {
+   "at": "2026-10-26T20:34:00Z",
+   "groups": [
+    "R10-POLICY-GATE-SCOPING"
+   ],
+   "id": 44
+  },
+  {
+   "at": "2026-10-27T02:51:00Z",
+   "groups": [
+    "R10-POLICY-LINT-FAMILY"
+   ],
+   "id": 45
+  },
+  {
+   "at": "2026-10-27T05:05:00Z",
+   "groups": [
+    "R10-LEARNER-DEFAULT"
+   ],
+   "id": 46
+  },
+  {
+   "at": "2026-10-27T07:23:00Z",
+   "groups": [
+    "R10-COP-GATE"
+   ],
+   "id": 47
+  },
+  {
+   "at": "2026-10-27T07:58:00Z",
+   "groups": [
+    "R10-BUFFER-STORE"
+   ],
+   "id": 48
+  },
+  {
+   "at": "2026-10-27T08:57:00Z",
+   "groups": [
+    "R10-RCA-HEADMOVED"
+   ],
+   "id": 49
+  },
+  {
+   "at": "2026-10-27T14:15:00Z",
+   "groups": [
+    "R10-CARD-VOICE"
+   ],
+   "id": 50
+  },
+  {
+   "at": "2026-10-27T16:29:00Z",
+   "groups": [
+    "R10-CEILING-PROBE"
+   ],
+   "id": 51
+  },
+  {
+   "at": "2026-10-27T16:32:00Z",
+   "groups": [
+    "R10-CONFIGFLOW-PAGES"
+   ],
+   "id": 52
+  },
+  {
+   "at": "2026-10-27T19:22:00Z",
+   "groups": [
+    "R10-COP-PARTLOAD"
+   ],
+   "id": 53
+  },
+  {
+   "at": "2026-10-27T20:21:00Z",
+   "groups": [
+    "R10-DEMAND-OVERBOOK"
+   ],
+   "id": 54
+  },
+  {
+   "at": "2026-10-28T01:39:00Z",
+   "groups": [
+    "R10-FLOW-AUDIT-PLAN"
+   ],
+   "id": 55
+  },
+  {
+   "at": "2026-10-28T03:29:00Z",
+   "groups": [
+    "R10-UX-HEALTH"
+   ],
+   "id": 56
+  },
+  {
+   "at": "2026-10-28T03:53:00Z",
+   "groups": [
+    "R10-FLOW-AUTOTRAIN"
+   ],
+   "id": 57
+  },
+  {
+   "at": "2026-10-28T03:56:00Z",
+   "groups": [
+    "R10-FLOW-DESIGN-STAGES"
+   ],
+   "id": 58
+  },
+  {
+   "at": "2026-10-28T06:46:00Z",
+   "groups": [
+    "R10-FLOW-MAIN-GATE"
+   ],
+   "id": 59
+  },
+  {
+   "at": "2026-10-28T07:45:00Z",
+   "groups": [
+    "R10-FLY-ROW-HEAD-CARRY"
+   ],
+   "id": 60
+  },
+  {
+   "at": "2026-10-28T13:03:00Z",
+   "groups": [
+    "R10-MUTANT-SKIP"
+   ],
+   "id": 61
+  },
+  {
+   "at": "2026-10-28T15:17:00Z",
+   "groups": [
+    "R10-MUTATION-ANCHOR"
+   ],
+   "id": 62
+  },
+  {
+   "at": "2026-10-28T15:20:00Z",
+   "groups": [
+    "R10-SAV-COMFORT"
+   ],
+   "id": 63
+  },
+  {
+   "at": "2026-10-28T15:56:00Z",
+   "groups": [
+    "R10-HANDOVER-REFRESH"
+   ],
+   "id": 64
+  },
+  {
+   "at": "2026-10-28T16:55:00Z",
+   "groups": [
+    "R10-RCA-HANDOFF-SLIP"
+   ],
+   "id": 65
+  },
+  {
+   "at": "2026-10-28T22:13:00Z",
+   "groups": [
+    "R10-TICK-OWED-LEVEL"
+   ],
+   "id": 66
+  },
+  {
+   "at": "2026-10-28T23:16:00Z",
+   "groups": [
+    "R10-RCA-ORCH-CONTINUITY"
+   ],
+   "id": 67
+  },
+  {
+   "at": "2026-10-28T23:19:00Z",
+   "groups": [
+    "R10-ROSTER-PUSH-RACE"
+   ],
+   "id": 68
+  },
+  {
+   "at": "2026-10-28T23:35:00Z",
+   "groups": [
+    "R10-ARCH-DOCS"
+   ],
+   "id": 69
+  }
+ ],
+ "critical_path": [
+  "R10-ADVISOR",
+  "R10-SCORES",
+  "R10-LIVESTATE",
+  "R10-PARAMS-OWNER",
+  "R10-HEAT-METER",
+  "R10-COP-GATE",
+  "R10-UX-HEALTH",
+  "R10-ARCH-DOCS"
+ ],
+ "generated": {
+  "caps": {
+   "batch_window_minutes": 0,
+   "coordinator_cap": 2,
+   "seats": 8,
+   "slots": 6,
+   "stamp_every": 5
+  },
+  "durations": {
+   "instrument": "gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs over the last main merges",
+   "measured_at": "2026-10-20T17:53:14Z",
+   "merges": 29
+  },
+  "inherited_coordinator": {
+   "cap": 2,
+   "exceeds_cap": false,
+   "groups": [
+    "R10-ADVISOR",
+    "R10-NIGHT-FOLDS"
+   ]
+  },
+  "inherited_dependency_violations": [],
+  "model": {
+   "live_remaining_fraction": 0.7,
+   "sizes_hours": {
+    "L": 20.1,
+    "M": 11.4,
+    "S": 13.1,
+    "XL": 30.2
+   },
+   "sizes_provenance": "median (latest merge - earliest PR commit) over 25 done round-10 groups: S n=16, M n=7, L n=2; XL = 1.5 x L because no XL group has merged. Wall-clock including review rounds and queueing, so a group that waited in review inflates its size (S 13.1 > M 11.4). Measured in wave-data.md section 3 at 2026-10-18; no merged group has changed the method since."
+  },
+  "roster_blob": "3805c698f4ee24415027b6ca5da75354e0e7e0c7",
+  "roster_ref": "origin/handoff/audit-r10-roster",
+  "start": "2026-10-21T21:18:00Z",
+  "version": "7.0.2"
+ },
+ "groups": {
+  "R10-ADVISOR": {
+   "after": [],
+   "batch": 1,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-22T05:17:00Z",
+   "inherited": true,
+   "lane": "Product UX",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.3",
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-ARCH-DOCS": {
+   "after": [
+    "R10-ADVISOR",
+    "R10-ARCH-SHAPES",
+    "R10-BRIEFS-FOLD",
+    "R10-CONFIG-NOTICES",
+    "R10-CONFIGFLOW-PAGES",
+    "R10-COP-GATE",
+    "R10-CURRENCY",
+    "R10-HEAT-METER",
+    "R10-INPUT-STALENESS",
+    "R10-LEARNER-ETA",
+    "R10-LIVESTATE",
+    "R10-LOOP-CPU",
+    "R10-NIGHT-FOLDS",
+    "R10-PARAMS-OWNER",
+    "R10-RATIO-ANCHOR",
+    "R10-REPLAY-LANE",
+    "R10-REPLAY-SCOPED",
+    "R10-SCORES",
+    "R10-SENSOR-PAYLOAD",
+    "R10-SOLVER",
+    "R10-UX-HEALTH"
+   ],
+   "batch": 69,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-28T23:35:00Z",
+   "inherited": false,
+   "lane": "Docs",
+   "level": 8,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": null,
+   "start": "2026-10-28T03:29:00Z",
+   "wave": 57
+  },
+  "R10-ARCH-SHAPES": {
+   "after": [
+    "R10-INPUT-STALENESS",
+    "R10-LIVESTATE",
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "batch": 30,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-25T13:47:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "L",
+   "slot": 1,
+   "stamp": "v7.0.5",
+   "start": "2026-10-24T17:41:00Z",
+   "wave": 25
+  },
+  "R10-ARCHSCORE-COVERAGE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-BRIEFS-FOLD": {
+   "after": [],
+   "batch": 4,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-22T17:52:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-22T06:28:00Z",
+   "wave": 3
+  },
+  "R10-BUFFER-STORE": {
+   "after": [],
+   "batch": 48,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T07:58:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 4,
+   "stamp": "v7.0.7",
+   "start": "2026-10-26T20:34:00Z",
+   "wave": 45
+  },
+  "R10-CARD-VOICE": {
+   "after": [],
+   "batch": 50,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T14:15:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": "v7.0.7",
+   "start": "2026-10-27T02:51:00Z",
+   "wave": 46
+  },
+  "R10-CEILING-PROBE": {
+   "after": [
+    "R10-CI-LAYOUT",
+    "R10-NIGHT-FOLDS"
+   ],
+   "batch": 51,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T16:29:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.7",
+   "start": "2026-10-27T05:05:00Z",
+   "wave": 47
+  },
+  "R10-CI-LAYOUT": {
+   "after": [],
+   "batch": 6,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1268,
+   "finish": "2026-10-22T18:26:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "XL",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-CI-LAYOUT-P1": {
+   "after": [
+    "R10-CI-LAYOUT"
+   ],
+   "batch": 17,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-24T00:38:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "XL",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-22T18:26:00Z",
+   "wave": 7
+  },
+  "R10-CI-LAYOUT-P2": {
+   "after": [
+    "R10-CI-LAYOUT-P1"
+   ],
+   "batch": 28,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-25T06:50:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 3,
+   "live": false,
+   "size": "XL",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-24T00:38:00Z",
+   "wave": 18
+  },
+  "R10-CI-RATCHET-RED": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-CONFIG-NOTICES": {
+   "after": [],
+   "batch": 35,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T02:53:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.6",
+   "start": "2026-10-25T13:47:00Z",
+   "wave": 31
+  },
+  "R10-CONFIGFLOW-PAGES": {
+   "after": [
+    "R10-HEAT-METER"
+   ],
+   "batch": 52,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-27T16:32:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 6,
+   "live": false,
+   "size": "L",
+   "slot": 2,
+   "stamp": "v7.0.8",
+   "start": "2026-10-26T20:26:00Z",
+   "wave": 44
+  },
+  "R10-COP-GATE": {
+   "after": [
+    "R10-HEAT-METER",
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "batch": 47,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T07:23:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 6,
+   "live": false,
+   "size": "M",
+   "slot": 0,
+   "stamp": "v7.0.7",
+   "start": "2026-10-26T19:59:00Z",
+   "wave": 43
+  },
+  "R10-COP-PARTLOAD": {
+   "after": [],
+   "batch": 53,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T19:22:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 4,
+   "stamp": "v7.0.8",
+   "start": "2026-10-27T07:58:00Z",
+   "wave": 49
+  },
+  "R10-CURRENCY": {
+   "after": [],
+   "batch": 40,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T15:59:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.6",
+   "start": "2026-10-26T02:53:00Z",
+   "wave": 36
+  },
+  "R10-D15-GRADER": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEAD-RATE-LIMIT": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK-CENSUS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEEPLINK-HANDLERS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DEMAND-OVERBOOK": {
+   "after": [],
+   "batch": 54,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-27T20:21:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": "v7.0.8",
+   "start": "2026-10-27T08:57:00Z",
+   "wave": 50
+  },
+  "R10-DEPENDABOT-AIOHTTP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-DIAG-REPLAY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Replay",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FAHRENHEIT": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FEEDS": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FLOW-ANDON": {
+   "after": [],
+   "batch": 25,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-24T22:27:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-24T09:21:00Z",
+   "wave": 23
+  },
+  "R10-FLOW-ARCH-PLANNER": {
+   "after": [
+    "R10-FLOW-DESIGN-POLICY"
+   ],
+   "batch": 19,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T07:28:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-23T20:04:00Z",
+   "wave": 15
+  },
+  "R10-FLOW-AUDIT-PLAN": {
+   "after": [
+    "R10-FLOW-ARCH-PLANNER",
+    "R10-FLOW-TOOLKIT-MEASURE"
+   ],
+   "batch": 55,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T01:39:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 3,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-27T14:15:00Z",
+   "wave": 51
+  },
+  "R10-FLOW-AUTOTRAIN": {
+   "after": [
+    "R10-FLOW-PULL"
+   ],
+   "batch": 57,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T03:53:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": null,
+   "start": "2026-10-27T16:29:00Z",
+   "wave": 52
+  },
+  "R10-FLOW-BOARD": {
+   "after": [
+    "R10-PLAN-ARTIFACT"
+   ],
+   "batch": 26,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-25T04:33:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-24T15:27:00Z",
+   "wave": 24
+  },
+  "R10-FLOW-BODY-ONLY": {
+   "after": [
+    "R10-FLOW-BODY-PATCH",
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "batch": 29,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-25T11:33:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-24T22:27:00Z",
+   "wave": 26
+  },
+  "R10-FLOW-BODY-PATCH": {
+   "after": [],
+   "batch": 11,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T06:58:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-22T17:52:00Z",
+   "wave": 5
+  },
+  "R10-FLOW-DESIGN-POLICY": {
+   "after": [],
+   "batch": 3,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-22T16:41:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-22T05:17:00Z",
+   "wave": 2
+  },
+  "R10-FLOW-DESIGN-STAGES": {
+   "after": [],
+   "batch": 58,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T03:56:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-27T16:32:00Z",
+   "wave": 53
+  },
+  "R10-FLOW-DISPATCH": {
+   "after": [],
+   "batch": 31,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-25T17:39:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-25T04:33:00Z",
+   "wave": 27
+  },
+  "R10-FLOW-JIDOKA": {
+   "after": [
+    "R10-PREPR-CAP"
+   ],
+   "batch": 33,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-25T18:22:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-25T05:16:00Z",
+   "wave": 28
+  },
+  "R10-FLOW-MAIN-GATE": {
+   "after": [],
+   "batch": 59,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T06:46:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-27T19:22:00Z",
+   "wave": 54
+  },
+  "R10-FLOW-MQ-PROBE": {
+   "after": [
+    "R10-CI-LAYOUT-P2"
+   ],
+   "batch": 32,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-25T18:14:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "M",
+   "slot": 2,
+   "stamp": "v7.0.5",
+   "start": "2026-10-25T06:50:00Z",
+   "wave": 29
+  },
+  "R10-FLOW-POSTMERGE": {
+   "after": [],
+   "batch": 34,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T00:39:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-25T11:33:00Z",
+   "wave": 30
+  },
+  "R10-FLOW-PULL": {
+   "after": [],
+   "batch": 12,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T08:40:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-22T19:34:00Z",
+   "wave": 8
+  },
+  "R10-FLOW-RECHAIN": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FLOW-RECORD-PITCH": {
+   "after": [
+    "R10-CI-LAYOUT-P2",
+    "R10-FLOW-MQ-PROBE",
+    "R10-FLOW-PULL"
+   ],
+   "batch": 37,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T07:20:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 5,
+   "live": false,
+   "size": "S",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-25T18:14:00Z",
+   "wave": 33
+  },
+  "R10-FLOW-RELAY-HOLD": {
+   "after": [],
+   "batch": 14,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T20:04:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-23T06:58:00Z",
+   "wave": 12
+  },
+  "R10-FLOW-ROSTER-FREEZE": {
+   "after": [
+    "R10-FLOW-RELAY-HOLD"
+   ],
+   "batch": 36,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T06:45:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-25T17:39:00Z",
+   "wave": 32
+  },
+  "R10-FLOW-TOOLKIT-MEASURE": {
+   "after": [],
+   "batch": 21,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T09:10:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-23T21:46:00Z",
+   "wave": 16
+  },
+  "R10-FLOW-WIP": {
+   "after": [
+    "R10-FLOW-PULL"
+   ],
+   "batch": 38,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T07:28:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-25T18:22:00Z",
+   "wave": 34
+  },
+  "R10-FLOW-YIELD-PROBE": {
+   "after": [],
+   "batch": 39,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T13:45:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": "v7.0.6",
+   "start": "2026-10-26T00:39:00Z",
+   "wave": 35
+  },
+  "R10-FLY-OPENPR-ATOMIC": {
+   "after": [
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "batch": 15,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T21:46:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-23T08:40:00Z",
+   "wave": 13
+  },
+  "R10-FLY-ROW-HEAD-CARRY": {
+   "after": [
+    "R10-CI-LAYOUT-P2",
+    "R10-FLY-OPENPR-ATOMIC"
+   ],
+   "batch": 60,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T07:45:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 4,
+   "live": false,
+   "size": "M",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-27T20:21:00Z",
+   "wave": 55
+  },
+  "R10-FOLLOWER-DEBOUNCE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-FREQ-DEFROST": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-GATE-YIELD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-HANDOFF-ARCHIVE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-HANDOVER-REFRESH": {
+   "after": [],
+   "batch": 64,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-28T15:56:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 4,
+   "stamp": "v7.1.0",
+   "start": "2026-10-28T06:46:00Z",
+   "wave": 60
+  },
+  "R10-HEAT-METER": {
+   "after": [
+    "R10-ARCH-SHAPES",
+    "R10-INPUT-STALENESS",
+    "R10-LEARNER-ETA",
+    "R10-PARAMS-OWNER",
+    "R10-RATIO-ANCHOR",
+    "R10-THERMAL-POWER-OPTION"
+   ],
+   "batch": 42,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-26T19:59:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 5,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.6",
+   "start": "2026-10-25T13:47:00Z",
+   "wave": 31
+  },
+  "R10-I1": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-I5-DOCS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Docs",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-INPUT-STALENESS": {
+   "after": [],
+   "batch": 13,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-23T18:53:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.4",
+   "start": "2026-10-23T05:47:00Z",
+   "wave": 11
+  },
+  "R10-LEAF-IMPORTS": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-LEARNER-DEFAULT": {
+   "after": [],
+   "batch": 46,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-27T05:05:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.6",
+   "start": "2026-10-26T15:59:00Z",
+   "wave": 41
+  },
+  "R10-LEARNER-ETA": {
+   "after": [],
+   "batch": 18,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T06:17:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.4",
+   "start": "2026-10-23T18:53:00Z",
+   "wave": 14
+  },
+  "R10-LIVESTATE": {
+   "after": [
+    "R10-LOOP-CPU",
+    "R10-SCORES"
+   ],
+   "batch": 20,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-24T07:35:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 3,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.4",
+   "start": "2026-10-23T01:23:00Z",
+   "wave": 9
+  },
+  "R10-LOOP-CPU": {
+   "after": [
+    "R10-NIGHT-FOLDS"
+   ],
+   "batch": 5,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T18:23:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 1,
+   "stamp": "v7.0.3",
+   "start": "2026-10-22T05:17:00Z",
+   "wave": 2
+  },
+  "R10-MERGE-PR-MANDATE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-MERGE-SUBJECT-HARDEN": {
+   "after": [],
+   "batch": 41,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T19:51:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-26T06:45:00Z",
+   "wave": 37
+  },
+  "R10-MUTANT-SKIP": {
+   "after": [],
+   "batch": 61,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T13:03:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-28T01:39:00Z",
+   "wave": 56
+  },
+  "R10-MUTATION-ANCHOR": {
+   "after": [],
+   "batch": 62,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T15:17:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": null,
+   "start": "2026-10-28T03:53:00Z",
+   "wave": 58
+  },
+  "R10-N-LOG-FLOOD": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-NIGHT-FOLDS": {
+   "after": [],
+   "batch": 1,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-22T05:17:00Z",
+   "inherited": true,
+   "lane": "Learners",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.3",
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-OPENPR-SILENT": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-ORCH-MACHINERY": {
+   "after": [
+    "R10-CI-LAYOUT"
+   ],
+   "batch": 27,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-25T05:16:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "L",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-24T09:10:00Z",
+   "wave": 22
+  },
+  "R10-PARAMS-OWNER": {
+   "after": [
+    "R10-LIVESTATE",
+    "R10-NIGHT-FOLDS",
+    "R10-RATIO-ANCHOR"
+   ],
+   "batch": 30,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1812,
+   "finish": "2026-10-25T13:47:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 4,
+   "live": false,
+   "size": "XL",
+   "slot": 0,
+   "stamp": "v7.0.5",
+   "start": "2026-10-24T07:35:00Z",
+   "wave": 21
+  },
+  "R10-PLAN-ARTIFACT": {
+   "after": [],
+   "batch": 23,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-24T15:27:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 5,
+   "stamp": "v7.0.5",
+   "start": "2026-10-24T07:28:00Z",
+   "wave": 20
+  },
+  "R10-POLICY-FIXER-MD": {
+   "after": [
+    "R10-BRIEFS-FOLD",
+    "R10-RCA-FRICTION"
+   ],
+   "batch": 43,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T20:26:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 2,
+   "stamp": null,
+   "start": "2026-10-26T07:20:00Z",
+   "wave": 38
+  },
+  "R10-POLICY-GATE-SCOPING": {
+   "after": [],
+   "batch": 44,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-26T20:34:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-26T07:28:00Z",
+   "wave": 39
+  },
+  "R10-POLICY-INSTRUMENTS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-POLICY-LINT-FAMILY": {
+   "after": [],
+   "batch": 45,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-27T02:51:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-26T13:45:00Z",
+   "wave": 40
+  },
+  "R10-POLICY-LINT-STATS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PRE-EDIT-HOOK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PREPR-CAP": {
+   "after": [],
+   "batch": 2,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-22T06:28:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 5,
+   "stamp": null,
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-PREPR-UNPINNED-RED": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-PUMP-MODEL": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RATIO-ANCHOR": {
+   "after": [],
+   "batch": 10,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T05:47:00Z",
+   "inherited": false,
+   "lane": "Learners",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.4",
+   "start": "2026-10-22T18:23:00Z",
+   "wave": 6
+  },
+  "R10-RATIO-SITES": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RCA-FRICTION": {
+   "after": [],
+   "batch": 22,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-24T09:21:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-24T00:11:00Z",
+   "wave": 17
+  },
+  "R10-RCA-HANDOFF-SLIP": {
+   "after": [],
+   "batch": 65,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-28T16:55:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 5,
+   "stamp": "v7.1.0",
+   "start": "2026-10-28T07:45:00Z",
+   "wave": 61
+  },
+  "R10-RCA-HEADMOVED": {
+   "after": [
+    "R10-RCA-FRICTION"
+   ],
+   "batch": 49,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-27T08:57:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 5,
+   "stamp": "v7.0.7",
+   "start": "2026-10-26T19:51:00Z",
+   "wave": 42
+  },
+  "R10-RCA-NIGHTLY-PYSPY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RCA-ORCH-CONTINUITY": {
+   "after": [],
+   "batch": 67,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-28T23:16:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.1.0",
+   "start": "2026-10-28T15:17:00Z",
+   "wave": 63
+  },
+  "R10-RCA-STRUCTURE-BLIND": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-RECARRY-HEAD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REF-PRIVACY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REGISTRY-LEAK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REPLAY-CAP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Replay",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REPLAY-LANE": {
+   "after": [],
+   "batch": 1,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-22T05:17:00Z",
+   "inherited": true,
+   "lane": "Replay",
+   "level": 1,
+   "live": true,
+   "size": "M",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-REPLAY-LOOPNORM": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Replay",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-REPLAY-SCOPED": {
+   "after": [
+    "R10-REPLAY-LANE"
+   ],
+   "batch": 7,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 786,
+   "finish": "2026-10-22T19:34:00Z",
+   "inherited": false,
+   "lane": "Replay",
+   "level": 2,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-22T06:28:00Z",
+   "wave": 3
+  },
+  "R10-ROSTER-OPS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-ROSTER-PUSH-RACE": {
+   "after": [],
+   "batch": 68,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 479,
+   "finish": "2026-10-28T23:19:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": null,
+   "slot": 2,
+   "stamp": "v7.1.0",
+   "start": "2026-10-28T15:20:00Z",
+   "wave": 64
+  },
+  "R10-SAV-BASELINE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SAV-COMFORT": {
+   "after": [],
+   "batch": 63,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-28T15:20:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 2,
+   "stamp": "v7.0.8",
+   "start": "2026-10-28T03:56:00Z",
+   "wave": 59
+  },
+  "R10-SAV-REASONS": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SAVINGS-NEGATIVE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SCORES": {
+   "after": [
+    "R10-ADVISOR"
+   ],
+   "batch": 8,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-23T01:23:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 2,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": "v7.0.3",
+   "start": "2026-10-22T05:17:00Z",
+   "wave": 2
+  },
+  "R10-SEAT-SELFTESTS-CI": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SENSOR-PAYLOAD": {
+   "after": [
+    "R10-SCORES"
+   ],
+   "batch": 16,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-24T00:11:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 3,
+   "live": false,
+   "size": "L",
+   "slot": 3,
+   "stamp": "v7.0.4",
+   "start": "2026-10-23T04:05:00Z",
+   "wave": 10
+  },
+  "R10-SERVICES-GUARD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SETPOINT-BOOST": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SETPOINT-POWER": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-SOLVER": {
+   "after": [],
+   "batch": 9,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-23T04:05:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 3,
+   "stamp": "v7.0.3",
+   "start": "2026-10-22T16:41:00Z",
+   "wave": 4
+  },
+  "R10-STALE-PATHS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STALE-PATHS-2": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STAMP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STORE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-STRUCTURE-BLIND": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TARIFF": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-THERMAL-POWER-OPTION": {
+   "after": [],
+   "batch": 24,
+   "coordinator": true,
+   "done": false,
+   "duration_minutes": 684,
+   "finish": "2026-10-24T17:41:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 1,
+   "stamp": "v7.0.5",
+   "start": "2026-10-24T06:17:00Z",
+   "wave": 19
+  },
+  "R10-TICK-DRIVERS": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-ORCH": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-OWED-LEVEL": {
+   "after": [],
+   "batch": 66,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-28T22:13:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 3,
+   "stamp": null,
+   "start": "2026-10-28T13:03:00Z",
+   "wave": 62
+  },
+  "R10-TICK-RELAY-DECOUPLE": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-SELFTEST-CI": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TICK-TRAIN": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TRAIN-HOLD": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-TRUST-RELATIVE": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-UPDATE-PR-LOCK": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Instruments",
+   "level": null,
+   "live": false,
+   "size": "S",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-UPDATE-PR-SIGNALS": {
+   "after": [],
+   "batch": 2,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 550,
+   "finish": "2026-10-22T06:28:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 4,
+   "stamp": null,
+   "start": "2026-10-21T21:18:00Z",
+   "wave": 1
+  },
+  "R10-UX-HEALTH": {
+   "after": [
+    "R10-COP-GATE",
+    "R10-HEAT-METER",
+    "R10-SCORES"
+   ],
+   "batch": 56,
+   "coordinator": false,
+   "done": false,
+   "duration_minutes": 1206,
+   "finish": "2026-10-28T03:29:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 7,
+   "live": false,
+   "size": "L",
+   "slot": 0,
+   "stamp": "v7.0.8",
+   "start": "2026-10-27T07:23:00Z",
+   "wave": 48
+  },
+  "R10-UX-SETUP": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Product UX",
+   "level": null,
+   "live": false,
+   "size": "L",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  },
+  "R10-VENT-DETECTOR": {
+   "after": [],
+   "batch": null,
+   "coordinator": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Learners",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "wave": null
+  }
+ },
+ "schema": 1,
+ "stamps": [
+  {
+   "at": "2026-10-23T05:05:00Z",
+   "batch": 9,
+   "carries": [
+    "R10-ADVISOR",
+    "R10-NIGHT-FOLDS",
+    "R10-LOOP-CPU",
+    "R10-SCORES",
+    "R10-SOLVER"
+   ],
+   "kind": "patch",
+   "version": "v7.0.3"
+  },
+  {
+   "at": "2026-10-24T08:35:00Z",
+   "batch": 20,
+   "carries": [
+    "R10-RATIO-ANCHOR",
+    "R10-INPUT-STALENESS",
+    "R10-SENSOR-PAYLOAD",
+    "R10-LEARNER-ETA",
+    "R10-LIVESTATE"
+   ],
+   "kind": "patch",
+   "version": "v7.0.4"
+  },
+  {
+   "at": "2026-10-25T19:14:00Z",
+   "batch": 32,
+   "carries": [
+    "R10-PLAN-ARTIFACT",
+    "R10-THERMAL-POWER-OPTION",
+    "R10-ARCH-SHAPES",
+    "R10-PARAMS-OWNER",
+    "R10-FLOW-MQ-PROBE"
+   ],
+   "kind": "patch",
+   "version": "v7.0.5"
+  },
+  {
+   "at": "2026-10-27T06:05:00Z",
+   "batch": 46,
+   "carries": [
+    "R10-CONFIG-NOTICES",
+    "R10-FLOW-YIELD-PROBE",
+    "R10-CURRENCY",
+    "R10-HEAT-METER",
+    "R10-LEARNER-DEFAULT"
+   ],
+   "kind": "patch",
+   "version": "v7.0.6"
+  },
+  {
+   "at": "2026-10-27T17:29:00Z",
+   "batch": 51,
+   "carries": [
+    "R10-COP-GATE",
+    "R10-BUFFER-STORE",
+    "R10-RCA-HEADMOVED",
+    "R10-CARD-VOICE",
+    "R10-CEILING-PROBE"
+   ],
+   "kind": "patch",
+   "version": "v7.0.7"
+  },
+  {
+   "at": "2026-10-28T16:20:00Z",
+   "batch": 63,
+   "carries": [
+    "R10-CONFIGFLOW-PAGES",
+    "R10-COP-PARTLOAD",
+    "R10-DEMAND-OVERBOOK",
+    "R10-UX-HEALTH",
+    "R10-SAV-COMFORT"
+   ],
+   "kind": "patch",
+   "version": "v7.0.8"
+  },
+  {
+   "at": "2026-10-29T01:35:00Z",
+   "batch": null,
+   "carries": [
+    "R10-HANDOVER-REFRESH",
+    "R10-RCA-HANDOFF-SLIP",
+    "R10-RCA-ORCH-CONTINUITY",
+    "R10-ROSTER-PUSH-RACE"
+   ],
+   "kind": "minor",
+   "version": "v7.1.0"
+  }
+ ],
+ "summary": {
+  "batches": 69,
+  "ci_minutes": 8550.0,
+  "closure": "2026-10-28T23:35:00Z",
+  "closure_stamp": "v7.1.0",
+  "gate_minutes": 112.5,
+  "groups_done": 59,
+  "groups_open": 73,
+  "groups_total": 132,
+  "inherited_coordinator": 2,
+  "inherited_in_progress": 6,
+  "peak_coordinator_in_flight": 2,
+  "peak_in_flight": 6,
+  "peak_working": 6,
+  "stamps": 7,
+  "wall_hours": 170.28
+ },
+ "waves": [
+  {
+   "batch": [
+    1,
+    2,
+    6
+   ],
+   "drains": "2026-10-22T18:26:00Z",
+   "groups": [
+    "R10-ADVISOR",
+    "R10-CI-LAYOUT",
+    "R10-NIGHT-FOLDS",
+    "R10-PREPR-CAP",
+    "R10-REPLAY-LANE",
+    "R10-UPDATE-PR-SIGNALS"
+   ],
+   "opens": "2026-10-21T21:18:00Z",
+   "stamp": null,
+   "wave": 1
+  },
+  {
+   "batch": [
+    3,
+    5,
+    8
+   ],
+   "drains": "2026-10-23T01:23:00Z",
+   "groups": [
+    "R10-FLOW-DESIGN-POLICY",
+    "R10-LOOP-CPU",
+    "R10-SCORES"
+   ],
+   "opens": "2026-10-22T05:17:00Z",
+   "stamp": null,
+   "wave": 2
+  },
+  {
+   "batch": [
+    4,
+    7
+   ],
+   "drains": "2026-10-22T19:34:00Z",
+   "groups": [
+    "R10-BRIEFS-FOLD",
+    "R10-REPLAY-SCOPED"
+   ],
+   "opens": "2026-10-22T06:28:00Z",
+   "stamp": null,
+   "wave": 3
+  },
+  {
+   "batch": [
+    9
+   ],
+   "drains": "2026-10-23T04:05:00Z",
+   "groups": [
+    "R10-SOLVER"
+   ],
+   "opens": "2026-10-22T16:41:00Z",
+   "stamp": "v7.0.3",
+   "wave": 4
+  },
+  {
+   "batch": [
+    11
+   ],
+   "drains": "2026-10-23T06:58:00Z",
+   "groups": [
+    "R10-FLOW-BODY-PATCH"
+   ],
+   "opens": "2026-10-22T17:52:00Z",
+   "stamp": null,
+   "wave": 5
+  },
+  {
+   "batch": [
+    10
+   ],
+   "drains": "2026-10-23T05:47:00Z",
+   "groups": [
+    "R10-RATIO-ANCHOR"
+   ],
+   "opens": "2026-10-22T18:23:00Z",
+   "stamp": null,
+   "wave": 6
+  },
+  {
+   "batch": [
+    17
+   ],
+   "drains": "2026-10-24T00:38:00Z",
+   "groups": [
+    "R10-CI-LAYOUT-P1"
+   ],
+   "opens": "2026-10-22T18:26:00Z",
+   "stamp": null,
+   "wave": 7
+  },
+  {
+   "batch": [
+    12
+   ],
+   "drains": "2026-10-23T08:40:00Z",
+   "groups": [
+    "R10-FLOW-PULL"
+   ],
+   "opens": "2026-10-22T19:34:00Z",
+   "stamp": null,
+   "wave": 8
+  },
+  {
+   "batch": [
+    20
+   ],
+   "drains": "2026-10-24T07:35:00Z",
+   "groups": [
+    "R10-LIVESTATE"
+   ],
+   "opens": "2026-10-23T01:23:00Z",
+   "stamp": "v7.0.4",
+   "wave": 9
+  },
+  {
+   "batch": [
+    16
+   ],
+   "drains": "2026-10-24T00:11:00Z",
+   "groups": [
+    "R10-SENSOR-PAYLOAD"
+   ],
+   "opens": "2026-10-23T04:05:00Z",
+   "stamp": null,
+   "wave": 10
+  },
+  {
+   "batch": [
+    13
+   ],
+   "drains": "2026-10-23T18:53:00Z",
+   "groups": [
+    "R10-INPUT-STALENESS"
+   ],
+   "opens": "2026-10-23T05:47:00Z",
+   "stamp": null,
+   "wave": 11
+  },
+  {
+   "batch": [
+    14
+   ],
+   "drains": "2026-10-23T20:04:00Z",
+   "groups": [
+    "R10-FLOW-RELAY-HOLD"
+   ],
+   "opens": "2026-10-23T06:58:00Z",
+   "stamp": null,
+   "wave": 12
+  },
+  {
+   "batch": [
+    15
+   ],
+   "drains": "2026-10-23T21:46:00Z",
+   "groups": [
+    "R10-FLY-OPENPR-ATOMIC"
+   ],
+   "opens": "2026-10-23T08:40:00Z",
+   "stamp": null,
+   "wave": 13
+  },
+  {
+   "batch": [
+    18
+   ],
+   "drains": "2026-10-24T06:17:00Z",
+   "groups": [
+    "R10-LEARNER-ETA"
+   ],
+   "opens": "2026-10-23T18:53:00Z",
+   "stamp": null,
+   "wave": 14
+  },
+  {
+   "batch": [
+    19
+   ],
+   "drains": "2026-10-24T07:28:00Z",
+   "groups": [
+    "R10-FLOW-ARCH-PLANNER"
+   ],
+   "opens": "2026-10-23T20:04:00Z",
+   "stamp": null,
+   "wave": 15
+  },
+  {
+   "batch": [
+    21
+   ],
+   "drains": "2026-10-24T09:10:00Z",
+   "groups": [
+    "R10-FLOW-TOOLKIT-MEASURE"
+   ],
+   "opens": "2026-10-23T21:46:00Z",
+   "stamp": null,
+   "wave": 16
+  },
+  {
+   "batch": [
+    22
+   ],
+   "drains": "2026-10-24T09:21:00Z",
+   "groups": [
+    "R10-RCA-FRICTION"
+   ],
+   "opens": "2026-10-24T00:11:00Z",
+   "stamp": null,
+   "wave": 17
+  },
+  {
+   "batch": [
+    28
+   ],
+   "drains": "2026-10-25T06:50:00Z",
+   "groups": [
+    "R10-CI-LAYOUT-P2"
+   ],
+   "opens": "2026-10-24T00:38:00Z",
+   "stamp": null,
+   "wave": 18
+  },
+  {
+   "batch": [
+    24
+   ],
+   "drains": "2026-10-24T17:41:00Z",
+   "groups": [
+    "R10-THERMAL-POWER-OPTION"
+   ],
+   "opens": "2026-10-24T06:17:00Z",
+   "stamp": null,
+   "wave": 19
+  },
+  {
+   "batch": [
+    23
+   ],
+   "drains": "2026-10-24T15:27:00Z",
+   "groups": [
+    "R10-PLAN-ARTIFACT"
+   ],
+   "opens": "2026-10-24T07:28:00Z",
+   "stamp": null,
+   "wave": 20
+  },
+  {
+   "batch": [
+    30
+   ],
+   "drains": "2026-10-25T13:47:00Z",
+   "groups": [
+    "R10-PARAMS-OWNER"
+   ],
+   "opens": "2026-10-24T07:35:00Z",
+   "stamp": null,
+   "wave": 21
+  },
+  {
+   "batch": [
+    27
+   ],
+   "drains": "2026-10-25T05:16:00Z",
+   "groups": [
+    "R10-ORCH-MACHINERY"
+   ],
+   "opens": "2026-10-24T09:10:00Z",
+   "stamp": null,
+   "wave": 22
+  },
+  {
+   "batch": [
+    25
+   ],
+   "drains": "2026-10-24T22:27:00Z",
+   "groups": [
+    "R10-FLOW-ANDON"
+   ],
+   "opens": "2026-10-24T09:21:00Z",
+   "stamp": null,
+   "wave": 23
+  },
+  {
+   "batch": [
+    26
+   ],
+   "drains": "2026-10-25T04:33:00Z",
+   "groups": [
+    "R10-FLOW-BOARD"
+   ],
+   "opens": "2026-10-24T15:27:00Z",
+   "stamp": null,
+   "wave": 24
+  },
+  {
+   "batch": [
+    30
+   ],
+   "drains": "2026-10-25T13:47:00Z",
+   "groups": [
+    "R10-ARCH-SHAPES"
+   ],
+   "opens": "2026-10-24T17:41:00Z",
+   "stamp": null,
+   "wave": 25
+  },
+  {
+   "batch": [
+    29
+   ],
+   "drains": "2026-10-25T11:33:00Z",
+   "groups": [
+    "R10-FLOW-BODY-ONLY"
+   ],
+   "opens": "2026-10-24T22:27:00Z",
+   "stamp": null,
+   "wave": 26
+  },
+  {
+   "batch": [
+    31
+   ],
+   "drains": "2026-10-25T17:39:00Z",
+   "groups": [
+    "R10-FLOW-DISPATCH"
+   ],
+   "opens": "2026-10-25T04:33:00Z",
+   "stamp": null,
+   "wave": 27
+  },
+  {
+   "batch": [
+    33
+   ],
+   "drains": "2026-10-25T18:22:00Z",
+   "groups": [
+    "R10-FLOW-JIDOKA"
+   ],
+   "opens": "2026-10-25T05:16:00Z",
+   "stamp": null,
+   "wave": 28
+  },
+  {
+   "batch": [
+    32
+   ],
+   "drains": "2026-10-25T18:14:00Z",
+   "groups": [
+    "R10-FLOW-MQ-PROBE"
+   ],
+   "opens": "2026-10-25T06:50:00Z",
+   "stamp": "v7.0.5",
+   "wave": 29
+  },
+  {
+   "batch": [
+    34
+   ],
+   "drains": "2026-10-26T00:39:00Z",
+   "groups": [
+    "R10-FLOW-POSTMERGE"
+   ],
+   "opens": "2026-10-25T11:33:00Z",
+   "stamp": null,
+   "wave": 30
+  },
+  {
+   "batch": [
+    35,
+    42
+   ],
+   "drains": "2026-10-26T19:59:00Z",
+   "groups": [
+    "R10-CONFIG-NOTICES",
+    "R10-HEAT-METER"
+   ],
+   "opens": "2026-10-25T13:47:00Z",
+   "stamp": null,
+   "wave": 31
+  },
+  {
+   "batch": [
+    36
+   ],
+   "drains": "2026-10-26T06:45:00Z",
+   "groups": [
+    "R10-FLOW-ROSTER-FREEZE"
+   ],
+   "opens": "2026-10-25T17:39:00Z",
+   "stamp": null,
+   "wave": 32
+  },
+  {
+   "batch": [
+    37
+   ],
+   "drains": "2026-10-26T07:20:00Z",
+   "groups": [
+    "R10-FLOW-RECORD-PITCH"
+   ],
+   "opens": "2026-10-25T18:14:00Z",
+   "stamp": null,
+   "wave": 33
+  },
+  {
+   "batch": [
+    38
+   ],
+   "drains": "2026-10-26T07:28:00Z",
+   "groups": [
+    "R10-FLOW-WIP"
+   ],
+   "opens": "2026-10-25T18:22:00Z",
+   "stamp": null,
+   "wave": 34
+  },
+  {
+   "batch": [
+    39
+   ],
+   "drains": "2026-10-26T13:45:00Z",
+   "groups": [
+    "R10-FLOW-YIELD-PROBE"
+   ],
+   "opens": "2026-10-26T00:39:00Z",
+   "stamp": null,
+   "wave": 35
+  },
+  {
+   "batch": [
+    40
+   ],
+   "drains": "2026-10-26T15:59:00Z",
+   "groups": [
+    "R10-CURRENCY"
+   ],
+   "opens": "2026-10-26T02:53:00Z",
+   "stamp": null,
+   "wave": 36
+  },
+  {
+   "batch": [
+    41
+   ],
+   "drains": "2026-10-26T19:51:00Z",
+   "groups": [
+    "R10-MERGE-SUBJECT-HARDEN"
+   ],
+   "opens": "2026-10-26T06:45:00Z",
+   "stamp": null,
+   "wave": 37
+  },
+  {
+   "batch": [
+    43
+   ],
+   "drains": "2026-10-26T20:26:00Z",
+   "groups": [
+    "R10-POLICY-FIXER-MD"
+   ],
+   "opens": "2026-10-26T07:20:00Z",
+   "stamp": null,
+   "wave": 38
+  },
+  {
+   "batch": [
+    44
+   ],
+   "drains": "2026-10-26T20:34:00Z",
+   "groups": [
+    "R10-POLICY-GATE-SCOPING"
+   ],
+   "opens": "2026-10-26T07:28:00Z",
+   "stamp": null,
+   "wave": 39
+  },
+  {
+   "batch": [
+    45
+   ],
+   "drains": "2026-10-27T02:51:00Z",
+   "groups": [
+    "R10-POLICY-LINT-FAMILY"
+   ],
+   "opens": "2026-10-26T13:45:00Z",
+   "stamp": null,
+   "wave": 40
+  },
+  {
+   "batch": [
+    46
+   ],
+   "drains": "2026-10-27T05:05:00Z",
+   "groups": [
+    "R10-LEARNER-DEFAULT"
+   ],
+   "opens": "2026-10-26T15:59:00Z",
+   "stamp": "v7.0.6",
+   "wave": 41
+  },
+  {
+   "batch": [
+    49
+   ],
+   "drains": "2026-10-27T08:57:00Z",
+   "groups": [
+    "R10-RCA-HEADMOVED"
+   ],
+   "opens": "2026-10-26T19:51:00Z",
+   "stamp": null,
+   "wave": 42
+  },
+  {
+   "batch": [
+    47
+   ],
+   "drains": "2026-10-27T07:23:00Z",
+   "groups": [
+    "R10-COP-GATE"
+   ],
+   "opens": "2026-10-26T19:59:00Z",
+   "stamp": null,
+   "wave": 43
+  },
+  {
+   "batch": [
+    52
+   ],
+   "drains": "2026-10-27T16:32:00Z",
+   "groups": [
+    "R10-CONFIGFLOW-PAGES"
+   ],
+   "opens": "2026-10-26T20:26:00Z",
+   "stamp": null,
+   "wave": 44
+  },
+  {
+   "batch": [
+    48
+   ],
+   "drains": "2026-10-27T07:58:00Z",
+   "groups": [
+    "R10-BUFFER-STORE"
+   ],
+   "opens": "2026-10-26T20:34:00Z",
+   "stamp": null,
+   "wave": 45
+  },
+  {
+   "batch": [
+    50
+   ],
+   "drains": "2026-10-27T14:15:00Z",
+   "groups": [
+    "R10-CARD-VOICE"
+   ],
+   "opens": "2026-10-27T02:51:00Z",
+   "stamp": null,
+   "wave": 46
+  },
+  {
+   "batch": [
+    51
+   ],
+   "drains": "2026-10-27T16:29:00Z",
+   "groups": [
+    "R10-CEILING-PROBE"
+   ],
+   "opens": "2026-10-27T05:05:00Z",
+   "stamp": "v7.0.7",
+   "wave": 47
+  },
+  {
+   "batch": [
+    56
+   ],
+   "drains": "2026-10-28T03:29:00Z",
+   "groups": [
+    "R10-UX-HEALTH"
+   ],
+   "opens": "2026-10-27T07:23:00Z",
+   "stamp": null,
+   "wave": 48
+  },
+  {
+   "batch": [
+    53
+   ],
+   "drains": "2026-10-27T19:22:00Z",
+   "groups": [
+    "R10-COP-PARTLOAD"
+   ],
+   "opens": "2026-10-27T07:58:00Z",
+   "stamp": null,
+   "wave": 49
+  },
+  {
+   "batch": [
+    54
+   ],
+   "drains": "2026-10-27T20:21:00Z",
+   "groups": [
+    "R10-DEMAND-OVERBOOK"
+   ],
+   "opens": "2026-10-27T08:57:00Z",
+   "stamp": null,
+   "wave": 50
+  },
+  {
+   "batch": [
+    55
+   ],
+   "drains": "2026-10-28T01:39:00Z",
+   "groups": [
+    "R10-FLOW-AUDIT-PLAN"
+   ],
+   "opens": "2026-10-27T14:15:00Z",
+   "stamp": null,
+   "wave": 51
+  },
+  {
+   "batch": [
+    57
+   ],
+   "drains": "2026-10-28T03:53:00Z",
+   "groups": [
+    "R10-FLOW-AUTOTRAIN"
+   ],
+   "opens": "2026-10-27T16:29:00Z",
+   "stamp": null,
+   "wave": 52
+  },
+  {
+   "batch": [
+    58
+   ],
+   "drains": "2026-10-28T03:56:00Z",
+   "groups": [
+    "R10-FLOW-DESIGN-STAGES"
+   ],
+   "opens": "2026-10-27T16:32:00Z",
+   "stamp": null,
+   "wave": 53
+  },
+  {
+   "batch": [
+    59
+   ],
+   "drains": "2026-10-28T06:46:00Z",
+   "groups": [
+    "R10-FLOW-MAIN-GATE"
+   ],
+   "opens": "2026-10-27T19:22:00Z",
+   "stamp": null,
+   "wave": 54
+  },
+  {
+   "batch": [
+    60
+   ],
+   "drains": "2026-10-28T07:45:00Z",
+   "groups": [
+    "R10-FLY-ROW-HEAD-CARRY"
+   ],
+   "opens": "2026-10-27T20:21:00Z",
+   "stamp": null,
+   "wave": 55
+  },
+  {
+   "batch": [
+    61
+   ],
+   "drains": "2026-10-28T13:03:00Z",
+   "groups": [
+    "R10-MUTANT-SKIP"
+   ],
+   "opens": "2026-10-28T01:39:00Z",
+   "stamp": null,
+   "wave": 56
+  },
+  {
+   "batch": [
+    69
+   ],
+   "drains": "2026-10-28T23:35:00Z",
+   "groups": [
+    "R10-ARCH-DOCS"
+   ],
+   "opens": "2026-10-28T03:29:00Z",
+   "stamp": null,
+   "wave": 57
+  },
+  {
+   "batch": [
+    62
+   ],
+   "drains": "2026-10-28T15:17:00Z",
+   "groups": [
+    "R10-MUTATION-ANCHOR"
+   ],
+   "opens": "2026-10-28T03:53:00Z",
+   "stamp": null,
+   "wave": 58
+  },
+  {
+   "batch": [
+    63
+   ],
+   "drains": "2026-10-28T15:20:00Z",
+   "groups": [
+    "R10-SAV-COMFORT"
+   ],
+   "opens": "2026-10-28T03:56:00Z",
+   "stamp": "v7.0.8",
+   "wave": 59
+  },
+  {
+   "batch": [
+    64
+   ],
+   "drains": "2026-10-28T15:56:00Z",
+   "groups": [
+    "R10-HANDOVER-REFRESH"
+   ],
+   "opens": "2026-10-28T06:46:00Z",
+   "stamp": null,
+   "wave": 60
+  },
+  {
+   "batch": [
+    65
+   ],
+   "drains": "2026-10-28T16:55:00Z",
+   "groups": [
+    "R10-RCA-HANDOFF-SLIP"
+   ],
+   "opens": "2026-10-28T07:45:00Z",
+   "stamp": null,
+   "wave": 61
+  },
+  {
+   "batch": [
+    66
+   ],
+   "drains": "2026-10-28T22:13:00Z",
+   "groups": [
+    "R10-TICK-OWED-LEVEL"
+   ],
+   "opens": "2026-10-28T13:03:00Z",
+   "stamp": null,
+   "wave": 62
+  },
+  {
+   "batch": [
+    67
+   ],
+   "drains": "2026-10-28T23:16:00Z",
+   "groups": [
+    "R10-RCA-ORCH-CONTINUITY"
+   ],
+   "opens": "2026-10-28T15:17:00Z",
+   "stamp": null,
+   "wave": 63
+  },
+  {
+   "batch": [
+    68
+   ],
+   "drains": "2026-10-28T23:19:00Z",
+   "groups": [
+    "R10-ROSTER-PUSH-RACE"
+   ],
+   "opens": "2026-10-28T15:20:00Z",
+   "stamp": null,
+   "wave": 64
+  }
+ ]
+}
