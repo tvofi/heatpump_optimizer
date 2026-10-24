@@ -1,0 +1,6 @@
+SELF-TEST 84 of 84 probes held
+RV1 first gap (program->pr) narrowed to \s+ (brief item 1) | SELF-TEST 82 of 84 probes held | FAIL spelling: a continuation between "gh" and "pr" is still a merge call, refused at its line; FAIL spelling: a continuation in every gap is still a merge call, refused at its line
+RV2 second gap (pr->merge) narrowed to \s+ | SELF-TEST 81 of 84 probes held | FAIL a shell continuation inside "gh pr merge" is still a merge call: its --subject is refused, at the call line; FAIL spelling: a continuation with no space before it is still a merge call, refused at its line; FAIL spelling: a continuation in every gap is still a merge call, refused at its line
+RV3 quoted arm gap narrowed to ", " | SELF-TEST 84 of 84 probes held | 
+RV4 OPTIONS before pr dropped | SELF-TEST 83 of 84 probes held | FAIL spelling: an option before "pr" is still a merge call, refused at its line
+RV5 OPTIONS between pr and merge dropped | SELF-TEST 81 of 84 probes held | FAIL spelling: an option and value between "pr" and "merge" is still a merge call, refused at its line; FAIL spelling: an option=value between "pr" and "merge" is still a merge call, refused at its line; FAIL spelling: a shell option with a quoted value between "pr" and "merge" is still a merge call, refused at its line
