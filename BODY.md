@@ -8,6 +8,8 @@ Root-cause record for #2671's two reds on Governance run 39996377402 (`wave-scri
 
 ## Head
 
+`16d3ee72ad7de8ed0ec2a14b40d5bda23e500310` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2681.md`. The authored code head is `3054a111360906639522a45eac993d7b996b7372`.
+
 `3054a111360906639522a45eac993d7b996b7372`: the root-cause seat's `a148b3fa8` (the RCA document), a merge of origin/main `144fb4f90` with no conflict, and one commit citing the RCA in `bugclasses.json`.
 
 ## Mutation proof
@@ -31,7 +33,7 @@ none
 ## Forward-carry
 
 - Countermeasures A (base-pinned agreement arm under CI's restore, keyed on the lane's load closure, with the `refused=3` live-origin/main trap) and B (`ref_privacy.py --check` locally), with their controls and cost figures, correcting #2671's own carry at index 1 of the same group: landed as `carry[2]` of R10-FLY-CIPREDICT-LAYOUT on `handoff/audit-r10-roster` at `42e45f420`, present at its tip `6ae3061f9`. Carry: R10-FLY-CIPREDICT-LAYOUT
-- Countermeasure C (the agreement lane's deadlock for a new `SHARED_GRAMMARS` entry: UNREGISTERED under the base copy, DEAD when registered first; candidates (i) a pending-second-writer marker DEAD does not refuse, (ii) the registry moved to a code-owned data file read from the head). Queued to the roster seat and HELD there at 2026-10-23T22:01Z pending the orchestrator's confirmation of the destination; not on `handoff/audit-r10-roster` at `6ae3061f9` (that group's `carry` has indices 0-1 only). This pull request does not merge until it lands or is re-routed. Carry: R10-MERGE-SUBJECT-HARDEN
+- Countermeasure C (the agreement lane's deadlock for a new `SHARED_GRAMMARS` entry: UNREGISTERED under the base copy, DEAD when registered first; candidates (i) a pending-second-writer marker DEAD does not refuse, (ii) the registry moved to a code-owned data file read from the head). Landed as `carry[2]` of R10-MERGE-SUBJECT-HARDEN on `handoff/audit-r10-roster` at `10692eba5`. Carry: R10-MERGE-SUBJECT-HARDEN
 
 ## Friction
 
