@@ -1,0 +1,3 @@
+RESULT ruling_verdict P84 ACCEPT
+RESULT ruling_verdict P99 None
+RESULT triage_refusal None
