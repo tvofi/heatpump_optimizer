@@ -1,0 +1,4 @@
+RESULT detached-at-tip gate=PASS
+RESULT detached-then-row-commit gate=REFUSE
+RESULT ruling-update-arm sym=refs/heads/br porcelain=[] gate=PASS
+RESULT todays-update-arm sym=DETACHED

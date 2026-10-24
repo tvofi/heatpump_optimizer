@@ -1,0 +1,10 @@
+c1ec950d05bed4d1dfd8fe78a78caa960409abe7
+rc=0
+tools/audit/seat/handoff_push.sh:114:  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} > "$B.push.log" 2>&1 &
+tools/audit/seat/handoff_push.sh:179:  push_app 2  # mut:push-update
+tools/audit/seat/handoff_push.sh:198:push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open
+tools/audit/seat/handoff_push.sh:212:push_app 1  # mut:push-row
+tools/audit/seat/open_pr.sh:58:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
+tools/audit/seat/open_pr.sh:71:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 &
+tools/audit/seat/remerge_main.sh:29:PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1 &
+tools/audit/seat/update_pr.sh:77:PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 &
