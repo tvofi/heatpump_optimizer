@@ -9,8 +9,15 @@ from the tree's own ``coordinator.py`` and priced by the tree's own
 ``tests/structure.py`` ``seam_metrics``, so the same command reads a base and a head.
 A plant whose anchor is gone prints ``anchor-gone`` rather than a figure.
 
-The census is the fixer.md step-8 rule: every coordinator unit whose body is a bare
-state getter, and every ``@property`` read from a seam other than its own.
+The getter is also planted in the five spellings its fix review (review/2711,
+ev/variants.py) found still paying -- a leading ``pass``, ``tuple((...))``, a
+``[:]`` copy, ``dict(...)``, a trailing ``None`` -- and two more of the same
+plant: ``(a,) + (b,)`` and a list built by ``append``.
+
+The census is the fixer.md step-8 rule: every coordinator unit whose return value
+may hold state, as ``seam_metrics`` reads it (``returned_state``; ``<state>`` is
+the coordinator itself), and every call crossing a seam into one, by a syntactic
+over-approximation (a ``.name`` or ``name(...)`` naming the unit).
 
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_structure_alias.py
 """
@@ -49,16 +56,34 @@ ALIAS = (
     ('for p in self._prices]))\n            if self._prices\n',
      "for p in prices]))\n            if prices\n"),
 )
-GETTER = (
-    ("    def _raise_cop_issue(self, baseline: float) -> None:\n",
-     "    def _cop_state(self):\n        return self._cop_baseline, self._cop_health_cusum\n\n"
-     "    def _raise_cop_issue(self, baseline: float) -> None:\n"),
-    ("        operation = self._operation_score\n        return compose_scores(",
-     "        operation = self._operation_score\n        baseline, cusum = self._cop_state()\n"
-     "        return compose_scores("),
-    ("machine_score(self._cop_baseline, self._cop_health_cusum.stat),",
-     "machine_score(baseline, cusum.stat),"),
-)
+GETTER_BODIES = {
+    "getter": "        return self._cop_baseline, self._cop_health_cusum",
+    "getter_pass": "        pass\n        return self._cop_baseline, self._cop_health_cusum",
+    "getter_tuple_call": "        return tuple((self._cop_baseline, self._cop_health_cusum))",
+    "getter_slice_copy": "        return (self._cop_baseline, self._cop_health_cusum)[:]",
+    "getter_dict_call": "        return dict(b=self._cop_baseline, c=self._cop_health_cusum)",
+    "getter_trailing_none": "        return self._cop_baseline, self._cop_health_cusum, None",
+    "getter_concat": "        return (self._cop_baseline,) + (self._cop_health_cusum,)",
+    "getter_append": ("        out = []\n        out.append(self._cop_baseline)\n"
+                      "        out.append(self._cop_health_cusum)\n        return out"),
+}
+
+
+def getter(body: str):
+    """The O19 getter plant with ``body`` as ``_cop_state``'s body."""
+    unpack = ("st = self._cop_state(); baseline, cusum = st['b'], st['c']" if "dict(" in body
+              else "baseline, cusum, _none = self._cop_state()" if "None" in body
+              else "baseline, cusum = self._cop_state()")
+    return (
+        ("    def _raise_cop_issue(self, baseline: float) -> None:\n",
+         f"    def _cop_state(self):\n{body}\n\n"
+         "    def _raise_cop_issue(self, baseline: float) -> None:\n"),
+        ("        operation = self._operation_score\n        return compose_scores(",
+         f"        operation = self._operation_score\n        {unpack}\n"
+         "        return compose_scores("),
+        ("machine_score(self._cop_baseline, self._cop_health_cusum.stat),",
+         "machine_score(baseline, cusum.stat),"),
+    )
 
 
 def seam_cut(source: str, extra_seams: dict[str, str]) -> int:
@@ -81,37 +106,45 @@ def main() -> int:
     source = COORD.read_text()
     print(f"RESULT clean_seam_cut_total={seam_cut(source, {})} count")
     for name, edits, seams in (("alias", ALIAS, {}),
-                               ("getter", GETTER, {"_cop_state": "learning"})):
+                               *((n, getter(b), {"_cop_state": "learning"})
+                                 for n, b in GETTER_BODIES.items())):
         text = planted(source, edits)
         print(f"RESULT {name}_seam_cut_total="
               f"{'anchor-gone' if text is None else seam_cut(text, seams)} count")
 
-    if not hasattr(S, "state_getter_reads"):
-        print("# census: this tree's structure.py has no bare-getter rule")
-        return 0
     pkg = S.Package(S.module_trees())
     cls = pkg.classes[(S.COORDINATOR_MODULE, S.COORDINATOR_CLASS_NAME)]
     seams = S.load_seam_map()
-    methods = {m.name: m for m in cls.body
-               if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
-    units = {n: (f, S.SELF_ROOT) for n, f in methods.items()}
-    units.update(S.CoordinatorRoles(pkg).coordinator_helpers())
-    getters = {n: r for n, (f, roots) in units.items()
-               if (r := S.state_getter_reads(f, roots, methods)) is not None}
-    for n, reads in sorted(getters.items()):
-        print(f"# getter {n} seam={seams[n]} reads={sorted(reads)}")
-    props = {n for n, m in methods.items() if S._is_property(m)}
-    cross: dict[str, set[str]] = {}
-    for n, (f, roots) in units.items():
-        for node in ast.walk(f):
-            if (isinstance(node, ast.Attribute) and node.attr in props
-                    and isinstance(node.value, ast.Name) and node.value.id in roots
-                    and seams[n] != seams[node.attr]):
-                cross.setdefault(node.attr, set()).add(seams[n])
-    for p, readers in sorted(cross.items()):
-        print(f"# property {p} seam={seams[p]} read_from={sorted(readers)} getter={p in getters}")
-    print(f"RESULT bare_getters={len(getters)} count")
-    print(f"RESULT properties_read_cross_seam={len(cross)} count")
+    metrics = S.seam_metrics(cls, seams, S.CoordinatorRoles(pkg).coordinator_helpers())
+    if "returned_state" not in metrics:
+        print("# census: this tree's structure.py prices no callee by its return value")
+        return 0
+    escapes, transparent = metrics["returned_state"], metrics["transparent"]
+    for n, held in sorted(escapes.items()):
+        if held:
+            print(f"# returns-state {n} seam={seams[n]} transparent={n in transparent}"
+                  f" holds={sorted(held)}")
+    # Every call crossing a seam into a unit that hands state back: each is
+    # priced as what escapes (plus the edge unless transparent).
+    pairs = set()
+    for n, (fn, roots) in [*((m.name, (m, S.SELF_ROOT)) for m in cls.body
+                             if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))),
+                           *S.CoordinatorRoles(pkg).coordinator_helpers().items()]:
+        for node in ast.walk(fn):
+            callee = (node.func.attr if isinstance(node, ast.Call)
+                      and isinstance(node.func, ast.Attribute) else
+                      node.attr if isinstance(node, ast.Attribute) else
+                      f"coordinator.{node.func.id}" if isinstance(node, ast.Call)
+                      and isinstance(node.func, ast.Name) else None)
+            if callee in escapes and escapes[callee] and seams[n] != seams[callee]:
+                pairs.add((seams[n], callee))
+    for caller, callee in sorted(pairs):
+        print(f"# cross-seam {caller} -> {callee} ({seams[callee]})")
+    print(f"RESULT units_returning_state={sum(1 for v in escapes.values() if v)} count")
+    print(f"RESULT transparent_callees={len(transparent)} count")
+    print(f"RESULT units_returning_coordinator="
+          f"{sum(1 for v in escapes.values() if S.STATE_ESCAPE in v)} count")
+    print(f"RESULT cross_seam_calls_of_state_returners={len(pairs)} count")
     return 0
 
 
