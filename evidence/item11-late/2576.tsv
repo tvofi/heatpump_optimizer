@@ -1,3 +1,0 @@
-2026-10-21T17:56:37Z	Fix review: blocked fe1365f0f992b1d53d79c8e0a1d94804a74f53d8 body-stale: Null control says every carry list is unchanged except R10-POLICY-FIXER-MD, but at this head R10-LIVESTATE (8 to 9) and R10-UX-HEALTH (5 to 6) changed too, and Head still names f424d993d as the authored code head
-2026-10-21T18:14:53Z	Fix review: merge 1ebbae78756a3802009081f1fd5a1df4918e7ee5
-2026-10-21T17:17:35Z	Fix review: merge df70cb6bca69c7b1717abcc317233ff1bc994df3

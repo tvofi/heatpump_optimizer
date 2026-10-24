@@ -1,2 +1,0 @@
-2026-10-21T14:36:56Z	Fix review: blocked 90788b1e5ea8ce015e7ae6c432d308d7a5aab476 harness: class-open the NOT_REQUIRED carve-out frees every NONBLOCK word in its sentence, so a nit or defect sharing a sentence with "not a required check" passes under ## Evidence
-2026-10-21T15:35:34Z	Fix review: merge cb48de247b39b47ffe9e010689f8ff4f971b7e32

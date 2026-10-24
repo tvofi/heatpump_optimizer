@@ -1,59 +1,37 @@
-Fix review: blocked 859b74ba8ab4d0020025895b73a53b3833b5e74c carry-undisposed: roster carries 10 and 11 of R10-POLICY-FIXER-MD (tvofi 2026-10-24 cards 3 and 2) are neither applied, dispositioned nor re-routed, and R10-ORCH-BEATD's after-edge rests on card 3's seat-side rule landing here
+Fix review: merge 879dd65becbc34403458628b0614ccdb43063e9f
 
-bus-nonce: b96c8e924de2921cbe7d976de73b9d81
+bus-nonce: e3d895bb6b5d1579556abb097fe179dc
 
-This is round 2. The head is unmoved at `859b74ba8ab4d0020025895b73a53b3833b5e74c`. I measured that head and re-read it as `refs/pull/2704/head` just before writing this. The merge base is `ac5788f2617755631f14e4d1a31efab0e47aa820`. Both items round 1 asked for are settled (see Evidence). The block below is new: round 1 did not read this group's incoming carries.
-
-## Block
-
-The body's first line says it disposes "every line of #2378 ... and this group's roster carries". Its carry list covers carries 0 to 9 (#2368, #2447 twice, #2445, #2452, #2567, Lean K5, #2561, #2563, BRIEFS-FOLD) and O11. It does not mention carries 10 and 11 at all. Both are owner-accepted cards that bind `fixer.md` and `fix-review.md`, the two files this diff edits:
-
-- **Carry 10, tvofi 2026-10-24 card 3.** Amend the poll-every-5-minutes rule in `fixer.md` and `fix-review.md`. A waiting seat starts one background watcher (`tools/audit/seat/ci-watch.sh` or `proof_watch.py`) and is woken once by its exit. A fixer does not wait on CI after the handoff. "This group lands before R10-ORCH-BEATD (after-edge set for it)."
-- **Carry 11, tvofi 2026-10-24 card 2, amended twice.** Add one sentence to `fixer.md` and one to `fix-review.md` on rotating to a fresh context between stages, with the role caps (about 150 k tokens for S/M fixers and reviewers, about 300 k for L/XL fixers).
-
-`git grep -nE 'poll|150 k|fresh context|ci-watch'` on the two files at the head finds only fix-review.md:3's existing "in a fresh context". Neither rule is in the diff.
-
-The roster's history (`ev/fixer-md-carry-history.txt`):
-
-- Both carries were appended at 09:32:05Z and 09:32:39Z on 2026-10-24 (`313643643`, `3454d6cc3`).
-- That was after the group went in-progress (08:06Z) and 2 minutes before the first handoff body (`3045badb0`, 09:34:12Z). The fixer probably never saw them.
-- The round-2 body (14:27Z) still omits them.
-
-At roster tip `f5b95da47`, R10-ORCH-BEATD carry 13 says "R10-POLICY-FIXER-MD lands first (after-edge) because it carries the seat-side rule" (`ev/cards-elsewhere-text.txt`). Merging this PR sets this group `done`, and `finding-propagation.md` says a done group "is not a destination". That would orphan both owner cards. It would also leave BEATD dispatched on an after-edge whose rule never landed. Under a policy review the owner's wording governs, and this PR drops two of the owner's bindings that are addressed to it.
-
-The repair is the orchestrator's choice of one of these:
-
-- (a) Apply both sentences in this PR, paid by cuts as the cards say. That is a round-3 head move, so steps 2 to 8 re-run.
-- (b) Re-route carries 10 and 11 by `roster_edit.py append-carry` to a live policy group. Move BEATD's after-edge to that group. Name the roster SHA and disposition both in the body.
+This is round 3, a delta re-review. The brief asks two things: do the new commits dispose roster carries 10 and 11, which round 2 blocked on as `carry-undisposed` at `859b74ba8`, and is the gate-defer red rechecked. I measured head `879dd65becbc34403458628b0614ccdb43063e9f` and re-read it from the PR API just before writing; it has not moved. The merge base is `a260e563086a85dcd2f1bc0ffaf033c93a01e783`. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract I read is current.
 
 ## Findings
 
-- R10-FLY-CLOUD-SETUP-TOOLCHAIN, the destination of the `BASH_ENV` forward-carry, is now `resume.stage: in-progress` at roster tip `f5b95da47`. Round 1 read it as not-started. The carry is in the tree at carry[6], so the merge precondition holds. But `finding-propagation.md` says "both must receive it" for a running stage: its seat reads the out-of-tree brief it was handed, not the roster appended after dispatch. I cannot see that copy. The orchestrator owes the relay to the running seat. Carry: R10-FLY-CLOUD-SETUP-TOOLCHAIN
-- `fixer.md` step 18 now says "a one-off probe, or a reviewer's driver, stays in scratch or evidence". `fix-review.md` step 9 says a harness a reviewer rebuilt "because a copy lived out of tree is named, and lands (`fixer.md` 18)". On a close read these do not conflict: step 18's first clause still makes anything a later seat reruns land, and "driver" names #2344's one-shot case. A reader could still take "reviewer's driver" to cover a rebuilt finder harness. Carry: dismissed: the governing first clause of step 18 is unchanged and #2344's reviewer answer is what the new words state; no binding is loosened
+- The body's `## Red checks` still says "No CI has run at this head yet". It was written before CI ran. At this head one `gate` job is red, 120968381381. It is a deferral, not a failure: its log reads "FAIL run(s) [40126133450] at this head are still being judged; their gate decides". That run's `gate` (120972924063) is green. A `pr-contract` run (120972809938) started at 19:59:48Z, after that red concluded at 19:40:11Z, and it is green. The deferring workflow's `gate` was also re-run (120973056574), and it is green. No red check is owed an answer. Carry: dismissed: the red is a gate deferral that its deciding run settled green, and a later pr-contract run is green; the stale sentence binds no stage
 
 ## Evidence
 
-- RESULT carry 1 landed: `git show 928ca213e:dev/programme/rosters/wave-r10-groups.json`, R10-ORCH-ROSTER-SCHEMA carry[7], starts "From #2704 (R10-POLICY-FIXER-MD), Forward-carry: 64 group briefs ...". It states the control (count 64 now, 0 among live groups once repaired) and the owed `edit-brief` ops. It is still present at roster tip `f5b95da47` as carry[7]. The group is not-started (`ev/carries.txt`, `ev/carries-tip.txt`).
-- RESULT carry 2 landed: R10-FLY-CLOUD-SETUP-TOOLCHAIN carry[6] at `928ca213e` names `BASH_ENV`, the precondition ("must not leave BASH_ENV set for a test that shadows PATH") and the re-measure (graders-head-copy check with and without `BASH_ENV`). It is still carry[6] at the tip. `928ca213e` is an ancestor of `origin/handoff/audit-r10-roster` `f5b95da47`.
-- RESULT item 11 re-derived with the body's exact command (`%cd` UTC, `tac | sort -s -k2,2 -u`), over the 223 PRs of round 1's input set, using `dev/audit/rca/harness-friction/rounds.py`:
-  - Earliest-kept: `SUM class-open 27 entries 6640 min`, 18 PRs, #2283 = 3, median 119 over 25 timed. Matches the body.
-  - Latest-kept (no `tac`): `6297 min`, median 126. This matches round 1. My latest-kept TSVs equal round 1's `evidence/item11-tsv/` row for row, except #2609 and #2696, which gained verdicts since. The sums are unchanged.
-  - `harness:class-rule-missing 2`, and `harness:class-open: 1` under the variant spelling, as round 1 noted.
-  - Files: `ev/item11-early.txt`, `ev/item11-late.txt`, `ev/item11-compare.txt`.
-- RESULT mutant 2b re-run in a detached worktree of the head and restored clean (`ev/mutant2b.txt`):
-  - Main's own two lines: `101 101 1348 1336`, `TOTAL: 1 error(s)` (token cap).
-  - The clause inserted ahead of the wrap, giving 3 lines: `102 101 1348 1336`, `TOTAL: 2 error(s)`.
-  - Both readings match the body's corrected text.
-- RESULT head checks (`ev/head-checks.txt`):
-  - Budgets: `fixer.md 314/315 5215/5216`, `fix-review.md 140/140 2445/2451`, `finding-propagation.md 101/101 1332/1336`.
-  - `TOTAL: 0 error(s) across 50 policy file(s)`, `RULES-SYNC ok`, `check-wave-script 209 passed, 0 failed`.
-- RESULT merge-tree: `git merge-tree --write-tree origin/main 859b74ba8` exits rc=0 against origin/main `e97f5749b441` (`ev/merge-tree.txt`).
-- Step 11, CI (`ev/check-runs.txt`): two `gate` jobs are red, 120903782777 and 120903766312. Each logs "FAIL run(s) [40104542321] at this head are still being judged; their gate decides". Run 40104542321's `gate` is green, and its `pr-contract` is green, started 14:58:37Z, after the last red concluded at 14:58:34Z. Every other run is success or skipped. No red check is owed an answer.
-- Policy wording, checked sentence by sentence against the sources:
-  - The K5 lines (`fixer.md` step 6's merge-only-on-conflict-or-DIRTY and `fix-review.md` step 11's "green, that run is the evidence, never re-derived") match carry 6 of this group's roster entry. They narrow the fixer's merges and leave step 1's mutation proof the reviewer's.
-  - The other added lines match carries 1 to 9, the #2378 lines, and O11. Each tightens or clarifies a binding.
-  - The cuts remove motivation and keep each rule's operative clause, including step 13's "no field carries the caller" and step 15's production-width condition.
-  - I found no added sentence that loosens a binding. The drop is the omission in the Block.
-- Step 5: no `VERSION`, manifest or `RELEASE_NOTES.md` change.
-- Step 14: `policy_budgets.json` is not in the diff. Round 1's mutants 1, 2a and 3 are unaffected by a body-only round, and their figures stand from round 1.
-- Step 12: the head is unmoved since round 1 (`859b74ba8`), and was re-read at writing.
+- RESULT carry 10 applied (tvofi 2026-10-24 card 3, roster `313643643`, an ancestor of `handoff/audit-r10-roster` `1558cf55f`). `fixer.md` lines 7 to 9 tell a fixer to wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py`, with the 60 s API floor kept inside the script. The fixer is woken once by the watcher's exit and never sleeps and polls. Past the handoff, the fixer does not wait. `fix-review.md` line 8 points a reviewer's long job, or wait on CI, at the same preamble. Each clause of the card is present: one watcher, the 60 s floor inside the script, woken once, no sleep-and-poll, no wait after the handoff. Both scripts exist at the head. Neither file had a poll-every-5-minutes sentence at the merge base, so the amendment is an addition (`ev/grep-head.txt`, `ev/carries-10-12.txt`).
+- RESULT carry 11 applied (card 2, amended twice; roster `3454d6cc3`). `fixer.md` line 9 to 10 says to rotate to a fresh context between stages (rca, fix, handoff) through refs, never mid-task, by about 150 k tokens (S, M) or about 300 k (L, XL). `fix-review.md` line 8 says between rounds, never mid-review, by about 150 k. That is one sentence per file, as the card asks. The orchestrator's 500 k cap is not added, as the card says.
+- RESULT carry 12 applied (#2709, roster `8ecacecb1`, 16:48Z). `fixer.md` step 2 names `exit $?` to `exit 0` under `set -e` as equivalent, and gives `|| true; exit 0`.
+- RESULT R10-ORCH-BEATD at roster tip `1558cf55f` keeps R10-POLICY-FIXER-MD in its `after` list. The seat-side rule its after-edge rests on is now in this diff, so merging this PR orphans neither owner card. That was round 2's block.
+- RESULT the payments: no budget moved. `policy_lint.mjs --budgets` at the head reads `fixer.md 314 315 5214 5216`, `fix-review.md 140 140 2448 2451` and `finding-propagation.md 101 101 1332 1336`. `TOTAL: 0 error(s) across 50 policy file(s)`, `RULES-SYNC ok`, `check-wave-script 209 passed, 0 failed`. At the merge base it reads `312/315 5169/5216`, `139/140 2420/2451`, `100/101 1335/1336` (`ev/head-checks.txt`, `ev/mb-budgets.txt`). All of these match the body.
+- RESULT mutant B, re-run by me: `fix-review.md` at `859b74ba8` plus only the new preamble sentence gives `fix-review.md 140 140 2482 2451` and `TOTAL: 1 error(s)`. That matches the body, so the fix-review cuts are needed. The worktree was restored clean (`ev/mutantB.txt`). I did not re-run mutant A, which the body states as `fixer.md 318 315 5293 5216`.
+- The cuts in `e1af66910` remove motivation only:
+  - the `pre-edit.sh` instance in step 2;
+  - step 10's "because" clause;
+  - #948's narrative in step 15, condensed to its figures, with the production-width condition and the CPython `sum` rule kept;
+  - fix-review's `preflight.sh` aside;
+  - #1144's narrative, with its citation kept.
+  I read each one against its parent, and no operative clause is lost. No added sentence loosens a binding.
+- Mutation proof (step 1): the new sentences are prose that no checker reads, and the body says so. The only kill to check is the payment, shown by mutant B above.
+- The two merges into the head, `ea1bc9347` and `879dd65be`, have empty `--remerge-diff`, so neither hides a resolution (`ev/remerge.txt`). The authored change since round 2 is `e1af66910`, which touches only `fixer.md` and `fix-review.md`. The PR's own diff at the head is 6 files, 76 insertions and 69 deletions (`ev/diffstat.txt`).
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 879dd65be` exits rc=0 against origin/main `2636ce9e9` (`ev/merge-tree.txt`).
+- Step 11, CI at this head, read with all check runs listed, not the latest per name (`ev/check-runs.txt`, `ev/ci-code-run.txt`):
+  - The only red is `gate` 120968381381, the deferral recorded under Findings.
+  - Run 40126133450 (CI code) concluded `success`, including `tests / coverage` and `coverage-ratchet`.
+  - Its `gate` and the later `pr-contract` are green.
+  - Every other check is success or skipped.
+- Step 5: no change to `VERSION`, the manifest or `RELEASE_NOTES.md`.
+- Step 14: `policy_budgets.json` is not in the diff.
+- Item 11, mutants 1 to 3 and the forward-carries stand from rounds 1 and 2. This delta touches nothing they read.
+- Step 12: the head is `879dd65be`, re-read from the PR API at writing.
