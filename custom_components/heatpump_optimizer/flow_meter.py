@@ -134,8 +134,8 @@ def space_reference_cop(
     (``_cop_reference_curve``'s #1067 note).
     """
     if heat_kw is None or supply_c is None:
-        return model.compute_cop(outdoor_c)
-    return model.compute_cop_dhw(outdoor_c, supply_c)
+        return float(model.compute_cop(outdoor_c))
+    return float(model.compute_cop_dhw(outdoor_c, supply_c))
 
 
 def observe_water(bias: Any, reader: Any, config: Any) -> None:
