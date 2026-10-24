@@ -1988,7 +1988,7 @@ from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noq
 _r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
 
 
-def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5):
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -1998,6 +1998,8 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5):
     }
     if meter:
         cfg["heat_pump_power_entity"] = "sensor.hp_power"
+    if mode is not None:
+        cfg["heat_pump_mode_entity"] = "select.pump_mode"
     coord = Coord(FakeHass(), _r9f12_entry(data=cfg))
     coord._snapshots_loaded = True
     ctx = getattr(coord, "_ctx", coord)
@@ -2006,6 +2008,8 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5):
         room_temperature=21.0, outdoor_temperature=5.0, slab_temperature=23.0))
     now = _r10do_t0 + timedelta(minutes=30)
     coord._last_house_sample_time = now - timedelta(hours=gap_h) if sampled else None
+    # The immersion latch, held from earlier cycles: one clear sample keeps it.
+    coord._immersion_active = immersion
     coord._optimization_result = _r9f12_ns(
         slab_temp_trajectory=[25.0, 25.5, 26.0],
         timestamps=[now + timedelta(minutes=30 * i) for i in range(3)],
@@ -2019,6 +2023,9 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5):
         ):
             unit = "kW" if entity == "sensor.hp_power" else "°C"
             coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
+        if mode is not None:
+            coord.hass.states.set("select.pump_mode", FakeState(
+                mode, last_updated=now, attributes={"options": [mode]}))
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
@@ -2051,6 +2058,25 @@ R.check(
 R.check(
     "#2499: with no previous sample time the slab follows the plan",
     _r10do_slab(True, 0.0, sampled=False) == 25.0,
+)
+# Through the coordinator's own wiring, not ``space_draw_kw`` alone: the
+# immersion latch and the observed mode are what set ``shared`` and
+# ``space_served``. A resistive kW booked as space heat is this finding's bias.
+_r10do_immersion = _r10do_slab(True, 4.0, immersion=True)
+R.check(
+    "#2499: an immersion element latched on the pump's meter leaves the slab "
+    "on the plan's trajectory, not advanced by its resistive kW as space heat",
+    _r10do_immersion == 25.0,
+    "slab=%.3f" % _r10do_immersion,
+)
+_r10do_dhw_only = _r10do_slab(True, 4.0, mode="DHW (Hot Water)")
+_r10do_heating = _r10do_slab(True, 4.0, mode="Heating")
+R.check(
+    "#2499: a pump observed in a hot-water-only mode books 0 kW of space heat "
+    "(the slab cools as with the pump off); observed heating rooms, its draw",
+    _r10do_dhw_only == _r10do_off and _r10do_heating == _r10do_full,
+    "slab dhw-only/off=%.3f/%.3f heating/full=%.3f/%.3f"
+    % (_r10do_dhw_only, _r10do_off, _r10do_heating, _r10do_full),
 )
 R.check(
     "#2499: a resistive element sharing the meter gives no space draw; a pump "
