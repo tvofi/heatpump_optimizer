@@ -7,9 +7,11 @@ Applies each string-replacement mutant to tools/policy/agreement.mjs, runs
 `node tools/policy/agreement.mjs --self-test`, prints the summary and every FAIL,
 and restores the file (commit first: the restore writes the text read at start).
 M1-M13 are review/2697 round 1's evidence/mut.py; X1-X6 and Y1-Y12 are round 2's
-evidence/mut2.py, Y8 retargeted to the repaired shell arm and Y8a/Y8b added.
-A survivor prints `N of N` and no FAIL. Expected survivors: X5, Y9, Y10, each
-dispositioned in the PR body. A `NOT APPLIED` line means the mutated text moved.
+evidence/mut2.py; R1-R26 mutate each named part and sub-part of round 3's MERGE_CALL and
+SUBJECT_ARG. M9, Y8, Y8a and Y8b mutated the literal regexes that R1-R26's parts
+replaced, and are retired with them. A survivor prints `N of N` and no FAIL.
+Expected survivors: X5, Y9, Y10, each dispositioned in the PR body. A `NOT
+APPLIED` line means the mutated text moved.
 """
 import pathlib
 import subprocess
@@ -25,7 +27,6 @@ M = {
 'M6 blank-line end deleted':("      if (!text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)\n",""),
 'M7 enclosing close not end':("&& --depth < 0) return text.slice(start, i + 1)","&& --depth < -99) return text.slice(start, i + 1)"),
 'M8 start always line start':("const start = open.length ? open[open.length - 1] : ls","const start = ls"),
-'M9 MERGE_CALL literal spaces':(r'"pr",\s*"merge"','"pr", "merge"'),
 'M10 quotes not read':("if (c === '\"' || c === \"'\") { st.q = c; return true }",""),
 'M11 escapes not read':("if (st.esc) st.esc = false; else if (c === '\\\\') st.esc = true; else ",""),
 'M12 blank-line state reset removed':("      st = { q: '', esc: false }\n      const next","      const next"),
@@ -43,13 +44,36 @@ M = {
 'Y5 close ends extent at 0 not -1':("--depth < 0)","--depth < 1)"),
 'Y6 calls.push deleted':("      calls.push(f)\n      if (SUBJECT_ARG","      if (SUBJECT_ARG"),
 'Y7 ls off':("text.lastIndexOf('\\n', at - 1) + 1","0"),
-'Y8 MERGE_CALL shell arm to literal spaces':(r"\bgh(?:\s|\\\r?\n)+pr(?:\s|\\\r?\n)+merge\b",r"\bgh pr merge\b"),
-'Y8a continuation dropped (back to \\s+)':(r"\bgh(?:\s|\\\r?\n)+pr(?:\s|\\\r?\n)+merge\b",r"\bgh\s+pr\s+merge\b"),
-'Y8b \\s to a literal space':(r"\bgh(?:\s|\\\r?\n)+pr(?:\s|\\\r?\n)+merge\b",r"\bgh(?: |\\\r?\n)+pr(?: |\\\r?\n)+merge\b"),
 'Y9 slice end exclusive at close':("return text.slice(start, i + 1)","return text.slice(start, i)"),
 'Y10 blank-line return removed only text tail':("next < 0 ? text.length : next","next"),
 'Y11 title space one -> any':(r"/^\S(?:.*\S)? \(#",r"/^\S(?:.*\S)?\s+\(#"),
 'Y12 title leading \\S -> .':(r"/^\S(?:.*\S)? \(#",r"/^.(?:.*\S)? \(#"),
+'R1 QUOTE: double quote only': ('const QUOTE = \'["\\\'`]\'', 'const QUOTE = \'["]\''),
+'R2 GAP: the \\-newline continuation dropped': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?:\\s|,)+`'),
+'R3 GAP: the argv comma dropped': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?:\\s|\\\\\\n)+`'),
+'R4 word: the end-of-word lookahead dropped': ('const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\\\w-])`', 'const word = (w) => `${QUOTE}?${w}${QUOTE}?`'),
+'R5 word: the opening quote dropped': ('const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\\\w-])`', 'const word = (w) => `${w}${QUOTE}?(?![\\\\w-])`'),
+'R6 word: the closing quote dropped': ('const word = (w) => `${QUOTE}?${w}${QUOTE}?(?![\\\\w-])`', 'const word = (w) => `${QUOTE}?${w}(?![\\\\w-])`'),
+'R7 OPTIONS: no option between words': ('const OPTIONS = `(?:${GAP}${OPTION})*`', "const OPTIONS = ''"),
+'R8 OPTION: the separate value dropped': ('const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\\w-]*(?:=[^\\s,\'"${\'`\'}\\]]*)?${QUOTE}?` +\n  `(?:${GAP}${QUOTE}?[^\\\\s,\'"${\'`\'}\\\\]]+${QUOTE}?)?`', 'const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\\w-]*(?:=[^\\s,\'"${\'`\'}\\]]*)?${QUOTE}?`'),
+'R9 OPTION: the =value dropped': ('const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\\w-]*(?:=[^\\s,\'"${\'`\'}\\]]*)?${QUOTE}?` +', 'const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\\w-]*${QUOTE}?` +'),
+'R10 OPTION: long options only': ('const OPTION = String.raw`${QUOTE}?--?[A-Za-z][\\w-]*(?:=[^\\s,\'"${\'`\'}\\]]*)?${QUOTE}?` +', 'const OPTION = String.raw`${QUOTE}?--[A-Za-z][\\w-]*(?:=[^\\s,\'"${\'`\'}\\]]*)?${QUOTE}?` +'),
+'R11 OPTION: a value word may hold no quote mark': ('  `(?:${GAP}${QUOTE}?[^\\\\s,\'"${\'`\'}\\\\]]+${QUOTE}?)?`', '  `(?:${GAP}[^\\\\s,\'"${\'`\'}\\\\]]+${QUOTE}?)?`'),
+'R12 PROGRAM: the variable program dropped': ('const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`', 'const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh)${QUOTE}?`'),
+'R13 PROGRAM: an unbraced variable only': ('const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`', 'const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$[A-Za-z_]\\w*)${QUOTE}?`'),
+'R14 PROGRAM: the path dropped': ('const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`', 'const PROGRAM = String.raw`(?:(?<![\\w$./-])gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`'),
+'R15 PROGRAM: the lookbehind dropped': ('const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`', 'const PROGRAM = String.raw`(?:(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`'),
+'R16 PROGRAM: the closing quote dropped': ('const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)${QUOTE}?`', 'const PROGRAM = String.raw`(?:(?<![\\w$./-])(?:[\\w./-]*\\/)?gh|\\$\\{?[A-Za-z_]\\w*\\}?)`'),
+'R17 the quoted pr/merge arm dropped': ('  `|${QUOTE}pr${QUOTE}${OPTIONS}${GAP}${QUOTE}merge${QUOTE}` +\n', ''),
+'R18 merge_pull_request dropped': ('  String.raw`|merge_pull_request|mergePullRequest|\\/pulls\\/\\S+\\/merge\\b`)', '  String.raw`|mergePullRequest|\\/pulls\\/\\S+\\/merge\\b`)'),
+'R19 mergePullRequest dropped': ('  String.raw`|merge_pull_request|mergePullRequest|\\/pulls\\/\\S+\\/merge\\b`)', '  String.raw`|merge_pull_request|\\/pulls\\/\\S+\\/merge\\b`)'),
+'R20 the REST merge path dropped': ('  String.raw`|merge_pull_request|mergePullRequest|\\/pulls\\/\\S+\\/merge\\b`)', '  String.raw`|merge_pull_request|mergePullRequest`)'),
+'R21 SUBJECT_ARG: short flags alone, no cluster': ('const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tbF])` +', 'const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[tbF](?=[\\s="\',\\]]|$))` +'),
+'R22 SUBJECT_ARG: -d not a cluster flag': ('const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tbF])` +', 'const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrs]*[tbF])` +'),
+'R23 SUBJECT_ARG: -F dropped from the short flags': ('const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tbF])` +', 'const SUBJECT_ARG = new RegExp(String.raw`(?:^|[\\s"\'[,])(?:--(?:subject|title|body|body-file)(?=[\\s="\',\\]]|$)|-[mrsd]*[tb])` +'),
+'R24 SUBJECT_ARG: commitHeadline/commitBody dropped': ('  String.raw`|\\bcommit_(?:title|message)\\b|\\bcommit(?:Headline|Body)\\b`)', '  String.raw`|\\bcommit_(?:title|message)\\b`)'),
+'R25 GAP: whitespace narrowed to one literal space': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?: |\\\\\\n|,)+`'),
+'R26 GAP: one separator only, no run': ('const GAP = String.raw`(?:\\s|\\\\\\n|,)+`', 'const GAP = String.raw`(?:\\s|\\\\\\n|,)`'),
 }
 try:
     for k, (a, b) in M.items():
