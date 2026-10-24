@@ -31,8 +31,8 @@ To pay the budgets, the DHW tracking block in `_update_current_state` moved to
 
 ## Head
 
-d6ab12b4b7f0554f6fd18915ddc6b71b54acf1db. The figures below were measured at fe971169384df3e8fe287104c66c05f29237a9a2
-(merge of origin/main 50af6174f), against merge base 50af6174f53c0f9bec3f705c3a4bb99615f71acc. d6ab12b4b
+d6ab12b4b7f0554f6fd18915ddc6b71b54acf1db. The figures below were measured at 428a758e545669c6ce5c1e8dcb8cdcf46b0128ea
+(merge of origin/main 145bfe197; re-measured after main moved from 50af6174f to 145bfe197, whose 11 later commits touch no `custom_components/` file, no test fixture and no budget leaf, only `tests/ci_ratchet.py`, `tests/entities.py` and delivery rows, so the base column of the Figures table is the production tree both times), against merge base 145bfe197b9e7c09eb90bedadec44c6bc19d679d. d6ab12b4b
 changes no production or test code. It adds one `tests/closures.json` INERT-READS entry for the
 harness (`tools/pr/ci_predict.py --apply-inert`) and deletes the stale ledger pin
 `killed_by/coordinator.py/_settle_interval_diag.CMP_BOUND.611f0784.json`, which named the inline
@@ -108,13 +108,13 @@ learned model and on the true house:
 This is one window, and the two ends start from different states. It is a reference, not an
 optimality proof (see Forward-carry).
 
-Architecture: `python3 tools/audit/archscore/score.py --diff 50af6174f53c0f9bec3f705c3a4bb99615f71acc HEAD`
+Architecture: `python3 tools/audit/archscore/score.py --diff 145bfe197b9e7c09eb90bedadec44c6bc19d679d HEAD`
 prints dS +0.3168 (duplication_copies 40 -> 39, coord_footprint 2470 -> 2472).
 `python3 tests/structure.py` passes. Every re-recorded `tests/structure_budgets.json` row moves down
 (class_excess_loc 18217 -> 18215, duplication_copies 17 -> 16, max_class_loc 8457 -> 8433,
 seam_cut_total 710 -> 708). Nothing is raised.
 
-Golden: `GOLDEN_MODE=drift GOLDEN_REF=50af6174f53c0f9bec3f705c3a4bb99615f71acc PYTHONPATH=tests/hastub python3 tests/golden.py` prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `no committed fixture is stale`. Nothing is claimed, and both claim files are untouched.
+Golden: `GOLDEN_MODE=drift GOLDEN_REF=145bfe197b9e7c09eb90bedadec44c6bc19d679d PYTHONPATH=tests/hastub python3 tests/golden.py` prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `no committed fixture is stale`. Nothing is claimed, and both claim files are untouched.
 
 Class census (step 8). Rule: `grep -n "_open_loop_plan_value(" custom_components/heatpump_optimizer/*.py`
 lists each place a plan prediction stands in for an unsensed state. It returns the definition and two call sites:
@@ -145,10 +145,10 @@ Forward-carry.
 
 ## Forward-carry
 
-- No-power-meter installs cannot tell a draw shortfall from UA. Harness `dev/audit/harnesses/r10_demand_overbook.py`, arm `nometer_half` (true scale 1.0, the pump delivers half of what is commanded, no power entity): the learned scale stays 1.828 and plan/deliv stays 1.936, byte-identical at base 50af6174f and head fe9711693. Against that, the metered arms move (owner_i01 1.185 -> 0.628, true 0.6; meter_half 2.102 -> 1.247). The ideal-delivery null arms stay on the truth at both ends (null 1.015 -> 0.992, true 1.0). So the residual is unobservability, not an unfixed bias. On such an install the health surface must report the learned heat-loss scale as unobservable, not as trustworthy. Carry: R10-UX-HEALTH (orchestrator ruling under mandate 6329234399).
-- House learner gets zero evidence on a standby-drawing, under-delivering pump: owner_i03 accepted 0 samples in 10 days at both ends, because `COP_TRACKING_ERROR_GATE` in `_interval_space_power` refuses every interval. Carry: orchestrator.
-- Optimality: on its own learned model, the plan books 38-40% more kWh than the relaxed DP optimum, at both ends (one window). Carry: orchestrator.
-- `dhw_temp_trajectory` open-loop tank seed (class census): Carry: orchestrator.
+- No-power-meter installs cannot tell a draw shortfall from UA. Harness `dev/audit/harnesses/r10_demand_overbook.py`, arm `nometer_half` (true scale 1.0, the pump delivers half of what is commanded, no power entity): the learned scale stays 1.828 and plan/deliv stays 1.936, byte-identical at base 145bfe197 and head 428a758e5. Against that, the metered arms move (owner_i01 1.185 -> 0.628, true 0.6; meter_half 2.102 -> 1.247). The ideal-delivery null arms stay on the truth at both ends (null 1.015 -> 0.992, true 1.0). So the residual is unobservability, not an unfixed bias. On such an install the health surface must report the learned heat-loss scale as unobservable, not as trustworthy. Carry: R10-UX-HEALTH (orchestrator ruling under mandate 6329234399).
+- House learner gets zero evidence on a standby-drawing, under-delivering pump: owner_i03 accepted 0 samples in 10 days at both ends, because `COP_TRACKING_ERROR_GATE` in `_interval_space_power` refuses every interval. Carry: R10-LEARNER-DEFAULT
+- Optimality: on its own learned model, the plan books 38-40% more kWh than the relaxed DP optimum, at both ends (one window). Carry: R10-SETPOINT-BOOST
+- `dhw_temp_trajectory` open-loop tank seed (class census): Carry: R10-PUMP-MODEL
 
 ## Friction
 
