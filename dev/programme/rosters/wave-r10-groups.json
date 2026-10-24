@@ -386,7 +386,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: config_flow.py (position 1 of 3; before you: none; next: R10-HEAT-METER, R10-CONFIGFLOW-PAGES); coordinator.py (seam-ordered; before you: none; after you: R10-HEAT-METER, R10-PARAMS-OWNER). Owning seam in this group: the options-save path and the stored ratio. Shape: re-anchor at the write of the prior; no new coordinator state. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-ratio-anchor",
     "commit": null,
     "last_step": null,
