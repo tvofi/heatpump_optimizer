@@ -30,7 +30,7 @@ n/a: nothing here changes code or a check; the file is a ruling record. Its cons
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests`, red at the previous head `c24be17f8` (job 120905519221). Its only failing step is "Refuse a push that names the host, and an unregistered pusher". In that step `ref_privacy.py --check` refused `dev/programme/triage/s6-batch6.md:9`, the P64 Instances line, which named the s6 orchestrator's host directory: `host-path in an added line of a tracked file ... 1 refused`. This head removes the path. `python3 -I tools/audit/seat/ref_privacy.py --check` prints `0 refused` at `664f74dce`. Null control: the same command run in a worktree at `c24be17f8` prints `1 refused`. No other step in that job failed. The roster_sync arm passed (`roster_sync self-test: 53 checks, 0 failed`), so this red is not the inherited roster_sync carries-open red. Cheaper detector: `ref_privacy.py --check` itself takes about 1 s locally (`/usr/bin/time -p`: real 1.05). But no pre-push step runs it on file contents. prepr.sh never calls it, and the `guard --commits` that app_push.sh, handoff_push.sh and body_push.sh run judges commit metadata, not added lines. Putting `--check` in prepr.sh would catch this class before the push, at about 1 s per prepr. That is a proposal for triage, not part of this diff.
 
 ## Forward-carry
 
