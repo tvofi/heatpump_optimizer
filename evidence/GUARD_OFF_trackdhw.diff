@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index ce65ccb40..d81580623 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7654,7 +7654,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+     async def _track_dhw(self, tank: float | None, reader: Any) -> str | None:
+         """Feed the tank reading to the DHW learner and the legionella guard; the learner's freeze reason."""
+         frozen = None
+-        if tank is not None:
++        if False:
+             frozen = await self._dhw_learner.async_learn_dynamics(tank)
+             await self._legionella.async_track(tank)
+         self._legionella.disinfect.observe(reader)
