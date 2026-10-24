@@ -2157,26 +2157,28 @@ class Train:
             return 1
         self.skipped = []
         seen = {int(e["pr"]) for b in batches for e in b}
-        k = total = 0
+        total = 0
+        self._queue = {"batches": batches, "next": 0, "closed": False}
         try:
             while True:
+                k = self._queue["next"]
                 name = tag if k == 0 else f"{tag}-b{k + 1}"
                 total += len(batches[k])
+                self._queue["next"] = k + 1  # a stop inside names the batches after this one
                 try:
                     stopped = self._batch(batches[k], name, total)
                 finally:
                     self.release_worktrees()
                     self.hold_release()
-                k += 1
                 if stopped:
                     return 1
-                if not self.queue_take(batches, k, seen):
+                if not self.queue_take(batches, k + 1, seen):
                     self.log("TRAIN DONE")
                     return 1 if self.skipped else 0
-                self.log(f"BATCH DONE {name}: {len(batches) - k} more batch(es) on this train, next "
-                         + " ".join("#%d" % int(e["pr"]) for e in batches[k]))
+                self.log(f"BATCH DONE {name}: {len(batches) - k - 1} more batch(es) on this train, next "
+                         + " ".join("#%d" % int(e["pr"]) for e in batches[k + 1]))
         finally:
-            self.queue_close(batches, k)
+            self.queue_close()
 
     def queue_open(self, batches: "list[list[dict]]") -> None:
         """Take the state dir's queue for this train: refused while QUEUE_OPEN
@@ -2220,9 +2222,15 @@ class Train:
             self._queue_pending(batches[k:])
             return True
 
-    def queue_close(self, batches: "list[list[dict]]", k: int) -> None:
-        """The train's end, whatever ended it: the queue no longer accepts adds;
-        batches not run are named, and spooled entries stay for the next train."""
+    def queue_close(self) -> None:
+        """The train's end, whatever ended it (once; a no-op outside `batch`): the
+        queue no longer accepts adds; batches not run are named, and spooled
+        entries stay for the next train."""
+        q = getattr(self, "_queue", None)
+        if not q or q["closed"]:
+            return
+        q["closed"] = True
+        batches, k = q["batches"], q["next"]
         with queue_lock(self.state):
             if read_pid(self.state / QUEUE_OPEN) == os.getpid():
                 (self.state / QUEUE_OPEN).unlink(missing_ok=True)
@@ -2435,6 +2443,7 @@ class Train:
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
             self.hold_release()
+            self.queue_close()  # its NOT RUN lines before the closing one, which stays last
             self.log(f"TRAIN STOPPED {s.step}: {classified(s)}")
             if self.skip_bad:
                 self.skip_report(total)
@@ -4068,17 +4077,20 @@ def _batch_self_test(check) -> None:
         return run
 
     def go(prs, base="batch/base", cap=2, setup=None, ignore=("nightly-status", "pr-contract"),
-           skip_bad=False, overlap=False, main_moved_tries=0, mandate=None, **opts):
+           skip_bad=False, overlap=False, main_moved_tries=0, mandate=None, batches=None, **opts):
         with tempfile.TemporaryDirectory() as d:
             w = world(Path(d), base, prs, cap)
+            w["state"], w["d"] = Path(d) / "state", d
             (setup or (lambda w: None))(w)
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2,
                       base=base, skip_bad=skip_bad, overlap=overlap, main_moved_tries=main_moved_tries, **opts)
-            q = [{"pr": n, "verdict": w["heads"][n]} for n in prs]
+            q = ([{"pr": n, "verdict": w["heads"][n]} for n in prs] if batches is None
+                 else [[{"pr": n, "verdict": w["heads"][n]} for n in b] for b in batches])
             rc = t.batch(q, "t")
+            w["calls_flat"] = [" ".join(c).replace(d, "<d>") for c in w.get("calls", [])]
             w["rc"], w["lines"] = rc, lines
             w["skip_json"] = (json.loads((Path(d) / "state" / "skipped.json").read_text())
                               if (Path(d) / "state" / "skipped.json").is_file() else None)
@@ -4089,6 +4101,7 @@ def _batch_self_test(check) -> None:
             w["led"] = g(w["R"], "show", f"{base}:led.json")[1]
             w["proof_trees"] = [g(w["L"], "rev-parse", f"{sha}^{{tree}}")[1] for _, sha in w["pushed"]]
             w["proof_names"] = [g(w["L"], "ls-tree", "--name-only", sha)[1].split() for _, sha in w["pushed"]]
+            w["proof_a"] = [g(w["L"], "show", f"{sha}:a.txt")[1] for _, sha in w["pushed"]]
             return w
 
     unit = {"units/a": "a\n"}
@@ -4511,6 +4524,78 @@ def _batch_self_test(check) -> None:
               and any(ln.startswith("SKIP #1 post-merge:") and "tree is not proof" in ln for ln in w["lines"])
               and any(ln.startswith("SKIP #2 merge:") and "moved" in ln for ln in w["lines"])
               and [s["phase"] for s in (w["skip_json"] or [])] == ["post-merge", "merge"])
+
+    # SEVERAL BATCHES ON ONE TRAIN, AND THE LIVE QUEUE (R10-TRAIN-UPGRADE).
+    four = {1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}, 3: {"c.txt": "C\n"}, 4: {"d.txt": "D\n"}}
+    w = go(four, batches=[[1, 2], [3, 4]])
+    done = [i for i, ln in enumerate(w["lines"]) if ln.startswith("BATCH DONE t:")]
+    check("several batches: a queue of two batches runs them in order on ONE train, each with its own "
+          "banner, proof and merges, the second proved on the base the first left",
+          w["rc"] == 0 and list(w["merged"]) == [1, 2, 3, 4]
+          and [b for b, _ in w["pushed"]] == ["batch/t-1", "batch/t-b2-1"]
+          and sum(ln.startswith("BATCH t pid=") for ln in w["lines"]) == 1
+          and sum(ln.startswith("BATCH t-b2 ") for ln in w["lines"]) == 1
+          and len(done) == 1 and w["proof_a"] == ["A", "A"] and len(w["tree_ok"]) == 4
+          and w["main_tree"] == w["proof_trees"][-1] and w["lines"][-1] == "TRAIN DONE"
+          and sum(ln == "TRAIN DONE" for ln in w["lines"]) == 1)
+    w = go(four, batches=[[1, 2], [3], [4]], setup=lambda w: w.update(red={w["heads"][2]}))
+    check("several batches: a batch that stops ends the train -- the later batches are named NOT RUN, "
+          "nothing of theirs merges, and TRAIN STOPPED stays the last line",
+          w["rc"] == 1 and not w["merged"] and "#3: the train stopped" in " ".join(w["lines"])
+          and any(ln.startswith("NOT RUN #4:") for ln in w["lines"])
+          and w["lines"][-1].startswith("TRAIN STOPPED ci:"))
+
+    def adds(*entries):
+        def setup(w):
+            def push():  # during batch 1's merges: the proof is already built and pushed
+                if 1 in w["merged"] and not w.get("added"):
+                    w["added"] = True
+                    with queue_lock(w["state"]):
+                        for n in entries:
+                            spool_append(w["state"], {"pr": n, "verdict": w["heads"][n]})
+            w["on_sleep"] = push
+        return setup
+    w = go({**four, 5: {"e.txt": "E\n"}}, batches=[[1, 2]], setup=adds(3, 1, 4))
+    check("live queue: entries added while a batch is in proof never join it -- they run as the NEXT "
+          "batch, proved on their own; one the train already holds is ALREADY, not run twice",
+          w["rc"] == 0 and list(w["merged"]) == [1, 2, 3, 4]
+          and "c.txt" not in w["proof_names"][0] and "d.txt" not in w["proof_names"][0]
+          and [b for b, _ in w["pushed"]] == ["batch/t-1", "batch/t-b2-1"]
+          and any(ln == "ALREADY #1: in this train already; not queued twice" for ln in w["lines"])
+          and any(ln == "ADDED #3 #4: batch 2 of this train" for ln in w["lines"])
+          and not (w["state"] / QUEUE_OPEN).exists() and not (w["state"] / QUEUE_SPOOL).exists()
+          and w["lines"][-1] == "TRAIN DONE")
+    flat = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
+    nested = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1, 2]])
+    shas = lambda xs: [re.sub(r"\b[0-9a-f]{8,40}\b", "<sha>", x) for x in xs]  # noqa: E731
+    strip = lambda w: shas(ln.replace(w["d"], "<d>") for ln in w["lines"])  # noqa: E731
+    check("live queue NULL CONTROL: a one-batch queue, flat or nested, with nothing added runs the train "
+          "as before -- the same lines and the same calls (shas aside: each world commits afresh), "
+          "and no queue line among them",
+          strip(flat) == strip(nested) and shas(flat["calls_flat"]) == shas(nested["calls_flat"])
+          and flat["rc"] == nested["rc"] == 0 and sorted(flat["merged"]) == [1, 2]
+          and not any(ln.startswith(("BATCH DONE", "ADDED", "ALREADY", "NOT RUN", "ADD ")) for ln in flat["lines"]))
+    other = subprocess.Popen(["sleep", "30"])
+    try:
+        w = go({1: {"a.txt": "A\n"}},
+               setup=lambda w: (w["state"].mkdir(parents=True, exist_ok=True),
+                                (w["state"] / QUEUE_OPEN).write_text(f"{other.pid}\n")))
+    finally:
+        other.kill()
+        other.wait()
+    check("one train per state dir: a queue another live train holds refuses this one before anything "
+          "is read or merged", w["rc"] == 1 and not w["merged"] and not w.get("calls")
+          and w["lines"] == [f"TRAIN STOPPED queue: a live train (pid {other.pid}) holds "
+                             f"{w['state'] / QUEUE_OPEN}; one train per state dir"])
+    for name, raw in (("a mix of entries and batches", [[{"pr": 1}], {"pr": 2}]),
+                      ("an empty batch", [[{"pr": 1}], []]),
+                      ("a pull request in two batches", [[{"pr": 1}], [{"pr": 1}]])):
+        try:
+            queue_batches(raw)
+            got = ""
+        except ValueError as e:
+            got = str(e)
+        check(f"queue_batches refuses {name}, naming the rule", got.startswith("queue: "))
 
 
 def _parser() -> argparse.ArgumentParser:
