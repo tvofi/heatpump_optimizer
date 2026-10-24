@@ -5697,7 +5697,8 @@
     "delete the pre_cutover shape from tools/policy/fixtures/required-contexts.json (policy_lint reports it stale)",
     "reds_at_head mutant fixture (passed first attempt + failed re-run in one suite must refuse)",
     "carry 15: key the window on push runs at/after #2665's merge",
-    "delete probe refs for #2654 #2656 #2657"
+    "delete probe refs for #2654 #2656 #2657",
+    "(f) Since the cut-over, `pr-contract` (and so `gate`) goes red on a new head's first run in `tools/ci/codescan_wait.py`, and its reason is invisible: the step redirects stdout to /tmp/pr-alerts.txt, and `FAIL closed: <why>` is printed to stdout, so the job log shows only exit code 1. Measured at #2675 head 2845e5459331, run 40048233274: two runs at 01:08Z and 01:11Z failed in about 3 s; the same script on main 144fb4f90 with GITHUB_RUN_ID=40048233274 returned rc 0 with no alerts around 01:30Z. Owed: (1) print the FAIL line to stderr or `tee` it into the log; (2) determine whether the fast fail is the `no run` branch (no finished CodeQL unit at the head) and make it wait up to WAIT_MAX_S, as the `no analysis` branch already does. Control: re-run a head before CodeQL completes and confirm the step waits instead of failing."
    ],
    "architect_note": null,
    "resume": {
