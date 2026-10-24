@@ -8408,7 +8408,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. ci_predict.py must run the layout guard (the carry has the control). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
