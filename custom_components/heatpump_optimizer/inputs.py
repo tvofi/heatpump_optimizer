@@ -871,10 +871,6 @@ class InputReader:
             reading.problem = "unavailable"
             return reading, None
 
-        if max_age_minutes is None:
-            reading.max_age_minutes = age_limit_for(
-                self.hass, key, entity_id, state, self.scale
-            )
         return reading, state
 
     def _age_gate(self, reading: InputReading, state: Any) -> None:
