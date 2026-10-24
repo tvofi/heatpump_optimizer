@@ -1,0 +1,55 @@
+### m1
+diff --git a/tests/closure.py b/tests/closure.py
+index 93f4e7541..95d19f512 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -3483,7 +3483,7 @@ def replay_reach(files: list[str], cost_files: tuple[str, ...] | None = None) ->
+     """The changed paths that reach the timed replay lane, in input order."""
+     cost = replay_cost_files() if cost_files is None else cost_files
+     reach = {REPLAY_PACKAGE + f for f in (*cost, "optimizer.py")} | {REPLAY_LANE}
+-    return [f for f in files if f in reach or _REPLAY_FIXTURE.match(f)]
++    return [f for f in files if _REPLAY_FIXTURE.match(f)]
+ 
+ 
+ def replay_decision(files: list[str], source: str | None = None) -> tuple[bool, str]:
+### m2
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 0ed0d25a1..f5a290af7 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -1913,7 +1913,6 @@ jobs:
+             fi
+             # The timed replay (R10-REPLAY-SCOPED): the rule and its reach
+             # are tests/closure.py's `replay_reach`, which prints its reason.
+-            python tests/closure.py replay-reach --files-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
+           fi
+           python tests/closure.py affected \
+             --files-from "$RUNNER_TEMP/changed.txt" \
+### m3
+diff --git a/tests/closure.py b/tests/closure.py
+index 93f4e7541..ad9febb70 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -3491,7 +3491,7 @@ def replay_decision(files: list[str], source: str | None = None) -> tuple[bool,
+     try:
+         cost = replay_cost_files(source)
+     except (OSError, SyntaxError, ValueError) as e:
+-        return True, f"cannot read the lane's COST_FILES ({e}); the lane runs"
++        return False, f"cannot read the lane's COST_FILES ({e}); the lane runs"
+     hits = replay_reach(files, cost)
+     if hits:
+         return True, "the diff reaches the timed replay lane: " + ", ".join(hits)
+### m4
+diff --git a/tests/closure.py b/tests/closure.py
+index 93f4e7541..0e3f7ce4e 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -3482,7 +3482,7 @@ def replay_cost_files(source: str | None = None) -> tuple[str, ...]:
+ def replay_reach(files: list[str], cost_files: tuple[str, ...] | None = None) -> list[str]:
+     """The changed paths that reach the timed replay lane, in input order."""
+     cost = replay_cost_files() if cost_files is None else cost_files
+-    reach = {REPLAY_PACKAGE + f for f in (*cost, "optimizer.py")} | {REPLAY_LANE}
++    reach = {REPLAY_PACKAGE + f for f in (*cost,)} | {REPLAY_LANE}
+     return [f for f in files if f in reach or _REPLAY_FIXTURE.match(f)]
+ 
+ 

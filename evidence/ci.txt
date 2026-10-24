@@ -1,0 +1,13 @@
+Check runs on head f4458d2160d8f9f6b10d7fb3d657140201cd1d31 (commit check-runs API, 54 runs), read 2026-10-24:
+- CI code run 40091421387 (pull_request): conclusion success. tests / fast (3.14) success; tests / closures success (FULL case);
+  tests / mutation success; tests / coverage, typing, browser, arch-instrument, lane-proofs, graders-head-copy, coverage-ratchet success;
+  governance / * success; codeql success; hassfest, validate-hacs success; gate success (12:24:40Z).
+- tests / replay (job 120864859267): success, "replay lane wall time 45.3 s", "ALL 93 replay checks PASSED".
+- tests / closure-scope (job 120864783598): printed "the diff reaches the timed replay lane: tests/replay.py", set output 'replay'.
+- pr-contract in CI edit run 40091420502 (job 120871833292, 11:50:48Z-11:51:15Z): failure at the codescan_wait.py step
+  (code scanning had not concluded; codeql / Analyze (python) concluded 12:19:56Z). Every body step after it printed clean:
+  FIGURES 14 resolved, 0 refused; preflight "clean no refusal"; CARRY-AUDIT 2 routed, 0 unrouted.
+- pr-contract in CI code run 40091421387 (job 120871572325) started 12:23:44Z, after that red concluded and after every other
+  workflow on the head bar the edit run's gate (success, 12:25:21Z): success.
+Previous head 799830bb54ecf6556f988e674150306968f471b9, CI code run 40081490403: tests / fast (3.14) failure,
+  "407s python3 tests/entities.py", "1 TEST SCRIPT(S) FAILED".
