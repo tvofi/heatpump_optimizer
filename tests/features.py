@@ -8827,6 +8827,16 @@ R.check(
     "while the schedule agrees, so do the baselines",
     np.allclose(_bl_setback[:8], _bl_flat[:8]),
 )
+# A house that needs more than the pump can draw gets the pump's nameplate, the
+# cap a real thermostat runs into, never the demand the pump cannot meet.
+_bl_capped, _ = _PvOpt(_PvModel(_PvParams(max_electrical_power=1.0)), _PvOptCfg(
+    target_temp=21.0))._compute_baseline_power(
+    _WS(_bl_out, _bl_zero, _bl_zero, _bl_zero), _bl_state, 0.25)
+R.check(
+    "a demand past the pump's nameplate holds the reference at max_electrical_power",
+    float(np.max(_bl_capped)) == 1.0 and float(np.min(_bl_capped)) == 1.0,
+    f"reference {np.min(_bl_capped):.3f}..{np.max(_bl_capped):.3f} kW against a 1.0 kW pump",
+)
 
 # --- The foundation mass adjustment must be applied once ------------------
 basement_two_zone = presets.derive(
@@ -12184,6 +12194,30 @@ R.check(
     "and reports no wood trajectory at all",
     _w2t_out_none[6] is None,
     "None rather than a flat line of ambient, so a silent reset is visible",
+)
+
+
+# The savings reference backs its electric demand off by the same wood share,
+# and only where the layout models the wood tank: a single-tank state that
+# carries a wood reading is the thermostat it would be without one.
+def _w2t_reference(params, wood, n=16):
+    _z = np.zeros(n)
+    return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
+        _WS(np.full(n, -5.0), _z, _z, _z), _w2t_state(wood), 0.25)[0]
+
+
+_w2t_ref_hot = _w2t_reference(_w2t_params_two, 80.0)
+_w2t_ref_cold = _w2t_reference(_w2t_params_two, 20.0)
+_w2t_ref_off = _w2t_reference(_w2t_params_off, 80.0)
+_w2t_ref_off_none = _w2t_reference(_w2t_params_off, None)
+R.check(
+    "the savings reference backs off by the wood share on the two-tank layout, "
+    "and a wood reading on any other layout moves it not at all",
+    float(np.sum(_w2t_ref_hot)) < float(np.sum(_w2t_ref_cold)) - 1.0
+    and np.array_equal(_w2t_ref_off, _w2t_ref_off_none),
+    f"two-tank hot {np.sum(_w2t_ref_hot):.2f} vs cold {np.sum(_w2t_ref_cold):.2f} kW-steps; "
+    f"single-tank with a reading {np.sum(_w2t_ref_off):.2f} vs without "
+    f"{np.sum(_w2t_ref_off_none):.2f}",
 )
 
 
