@@ -21030,7 +21030,10 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # cannot be parsed as JavaScript at all (Claude Code workflow scripts: a
 # top-level `return`), so ignoring them narrows no finding set. Pinned on the
 # registered artifact: every ignore pattern must match at least one tracked
-# file, and every file it matches must fail `node --check` -- a parseable file
+# file, and every file it matches must fail `node --check` under BOTH grammars,
+# fed on stdin with `--input-type` named: given a path, Node 22.22 detects the
+# grammar itself and accepts these files, so the path form read them parseable
+# on CI's Node and unparseable on an older one. A file either grammar parses
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
@@ -21040,8 +21043,10 @@ _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
 _CODEQL_PARSEABLE = [f for files in _CODEQL_IGNORED.values() for f in files
-                     if subprocess.run(["node", "--check", str(_REPO_ROOT_CQ / f)],
-                                       capture_output=True).returncode == 0]
+                     if any(subprocess.run(["node", f"--input-type={g}", "--check"],
+                                           input=(_REPO_ROOT_CQ / f).read_bytes(),
+                                           capture_output=True).returncode == 0
+                            for g in ("module", "commonjs"))]
 R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
