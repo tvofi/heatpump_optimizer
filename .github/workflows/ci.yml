@@ -295,8 +295,11 @@ jobs:
 
   # The one required check. Never skippable: a skipped required check passes.
   # It trusts no guard; gate.py derives what the event owes from the event.
+  # It needs every unit through `pr-contract`, which needs them all and whose
+  # `!cancelled()` holds even its skip until they end (one edge into `gate`
+  # in the run graph, not ten; dev/audit/harnesses/r10_ci_gate_ready.py).
   gate:
-    needs: [prelude, tests, codeql, governance, hassfest, validate, kernel-points, arch-score, budget-raise-gate, pr-contract]
+    needs: [prelude, pr-contract]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
