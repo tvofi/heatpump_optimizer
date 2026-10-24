@@ -1,0 +1,11 @@
+RESULT clean_seam_cut_total=710 count
+RESULT alias_seam_cut_total=708 count
+RESULT getter_seam_cut_total=708 count
+RESULT getter_pass_seam_cut_total=708 count
+RESULT getter_tuple_call_seam_cut_total=708 count
+RESULT getter_slice_copy_seam_cut_total=708 count
+RESULT getter_dict_call_seam_cut_total=708 count
+RESULT getter_trailing_none_seam_cut_total=708 count
+RESULT getter_concat_seam_cut_total=708 count
+RESULT getter_append_seam_cut_total=708 count
+# census: this tree's structure.py prices no callee by its return value

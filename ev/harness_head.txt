@@ -1,0 +1,207 @@
+RESULT clean_seam_cut_total=367 count
+RESULT alias_seam_cut_total=367 count
+RESULT getter_seam_cut_total=367 count
+RESULT getter_pass_seam_cut_total=367 count
+RESULT getter_tuple_call_seam_cut_total=367 count
+RESULT getter_slice_copy_seam_cut_total=367 count
+RESULT getter_dict_call_seam_cut_total=367 count
+RESULT getter_trailing_none_seam_cut_total=367 count
+RESULT getter_concat_seam_cut_total=367 count
+RESULT getter_append_seam_cut_total=367 count
+# returns-state _adopt_away_override seam=core transparent=False holds=['_away_state']
+# returns-state _apply_open_meteo seam=core transparent=True holds=['_open_meteo']
+# returns-state _async_first_refresh_light seam=core transparent=False holds=['_accuracy', '_away_state', '_config', '_cop_baseline', '_cop_health_cusum', '_current_action', '_current_state', '_dhw_accuracy', '_energy_totals', '_energy_totals_since', '_external_heat', '_freq_fallback', '_freq_map', '_freq_watchdog', '_house_heat_loss_samples', '_house_heat_loss_scale', '_last_diagnosis', '_last_optimization', '_manual_override', '_mode', '_month_reports', '_next_optimization', '_operation_score', '_opt_config', '_optimization_result', '_reload_handover', '_score_day', '_start_counter', '_thermal_model', '_thermal_params', '_weather_stale_since', 'book', 'currency', 'hass', 'published']
+# returns-state _async_update_data seam=core transparent=False holds=['_accuracy', '_away_state', '_config', '_cop_baseline', '_cop_health_cusum', '_current_action', '_current_state', '_dhw_accuracy', '_energy_totals', '_energy_totals_since', '_external_heat', '_freq_fallback', '_freq_map', '_freq_watchdog', '_house_heat_loss_samples', '_house_heat_loss_scale', '_last_diagnosis', '_last_optimization', '_manual_override', '_mode', '_month_reports', '_next_optimization', '_operation_score', '_opt_config', '_optimization_result', '_reload_handover', '_score_day', '_start_counter', '_thermal_model', '_thermal_params', '_weather_stale_since', 'book', 'currency', 'hass', 'published']
+# returns-state _baseline_house_load seam=core transparent=True holds=['_measured_house_power', '_measured_power']
+# returns-state _battery_view seam=views transparent=True holds=['_current_state', '_opt_config', '_thermal_model', '_thermal_params']
+# returns-state _buffer_cooling_bounds seam=core transparent=True holds=['_thermal_params']
+# returns-state _build_data_dict seam=views transparent=False holds=['_accuracy', '_away_state', '_config', '_cop_baseline', '_cop_health_cusum', '_current_action', '_current_state', '_dhw_accuracy', '_energy_totals', '_energy_totals_since', '_external_heat', '_freq_fallback', '_freq_map', '_freq_watchdog', '_house_heat_loss_samples', '_house_heat_loss_scale', '_last_diagnosis', '_last_optimization', '_manual_override', '_mode', '_month_reports', '_next_optimization', '_operation_score', '_opt_config', '_optimization_result', '_score_day', '_start_counter', '_thermal_model', '_thermal_params', '_weather_stale_since', 'book', 'currency', 'hass', 'published']
+# returns-state _build_plan_views seam=views transparent=False holds=['_dhw_accuracy', '_opt_config']
+# returns-state _capacity_caps seam=core transparent=False holds=['_capacity_envelope', '_thermal_model', '_thermal_params']
+# returns-state _capacity_tariff seam=grid transparent=True holds=['_config']
+# returns-state _capture_diagnosis_inputs seam=core transparent=True holds=['_current_action', '_current_state', '_weather_forecast']
+# returns-state _comfort_weight seam=learning transparent=False holds=['_comfort_learner']
+# returns-state _commanded_power seam=grid transparent=False holds=['_current_action']
+# returns-state _commanded_split seam=core transparent=False holds=['_current_action']
+# returns-state _confidence_margins seam=core transparent=False holds=['_accuracy', '_opt_config']
+# returns-state _contract_comparison seam=core transparent=True holds=['_config', '_ledger']
+# returns-state _cop_reference_curve seam=learning transparent=False holds=['_current_state', '_thermal_model']
+# returns-state _current_grid_fee seam=grid transparent=False holds=['_config', '_grid_fee_cache', 'hass']
+# returns-state _current_humidity seam=core transparent=True holds=['_weather_forecast']
+# returns-state _current_spot_price seam=fetch transparent=True holds=['_prices']
+# returns-state _current_weather seam=fetch transparent=True holds=['_weather_forecast']
+# returns-state _dhw_confidence_band seam=dhw transparent=True holds=['_dhw_accuracy']
+# returns-state _dhw_effective_windows seam=dhw transparent=True holds=['_optimization_result', '_thermal_params']
+# returns-state _dhw_in_demand_window seam=dhw transparent=False holds=['_optimization_result', '_thermal_params']
+# returns-state _dhw_mixed_water seam=dhw transparent=True holds=['_config', '_current_state', '_thermal_params']
+# returns-state _dhw_next_window_in_hours seam=dhw transparent=False holds=['_optimization_result', '_thermal_params']
+# returns-state _dhw_plan_fields seam=dhw transparent=False holds=['_dhw_learner', '_price_learner', '_prices', '_thermal_params']
+# returns-state _dhw_probe_temperature seam=dhw transparent=False holds=['_dhw_temperature']
+# returns-state _dhw_setpoint_sweep seam=dhw transparent=True holds=['_current_state', '_dhw_learner', '_prices', '_thermal_model', '_thermal_params']
+# returns-state _dhw_view seam=dhw transparent=False holds=['_config', '_current_state', '_dhw_learner', '_dhw_temperature', '_legionella', '_optimization_result', '_prices', '_thermal_model', '_thermal_params']
+# returns-state _ecl110_view seam=views transparent=True holds=['_current_action', '_current_state', '_ecl110_command_topic', '_ecl110_current_displace', '_ecl110_last_payload', '_ecl110_state_topic']
+# returns-state _effective_cycling_cost seam=core transparent=True holds=['_config']
+# returns-state _entity_state seam=core transparent=True holds=['hass']
+# returns-state _expire_away_override seam=core transparent=False holds=['_away_state', '_parse_return_time', 'expire_override']
+# returns-state _external_heat_config seam=core transparent=True holds=['_config']
+# returns-state _external_heat_forecast seam=core transparent=True holds=['_external_heat', '_opt_config', '_thermal_params']
+# returns-state _external_heat_view seam=views transparent=True holds=['_external_heat']
+# returns-state _fee_series seam=core transparent=False holds=['_config', '_grid_fee_cache', 'hass']
+# returns-state _fixed_mode_action seam=core transparent=False holds=['_config', '_ecl110_displace_max', '_ecl110_displace_min', '_grid_fee_cache', '_opt_config', '_prices', '_thermal_model', 'hass']
+# returns-state _floor_widening seam=core transparent=False holds=['_config', '_vent_cusum']
+# returns-state _fold_measured_cop seam=learning transparent=False holds=['_cop_ratio_ewma', '_cop_samples', '_cop_scale', '_current_action', '_current_state', '_measured_power', '_thermal_model', '_thermal_params']
+# returns-state _forecast_arrays seam=core transparent=False holds=['_config', '_current_state', '_grid_fee_cache', '_measured_house_power', '_measured_power', '_open_meteo', '_opt_config', '_price_learner', '_prices', '_pv_production', '_solar_radiation', '_solar_radiation_forecast', '_weather_forecast', 'hass']
+# returns-state _freeze_month_report seam=core transparent=True holds=['_config', '_ledger', '_start_counter']
+# returns-state _freq_entity_reading seam=core transparent=True holds=['_config', 'hass']
+# returns-state _freq_view seam=views transparent=False holds=['_config', '_current_action', '_freq_fallback', '_freq_map', '_freq_watchdog', 'hass']
+# returns-state _fuse_kw seam=grid transparent=True holds=['_config']
+# returns-state _get_current_price seam=fetch transparent=False holds=['_config', '_grid_fee_cache', '_prices', 'hass']
+# returns-state _grid_fee_schedule seam=grid transparent=False holds=['_config', '_grid_fee_cache']
+# returns-state _grid_view seam=grid transparent=False holds=['_accuracy', '_config', '_current_action', '_fuse_advisor', '_grid_fee_cache', '_ledger', '_measured_house_power', '_measured_power', '_month_reports', '_optimization_result', '_peak_guard', '_peak_tracker', '_price_known_steps', '_price_learner', '_prices', '_pv_summary', '_weather_forecast', 'hass']
+# returns-state _horizon_step_starts seam=core transparent=True holds=['_opt_config']
+# returns-state _house_heat_loss_anchor seam=core transparent=True holds=['_lower_floor_loss_ratio', '_thermal_params']
+# returns-state _indoor_humidity_value seam=core transparent=True holds=['_config', 'hass']
+# returns-state _init_model seam=core transparent=False holds=['_thermal_model']
+# returns-state _input_health_view seam=views transparent=True holds=['_input_health', '_learner_freeze_reason']
+# returns-state _insight_view seam=views transparent=True holds=['_accuracy', '_config', '_cop_baseline', '_cop_health_cusum', '_house_heat_loss_samples', '_house_heat_loss_scale', '_last_diagnosis', '_month_reports', '_operation_score', '_opt_config', '_optimization_result', '_score_day', '_start_counter', '_thermal_params', 'book', 'currency', 'hass', 'published']
+# returns-state _interval_space_power seam=grid transparent=False holds=['_current_action', '_measured_power']
+# returns-state _known_prices_for seam=fetch transparent=True holds=['_prices']
+# returns-state _learner_snapshot_payloads seam=learning transparent=True holds=['_accuracy', '_buffer_cooling_rate', '_buffer_cooling_samples', '_capacity_envelope', '_comfort_learner', '_cop_baseline', '_cop_health_cusum', '_cop_samples', '_cop_scale', '_curve_learner', '_defrost', '_dhw_learner', '_flow_bias', '_freq_fallback', '_freq_map', '_house_heat_loss_samples', '_house_heat_loss_scale', '_immersion_events', '_internal_gains_profile', '_last_heavy_snow', '_lower_floor_loss_ratio', '_lower_floor_loss_samples', '_measured_cop', '_price_learner', '_snow_accum_cm', '_snow_accum_last', '_solar_aperture', '_thermal_params', '_vent_cusum']
+# returns-state _learning_frozen seam=learning transparent=False holds=['FREEZE_CUT', 'FREEZE_REASON', '_pump_signals']
+# returns-state _learning_view seam=learning transparent=True holds=['_accuracy', '_buffer_cooling_rate', '_buffer_cooling_samples', '_capacity_envelope', '_comfort_learner', '_config', '_cop_baseline', '_cop_health_cusum', '_cop_samples', '_cop_scale', '_current_state', '_curve_learner', '_defrost', '_dhw_learner', '_house_heat_loss_samples', '_house_heat_loss_scale', '_immersion_active', '_immersion_evidence', '_internal_gains_profile', '_lower_floor_loss_ratio', '_lower_floor_loss_samples', '_measured_cop', '_opt_config', '_pump_signals', '_snapshot_ring', '_solar_aperture', '_sysid', '_thermal_params', '_vent_cusum', '_weather_forecast']
+# returns-state _manual_pins seam=core transparent=False holds=['_manual_override', '_opt_config']
+# returns-state _manual_plan_state seam=core transparent=True holds=['_manual_override']
+# returns-state _max_pump_rise seam=core transparent=True holds=['_current_state', '_thermal_model', '_thermal_params']
+# returns-state _measurement_view seam=views transparent=True holds=['_flow_bias', '_measured_energy', '_measured_house_power', '_measured_power']
+# returns-state _mixing_valve_view seam=views transparent=True holds=['_opt_config', '_prices', '_thermal_params']
+# returns-state _model_corrections seam=learning transparent=True holds=['_config', '_flow_bias', '_internal_gains_profile', '_solar_aperture', '_thermal_params', 'entry', 'hass']
+# returns-state _mold_floor_series seam=core transparent=True holds=['_config', '_current_state', 'hass']
+# returns-state _narrative_view seam=views transparent=True holds=['_opt_config', '_optimization_result', 'currency', 'hass']
+# returns-state _plan_age_minutes seam=core transparent=True holds=['_last_optimization']
+# returns-state _power_headroom seam=grid transparent=True holds=['_config', '_current_action', '_measured_house_power', '_measured_power', '_optimization_result', '_peak_tracker']
+# returns-state _predicted_next_room_temp seam=core transparent=False holds=['_optimization_result']
+# returns-state _price_model seam=fetch transparent=True holds=['_price_learner']
+# returns-state _price_prior seam=fetch transparent=False holds=['_price_learner']
+# returns-state _price_series seam=fetch transparent=False holds=['_config', '_grid_fee_cache', '_price_learner', '_prices', 'hass']
+# returns-state _pv_config seam=core transparent=True holds=['_config', 'hass']
+# returns-state _pv_export_price seam=fetch transparent=True holds=['_config', 'hass']
+# returns-state _pv_forecast seam=core transparent=False holds=['_config', '_measured_house_power', '_measured_power', '_opt_config', '_pv_production', 'hass']
+# returns-state _pv_measured_production seam=core transparent=True holds=['hass']
+# returns-state _pv_surplus_series seam=core transparent=False holds=['_config', '_measured_house_power', '_measured_power', '_opt_config', '_pv_production', 'hass']
+# returns-state _reading_ok seam=core transparent=True holds=['_input_health']
+# returns-state _scores_view seam=views transparent=True holds=['_cop_baseline', '_cop_health_cusum', '_house_heat_loss_samples', '_operation_score', '_score_day', '_thermal_params']
+# returns-state _solar_forecast_source seam=fetch transparent=True holds=['_config']
+# returns-state _solar_forecast_view seam=fetch transparent=True holds=['_open_meteo']
+# returns-state _solar_location seam=fetch transparent=True holds=['_config', 'get', 'hass']
+# returns-state _solve_hubs seam=core transparent=False holds=['_away_state', '_comfort_learner', '_config', '_current_state', '_dhw_learner', '_external_heat_active', '_flow_bias', '_internal_gains_profile', '_measured_house_power', '_measured_power', '_opt_config', '_peak_guard', '_peak_tracker', '_price_learner', '_prices', '_solar_aperture', '_thermal_params', '_vent_cusum', 'entry', 'hass']
+# returns-state _solve_record seam=core transparent=False holds=['_accuracy', '_away_state', '_capacity_envelope', '_comfort_learner', '_config', '_current_state', '_dhw_learner', '_external_heat', '_external_heat_active', '_flow_bias', '_internal_gains_profile', '_manual_override', '_measured_house_power', '_measured_power', '_opt_config', '_peak_guard', '_peak_tracker', '_price_learner', '_prices', '_pump_signals', '_solar_aperture', '_thermal_model', '_thermal_params', '_vent_cusum', 'entry', 'hass']
+# returns-state _space_demand_kw seam=core transparent=True holds=['_current_state', '_thermal_params']
+# returns-state _spawn seam=core transparent=True holds=['_background_tasks', 'hass']
+# returns-state _tariff_hours seam=grid transparent=True holds=['_config']
+# returns-state _tariff_months seam=grid transparent=True holds=['_config']
+# returns-state _thermal_learning_payload seam=learning transparent=True holds=['_buffer_cooling_rate', '_buffer_cooling_samples', '_capacity_envelope', '_cop_baseline', '_cop_health_cusum', '_cop_samples', '_cop_scale', '_curve_learner', '_flow_bias', '_freq_fallback', '_freq_map', '_house_heat_loss_samples', '_house_heat_loss_scale', '_immersion_events', '_internal_gains_profile', '_last_heavy_snow', '_lower_floor_loss_ratio', '_lower_floor_loss_samples', '_measured_cop', '_snow_accum_cm', '_snow_accum_last', '_solar_aperture', '_thermal_params', '_vent_cusum']
+# returns-state _thermal_view seam=views transparent=True holds=['_config', '_current_state', '_floor_return_temp', '_input_health', '_open_meteo', '_opt_config', '_solar_radiation', '_thermal_model', '_thermal_params']
+# returns-state _wear_price seam=fetch transparent=True holds=['_config']
+# returns-state _weather_series seam=fetch transparent=True holds=['_current_state', '_solar_radiation', '_solar_radiation_forecast', '_weather_forecast']
+# returns-state arbiter_inputs seam=views transparent=False holds=['_config', '_current_action', '_current_state', '_entry_released', '_measured_power', '_mode', '_optimization_result', '_thermal_model', '_thermal_params', 'hass']
+# returns-state async_apply_manual_plan seam=core transparent=False holds=['_opt_config']
+# returns-state async_diagnose_interval seam=core transparent=False holds=['<state>', '_last_interval_record', '_thermal_params', 'hass']
+# returns-state async_simulate seam=core transparent=False holds=['_accuracy', '_away_state', '_comfort_learner', '_config', '_current_state', '_dhw_learner', '_external_heat_active', '_flow_bias', '_grid_fee_cache', '_internal_gains_profile', '_last_simulation', '_measured_house_power', '_measured_power', '_open_meteo', '_opt_config', '_optimization_result', '_peak_guard', '_peak_tracker', '_price_learner', '_prices', '_pump_signals', '_pv_production', '_simulation_cache', '_solar_aperture', '_solar_radiation', '_solar_radiation_forecast', '_thermal_params', '_vent_cusum', '_weather_forecast', 'entry', 'hass']
+# returns-state configured_dhw_windows seam=dhw transparent=True holds=['_thermal_params']
+# returns-state configured_quiet_windows seam=dhw transparent=True holds=['_config']
+# returns-state coordinator._cop_fold_blocked seam=learning transparent=True holds=['_immersion_active', '_pump_signals']
+# returns-state coordinator._ctx_of seam=core transparent=True holds=['<state>']
+# returns-state coordinator._diagnose_payload seam=core transparent=True holds=['_last_interval_record', '_thermal_params']
+# returns-state coordinator._freq_fold_blocked seam=core transparent=False holds=['FREEZE_CUT', 'FREEZE_REASON', '_pump_signals']
+# returns-state coordinator._interval_measured_heat_kw seam=learning transparent=False holds=['_flow_bias']
+# returns-state coordinator._replay_interval seam=learning transparent=False holds=['_flow_bias', '_thermal_model', '_weather_forecast', 'hass']
+# returns-state coordinator._republish_handover_ages seam=core transparent=False holds=['_last_optimization']
+# returns-state coordinator._space_pump_to_drive seam=core transparent=False holds=['_config']
+# returns-state coordinator._tail_freeze seam=learning transparent=False holds=['FREEZE_CUT']
+# returns-state coordinator._warm_seeded seam=core transparent=True holds=['_optimization_result']
+# returns-state coordinator._watch_lift seam=learning transparent=False holds=['_current_state', '_flow_bias', '_thermal_model']
+# returns-state coordinator._with_sensor_advisor seam=core transparent=True holds=['_config', 'hass']
+# returns-state coordinator.model_restart_advice seam=views transparent=True holds=['_accuracy', '_config', '_house_heat_loss_scale', '_thermal_params']
+# returns-state describe_setup seam=core transparent=True holds=['_config', 'hass']
+# returns-state device_info seam=core transparent=True holds=['entry', 'integration_version']
+# returns-state dhw_temperature seam=dhw transparent=True holds=['_dhw_temperature']
+# returns-state diagnostics_state seam=views transparent=True holds=['of']
+# returns-state effective_config seam=core transparent=True holds=['_config']
+# returns-state mode seam=core transparent=True holds=['_mode']
+# returns-state month_channel_totals seam=core transparent=True holds=['_ledger']
+# returns-state prices seam=fetch transparent=True holds=['_prices']
+# returns-state system_identification_active seam=core transparent=True holds=['_sysid']
+# returns-state target_temperature seam=core transparent=True holds=['entry']
+# returns-state weather_stale_hours seam=fetch transparent=True holds=['_weather_stale_since']
+# cross-seam core -> _build_data_dict (views)
+# cross-seam core -> _capacity_tariff (grid)
+# cross-seam core -> _comfort_weight (learning)
+# cross-seam core -> _commanded_power (grid)
+# cross-seam core -> _current_grid_fee (grid)
+# cross-seam core -> _current_spot_price (fetch)
+# cross-seam core -> _current_weather (fetch)
+# cross-seam core -> _dhw_plan_fields (dhw)
+# cross-seam core -> _dhw_probe_temperature (dhw)
+# cross-seam core -> _fuse_kw (grid)
+# cross-seam core -> _get_current_price (fetch)
+# cross-seam core -> _grid_fee_schedule (grid)
+# cross-seam core -> _learning_frozen (learning)
+# cross-seam core -> _model_corrections (learning)
+# cross-seam core -> _price_series (fetch)
+# cross-seam core -> _pv_export_price (fetch)
+# cross-seam core -> _wear_price (fetch)
+# cross-seam core -> _weather_series (fetch)
+# cross-seam core -> arbiter_inputs (views)
+# cross-seam core -> coordinator._cop_fold_blocked (learning)
+# cross-seam core -> dhw_temperature (dhw)
+# cross-seam core -> prices (fetch)
+# cross-seam dhw -> _learning_frozen (learning)
+# cross-seam dhw -> _price_model (fetch)
+# cross-seam dhw -> coordinator._ctx_of (core)
+# cross-seam fetch -> _current_grid_fee (grid)
+# cross-seam fetch -> _fee_series (core)
+# cross-seam fetch -> _grid_fee_schedule (grid)
+# cross-seam fetch -> async_simulate (core)
+# cross-seam fetch -> effective_config (core)
+# cross-seam grid -> _baseline_house_load (core)
+# cross-seam grid -> _commanded_split (core)
+# cross-seam grid -> _contract_comparison (core)
+# cross-seam grid -> _freeze_month_report (core)
+# cross-seam grid -> _get_current_price (fetch)
+# cross-seam grid -> _price_model (fetch)
+# cross-seam grid -> _spawn (core)
+# cross-seam grid -> async_simulate (core)
+# cross-seam grid -> coordinator._ctx_of (core)
+# cross-seam grid -> effective_config (core)
+# cross-seam grid -> mode (core)
+# cross-seam learning -> _buffer_cooling_bounds (core)
+# cross-seam learning -> _commanded_power (grid)
+# cross-seam learning -> _commanded_split (core)
+# cross-seam learning -> _current_humidity (core)
+# cross-seam learning -> _current_weather (fetch)
+# cross-seam learning -> _house_heat_loss_anchor (core)
+# cross-seam learning -> _interval_space_power (grid)
+# cross-seam learning -> _price_model (fetch)
+# cross-seam learning -> coordinator._ctx_of (core)
+# cross-seam learning -> dhw_temperature (dhw)
+# cross-seam learning -> prices (fetch)
+# cross-seam learning -> target_temperature (core)
+# cross-seam views -> _commanded_power (grid)
+# cross-seam views -> _dhw_confidence_band (dhw)
+# cross-seam views -> _dhw_view (dhw)
+# cross-seam views -> _freq_entity_reading (core)
+# cross-seam views -> _grid_view (grid)
+# cross-seam views -> _learning_view (learning)
+# cross-seam views -> _manual_plan_state (core)
+# cross-seam views -> _plan_age_minutes (core)
+# cross-seam views -> _reading_ok (core)
+# cross-seam views -> _solar_forecast_source (fetch)
+# cross-seam views -> _solar_forecast_view (fetch)
+# cross-seam views -> _wear_price (fetch)
+# cross-seam views -> coordinator._ctx_of (core)
+# cross-seam views -> prices (fetch)
+# cross-seam views -> weather_stale_hours (fetch)
+RESULT units_returning_state=125 count
+RESULT transparent_callees=76 count
+RESULT units_returning_coordinator=2 count
+RESULT cross_seam_calls_of_state_returners=68 count

@@ -1,0 +1,17 @@
+RESULT clean=710
+RESULT ref_plain=708
+RESULT call_type_self=706
+RESULT call_getattr=706
+RESULT call_bound_alias=706
+RESULT body_const_getattr=708
+RESULT body_nested_def=708
+RESULT body_lambda_call=708
+RESULT body_dict_unpack=708
+RESULT body_iadd=708
+RESULT body_try=708
+RESULT body_if_else=708
+RESULT outparam_dict=708
+RESULT outparam_append=708
+RESULT outparam_attr=708
+RESULT outparam_extend=708
+RESULT callback=708

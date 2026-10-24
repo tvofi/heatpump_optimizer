@@ -1,0 +1,17 @@
+RESULT clean=367
+RESULT ref_plain=367
+RESULT call_type_self=361
+RESULT call_getattr=361
+RESULT call_bound_alias=361
+RESULT body_const_getattr=363
+RESULT body_nested_def=367
+RESULT body_lambda_call=367
+RESULT body_dict_unpack=367
+RESULT body_iadd=367
+RESULT body_try=367
+RESULT body_if_else=367
+RESULT outparam_dict=363
+RESULT outparam_append=363
+RESULT outparam_attr=363
+RESULT outparam_extend=363
+RESULT callback=363
