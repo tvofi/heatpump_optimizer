@@ -33429,6 +33429,27 @@ R.check(
     and "verdict" not in _PIN_GOT[2],
     f"(new over base, unpinned at both ends, entry) -> {_PIN_GOT}",
 )
+# Triage P-L (#2632): a pin's bytes are its mutant's, never its base's. A
+# bot's pin and a fixer's pin of one mutant, measured on different bases, are
+# then the same file, and their add/add merges under git's default merge on
+# GitHub too; the base is in git's history already. Pins of two different
+# mutants still differ (the null control).
+try:
+    _pin_row = lambda site, failed: _mut.row_text(site["anchor"], _PIN_ENTRY(  # noqa: E731
+        dict(site, kind="GUARD_OFF", new="    if False:"), "tests/x.py",
+        _mut.ScriptRun(1, failed, 1.0, ""), _mut.ScriptRun(0, 0, 1.0, "")))
+    _PIN_BYTES = (_pin_row(_pin_b, 3), _pin_row(dict(_pin_b), 3),
+                  _pin_row(_pin_a, 3))
+except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PIN_BYTES = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+R.check(
+    "two pins of one mutant are byte-identical whatever base measured them, "
+    "and pins of different mutants differ (P-L)",
+    len(_PIN_BYTES) == 3 and _PIN_BYTES[0] == _PIN_BYTES[1]
+    and _PIN_BYTES[0] != _PIN_BYTES[2] and " against " not in _PIN_BYTES[0],
+    f"rows -> {_PIN_BYTES!r:.600} -- a base sha in the reason makes the same "
+    "pin two different files, an add/add conflict",
+)
 R.check(
     "--pin-killed is wired: new sites from the base's own unpinned list, "
     "a pin only from a recorded kill run",
