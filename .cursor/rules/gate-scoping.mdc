@@ -6,17 +6,19 @@ alwaysApply: true
 # Running the gate
 
 `./tests/run.sh` is unscoped and long; on a branch use the scoped gate
-against your merge base:
+against your merge base. It runs `$PYTHON`, else `.venv/bin/python`, else `python3`, and the tree needs
+3.12+ with the pins: a `SyntaxError` or a missing module is the interpreter: set `PYTHON` to
+`tools/audit/seat/seat_venv.sh`'s venv (#2207, #2582, #2627):
 
 ```
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 ```
 
-**A shallow clone or stale `origin/main` is the environment, not the tree**: `git fetch --unshallow
-origin main` clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
+**A shallow clone or stale `origin/main` is the environment too**: `git fetch --unshallow origin main`
+clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
 
 `/tmp/hpo-gate.lock` holds two leases; `tests/gate_lock.py needs-lease` names a script's:
-`lease`, exclusive, for those measuring the machine (`tests/stress.py`, `tests/harness_headers.py`);
+`lease`, exclusive, measuring the machine (`tests/stress.py`, `tests/harness_headers.py`);
 `slot`, one of `$HPO_HEAVY_SLOTS` (four), for one unrecorded or recorded in `closures.json` at or above
 `SLOT_MIN_SECONDS`; else `none`. `$HPO_SLOT_LABEL` names a run's slot. Arrival orders
 each priority band; a dead or expired ticket is skipped. An expired or abandoned lease is
@@ -37,7 +39,7 @@ refuses every leased script at once if that label holds none: `take` first (#236
 **The mypy census runs here, given pins**: `HPO_TYPING_PYTHON` names one carrying them; unset it prints the install command, unpinned it fails (#1091, #1099, #1095).
 **A gate run rewrites `tools/audit/round4/D6/`**: check it out before any `git add -A` (#1054).
 
-## `tools/pr/prepr.sh` is not CI
+## `prepr.sh` is not CI
 
 CI grades with the base's copy of each pinned grader, prepr with this head's: a grammar only this diff
 registers in `tools/policy/agreement.mjs` passes prepr's agreement lane and is refused by `wave-script`
@@ -51,6 +53,3 @@ Only `--single` passes `--partial`, whose `if partial:` branch in `closure.py` k
 `strace` saw; the full path **replaces** the Linux recordings (`card_drift.mjs` measured **66 scripts → 6**).
 Off Linux 6b leaves scoped recordings to CI's `closures` and `closures-autofix`; `PREPR_RECORD_CLOSURES=1`
 records them for a first-green head. Node lanes record on Darwin via `node --import tests/node_fs_trace.mjs`.
-
-**`--single` cannot re-record a script whose checks pin the classification**: it exits 1 until
-`tests/closures.json` lists the files; `closure.py merge`'s refusal names the way out (#1071).
