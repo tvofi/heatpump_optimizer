@@ -70,7 +70,7 @@ none: no CI has run on this ref. The one predicted red, INERT READS for the new 
 
 ## Forward-carry
 
-none. The roster's only group carrying `seam_cut_total` or O19 is this one: a grep of `dev/programme/rosters/wave-r10-groups.json` on `origin/handoff/audit-r10-roster` returns only R10-STRUCTURE-ALIAS. Every later stage derives the metric at its own merge base, so no figure needs carrying. A branch in flight that re-recorded `seam_cut_total` under the occurrence rule will conflict on `tests/structure_budgets.json` and re-records it at its merge with main. That is a merge mechanic, not a finding.
+n/a: the roster's only group carrying `seam_cut_total` or O19 is this one: a grep of `dev/programme/rosters/wave-r10-groups.json` on `origin/handoff/audit-r10-roster` returns only R10-STRUCTURE-ALIAS. Every later stage derives the metric at its own merge base, so no figure needs carrying. A branch in flight that re-recorded `seam_cut_total` under the occurrence rule will conflict on `tests/structure_budgets.json` and re-records it at its merge with main. That is a merge mechanic, not a finding.
 
 ## Friction
 
