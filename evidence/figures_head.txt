@@ -1,0 +1,9 @@
+codeql_scope self-test: 63 checks, 0 failed
+dependabot_merge self-test: 0 failure(s)
+RESULT read=53 ignored=28 declared_none=35 blind=0 dead=0 refused=0 runs=143 seconds=104.3
+FIELD COVERAGE ok
+ALL 117 closure shrink pins PASSED
+STRUCTURE RATCHET PASSED
+RESULT uncovered_files=0 count
+ALL 112 HARNESS HEADER CHECKS PASSED
+claims hygiene: 87ecf385b ok

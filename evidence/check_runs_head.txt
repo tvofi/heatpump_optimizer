@@ -1,0 +1,44 @@
+CodeQL | completed | success | 2026-10-24T18:44:10Z
+arch-score / arch-score | completed | success | 2026-10-24T19:31:59Z
+budget-raise-gate / budget-raise-gate | completed | success | 2026-10-24T18:43:03Z
+budget-raise-gate / budget-raise-gate | completed | success | 2026-10-24T19:30:48Z
+cancel-superseded | completed | success | 2026-10-24T18:39:22Z
+cancel-superseded | completed | success | 2026-10-24T18:43:27Z
+codeql / Analyze (python) | completed | success | 2026-10-24T19:17:14Z
+codeql | completed | skipped | 2026-10-24T19:30:04Z
+gate | completed | success | 2026-10-24T19:34:15Z
+gate | in_progress |  | 
+governance / delivery-status-publish | completed | skipped | 2026-10-24T18:41:52Z
+governance / env-matrix | completed | success | 2026-10-24T18:56:48Z
+governance / instrument-self-tests | completed | success | 2026-10-24T18:57:09Z
+governance / policy-docs | completed | success | 2026-10-24T18:50:17Z
+governance / record | completed | skipped | 2026-10-24T18:41:52Z
+governance / wave-script | completed | success | 2026-10-24T18:42:45Z
+governance | completed | skipped | 2026-10-24T19:30:04Z
+hassfest / hassfest | completed | success | 2026-10-24T18:46:18Z
+hassfest | completed | skipped | 2026-10-24T19:30:04Z
+kernel-points | completed | skipped | 2026-10-24T19:30:04Z
+pr-contract / pr-contract | completed | success | 2026-10-24T19:26:44Z
+pr-contract / pr-contract | completed | success | 2026-10-24T19:33:11Z
+prelude | completed | success | 2026-10-24T19:30:04Z
+refresh | completed | success | 2026-10-24T18:50:23Z
+tests / arch-instrument | completed | success | 2026-10-24T19:23:51Z
+tests / briefs | completed | success | 2026-10-24T18:46:30Z
+tests / browser | completed | success | 2026-10-24T18:56:23Z
+tests / ci-ratchet | completed | skipped | 2026-10-24T19:23:26Z
+tests / claims-autofix | completed | skipped | 2026-10-24T19:23:26Z
+tests / closures | completed | success | 2026-10-24T19:18:59Z
+tests / closures-autofix | completed | skipped | 2026-10-24T19:18:59Z
+tests / coverage | completed | success | 2026-10-24T19:15:49Z
+tests / coverage-ratchet | completed | success | 2026-10-24T19:16:01Z
+tests / fast (3.14) | completed | success | 2026-10-24T19:23:25Z
+tests / graders-head-copy | completed | success | 2026-10-24T19:17:38Z
+tests / lane-proofs | completed | success | 2026-10-24T19:24:57Z
+tests / mutation | completed | success | 2026-10-24T18:46:26Z
+tests / mutation-autofix | completed | skipped | 2026-10-24T18:46:26Z
+tests / mutation-pins | completed | skipped | 2026-10-24T18:46:26Z
+tests / nightly-ha | completed | skipped | 2026-10-24T18:45:46Z
+tests / typing | completed | success | 2026-10-24T18:49:14Z
+tests | completed | skipped | 2026-10-24T19:30:04Z
+validate / validate-hacs | completed | success | 2026-10-24T18:43:32Z
+validate | completed | skipped | 2026-10-24T19:30:04Z
