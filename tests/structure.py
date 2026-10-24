@@ -156,8 +156,10 @@ Metrics (definitions, one line each; the code is the authority):
                               units stores it), plus each (seam, callee) pair
                               crossing it -- once, however often it is read,
                               so an alias buys nothing (O19); a property read
-                              is a call, and a call of a bare state getter is
-                              the reads it returns. The units are the coordinator's
+                              is a call, a call is also the reads that escape
+                              through its callee's return value
+                              (``StateFlow``), and the edge is dropped only for
+                              a callee doing nothing else. The units are the coordinator's
                               methods and ``coordinator.py``'s module-level
                               helpers handed the coordinator, priced alike
                               (#1686): a body moved into ``_helper(self, ...)``
