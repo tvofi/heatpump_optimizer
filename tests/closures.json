@@ -3606,6 +3606,8 @@
    "dev/audit/harnesses/r10_roster_sync_base.py",
    "dev/audit/harnesses/r10_sav_baseline.py",
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
+   "dev/audit/harnesses/r10_sav_comfort.py",
+   "dev/audit/harnesses/r10_sav_comfort_mutants.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
    "dev/audit/harnesses/r10_scores_envelope.py",
