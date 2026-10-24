@@ -321,9 +321,19 @@ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
 
 def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
     """The thermostat's setpoint at step ``i``: the comfort schedule's, else ``default``."""
-    if comfort_targets is not None and i < len(comfort_targets):
-        return float(comfort_targets[i])
-    return default
+    return _baseline_targets(comfort_targets, i + 1, default)[i]
+
+
+def _baseline_targets(
+    comfort_targets: np.ndarray | None, n_steps: int, default: float
+) -> list[float]:
+    """The thermostat's setpoint for each of ``n_steps``, built at once: the
+    comfort schedule's where it reaches, else ``default``."""
+    targets = np.full(n_steps, default, dtype=float)
+    if comfort_targets is not None:
+        held = np.asarray(comfort_targets, dtype=float)[:n_steps]
+        targets[: len(held)] = held
+    return targets.tolist()
 
 
 def _comfort_matched_targets(
@@ -412,10 +422,13 @@ def _thermostat_demand_single(
     precipitation: float,
     solar_radiation: float,
     dt: float,
+    k_slab: float,
 ) -> float:
-    """Thermal power a thermostat needs this step in the single-zone model."""
+    """Thermal power a thermostat needs this step in the single-zone model.
+
+    ``k_slab`` is ``slab_heat_transfer_floored``, read once per horizon.
+    """
     p = model.params
-    k_slab = p.slab_heat_transfer_floored
 
     # Thermal power the room needs to sit at the setpoint.
     q_demand = _floor_demand_at_target(
@@ -446,6 +459,7 @@ def _thermostat_demand_two_zone(
     precipitation: float,
     solar_radiation: float,
     dt: float,
+    k_slab: float,
 ) -> float:
     """Thermal power a thermostat needs this step in the two-zone model.
 
@@ -454,10 +468,9 @@ def _thermostat_demand_two_zone(
     ``radiator_power_fraction``. One control cannot hold both zones exactly,
     which is also true of the real system being modelled, so the demand of
     the two zones is summed the way an outdoor-reset curve on a single
-    mixing valve would.
+    mixing valve would. ``k_slab`` is as the single-zone demand takes it.
     """
     p = model.params
-    k_slab = p.slab_heat_transfer_floored
 
     u_upper = model.effective_heat_loss_coefficient(
         p.upper_floor_heat_loss, wind_speed, precipitation
@@ -5251,22 +5264,23 @@ class HeatPumpOptimizer:
             coil_draws = None
 
         baseline_power = np.zeros(n_steps)
-        state = _thermostat_held_state(
-            self.model, initial_state, weather,
-            _baseline_target(comfort_targets, 0, self.config.target_temp),
-        )
+        # Read once, not per step: a matched reference runs this twice a solve.
+        targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
+        hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
+        two_tank, k_slab = p.two_tank_modelled, p.slab_heat_transfer_floored
+        state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
 
         for i in range(n_steps):
-            target = _baseline_target(comfort_targets, i, self.config.target_temp)
+            target = targets[i]
             if p.two_zone_enabled:
                 required_thermal = _thermostat_demand_two_zone(
                     self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt,
+                    precipitation[i], solar_radiation[i], dt, k_slab,
                 )
             else:
                 required_thermal = _thermostat_demand_single(
                     self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt,
+                    precipitation[i], solar_radiation[i], dt, k_slab,
                 )
 
             # A thermostat's house receives a furnace burn too, and its
@@ -5277,10 +5291,7 @@ class HeatPumpOptimizer:
                 if external_heat_kw is not None and i < len(external_heat_kw)
                 else 0.0
             )
-            if (
-                p.two_tank_modelled
-                and state.wood_tank_temperature is not None
-            ):
+            if two_tank and state.wood_tank_temperature is not None:
                 # With the wood tank modelled, the 4-way valve covers part
                 # of the draw from the wood side; the reference backs its
                 # electric demand off by that share, computed with the SAME
@@ -5314,15 +5325,14 @@ class HeatPumpOptimizer:
                 required_thermal *= 1.0 - w_i
             required_thermal = max(0.0, required_thermal - ext_i)
 
-            hum_i = _step_humidity(humidity, i)
+            hum_i = hums[i]
             cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
             # power is what determines energy use; a clamp burnt
             # min_electrical_power * 24 h per day on a house needing no heat.
-            power = float(
-                np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
-            )
+            # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
+            power = min(required_thermal / cop, p.max_electrical_power)
             baseline_power[i] = power
 
             state = self.model.simulate_step(
