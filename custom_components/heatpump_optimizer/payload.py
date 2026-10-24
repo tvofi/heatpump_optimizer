@@ -232,6 +232,9 @@ class SavingsMonth(TypedDict, total=False):
     savings_sek: float
     savings_pct: float | None
     estimated: bool
+    # Metered over modelled kWh on the row's intervals: the factor the
+    # thermostat's cost is scaled by; None where it was left at modelled.
+    meter_calibration: float | None
 
 
 class NarrativeItem(TypedDict):
