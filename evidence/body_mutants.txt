@@ -1,0 +1,14 @@
+== real body, --red pr-contract,gate
+  ERROR   [pr-body] ev/body.md: check `pr-contract / pr-contract` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+PR-BODY: 1 error(s) in ev/body.md
+rc=1
+== mutant: Head names c130c242
+  ERROR   [pr-body] mut_head.md: `## Head` does not name 06cb984, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 06cb984 is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+PR-BODY: 1 error(s) in mut_head.md
+rc=1
+== mutant: Red checks = none, --red pr-contract,gate
+  ERROR   [pr-body] mut_red.md: check `pr-contract / pr-contract` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+  ERROR   [pr-body] mut_red.md: check `gate` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 2 error(s) in mut_red.md
+rc=1
