@@ -6178,7 +6178,8 @@
    ],
    "carry": [
     "HANDOVER trap: a required context that never reports blocks every merge, in either direction.",
-    "Pre-study: the Lean flow pre-study, section K9."
+    "Pre-study: the Lean flow pre-study, section K9.",
+    "tvofi 2026-10-24 card 4 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this probe runs right after R10-CI-LAYOUT-P2 closes, before the groups that build head-carry and absorb machinery, and its report ends with an explicit adopt-or-decline recommendation for each held group: R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY, R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE and part (a) of R10-FLOW-BODY-ONLY. The orchestrator takes the owner's decision on that report and closes each group the queue makes moot, so this group's merge is not the release of the held groups; the roster edit that closes or releases them is. The after-edges on those groups hold them until this group is done."
    ],
    "architect_note": "",
    "brief": "Probe GitHub's merge queue (Lean study K9). The workflows already carry merge_group: tests.yml refuses a queue commit with no second parent and pins its base to the queue base, and pr-contract.yml derives the pull request from the queue ref. A queue would test the merged result once per pitch while the reviewed head stays unchanged, which removes the head-moved re-reviews and most main absorbs. Probe on a throwaway branch under a throwaway ruleset (the pattern HANDOVER records for the stamp's step 5): merge method merge, per decision 0010. Record, for every context main-protect-checks requires, whether it reports on merge_group, in both arms. Never touch main-protect-checks: the probe's report goes to the owner, who decides.",
