@@ -1,0 +1,3 @@
+MUTANT 2: ERE boundary in prefilter (no backslash)
+  FAIL and it hands every line naming push to the site rule, which alone judges the word (#2554): [('tools/p.sh', 1, 'git push -q origin "$ref"'), ('tools/q.sh', 2, 'out.push(git)')]
+ref_privacy self-test: 92 checks, 1 failed

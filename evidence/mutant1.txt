@@ -1,0 +1,4 @@
+MUTANT 1: restore \bpush\b
+  FAIL the git grep prefilter carries no backslash escape, so BSD and GNU regcomp read it alike (#2554): \bpush\b|git/(refs|tags)|createRef|updateRef|release +create|/releases
+  FAIL and it hands every line naming push to the site rule, which alone judges the word (#2554): [('tools/p.sh', 1, 'git push -q origin "$ref"'), ('tools/q.sh', 2, 'out.push(git)')]
+ref_privacy self-test: 92 checks, 2 failed
