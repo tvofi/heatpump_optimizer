@@ -26,6 +26,10 @@ plus a trailing comment, and `--new TEXT` with TEXT (one anchor) -- rewrites
 no check can tell apart, which must LIVE; `--no-hide` drives without the fix
 (no row hidden), the tree as the instrument saw it before, where the same
 rewrite reads killed.
+
+Run `--drive` under `env -u BASH_ENV`, the finder's recipe: an inherited
+BASH_ENV turns two workflow-step checks of tests/entities.py red in the
+worktree, the baseline is then red, and the harness refuses to read a verdict.
 """
 from __future__ import annotations
 
