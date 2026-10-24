@@ -1,0 +1,6 @@
+check-runs on d4b017368d585900b2705a39821cc78681fb4217 (commit check-runs API via pull_request_read get_check_runs, 25 runs), read 2026-10-24 ~15:45Z
+completed success: arch-score / arch-score, budget-raise-gate / budget-raise-gate, tests / briefs, prelude (40107144210), refresh x2, cancel-superseded x2
+completed skipped: governance / delivery-status-publish, governance / record, kernel-points
+in_progress: codeql / Analyze (actions), codeql / Analyze (javascript-typescript), prelude (40107144585)
+queued: tests / closure-scope, tests / mutation, codeql / Analyze (python), governance / instrument-self-tests, hassfest / hassfest, tests / nightly-status, governance / wave-script, governance / policy-docs, validate / validate-hacs, governance / env-matrix, governance / delivery-status
+red: none. pr-contract: no run listed on this head yet.

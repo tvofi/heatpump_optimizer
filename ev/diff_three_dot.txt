@@ -1,0 +1,100 @@
+diff --git a/dev/audit/config/rotation.json b/dev/audit/config/rotation.json
+index 65fff5504..cab583e94 100644
+--- a/dev/audit/config/rotation.json
++++ b/dev/audit/config/rotation.json
+@@ -556,7 +556,7 @@
+     }
+   },
+   "D11": {
+-    "steps": ["M1", "M2", "M3", "M4"],
++    "steps": ["M1", "M2", "M3", "M4", "M5"],
+     "rounds": {
+       "10": {
+         "coverage": {
+diff --git a/dev/audit/config/scopes.json b/dev/audit/config/scopes.json
+index 2bdd80ae9..b5f23990e 100644
+--- a/dev/audit/config/scopes.json
++++ b/dev/audit/config/scopes.json
+@@ -660,7 +660,8 @@
+    "M1",
+    "M2",
+    "M3",
+-   "M4"
++   "M4",
++   "M5"
+   ],
+   "seats": {
+    "s1": [
+@@ -690,7 +691,8 @@
+       "**"
+      ],
+      "steps": [
+-      "M4"
++      "M4",
++      "M5"
+      ]
+     }
+    ]
+diff --git a/dev/governance/dimensions/D11.md b/dev/governance/dimensions/D11.md
+index ae336c9fc..448920d51 100644
+--- a/dev/governance/dimensions/D11.md
++++ b/dev/governance/dimensions/D11.md
+@@ -8,11 +8,9 @@ governance structure itself."*
+ Read `COMMON.md` first. Your subject is the process the other dimensions run
+ under, so you read what they are walled off from: the repository's history
+ and GitHub's own records — the ruleset, check runs, review comments, merged
+-pull-request bodies. You get a worktree with `.git` for that reason. Record
+-every such source under `exposure`. The audit register and earlier findings
+-stay off-limits: you audit the mechanism, never the verdicts it produced,
+-and leave its cost and DORA's four keys, change-failure rate among them, to
+-`D13.md`.
++pull-request bodies. You audit the mechanism, never the verdicts it
++produced, and leave its cost and DORA's four keys, change-failure rate among
++them, to `D13.md`.
+ 
+ ## Method
+ 
+@@ -67,12 +65,18 @@ and leave its cost and DORA's four keys, change-failure rate among them, to
+    - Staleness where the `citations` class does not reach: status lines in
+      the decisions against the tree, the traps in the handover,
+      the files and steps the plan cites.
+-4. **Perturbation, as for every dimension.** A mechanism finding carries the
+-   one-line change under which the mechanism's own output must move: an
+-   emptied check, a body with one digit changed, a ruleset read with both
+-   arms. Never on `main`, never against the live ruleset, never a comment
+-   on a live pull request; a perturbation you cannot run marks the finding
+-   `provisional`.
++4. **Perturbation**, per `COMMON.md`: an emptied check, a body with one
++   digit changed. Never on `main`, never against the live ruleset, never a
++   comment on a live pull request; a perturbation you cannot run marks the
++   finding `provisional`.
++5. **Mechanise first** — owner's brief addition, tvofi 2026-10-24: *"each
++   operation or shape that that [sic] is not clearly a one shot and could be
++   mechanical should be mechanical and wired into the machinery. This means
++   reusable instrument before policy, only policy if no robust script could
++   be built at a reasonable cost (tokens, time, complexity)"*. A finding
++   goes to `proposal-triage.md` as a mechanisation proposal, costed in its
++   terms and D13's; a non-finding records why no script could be built at
++   that cost.
+ 
+ ## Output
+ 
+@@ -89,11 +93,7 @@ detector with no live control; `low` — hygiene.
+ 
+ - The branch-rules endpoint is not bypass-aware: read the ruleset itself and
+   probe it with both arms.
+-- A checks summary hides a run that went red and then green; the commit's
+-  check-runs listing does not.
+ - A green mutation arm can be a mutation that never applied; drive the
+   control by hand before reading the arm.
+ - The merge enumerator reads a free-text subject suffix (#677): compare the
+   set of pull-request numbers against the API, not the totals.
+-- A number about the document it sits in goes stale with the next edit;
+-  report the derivation and let the instrument print the number.
+diff --git a/dev/programme/delivery/2736.md b/dev/programme/delivery/2736.md
+new file mode 100644
+index 000000000..ff5736392
+--- /dev/null
++++ b/dev/programme/delivery/2736.md
+@@ -0,0 +1 @@
++- [#2736](https://github.com/tvofi/heatpump_optimizer/pull/2736) — **open**, policy(D11): mechanise-first owner's brief addition
