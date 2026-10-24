@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis_voids BOOLOP 1fb2bcb6",
+  "killed_by": "tests/features.py",
+  "old": "    return stored in bases and bases.index(stored) < bases.index(basis)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a: BOOLOP (`return stored in bases or bases.index(stored) < bases.index(basis)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
