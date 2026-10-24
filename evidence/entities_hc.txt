@@ -1,0 +1,3 @@
+# hc (head a5146153e9b5bdbf0bf4bd6248a944bc8c45a47b unless noted; bc=50af6174f+climate rewrite, hc=head+climate rewrite)
+ALL 2428 ENTITY CHECKS PASSED
+real	6m30.508s

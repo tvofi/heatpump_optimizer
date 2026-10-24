@@ -1,0 +1,13 @@
+diff --git a/tests/mutation_table.py b/tests/mutation_table.py
+index 580ad9075..92924c08b 100644
+--- a/tests/mutation_table.py
++++ b/tests/mutation_table.py
+@@ -1228,7 +1228,7 @@ def pin_entry(site: dict, script: str, run: "ScriptRun",
+     return {
+         "killed_by": script,
+         "old": site["old"],
+-        "reason": (f"Recorded by `mutation_table.py {how}`: "
++        "reason": (f"Recorded by `mutation_table.py {how}` against {_rev(ROOT, 'HEAD')}: "
+                    f"{site['kind']} (`{site['new'].strip()}`) took "
+                    f"{script} from rc={baseline.rc} failed={baseline.failed} "
+                    f"to rc={run.rc} failed={run.failed}."),
