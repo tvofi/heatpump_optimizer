@@ -21,7 +21,7 @@ The shape is the approved design's, `dev/programme/designs/R10-LIVESTATE.md` at 
 
 ## Head
 
-`1a2fe17bd938e34e9726be239fb56032317f8f7b`. Merge base and origin/main tip `f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c` (merged at `1a2fe17bd`, after earlier merges of `c5e1be196`, `d7cb63508` and `f046076ad`). None of the merges brought production code: `git diff --stat fd7e289d0 f8cc41ab0 -- custom_components` prints nothing, so base figures taken at `fd7e289d0` hold at this merge base. Head figures were taken on this branch's production code at `16f90d4d7`; the only production change since is `213585e67`'s two `ctx = _ctx_of(self)` lines (item 13), after which `tests/boost_drift_replay.py` (item 14) and the R10-LIVESTATE block, `tests/structure.py` and `tests/typing_ruler.py --mypy` were re-run (`## Figures`).
+`5c2fa6de5d6ab626e3200964b2b0d49a0f8f3e66` (`44aaa080a` adds `dev/programme/carries/carry-2674.json`; `5c2fa6de5` lists it in `tests/entities.py`'s closure in `tests/closures.json`; no code). Merge base and origin/main tip `f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c` (merged at `1a2fe17bd`, after earlier merges of `c5e1be196`, `d7cb63508` and `f046076ad`). None of the merges brought production code: `git diff --stat fd7e289d0 f8cc41ab0 -- custom_components` prints nothing, so base figures taken at `fd7e289d0` hold at this merge base. Head figures were taken on this branch's production code at `16f90d4d7`; the only production change since is `213585e67`'s two `ctx = _ctx_of(self)` lines (item 13), after which `tests/boost_drift_replay.py` (item 14) and the R10-LIVESTATE block, `tests/structure.py` and `tests/typing_ruler.py --mypy` were re-run (`## Figures`).
 
 ## Mutation proof
 
@@ -97,7 +97,7 @@ none: both `--pin-killed` passes together leave `0 left unpinned`.
 
 ## Forward-carry
 
-- The seven per-cycle writers that may run inside the first refresh before their store loads resolve (item ls-r2): **unprobed leads, not findings**. Filed as #2674 (`Part of #2248`), with item ls-r1's probe recipe and its null; the destination is that issue, no file in the tree. Carry: #2674
+- The seven per-cycle writers that may run inside the first refresh before their store loads resolve (item ls-r2): **unprobed leads, not findings**. Filed as #2674 (`Part of #2248`), with item ls-r1's probe recipe and its null as the precondition, carried in `dev/programme/carries/carry-2674.json` (no live roster group covers #2674). Carry: #2674
 - The four user-command writers that race a store load (item ls-r1, with its probe recipe as item ls-r1-probe) are already in R10-PARAMS-OWNER's brief in `dev/programme/rosters/wave-r10-groups.json` at `handoff/audit-r10-roster` `1bee483c8`. Carry: R10-PARAMS-OWNER
 
 ## Friction
