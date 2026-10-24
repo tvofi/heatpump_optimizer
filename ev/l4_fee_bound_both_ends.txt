@@ -1,0 +1,14 @@
+== base
+RESULT repair_raised=0 count
+RESULT null_blocked=0 of 4
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=3.94
+RESULT swapins=0
+== head
+    coord._audit_grid_fee(grid_fee.GridFeeSchedule(mode=grid_fee.MODE_ENTITY), fee)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree:head>/custom_components/heatpump_optimizer/coordinator.py", line 7292, in _audit_grid_fee
+    notices = self._config_notices
+              ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'HeatPumpOptimizerCoordinator' object has no attribute '_config_notices'
