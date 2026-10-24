@@ -9446,7 +9446,9 @@
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/pump_arbiter.py"
    ],
-   "carry": [],
+   "carry": [
+    "From #2745 (R10-SAV-COMFORT, #2492), carry 5 seam 2 controls, preconditions for this group's failing test: (a) a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts; (b) one mutant per seam (each seam's mutant must turn (a) red). Source: R10-SAV-COMFORT's carry 5 and #2745's Forward-carry; the #2745 review at c70c3e46 blocked because this group's brief named the work but not its controls."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-sav-actuation"
