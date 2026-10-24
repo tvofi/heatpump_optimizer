@@ -1,0 +1,8 @@
+
+== dev/programme/rosters/wave-asbrief_plant-groups.json ==
+  ERROR   [R10-FLOW-JIDOKA] path: tools/audit/seat/ref_privacyX.py: not in the tree, and no tag SHA is cited alongside it
+  -- 1 error(s), 0 warning(s)
+
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 1 error(s) across 1 file(s)
