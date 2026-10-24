@@ -1,9 +1,17 @@
+cloud_setup self-test: 13 checks, 0 failed
+cloud_setup self-test: 13 checks, 0 failed
+cloud_setup self-test: 13 checks, 0 failed
 ok   control: a non-login bash with no variables set gets the system python3 (the defect)
 ok   the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice
 ok   a non-login bash under the printed variables gets venv-ci's python3
 ok   check is OK under the printed variables
 ok   check refuses without them, naming each variable
 ok   check refuses venv-ci's python3 without HPO_TYPING_PYTHON
+ok   check refuses the system python3 beside an executable HPO_TYPING_PYTHON
+ok   check refuses without OPENBLAS_CORETYPE
+ok   check is OK in a shell that sourced the profile
+ok   cloud-setup.sh --check exits 0 under the printed variables
+ok   cloud-setup.sh --check exits 1 without them
 ok   the profile sourced twice puts venv-ci/bin on PATH once
 ok   under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)
-cloud_setup self-test: 8 checks, 0 failed
+cloud_setup self-test: 13 checks, 0 failed

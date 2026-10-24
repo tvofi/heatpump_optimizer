@@ -1,6 +1,0 @@
-== tools/audit/seat/cloud-setup.sh
-cloud-setup check: REFUSE python3 is /usr/local/bin/python3, not /opt/hpo/venv-ci/bin/python3; set the environment's variables: PATH=/opt/hpo/venv-ci/bin:/usr/local/bin:/usr/bin:/bin HPO_TYPING_PYTHON=/opt/hpo/venv-ha/bin/python OPENBLAS_CORETYPE=Haswell 
-rc=1
-== /tmp/tmp.UPL2HWA9a8/m_M9_check_py_only.sh
-cloud-setup check: OK python3 is /usr/local/bin/python3
-rc=0
