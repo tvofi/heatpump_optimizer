@@ -28,18 +28,18 @@ Not run locally; the structure ratchet above moved down on five rows.
 
 ## Forward-carry
 
-none. Note: the patch's `setpoint_check` hunk did not apply to main, and an `ir` import there broke architecture.md's HA-boundary counts, so the owner goes through `issues.set_issue`/`clear_issue` instead. `clear_issue` is best-effort (logs a failed delete), a small change from the bare delete.
+none
 
 ## Friction
 
-none
+The patch's `setpoint_check` hunk did not apply to main, and an `ir` import there broke architecture.md's HA-boundary counts, so the owner goes through `issues.set_issue`/`clear_issue` instead. `clear_issue` is best-effort (logs a failed delete), a small change from the bare delete.
 
 ## Unpinned sites
 
 Re-derived at the current head with `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` after merging main `145bfe197` into `5b067738b`: exactly five sites, all disposed here.
 
-- custom_components/heatpump_optimizer/coordinator.py:7295 CMP_BOUND (the `grid_fee_magnitude` `notices.report` line): pinned by `mutation-autofix` after the PR opens (ci-autofix.md); the comparison is unchanged in meaning from the replaced `if worst > fee_bound(...)` and the existing grid-fee magnitude notice checks in tests/features.py cover it.
-- custom_components/heatpump_optimizer/coordinator.py:7298 CMP_BOUND (the `grid_fee_sign` `notices.report` line): pinned by `mutation-autofix`; unchanged in meaning from the replaced `if lowest < 0.0`, covered by the existing grid-fee sign notice checks in tests/features.py.
+- custom_components/heatpump_optimizer/coordinator.py:7293 CMP_BOUND (the `grid_fee_magnitude` `notices.report` line): pinned by `mutation-autofix` after the PR opens (ci-autofix.md); the comparison is unchanged in meaning from the replaced `if worst > fee_bound(...)` and the existing grid-fee magnitude notice checks in tests/features.py cover it.
+- custom_components/heatpump_optimizer/coordinator.py:7296 CMP_BOUND (the `grid_fee_sign` `notices.report` line): pinned by `mutation-autofix`; unchanged in meaning from the replaced `if lowest < 0.0`, covered by the existing grid-fee sign notice checks in tests/features.py.
 - custom_components/heatpump_optimizer/issues.py:54 GUARD_OFF (`if persistent:`): pinned by `mutation-autofix`.
 - custom_components/heatpump_optimizer/setpoint_check.py:57 GUARD_OFF (`if offending is None:`): killed by the "fresh instance still clears" check in tests/features.py (the mutation proof above); pinned by `mutation-autofix`.
 - custom_components/heatpump_optimizer/setpoint_check.py:61 GUARD_OFF (`if self._raised.get(issue_id) == offending:`): killed by the "same offending value raised once" check, where the stub registry records each create; pinned by `mutation-autofix`.
