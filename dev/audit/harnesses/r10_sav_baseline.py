@@ -15,8 +15,10 @@ Arms (each prints one line per figure, then its verdict):
              covering the interval, i.e. the thermostat's FIRST step from the
              plan's actual start state. One flat-price plan per start state:
              a counterfactual that is a thermostat running all along does not
-             depend on where the optimiser left the house, so the spread of
-             step 0 across start states is the defect's size (0 when sound).
+             depend on where the optimiser left the house, only (#2492) on the
+             comfort the plan delivers, so step 0 less the steady holding
+             power at that plan's comfort-matched target is the defect's
+             size (0 when sound); the spread across starts is printed beside.
   cost       A closed month with every billed line plus one interval no plan
              covered: the row's ``actual_sek`` against the receipt's
              ``total_sek`` (equal when sound).
@@ -42,7 +44,11 @@ import numpy as np
 
 from profiles import DT, house, prices, solve_inputs, weather
 from heatpump_optimizer.ledger import MonthlyLedger, freeze_month_report
-from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer,
+    OptimizationConfig,
+    _floor_demand_at_target,
+)
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
@@ -79,9 +85,9 @@ def _state(room: float, slab: float, outdoor: float) -> ThermalState:
 
 
 def arm_transient() -> bool:
-    opt, _, _ = _optimizer()
+    opt, model, _ = _optimizer()
     out, wind, rain, sol = weather("winter_cold", START)
-    firsts = []
+    firsts, residuals = [], []
     for room, slab in STARTS:
         plan = opt.optimize(inputs=solve_inputs(
             initial_state=_state(room, slab, float(out[0])),
@@ -90,10 +96,19 @@ def arm_transient() -> bool:
         ))
         first = float(plan.baseline_power_schedule[0])
         firsts.append(first)
-        print(f"transient: start room {room} slab {slab}: booked baseline step 0 = {first:.2f} kW")
+        sched = np.array([opt.config.get_comfort_temp(t.hour + t.minute / 60.0, when=t)
+                          for t in plan.timestamps])
+        matched = float(sched[0]) - max(0.0, float(np.mean(sched - np.array(plan.room_temp_trajectory[1:]))))
+        steady = max(0.0, _floor_demand_at_target(
+            model, matched, float(out[0]), float(wind[0]), float(rain[0]), float(sol[0]),
+        )) / model.compute_cop(float(out[0]))
+        residuals.append(abs(first - steady))
+        print(f"transient: start room {room} slab {slab}: booked baseline step 0 = {first:.2f} kW; "
+              f"steady at the matched target {matched:.2f} C = {steady:.2f} kW")
     spread = max(firsts) - min(firsts)
-    print(f"transient: spread of the booked step across start states = {spread:.2f} kW")
-    return spread < 0.05
+    print(f"transient: spread of the booked step across start states = {spread:.2f} kW; "
+          f"largest step 0 off its steady holding power = {max(residuals):.2e} kW")
+    return max(residuals) < 1e-6
 
 
 def arm_cost() -> bool:

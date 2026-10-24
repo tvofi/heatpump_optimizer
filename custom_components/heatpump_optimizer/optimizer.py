@@ -5166,23 +5166,23 @@ class HeatPumpOptimizer:
             cap = caps.get(cap_key)
             return min(value, cap) if cap is not None else value
 
-        tanks: list[tuple[str, float, str, float | None]] = []
+        # (store, mass, COP-read temperature, reference end, plan end)
+        tanks: list[tuple[str, float, float | None, float, float]] = []
         if p.two_zone_enabled:
-            tanks.append(("buffer", p.buffer_tank_thermal_mass,
-                          "buffer_tank_temperature", caps.get("buffer")))
+            tanks.append(("buffer", p.buffer_tank_thermal_mass, caps.get("buffer"),
+                          baseline_end.buffer_tank_temperature,
+                          optimized_end.buffer_tank_temperature))
         if include_dhw:
             dhw_cap = caps.get("dhw")
-            tanks.append(("dhw", p.dhw_tank_thermal_mass, "dhw_temperature",
-                          dhw_cap if dhw_cap is not None else p.dhw_setpoint))
-        for store, mass, temp_field, cop_temp in tanks:
+            tanks.append(("dhw", p.dhw_tank_thermal_mass,
+                          dhw_cap if dhw_cap is not None else p.dhw_setpoint,
+                          baseline_end.dhw_temperature, optimized_end.dhw_temperature))
+        for store, mass, cop_temp, ref_end, plan_end in tanks:
             cop_store = max(self.model.marginal_cop(
                 out_mean, store, store_temp=cop_temp, humidity=hum_mean,
             ), 1e-3)
             if cop_store != cop:
-                gap = mass * (
-                    _capped(getattr(baseline_end, temp_field), store)
-                    - _capped(getattr(optimized_end, temp_field), store)
-                )
+                gap = mass * (_capped(ref_end, store) - _capped(plan_end, store))
                 electrical += gap / cop_store - gap / cop
         return float(electrical * refill_price)
 
