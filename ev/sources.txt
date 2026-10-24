@@ -1,0 +1,6 @@
+batch13 not in base 87ecf385b
+87ecf385b:dev/programme/triage/s6-batch4.md:41:## P55: pool claim hygiene in cloud_dispatch (S6-V1 stale claims, S6-V2 hidden push errors, S6-V7 fire without a pool line)
+87ecf385b:dev/programme/triage/s6-batch4.md-42-Verdict: ACCEPT -> new group R10-FLY-POOL-INSTRUMENT (S; tools/audit/seat/pool.py, cloud_dispatch.py, INSTRUMENTS.md); brief: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch; the fixer fire path refuses to fire without a pool line and prints "pool read back OK"
+87ecf385b:tools/audit/seat/cloud_dispatch.py:106:def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
+87ecf385b:tools/audit/seat/cloud_dispatch.py:91:                 "BashOutput", "KillBash", "Monitor"]
+87ecf385b:tools/audit/seat/cloud_dispatch.py:114:             "is on PATH from the environment. Run anything heavy in the background with Monitor "
