@@ -1,18 +1,26 @@
 == base
-<scratch>/base/wave-r10-groups.json ==
-  -- 0 error(s), 0 warning(s)
-CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
-TOTAL: 0 error(s) across 1 file(s)
-== asbrief
-<scratch>/asbrief/wave-r10-groups.json ==
+  ERROR   [R10-FLY-POOL-INSTRUMENT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] symbol: 'record_beat': not found in the tracked tree (no tag cited either)
+  ERROR   [R10-RCA-CODESCAN-WAIT] path: dev/programme/triage/s6-batch4.md: not in the tree, and not present at its cited tag ref(s) [3383fb2a, 04860ee0, ea459c0b]
+TOTAL: 4 error(s) across 1 file(s)
+== folded
+  ERROR   [R10-FLY-POOL-INSTRUMENT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] symbol: 'record_beat': not found in the tracked tree (no tag cited either)
+  ERROR   [R10-RCA-CODESCAN-WAIT] path: dev/programme/triage/s6-batch4.md: not in the tree, and not present at its cited tag ref(s) [3383fb2a, 04860ee0, ea459c0b]
+TOTAL: 4 error(s) across 1 file(s)
+== control (planted dead path)
+  ERROR   [R10-FLY-CARRY-DISPOSITION] path: tools/pr/no_such_file_xyz.sh: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
+  ERROR   [R10-FLY-POOL-INSTRUMENT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] symbol: 'record_beat': not found in the tracked tree (no tag cited either)
+  ERROR   [R10-RCA-CODESCAN-WAIT] path: dev/programme/triage/s6-batch4.md: not in the tree, and not present at its cited tag ref(s) [3383fb2a, 04860ee0, ea459c0b]
+TOTAL: 5 error(s) across 1 file(s)
+== round-1 P66 wording substituted back (positive control)
   ERROR   [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
-  -- 1 error(s), 0 warning(s)
-CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
-TOTAL: 1 error(s) across 1 file(s)
-== asbriefp
-<scratch>/asbriefp/wave-r10-groups.json ==
-  ERROR   [R10-FLOW-JIDOKA] path: tools/pr/prepr_nonexistent_zz.sh: not in the tree, and not present at its cited tag ref(s) [fbbd3e61]
-  ERROR   [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
-  -- 2 error(s), 0 warning(s)
-CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
-TOTAL: 2 error(s) across 1 file(s)
+  ERROR   [R10-FLY-POOL-INSTRUMENT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] path: dev/programme/triage/s6-batch4.md: not in the tree, and no tag SHA is cited alongside it
+  ERROR   [R10-FLY-RECORD-BEAT] symbol: 'record_beat': not found in the tracked tree (no tag cited either)
+  ERROR   [R10-RCA-CODESCAN-WAIT] path: dev/programme/triage/s6-batch4.md: not in the tree, and not present at its cited tag ref(s) [3383fb2a, 04860ee0, ea459c0b]
+TOTAL: 5 error(s) across 1 file(s)

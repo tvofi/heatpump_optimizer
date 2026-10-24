@@ -1,24 +1,34 @@
-Fix review: blocked 2e2b374cd982d0b4d3bc4853a0227239c28e4f76 brief-lint: P66 carry text cites carries/carry-N.json, which tools/policy/brief_lint.mjs reports as an unresolved path
+Fix review: merge 7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048
 
-bus-nonce: 127d3efbc4a38998d30eaf98d9eae335
+bus-nonce: 80a76412fe72ad9ae9e8865c08484fd3
 
-## Block
+## Summary
 
-- Round 1 for this seat. Reviewed head `2e2b374cd982d0b4d3bc4853a0227239c28e4f76`, which is still the PR head (base `73b69fe0a` = origin/main).
-- The brief asks that every ACCEPT carries text `tools/policy/brief_lint.mjs` accepts. `brief_lint` reads a group's `brief` and never its `carry` array, so a roster with the seven texts appended lints clean whatever they say (ev/brief-lint.txt, base). To lint the texts themselves I folded each group's new carries into its `brief`. On that roster brief_lint prints `ERROR [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree` (1 error; the unmodified roster prints 0). The error comes from P66's carry text (`dev/programme/triage/s6-batch8.md` line 22: "a `#N` item with `carries/carry-N.json` yield zero").
-- Repair: write `dev/programme/carries/carry-<N>.json`, the form `brief-citations.md` itself uses. With that one substitution the same roster lints `TOTAL: 0 error(s)` (ev/brief-lint-fix.txt). The other six carry texts (P67, P70, P71, P72, P75, P76) lint clean.
-- Sensitivity control: changing `tools/pr/prepr.sh` to a path that does not exist in JIDOKA's folded text adds exactly one path error (ev/brief-lint.txt, asbriefp). So the instrument reads the folded texts.
+- This is round 2 for the PR. The round-1 block was at `2e2b374c`. I reviewed head `7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048`, which is the head the body's `## Head` names and is still the PR head.
+- The repair commit `7b023e7f` changes one token. P66's carry text now says `dev/programme/carries/carry-<N>.json` where it said `carries/carry-N.json`. That is exactly the repair round 1 asked for. The diff against `2e2b374c` touches nothing else.
+- Each of the seven ACCEPTs names a live roster group, and each carry text is accepted by `tools/policy/brief_lint.mjs`. The earlier findings are answered: the block is fixed, O1 stays carried, and the dismissed `## Head` wording is gone from the body.
 
 ## Findings
 
-- `tools/policy/brief_lint.mjs` lints a roster group's `brief` only (`lintFile`: `lintBrief(g.group, g.brief, ...)`), not its `carry` entries. `roster_edit.py --push`'s lint gate therefore accepts any carry text, including an unresolved citation like P66's. This is an instrument gap; this PR's diff does not touch it. Carry: O1
-- The body's `## Head` section says `2e2b374c` "merges origin/main `73b69fe0a` ... into this PR's previous head". There is no merge commit: the parent chain is 2e2b374c -> 7b3b748d -> 1890ef70 -> 73b69fe0a. The code head and base it names are correct. Carry: dismissed: template wording from the orchestrator's script that misdescribes no figure or SHA
+- `tools/policy/brief_lint.mjs` lints a roster group's `brief` and never its `carry` entries. So `roster_edit.py --push`'s lint gate would accept an unresolved citation in a carry text, which is the shape of round 1's block. The instrument gap still exists, and this PR's diff does not touch it. It is the same item round 1 carried. Carry: O1
 
 ## Evidence
 
-- Every ACCEPT names a live roster group (`handoff/audit-r10-roster` at 50c69075): P66 and P76 name R10-FLY-CARRY-DISPOSITION (not-started), P67 and P75 name R10-FLOW-JIDOKA (in-progress), P70, P71 and P72 name R10-FLY-OPENPR-ATOMIC (not-started). Each carry's append-carry target equals the group on its Verdict line. `roster_edit.ruling_verdict` returns ACCEPT for each ACCEPT, including the NARROWED ones. `triage_refusal` returns None for every text with its `triage:` citation (ev/carry-sim.txt). The DEFER targets are also live (R10-FLOW-BODY-ONLY not-started, R10-FLOW-JIDOKA).
-- Figures re-derived at head (ev/figures.txt): 7 ACCEPT / 2 DEFER / 2 REJECT. Null control `ruling_verdict(P99)` returns None. P75: 0 files under the old briefs directory, 33 role and dimension .md files, `fbbd3e61` is a commit, and `prepr.sh` step 4 still lists `tools/audit/briefs/*.md` (line 3087). P67: `rides .--red` is at `prepr.sh:777`. P76: `bus.sh` guards the message and first line through `ref_privacy.py guard` (lines 264, 1084-1092).
-- Pre-study counts that cite out-of-tree scripts (`verdict_classes.py`, `opener_refusals.sh`, `cards.json`) could not be re-derived from the tree. The file says so itself in its preamble. They are unverified by this seat.
-- Mutation proof n/a: no production code line in the diff. VERSION, the manifest and RELEASE_NOTES.md are untouched. Both files are under INERT `dev/programme/` (`tests/closure.py:273`).
-- `git merge-tree --write-tree origin/main 2e2b374cd982d0b4d3bc4853a0227239c28e4f76`: rc 0, tree 7775a74c. No conflict.
-- CI on this head: all 6 check runs (`prelude`, `refresh`, `cancel-superseded` x2 workflows) were still queued when read. No conclusion yet, so no red-check answer is owed or assessed.
+- RESULT live-groups: each ACCEPT names a group on `handoff/audit-r10-roster` at 9e9ee6ce (ev/carry-fold.txt). P66 and P76 name R10-FLY-CARRY-DISPOSITION (not-started). P67 and P75 name R10-FLOW-JIDOKA (in-progress). P70, P71 and P72 name R10-FLY-OPENPR-ATOMIC (not-started). Each carry text's `append-carry` target equals the group on its Verdict line. The DEFER targets also exist: R10-FLOW-BODY-ONLY (not-started) and R10-FLOW-JIDOKA.
+- RESULT brief-lint (ev/brief-lint.txt, ev/brief-lint-merged.txt): I folded each ACCEPT's carry text into its group's `brief` and linted that roster. The fold is my own instrument; round 1 built the same one.
+  - On the merged tree (origin/main 806aa2ce + head): base roster 0 errors, folded roster 0 errors.
+  - At the head tree alone, both rosters print the same 4 errors. They all come from roster groups citing `dev/programme/triage/s6-batch4.md` and `record_beat`, which landed on main after this PR's base 73b69fe0a. The folded texts add none of them.
+  - Positive control: putting round 1's P66 wording back adds exactly 1 error (`carries/carry-N.json: not in the tree`), on both trees.
+  - Sensitivity control: a planted dead path in R10-FLY-CARRY-DISPOSITION's folded brief adds exactly 1 error.
+- RESULT triage-gate (ev/carry-sim.txt): `roster_edit.ruling_verdict` returns ACCEPT for P66, P67, P70, P71, P72, P75 and P76, DEFER for P68 and P69, and REJECT for P73 and P74. The body's null control `ruling_verdict(P99)` returns None. `triage_refusal` returns None for all seven carry texts with their `triage:` citation. Mutant: flipping P75's verdict to DEFER makes `triage_refusal` refuse its carry ("is not an ACCEPT ruling (DEFER)").
+- RESULT figures (ev/figures.txt): the body's count reproduces as 7 ACCEPT, 2 DEFER, 2 REJECT. In-tree claims re-checked at head:
+  - P75: 0 files under the old briefs directory and 33 role or dimension .md files, at both head and origin/main. `fbbd3e61` is a commit. `prepr.sh:3087` still lists the dead glob, at head and at origin/main 806aa2ce.
+  - P67: `rides --red` is at `prepr.sh:777`.
+  - P76: `bus.sh` guards only through `ref_privacy.py guard` (line 264), and its self-test is at line 1092.
+  - P66: its roster quote is present.
+  - P69: all three of its roster quote fragments are present.
+- Counts that cite the pre-study's out-of-tree scripts (`verdict_classes.py`, `opener_refusals.sh`, `cards.json`) cannot be re-derived from the tree, and this seat has not verified them. The file's preamble says so itself.
+- Mutation proof is n/a: the diff has no production code line. `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched. Both changed files are under INERT `dev/programme/` (`tests/closure.py:273`). The diff contains no host paths.
+- Merge: `git merge-tree --write-tree origin/main 7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048` against origin/main 806aa2ce gives rc 0, tree 0e09b339. No conflict.
+- CI on this head: 36 check runs were read via the check-runs API. None is red. 34 have concluded (success or skipped). `tests / coverage` and one `prelude` were still in progress when read. No red check is owed an answer, and the body's `## Red checks: none` matches.
+- Forward-carry: the body says the orchestrator routes the carries through `roster_edit.py` once the file is on main. The simulation above shows each text would pass that gate.
