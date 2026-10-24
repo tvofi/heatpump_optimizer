@@ -1,0 +1,30 @@
+train.sh: queue=train/queue11.json repo=tvofi/heatpump_optimizer state=train/s13 pid=3797 start=2026-10-24T14:41:07Z
+BATCH 20261024-144108 pid=3820 base=main queue=2 (#2714 #2708) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold aa691352: the record beat waits
+BOT #2713 refused by the guard at f4210a5e: AUTOMERGE REFUSE #2713: required check gate failed; not merged
+OVERLAP: main at e97f5749b441 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2714 serial: workflow
+#2708 serial: grader
+OVERLAP: recarrying #2714, #2708 up front, their pull_request runs fire together
+#2714 overlap: recarry start
+BOT #2713 refused by the guard at f4210a5e: AUTOMERGE REFUSE #2713: required check gate failed; not merged
+TRAIN HOLD refs/heads/train-hold 0b3258bb: the record beat waits
+#2714 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-runq/wt held fix/r10-roster-runq, clean at origin/fix/r10-roster-runq; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-runq/wt switch fix/r10-roster-runq)
+#2714 recarry START (branch fix/r10-roster-runq)
+#2714 recarry: main merged, head 7efaa203; app_push: RECARRY: prepr SKIPPED: HEAD 7efaa203 is the clean merge of the live head dba7f86b and origin/main's e97f5749, and the body is the live one
+#2708 overlap: recarry start
+BOT #2713 refused by the guard at f4210a5e: AUTOMERGE REFUSE #2713: required check gate failed; not merged
+TRAIN HOLD refs/heads/train-hold 4fe7d55c: the record beat waits
+#2708 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-envmatrix-noremote/wt held fix/r10-fly-envmatrix-noremote, clean at origin/fix/r10-fly-envmatrix-noremote; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-fly-envmatrix-noremote/wt switch fix/r10-fly-envmatrix-noremote)
+#2708 recarry START (branch fix/r10-fly-envmatrix-noremote)
+#2708 recarry: main merged, head c898cc1b; app_push: RECARRY: prepr SKIPPED: HEAD c898cc1b is the clean merge of the live head ae77c415 and origin/main's e97f5749, and the body is the live one
+serial: #2714, #2708
+TRAIN HOLD refs/heads/train-hold 771ad2d8: the record beat waits
+beat: waiting CI at 7efaa203 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5d4ccbf8: the record beat waits
+#2714 7efaa203 ci red=['gate']
+SKIP #2714 ci: #2714 red at the head: gate
+TRAIN HOLD refs/heads/train-hold d9a443c3: the record beat waits
