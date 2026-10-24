@@ -565,6 +565,13 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
+      - name: Show the roster queue runner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
+          grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
+
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -747,6 +754,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
           grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
+
+      - name: Show the cloud setup profile refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash tools/audit/seat/cloud-setup.sh --self-test | tee "$RUNNER_TEMP/cloud-setup-self-test.txt"
+          grep -Eq '^cloud_setup self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-setup-self-test.txt"
 
       - name: Show the state-doc writer refusing its own fixtures
         if: ${{ !cancelled() }}
