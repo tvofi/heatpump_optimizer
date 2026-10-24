@@ -21,6 +21,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
+- R10-THERMAL-POWER-OPTION (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CI-LAYOUT-P2 (stage carries-open, branch `handoff/r10-ci-layout-p2b-v2`): `git fetch origin handoff/r10-ci-layout-p2b-v2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-JIDOKA (stage in-progress, branch `handoff/r10-flow-jidoka`): `git fetch origin handoff/r10-flow-jidoka && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
