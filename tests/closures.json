@@ -3628,6 +3628,7 @@
    "dev/audit/harnesses/r10_title_seam.sh",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
+   "dev/audit/harnesses/r10_train_upgrade_mutants.py",
    "dev/audit/harnesses/r10_triage_gate_replay.py",
    "dev/audit/harnesses/r10_trust_relative_bundle.py",
    "dev/audit/harnesses/r10_u9a_ratchet_nulls.py",
