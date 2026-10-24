@@ -1,0 +1,6 @@
+RESULT P53 ACCEPT
+RESULT null P54 None
+RESULT mutant no-verdict-line unreadable
+RESULT mutant DEFER DEFER
+RESULT triage_refusal cite P53 None
+RESULT triage_refusal cite P54 dev/programme/triage/s6-batch3.md#P54 is not an ACCEPT ruling (no such entry)
