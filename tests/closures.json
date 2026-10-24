@@ -3618,6 +3618,7 @@
    "dev/audit/harnesses/r10_stats_window.mjs",
    "dev/audit/harnesses/r10_structure_blind.py",
    "dev/audit/harnesses/r10_sweep_driver_arm.py",
+   "dev/audit/harnesses/r10_thermal_power_option.py",
    "dev/audit/harnesses/r10_tick_drivers.py",
    "dev/audit/harnesses/r10_tick_owed_level.py",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",

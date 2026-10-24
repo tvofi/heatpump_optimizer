@@ -1127,6 +1127,11 @@ CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 #: (``flow_meter.read_heat_output_kw``), used only while the install has
 #: neither a power nor a frequency signal.
 CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
+#: Optional sensor carrying the heat the pump delivers, in W or kW (#1955
+#: fold e). The direct reading of what the flow meter estimates, so it
+#: outranks the meter whenever it is configured, and with a power entity it
+#: makes COP an observable (``flow_meter.read_heat_output_kw``).
+CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
 #: The compressor's frequency range where no number entity publishes one:
@@ -1578,6 +1583,8 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
 # Flow is read with those two temperatures, so it shares their horizon.
 INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY] = 30.0
+# A thermal meter is read with the electrical one it is divided by.
+INPUT_MAX_AGE_MINUTES[CONF_THERMAL_POWER_ENTITY] = 30.0
 
 # Physical windows, degC, for every temperature key ``InputReader.read``
 # serves (D1-s5-52). A DS18B20 reports -127 for a lost bus and 85 for a
