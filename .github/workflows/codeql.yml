@@ -28,9 +28,15 @@ name: CodeQL
 #   threat_model: remote
 #     Workflow-based analysis already defaults to the remote threat model, so
 #     nothing is configured here; the two run the same model.
-#   schedule: weekly
-#     Re-derived as the weekly cron below. Default setup exposes the cadence
-#     only, not its slot, so the day and hour are this workflow's own choice.
+#   schedule: weekly -- NOT carried (r10-codeql-dependabot, 2026-10-24,
+#     departing from DESIGN-P2 2.1 under mandate 6329234399). A scheduled run
+#     of this file is its own top-level run, and the codeql action keys an
+#     analysis by the TOP-LEVEL workflow and job, so it uploaded under
+#     `.github/workflows/codeql.yml:analyze` while every umbrella run uploads
+#     under `.github/workflows/ci.yml:analyze`: a second configuration per
+#     category on main, refreshed weekly, closing its alerts only weekly. Every
+#     push to main analyzes every leg in full, which is what the weekly cadence
+#     existed to guarantee on a quiet default branch.
 #
 # No paths-ignore or exclude: the default-setup configuration carried none
 # (the API response has no such fields -- it analyzed the whole repository),
@@ -46,10 +52,11 @@ name: CodeQL
 # file the list calls inert.
 #
 # This file is a callee of ci.yml (DESIGN-P2 2.1): `workflow_call` for the
-# umbrella's `codeql` job, which passes the prelude's `legs`, and the weekly
-# schedule. The push/pull_request/merge_group triggers, the dispatch (a
-# dispatch is ci.yml's), the `scope` job and `cancel-superseded` (the one copy
-# is ci.yml's) are gone. A scheduled run has no `legs`, and empty analyzes.
+# umbrella's `codeql` job, which passes the prelude's `legs`, and nothing else
+# (the schedule is gone, above). The push/pull_request/merge_group triggers,
+# the dispatch (a dispatch is ci.yml's), the `scope` job and
+# `cancel-superseded` (the one copy is ci.yml's) are gone. Empty `legs`
+# analyzes every leg.
 #
 # Default setup analyzed the default branch only; the umbrella's `push` fires
 # on main and not on master, unlike hassfest/validate.
@@ -71,13 +78,11 @@ on:
   workflow_call:
     inputs:
       # The prelude's `legs` output: {"actions": "skip|analyze", ...}. Empty
-      # (a schedule, or a prelude that printed nothing) analyzes every leg.
+      # (a prelude that printed nothing) analyzes every leg.
       legs:
         description: "JSON object mapping each leg to skip or analyze"
         type: string
         default: ""
-  schedule:
-    - cron: "41 2 * * 1"
 
 # Minimal for the task: reading the tree and uploading the SARIF. A callee job
 # without its own block receives this floor, capped by the caller's grant.

@@ -20948,14 +20948,46 @@ _CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
                / "workflows" / "codeql.yml").read_text()
 _CODEQL_TRIGGERS = (_yaml.safe_load(_CODEQL_YML) or {}).get(True) or {}
 # DESIGN-P2 2.1: codeql.yml is a callee of ci.yml. `workflow_call` takes the
-# prelude's `legs`; the weekly schedule stays (it runs on main only); a
-# dispatch is ci.yml's, and the push/pull_request/merge_group triggers are the
-# umbrella's, so a standalone trigger here would run the analysis twice.
+# prelude's `legs`; a dispatch is ci.yml's, and the push/pull_request/
+# merge_group triggers are the umbrella's, so a standalone trigger here would
+# run the analysis twice. The weekly schedule is gone too (r10-codeql-
+# dependabot, a departure from 2.1): a top-level run of this file uploads under
+# `codeql.yml:analyze`, a second code-scanning configuration beside the
+# umbrella's `ci.yml:analyze`.
 R.check(
-    "codeql.yml is a callee: workflow_call and the weekly schedule, no other trigger",
-    set(_CODEQL_TRIGGERS) == {"workflow_call", "schedule"}
+    "codeql.yml is a callee: workflow_call alone, no schedule and no other trigger",
+    set(_CODEQL_TRIGGERS) == {"workflow_call"}
     and "legs" in ((_CODEQL_TRIGGERS.get("workflow_call") or {}).get("inputs") or {}),
     f"triggers={sorted(_CODEQL_TRIGGERS)}",
+)
+# .github/dependabot.yml is the artifact the PR contract's Dependabot arm reads
+# (tools/policy/dependabot_contract.mjs). Its reader is a line scan, not YAML,
+# so this compares the scan with a real YAML parse of the same file: an entry
+# shape the scan misses (a `directories:` list, a reordered key) reads as a
+# different entry list here instead of a manifest silently left unadmitted. A
+# second arm: every configured ecosystem is one the module maps to manifests,
+# so a new ecosystem cannot be configured and then have every PR refused.
+_DEPENDABOT_PATH = pathlib.Path(__file__).resolve().parents[1] / ".github" / "dependabot.yml"
+_DEPENDABOT_YAML = [
+    {"ecosystem": u.get("package-ecosystem"), "directory": u.get("directory")}
+    for u in ((_yaml.safe_load(_DEPENDABOT_PATH.read_text()) or {}).get("updates") or [])]
+_DEPENDABOT_SCAN = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import(process.argv[1]).then(async (m) => { const t = (await import('node:fs'))"
+     ".readFileSync(process.argv[2], 'utf8'); console.log(JSON.stringify({"
+     "entries: m.dependabotEntries(t), manifests: m.dependabotManifests(t).length})) })",
+     str(pathlib.Path(__file__).resolve().parents[1] / "tools" / "policy" / "dependabot_contract.mjs"),
+     str(_DEPENDABOT_PATH)],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "dependabot_contract.mjs reads .github/dependabot.yml's entries as YAML does",
+    bool(_DEPENDABOT_YAML) and _DEPENDABOT_SCAN.get("entries") == _DEPENDABOT_YAML,
+    f"yaml={_DEPENDABOT_YAML}; scan={_DEPENDABOT_SCAN.get('entries')}",
+)
+R.check(
+    "every ecosystem .github/dependabot.yml configures maps to manifests in dependabot_contract.mjs",
+    _DEPENDABOT_SCAN.get("manifests") == len(_DEPENDABOT_YAML),
+    f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
 # pull request. Its runtime swings with runner load, and the 30-minute cap sat
