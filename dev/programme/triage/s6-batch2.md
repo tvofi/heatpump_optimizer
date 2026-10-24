@@ -17,32 +17,36 @@ GitHub calls: 0.
 A roster op citing an ACCEPT below resolves only once this file is on the
 roster branch or origin/main (`roster_edit.py` reads the ruling from there).
 
-**One new group, `R10-FLY-STANDING-SEATS`** (fly-in, lane F, size S, no
-`after`), carries P45, P46 and P51: they touch the same four files, and one
-fixer edits them once. Files: `tools/audit/seat/sweep_template.md`,
-`tools/audit/seat/pulse.py`, `tools/audit/seat/INSTRUMENTS.md`,
-`dev/governance/roles/standing-tick.md`, `standing-merge.md`,
-`standing-dispatch.md`, `standing-roster.md`. Brief for `append-group`:
+**One destination, `R10-ORCH-BEATD`** (existing, not-started, in the in-tree
+roster at origin/main), carries P45, P46 and P51. Its brief owns "the
+supervised beat and its job table ... the journal the sweep's liveness rule
+reads" (files `daemonize.py`, `tick_loop.sh`), the closest live scope to the
+sweep template's liveness step (1b), `pulse.py`'s seat judgement and the
+standing seats' waiting. A new group could not be the destination: `carry_audit`
+reads the in-tree roster, which a later roster op does not yet change. The work
+may later be split into its own group (`R10-FLY-STANDING-SEATS`: files
+`tools/audit/seat/sweep_template.md`, `pulse.py`, `INSTRUMENTS.md`,
+`dev/governance/roles/standing-*.md`) if the group's design pass finds it
+too wide; the carry text is written to move whole. Each carry adds those files
+to the group's scope. The carry text, shared by P45, P46 and P51:
 
-> The standing seats' wiring, three defects found in session s5 and s6 (triage
-> `s6-batch2.md#P45`, `#P46`, `#P51`). (1) `sweep_template.md` steps (2), (3),
-> (4) and (6) tell the orchestrator to do inline what decision 0015 and the
-> owner (2026-10-23T19:42Z) give to the standing seats; rewrite each to queue a
-> line to its seat and to read its report. (2) `pulse.py` judges a standing
-> seat only by `--seat-queue FILE`, whose lines must be `<epoch> <text>`; the
-> merge and roster queues are not that format, so add `--seat-alive
-> SEAT=FILE[:MIN]` (the mtime of `<seat>.alive`, STOPPED past MIN or the
-> seat's STANDING cadence, UNREADABLE when absent) and make step (1b) use it.
-> (3) each `standing-*.md` gets a Wait paragraph: a seat ends a turn only
-> when nothing is owed; it waits with a `run_in_background` loop that touches
-> its alive file and exits on a queue change or the window's end. Controls:
-> the rendered sweep names no train launch for the orchestrator; a fresh
-> `.alive` is ok and a stale one STOPPED, and the old queue arm still reads
-> its own format; a mutant for each arm of `--seat-alive`. Policy files: the
-> owner approves the merge.
+> Standing-seat wiring (triage `s6-batch2.md#P45`, `#P46`, `#P51`). (1)
+> `sweep_template.md` steps (2), (3), (4) and (6) tell the orchestrator to do
+> inline what decision 0015 and the owner (2026-10-23T19:42Z) give to the
+> standing seats; rewrite each to queue a line to its seat and read its
+> report. (2) `pulse.py` judges a standing seat only by `--seat-queue FILE`
+> with `<epoch> <text>` lines; add `--seat-alive SEAT=FILE[:MIN]` (mtime of
+> `<seat>.alive`, STOPPED past MIN or the seat's STANDING cadence, UNREADABLE
+> when absent) and make step (1b) use it. (3) each `standing-*.md` gets a Wait
+> paragraph: a seat ends a turn only when nothing is owed; it waits with a
+> `run_in_background` loop that touches its alive file and exits on a queue
+> change or the window's end. Controls: the rendered sweep names no train launch
+> for the orchestrator; a fresh `.alive` is ok and a stale one STOPPED, the old
+> queue arm still reads its own format; a mutant for each arm. Policy files:
+> the owner approves the merge.
 
 ## P45: sweep_template.md routes the orchestrator to work the standing seats own
-Verdict: ACCEPT -> new group R10-FLY-STANDING-SEATS (brief above, item 1)
+Verdict: ACCEPT -> R10-ORCH-BEATD (carry above, item 1)
 Source: s6 proposals.md item I (s5 measurement).
 Instances: 2 sessions -- s5 wrote five "Sweep overrides" for steps (1b), (2),
 (3), (4) and (6) into `r10s5/seat-ledger.md` ("Sweep overrides (owner,
@@ -65,7 +69,7 @@ Decided: the template, not the overlay, because an overlay holds per-session
 paths and `sweep_render.py` is the one rendering.
 
 ## P46: pulse.py cannot judge a standing seat whose queue is not `<epoch> <text>`
-Verdict: ACCEPT NARROWED -> new group R10-FLY-STANDING-SEATS (brief above, item 2); the harness-neutral queue contract for all four seats is REJECTED
+Verdict: ACCEPT NARROWED -> R10-ORCH-BEATD (carry above, item 2); the harness-neutral queue contract for all four seats is REJECTED
 Source: s6 proposals.md item J (s5 measurement).
 Instances: 2 sessions, 4 queue files -- s5's first pulse (19:39Z) read
 `merge-queue.txt`'s leading PR number as an epoch ("57 years old"), so
@@ -199,7 +203,7 @@ session scratch, which is where it is today. Reopen only if the P-A stub
 lands and a per-seat fire still costs a measured, material share of a round.
 
 ## P51: standing seats end their turn after one pass
-Verdict: ACCEPT NARROWED -> new group R10-FLY-STANDING-SEATS (brief above, item 3); a tracked `seat_loop.sh` is REJECTED
+Verdict: ACCEPT NARROWED -> R10-ORCH-BEATD (carry above, item 3); a tracked `seat_loop.sh` is REJECTED
 Source: s6 proposals.md item R (s6 measurement, 07:49Z-08:00Z).
 Instances: 4 in the opening 11 minutes of one session -- the haiku tick and
 dispatch seats and the sonnet merge and roster seats each ended their first
