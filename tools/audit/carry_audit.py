@@ -38,7 +38,9 @@ starts an item without a bullet. A FINDING item:
            lines and the attribution line never are.
 
 A DESTINATION (`Dests.check`):
-  GROUP      a group of the newest roster (`roster_lib`), not done;
+  GROUP      a group of the newest roster (`roster_lib`), not done; with no
+             --roster-ref, also one open on the round's roster branch
+             (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
   #N         owned: a live group lists it in `issues`/`fixes`, it has a
              `dev/programme/carries/carry-N.json`, or an O-brief's file name
              carries N; with `gh` reads (`pr`, `sweep`) it must also be open;
@@ -278,11 +280,15 @@ def seg_dests(seg: str) -> list[str]:
 # ------------------------------------------------------------ destinations
 class Dests:
     """What a destination may name: the roster's groups, the owned issues,
-    the out-of-tree briefs, and (with `gh`) each issue's state."""
+    the out-of-tree briefs, and (with `gh`) each issue's state. `round_roster`,
+    `(ref, roster)`, is the round's roster branch: finding-propagation.md counts
+    a carry to a group open there as in the tree before the group reaches main."""
 
     def __init__(self, roster: dict, carry_issues: set[int], briefs_dir: str | None = None,
-                 issue_state=None) -> None:
+                 issue_state=None, round_roster: tuple[str, dict] | None = None) -> None:
         self.groups = roster_lib.groups_of(roster)
+        self.round_ref, self.round_groups = ((round_roster[0], roster_lib.groups_of(round_roster[1]))
+                                             if round_roster else (None, {}))
         self.owned: dict[int, str] = {n: f"{CARRIES_DIR}/carry-{n}.json" for n in carry_issues}
         for name, g in self.groups.items():
             if roster_lib.is_open(g):
@@ -318,18 +324,21 @@ class Dests:
             if not any(h.is_file() for h in hits):
                 return False, f"no brief {tok}{'' if '-' in tok else '-*'}.md in {self.briefs_dir}"
             return True, ""
-        g = self.groups.get(tok)
-        if g is None:
-            return False, f"{tok} is not a group of the roster"
-        if not roster_lib.is_open(g):
-            return False, f"{tok} is done (resume.stage {(g.get('resume') or {}).get('stage')})"
-        return True, ""
+        g, r = self.groups.get(tok), self.round_groups.get(tok)
+        if g is None and r is None:
+            return False, f"{tok} is not a group of the roster{f' or of {self.round_ref}' if self.round_ref else ''}"
+        if g is not None and roster_lib.is_open(g):
+            return True, ""
+        if r is not None and roster_lib.is_open(r):
+            return True, f"{tok} resolved on {self.round_ref}"
+        return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
 
 
 def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
                issue_state=None) -> Dests:
     # A carry file's destination issue is its own `issue` field (brief_lint.mjs
     # owns the file-name grammar and refuses a name that disagrees with it).
+    round_roster = None
     if ref:
         roster = roster_lib.show_roster(str(repo), ref)
         r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
@@ -339,6 +348,12 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
     else:
         roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
         texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
+        # The tree's roster lags the round's branch (finding-propagation.md);
+        # a branch this clone lacks is skipped, which only narrows what passes.
+        git = roster_lib.git_in(str(repo))
+        rref = roster_lib.round_ref(git)
+        if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
+            round_roster = (rref, roster_lib.show_roster(str(repo), rref))
     carry = set()
     for t in texts:
         try:
@@ -347,7 +362,7 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
             continue
         if isinstance(n, int):
             carry.add(n)
-    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state)
+    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
 
 
 # ---------------------------------------------------------------- the audit
@@ -395,8 +410,7 @@ def report(res: dict, label: str = "") -> int:
         elif r["status"] == "bad":
             print(f"BAD-DEST {label}{r['where']} item {r['id']}: {'; '.join(r['bad'])}")
         for n in r["notes"]:
-            if "UNVERIFIED" in n:
-                print(f"NOTE {label}{r['where']} item {r['id']}: {n}")
+            print(f"NOTE {label}{r['where']} item {r['id']}: {n}")
     u = sum(r["status"] == "unrouted" for r in rows)
     b = sum(r["status"] == "bad" for r in rows)
     print(f"CARRY-AUDIT{(' ' + label.strip()) if label else ''}: {len(rows)} finding item(s): "
@@ -649,6 +663,43 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
+    rnd = ("origin/handoff/audit-r10-roster", {"groups": roster["groups"] + [
+        {"group": "R10-BRANCH", "resume": {"stage": "not-started"}},
+        {"group": "R10-BRDONE", "resume": {"stage": "done"}}]})
+    Drr = Dests(roster, {300}, tmp.name, round_roster=rnd)
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=Drr)
+    check("a group only on the round's roster ref is a destination, and the note names that ref",
+          r["u"] == 0 and r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n")
+    check("... and without the round ref it is not (null control)", r["b"] == 1)
+    # load_dests itself reads the round ref, in a scratch clone whose tree and
+    # origin/main hold `roster` and whose round branch adds R10-BRANCH.
+    gtmp = tempfile.TemporaryDirectory()
+    rp = Path(gtmp.name, roster_lib.ROSTERS_DIR, "wave-r10-groups.json")
+    rp.parent.mkdir(parents=True)
+
+    def git(*argv: str) -> None:
+        subprocess.run(["git", "-C", gtmp.name, "-c", "user.name=t", "-c", "user.email=t@t", "-c",
+                        "commit.gpgsign=false", *argv], capture_output=True, check=True)
+    git("init", "-q")
+    for refname, data in (("refs/remotes/" + rnd[0], rnd[1]), ("refs/remotes/origin/main", roster)):
+        rp.write_text(json.dumps(data))
+        git("add", "-A")
+        git("commit", "-qm", refname)
+        git("update-ref", refname, "HEAD")
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
+    check("load_dests reads the round ref: a group only there passes, the note naming it",
+          r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
+    git("update-ref", "-d", "refs/remotes/" + rnd[0])
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
+    check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
+    gtmp.cleanup()
+    r = run(plant.rstrip() + " Carry: R10-INVENTED\n", d=Drr)
+    check("a group on neither ref is a bad destination", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-OVER\n", d=Drr)
+    check("a group done on main and on the round ref is a bad destination", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-BRDONE\n", d=Drr)
+    check("a group done on the round ref alone is a bad destination", r["b"] == 1)
     r = run(plant.rstrip() + " Carry: R10-LIVE, #999\n")
     check("every destination of a list must hold", r["b"] == 1)
     r = run(head + "## Friction\n\nnone\n\n## Forward-carry\n\n`none`\n")
