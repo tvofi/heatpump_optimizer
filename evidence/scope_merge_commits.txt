@@ -1,0 +1,14 @@
+ dev/programme/delivery/2763.md     |  1 +
+ dev/programme/triage/s6-batch18.md | 24 ++++++++++++++++++++++++
+ 2 files changed, 25 insertions(+)
+31f2fa9ef53920cebeb12327bbca8a81bfa638ac
+merge-tree rc=0
+0
+0
+b2de1d2fda8645b62f5665505f2e57c86d205a5a tvofi
+record: the delivery row for #2763
+
+69efb1cbbde94c5a414f60f3d31ae0616f05907a tvofi
+triage: s6 batch 18, P87 (rows go through update_pr.sh so the Head note moves with them)
+
+b2de1d2fda8645b62f5665505f2e57c86d205a5a	refs/heads/triage/s6-batch18
