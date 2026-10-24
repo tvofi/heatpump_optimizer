@@ -1,0 +1,8 @@
+GitHub search (one call), repo tvofi/heatpump_optimizer, query exactly as P88 states it:
+  record: delivery rows created:>=2026-10-24
+total_count 42, which counts every PR the fuzzy search matched (triage, fix and policy PRs included).
+PRs titled "record: delivery rows for ... (autofix)" created on/after 2026-10-24 (UTC): 20
+  #2680 #2682 #2684 #2685 #2686 #2687 #2694 #2695 #2699 #2701 #2702 #2703 #2705 #2713 #2740 #2751 #2754 #2757 #2760  (closed: 19)
+  #2769 (open, created 21:41:54Z, after the PR head's 21:29Z creation)
+So at the time of P88's read there were 19 record PRs, all 19 merged, not "37 opened, 24 merged".
+The first-parent git count agrees: 19 record/autofix merges on 2026-10-24 at the merge base 0810d5b8f (record-merges.txt).
