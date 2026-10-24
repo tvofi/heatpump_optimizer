@@ -308,12 +308,6 @@ def self_test() -> int:
             print(f"FAIL {name}: got {got!r}, want {want!r}")
 
     fixture = json.loads((HERE.parent / "policy" / "fixtures" / "required-contexts.json").read_text())
-    # The 17 are the ruleset's set until the cut-over: since P2b `contexts` is the
-    # post-PUT `gate`, and the old set is recorded whole as `pre_cutover`. This
-    # migration invariant goes with `pre_cutover` in the beat after the cut-over.
-    check("REQUIRED['pr'] is the 17 pre-cut-over contexts, renamed, and arch-instrument (U5b)",
-          sorted(n.split(" / ", 1)[1] for n in REQUIRED["pr"] if n != "tests / arch-instrument"),
-          sorted(fixture.get("pre_cutover", {}).get("contexts", [])))
     check("D-2: arch-score only when the diff reaches custom_components/",
           set(REQUIRED["pr-cc"]) - set(REQUIRED["pr"]), {"arch-score / arch-score"})
     check("B3: push owes the Tests push run's ratchets", {"tests / ci-ratchet", "tests / coverage-ratchet"} <= set(REQUIRED["push"]), True)
