@@ -1,0 +1,11 @@
+RESULT ruling_verdict P81 = REJECT
+RESULT null P99 = None
+RESULT mutant(no verdict line) P81 = unreadable
+RESULT triage_refusal cite P81 = dev/programme/triage/s6-batch12.md#P81 is not an ACCEPT ruling (REJECT)
+RESULT figure:
+      1 REJECT
+268:    # living handover is the hole is_handover cuts, under dev/programme/ as
+273:    "dev/programme/",
+521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+tests/layout.json
+tools/audit/seat/roster_edit.py
