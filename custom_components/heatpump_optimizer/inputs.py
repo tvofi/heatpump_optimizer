@@ -282,7 +282,7 @@ def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
     seen = (
         isinstance(reported, datetime)
         and isinstance(updated, datetime)
-        and reported > updated
+        and reported >= updated
     )
     if owner is None:
         return seen
