@@ -130,8 +130,9 @@ NOT_A_TEST = {
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
     # The replay lane (round 8, move 2): recorded days through the real
-    # coordinator, a step of the nightly `slow` job, nightly until its cost on
-    # a week of real data is known. NOT inert: `tests/entities.py` drives its
+    # coordinator, a step of the nightly `slow` job, and on a pull request
+    # only when `replay_reach` below finds its diff reaching what the lane
+    # times (tests.yml's `replay` job). NOT inert: `tests/entities.py` drives its
     # invariant controls, its sanitiser over every fixture and the synthetic
     # fixture's regeneration, so a change to any of them selects a script.
     "replay.py",
@@ -3452,6 +3453,52 @@ def write_affected(plan: dict, workdir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# The timed replay lane on a pull request (R10-REPLAY-SCOPED; tvofi,
+# 2026-10-15: "Hard no, only when relevant"). replay.py stays NOT_A_TEST and
+# nightly.yml's `slow` job runs it in full; a pull request whose diff reaches
+# what the lane times runs it once more, in tests.yml's unrequired `replay`
+# job, which `closure-scope` gates on this rule. The reach is the per-cycle
+# files the lane's cost check names (replay.COST_FILES), the optimizer each
+# cycle solves with, the lane itself and its fixtures. COST_FILES is read from
+# the lane's source as a literal -- never imported, never copied -- so the lane
+# stays its one owner and a lane source this cannot read runs the lane.
+
+REPLAY_LANE = "tests/replay.py"
+REPLAY_PACKAGE = "custom_components/heatpump_optimizer/"
+_REPLAY_FIXTURE = re.compile(r"\Atests/replay/[^/]+\.json\Z")
+
+
+def replay_cost_files(source: str | None = None) -> tuple[str, ...]:
+    """The lane's ``COST_FILES``, read as a literal from its source."""
+    text = (ROOT / REPLAY_LANE).read_text() if source is None else source
+    for node in ast.parse(text).body:
+        targets = (node.targets if isinstance(node, ast.Assign)
+                   else [node.target] if isinstance(node, ast.AnnAssign) else [])
+        if any(isinstance(t, ast.Name) and t.id == "COST_FILES" for t in targets):
+            return tuple(ast.literal_eval(node.value))
+    raise ValueError(f"{REPLAY_LANE} assigns no COST_FILES")
+
+
+def replay_reach(files: list[str], cost_files: tuple[str, ...] | None = None) -> list[str]:
+    """The changed paths that reach the timed replay lane, in input order."""
+    cost = replay_cost_files() if cost_files is None else cost_files
+    reach = {REPLAY_PACKAGE + f for f in (*cost, "optimizer.py")} | {REPLAY_LANE}
+    return [f for f in files if f in reach or _REPLAY_FIXTURE.match(f)]
+
+
+def replay_decision(files: list[str], source: str | None = None) -> tuple[bool, str]:
+    """Run the lane or not, and why; an unreadable lane source runs it."""
+    try:
+        cost = replay_cost_files(source)
+    except (OSError, SyntaxError, ValueError) as e:
+        return True, f"cannot read the lane's COST_FILES ({e}); the lane runs"
+    hits = replay_reach(files, cost)
+    if hits:
+        return True, "the diff reaches the timed replay lane: " + ", ".join(hits)
+    return False, "the diff reaches none of the timed replay lane's files"
+
+
+# ---------------------------------------------------------------------------
 # The scoped re-derive's lane plan (round-9 merge-path pre-study, R1)
 #
 # The scoped arm used to loop `--single` over affected.scripts one script at
@@ -4985,6 +5032,8 @@ def main() -> int:
     ch = sub.add_parser("changed")  # THE changed-file list every lane reads
     ch.add_argument("--base", required=True); ch.add_argument("--head", required=True)
     ch.add_argument("--two-dot", action="store_true")
+    rr = sub.add_parser("replay-reach")  # `replay=true|false`, for $GITHUB_OUTPUT
+    rr.add_argument("--files-from", required=True)
     lp = sub.add_parser("lane-plan")
     # Exactly one of the two inputs: the scoped arm's selected list from a
     # file, or the full arm's derived recording set (round-9 C1).
@@ -5061,6 +5110,12 @@ def main() -> int:
         return 0
     if a.cmd == "changed":
         print("\n".join(changed_between(a.base, a.head, dots=".." if a.two_dot else "...")))
+        return 0
+    if a.cmd == "replay-reach":
+        run, why = replay_decision([l.strip() for l in Path(a.files_from).read_text().splitlines()
+                                    if l.strip()])
+        print(why, file=sys.stderr)
+        print(f"replay={'true' if run else 'false'}")
         return 0
     if a.cmd == "affected":
         files = list(a.files or [])
