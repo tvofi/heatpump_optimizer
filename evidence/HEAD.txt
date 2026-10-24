@@ -1,0 +1,5 @@
+head reviewed: c70c3e464a4edee48a81dd65c8c612f6e4139c3b
+authored code head: acd865b03936e53255dae9a9d9914a531e69b2d2
+merge base: 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
+origin/main: 806aa2ce89aeb6c00cf756195f31026ab798f3ca
+roster ref handoff/audit-r10-roster read at 65c67fc26392c4d39eca929fa9cc7b59bd1c8cb3 and again at b90717be14868c6a4d81373d28fe62f92e2f3964 (the brief is the same at both)

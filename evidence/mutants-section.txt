@@ -1,0 +1,53 @@
+RESULT R1 section rc=1 failing=3
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 12.0, 
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 6.0, 'savings_sek': 2.0, 'savings_pct': 25.0, '
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 16.0, 'actual_sek': 12.0, 'savings_sek': 4.0, 'savings_pct': 25.0, 'estimated'
+RESULT R2 section rc=1 failing=4
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 12.0, 
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 6.0, 'savings_sek': 2.0, 'savings_pct': 25.0, '
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 16.0, 'actual_sek': 12.0, 'savings_sek': 4.0, 'savings_pct': 25.0, 'estimated'
+    FAIL #2492: an install whose meter reads its model keeps the modelled figures byte-identical  [{'month': '2026-01', 'baseline_sek': 9.6, 'actual_sek': 5.6, 'savings_sek': 4.0, 'savings_pct': 41.666666
+RESULT R3 section rc=1 failing=1
+    FAIL #2492: a month begun without the plan line stays modelled; the next one calibrates  [{'2026-01': dict_keys(['savings_baseline', 'savings_actual', 'savings_plan']), '2026-02': dict_keys(['savings_
+RESULT R4 section rc=1 failing=1
+    FAIL #2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)  [{'2026-01': {'lines': {'savings_baseline': {'kwh': 1.0, 'sek': 1.0}, 'savings_actual': {'kwh': 
+RESULT R5 section rc=1 failing=9
+    FAIL open month scales the baseline, the actual and the saving by one factor  [{'month': '2026-02', 'baseline_sek': 5.6, 'actual_sek': 5.6, 'savings_sek': 0.0, 'savings_pct': 0.0, 'estimated': True, '
+    FAIL a closed month is unscaled; nothing saved reads baseline == actual on the energy basis  [{'month': '2026-01', 'baseline_sek': 1.0, 'actual_sek': 20.0, 'savings_sek': -19.0, 'savings_pct': -100.0,
+    FAIL the closed month's actual is the covered metered energy at spot plus fee, not the bill  [row {'month': '2026-09', 'baseline_sek': 5.6, 'actual_sek': 15.0, 'savings_sek': -9.4, 'savings_pct': -100
+    FAIL the saving prices both sides at spot plus the grid fee, covered intervals only  [{'month': '2026-09', 'baseline_sek': 5.6, 'actual_sek': 15.0, 'savings_sek': -9.4, 'savings_pct': -100.0, 'estimat
+    FAIL the open month scales by the month's hours over the hours it settled  [{'month': '2026-02', 'baseline_sek': 1344.0, 'actual_sek': 952.0, 'savings_sek': 392.0, 'savings_pct': 29.166666666666668, '
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2026-01', 'baseline_sek': 12.0, 'actual_sek': 0, 's
+    FAIL #2492: and the modelled basis (no plan line) books the model's gap as a loss (the control: the calibration is what moved it)  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 0, 'savings_
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 12.0, 'actual_sek': 0, 'savings_sek': 12.0, 'savings_pct': 100.0, 
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 24.0, 'actual_sek': 0, 'savings_sek': 24.0, 'savings_pct': 100.0, 'estimated':
+RESULT R6 section rc=1 failing=11
+    FAIL open month scales the baseline, the actual and the saving by one factor  [{'month': '2026-02', 'baseline_sek': 5.6, 'actual_sek': 2.8, 'savings_sek': 2.8099999999999996, 'savings_pct': 50.1785714
+    FAIL a closed month is unscaled; nothing saved reads baseline == actual on the energy basis  [{'month': '2026-01', 'baseline_sek': 1.0, 'actual_sek': 1.0, 'savings_sek': 0.01, 'savings_pct': 1.0, 'est
+    FAIL the saving prices both sides at spot plus the grid fee, covered intervals only  [{'month': '2026-09', 'baseline_sek': 5.6, 'actual_sek': 4.2, 'savings_sek': 1.41, 'savings_pct': 25.17857142857142
+    FAIL the open month scales by the month's hours over the hours it settled  [{'month': '2026-02', 'baseline_sek': 1344.0, 'actual_sek': 672.0, 'savings_sek': 672.01, 'savings_pct': 50.00074404761905, '
+    FAIL the capacity line is in neither column: baseline less actual is the saving  [{'month': '2026-02', 'baseline_sek': 1344.0, 'actual_sek': 672.0, 'savings_sek': 672.01, 'savings_pct': 50.00074404761
+    FAIL a month booked before its coverage began scales by the calendar-day ratio  [{'month': '2026-02', 'baseline_sek': 302.54, 'actual_sek': 605.08, 'savings_sek': -302.53000000000003, 'savings_pct': -
+    FAIL a negative month covered from its first settlement keeps the hours' scale  [{'month': '2026-02', 'baseline_sek': 504.0, 'actual_sek': 672.0, 'savings_sek': -167.99, 'savings_pct': -33.33134920634
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2026-01', 'baseline_sek': 12.0, 'actual_sek': 12.0,
+    FAIL #2492: and the modelled basis (no plan line) books the model's gap as a loss (the control: the calibration is what moved it)  [{'month': '2026-01', 'baseline_sek': 8.0, 'actual_sek': 12.0, 'savin
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 12.0, 'actual_sek': 6.0, 'savings_sek': 6.01, 'savings_pct': 50.08
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 24.0, 'actual_sek': 12.0, 'savings_sek': 12.01, 'savings_pct': 50.041666666666
+RESULT R8 section rc=1 failing=8
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [2.058651874604855, 2.058651874604855, 2.058651874604855, 2.058651874604855] rerun [1.946
+    FAIL the booked thermostat step is the steady holding power at the matched target  [2.058651874604855 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 -> 22.982367891316382]
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [3.084395747614535, 3.084395747614535, 3.084395747614535, 3.084395747614535] rerun [2.5
+    FAIL a plan below the schedule on average moves the reference down by its mean shortfall, uniformly  [array([20., 21., 21., 20.])]
+    FAIL the start settlement holds the house at the schedule the published reference ran  [1 reference runs, 1 start settlements]
+    FAIL that plan's published reference buys less than a thermostat at the schedule itself  [published 298.74 kW-steps vs at schedule 298.74]
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.62336233273521 (matched 89.62336233273521); hot water he
+RESULT R9 section rc=1 failing=4
+    FAIL with a thermostat that buys nothing and no end credit, the warm start is debited nothing  [1.1777031789468102 (capped 1.1777031789468102)]
+    FAIL between the two, the whole debit stops at the thermostat's cost  [0.1777031789468102 vs -1.0]
+    FAIL heat carried to the end and credited there is debited at the start too  [1.1777031789468102 0.1777031789468102]
+    FAIL an end charge or a negative thermostat cost (negative prices) never widens the bound  [1.1777031789468102 1.1777031789468102 0.1777031789468102]
+RESULT R10 section rc=1 failing=0
+   tail: tarts(n_steps)) |   File "<copy>/custom_components/heatpump_optimizer/optimizer.py", line 3477, in _solve |     return self._optimize_space_only(horizon) |            ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^ |   File "<copy>/custom_components/heatpump_optimizer/optimizer.py", line 4637, in _optimize_space_only |     held_cost=held_cost, |               ^^^^^^^^^ | NameError: name 'held_cost' is not defined. Did you mean: 'peak_cost'? | 
+RESULT R12 section rc=1 failing=1
+    FAIL heat carried to the end and credited there is debited at the start too  [-0.0 -1.0]
