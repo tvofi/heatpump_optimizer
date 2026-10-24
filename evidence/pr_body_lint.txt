@@ -1,0 +1,7 @@
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: none
+
+../ev/body.md
+  ERROR   [pr-body] ../ev/body.md: `## Head` does not name 7f91e68, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 7f91e68 is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+
+PR-BODY: 1 error(s) in ../ev/body.md
+rc=1
