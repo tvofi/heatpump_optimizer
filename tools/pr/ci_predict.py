@@ -570,8 +570,9 @@ def layout_self_test(root: Path) -> int:
 
     The plants are the guard's own refusals of a landed move, read from this
     tree's tests/layout.json: the file re-added at its old path (placement)
-    and a new line citing it (new-reference). The null is a comment in the
-    same script that cites nothing, which must stay quiet.
+    and a new line citing it (new-reference). The nulls are a comment in the
+    same script that cites nothing, and the placement plant staged and not
+    committed: what is pushed is HEAD, so neither may be predicted red.
     """
     import shutil
     import tempfile
@@ -602,25 +603,30 @@ def layout_self_test(root: Path) -> int:
         run("git", "commit", "-qam", "predictor", "--allow-empty")
         base = run("git", "rev-parse", "HEAD").stdout.strip()
         cases = [("a file re-added at a path whose move landed is predicted red",
-                  {old: ""}, f"LAYOUT placement: {old} re-adds a moved path", 1),
+                  {old: ""}, f"LAYOUT placement: {old} re-adds a moved path", 1, True),
                  ("a new line citing a landed path is predicted red",
                   {"tests/wood_advisor.py": f"# see {old}\n"},
-                  f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}", 1),
+                  f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}", 1, True),
                  ("a comment citing nothing is predicted green (null control)",
-                  {"tests/wood_advisor.py": "# a comment\n"}, None, 0)]
+                  {"tests/wood_advisor.py": "# a comment\n"}, None, 0, True),
+                 ("the re-added path staged and not committed is predicted green (null control)",
+                  {old: ""}, None, 0, False)]
         bad = 0
-        for label, plant, want, rc in cases:
+        for label, plant, want, rc, commit in cases:
             run("git", "checkout", "-q", "-f", "--detach", base)
+            run("git", "clean", "-qfd")
             for p, text in plant.items():
                 (r / p).parent.mkdir(parents=True, exist_ok=True)
                 with open(r / p, "a") as f:
                     f.write(text)
             run("git", "add", "-A")
-            run("git", "commit", "-qm", label)
+            if commit:
+                run("git", "commit", "-qm", label)
             out = run(sys.executable, "-I", "tools/pr/ci_predict.py", "--base", base)
             lines = out.stdout.splitlines()
-            hit = (any(l.startswith(f"PREDICT {JOB['fast']}") and want in l for l in lines) if want
-                   else not any(" LAYOUT " in l for l in lines))
+            fix = any(l.startswith("CI PREDICT: a LAYOUT refusal is repaired") for l in lines)
+            hit = (any(l.startswith(f"PREDICT {JOB['fast']}") and want in l for l in lines) and fix if want
+                   else not any(" LAYOUT " in l for l in lines) and not fix)
             ok = hit and out.returncode == rc
             print(f"  {'ok  ' if ok else 'FAIL'} {label} (rc {out.returncode})")
             if not ok:
