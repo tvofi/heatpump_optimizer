@@ -1,4 +1,7 @@
 dispatch/fixer-r10-ratio-anchor
+dispatch/fixer-r10-thermal-power-option
+dispatch/fixer-r10-config-notices
+dispatch/fixer-r10-mutant-skip
 dispatch/fixer-r10-structure-alias
 dispatch/fixer-r10-fly-cipredict-layout
 dispatch/fixer-r10-fly-cloud-setup-toolchain
