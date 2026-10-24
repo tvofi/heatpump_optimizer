@@ -1,16 +1,7 @@
 dispatch/fixer-r10-ratio-anchor
 dispatch/fixer-r10-thermal-power-option
 dispatch/fixer-r10-config-notices
-dispatch/fixer-r10-mutant-skip
-dispatch/fixer-r10-fly-yield-guard
 dispatch/fixer-r10-replay-scoped
-dispatch/fixer-r10-rca-strand
-dispatch/fixer-r10-rca-ci-ratchet-run-name
-dispatch/fixer-r10-merge-subject-harden
-dispatch/fixer-r10-sav-comfort
-dispatch/fixer-r10-ci-layout-p2b-v2
-dispatch/fixer-r10-roster-runq
-dispatch/fixer-r10-rca-codescan-wait
 dispatch/fixer-r10-policy-fixer-md
 dispatch/fixer-r10-fly-cipredict-layout
 dispatch/fixer-r10-fly-cloud-setup-toolchain
