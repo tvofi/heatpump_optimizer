@@ -3578,6 +3578,7 @@
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
    "dev/audit/harnesses/r10_leaf_solver_closure.py",
+   "dev/audit/harnesses/r10_learner_eta.py",
    "dev/audit/harnesses/r10_ledger_class_reach.py",
    "dev/audit/harnesses/r10_literal_respelled_replant.py",
    "dev/audit/harnesses/r10_livestate_event_hub_writes.py",
