@@ -1,4 +1,9 @@
-check-runs on b4dd119172d5e0f04f800e752dffe265228d19e1 (get_check_runs, 37 runs, read 2026-10-24):
-no run concluded failure/cancelled/timed_out. success: typing, closures, fast (3.14), browser, arch-instrument, delivery-status, nightly-status, budget-raise-gate, wave-script, policy-docs, env-matrix, closure-scope, codeql js/actions, validate-hacs, instrument-self-tests, briefs, arch-score, mutation, hassfest, refresh, prelude(run 40086855241), cancel-superseded.
-skipped: closures-autofix, claims-autofix, mutation-pins, mutation-autofix, nightly-ha, kernel-points, delivery-status-publish, record. neutral: CodeQL.
-in_progress at read: tests / coverage, codeql / Analyze (python), prelude (run 40086855622).
+check-runs on 96ad30e87ad6a52a879e6c94364021535fe6f5ae (PR #2697 get_check_runs), read 2026-10-24 ~15:40Z:
+total_count 6
+refresh (run 40107544605) queued
+prelude (run 40107544605) queued
+cancel-superseded (run 40107544605) queued
+refresh (run 40107543861) completed success
+cancel-superseded (run 40107543861) completed success
+prelude (run 40107543861) queued
+No gate workflow had concluded; no red check run.

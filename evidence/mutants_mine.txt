@@ -1,0 +1,18 @@
+X1 backward quote skip | SELF-TEST 38 of 39 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
+X2 forward quote skip | SELF-TEST 38 of 39 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
+X3 push deleted | SELF-TEST 38 of 39 probes held | FAIL null control: a sibling argv in the call's own table is not the call's
+X4 depth++ deleted | SELF-TEST 37 of 39 probes held | FAIL a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused; FAIL a merge_pull_request call whose commit_title is on a later line is refused
+X5 forward from open bracket | SELF-TEST 39 of 39 probes held | 
+X6 first match only | SELF-TEST 38 of 39 probes held | FAIL every merge call in a file is read: a --subject on the second is refused, at its line
+Y1 close quote not cleared | SELF-TEST 37 of 39 probes held | FAIL null control: a sibling argv in the call's own table is not the call's; FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's
+Y2 line number off by one | SELF-TEST 37 of 39 probes held | FAIL a --subject on a shell continuation line is refused, at the call line; FAIL every merge call in a file is read: a --subject on the second is refused, at its line
+Y3 no line-end check for backslash nor open (always continue) | SELF-TEST 36 of 39 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command; FAIL every merge call in a file is read: a --subject on the second is refused, at its line; FAIL null control: a split merge call with no subject passes, and a flag on the next command is not the call's
+Y4 open.length ignored at line end | SELF-TEST 37 of 39 probes held | FAIL a --subject in an argv list split over lines is refused; FAIL an argv list broken between "pr" and "merge" is still a merge call
+Y5 close ends extent at 0 not -1 | SELF-TEST 38 of 39 probes held | FAIL a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused
+Y6 calls.push deleted | SELF-TEST 16 of 39 probes held | FAIL both GitHub templates pass the merge-subject guard; FAIL a hand-written merge subject is refused (#2379, 5756f2b1); FAIL a title-only merge subject is refused; FAIL a single-parent commit is not a merge; FAIL the runner's test merge at HEAD is skipped, and refused anywhere else; FAIL a merge ca
+Y7 ls off | SELF-TEST 37 of 39 probes held | FAIL a --subject on a shell continuation line is refused, at the call line; FAIL every merge call in a file is read: a --subject on the second is refused, at its line
+Y8 MERGE_CALL gh\s+pr | SELF-TEST 39 of 39 probes held | 
+Y9 slice end exclusive at close | SELF-TEST 39 of 39 probes held | 
+Y10 blank-line return removed only text tail | SELF-TEST 39 of 39 probes held | 
+Y11 title space one -> any | SELF-TEST 38 of 39 probes held | FAIL a subject GitHub's title template never writes is refused
+Y12 title leading \S -> . | SELF-TEST 38 of 39 probes held | FAIL a subject GitHub's title template never writes is refused
