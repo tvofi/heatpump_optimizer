@@ -42,11 +42,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable
 from typing import Any
+from weakref import WeakKeyDictionary
 
 from .const import (
     ENERGY_UNIT_TO_KWH,
     FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
+    INPUT_ON_CHANGE_MAX_AGE_MINUTES,
     INPUT_PLAUSIBLE_RANGE_C,
     POWER_UNIT_TO_KW,
     PRICE_ENERGY_TO_KWH,
@@ -244,13 +246,64 @@ def plausible_c(key: str, value_c: float) -> bool:
     return window is None or window[0] <= value_c <= window[1]
 
 
-def max_age_for(key: str, scale: float = 1.0) -> float | None:
-    """Age limit in minutes for a configuration key, or ``None`` if unbounded."""
-    base = INPUT_MAX_AGE_MINUTES.get(key)
-    if base is None:
+def max_age_for(
+    key: str, scale: float = 1.0, *, on_change: bool = False
+) -> float | None:
+    """Age limit in minutes for a configuration key, or ``None`` if unbounded.
+
+    ``on_change`` selects :data:`~.const.INPUT_ON_CHANGE_MAX_AGE_MINUTES`, the
+    limit for a source never seen re-reporting an unchanged value.
+    """
+    table = INPUT_ON_CHANGE_MAX_AGE_MINUTES if on_change else INPUT_MAX_AGE_MINUTES
+    base = table.get(key)
+    if base is None or math.isinf(base):
         return None
     scale = min(max(float(scale), STALENESS_SCALE_MIN), STALENESS_SCALE_MAX)
     return base * scale
+
+
+#: Per ``hass``, the entity ids seen re-reporting an unchanged value: sources
+#: that poll, whose silence means they stopped. A side table on boost.py's
+#: precedent, so an entity whose value changed on its last write keeps the
+#: polling limit it earned on an earlier one.
+_POLLING_SOURCES: WeakKeyDictionary[Any, set[str]] = WeakKeyDictionary()
+
+
+def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
+    """Whether the source behind ``state`` has been seen re-reporting.
+
+    Home Assistant moves ``last_reported`` past ``last_updated`` only when a
+    write repeats the state it already holds, which a source reporting on
+    change never sends. ``owner`` (``hass``) remembers the evidence; ``None``
+    judges ``state`` alone.
+    """
+    reported = getattr(state, "last_reported", None)
+    updated = getattr(state, "last_updated", None)
+    seen = (
+        isinstance(reported, datetime)
+        and isinstance(updated, datetime)
+        and reported > updated
+    )
+    if owner is None:
+        return seen
+    known = _POLLING_SOURCES.setdefault(owner, set())
+    if seen:
+        known.add(entity_id)
+    return entity_id in known
+
+
+def age_limit_for(
+    owner: Any, key: str, entity_id: str, state: Any, scale: float = 1.0
+) -> float | None:
+    """The age limit for ``key``'s reading in ``state``, keyed on how it reports.
+
+    The one freshness rule (R10 N-staleness, #2234): a polling source is held
+    to :data:`~.const.INPUT_MAX_AGE_MINUTES`, and one seen only on change to
+    :data:`~.const.INPUT_ON_CHANGE_MAX_AGE_MINUTES`, because its age measures
+    how still the value is rather than whether the source is alive.
+    """
+    on_change = not source_polls(owner, entity_id, state)
+    return max_age_for(key, scale, on_change=on_change)
 
 
 def normalize_power_kw(value: float, unit: Any) -> float | None:
@@ -358,8 +411,7 @@ SETPOINT_SERVICES = {
     "input_number": ("set_value", "value"),
 }
 #: The attributes a set-point entity states its range in: a climate entity's
-#: ``min_temp``/``max_temp`` (Home Assistant's ``ATTR_MIN_TEMP``/``ATTR_MAX_TEMP``),
-#: every other domain's ``min``/``max``.
+#: ``min_temp``/``max_temp``, every other domain's ``min``/``max``.
 _RANGE_KEYS = {"climate": ("min_temp", "max_temp")}
 _NUMBER_RANGE_KEYS = ("min", "max")
 
@@ -819,6 +871,10 @@ class InputReader:
             reading.problem = "unavailable"
             return reading, None
 
+        if max_age_minutes is None:
+            reading.max_age_minutes = age_limit_for(
+                self.hass, key, entity_id, state, self.scale
+            )
         return reading, state
 
     def _age_gate(self, reading: InputReading, state: Any) -> None:
