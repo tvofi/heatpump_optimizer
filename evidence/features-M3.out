@@ -1,0 +1,22 @@
+  FAIL an over-age string is rejected exactly like an over-age number  [None]
+  FAIL staleness outranks an unrecognised value  [an old unknown value is old first, got unknown_value]
+  FAIL all 26 age-limited keys: a quiet on-change source is stale only on a key named equal; a silent polling source is stale on every key, remembered past a changing write (D14-s3-02)  [wrong (key, quiet, polled, changed): [('flow_meter_entity', None, None, None), ('heat_pump_energy_entity', None, None, None), ('heat_pump_mode_entity', None, None, None), ('heat_pump_power_entity', None, None, None), ('heat_pump_return_temp_entity', None, None, None), ('heat_pump_supply_temp_entity', None, None, None), ('indoor_humidity_entity', None, None, None)]]
+  FAIL humidity: an on-change probe quiet 121 min keeps the mold floor; a polling one silent 121 min, or an on-change one past 360 min, drops it  [quiet [21.         21.         20.19582874], polled [21.         21.         20.19582874], past None]
+  FAIL a frozen humidity sensor reads as no reading — the mold floor vanishes  [failing safe is a floor that disappears, not one held raised forever]
+  FAIL a mode unreadable for a TRUE 3 h 20 min is expired, not held good  [fold-night mode_source='live']
+  FAIL NULL CONTROL: the plain night expires the same-age mode identically  [plain-night mode_source='live']
+  FAIL the HASTUB_TZ subprocess suite passed  [
+  FAIL a mode entity that goes stale falls back to the last good mode  [the pump did not change mode because its sensor stopped reporting]
+  FAIL with no last good mode ever seen it falls back to full capability
+  FAIL past its horizon a water temperature is demoted to silence  [supply water swings several K inside one compressor cycle, so a reading an hour old describes another operating point, not this interval's lift]
+  FAIL and it is the staleness horizon that did it, not a parse failure
+  FAIL and so does a stale one — staleness is unreadability, not disagreement  [live]
+  FAIL a mode read minutes ago still acts, one read hours ago does not  [[('fresh', True, 'live'), ('61 min old', True, 'live'), ('6 hours old', True, 'live'), ('3 days old', True, 'live'), ('unavailable 10 min', True, 'last_good'), ('unavailable 6 hours', False, 'expired')] — an unbounded fallback made the 60 minute horizon on this entity do nothing at all]
+  FAIL and the expiry is visible as its own source, not silence  [[('fresh', True, 'live'), ('61 min old', True, 'live'), ('6 hours old', True, 'live'), ('3 days old', True, 'live'), ('unavailable 10 min', True, 'last_good'), ('unavailable 6 hours', False, 'expired')]]
+  FAIL an expired mode suppresses nothing and freezes nothing  [full capability is the documented safe direction; a dead mode entity must not leave a house cold indefinitely]
+  FAIL a stale rung falls to the next fresh one  [32.0]
+  FAIL a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)  [stale=5.222035 problem=None fresh=5.222035]
+  FAIL a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value  [(('implausible', None), ('implausible', None), ('unknown_unit', None))]
+  FAIL an outranked, stale, negative, unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no learner input (null controls: 20 min old, and the same interval with the hot water at zero, both reach one)  [{'a power entity': None, 'a frequency sensor': None, "stale (45 min against the key's 30)": 5.222035, 'negative (-3.0 L/min)': None, 'unreadable (unavailable)': None, 'an unknown unit (gal/min)': None, 'an interval the plan split with hot water': None, 'an interval the plan gave nothing': None} samples [1, 1, 1, 1, 1, 1, 1, 1] fresh 5.222035 space-only 5.222035]
+18 of 4345 FEATURE CHECKS FAILED
+rc=1
