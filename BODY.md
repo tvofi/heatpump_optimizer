@@ -8,7 +8,7 @@ Disposition per line of #2378. Each one is either a wording fix, a code counterm
 2. **#2316.** Wording fix in both files.
    - `fix-review.md` step 6: `<seam>` is "a site or a predicate's unguarded domain".
    - `fixer.md` step 6: `handoff_push.sh` is named as the orchestrator's instrument. It opens the PR and writes the row. The seat pushes `handoff/<topic>` and `body_push.sh` only.
-   - The roster's "Identity and flow" boilerplate still says otherwise in 64 briefs. It is carried, not edited here, because the roster takes `roster_edit.py` ops only (`standing-roster.md`). See `## Forward-carry`.
+   - The roster's "Identity and flow" boilerplate still says otherwise in 64 briefs. It is carried, not edited here, because the roster takes `roster_edit.py` ops only (`standing-roster.md`). The carry landed at R10-ORCH-ROSTER-SCHEMA carry[7] (`## Forward-carry`).
 3. **#2344.** Wording fix in step 18. A one-off probe, or a reviewer's driver, stays in scratch or verdict evidence. Step 18 binds what a later seat reruns. The reviewer's answer stands.
 4. **#2374.** Wording fix in step 18. A new harness is a predicted closures red, because `tests/harness_headers.py` reads the directory. `tools/pr/ci_predict.py --apply-inert` (#2376) repairs it before the handoff.
 5. **#2345.** Wording fix with no added line: `#2345` joins `#1874` in step 17's spelling-list citation.
@@ -18,7 +18,7 @@ Disposition per line of #2378. Each one is either a wording fix, a code counterm
 9. **#2373.** Wording fix in `fix-review.md` step 14. The plant also runs on the counter's neighbouring rules, not only on the counter's own rule re-spelled.
 10. **#2347.** Note only. The fix is out of this policy group's reach: it is a `tests/structure.py` counting-rule change. The budget section now says `max_class_loc` is a span, so a docstring line costs what a code line does. `tests/structure.py`'s own docstring documents it as "the largest class span".
 11. **#2331's RCA, section 8: make step 8 unconditional.** Refused again, re-measured at this merge base (`## Figures`).
-    - 27 `class-open` blocks fell on 18 of the 214 PRs with a `verdict/<pr>` ref, with a median of 98 min to the next verdict.
+    - 27 `class-open` blocks fell on 18 of the 214 PRs with a `verdict/<pr>` ref, with a median of 119 min to the next verdict over the 25 that have one (`## Figures`; corrected from 98 at fix review round 1).
     - Step 8 already binds every block demonstrated with an instance, and that is the shape #2378's issues have.
     - Prevention is still not shown. #2283, which named a census, took 3 of the 27 blocks.
     - An unconditional step 8 adds only a rule to a fix whose finding was never an instance. This seat did not classify the 18 PRs' findings (no bodies read), so it does not claim how many of them that is.
@@ -42,6 +42,8 @@ Carries routed to this group (roster `carry`):
 
 `2788ce34971216471686e716aa1ed340e21e4ac5`, on origin/main `50af6174f53c0f9bec3f705c3a4bb99615f71acc` (2026-10-24T08:02Z, `date -u`). Every figure below was taken at this head unless it names the merge base, which is the same commit as that origin/main.
 
+Round 2, after fix review round 1 (`review/2704` `99452339188a`, blocked carry-missing): the code head is unchanged. The only changes are the two carries now landed on the roster (`## Forward-carry`) and two figures re-derived with their commands (item 11 and mutant 2b). PR head `859b74ba8ab4` is this head merged with origin/main, plus the orchestrator's delivery row. `git merge-tree --write-tree origin/main 2788ce349` is clean against origin/main `e97f5749b441` (2026-10-24T13:55Z).
+
 ## Mutation proof
 
 Each mutant was run in a detached worktree of the head and restored with `git checkout -- .`.
@@ -49,7 +51,10 @@ Each mutant was run in a detached worktree of the head and restored with `git ch
 1. **The generated copies are pinned.** Mutant: main's `dev/governance/rules/finding-propagation.md` source over the branch's, with the generated copies left as the branch has them. `node tools/policy/rules_sync.mjs --check` reads `RULES-SYNC: 2 file(s) out of date`, rc=1. At the head it reads rc=0.
 2. **The payments are needed.**
    - Mutant: `fixer.md` step 9's cut `#386` sentence restored. `node tools/policy/policy_lint.mjs` reads `TOTAL: 1 error(s)`, and `--budgets` prints `fixer.md 315 315 5249 5216`.
-   - Mutant: `finding-propagation.md`'s cut "adjective" clause restored, and regenerated. `policy_lint.mjs` reads `TOTAL: 2 error(s)`: `[budgets] ... 102 lines exceeds its cap of 101` and `about 1348 tokens ... exceeds its cap of 1336`.
+   - Mutant: `finding-propagation.md`'s cut "adjective" clause restored, and regenerated. The reading depends on the mutant's shape, and both shapes were re-run at round 2:
+     - Main's own two lines restored (`No "importance" threshold gates this, the adjective ... argues its way out of: if it changes what a later stage must do, it is carried.`). `policy_lint.mjs` reads `TOTAL: 1 error(s)`: `about 1348 tokens ... exceeds its cap of 1336`, at `101 101 1348 1336`. This is the reviewer's mutant.
+     - The clause inserted ahead of the branch's wrap, making 3 lines. `TOTAL: 2 error(s)`: `102 lines exceeds its cap of 101` and the same token error, at `102 101 1348 1336`. This is the round-1 body's mutant, which it did not state.
+     - Either shape is killed by the token cap alone.
 3. **Step 6's example keeps the spelling #2561's detector pins.** Mutant: `fix-review.md` step 6's example re-spelled `blocked <sha> harness: class-open <seam>`. `node tools/policy/check-wave-script.mjs` reads `209 passed, 1 failed`: `FAIL fix-review.md teaches "class-open" as a reason under another class`.
 
 No new check arm. No checker reads the new sentences, and none of them can be pinned in one line, because none is an example the wave grammar parses. The one sentence the grammar does read is step 6's example. Its placeholder gloss sits outside the backticks, and the existing arms pin it (item 3).
@@ -66,9 +71,13 @@ No new check arm. No checker reads the new sentences, and none of them can be pi
 
 - Budgets at the head: `node tools/policy/policy_lint.mjs --budgets` prints `fixer.md 314/315 5215/5216`, `fix-review.md 140/140 2445/2451` and `finding-propagation.md 101/101 1332/1336`. `policy_lint.mjs` reads `TOTAL: 0 error(s) across 50 policy file(s)`. `git diff --stat origin/main...HEAD`: 5 files, 58 insertions, 52 deletions.
 - Item 11, re-measured with `dev/audit/rca/harness-friction/rounds.py`.
-  - Input: one TSV per `refs/heads/verdict/<pr>` (214 refs, fetched 2026-10-24). Each TSV holds the ref's commit times (UTC) and the `Fix review:` line of each commit subject, de-duplicated by line.
+  - Input: one TSV per `refs/heads/verdict/<pr>` (214 refs, fetched 2026-10-24). Each TSV holds the ref's commit times (UTC) and the `Fix review:` line of each commit subject, de-duplicated by line, keeping the earliest commit of a re-pushed line.
   - The verdict refs stand in for the PR comments that rounds.py's docstring names, because `gh` is unauthenticated in this seat. Rule: a commit's subject is the verdict `bus.sh` signed, and a re-push of the same line is one verdict.
-  - Result: `SUM class-open 27 entries 6640 min`, on 18 PRs, with a median of 98 min to the next verdict. #2283 has 3 of the 27. `harness:class-rule-missing` has 2.
+  - Result: `SUM class-open 27 entries 6640 min`, on 18 PRs. #2283 has 3 of the 27. `harness:class-rule-missing` has 2.
+  - Median, corrected at fix review round 1: 119 min over the 25 entries that have a next verdict. The round-1 body said 98, which counted the 2 entries with no next verdict (#2346, #2658) as 0 min.
+  - Re-derived at round 2 against 227 refs, dropping #2706 and #2707 (refs pushed after the 214-ref fetch), with this command for each `verdict/<pr>`: `TZ=UTC git log --format='%cd%x09%s' --date=format-local:%Y-%m-%dT%H:%M:%SZ origin/verdict/<pr> | sed -E 's/\tverdict: #[0-9]+ /\t/' | grep -P '\tFix review:' | tac | sort -s -t$'\t' -k2,2 -u`. Then `python3 dev/audit/rca/harness-friction/rounds.py <dir>`. Result: 27 entries on 18 PRs, sum 6640, median 119 over 25 timed.
+  - The sum depends on which commit of a re-pushed line is kept. Two PRs re-pushed a line: #2452's blocked line, at 14:54:58Z and 23:20:09Z, and #2571's next verdict. Keeping the latest commit (`sort -t$'\t' -k2,2 -u` with no `tac`) gives the reviewer's `6297 min` and a median of 126, and reproduces `review/2704`'s `evidence/item11-tsv/` row for row. The timestamp source does not matter: `%ad` and `%cd` give identical results on all 227 refs.
+  - This body keeps the earliest commit. A verdict is in force from its first signature, and a re-push does not restart the wait. No reading changes 27, 18 or #2283 = 3, and the disposition rests on those counts.
 - Roster boilerplate: a `python3` scan of `dev/programme/rosters/wave-r10-groups.json`'s `brief` strings for `the seat pushes refs only, through tools/audit/seat/handoff_push.sh`, in plain or backticked form. It finds 64 groups, 18 of them at a stage other than `done` or `absorbed`.
 - The mutation lane's scope: `tests/mutation_table.py:104` `PKG = "custom_components/heatpump_optimizer/"`.
 - Gate:
@@ -87,8 +96,8 @@ none: no CI has run on this ref. `tools/pr/ci_predict.py` predicts no closures o
 
 ## Forward-carry
 
-- **The roster's "Identity and flow" boilerplate.** 64 group briefs in `dev/programme/rosters/wave-r10-groups.json` (18 not done or absorbed) say the seat pushes "through `tools/audit/seat/handoff_push.sh`". That script opens or updates the PR through `app_push.sh`. `fixer.md` step 6, the newer copy, now says the script is the orchestrator's. The control is `python3 -c` over the roster's `brief` strings, counting `the seat pushes refs only, through tools/audit/seat/handoff_push.sh`, plain or backticked: 64 at this head, and 0 among live groups is the repaired state. A `roster_edit.py edit-brief` op per live group is owed. This seat writes no roster ref. Carry: R10-ORCH-ROSTER-SCHEMA
-- **`BASH_ENV` in the cloud seat's profile (#2452).** The toolchain profile `tools/audit/seat/cloud-setup.sh` installs (its `PROFILE`) exports `BASH_ENV` pointing at itself, so every `bash -c` puts the venv python back ahead of a test stub's PATH. Under `env -u BASH_ENV` all 2346 entity checks passed in #2452. The precondition is that the cloud setup's profile note or payload must not leave `BASH_ENV` set for a test that shadows PATH. Re-measure it with `tests/entities.py`'s graders-head-copy check under and without `BASH_ENV`. Carry: R10-FLY-CLOUD-SETUP-TOOLCHAIN
+- **The roster's "Identity and flow" boilerplate.** 64 group briefs in `dev/programme/rosters/wave-r10-groups.json` (18 not done or absorbed) say the seat pushes "through `tools/audit/seat/handoff_push.sh`". That script opens or updates the PR through `app_push.sh`. `fixer.md` step 6, the newer copy, now says the script is the orchestrator's. The control is `python3 -c` over the roster's `brief` strings, counting `the seat pushes refs only, through tools/audit/seat/handoff_push.sh`, plain or backticked: 64 at this head, and 0 among live groups is the repaired state. A `roster_edit.py edit-brief` op per live group is owed. Landed in `dev/programme/rosters/wave-r10-groups.json`, stage R10-ORCH-ROSTER-SCHEMA carry[7], at `handoff/audit-r10-roster` `928ca213e7158b7b0747675c63097ca1ec6b54fd`. The text was read back with `git show 928ca213e715:dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ORCH-ROSTER-SCHEMA
+- **`BASH_ENV` in the cloud seat's profile (#2452).** The toolchain profile `tools/audit/seat/cloud-setup.sh` installs (its `PROFILE`) exports `BASH_ENV` pointing at itself, so every `bash -c` puts the venv python back ahead of a test stub's PATH. Under `env -u BASH_ENV` all 2346 entity checks passed in #2452. The precondition is that the cloud setup's profile note or payload must not leave `BASH_ENV` set for a test that shadows PATH. Re-measure it with `tests/entities.py`'s graders-head-copy check under and without `BASH_ENV`. Landed in `dev/programme/rosters/wave-r10-groups.json`, stage R10-FLY-CLOUD-SETUP-TOOLCHAIN carry[6], at `handoff/audit-r10-roster` `928ca213e7158b7b0747675c63097ca1ec6b54fd`. That carry names `BASH_ENV`, the precondition and the re-measure, read back the same way. Carry: R10-FLY-CLOUD-SETUP-TOOLCHAIN
 
 ## Friction
 
