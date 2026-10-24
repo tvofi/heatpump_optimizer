@@ -9,7 +9,7 @@
 // third is the control (a flag inside the argv list is refused).
 import fs from 'node:fs'
 const src = fs.readFileSync(process.argv[2] || 'tools/policy/agreement.mjs', 'utf8')
-const from = src.indexOf('const MERGE_CALL'); const to = src.indexOf("// WHICH LINE IS MAIN'S")
+const from = src.indexOf('// WHAT A MERGE CALL IS'); const to = src.indexOf("// WHICH LINE IS MAIN'S")
 if (from < 0 || to < 0) { console.error('seam probe: guard block not found'); process.exit(2) }
 const block = src.slice(from, to).replace(/^function nonTemplateMerges[\s\S]*?\n}\n/m, '')
 const subjectWriters = new Function(block + '\nreturn subjectWriters')()
