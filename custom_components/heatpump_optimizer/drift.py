@@ -54,6 +54,19 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
     return (_as_utc(newer) - _as_utc(older)).total_seconds()
 
 
+def utc_shift(when: datetime, delta: timedelta) -> datetime:
+    """``when + delta`` as real elapsed time, returned in ``when``'s zone.
+
+    ``+`` on a zoned stamp adds wall clock: across the autumn fold a 2 h lead
+    lands 3 h later. Adding in UTC and converting back keeps the label a real
+    instant (the same walk ``drift.utc_step_starts`` makes); a naive stamp keeps
+    the plain addition.
+    """
+    if when.tzinfo is None:
+        return when + delta
+    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+
+
 def utc_step_starts(
     start: datetime, n: int, step: timedelta, offset: int = 0
 ) -> list[datetime]:

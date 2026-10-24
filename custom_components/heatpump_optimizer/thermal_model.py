@@ -3935,7 +3935,7 @@ class ThermalModel:
         return draw_kw
 
     def update_slab_from_return_temp(
-        self, state: ThermalState, return_temp: float
+        self, state: ThermalState, return_temp: float | None
     ) -> ThermalState:
         """Update slab temperature estimate from actual floor return sensor.
 

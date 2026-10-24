@@ -21360,7 +21360,7 @@ R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(price_tiles.book(_ctile2)) == ["target_minus_1"]
     and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
-    and _ctile2._price_tile_cursor == 1,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 1,
 )
 
 
@@ -21383,7 +21383,7 @@ R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
     _ctile2_limited_seen.get("limited") is False
-    and _ctile2._price_tile_cursor == 2,
+    and price_tiles._CURSORS.get(_ctile2, 0) == 2,
     str(_ctile2_limited_seen),
 )
 R.check(
@@ -21610,7 +21610,7 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    _ctile4._price_tile_cursor == 1 and not price_tiles.book(_ctile4),
+    price_tiles._CURSORS.get(_ctile4, 0) == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
@@ -40968,7 +40968,7 @@ async def _rc2_boot(entry):
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
     await boost_mod.restore_session(
-        coord, coord._away_state, coord._config, coord._entity_state
+        coord, coord._adopt_away_override, coord._config, coord._entity_state
     )
     await coord._async_load_manual_plan()
     return coord
@@ -43735,10 +43735,10 @@ def _t3_tile(answer, **config):
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
-    _t3_tile_boom._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_boom, 0) == 1
     and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
-    f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
+    f"cursor {price_tiles._CURSORS.get(_t3_tile_boom, 0)} tiles "
     f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
@@ -43752,13 +43752,13 @@ _t3_tile_good = _t3_tile(
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
-    _t3_tile_error._price_tile_cursor == 1
+    price_tiles._CURSORS.get(_t3_tile_error, 0) == 1
     and dict(price_tiles.book(_t3_tile_error)) == {}
-    and _t3_tile_good._price_tile_cursor == 1
+    and price_tiles._CURSORS.get(_t3_tile_good, 0) == 1
     and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
-    f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
+    f"errored -> cursor {price_tiles._CURSORS.get(_t3_tile_error, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
-    f"{_t3_tile_good._price_tile_cursor}, tiles "
+    f"{price_tiles._CURSORS.get(_t3_tile_good, 0)}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
@@ -48024,6 +48024,8 @@ class _G8AwayCoord:
     def _entity_state(self, entity_id):
         return self._entity_states.get(entity_id, (None, {}))
 
+    _adopt_away_override = Coord._adopt_away_override
+
 
 _g8_away_real_store = _g8_away.QuarantiningStore
 try:
@@ -48048,7 +48050,7 @@ try:
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
     _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord, _g8_load_coord._adopt_away_override, _g8_load_coord._config,
         _g8_load_coord._entity_state,
     ))
     _g8_load_saved = list(_G8AwayStore.saved)
@@ -48062,7 +48064,7 @@ try:
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
     _t6_call(_asyncio.run, _g8_away.restore_override(
-        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord, _g8_done_coord._adopt_away_override, _g8_done_coord._config,
         _g8_done_coord._entity_state,
     ))
     _g8_done_saved = list(_G8AwayStore.saved)
@@ -68075,34 +68077,49 @@ for _sr_name in ("coordinator.py", "boost.py"):
                 getattr(_sr_arg.func, "attr", None) == "get_current_action":
             _sr_adopt_sites.append((_sr_name, _sr_node.lineno, "plan"))
             continue
-        _sr_keys = {
-            _k.value: _v for _k, _v in zip(
-                (_sr_arg.keys if isinstance(_sr_arg, _sr_ast.Dict) else []),
-                (_sr_arg.values if isinstance(_sr_arg, _sr_ast.Dict) else []),
-            ) if isinstance(_k, _sr_ast.Constant)
-        }
-        _sr_mode = (
-            _sr_keys["mode"].value
-            if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
-            else None
-        )
-        _sr_adopt_sites.append(
-            (_sr_name, _sr_node.lineno, _sr_mode,
-             all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
-        )
-        for _sr_key in ("space_reason", "dhw_reason"):
-            _sr_value = _sr_keys.get(_sr_key)
-            _sr_code = (
-                getattr(_sr_mod, _sr_value.id, None)
-                if isinstance(_sr_value, _sr_ast.Name)
-                else _sr_value.value
-                if isinstance(_sr_value, _sr_ast.Constant)
+        # A builder method (``_fixed_mode_action``) hands over one of its own
+        # mode-keyed dict literals, so each of those is a site.
+        _sr_dicts = [_sr_arg]
+        if isinstance(_sr_arg, _sr_ast.Call):
+            _sr_dicts = [
+                _d for _f in _sr_ast.walk(_sr_tree)
+                if isinstance(_f, _sr_ast.FunctionDef)
+                and _f.name == getattr(_sr_arg.func, "attr", None)
+                for _d in _sr_ast.walk(_f)
+                if isinstance(_d, _sr_ast.Dict) and any(
+                    isinstance(_k, _sr_ast.Constant) and _k.value == "mode"
+                    for _k in _d.keys
+                )
+            ] or [_sr_arg]
+        for _sr_dict in _sr_dicts:
+            _sr_keys = {
+                _k.value: _v for _k, _v in zip(
+                    (_sr_dict.keys if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                    (_sr_dict.values if isinstance(_sr_dict, _sr_ast.Dict) else []),
+                ) if isinstance(_k, _sr_ast.Constant)
+            }
+            _sr_mode = (
+                _sr_keys["mode"].value
+                if isinstance(_sr_keys.get("mode"), _sr_ast.Constant)
                 else None
             )
-            if _sr_code not in _sr_vocab:
-                _sr_unvocab.append((_sr_name, _sr_node.lineno, _sr_key, _sr_code))
-            elif _sr_key == "space_reason":
-                _sr_causes.add(_sr_code)
+            _sr_adopt_sites.append(
+                (_sr_name, _sr_dict.lineno, _sr_mode,
+                 all(key in _sr_keys for key in ("space_reason", "dhw_reason")))
+            )
+            for _sr_key in ("space_reason", "dhw_reason"):
+                _sr_value = _sr_keys.get(_sr_key)
+                _sr_code = (
+                    getattr(_sr_mod, _sr_value.id, None)
+                    if isinstance(_sr_value, _sr_ast.Name)
+                    else _sr_value.value
+                    if isinstance(_sr_value, _sr_ast.Constant)
+                    else None
+                )
+                if _sr_code not in _sr_vocab:
+                    _sr_unvocab.append((_sr_name, _sr_dict.lineno, _sr_key, _sr_code))
+                elif _sr_key == "space_reason":
+                    _sr_causes.add(_sr_code)
 _sr_fixed = {s[2] for s in _sr_adopt_sites if isinstance(s[2], str)}
 _sr_dict_sites = [
     s for s in _sr_adopt_sites if isinstance(s[2], str) and s[2] != "plan"
@@ -68170,6 +68187,414 @@ R.check(
     and abs(sum(e["kwh"] for e in _sr_lines.values()) - _sr_flat_spot["kwh"]) < 1e-9
     and abs(sum(e["sek"] for e in _sr_lines.values()) - _sr_flat_spot["sek"]) < 1e-9,
     f"unit costs={_sr_units} price={_sr_flat_price} lines={_sr_lines}",
+)
+
+
+# --- R10-LIVESTATE: live state copied, then published whole (#2232, #2248) ---
+# D1-s1-02 is a mode written while the solve thread runs: the in-flight AUTO
+# plan used to be adopted over it. L3 is the startup restore racing a user
+# write across its store-load await. The rest pin the publish shape: a reader
+# holding the state keeps its snapshot, and a write landing inside an await
+# is never reverted by the awaiting publisher.
+import asyncio as _ls_aio  # noqa: E402
+
+from heatpump_optimizer import coordinator as _ls_cmod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_AUTO as _LS_AUTO,
+    MODE_BOOST as _LS_BOOST,
+    MODE_COMFORT as _LS_COMFORT,
+    MODE_OFF as _LS_OFF,
+)
+from heatpump_optimizer.manual_plan import ManualOverride as _LsOverride  # noqa: E402
+from harness import FakeEntry as _LsEntry, FakeHass as _LsHass  # noqa: E402
+
+
+async def _ls_mode_midsolve(target, *, rerun=False, back_to=None):
+    """One AUTO solve with ``target`` written inside its executor await;
+    ``rerun`` records a mid-solve input change first, ``back_to`` returns the
+    mode before the solve lands. Returns (coord, solves started)."""
+    coord = _solve_coord()
+    coord._mode = _LS_AUTO
+    real = _ls_cmod._await_optimize
+    solves = []
+
+    async def _mid(*args, **kwargs):
+        solves.append(1)
+        result = await real(*args, **kwargs)
+        if len(solves) == 1:
+            if rerun:
+                await coord.async_run_optimization()
+            await coord.async_set_mode(target, refresh=False)
+            if back_to is not None:
+                await coord.async_set_mode(back_to, refresh=False)
+        return result
+
+    _ls_cmod._await_optimize = _mid
+    try:
+        await coord.async_run_optimization()
+    finally:
+        _ls_cmod._await_optimize = real
+    return coord, len(solves)
+
+
+_ls_mid = {t: _ls_aio.run(_ls_mode_midsolve(t)) for t in (_LS_COMFORT, _LS_BOOST, _LS_OFF)}
+R.check(
+    "D1-s1-02: a comfort, boost or off write inside the solve await is the "
+    "action that runs; the AUTO plan is not adopted and files no lead prediction",
+    all(
+        c._current_action.get("mode") == t
+        and c._optimization_result is None
+        and not c._accuracy.lead_pending
+        and not c._dhw_accuracy.lead_pending
+        for t, (c, _n) in _ls_mid.items()
+    ),
+    str({t: (c._current_action.get("mode"), c._optimization_result is None,
+             len(c._accuracy.lead_pending)) for t, (c, _n) in _ls_mid.items()}),
+)
+_ls_auto, _ls_auto_n = _ls_aio.run(_ls_mode_midsolve(_LS_AUTO))
+R.check(
+    "D1-s1-02 null: a solve whose mode stays AUTO adopts its plan and files "
+    "its lead predictions",
+    _ls_auto._optimization_result is not None and bool(_ls_auto._accuracy.lead_pending),
+    f"result={_ls_auto._optimization_result is not None} "
+    f"pending={len(_ls_auto._accuracy.lead_pending)}",
+)
+_ls_drop, _ls_drop_n = _ls_aio.run(_ls_mode_midsolve(_LS_COMFORT, rerun=True))
+_ls_trip, _ls_trip_n = _ls_aio.run(
+    _ls_mode_midsolve(_LS_COMFORT, rerun=True, back_to=_LS_AUTO))
+R.check(
+    "a re-run requested mid-solve is dropped when a fixed mode superseded the "
+    "solve, and kept across an AUTO -> COMFORT -> AUTO round trip",
+    _ls_drop_n == 1 and _ls_drop._current_action.get("mode") == _LS_COMFORT
+    and _ls_trip_n == 2 and _ls_trip._optimization_result is not None,
+    f"superseded solves={_ls_drop_n} mode={_ls_drop._current_action.get('mode')}; "
+    f"round trip solves={_ls_trip_n}",
+)
+
+
+async def _ls_fixed_cycle(mode):
+    coord = _solve_coord()
+    coord._mode = mode
+    seen = []
+    real = boost_mod.adopt_plan
+
+    def _spy(c, action):
+        seen.append("price" in action)
+        real(c, action)
+
+    boost_mod.adopt_plan = _spy
+    try:
+        await coord._async_update_data()
+    finally:
+        boost_mod.adopt_plan = real
+    return seen
+
+
+_ls_priced = {m: _ls_aio.run(_ls_fixed_cycle(m)) for m in (_LS_COMFORT, _LS_BOOST, _LS_OFF)}
+R.check(
+    "ARCH2-s2 P2: a fixed mode's action reaches boost.adopt_plan already "
+    "priced, so no field is written onto the plan base afterwards",
+    all(seen == [True] for seen in _ls_priced.values()),
+    str(_ls_priced),
+)
+
+
+def _ls_comfort_displace(displace_max):
+    coord = _solve_coord()
+    coord._mode = _LS_COMFORT
+    coord._ecl110_displace_max = displace_max
+    return coord._fixed_mode_action()["displace_value"]
+
+
+_ls_comfort_wide = _ls_comfort_displace(8.0)
+_ls_comfort_narrow = _ls_comfort_displace(2.5)
+R.check(
+    "comfort's fixed action displaces 4 K, held inside a narrower configured "
+    "ECL110 displace window",
+    _ls_comfort_wide == 4.0 and _ls_comfort_narrow == 2.5,
+    f"max 8.0 -> {_ls_comfort_wide}; max 2.5 -> {_ls_comfort_narrow}",
+)
+
+
+class _LsMsg:
+    def __init__(self, payload):
+        self.payload = payload
+
+
+def _ls_guard_coord():
+    return Coord(_LsHass({
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }), _LsEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "peak_guard_enabled": True, "house_power_entity": "sensor.house_power",
+        "main_fuse_amperes": 16.0, "main_fuse_phases": 1,
+    }))
+
+
+def _ls_engage_guard(coord):
+    from heatpump_optimizer.power_guard import MIN_EVENT_SPACING_S as _spacing
+
+    event = _NS(data={"new_state": FakeState("6500", unit="W")})
+    coord._on_power_event(event)
+    coord._peak_guard._last_event -= timedelta(seconds=_spacing + 1)
+    coord._guard_last_fold -= timedelta(seconds=_spacing + 1)
+    coord._on_power_event(event)
+
+
+_ls_held_c = _ls_guard_coord()
+_ls_held = _ls_held_c._current_state
+_ls_held_before = (_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace,
+                   _ls_held.peak_guard_active)
+_ls_held_c._async_handle_ecl110_state_message(
+    _LsMsg('{"displace": -2.5, "effective_displace": -1.5}'))
+_ls_engage_guard(_ls_held_c)
+_ls_live = _ls_held_c._current_state
+R.check(
+    "ARCH2-s2 P4: an ECL110 message and a peak-guard flip publish a new state; "
+    "a state held before them keeps its values",
+    (_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace,
+     _ls_held.peak_guard_active) == _ls_held_before
+    and _ls_live is not _ls_held
+    and (_ls_live.ecl110_displace_command, _ls_live.ecl110_effective_displace,
+         _ls_live.peak_guard_active) == (-2.5, -1.5, True),
+    f"held={(_ls_held.ecl110_displace_command, _ls_held.ecl110_effective_displace, _ls_held.peak_guard_active)} "
+    f"before={_ls_held_before} live={(_ls_live.ecl110_displace_command, _ls_live.ecl110_effective_displace, _ls_live.peak_guard_active)}",
+)
+
+
+async def _ls_events_inside_learners():
+    """An ECL110 message inside the legionella await and a guard flip inside
+    the house-loss await of one ``_update_current_state``."""
+    coord = _ls_guard_coord()
+    coord._current_action["displace_value"] = 2.0
+    track, learn = coord._legionella.async_track_cycle, coord._async_learn_house_heat_loss
+
+    async def _track(*args, **kwargs):
+        coord._async_handle_ecl110_state_message(
+            _LsMsg('{"displace": -2.5, "effective_displace": -1.5}'))
+        return await track(*args, **kwargs)
+
+    async def _learn(*args, **kwargs):
+        _ls_engage_guard(coord)
+        return await learn(*args, **kwargs)
+
+    coord._legionella.async_track_cycle = _track
+    coord._async_learn_house_heat_loss = _learn
+    await coord._update_current_state()
+    expect = coord._thermal_model.update_ecl110_displace_state(
+        ThermalState(ecl110_effective_displace=-1.5), 2.0,
+        coord._opt_config.dt_hours).ecl110_effective_displace
+    return coord._current_state, expect
+
+
+_ls_ev_state, _ls_ev_expect = _ls_aio.run(_ls_events_inside_learners())
+R.check(
+    "I1/I3: an ECL110 message and a peak-guard flip landing inside "
+    "_update_current_state's learner awaits survive its later publishes "
+    "(the lag starts from the message's value)",
+    _ls_ev_state.peak_guard_active is True
+    and abs(_ls_ev_state.ecl110_effective_displace - _ls_ev_expect) < 1e-12
+    and _ls_ev_expect != -1.5,
+    f"guard={_ls_ev_state.peak_guard_active} effective="
+    f"{_ls_ev_state.ecl110_effective_displace} expected lag from -1.5={_ls_ev_expect}",
+)
+
+
+class _LsRestoreHass(_LsHass):
+    """Runs the session restore the constructor spawns as a real task and
+    closes every other spawn, so the store loads the checks gate are the
+    restore's own."""
+
+    def __init__(self):
+        super().__init__()
+        self.restores = []
+
+    def async_create_task(self, coro, name=None, eager_start=None):
+        if getattr(coro, "__name__", "") != "restore_session":
+            coro.close()
+            return None
+        task = _ls_aio.get_running_loop().create_task(coro)
+        self.restores.append(task)
+        return task
+
+
+_LS_STORED_AWAY = {"active": True, "return_time": None, "migrated_helpers": True}
+
+
+async def _ls_restore_race(scenario, interleaved):
+    """L3: the restore's two store loads are held on an event; the writer runs
+    inside them (``interleaved``) or after the restore (the serial order)."""
+    gate = _ls_aio.Event()
+    now = dt_util.now()
+    stored = {"away": dict(_LS_STORED_AWAY),
+              "boost": {"space": {"until": (now + timedelta(hours=1)).isoformat()}}}
+
+    async def _load(store, what):
+        await gate.wait()
+        return dict(stored["away" if "away" in what else "boost"])
+
+    async def _nop(*args, **kwargs):
+        return None
+
+    saved = (away_mode.load_mapping, boost_mod.load_mapping,
+             away_mode.persist_override, boost_mod.persist)
+    away_mode.load_mapping = boost_mod.load_mapping = _load
+    away_mode.persist_override = boost_mod.persist = _nop
+    try:
+        hass = _LsRestoreHass()
+        coord = Coord(hass, _LsEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+        async def _writer():
+            if scenario == "away_off":
+                await coord.async_set_away(active=False, refresh=False)
+            elif scenario == "boost_cancel":
+                await boost_mod.set_channel(coord, boost_mod.CHANNEL_SPACE, False, refresh=False)
+            else:
+                old = coord._away_state
+                coord._away_state = away_mode.AwayState(
+                    override_active=old.override_active,
+                    override_return_iso=old.override_return_iso)
+
+        if interleaved:
+            writer = _ls_aio.ensure_future(_writer())
+            for _ in range(3):
+                await _ls_aio.sleep(0)
+            gate.set()
+            await hass.restores[0]
+            await _ls_aio.wait_for(writer, 1.0)
+        else:
+            gate.set()
+            await hass.restores[0]
+            await _writer()
+        if scenario == "boost_cancel":
+            return boost_mod.held_for(coord).active(boost_mod.CHANNEL_SPACE, dt_util.now())
+        return coord._away_state.override_active
+    finally:
+        (away_mode.load_mapping, boost_mod.load_mapping,
+         away_mode.persist_override, boost_mod.persist) = saved
+
+
+_ls_race = {
+    s: (_ls_aio.run(_ls_restore_race(s, False)), _ls_aio.run(_ls_restore_race(s, True)))
+    for s in ("away_off", "boost_cancel", "replace")
+}
+R.check(
+    "L3: an away-off, a boost cancel and a live-state replacement written "
+    "inside the startup restore's load each end as the serial order does",
+    all(serial == inter for serial, inter in _ls_race.values())
+    and _ls_race["away_off"][0] is False and _ls_race["boost_cancel"][0] is False
+    and _ls_race["replace"][0] is True,
+    str(_ls_race),
+)
+
+
+async def _ls_unstarted_restore(cancel):
+    """The restore never runs a step: closed by the stub spawn, or its task
+    cancelled before its first step. A user writer must not wait forever."""
+    if cancel:
+        hass = _LsRestoreHass()
+        coord = Coord(hass, _LsEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+        hass.restores[0].cancel()
+    else:
+        coord = _t1_coord()
+    try:
+        await _ls_aio.wait_for(coord.async_set_away(active=True, refresh=False), 1.0)
+        await _ls_aio.wait_for(boost_mod.set_channel(
+            coord, boost_mod.CHANNEL_SPACE, True, refresh=False), 1.0)
+    except TimeoutError:
+        return False
+    return coord._away_state.override_active is True
+
+
+R.check(
+    "the restore gate settles when the restore never starts (closed, or "
+    "cancelled before its first step): a user write still lands",
+    _ls_aio.run(_ls_unstarted_restore(False)) and _ls_aio.run(_ls_unstarted_restore(True)),
+)
+
+
+class _LsPlanStore:
+    """A manual-plan store whose load is held on an event; its read future
+    is registered on the load's first step, as ``QuarantiningStore`` does."""
+
+    def __init__(self, gate, data):
+        self.gate, self.data, self.reading = gate, data, None
+
+    async def async_load(self):
+        self.reading = _ls_aio.get_running_loop().create_future()
+        await self.gate.wait()
+        self.reading.set_result(None)
+        return dict(self.data)
+
+    async def async_wait_for_read(self):
+        if self.reading is not None:
+            await _ls_aio.shield(self.reading)
+
+    async def async_save(self, data):
+        return None
+
+
+async def _ls_manual_race(action):
+    gate = _ls_aio.Event()
+    now = dt_util.now()
+    coord = _t1_coord()
+    coord._manual_plan_store = _LsPlanStore(gate, {
+        "active": True, "expires_at": (now + timedelta(hours=6)).isoformat(),
+        "space_slots": [], "dhw_slots": [], "released_space": [], "released_dhw": []})
+
+    async def _no_refresh():
+        return None
+
+    coord.async_request_refresh = _no_refresh
+    mine = _LsOverride(space_slots=None, dhw_slots=None, expires_at=now + timedelta(hours=2))
+    load = _ls_aio.ensure_future(coord._async_load_manual_plan())
+    await _ls_aio.sleep(0)
+    write = _ls_aio.ensure_future(
+        coord.async_clear_manual_plan() if action == "clear"
+        else coord.async_apply_manual_plan(mine))
+    await _ls_aio.sleep(0)
+    gate.set()
+    await load
+    await write
+    return coord._manual_override is (None if action == "clear" else mine)
+
+
+R.check(
+    "a manual-plan clear and an apply made during the startup load each "
+    "survive it",
+    _ls_aio.run(_ls_manual_race("clear")) and _ls_aio.run(_ls_manual_race("apply")),
+)
+
+
+async def _ls_tile_cancel():
+    coord = _t2_coord(price_tiles_enabled=True)
+    record = _solve_record_now(coord)
+    specs = price_tiles.specs(record.config, record.params.max_electrical_power)
+    seen = []
+
+    async def _sim(overrides, limited=True, base=None):
+        seen.append(overrides)
+        if len(seen) == 1:
+            raise _ls_aio.CancelledError
+        return {"monthly_held_cost_delta": -1.0, "min_room_temperature": 20.0}
+
+    coord.async_simulate = _sim
+    try:
+        await coord._maybe_refresh_price_tile(record)
+    except _ls_aio.CancelledError:
+        pass
+    await coord._maybe_refresh_price_tile(record)
+    return [dict(o) for o in seen], [dict(o) for _n, o in specs]
+
+
+_ls_tiles_seen, _ls_tiles_specs = _ls_aio.run(_ls_tile_cancel())
+R.check(
+    "ARCH2-s2 P6: a cancelled tile solve skips its spec on this pass, so the "
+    "next solve takes the next spec (behaviour change, stated in the PR)",
+    _ls_tiles_seen == _ls_tiles_specs[:2],
+    f"seen={_ls_tiles_seen} specs={_ls_tiles_specs[:2]}",
 )
 
 
