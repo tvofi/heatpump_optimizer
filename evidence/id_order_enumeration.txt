@@ -1,0 +1,8 @@
+tools/ci/prelude.py:193:    return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
+tools/ci/ruleset_cutover.py:368:        if key not in newest or r["id"] > newest[key]["id"]:
+tools/ci/sweep.py:115:        for r in sorted((r for r in runs if r["id"] < v["id"]), key=lambda r: r["id"]):
+def covers_newest(v_gate, runs):
+    """V's latest gate is green and completed and started after every run at the head was created."""
+    return bool(v_gate and v_gate.get("status") == "completed" and v_gate.get("conclusion") == "success"
+                and v_gate.get("started_at", "") >= max(r["created_at"] for r in runs))
+        for r in sorted((r for r in runs if r["id"] < v["id"]), key=lambda r: r["id"]):

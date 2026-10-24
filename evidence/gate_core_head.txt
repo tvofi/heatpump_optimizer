@@ -1,0 +1,6 @@
+GATE-REPLAY2 rc 0
+gate_replay2.py over tools/ci/gate.py: rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt
+  M14 held run is no source: KILLED (self-test rc 1, replay rc 0)
+  M15 unreadable title: KILLED (self-test rc 0, replay rc 1)
+  M16 B3 on push: KILLED (self-test rc 1, replay rc 0)
+RESULT mutants=16 survivors=0
