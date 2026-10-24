@@ -5130,15 +5130,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if void:
             self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
         phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
-        new_scale, new_ratio = reanchor_heat_loss(*pair, self._house_heat_loss_scale, ratio, phi)
-        if not LOWER_FLOOR_LOSS_RATIO_MIN <= new_ratio <= LOWER_FLOOR_LOSS_RATIO_MAX:
+        new_scale, new_ratio, ratio_reset = reanchor_heat_loss(
+            *pair, self._house_heat_loss_scale, ratio, phi,
+            ratio_bounds=(LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX),
+        )
+        if ratio_reset:
             _LOGGER.warning(
-                "Learned lower floor loss ratio %.3f (%d samples) re-anchors to %.3f against "
-                "the newly configured lower floor loss, outside its bounds: resetting to the "
-                "configuration",
-                ratio, self._lower_floor_loss_samples, new_ratio,
+                "Learned lower floor loss ratio %.3f (%d samples) cannot be expressed against "
+                "the newly configured lower floor loss: resetting to the configuration",
+                ratio, self._lower_floor_loss_samples,
             )
-            new_ratio, self._lower_floor_loss_samples = DEFAULT_LOWER_FLOOR_LOSS_RATIO, 0
+            self._lower_floor_loss_samples, phi = 0, (phi[0], 0.0)
         if not HOUSE_HEAT_LOSS_SCALE_MIN <= new_scale <= HOUSE_HEAT_LOSS_SCALE_MAX:
             _LOGGER.warning(
                 "Learned house heat loss scale %.3f (fitted against "

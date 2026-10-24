@@ -8907,6 +8907,20 @@ R.check(
     _ra_far._lower_floor_loss_ratio == 1.0 and _ra_far._lower_floor_loss_samples == 0,
     f"ratio {_ra_far._lower_floor_loss_ratio}, {_ra_far._lower_floor_loss_samples} samples",
 )
+# A reset ratio carries no evidence, so the scale beside it lands where the
+# same edit lands over a store whose ratio never learned: a scale solved
+# jointly with the inexpressible ratio kept that ratio's share of the total.
+_ra_none = _ra_reload(
+    dict(_RA_CFG, lower_floor_heat_loss=_RA_L * 40.0),
+    _ra_learned(_RA_CFG, samples=(_RA_NS, 0)),
+)
+R.check(
+    "the scale beside a reset ratio is the scale with no ratio evidence",
+    abs(_ra_far._house_heat_loss_scale / _ra_none._house_heat_loss_scale - 1.0) < 1e-12
+    and _ra_none._lower_floor_loss_ratio == 1.0,
+    f"scale {_ra_far._house_heat_loss_scale:.6f} after the reset vs "
+    f"{_ra_none._house_heat_loss_scale:.6f} unlearned (ratio {_ra_none._lower_floor_loss_ratio})",
+)
 
 # G-ID-3: a power meter added under a learned state. The learners replayed
 # commanded power until now, so what they hold is void against the metered

@@ -2043,8 +2043,10 @@ def reanchor_heat_loss(
     scale: float,
     ratio: float,
     confidence: tuple[float, float],
-) -> tuple[float, float]:
-    """The learned ``(scale, ratio)`` re-expressed against new nameplates.
+    *,
+    ratio_bounds: tuple[float, float],
+) -> tuple[float, float, bool]:
+    """The learned ``(scale, ratio)`` re-expressed against new nameplates, and a ratio reset.
 
     ``then`` and ``now`` are the ``(upper, lower)`` nameplate UA the learners
     were fitted against and the UA configured now (lower 0 for one zone);
@@ -2063,6 +2065,12 @@ def reanchor_heat_loss(
     pair solves a quadratic in the scale with one non-negative root.
     Re-expressing the scale alone handed the lower zone's learned share to
     the upper one, the total kept and the split wrong.
+
+    A ratio outside ``ratio_bounds`` cannot be expressed against the new
+    lower nameplate: clamp means reset, so its evidence is void and the pair
+    is solved again at zero ratio confidence (ratio 1), the third element
+    ``True``. Keeping the scale solved beside the inexpressible ratio kept
+    that ratio's share of the total in the upper zone.
     """
     (u_then, l_then), (u_now, l_now) = then, now
     a, b = confidence
@@ -2075,8 +2083,11 @@ def reanchor_heat_loss(
     # The cancellation-free form of the same root on either sign of ``lin``.
     new_scale = (root - lin) / (2.0 * quad) if lin <= 0 else -2.0 * const / (lin + root)
     if l_now <= 0 or new_scale <= 0:
-        return new_scale, ratio
-    return new_scale, (1.0 - b) + b * lower / (l_now * new_scale)
+        return new_scale, ratio, False
+    new_ratio = (1.0 - b) + b * lower / (l_now * new_scale)
+    if b and not ratio_bounds[0] <= new_ratio <= ratio_bounds[1]:
+        return (*reanchor_heat_loss(then, now, scale, ratio, (a, 0.0), ratio_bounds=ratio_bounds)[:2], True)
+    return new_scale, new_ratio, False
 
 
 @dataclass(frozen=True, kw_only=True)
