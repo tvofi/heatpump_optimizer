@@ -81,7 +81,7 @@ import {
 } from './brief_lint.mjs'
 import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, cutoverDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
-import { DEPENDABOT_AUTHORS, dependabotManifests, dependencyBumpProblems, esc, parseCommits } from './dependabot_contract.mjs'
+import { DEPENDABOT_AUTHORS, dependabotManifests, dependencyBumpProblems, parseCommits } from './dependabot_contract.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -1530,6 +1530,7 @@ function printerSource() {
   return _printerSource
 }
 function printedPattern(span) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(span.split(/(<[^>]+>|\d+)/).filter(Boolean).map((part) =>
     /^(<[^>]+>|\d+)$/.test(part) ? '(?:\\{[^}]*\\}|\\$\\{[^}]*\\}|%\\w|\\S+?)' : part.split(' ').map(esc).join('\\s+')).join(''))
 }
@@ -3953,8 +3954,10 @@ function assertAcceptance(derived) {
   // Dependabot's own, no red -- silent, with a body carrying no heading at
   // all. The controls, each one clause broken, must each refuse: the SAME
   // body and paths as tvofi or the hpo-author App (the full contract keeps
-  // its teeth), a path no dependabot.yml entry configures, a human commit on
-  // the branch, an unsigned one, no commit list, and a red check.
+  // its teeth), a path no dependabot.yml entry configures, a configured
+  // manifest's name under a directory no entry names, a non-manifest file
+  // in a configured pip and in a configured npm directory, a human commit
+  // on the branch, an unsigned one, no commit list, and a red check.
   {
     const rel = path.relative(ROOT, path.join(prepr, 'dependabot-body.txt'))
     const own = [{ sha: 'a'.repeat(40), author: 'dependabot[bot]', committer: 'web-flow', verified: true }]
@@ -3969,6 +3972,9 @@ function assertAcceptance(derived) {
       'tvofi, same body': checkPrBody(rel, { ...bump, author: 'tvofi' }),
       'the App, same body': checkPrBody(rel, { ...bump, author: 'hpo-author[bot]' }),
       'unconfigured path': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tools/unconfigured.py'] }),
+      'manifest in an unconfigured directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tools/requirements-build.txt'] }),
+      'non-manifest in a configured pip directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/requirements-build.txt', 'tests/README.md'] }),
+      'non-manifest in a configured npm directory': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', paths: ['tests/pwlane/package-lock.json', 'tests/pwlane/README.md'] }),
       'human commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [...own, { sha: 'b'.repeat(40), author: 'tvofi', committer: 'tvofi', verified: true }] }),
       'unsigned commit': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: [{ ...own[0], verified: false }] }),
       'no commit list': checkPrBody(rel, { ...bump, author: 'dependabot[bot]', commits: null }),
