@@ -1,1 +1,0 @@
-Instances: 3 independently logged (4 filed), each cited, none carried. Files are in the s6 orchestrator's out-of-tree directory `/Users/<account>/hpo-orch/r10s6/`; counts re-taken 2026-10-24T14:40Z.

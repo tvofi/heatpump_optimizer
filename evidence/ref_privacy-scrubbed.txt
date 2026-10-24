@@ -1,2 +1,0 @@
-ref_privacy --check at b499e868f8b0e2fc871d5623ea64c7856fedfa52: 26 file(s) with a push site, 12 guarded, 15 line(s) added since e97f5749b441 judged, 0 refused
-exit=0
