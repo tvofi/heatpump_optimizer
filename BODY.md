@@ -36,11 +36,11 @@ It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
 
 ## Head
 
-`602830571d619ee621a5ad91d5b39f056d3b14f4`, which merges `origin/main` at `2636ce9e9378addc393b749160be0bd928af4f90` (2026-10-24T20:06Z). Every figure below was taken at this head. The before end is `5d79db511e0f801cc17605e1f8e3d935b3a7980e`.
+`4b12f7385b8b9a0ac9a0c768ccba5ce0adb36df5`, which merges `origin/main` at `fe58844454525da612f7a06e44700287b55d0275` (2026-10-24T22:43Z). Every figure below was re-taken at this head on 2026-10-24T23:30Z, after that merge. The before end is `5d79db511e0f801cc17605e1f8e3d935b3a7980e`.
 
 ## Mutation proof
 
-- Failing test first: the self-test at this head, with the guard block (`// WHAT A MERGE CALL IS` through `subjectWriters`) replaced by the before end's, gives `SELF-TEST 89 of 99 probes held`. That run predates the two probes added for the RV6 and T3 kills. The ten failures:
+- Failing test first: the self-test at this head, with the guard block (`// WHAT A MERGE CALL IS` through `subjectWriters`) replaced by the before end's, gives `SELF-TEST 90 of 101 probes held`. The eleven failures:
   - `spelling: a quoted multi-word option value between "pr" and "merge"`;
   - `spelling: a quoted multi-word short-option value between "pr" and "merge"`;
   - `spelling: a quoted multi-word option value before "pr"`;
@@ -50,6 +50,7 @@ It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
   - `spelling: the program from a command substitution`;
   - `spelling: the program as gh.exe`;
   - `a GraphQL merge in a triple-quoted string opened on its line is refused, its commitHeadline on a later line`;
+  - `a quote mark inside a triple-quoted string does not close it: a commitHeadline past it is refused`;
   - `a blank line inside a Python argv does not end the call: its --subject is refused`.
 - The mutation table: `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` applies 71 string mutants, one at a time, and runs `node tools/policy/agreement.mjs --self-test` on each. 68 are killed, each printing the FAIL lines that killed it. Three hold `101 of 101`: X5, Y9 and Y10 (Unpinned sites). No row prints `NOT APPLIED`. The kills this pass adds:
   - RV1 (`GAP` at program→pr narrowed to `\s+`): `99 of 101`;
@@ -81,12 +82,12 @@ It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
 - `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` → 71 rows. Exactly X5, Y9 and Y10 print `101 of 101`, and every other row prints FAILs (Mutation proof).
 - The finder's harness at both ends, under plants: `bash dev/audit/harnesses/r10_merge_subject_plants.sh [5d79db511e0f801cc17605e1f8e3d935b3a7980e]`. It runs `python3 -I tools/policy/agreement_py.py --run` with the guard from the ref or the working tree, and restores every file it touched.
   - Unperturbed: `56 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0` at both ends.
-  - Each of these plants gives `refused=0` at the before end and `REFUSED merge-subject-pr writer` at the planted line with `refused=1` at this head:
-    - `gh pr --subject "x y" merge`, `gh pr -t "x y" merge`, `${GH:-gh} pr merge` and `$(command -v gh) pr merge`, each appended to `merge_pr.sh` (refused at `merge_pr.sh:258`);
+  - Each plant below gives `refused=0` at the before end and `REFUSED merge-subject-pr writer` at the planted line with `refused=1` at this head:
+    - the four plants at `dev/audit/harnesses/r10_merge_subject_plants.sh:32` to `:35`, each appended to `merge_pr.sh` (refused at `merge_pr.sh:258`): a quoted multi-word `--subject` value before `merge`, the same with `-t`, the program as a braced variable with a default, and the program as a command substitution;
     - a blank line inside the argv at `merge_train.py:864`, before a `--subject` (refused at `merge_train.py:864`).
-  - The five plants the before end already refused (`gh pr "merge"`, `gh pr -R o/r merge`, `gh \`-newline-`pr merge`, `-mt`, and the single-quoted argv rewrite of `merge_train.py:864`) give `refused=1` at both ends.
+  - The five plants the before end already refused (the harness's lines 25 to 31: the single-quoted argv rewrite of `merge_train.py:864`, a double-quoted `merge`, a `-R` option before `merge`, a `\`-newline after the program, and a `-mt` cluster) give `refused=1` at both ends.
   - The harness's first-parent count grows with main, so it describes this SHA only. The claim that holds across heads is `refused=0` unperturbed.
-- The class's seams on the tree: `node dev/audit/harnesses/r10_merge_subject_census.mjs <the before end's agreement.mjs>`, over the 287 files the guard scans. Its rule is spelling-agnostic: every line holding the words `pr` and `merge`, against the guard's matches.
+- The class's seams on the tree: `node dev/audit/harnesses/r10_merge_subject_census.mjs <the before end's agreement.mjs>`, over the 290 files the guard scans. Its rule is spelling-agnostic: every line holding the words `pr` and `merge`, against the guard's matches.
   - `TOTAL old=56 new=56`: no `DIFF` line, so this pass's parts match no new tree site.
   - `UNCOVERED 60 of 95 line(s) holding both words`. I read each of the 60, and none is a merge call:
     - fake-gh case patterns and recorded-call strings in self-tests (`merge_pr.sh:152`, `:186`, `:200`, `merge_train.py:3119`, `:3121`);
@@ -97,7 +98,7 @@ It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
     So no live site of the Block's shapes (quoted multi-word value, `${VAR:-...}` or `$(...)` program, variable-program argv, triple-quoted mutation, blank line in an argv) exists. The guard's own seams are what this pass closes.
 - `node dev/audit/harnesses/r10_merge_subject_argv_seam.mjs` → `[]`, `[]`, `["f:1"]`: the two argv-across-expressions shapes are missed, and the one-expression control is refused (Unpinned sites).
 - `D=$(mktemp -d); python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` → `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` The one script is `tests/entities.py`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` → `2 of 2425 ENTITY CHECKS FAILED`, at this head and at `origin/main` `2636ce9e9` (a detached worktree, same command). Both runs fail the same two checks:
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` → `2 of 2429 ENTITY CHECKS FAILED`, at this head and at `origin/main` `fe5884445452` (a detached worktree, same command). Both runs fail the same two checks:
   - `gate-sweep.yml: on CI's completion, ... its outcome read from the output's word ...`;
   - `graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's ...`.
 
@@ -110,7 +111,7 @@ It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
 - `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
 - `node tools/policy/policy_lint.mjs` → `TOTAL: 0 error(s) across 50 policy file(s)`.
 - `node tools/policy/rules_sync.mjs --check` → `RULES-SYNC ok: every generated rule is the generated form of its source`.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures or fast red predicted against 2636ce9e9378 (a data-file read is not seen)`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures, fast, wave-script or instrument red predicted against fe5884445452 (a data-file read is not seen)`.
 
 ## Architecture score
 
@@ -127,7 +128,7 @@ Three surviving mutants and one seam, each dispositioned by written triage. `ci_
 
 ## Red checks
 
-none. No check has run on this head yet. On the before end, every completed gate check was success, skipped or neutral when the review read it. main's push CI may show `tests / ci-ratchet` red: that is the repo-wide artifacts-listing fault, with its hotfix in flight. This diff does not touch `tests/ci_ratchet.py`, and that red is not this PR's.
+none. No check has run on this head yet: it is the merge of main this body repair needed. On the before end, every completed gate check was success, skipped or neutral when the review read it. main's push CI may show `tests / ci-ratchet` red: that is the repo-wide artifacts-listing fault, with its hotfix in flight. This diff does not touch `tests/ci_ratchet.py`, and that red is not this PR's.
 
 ## Forward-carry
 
