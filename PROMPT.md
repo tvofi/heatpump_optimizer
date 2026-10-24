@@ -1,0 +1,18 @@
+CLOUD FIXER seat for PR #2749 of tvofi/heatpump_optimizer, at head 1813740bc926cb1e26a4ef83d8ffd48fe751c5c4. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 1813740bc926cb1e26a4ef83d8ffd48fe751c5c4 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-mutant-skip-r3, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-mutant-skip-r3 <body.md>`, which pushes refs/heads/handoff-body/r10-mutant-skip-r3; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+This is a BODY REPAIR plus re-measurement of open pull request #2749 (fix/r10-mutant-skip, head b1f77ff7). The code is handed off at handoff/r10-mutant-skip 1813740bc926cb1e26a4ef83d8ffd48fe751c5c4 with body at handoff-body/r10-mutant-skip 917373f18d56f713ef453969532716b1af6e3511 (BODY.md). The orchestrator's update_pr to that handoff was REFUSED by tools/pr/prepr.sh with: (1) "'Closes #2509' closes #2509; not in the intended list"; (2) "RED UNANSWERED (tests / closures, tests / fast (3.14))": ## Red checks does not name them. Nothing was pushed to the PR. A previous cloud seat found BASH_ENV makes entities.py's stand-in python3 checks red and prepr passed without it; run prepr with BASH_ENV unset.
+
+Cut a worktree from origin/handoff/r10-mutant-skip, merge origin/main, and:
+1. Drop 'Closes #2509', or change it to 'Part of #2509' if #2509 is not this PR's to close (read #2509 and the roster group to decide).
+2. Answer tests / closures and tests / fast (3.14) in ## Red checks with the lines tools/audit/seat/failure_logs.sh 2749 prints for the merged head; say whether CI's red is the BASH_ENV stand-in effect or something else.
+3. Re-measure every figure on the merged tree (the body's were measured at a7e41d646087): the reach matrix, the null drive, and lane A/B. The earlier seat's own measurement on its merge read: 84 never pairs, killed 0; A/B verdicts byte-identical, 4 killed and 4 LIVES.
+4. Settle MUTATION TABLE BREACHED (4 of 8 survive against the 30% cap): decide whether the breach is real; pay it in code or tests, or show it is an artefact and say why.
+
+Push refs only: handoff/r10-mutant-skip (if code moved) plus handoff-body/r10-mutant-skip (topic is r10-mutant-skip even though this dispatch ref carries a -r3 suffix). Answer `## Red checks` for every red check.
+
+No host or home paths in anything you push (cite repo-relative paths only). Do not end the turn while a background job runs.
