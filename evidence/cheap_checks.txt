@@ -1,0 +1,2 @@
+ModuleNotFoundError: No module named 'homeassistant'
+STRUCTURE RATCHET PASSED
