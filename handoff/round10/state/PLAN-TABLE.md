@@ -120,7 +120,7 @@ gantt
 | R10-RATIO-SITES | LR | 1 | done | #2239 | opus/opus | - | From STUDY R10-RESEED (NO-GO; harnesses `tools/audit/round10/study-reseed/reparam_sites.py` at 2c42ba4a0): `_space_demand_kw` in custom_components/heatpump_o... |  |
 | R10-VENT-DETECTOR | LR | 1 | done | **#2241** | opus/opus | - | G-ID-2 from STUDY R10-IDENT. |  |
 | R10-NIGHT-FOLDS | LR | 1 | done | **#2223** | opus/opus | - | G-ID-1. |  |
-| R10-RATIO-ANCHOR | LR | 1 | not-started | #2239 | opus/opus | - | D-3 (D12-s2-71, medium, verified): the lower-floor learned ratio has no re-anchor, so a nameplate edit or a snapshot restore misattributes the change, upper... |  |
+| R10-RATIO-ANCHOR | LR | 1 | in-progress | #2239 | opus/opus | - | D-3 (D12-s2-71, medium, verified): the lower-floor learned ratio has no re-anchor, so a nameplate edit or a snapshot restore misattributes the change, upper... |  |
 | R10-INPUT-STALENESS | FD | 1 | in-progress | **#2234** | opus/opus | - | `INPUT_MAX_AGE_MINUTES` in custom_components/heatpump_optimizer/const.py is shorter than a report-on-change source's legitimate quiet interval: D14-s3-02 (me... |  |
 | R10-CURRENCY | SP | 1 | done | **#2222**, **#2243** | opus/opus | - | A money figure is resolved by divergent currency precedence on different surfaces: D14-s3-01 (medium, verified; D14-s2-01 merged) finds 1 of 14 money seams m... |  |
 | R10-STORE | PS | 1 | done | **#2224**, #2232, #2236, #2238 | opus/opus | - | Persistence: defects first, then the owner moves. |  |
@@ -144,7 +144,7 @@ gantt
 | R10-PARAMS-OWNER | AR | 2 | not-started | **#2232**, #2249 | opus/opus | - | ARCH2-s1: a single owner of the thermal parameters with copy-on-write (`dev/audit/rounds/round10/D7/arch2-s1/P1_thermal_params_single_owner.patch` at 2c30ada... |  |
 | R10-SENSOR-PAYLOAD | AR | 1 | done | #2238, #2242 | opus/opus | - | Defect first: D8-s1-01 (low), the hot-water schedule sensor publishes "heating now" on 1 of 36 off-step snapshots through its fallback. |  |
 | R10-ARCH-SHAPES | AR | 2 | not-started | **#2236**, #2238, **#2239** | opus/opus | - | Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. |  |
-| R10-LEARNER-ETA | LR | 1 | not-started | #2260 | opus/opus | - | G-ID-4. |  |
+| R10-LEARNER-ETA | LR | 1 | in-progress | #2260 | opus/opus | - | G-ID-4. |  |
 | R10-HEAT-METER | LR | 3 | not-started | #2261 | opus/opus | - | Owner request (tvofi, 2026-10-15). |  |
 | R10-COP-GATE | LR | 4 | not-started | #2262 | opus/opus | - | From STUDY R10-IDENT Q2: no bin of the COP gate reaches 20 within 120 days, because 59 of 138 rows fall under the duty floor, and the sample definition assum... |  |
 | R10-UX-HEALTH | UI | 5 | not-started | #2253, #2263 | opus/opus | - | Owner-reported Health tab (tvofi, 2026-10-14): (1) mixed casing, the integration's role labels next to the user's raw entity friendly names; every row shows... |  |
