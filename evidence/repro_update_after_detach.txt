@@ -1,0 +1,17 @@
+++ git init -q -b main /tmp/tmp.gdPc0bqwEw/o
+++ cd /tmp/tmp.gdPc0bqwEw/o
+++ git -c user.name=a -c user.email=a@b commit -q --allow-empty -m base
+++ git branch fix/t
+++ git worktree add -q /tmp/tmp.gdPc0bqwEw/wt fix/t
+++ cd /tmp/tmp.gdPc0bqwEw/wt
+++ git -c user.name=a -c user.email=a@b commit -q --allow-empty -m p2
+++ git checkout -q --detach
+++ git reset -q --hard fix/t
+++ git -c user.name=a -c user.email=a@b commit -q --allow-empty -m 'update merge/row'
++++ git rev-parse HEAD
+++ head=ee31dc48a3c2a85f2d5e082a29756c024e478523
++++ git rev-parse --verify refs/heads/fix/t
+++ tip=0dde7502cb69f5e4d3cdaaea432fb2c704f91c13
+++ set +x
+head=ee31dc48a3c2a85f2d5e082a29756c024e478523 tip=0dde7502cb69f5e4d3cdaaea432fb2c704f91c13
+RESULT update-after-detach app_push-gate=REFUSE (worktree HEAD is not the committed tip)
