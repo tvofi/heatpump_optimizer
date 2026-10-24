@@ -17,16 +17,21 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-INPUT-STALENESS (stage in-progress, branch `handoff/r10-input-staleness`): `git fetch origin handoff/r10-input-staleness && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LEARNER-ETA (stage in-progress, branch `handoff/r10-learner-eta`): `git fetch origin handoff/r10-learner-eta && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-SCOPED (stage in-progress, branch `handoff/r10-replay-scoped`): `git fetch origin handoff/r10-replay-scoped && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-POLICY-FIXER-MD (stage in-progress, branch `handoff/r10-policy-fixer-md`): `git fetch origin handoff/r10-policy-fixer-md && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-POLICY-GATE-SCOPING (stage in-progress, branch `handoff/r10-policy-gate-scoping`): `git fetch origin handoff/r10-policy-gate-scoping && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage in-progress, branch `handoff/r10-sav-comfort`): `git fetch origin handoff/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MUTATION-ANCHOR (stage in-progress, branch `handoff/r10-mutation-anchor`): `git fetch origin handoff/r10-mutation-anchor && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-MERGE-SUBJECT-HARDEN (stage in-progress, branch `handoff/r10-merge-subject-harden`): `git fetch origin handoff/r10-merge-subject-harden && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
 - R10-UPDATE-PR-SIGNALS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-THERMAL-POWER-OPTION (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-MUTANT-SKIP (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CI-LAYOUT-P2 (stage carries-open, branch `handoff/r10-ci-layout-p2b-v2`): `git fetch origin handoff/r10-ci-layout-p2b-v2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-JIDOKA (stage in-progress, branch `handoff/r10-flow-jidoka`): `git fetch origin handoff/r10-flow-jidoka && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-AUTOTRAIN (stage in-progress, branch `handoff/r10-flow-autotrain`): `git fetch origin handoff/r10-flow-autotrain && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-DEPGRAPH-STALE (stage in-progress, branch `handoff/r10-fly-depgraph-stale`): `git fetch origin handoff/r10-fly-depgraph-stale && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage queued, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
