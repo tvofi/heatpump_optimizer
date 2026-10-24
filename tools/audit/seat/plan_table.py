@@ -127,6 +127,13 @@ def detail(roster: dict, live: dict) -> str:
     return "\n".join(rows)
 
 
+def wave_days(wave: int, cadence: float) -> tuple:
+    """Wave `wave`'s (start, end) day offsets from wave-1 start: the ETA rule,
+    `cadence` days per wave. The one owner -- plan_artifact.py dates its bars
+    and ETAs with this, rather than a second schedule of its own."""
+    return (wave - 1) * cadence, wave * cadence
+
+
 def eta(roster: dict, cadence: float) -> str:
     open_ = roster_lib.open_groups(roster)
     depth = roster_lib.depth_of(roster)
@@ -138,8 +145,9 @@ def eta(roster: dict, cadence: float) -> str:
             f"{n} wave(s) of work, total {n * cadence:g} days from wave-1 start.",
             "", "| wave | groups | starts (day) | ends (day) |", "|---|---|---|---|"]
     for w in range(1, n + 1):
+        start, end = wave_days(w, cadence)
         rows.append(f"| {w} | {len(waves.get(w, []))} | "
-                    f"{(w - 1) * cadence:g} | {w * cadence:g} |")
+                    f"{start:g} | {end:g} |")
     return "\n".join(rows)
 
 

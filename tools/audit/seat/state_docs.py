@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The state-doc pusher: regenerate the three handoff state docs in one call.
+"""The state-doc pusher: regenerate the four handoff state docs in one call.
 
     python3 tools/audit/seat/state_docs.py [--repo OWNER/REPO] \
         [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] \
@@ -9,10 +9,10 @@
         [--watch-ref REF] [--interval SECONDS] [--tip-file PATH] [--once]
     python3 tools/audit/seat/state_docs.py --self-test
 
-The loop the #1946 generators left open: run plan_table.py, resume_doc.py
-and handover_prompt.py in order, commit exactly their outputs to the orphan
-ref `handoff/audit-r<N>-plan` at handoff/round<N>/state/, and mirror the three
-files to a local directory. Without --push it is a dry run: nothing remote
+The loop the #1946 generators left open: run plan_table.py, resume_doc.py,
+handover_prompt.py and plan_artifact.py in order, commit exactly their
+outputs to the orphan ref `handoff/audit-r<N>-plan` at
+handoff/round<N>/state/, and mirror the four files to a local directory. Without --push it is a dry run: nothing remote
 is written and it prints what it would push. N is the ROSTER's round, never a
 constant here: the round `roster_lib.roster_path` picks (the newest
 `dev/programme/rosters/wave-r<N>-groups.json` at --roster-ref, or
@@ -20,7 +20,7 @@ constant here: the round `roster_lib.roster_path` picks (the newest
 cannot be read is refused, so a round-10 beat cannot write round 9's state.
 
 The write set is guarded the way record_row.py guards its rows: every path
-the commit touches must be one of the three state docs, checked BEFORE any
+the commit touches must be one of the four state docs, checked BEFORE any
 commit exists to push. Every other path at the state ref's tip is carried
 untouched -- the ref holds a round's evidence beside the state docs -- and
 a tip whose content is already current is reported and left alone. The
@@ -30,7 +30,7 @@ body_push.sh's: commit-tree onto the ref's tip, parentless when the ref
 does not exist yet, a fast-forward afterwards -- never a force.
 
 Stateless like the other seat tools: every input is a flag, nothing about a
-session or a machine is hardcoded, stdlib only, and the three generators
+session or a machine is hardcoded, stdlib only, and the four generators
 are RUN, never re-implemented -- their logic lives in exactly one place.
 
 `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
@@ -68,10 +68,11 @@ import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 #: ref name, so a short name that happens to be a prefix matches nothing.
 WATCH_REF = "refs/heads/main"
 BEAT_INTERVAL = 300.0
-#: The three docs, one per generator. Under a round's state dir they are the
+#: The four docs, one per generator. Under a round's state dir they are the
 #: WHOLE write surface: every other path at the state ref's tip -- a round's
 #: evidence, the older state docs -- is carried, never touched.
-DOC_NAMES = ("PLAN-TABLE.md", "RESUME-CURRENT.md", "NEXT-SESSION-PROMPT.md")
+DOC_NAMES = ("PLAN-TABLE.md", "RESUME-CURRENT.md", "NEXT-SESSION-PROMPT.md",
+             "plan.html")
 
 
 class State(NamedTuple):
@@ -116,14 +117,16 @@ def run(cmd, cwd=None, env=None, input_text=None) -> str:
 # ----------------------------------------------------------------- generate
 def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
              staging: Path, state_dir: str) -> dict:
-    """Run the three #1946 generators, in order, into staging.
+    """Run the four generators (#1946's three and the HTML plan), in order,
+    into staging.
 
     Returns {repo path: text} keyed by the write-set paths. The generators
     are subprocesses with their own flags -- never copied logic. The
     next-session prompt takes no --resume: ready-next derives from the
     roster, the same hand run that wrote the live state docs (a --resume
     path would embed a scratch path in the committed doc and break the
-    already-current check).
+    already-current check). The HTML plan reads the same PR fixture as the
+    resume, so an offline run touches no network for either.
     """
     resume_flags = (["--offline", "--pr-state", pr_state]
                     if pr_state else [])
@@ -131,6 +134,7 @@ def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
         ("plan_table.py", "PLAN-TABLE.md", []),
         ("resume_doc.py", "RESUME-CURRENT.md", resume_flags),
         ("handover_prompt.py", "NEXT-SESSION-PROMPT.md", []),
+        ("plan_artifact.py", "plan.html", resume_flags),
     ]
     out: dict = {}
     for script, name, extra in plan:
@@ -150,7 +154,7 @@ def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
 
 # ------------------------------------------------------------------ the tree
 def check_write_set(staged: dict, write_set: tuple) -> None:
-    """The guarded write set, record_row's shape: anything outside the three
+    """The guarded write set, record_row's shape: anything outside the four
     state docs is refused, never skipped."""
     bad = sorted(p for p in staged if p not in write_set)
     if bad:
@@ -369,7 +373,7 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     p.add_argument("--pr-state",
                    help="JSON list of open pull requests; passed to "
                         "resume_doc with --offline (no network, no gh)")
-    p.add_argument("--mirror", help="directory the three files are copied to")
+    p.add_argument("--mirror", help="directory the four files are copied to")
     p.add_argument("--push", action="store_true",
                    help="push the state ref; without it this is a dry run")
     p.add_argument("--message")
@@ -544,12 +548,14 @@ def self_test() -> int:
         ok("resume generated", "## Roster" in show(WRITE_SET[1]))
         ok("prompt generated", "Next-session prompt" in show(WRITE_SET[2])
            and "R9-A" in show(WRITE_SET[2]))
-        ok("mirror carries exactly the three files",
+        ok("plan page generated", "Fix Plan" in show(WRITE_SET[3])
+           and "R9-A" in show(WRITE_SET[3]))
+        ok("mirror carries exactly the four files",
            sorted(p.name for p in mirror.iterdir())
            == sorted(Path(p).name for p in WRITE_SET))
         ok("parent is the previous tip",
            state0 in git("-C", str(bare), "log", "--format=%P", "-1", tip))
-        # THE GUARD: a write outside the three files refuses, in both the
+        # THE GUARD: a write outside the four files refuses, in both the
         # direct check and a real write_tree call over the live tip.
         try:
             check_write_set({"dev/programme/HANDOVER.md": "x", WRITE_SET[0]: "ok"},
