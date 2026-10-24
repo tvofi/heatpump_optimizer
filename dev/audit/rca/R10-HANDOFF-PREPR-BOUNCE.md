@@ -30,8 +30,9 @@ section re-derives what the tree can answer now, each by the command shown.
   `inert_reads["tests/harness_headers.py"]` (26 when this record was written).
   `git log origin/main --since=2026-09-25 --grep='re-record closures' --oneline | wc -l`
   prints 35 (24 in section 1), 15 of them since 2026-10-12 (5 in section 1).
-  `git ls-remote origin 'refs/heads/handoff/*' | wc -l` prints 99 refs (15 topics in
-  section 4). The section-1 timings, the 3-of-15 rate and the 3.5 h expected loss are
+  `git ls-remote origin 'refs/heads/handoff/*' | wc -l` is a live count of origin's refs,
+  not a figure of the tree, so it cannot be re-derived at a SHA and is not given here
+  (section 4 counted 15 topics). The section-1 timings, the 3-of-15 rate and the 3.5 h expected loss are
   that day's measurements and are not re-run.
 
 ## 1. What happened, reproduced
