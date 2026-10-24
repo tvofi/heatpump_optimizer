@@ -1,0 +1,16 @@
+# Proposal triage, session s6, batch 14 (P83)
+
+One proposal from the s6 `proposals.md`, S6-V18, filed 2026-10-24. Numbering
+continues after `s6-batch13.md` (P82, unmerged at this base). GitHub calls: 0.
+
+A roster op citing an ACCEPT below resolves only once this file is on the
+roster branch or origin/main (`roster_edit.py` reads the ruling from there).
+
+## P83: a cloud pool run ends its turn while a background job is pending (S6-V18)
+Verdict: ACCEPT NARROWED -> new group R10-FLY-CLOUD-WAIT (XS; `tools/audit/seat/cloud_dispatch.py`): candidate (a) only, as one sentence in the prompt renderer; candidate (b) REJECTED
+Source: s6 `proposals.md` `## V18`.
+Instances: 2 lost review cycles in one day, both from the orchestrator's account in `proposals.md` `## V18`, not re-counted from logs: the #2750 reviewer (refired at about 17:3xZ) and the #2745 reviewer at f7aab34f, which ended at 17:53:51Z with "will pick up again when it finishes" after backgrounding a 30-minute re-drive. Its session does not persist, so nothing resumed it, and its claim was held for 27 minutes with no probe. Cause in the tree: `_prompt` in `tools/audit/seat/cloud_dispatch.py` hands every cloud role (fixer, reviewer, probe) the setup line "Run anything heavy in the background with Monitor and no timeout" (`git grep -n 'Run anything heavy' origin/main` finds only that one source), and nothing in it tells the seat to wait for that job inside the same turn. A seat that follows the line literally and then ends its turn loses the job.
+Cost: XS. About 2 lines in the setup string of `_prompt`, plus one self-test row in `self_test` asserting that the rendered fixer, reviewer and probe prompts carry the wait rule. No new file, no API call, no standing cost. The routine triggers need no edit, because they render through this function.
+Binding: each instance costs a full review cycle (about 30 to 60 minutes of an opus seat, plus a refire) and is found only by the sweep, against two lines in the one renderer every cloud seat reads. The cause is our own instruction, so fixing that sentence is exact; a prose rule elsewhere would not be.
+(b) REJECTED: P55 (`s6-batch4.md`) already rejected an N-minute reclaim in the pool, because it races a live fixer. The same holds here: a run legitimately waiting on a 30-minute job looks idle for more than 10 minutes, so an idle reclaim would delete a live claim and double-fire. Re-rule (b) only if a third instance is found after R10-FLY-CLOUD-WAIT merges, which would mean the prompt does not bind.
+Carry text (for `roster_edit.py` creating R10-FLY-CLOUD-WAIT, citing `triage: dev/programme/triage/s6-batch14.md#P83`): "tools/audit/seat/cloud_dispatch.py `_prompt`: amend the setup line so it no longer says only to run heavy work in the background with Monitor and no timeout. It must also say that a cloud run is never resumed after its turn ends, so the seat waits for every background job in the same turn (Monitor until the job exits) and never ends its turn while one runs. Cause: 2 lost reviewer cycles on 2026-10-24 (#2750, #2745 at f7aab34f), each ending its turn behind a backgrounded job. Controls: one `self_test` row asserts the wait rule is in the rendered fixer, reviewer and probe prompts, and one mutant that deletes the sentence turns that row red. No idle-time reclaim (P55, P83 (b))."
