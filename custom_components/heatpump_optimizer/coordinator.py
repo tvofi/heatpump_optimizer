@@ -299,13 +299,7 @@ from .flow_lift import FlowCurveBias, curve_supply_temp
 from .flow_meter import observe_water
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
-from .learner_progress import (
-    SNAPSHOT_COUNT_PATHS,
-    LearnerInputs,
-    learner_progress,
-    snapshot_count,
-    snapshot_rates,
-)
+from .learner_progress import LearnerInputs, learner_progress, snapshot_rates
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
@@ -1405,16 +1399,19 @@ def learner_progress_view(
     state: ThermalState,
     params: ThermalParameters,
     config: Any,
-    learned: Mapping[str, Any],
     snapshots: Sequence[Mapping[str, Any]],
+    samples: tuple[float, float, float],
 ) -> dict[str, dict[str, Any]]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
-    ``learned`` is the thermal-learning payload, the shape the weekly
-    snapshots hold, so the counts now and then are read by one rule;
+    ``samples`` are the house, lower and solar learners' counts; a
+    non-finite one (a corrupted store) counts as none.
     ``learner_progress`` owns the phases, this only gathers their inputs.
     """
-    counts = {name: int(snapshot_count(learned, name) or 0) for name in SNAPSHOT_COUNT_PATHS}
+    counts = {
+        name: int(n) if np.isfinite(n) else 0
+        for name, n in zip(("house", "lower", "solar"), samples)
+    }
     rates = snapshot_rates(snapshots, dt_util.now(), counts)
     outdoor = state.outdoor_temperature
 
@@ -7823,8 +7820,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
             "learner_progress": learner_progress_view(
-                ctx._current_state, ctx._thermal_params, ctx._config,
-                self._thermal_learning_payload(), snaps,
+                ctx._current_state, ctx._thermal_params, ctx._config, snaps,
+                (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
             ),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,

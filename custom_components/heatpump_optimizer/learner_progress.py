@@ -71,7 +71,8 @@ def snapshot_rates(
     """Samples per day since the newest snapshot at least a day old.
 
     A snapshot stamped ahead of ``now`` has an unknowable age and is passed
-    over; a count below the snapshot's (a restore, a reset) gives no rate.
+    over; a count below the snapshot's (a restore, a reset) reads as a
+    negative rate, which ``learner_progress`` treats as nothing counted.
     """
     rates: dict[str, float | None] = dict.fromkeys(counts)
     for snap in reversed(snapshots):
@@ -83,14 +84,14 @@ def snapshot_rates(
             continue
         thermal = (snap.get("learners") or {}).get("thermal_learning") or {}
         for name, now_n in counts.items():
-            then = snapshot_count(thermal, name)
-            if then is not None and now_n >= then:
+            then = _snapshot_count(thermal, name)
+            if then is not None:
                 rates[name] = (now_n - then) / days
         break
     return rates
 
 
-def snapshot_count(payload: Mapping[str, Any], name: str) -> float | None:
+def _snapshot_count(payload: Mapping[str, Any], name: str) -> float | None:
     """One learner's sample count in a thermal-learning payload, None if absent."""
     value: Any = payload
     for key in SNAPSHOT_COUNT_PATHS[name]:

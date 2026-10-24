@@ -20816,6 +20816,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
     learner_progress_view as _le_view,
 )
 from heatpump_optimizer.const import (  # noqa: E402
+    SOLAR_APERTURE_ALPHA as _LE_SOLAR_ALPHA,
     SOLAR_APERTURE_MIN_IRRADIANCE as _LE_MIN_IRR,
     SOLAR_APERTURE_MIN_SAMPLES as _LE_SOLAR_MIN,
 )
@@ -20907,11 +20908,14 @@ R.check(
             for cold, rate, row in _le_settle if cold or rate),
     f"{_le_settle}",
 )
-_le_c = _le_coord(house=_le_gains_need + 40, internal_gains_learning_enabled=True)
+_le_c = _le_coord(house=_le_gains_need + 40, solar=_LE_SOLAR_MIN + 40,
+                  internal_gains_learning_enabled=True, solar_aperture_learning_enabled=True)
 _le_p = _le_progress(_le_c)
 R.check(
     "R10-LEARNER-ETA: settling progress is the learner's own EWMA walk, never a time",
     _le_p["house"]["progress"] == round(_le_confidence(_le_gains_need + 40), 3)
+    # the aperture walks from its gate, one SOLAR_APERTURE_ALPHA step a sample
+    and _le_p["solar"]["progress"] == round(1.0 - (1.0 - _LE_SOLAR_ALPHA) ** 40, 3)
     and _le_p["gains"]["phase"] == "settling" and _le_p["gains"]["progress"] is None,
     f"{_le_p}",
 )
@@ -20948,6 +20952,17 @@ R.check(
     and _le_clamp["house"]["phase"] == "settling" and _le_clamp["house"]["progress"] == 1.0
     and _le_clamp["house"]["eta_days"] is None,
     f"off {_le_off} fresh {_le_fresh} clamp {_le_clamp}",
+)
+
+# A non-finite aperture count (#773's corrupted store) counts as none, and
+# the snapshot it is compared against with it.
+_le_c = _le_coord(solar=float("nan"), solar_aperture_learning_enabled=True)
+_le_snap(_le_c, 2.0)
+_le_nan = _le_progress(_le_c)["solar"]
+R.check(
+    "R10-LEARNER-ETA: a non-finite aperture count reads as zero samples, with no day count",
+    _le_nan["samples"] == 0 and _le_nan["eta_days"] is None,
+    f"{_le_nan}",
 )
 
 # The rate window: a snapshot stamped ahead of the clock has an unknowable
