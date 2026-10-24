@@ -1,104 +1,124 @@
-R10-SAV-COMFORT: the savings figures, settled on the owner's baseline specification (2026-10-24) and shown on the card cell for cell. The branch continues handoff 50f27375 (the comfort-matched reference and the start bound, carry 1) and adds carries 2 to 5 on top. `origin/main` is merged in at 73b69fe0a.
+R10-SAV-COMFORT: the savings figures, settled on the owner's baseline specification (2026-10-24), and shown on the card cell for cell.
 
-Part of #2492. Part of #201. #2492 stays open: carry 5's seam 2 is not done here (see Forward-carry), and the group's roster row lists #2492 under `issues`, not `fixes`.
+Part of #2492. Part of #201. #2492 stays open. Carry 5's seam 2 is not done here (see Forward-carry), and the group's roster row lists #2492 under `issues`, not `fixes`.
 
-**Carry 1, re-measured at the new merge base.** No code changed for it. The comfort-matched thermostat (`_comfort_matched_targets`) and the start bound (`_start_gap_cost`, `_settle_horizon`) are as they were at 50f27375. The advisor's degree still reads `OptimizationResult.held_cost`. Figures are below.
+**The comfort-matched reference (optimizer.py).** The savings thermostat holds the comfort the plan delivered. `_comfort_matched_targets` lowers the comfort schedule by the plan's mean shortfall below it. The shift is uniform, so a dip the plan pays back with heat stored in a cheap hour stays a timing saving. A plan at or above the schedule on average leaves the schedule unchanged. The space path keeps its thermostat at the schedule as the solver's start. It runs a second thermostat at the matched schedule only when the shortfall is positive. `OptimizationResult.held_cost` is the thermostat at the schedule itself, and the advisor's degree price (`coordinator.py`, `monthly_held_cost_delta`) reads it. `_settle_horizon` is the one stored-heat settlement both solve paths book. `_start_gap_cost` debits a warm start by no more than the space heat the thermostat buys plus the end's credit.
 
-**Carries 2 and 4: the thermostat runs at the meter's power levels (ledger.py).** The month was negative by volume because a modelled thermostat was set against a metered actual: the plan's model under-read the meter 1.56x. On each settlement the ledger now books one more line, `savings_plan`. It holds the plan's own modelled kWh (`pending["power"]`, the draw the accuracy sample compares against the meter) on the same intervals as `savings_baseline` and `savings_actual`. `MonthlyLedger.meter_calibration(month)` is metered kWh over the plan's modelled kWh. The month row multiplies the modelled thermostat's cost by it. This gives the thermostat the power levels the pump recorded, for space heating and for the always-hot DHW thermostat alike (`_baseline_dhw_economics` already plans no DHW windows). The thermostat still runs over the same price profile. The saving is that cost less the metered cost, both at spot plus the per-kWh fee. At one flat price the saving is p·(k·ΣB − ΣA), so it is volume alone: timing is 0 by construction, and the volume difference remains at meter levels.
-- A month whose savings lines began before the plan line existed (an upgrade mid-month) never gains one. Its later intervals would otherwise calibrate the whole month's thermostat. It publishes `meter_calibration: null` and stays on the modelled basis.
-- A month whose plan booked under `MIN_CALIBRATION_KWH` (1 kWh) also stays modelled. Below that the ratio measures the meter's residue, not the plan's power levels.
-- Carry 2's "draw the plan never commanded classified rather than charged to the plan": carry 5 traced that draw to the plan's own commanded draw running late (actuation phase), not to pump-initiated hot water. Under the owner's spec the actual is the whole meter. That draw now raises the calibration, which scales the thermostat with it, instead of being charged against the plan alone.
+**The thermostat at the meter's power levels (ledger.py).** Each settlement books one more line, `savings_plan`: the plan's own modelled kWh on the same intervals as `savings_baseline` and `savings_actual`. `MonthlyLedger.meter_calibration(month)` is metered kWh over modelled kWh, and the month row multiplies the modelled thermostat's cost by it. A month whose savings lines began before the plan line existed stays on the modelled basis, as does one whose plan booked under `MIN_CALIBRATION_KWH`. Both publish `meter_calibration: null`.
 
-**Carry 3: one basis, card equal to the ledger.** `ledger.savings_months` is the only change. Baseline, Actual and Savings are all the covered intervals at spot plus fee: Baseline is the calibrated thermostat, Actual is the metered energy, and Savings is their difference, computed from the two rounded cells so that Baseline − Actual is the Savings shown. The bill basis (capacity, wear, immersion through `month_cost`) is gone from the row, and `month_cost` lost its last reader and is deleted. The open month scales all three by `_coverage_factor`. The sensor state, the Savings tab, the closed-month receipt's "saved" line (`receiptHtml` reads `row.savings_sek`/`savings_pct`) and the notifier's receipt read the same row. Divergence (a), the header's "Projected savings", is `predicted_savings`. That is a plan-horizon figure, a different quantity, and carry 3 confines the fix to `savings_months`, so it is unchanged. The row gains one additive field, `meter_calibration` (`SavingsMonth`, payload.py), so the basis is visible. `docs/dashboard-card.md` states the basis.
+**One basis, card equal to the ledger.** In `ledger.savings_months`, Baseline, Actual and Savings are all the covered intervals at spot plus fee. Savings is computed from the two rounded cells. `month_cost` lost its last reader and is deleted. The row gains `meter_calibration` (`SavingsMonth`, payload.py).
 
-**Carry 5, seam 1: the duty ledger re-freezes `planned` at each plan adoption (pump_arbiter.py `_observe`).** The row now keeps the plan it froze from. When a different plan is adopted inside the step, `planned` is re-frozen to that plan's duty, so the step is scored against the plan that actuated it. The same plan's later duty (a lease or a boost) leaves the freeze alone.
+**The duty ledger re-freezes `planned` at each plan adoption (pump_arbiter.py `_observe`).** A step is scored against the plan that actuated it.
 
-**Carry 5, seam 2, NOT done: actuating the switch at step boundaries from the arbiter's one-minute tick. Stopped and asked (fixer.md step 17).** The switch is written from `coordinator._apply_action`, behind the stale-plan hold, `early_cutoff.allow_on`, and the cooling/both-blocked `skip_off`. The arbiter's tick exists only while duty mode is not `off` (`DUTY_OFF` releases its listeners). Moving the write therefore means either a new tick that runs on every install or moving those three gates into the arbiter. Either one changes the actuator edge's single writer (`switch_supply`), which is outside this group's two seams. It wants a design note before a fixer. Its controls (cycle phase 0 vs 14 min books identical duty verdicts; one mutant per seam) are carried forward below.
-
-Alternatives and why each lost (`fixer.md` step 17):
-- Calibrating by `accuracy.power_ratio` (carry 2's suggestion). It is a mean of per-row ratios over a sliding 192-row window, and it excludes rows the plan predicted under 0.05 kW: 17.8 % of the month's metered draw. So the month would be scaled by a figure measured over other intervals, and it would not cover the draw it is meant to absorb. The ledger's own lines are the same intervals by construction.
-- Per-interval scaling B_i·A_i/P_i: undefined on plan-zero intervals, which is exactly where the lagged draw lands.
-- Keeping the bill basis and only calibrating: the % column would still divide an energy saving by a bill, which is carry 3's divergence (b).
-- Seeding a legacy month's plan line from its metered kWh, so that k=1 for the pre-upgrade part: blends two bases into one factor applied to the whole month's thermostat; refused for the month-boundary rule above.
+**The thermostat's per-step inputs, read once (this pass, for tests / fast).** The matched reference's second thermostat pass took winter/1z/space/pin-off past stress.py's 1.05x production-call allowance. `_compute_baseline_power` now reads its setpoints, the humidity series, the two-tank flag and the floored slab coefficient once per pass, not once per step. The setpoints come from `_baseline_targets`, one array, and `_baseline_target` delegates to it, so the rule has one owner. The demand helpers take `k_slab`. `np.clip`'s lower bound was dead and is dropped: the demand is floored at 0 two lines above, and `compute_cop` returns `max(cop, 1.0)`. Every value is unchanged bit for bit (`env_drift.py --all`, below). Alternatives, and why each lost (`fixer.md` step 17):
+- A scenario-scoped allowance in stress.py. It is not needed, because a payment existed, and stress.py's own rule forbids a raise for a single firing.
+- Dropping the space path's thermostat at the schedule. It is the solver's start, so every plan would move.
+- Deriving the matched pass from the first by linearity in the shift. The 0 and nameplate clips make the map non-affine, so it is not bitwise.
+- A precomputed COP shared across passes. It would need a cop parameter on the public `simulate_step`, which widens a surface to save calls this payment did not need.
 
 ## Head
 
-acd865b03936e53255dae9a9d9914a531e69b2d2, on merge base 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec (origin/main at 73b69fe0a when read, 2026-10-24T15:18Z). 51021b4a6 merges 73b69fe0a into the earlier code head 8e18704ef. Two commits follow it, and neither touches production code: the operator-mutant harness `dev/audit/harnesses/r10_sav_comfort_opmutants.py`, and its `tests/harness_headers.py` inert-read entry in `tests/closures.json` (written by `tools/pr/ci_predict.py --apply-inert`). `git diff --stat 8e18704ef 51021b4a6 -- custom_components tests/features.py tests/plan_view.py tests/card.mjs www` prints nothing, so the merge moves no production file and none of this PR's checks. The scoped gate ran at a541dfb41, and the code above it is unchanged. The one later code commit, 8e18704ef, touches only the floor check in tests/features.py's "3L-G7" section, which was re-run at the head (54 passed). The operator mutants under Unpinned sites ran at acd865b03.
+fb7683af246ccc5c23ebe5229e9447d58708207e, on merge base 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec. This pass adds three commits to the PR head 46dc1dda8: 8f5fd0295 (the hoist and the structure re-record), 0355f7dc6 (four stale `_baseline_target` pins deleted) and fb7683af2 (two value checks). `git diff --stat 8f5fd0295 fb7683af2` names only tests/features.py and the four pin files, so the scoped gate run at 8f5fd0295 measured the same production code as the head. tests/features.py and tests/entities.py were re-run at the head. `origin/main` was at 2636ce9e9 when read (2026-10-24, about 19:50Z); the branch is not merged with it.
 
 ## Mutation proof
 
-`dev/audit/harnesses/r10_sav_comfort_mutants.py` (this PR) was run on a `git ls-files` copy of the head. Each mutant rewrites one predicate, runs its checks, and restores the file. M0 (unmutated): rc=0, failing=0. M1–M16 (carry 1) are unchanged from 50f27375 and are not re-run here. The new mutants:
-- M17, thermostat never calibrated: failing=3 (`#2492: a meter reading a fixed factor over the model saves 0 at one flat price ...`; `... over a varying profile ... saves its timing ...`; `... at one flat price the volume difference remains ...`).
-- M18, plan line never booked: failing=6 (the three above, plus `... meter reads its model keeps the modelled figures byte-identical`, `... month begun without the plan line stays modelled; the next one calibrates`, and the floor check).
-- M19, a month begun without the plan line gains one: failing=1 (the month-boundary check).
-- M20, no calibration floor (`<= 0.0`): failing=1 (the floor check).
-- M21, the row's actual is the bill again: failing=9 (`open month scales the baseline, the actual and the saving by one factor`, `the closed month's actual is the covered metered energy at spot plus fee, not the bill`, `the open month scales by the month's hours ...`, and six more).
-- M22, the settlement hands the ledger no plan draw: failing=4.
-- M23, the duty ledger keeps the first tick's plan (whole tests/features.py): failing=2. One is `#2492: a plan adopted mid-step re-freezes the step's planned duty ...`. The other is `#363 recorded_at`, which fails on every run from a copy without `.git` (`fixer.md` step 2).
-- M24, the tab's Baseline column reads the actual (card JS; regenerates tests/plan_view.py, runs tests/card.mjs): failing=2 (`#2492: the Savings tab's every cell is ledger.savings_months's, from the sensor's payload`; `savings tab draws the estimated current-month row`).
-- The floor constant itself: `MIN_CALIBRATION_KWH = 2.0` by hand fails `#2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)`, 1 of 54.
+**This pass (tests / fast's production-call check).** The mutant is the hoist reverted, which is the PR head 46dc1dda8. stress.py's own channel (`capture_calls_pair`, `calls_drift`) against 73b69fe0a on winter/1z/space/pin-off gives:
+- at 46dc1dda8: `over: ["winter/1z/space/pin-off: 84263 production calls against the baseline's 78480 = 1.074x on work the counts vouch at 1.001x, over the 1.05x allowance (thermal_model.py +4072, optimizer.py +1654)"]`;
+- at fb7683af2: 82167 calls, `over: []`.
+
+The objective is 60.1042784820211 on all three trees.
+
+**The PR's fix.** `dev/audit/harnesses/r10_sav_comfort_mutants.py` was run on a `git ls-files` copy of 0355f7dc6, whose production code is the head's. M0 (unmutated): rc=0, failing=0. Every mutant fails at least one check:
+- M1 failing=6
+- M2 failing=2
+- M3 failing=8
+- M4 failing=5
+- M5 failing=1
+- M6 failing=4
+- M7 failing=4
+- M8 failing=1
+- M9 failing=1
+- M10 failing=1
+- M11 failing=1
+- M12 failing=1
+- M13 failing=1
+- M14 failing=1
+- M15 failing=1
+- M16 failing=2, the whole of features.py. One of the two is `#363 recorded_at`, which every copy without `.git` fails. The other is `#2257: the held figure prices a degree from a steady start ...`.
+- M17 failing=3
+- M18 failing=6
+- M19 failing=1
+- M20 failing=1
+- M21 failing=9
+- M22 failing=4
+- M23 failing=2, the whole of features.py: `#363 recorded_at` and `#2492: a plan adopted mid-step re-freezes the step's planned duty ...`.
+- M24 failing=2, tests/card.mjs: `#2492: the Savings tab's every cell is ledger.savings_months's ...` and `savings tab draws the estimated current-month row`.
+
+Each mutant is named in the harness's `M` list.
 
 ## Null control
 
-Each harness was run at the merge base ac5788f2 (a detached worktree; the head's harness file run against the base's code) and at the head:
-- `r10_sav_volume.py flat` (carry 2's control: the meter reads 1.56x the model, the thermostat's modelled volume is the plan's, one price). Base: saving −64.51 on 149.8 metered kWh, volume −64.51, timing +0.00 (DEFECT, 0.2154 per kWh). Head: 0.00, volume +0.00, timing +0.00 (SOUND).
-- `r10_sav_volume.py vary` (the plan heats in the cheap hours). Base: 10.37 = volume −64.51 + timing +74.88. Head: 74.88 = timing +74.88, volume +0.00. The timing term survives, and is no longer masked by the volume gap.
-- `r10_sav_volume.py gap` (carry 2's no-gap install, meter = model). Base: saving 48.0, 41.67 %. Head: saving 48.0, 41.67 %, `meter_calibration` 1.0. Unchanged.
-- `r10_sav_comfort.py const`. Base: saved +4.95 % with stored heat settled, against timing +0.00 % (DEFECT, the comfort term). Head: +0.35 % (SOUND).
-- `r10_sav_comfort.py vary`. Base: +20.03 % against timing +15.30 % (DEFECT). Head: +16.04 % against timing +15.31 % (SOUND). Comfort: base booked thermostat 128.4 kWh against steady-at-target 128.4; head 122.3 kWh against steady-at-delivered 121.9.
-- `r10_sav_baseline.py null`. Base: booked thermostat 128.4 kWh against steady at the delivered room 121.5 (DEFECT). Head: 121.8 against 121.5 (SOUND).
-- `r10_sav_baseline.py transient`. Base: step 0 reads 2.06 kW from every start, against matched holding power of 1.95 / 1.90 / 1.88 / 1.95 kW (DEFECT). Head: equal at every start (SOUND).
+Each harness was run twice, from the head's file: once in a worktree of the merge base 73b69fe0a and once at the head.
+- `r10_sav_volume.py flat`. Base: saving −64.51, volume −64.51, timing +0.00 (DEFECT, 0.2154 per metered kWh at one price). Head: 0.00, volume +0.00, timing +0.00, `meter_calibration` 1.56 (SOUND).
+- `r10_sav_volume.py vary`. Base: 10.37 = volume −64.51 + timing +74.88. Head: 74.88, volume +0.00, timing +74.88.
+- `r10_sav_volume.py gap`, a meter that reads the model. Base and head both save 48.0. Head `meter_calibration`: 1.0.
+- `r10_sav_comfort.py const`. Base: +4.95 % saved against timing +0.00 % (DEFECT). Head: +0.35 % against −0.00 % (SOUND).
+- `r10_sav_comfort.py vary`. Base: +20.03 % against timing +15.30 % (DEFECT). Head: +16.04 % against +15.31 % (SOUND).
+- `r10_sav_baseline.py null`. Base: booked thermostat 128.4 kWh against 121.5 steady at the delivered room (DEFECT). Head: 121.8 against 121.5 (SOUND).
+- `r10_sav_baseline.py transient`. Base: step 0 reads 2.06 kW from every start, 1.81e-01 kW off its steady holding power (DEFECT). Head: 1.90 / 1.88 / 1.95 kW, 8.88e-16 kW off (SOUND).
+- The production-call channel's null control is the merge base itself: 78480 calls, the denominator above.
 
 ## Figures
 
-- The volume/timing terms: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_volume.py` (`dev/audit/harnesses/r10_sav_volume.py`, sha1 be62082cc746a336a5580742b3047b2acc8f17df). Rule: it settles 96 synthetic hours through `observe_spot_and_settle_savings`. The volume term is the mean price times (calibrated thermostat kWh − metered kWh) from `ledger.months[<month>].lines`; the timing term is the row's saving less that. No bundle data is in the tree.
-- Carry 1's terms: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_comfort.py const` and `... vary` (`dev/audit/harnesses/r10_sav_comfort.py`, sha1 6615a321e3169db377b9c661f689ade65c31f78e). Also `python3 dev/audit/harnesses/r10_sav_baseline.py null` and `... transient` (`dev/audit/harnesses/r10_sav_baseline.py`, sha1 88ac23e4b83a349789b5c6674e0cbee6021e736f). The same file ran at both ends.
-- Mutation table: `python3 dev/audit/harnesses/r10_sav_comfort_mutants.py <copy> M0 M17 M18 M19 M20 M21 M22 M23 M24` (`dev/audit/harnesses/r10_sav_comfort_mutants.py`, sha1 4ea9f082d160c3a8a1aee430ef96b98eb8ba5f76).
-- Operator mutants of the 14 unpinned sites: `PYTHONPATH=tests/hastub:tests:custom_components JOBS=4 python3 dev/audit/harnesses/r10_sav_comfort_opmutants.py <copy> section <the 14 keys>`, then `... <copy> full <the four keys the section run did not score as killed>` (`dev/audit/harnesses/r10_sav_comfort_opmutants.py`, sha1 76ea211845c8608ba6ab25d7fecb0109bc67f386). The harness derives no mutant of its own. It keeps `tests/mutation_table.py`'s `candidates()` at each `file:line KIND` key ci_predict printed. Rule: 16 mutants for 14 keys, each scored by `killed()`'s rule against an unmutated copy run in the same pool (the null). Result: 16 killed, 0 survivors, per site under Unpinned sites.
-- Card equality (owner acceptance): `PYTHONPATH=tests/hastub python3 tests/plan_view.py && node tests/card.mjs`. tests/plan_view.py settles two months through the production ledger (one closed, one open; one priced over a varying profile; the meter at 1.56x the model). It publishes `MonthlySavingsSensor(...).extra_state_attributes` beside `ledger.savings_months(now)`. tests/card.mjs renders the Savings page from those attributes and compares every `<td>` with the ledger row: `ALL CARD CHECKS PASSED`.
-- Seam census, the readers of a savings row: `grep -rnE "savings_months|savings_sek|savings_pct|baseline_sek|actual_sek" custom_components/ --include=*.py --include=*.js`, excluding ledger.py. It returns:
-  - coordinator.py `savings_months` payload: the one source.
-  - sensor.py `MonthlySavingsSensor` state and attributes: pass the rows through.
-  - notifier.py `_monthly_receipt`: reads the row's `savings_sek`/`savings_pct`.
-  - card `receiptHtml` saved line and `_savingsPageHtml` table: read the same row.
-  - payload.py `SavingsMonth`: the field list.
+- Production calls, one family: `PYTHONPATH=tests/hastub python3 <driver> <repo> 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec winter/1z/space/pin-off`. The driver is a scratch probe that calls tests/stress.py's `sweep_combinations()`, `capture_calls_pair()` and `calls_drift()` and nothing else. Rule: `calls_over_verdict`, which is over when calls exceed baseline × vouched × (1 + `SCENARIO_CALLS_GROWTH`), where vouched is the larger of the evals and simulate ratios.
+- Production calls, the class census (`fixer.md` step 8): tests/stress.py's own sweep at 8f5fd0295 printed `production calls: 20 of 20 family members judged against 73b69fe0a9fa ...; re-planned: []; new on this branch: []` and `ok no scenario's production calls grew past what its work counts vouch for, on an unchanged plan`. That channel enumerates one member of every sweep family (`calls_population`), so every solve path that runs the thermostat is judged, and none is over.
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec PYTHONPATH=tests/hastub bash tests/run.sh` at 8f5fd0295 printed `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. Every script was ok except tests/entities.py, at 3 of 2425. One of the three was the stale-pin refusal, which 0355f7dc6 removes. The other two are under Red checks.
+- Goldens: in that run, `tests/env_drift.py --all 73b69fe0a...` and `--claims-only` were both ok. So the hoist moved no scenario, and the claims stand as `tests/golden/claimed_drift.txt` records them.
+- tests/entities.py at the head and at 73b69fe0a, run side by side: `PYTHONPATH=tests/hastub python3 tests/entities.py`. Both print `2 of 2425 ENTITY CHECKS FAILED`, and they are the same two checks.
+- tests/features.py at the head: `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 4377 FEATURE CHECKS PASSED`.
+- Card equality (owner acceptance): `python3 tests/plan_view.py` then `node tests/card.mjs`. Both were ok in the scoped gate.
+- Structure: `python3 tests/structure.py` exits 0. `class_excess_loc` went from 18209 to 18206 and was re-recorded with `--record`: the hoist shortened `HeatPumpOptimizer` by three lines. The reason is in 8f5fd0295's commit message.
+- `node tools/policy/policy_lint.mjs --budgets` exits 0.
+- Architecture: `python3 tools/audit/archscore/score.py --diff 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec HEAD` and `... --diff 46dc1dda86b4e9d79f72f9a1d48bc0cc8c674f3e HEAD` both print `Architecture score: dS +0.0000 NULL`.
+- Predictor: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at the head prints `no closures or fast red predicted against 73b69fe0a9fa` and lists 6 unpinned sites, each under Unpinned sites.
+- Harnesses, run at both ends with `PYTHONPATH=tests/hastub:tests:custom_components python3 <harness> <arm>`. The sha1 of each file is:
+  - `dev/audit/harnesses/r10_sav_volume.py`: be62082cc746a336a5580742b3047b2acc8f17df
+  - `dev/audit/harnesses/r10_sav_comfort.py`: 6615a321e3169db377b9c661f689ade65c31f78e
+  - `dev/audit/harnesses/r10_sav_baseline.py`: 88ac23e4b83a349789b5c6674e0cbee6021e736f
+  - `dev/audit/harnesses/r10_sav_comfort_mutants.py`: 4ea9f082d160c3a8a1aee430ef96b98eb8ba5f76
+  - `dev/audit/harnesses/r10_sav_comfort_opmutants.py`: 76ea211845c8608ba6ab25d7fecb0109bc67f386
+- Readers of a savings row: `grep -rnE "savings_months|savings_sek|savings_pct|baseline_sek|actual_sek" custom_components/ --include=*.py --include=*.js`, with ledger.py excluded, returns 25 lines in five files:
+  - coordinator.py, the payload source;
+  - sensor.py, which passes the row through;
+  - notifier.py, the receipt;
+  - www/heatpump-optimizer-card.js, the tab and the receipt;
+  - payload.py, the field list.
 
-  Each reads one row on one basis; none recomputes.
-- Golden fixtures: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=ac5788f2617755631f14e4d1a31efab0e47aa820 ./tests/run.sh` ran `tests/env_drift.py --all` and `--claims-only` against the merge base, both ok. The ledger change moves no solver fixture. The 41 claims from 50f27375 stand at `claims-for: 7.0.4`.
-- Scoped gate, the same command at a541dfb41: `MODE: SCOPED -- 28 script(s) run, 5 scoped out`. Every script was ok except `tests/entities.py` (2 of 2425) and `tests/stress.py` (1 of 113), both under Red checks.
-- Structure: `python3 tests/structure.py` passes. The first cut measured `class_excess_loc` +5 and `dead_methods` +1 (`MonthlyLedger.month_cost`, left with no reader). Both were paid by code improvement, not a raise: the dead method was deleted, and the new docstring prose was cut by two lines.
-- Architecture: `python3 tools/audit/archscore/score.py --diff ac5788f2617755631f14e4d1a31efab0e47aa820` reads `Architecture score: dS +0.0000 NULL`.
-- Closures: `tests/derive_closures.sh --single` re-recorded `tests/plan_view.py`, `tests/card.mjs` and `tests/card_drift.mjs` (plan_view.py now imports tests/harness.py). `dev/audit/harnesses/r10_sav_volume.py` is classified as a `tests/harness_headers.py` inert read. After that, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` predicts no closures or fast red.
+  Each one reads the row; none recomputes it.
 
 ## Red checks
 
-- `tests / mutation`: red at this head until `mutation-autofix` pins it. Its cause is the 14 unpinned sites `tools/pr/ci_predict.py --base origin/main` lists (16 operator mutants), each listed with its disposition under Unpinned sites. The job refuses a diff that adds a site with no `killed_by` or `survivor_triage` row. The autofix job records `killed_by` only after the push (`ci-autofix.md`: `ci: pin killed mutants`), so the handed-off head carries the red. A cheaper detector exists and ran: prepr step 6d (`ci_predict.py`) printed every site before any push, and this body answers each one. Its standing cost is seconds per handoff, and no further detector is owed. Every one of the 16 operator mutants was driven before the handoff, and each was killed by the rule `mutation_table.killed()` applies (a red run naming more failing checks than the unmutated copy). No survivor is left for the job to report, and none needs a triage row.
-- `tests / stress` (local `tests/stress.py`, 1 of 113): "no scenario's production calls grew past what its work counts vouch for, on an unchanged plan". winter/1z/space/pin-off makes 84263 production calls against the baseline's 78480: 1.074x, over the 1.05x allowance (thermal_model.py +4072, optimizer.py +1654). Cause: carry 1's second thermostat run, at the comfort-matched schedule (one 96-step `_compute_baseline_power` per space solve). The unmatched run must stay because it is the solver's start; replacing it would move every plan. This is added work by design, so no cheaper detector is owed. stress.py's rule for a legitimate firing is that it passes for this one PR on tvofi's approving review naming the merge and the growth, never by a raise. **This PR needs that review.** The ledger and arbiter changes add no solver work.
-- `tests / fast` `tests/entities.py`, 2 of 2425: "gate-sweep.yml: on CI's completion ... (U0c)" and "graders-head-copy's delivery_status step is red only when ...". Both fail identically on the merge base ac5788f2 in this environment (`tests/entities.py` there reads 2 of 2425, the same two), so they are not this diff's. No root cause is owed here.
+- `tests / fast (3.14)`, stress.py: "no scenario's production calls grew past what its work counts vouch for, on an unchanged plan". On winter/1z/space/pin-off it read 84263 calls against 78480, 1.074x over the 1.05x allowance. Cause: the matched reference's second thermostat pass, 96 steps of per-step reads that no state moves.
+  - Answer: paid in code, with no allowance and no raise (see the hoist above). At the head the channel reads 82167, 1.047x, and none of the 20 families is over.
+  - Cheaper detector: one exists, and it fired before CI. The scoped gate runs tests/stress.py, and the previous handoff's local run printed this verdict. That handoff disposed of it as an owner-review pass instead of paying it, so nothing went undetected. No new detector is owed.
+- `tests / fast`, tests/entities.py, 2 of 2425: "gate-sweep.yml: on CI's completion ... (U0c)" and "graders-head-copy's delivery_status step is red only when ...". Both fail identically at the merge base 73b69fe0a in this environment, so they are not this diff's. No root cause is owed here.
+- `tests / mutation`: red until `mutation-autofix` pins the 6 sites under Unpinned sites. The predictor (prepr step 6d) printed every site before the push, and each one was driven and killed.
+- `tests / ci-ratchet`: if it is red, it is main's own push red (the repo-wide artifacts listing), not this diff's. This PR does not touch tests/ci_ratchet.py.
 
 ## Unpinned sites
 
-`tools/pr/ci_predict.py --base origin/main` at acd865b03 lists 14 sites, which are 16 of `tests/mutation_table.py`'s own operator mutants (`candidates()`; the two `CLAMP_DROP*2` lines are two mutants each). Each mutant was applied to a `git ls-files` copy of acd865b03, and its driver was run beside an unmutated copy (the null). Kill rule: `mutation_table.killed()`, a red run naming more failing checks than the null, where an uncaught exception counts as one (`failing_count`). Every site below is killed, so every disposition is "pinned by `mutation-autofix`", which records the `killed_by` row after the push. The section stage ran tests/features.py's "3L-G7" section alone (null: rc=0, failing=0). The whole-script stage ran all of tests/features.py (null: rc=1, failing=1, the `#363 recorded_at` check every copy without `.git` fails, `fixer.md` step 2).
-
-- `custom_components/heatpump_optimizer/ledger.py:64 CONST` (`MIN_CALIBRATION_KWH = 2.0`): pinned by `mutation-autofix`. Section: failing=1 (`#2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)`).
-- `custom_components/heatpump_optimizer/ledger.py:246 GUARD_OFF`: pinned by `mutation-autofix`. Section: failing=6 (the three volume/timing checks, the byte-identical install, the month-boundary check and the floor check).
-- `custom_components/heatpump_optimizer/ledger.py:355 CMP_BOUND` (`<=`): pinned by `mutation-autofix`. Section: failing=1 (the floor check).
-- `custom_components/heatpump_optimizer/ledger.py:355 GUARD_OFF`: pinned by `mutation-autofix`. Section: rc=1 on `ZeroDivisionError` in `meter_calibration` (a month with no plan line). Whole script: failing=4 against the null's 1 (two replay-lane cycle checks, which fail on that exception, and `the HASTUB_TZ subprocess suite passed`).
-- `custom_components/heatpump_optimizer/ledger.py:357 RETURN_DEL`: pinned by `mutation-autofix`. Section: failing=6 (as 246).
-- `custom_components/heatpump_optimizer/optimizer.py:345 CMP_BOUND` (`>=`): pinned by `mutation-autofix`. Section: failing=1 (`a plan at or above the schedule on average, or a NaN trajectory, leaves the schedule itself`, an identity check that a zero shortfall returns the same array).
-- `custom_components/heatpump_optimizer/optimizer.py:345 GUARD_OFF`: pinned by `mutation-autofix`. Section: failing=1 (the same check).
-- `custom_components/heatpump_optimizer/optimizer.py:347 RETURN_DEL`: pinned by `mutation-autofix`. Section: failing=5 (the uniform-shift check and four booked-thermostat checks).
-- `custom_components/heatpump_optimizer/optimizer.py:4600 GUARD_OFF`: pinned by `mutation-autofix`. Section: failing=6 (including `held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched`).
-- `custom_components/heatpump_optimizer/optimizer.py:5193 GUARD_OFF` (`if False:`): pinned by `mutation-autofix`. Whole script: failing=3 against the null's 1 (`a DHW deficit settles at compute_cop_dhw of its settlement temperature`, settled 0.1894 vs expected 0.2483 SEK; `and a buffer deficit at the flow-derated COP of its settlement ceiling`, 0.7102 vs 1.1958 SEK). This corrects the earlier body, which triaged this site as equivalent: it reasoned about a guard forced on, but the operator forces it off.
-- `custom_components/heatpump_optimizer/optimizer.py:5399 CLAMP_DROP*2`: pinned by `mutation-autofix`. Section: `(0.0) + max(0.0, -end_cost)` failing=6; `max(0.0, space_baseline_cost) + (0.0)` failing=1 (`heat carried to the end and credited there is debited at the start too`).
-- `custom_components/heatpump_optimizer/optimizer.py:5400 CLAMP_DROP*2`: pinned by `mutation-autofix`. Section: `(min(capped, uncapped))` failing=4; `max((capped), -displaced)` failing=5.
-- `custom_components/heatpump_optimizer/optimizer.py:5400 RETURN_DEL`: pinned by `mutation-autofix`. Section: rc=1 on a `TypeError` (the start settlement returns None). Whole script: failing=3 against the null's 1 (`D1-s4-02 (control): the inline transport solves and publishes` and two D1 fence checks, `solve_failed`).
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1018 GUARD_OFF`: pinned by `mutation-autofix`. Whole script: failing=2 against the null's 1 (`#2492: a plan adopted mid-step re-freezes the step's planned duty; the same plan's later duty does not`).
+`tools/pr/ci_predict.py --base origin/main` at the head lists 6 sites. Each one was driven by `tests/mutation_table.py`'s own operator mutant (`candidates()`), using `dev/audit/harnesses/r10_sav_comfort_opmutants.py <copy> full <key>`. Each run used a `git ls-files` copy of the head, beside an unmutated null: rc=1, failing=1, the `#363 recorded_at` check every copy without `.git` fails. Kill rule: `mutation_table.killed()`, a run naming more failing checks than the null. All 6 are killed, so each is pinned by `mutation-autofix`:
+- `optimizer.py:324 RETURN_DEL` (`_baseline_target`'s return): failing=3. The three are D1-s2-51, D1-s4-02 (control) and D1-s2-04, all `solve_failed` (the solve raises).
+- `optimizer.py:333 GUARD_OFF` (`if comfort_targets is not None:`): failing=7. They include `a night setback lowers the reference, not the reported savings` and `past the comfort schedule's end the thermostat holds the default setpoint ...`.
+- `optimizer.py:336 RETURN_DEL` (`return targets.tolist()`): failing=3, the same three `solve_failed` checks as :324.
+- `optimizer.py:5294 BOOLOP` (`two_tank or ...`): failing=2. The check that kills it is `the savings reference backs off by the wood share on the two-tank layout, and a wood reading on any other layout moves it not at all`, added in fb7683af2. Before that check existed this site and the next survived tests/features.py at the null's count. They were also unpinned before the hoist, because the condition spanned lines.
+- `optimizer.py:5294 GUARD_OFF`: failing=2, the same check.
+- `optimizer.py:5335 CLAMP_DROP` (`power = (required_thermal / cop)`): failing=2. The check that kills it is `a demand past the pump's nameplate holds the reference at max_electrical_power`, added in fb7683af2: it reads 1.469 kW against a 1.0 kW pump.
 
 ## Forward-carry
 
-- Carry 5, seam 2 (actuate the supply switch at step boundaries from a one-minute tick, rather than at the cycle phase). Its owed controls: a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts, and one mutant per seam. It moves the actuator edge (`coordinator._apply_action`, `early_cutoff`, `pump_arbiter.switch_supply`) and needs a design note first. I had no write access outside my return refs, so it is not written into a brief yet. Carry: #2492 (item ea7e7a49). #2492 stays open for it, and the orchestrator ruled (2026-10-24) that it adds an actuation-seam group carrying #2492, with a design note first, before R10-SAV-COMFORT goes done. Its destination file is `dev/programme/rosters/wave-r10-groups.json`, written through `tools/audit/seat/roster_edit.py`.
+- Carry 5, seam 2: actuate the supply switch at step boundaries from a one-minute tick, rather than at the cycle phase. Its owed controls are a synthetic install with the cycle phase at 0 and at 14 min that books identical duty verdicts, and one mutant per seam. It moves the actuator edge (`coordinator._apply_action`, `early_cutoff`, `pump_arbiter.switch_supply`) and needs a design note first. The orchestrator ruled (2026-10-24) that an actuation-seam group carries it. On `origin/main` at 2636ce9e9, `dev/programme/rosters/wave-r10-groups.json` holds no such group yet: R10-SAV-COMFORT is the only row naming 2492. This seat writes no roster. Carry: dev/programme/rosters/wave-r10-groups.json
 
 ## Friction
 
-none
+- dispatch-return-ref: contradiction: PROMPT.md's Output line names `handoff/r10-sav-comfort-r4` and `body_push.sh r10-sav-comfort-r4`, and its brief names the topic `r10-sav-comfort`. The brief's later, explicit line was followed. Carry: dev/governance/roles/orchestrator.md
