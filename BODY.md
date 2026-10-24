@@ -8,11 +8,11 @@ Design choices, stated so a later seat does not read them as bugs:
 - The extent is the call's own bracket group, not the statement around it. So a sibling argv in the same table (`gh_read.py`'s argv table, which holds a `gh pr merge` entry next to entries carrying other flags) is not read as the merge call's. A first cut that joined whole bracketed statements raised exactly that false positive on the tree, at `gh_read.py` and `merge_train.py`'s self-test, and was replaced.
 - Alternatives that lost: (a) joining lines by statement, with bracket depth carried across the file. It was refused for the false positives above. (b) Enumerating continuation spellings (`\`-newline, `,`-newline) as extra regexes, which is the #1874 spelling-list shape. The extent reader removes the line assumption instead of listing the cases it breaks on.
 
-The `never --subject` line in `dev/governance/roles/orchestrator.md` belongs to RCA-FRICTION, not this group, and is untouched. The diff touches `tools/policy/agreement.mjs` only. It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
+The `never --subject` line in `dev/governance/roles/orchestrator.md` belongs to RCA-FRICTION, not this group, and is untouched. The diff touches `tools/policy/agreement.mjs`, plus the seam probe `dev/audit/harnesses/r10_merge_subject_argv_seam.mjs` (audit evidence) and its `tests/closures.json` entry. It changes no `VERSION`, manifest or `RELEASE_NOTES.md`.
 
 ## Head
 
-`f6568a42961232dc0f4fcdc32cb9c187a3602635`: the repair commit on the reviewed head `b4dd119172d5e0f04f800e752dffe265228d19e1` (code `09b1d002c`, then the delivery-row record), a fast-forward of `handoff/r10-merge-subject-harden`. Merge base with origin/main `50af6174f53c0f9bec3f705c3a4bb99615f71acc`. origin/main was `fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a` at 2026-10-24T12:59Z; the branch is frozen past the handoff, so main is not merged in here, and `git merge-tree --write-tree origin/main HEAD` exits 0 (no conflict).
+`247e7b492ee53c5a3df1997772e73032c07589c4` (this handoff): `f6568a42961232dc0f4fcdc32cb9c187a3602635` (the round-1 repair on the reviewed head `b4dd119172d5e0f04f800e752dffe265228d19e1`), then a merge of origin/main `e97f5749b441b282e43bd99dbcbb762e9d10a369`, then one commit adding the seam probe `dev/audit/harnesses/r10_merge_subject_argv_seam.mjs` and one recording `tests/harness_headers.py`'s read of it in `tests/closures.json` (`ci_predict.py --apply-inert`). Merge base with origin/main `e97f5749b441b282e43bd99dbcbb762e9d10a369`. `tools/policy/agreement.mjs` is byte-identical to `f6568a429`, so the figures below taken at `f6568a429` describe this head's guard; prepr was re-run at this head.
 
 ## Review response (review/2697, round 1, `blocked mutation-vacuous`)
 
@@ -92,7 +92,12 @@ At head `f6568a429`: `python3 tools/audit/archscore/score.py --diff $(git merge-
 
 One, dispositioned by written triage. `ci_predict.py` lists none. Every other line the diff adds to the guard is killed by a self-test probe (M1 to M13 and X1 to X4, X6 above, each FAIL named). The reviewed head's `none` covered M1 to M11 only and was false for the lines M12, M13 and X6 delete; the three probes added here close those.
 
-- `callExtent`'s `start + (open.length ? 1 : 0)` (X5 survives). Deleting the `+ 1` makes the extent run to the bracket enclosing the call's own group, which only adds refusals. It is not pinned, because the only probe that kills it pins a writer miss as correct: `run(["gh", "pr", "merge", n], "--subject", s)` passes at head (`[]`) and is refused under X5 (`["f:1"]`), measured with review/2697's `evidence/probe.mjs` extraction on this head. That shape (a subject flag in the same call but outside the argv list's own brackets) is an open seam of this guard's design choice "the extent is the call's own bracket group". Widening the extent to the enclosing call brings back the sibling-argv false positive at `gh_read.py`'s table, so closing it is a design question, not this repair. No such site exists on the tree today: the unperturbed run at head is `refused=0` over its 55 calls, but a miss is by definition unseen there, so that is no evidence of absence. Surfaced to the orchestrator in this seat's result.
+- `callExtent`'s `start + (open.length ? 1 : 0)` (X5 survives). Deleting the `+ 1` makes the extent run to the bracket enclosing the call's own group, which only adds refusals. It is not pinned, because the only probe that kills it pins a writer miss as correct: `run(["gh", "pr", "merge", n], "--subject", s)` passes at head (`[]`) and is refused under X5 (`["f:1"]`), measured with review/2697's `evidence/probe.mjs` extraction on this head. That shape (a subject flag in the same call but outside the argv list's own brackets) is an open seam of this guard's design choice "the extent is the call's own bracket group". Widening the extent to the enclosing call brings back the sibling-argv false positive at `gh_read.py`'s table, so closing it is a design question, not this repair. No such site exists on the tree today: the unperturbed run at head is `refused=0` over its 55 calls, but a miss is by definition unseen there, so that is no evidence of absence.
+- The seam is wider than that one shape: any argv built across expressions is outside the call's bracket group. `node dev/audit/harnesses/r10_merge_subject_argv_seam.mjs` (added here) runs the head's `subjectWriters` over three shapes and prints:
+  - `run(["gh", "pr", "merge", n] + ["--subject", s])` → `[]` (missed);
+  - `args = ["gh", "pr", "merge", n]` / `args += ["--subject", s]` / `run(args)` → `[]` (missed);
+  - control `run(["gh", "pr", "merge", n, "--subject", s])` → `["f:1"]` (refused).
+  Following data flow is beyond a lexical scan, and the barrier is elsewhere: merges go only through `tools/audit/seat/merge_pr.sh` and `tools/audit/seat/merge_train.py`, and `grep -n -e '--subject'` over both returns nothing. Dismissed under Forward-carry, by the orchestrator's decision.
 
 ## Red checks
 
@@ -100,7 +105,7 @@ none.
 
 ## Forward-carry
 
-none: no finding here changes how a later stage must work. The one open seam (Unpinned sites, X5) is surfaced to the orchestrator in this seat's result, not filed.
+- The open seam under Unpinned sites: a subject flag outside the merge call's own argv brackets. Carry: dismissed: lexical writer scan cannot follow argv built across expressions (probe shapes under Unpinned sites); no such site on tree (0/55), widening re-adds the gh_read.py sibling-argv false positive; merges go only through merge_pr.sh/merge_train.py, which never pass --subject
 
 ## Friction
 
