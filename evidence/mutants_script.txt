@@ -1,0 +1,5 @@
+RESULT mutant=M19_sha_grammar_dropped rc=1 fails=1
+    FAIL a value outside the sha grammar is RECORD-INVALID, by the grammar (got: {'C-NONE': 'c35302773738 does not resolve to a commit', 'C-OFF': 'f43bd7276cea is not an ancestor of origin/main', 'C-UPPER
+RESULT mutant=M20_shared_topic_first_only rc=1 fails=1
+    FAIL groups sharing one topic share its pull requests (got: {'T-ONE': [PR(number=77, state='MERGED', head='fix/r9-twin', merge_commit='ffffffffffffffffffffffffffffffffffffffff', body='')], 'T-TWO': []
+restored
