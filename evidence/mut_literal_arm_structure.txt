@@ -1,0 +1,4 @@
+########## counting-rule self-check ##########
+FAIL  a name only ever bound to literals reads exactly those attributes, no more
+1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+rc=1

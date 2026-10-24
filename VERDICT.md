@@ -1,45 +1,49 @@
-Fix review: blocked b43ea5411dde498afea692247c6b53d651f4e6f3 class-open: a getter that hands state out through an argument, or is called other than as self.m(...), still lowers seam_cut_total with nothing moved
+Fix review: merge 893787b084bdc088deeb43f0b2cb45f43898deaa
 
-bus-nonce: 3d4feedbc0095b02431b4e62e4c3f414
+bus-nonce: e4c1c35f6ce241488b1657f3c4111b7b
 
 ## Round
 
-This is the fix review of repair round 2. Round 1's review returned `blocked class-open` on `5021b50de`. This is the second review. A third would put the PR in `fixer.md`'s re-cut territory from the fourth.
-
-## Block
-
-The class is O19: an equivalent spelling of the same reads lowers `seam_cut_total` with nothing encapsulated. The body says the return-value rule closes it ("Any spelling nobody enumerated carries by default"). It does not close it. The rule prices only state escaping through a callee's **return value**, and only from a call spelt `<root>.m(...)`, a property read or a helper handed the root (`callee_of`). It misses two seams. Neither is in the diff, and the body dispositions neither.
-
-1. **Out-parameter and callback getters.** The callee hands its reads to the caller through an argument it was handed. The callee is non-transparent (it stores), so it costs the one edge, and nothing escapes. Read by the PR's own plant (`_cop_state` in learning, read from `_scores_view`), `ev/variants.py`:
-   - head: clean 367; `outparam_dict` 363, `outparam_append` 363, `outparam_attr` 363, `outparam_extend` 363, `callback` 363 (**-4 each**).
-   - merge base `73b69fe0a`: clean 710; the same five read 708 (-2).
-   - So the head **doubles** the gain these spellings pay. The plant drops the two reads from `_scores_view`, and with them the transitive charge the new rule puts on `_scores_view`'s cross-seam callers. Here the transitive charge amplifies the gaming.
-2. **A unit call spelt other than `<root>.m(...)`.** For `type(self)._cop_state(self)` and for a bound-method alias `g = self._cop_state; g()`, the call is opaque. It carries no edge, and nothing escapes. Head: 361 each (**-6**). Merge base: 706 (-4).
-
-Both seams reproduce at both ends, so they are older than this PR. But the PR claims the class closed, and this review's round-1 block was the same shape: the escape rule is again an enumeration, now of call shapes and of the return channel. The census rule the body names (`returned_state`, and calls crossing into those units) cannot return either seam: an out-param callee has an empty `returned_state`, and the census's syntactic `.name` scan is never compared with what `seam_metrics` actually prices.
+This is the fourth fix review of #2711, the review of repair round 3. It returns `merge`, so the re-cut that `fix-review.md` makes owed from the fourth round does not arise.
 
 ## Findings
 
-- A callee that stores state into an argument it is handed (`out[...] =`, `out.x =`, `out.append/extend`, or calling a handed callback) passes that state to its caller unpriced, and costs one edge in place of k reads. Head -4 against the clean tree, merge base -2 (`ev/variants_head.txt`, `ev/variants_base.txt`). Close it in `seam_metrics`, either by charging a unit call with what the callee stores into its parameters, or by disposing of it in the body with a rule. Carry: R10-STRUCTURE-ALIAS
-- A unit call spelt `type(self).m(self)`, or through a bound-method alias (`g = self.m; g()`), is neither an edge nor an escape: head -6, merge base -4. `callee_of` should resolve these, or the body should disposition them. Carry: R10-STRUCTURE-ALIAS
-- `getattr(self, '_cop_state')()` (head 361, -6) and `getattr(self, '<const>')` reads in a getter body (head 363, -4) are covered by the body's computed-name disposition ("invisible to the cut in both trees, not a return-value seam"). With a constant string, though, the name is not computed, and the head's gain is larger than the base's (-4/-2 there). The fixer should decide whether a constant-name `getattr` is resolved or the disposition is widened to say "constant" explicitly. Carry: R10-STRUCTURE-ALIAS
+- The body's plant tally does not re-derive. "That is 50 plants" is wrong: the finder's harness at this head prints 55 plants, not counting clean, clean_again, `snapshot_attr` and the two null-control edges. "except four that read more" then lists five (three `dunder_*`, `computed_getattr`, `read_computed_getattr`). I re-derived every plant figure individually (`ev/harness_head.txt`), and none reads below 420, so no conclusion rests on the tally. Carry: dismissed: body prose count only, every plant re-derived individually at or above the clean 420
+- The +1 step's attribution is narrower than what the arm prices. The commit message and the body credit it to "the three `_unsub_*` reads". The literal-name arm resolves the `setattr(self, name, None)` stores in the same loop as well. Dropping the `getattr` reads alone leaves the cut at 420 (`ev/literal_unroll.txt`), so the stores carry the same pair. The figure, 420, is unchanged either way. Carry: dismissed: wording of the attribution only, the 420 and the definition-change reading are both verified
 
 ## Evidence
 
-- Head measured: `b43ea5411dde498afea692247c6b53d651f4e6f3` (`ev/HEAD.txt`). `git ls-remote` showed it still the head of `fix/r10-structure-alias` when the verdict was written. Merge base with origin/main: `73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec` (main's tip).
+- Head measured: `893787b084bdc088deeb43f0b2cb45f43898deaa` (`ev/HEAD.txt`). `git ls-remote` showed it still the head of `fix/r10-structure-alias` after CI concluded. The body names this head. The PR's base is `646dbaa65`. origin/main moved to `2636ce9e9` during the review, touching only delivery rows, a triage note, `tests/closures.json` and seat tooling. Nothing `seam_metrics` reads changed.
 - Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Merge: `git merge-tree --write-tree origin/main b43ea54` rc=0, tree `856c3ac7e`, no conflict (`ev/merge-tree.txt`).
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (three-dot diff empty). The diff touches no golden or claim file (5 files: harness, delivery row, closures.json, structure.py, structure_budgets.json), so the `env_drift.py --all` comparison has nothing to compare.
-- `tests/structure.py`: head `STRUCTURE RATCHET PASSED`, `seam_cut_total 367 <= 367`; merge base 710 <= 710 (`ev/structure_*.txt`). The budget diff moves only `seam_cut_total` 710 -> 367 and `recorded_at`. This is a downward re-record.
-- Finder-plant harness `dev/audit/harnesses/r10_structure_alias.py`, sha1 `0f6a9978a77e7cf8486009949fcf0f9a8756cfbf` (it matches the body). Head: clean 367, all 9 plants 367. Base (harness copied in): clean 710, all plants 708. Census at head: `units_returning_state=125`, `transparent_callees=76`, `units_returning_coordinator=2`, `cross_seam_calls_of_state_returners=68`. All match the body (`ev/harness_*.txt`).
-- Seam table and per-seam cuts: read from `ev/structure_*.txt` and consistent with the totals. I did not re-derive the 68-pair disposition pair by pair.
-- My own mutants (`ev/mut_*.txt`), each run against the full `tests/structure.py` and then restored:
-  - R1, transparency off: rc=1, the getter and root-getter checks are red.
-  - R2, escapes not charged: rc=1.
-  - R3, yield not a return: rc=1.
-  - R4, AnnAssign not an alias: rc=1.
-  - R5, occurrences back: rc=1.
-  - The mutation proof holds for what the PR prices. The block is on what it does not price.
-- `ev/variants.py` is my own instrument, not the finder's. It uses the PR harness's `planted`/`seam_cut` and adds 16 spellings. The 9 body-shape spellings (nested def, lambda call, dict unpack, `+=`, try/finally, if/else, plain, among others) read 367 at the head, so the return rule covers those.
-- CI on the head, read from the check-runs API at about 16:30Z: no check concluded red. Still running: `tests / arch-instrument`, `codeql / Analyze (python)`, `tests / graders-head-copy` and one `prelude`. `tests / mutation` is green. This PR writes no production code line, so the green mutation run evaluated no production mutant. There is no red check, so the root-cause trigger does not apply at this reading.
-- Forward-carry: the body says n/a. Accepted for the merged figure. The findings above stay with this group's repair.
+- Merge: `git merge-tree --write-tree origin/main 893787b0` rc=0, tree `409412a80`. The `LEDGER-MERGE: resolved tests/closures.json` driver line is a set merge, not a conflict (`ev/merge-tree.txt`).
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden` are untouched (three-dot diff empty). The diff touches no claim file, so `env_drift.py --all` has nothing to compare.
+- `tests/structure.py` at the head reads `seam_cut_total 420 <= 420` and `STRUCTURE RATCHET PASSED`, rc=0 (`ev/structure_head.txt`). The budget diff against main moves only `seam_cut_total` 710 -> 420 and `recorded_at`. That is a downward re-record against main, and `budget-raise-gate` concluded success.
+- The ruling: the owner ruled 419, and the PR records 420. I re-derived the +1 as a definition change on the same tree, using my own ablation instrument (`ev/abl.py`, `ev/cut.py`; built by this seat, not the fixer's `$SCRATCH/abl/run.py`, which is out of tree). Reverse ablation from the head (`ev/ablate_chain.txt`, `ev/ablate_literal_and_computed.txt`):
+  - head 420;
+  - literal-name and computed-name arms off: 419;
+  - plus the uncalled-reference charge off: 352;
+  - plus round 2's co-argument spreading restored: 389;
+  - at `b43ea541` the cut reads 367 (`ev/r2_clean.txt`).
+
+  So the steps are +22 (367 -> 389), -37 (-> 352), +67 (-> 419) and +1 (-> 420), exactly as the body and commit `86d4dba1c` state.
+- The +1 depends on the order in which the arms come off:
+  - The literal arm alone off reads 436, not 419 (`ev/ablate_literal_arm.txt`), because the loop's `getattr(self, name)` then falls to the computed-name arm, priced as every stored attribute.
+  - The computed arm alone off reads 420 (`ev/ablate_computed_only.txt`), because the real tree has no other computed read.
+  - So the +1 is "both arms" against "neither", the order the body uses.
+  - Spelling the three accesses as direct reads also reads 420 (`ev/literal_unroll.txt`). The arm prices the loop exactly as its direct spelling, so no tree change is hidden in the step.
+- The 16 variants of the round-2 reviewer's instrument (`review/2711:evidence/variants.py`, copied as `ev/variants.py`): at the head, clean 420 and all 16 read 420 (`ev/variants_head.txt`). At the base, clean 710 and every variant 706 to 708 (`ev/variants_base.txt`). The round-2 `class-open` block, a getter handing out its backing object through an out-param, a callback, `type(self)`, a bound alias or a constant `getattr`, is closed at the live head. Every spelling now reads the clean figure.
+- Opening the class further with 17 spellings of my own (`ev/variants2.py`, `ev/variants2_head.txt`): `operator.attrgetter`, `self.__getattribute__`, `object.__getattribute__`, `operator.methodcaller`, `self.m.__func__(self)`, `__class__.__dict__[...]`, a walrus, a starred display, `dict(...).values()`, `map`/comprehension `getattr`, a keyword-only out-param, `next()` of a generator, a contextvar, a class-attribute store and a closure cell. None reads below 420 (range 420 to 544).
+- Null control: the finder's harness reads `clean_seam_cut_total=420` and `clean_again_seam_cut_total=420`. `edge_called` and `edge_referenced` read 422 each (+2, one pair counted in both seams' cuts). At the base they read 712 and 711 (`ev/harness_head.txt`, `ev/harness_base.txt`). 420 against 422 is confirmed.
+- The finder's harness `dev/audit/harnesses/r10_structure_alias.py`, sha1 `cc3a57fc0ac7503db04f4ed18a8eb99b4df66b62` (matches the body; `ev/harness_sha1.txt`):
+  - head: every plant at or above 420; `dunder_*` 433, `computed_getattr` 544, `read_computed_getattr` 523, `snapshot_attr` 423 (dispositioned, not below clean);
+  - census: `units_returning_state=126`, `transparent_callees=77`, `units_returning_coordinator=1`, `cross_seam_calls_of_state_returners=68`, `units_leaving_state=18`, `units_raising_state=1`, `unresolved_unit_names=51`, `computed_names=1`. All match the body;
+  - base (the harness copied in): every plant 706 to 709. I did not re-derive the 51 unresolved occurrences one by one.
+- My own mutants, each run through the full `tests/structure.py` and then restored:
+  - literal-name arm off (M22): rc=1, `FAIL a name only ever bound to literals reads exactly those attributes, no more` (`ev/mut_literal_arm_structure.txt`);
+  - uncalled-reference charge off (M12): rc=1, three FAILs, the uncalled-handoff, parameter-not-self and nothing-handed-on families (`ev/mut_uncalled_structure.txt`);
+  - round 2's co-argument spread restored (M18): rc=1, `FAIL the state root is the binding, not the name it is bound to` (`ev/mut_spread_structure.txt`).
+
+  My first spread run was invalid, a race in my own script that ran an unmutated tree. It was re-run and the result above is the valid one. The body's other mutants (M1 to M23) were not re-run by this seat.
+- Metric earned (step 14): the movement 710 -> 420 against main is a counting-rule change, and no production line changed. `archscore` reads `dS +0.0000 NULL` (body; the `arch-score` CI check passed). Each arm I removed moved the cut by its stated amount and in the stated direction, and no planted spelling reads cheaper than the direct reads. Under this rule the instrument now prices spellings at or above the direct form, so nothing found here is `metric-gamed`.
+- CI on the head, read from the commit's check-runs API after every run concluded (`ev/check_runs.txt`, 53 runs): all success or skipped, including `gate` (120974907814, 20:09:20Z), `pr-contract` (120974909038, 20:05:11Z, after the last run to conclude), `tests / fast (3.14)`, `tests / closures`, `budget-raise-gate` and `tests / mutation`. No production line changed, so `tests / mutation` drew no mutant. No check went red on this head. The body answers the earlier `gate` red at `b43ea541` with the sweep detector, and that answer is present.
+- Forward-carry: the body says n/a, since no later stage carries `seam_cut_total` or O19. Nothing found here changes a later stage.
