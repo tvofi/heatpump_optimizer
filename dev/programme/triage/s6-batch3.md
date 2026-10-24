@@ -38,7 +38,7 @@ at no new surface: the four conditions are read by `app_push.sh` and fail
 closed to the full prepr. CI's `gate` stays the authority. Candidate (a), skip
 the local prepr on a stamp from the cloud fixer's run, is DEFERRED: the opened
 head is not the tree the cloud ran (open_pr merges origin/main into the code
-head and adds the row, per the `## Head` notes in lines 50-52 and 63-66), so a
+head and adds the row, per the two `head_note` heredocs in `open_pr.sh`), so a
 stamp at "the exact code SHA" does not cover it, and a stamp protocol on the
 handoff-body ref plus its verification in `app_push.sh`, a hot file of about
 1000 lines, is M-L against an unmeasured saving. What would change the answer:
