@@ -1,0 +1,8 @@
+Roster branch handoff/audit-r10-roster at 1558cf55fb9073f3d3dbe72c536a186906657775:
+R10-UX-HEALTH        carry "From r10-demand-overbook ... no power meter ... unobservable"      (appended 4bdb4c470, 2026-10-24T09:03Z)
+R10-LEARNER-DEFAULT  carry "From r10-demand-overbook ... owner_i03 ... 0 samples"              (78c843bb0)
+R10-BUFFER-STORE     carry "From r10-demand-overbook ... 38-40% more kWh than the relaxed DP"   (e11909cff)
+R10-BUFFER-STORE     carry "From r10-demand-overbook ... dhw_temp_trajectory tank seed"         (0b19947d0)
+R10-COP-PARTLOAD     0 carries from r10-demand-overbook (body line 3 names this group)
+R10-HEAT-METER       0 carries from r10-demand-overbook (body line 4 names this group)
+PR body (updated 2026-10-24T19:53:35Z) Forward-carry: R10-UX-HEALTH, R10-LEARNER-DEFAULT, R10-COP-PARTLOAD, R10-HEAT-METER; names no roster branch SHA.
