@@ -1,6 +1,6 @@
 # Proposal triage, session s6, batch 4 (P54)
 
-Proposals S6-U (P54) and S6-V1 to V7 (P55 to P59) of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
+Proposals S6-U (P54) and S6-V1 to V9 (P55 to P62) of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
 ~12:58Z), ruled as P54 from `dev/governance/roles/proposal-triage.md`. Numbering
 continues after `s6-batch3.md` (P53). GitHub calls: 0.
 
@@ -39,7 +39,7 @@ answer: a missed owner item traced to this line's constant noise, or the
 schema group landing a structured gate.
 
 ## P55: pool claim hygiene in cloud_dispatch (S6-V1 stale claims, S6-V2 hidden push errors, S6-V7 fire without a pool line)
-Verdict: ACCEPT -> R10-FLY-CLOUD-SETUP-TOOLCHAIN (cloud_dispatch); carry: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch; the fixer fire path refuses to fire without a pool line and prints "pool read back OK"
+Verdict: ACCEPT -> new group R10-FLY-POOL-INSTRUMENT (S; tools/audit/seat/pool.py, cloud_dispatch.py, INSTRUMENTS.md); brief: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch; the fixer fire path refuses to fire without a pool line and prints "pool read back OK"
 Source: s6 proposals.md S6-V1, S6-V2 (2026-10-24 ~13:25Z).
 Instances: V1 3 (#2692, #2697, sav-comfort; each a POOL EMPTY run); V2 1, 2 lost runs (`2>/dev/null` on the POOL push); V7 1, a critical-path fixer fired with no pool line, caught by hand (marginal cost ~5 lines, reuses the V2 read-back). Source: orchestrator's account in proposals.md; not re-counted from logs.
 Cost: S, about 15 lines in one existing script, no new file, no API calls.
@@ -72,3 +72,24 @@ Source: s6 proposals.md S6-V6.
 Instances: 1; the toucher was killed.
 Cost: pulse.py change in R10-ORCH-BEATD.
 Binding: a log mtime is as forgeable and an idle polling seat writes no log; the stronger form (process CPU or children) is unmeasured.
+
+## P60: reopen P50 (s6-batch2), the cloud seat pool as tracked code
+Verdict: ACCEPT -> R10-FLY-POOL-INSTRUMENT (same group as P55)
+Source: orchestrator re-rule request after the cloud fixer found no tracked code owns POOL.txt or the claim refs; owner directive 2026-10-24 (mechanise first).
+Instances: 5 slips the pool caused in one day (P55: V1 x3, V2, V7), one on a critical-path fixer.
+Cost: S -- one new script with a self-test, one INSTRUMENTS.md entry, a call in cloud_dispatch.py. P50's M covered the full `--pool` protocol and a prune_refs rule, which stay out (R10-FLY-PRUNE-REFS owns claim/* pruning).
+Binding: P50 rejected on one session and an unmeasured token saving; the pool has since run all day and its untracked state is the cause of the failures. Reversal is on measured slips, not on the token saving.
+
+## P61: record beat posts with full shas (S6-V8)
+Verdict: ACCEPT narrowed -> new group R10-FLY-RECORD-BEAT (S; record_beat.py); the HANDOVER updated-for refresh is DEFERRED
+Source: s6 proposals.md S6-V8.
+Instances: 1 session, 10 merges read unrecorded because the comments cited short shas; HANDOVER 2030 commits behind main (orchestrator's figure, not re-counted).
+Cost: S, one script, no policy edit. The refresh in a record PR adds a policy-file edit to a bot chain (see P49's chain), unmeasured.
+Binding: the sha must come from git, not be typed. No check reads updated-for, so the refresh buys nothing measured. Re-triage it when a check or reader depends on the field.
+
+## P62: pr-contract red while codeql is in progress (S6-V9)
+Verdict: ACCEPT -> R10-CI-LAYOUT-P2 (owns tools/ci/codescan_wait.py); carry carries/carry-triage-s6v9.md
+Source: s6 proposals.md S6-V9.
+Instances: 3 (#2698 3383fb2a, #2704 04860ee0, #2706 ea459c0b), each a hand rerun and a false "back to fixer".
+Cost: S, a bounded poll in step 1 and one changed self-test arm; no new API calls beyond the polls step 4 already makes.
+Binding: a red the tool could predict. Null controls: no codeql run at the head still FAILs at once; an in-progress run that never completes FAILs at the bound. It is a red-check root-cause trigger (defect-root-cause.md): root-cause dispatches beside the fix.
