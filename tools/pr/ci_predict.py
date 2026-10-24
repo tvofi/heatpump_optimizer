@@ -706,12 +706,17 @@ def plant_self_test(root: Path) -> int:
     under a second commit (the guard reads the merge base, not HEAD's parent),
     then with that entry dropped from the manifest, staged and not
     committed (HEAD's manifest is the one pushed), a citation of it, and a
-    manifest that does not parse. REF PRIVACY's is an unregistered push site;
+    manifest that does not parse. REF PRIVACY's are an unregistered push site
+    and a guarded pusher's guard dropped in HEAD but restored in the index.
     AGREEMENT's is #2671's shape, a grammar in two files registered only in
     the head's agreement.mjs, which the base's copy finds UNREGISTERED. The
     nulls: a line that cites, pushes and registers nothing, each red plant
-    staged and not committed (what is pushed is HEAD), and a head copy of
-    agreement.mjs that exits 1 at once, which CI never runs.
+    staged and not committed (what is pushed is HEAD), a line naming the
+    seat's home (CI judges with the runner's identity), a head copy of
+    agreement.mjs that exits 1 at once (CI never runs it), a grammar the base
+    tip registers and shares (CI grades HEAD merged into the tip, not HEAD
+    alone), and an unregistered grammar in files the lane does not load (the
+    key: prepr step 3f4 refuses that under either copy, so the arm need not).
     """
     import shutil
     import tempfile
@@ -726,8 +731,15 @@ def plant_self_test(root: Path) -> int:
     old = next((r["old"] for r in manifest["retired"] if r.get("new") and not r["old"].endswith("/")
                 and r["old"] not in tracked | dirs), None)
     ag = next((p for p in AGREEMENT if p in tracked), None)
-    if old is None or ag is None:
-        print("  FAIL the plants have a landed retired file to re-add and an agreement lane to register in")
+    sys.path.insert(0, str(root / "tools" / "audit" / "seat"))
+    try:
+        import ref_privacy as rp
+    finally:
+        sys.path.pop(0)
+    guarded = next((p for p, (kind, _) in sorted(rp.PUSHERS.items()) if kind == rp.GUARDED and p in tracked), None)
+    if old is None or ag is None or guarded is None:
+        print("  FAIL the plants have a landed retired file to re-add, an agreement lane to register in "
+              "and a guarded pusher")
         return 1
 
     def app(text):
@@ -738,6 +750,12 @@ def plant_self_test(root: Path) -> int:
         m["retired"] = [e for e in m["retired"] if e["old"] != old]
         return json.dumps(m)
 
+    def unguard(s):
+        return s.replace("ref_privacy", "ref_privacx")
+
+    def reguard(s):
+        return s.replace("ref_privacx", "ref_privacy")
+
     grammar = 'import re\n_CI_PREDICT_PLANT = re.compile(r"ci-predict-plant-(\\d+)-x")\n'
     register = {ag: lambda s: s.replace("const SHARED_GRAMMARS = {\n", "const SHARED_GRAMMARS = {\n"
                                         '  "ci-predict-plant-(\\\\d+)-x": "identical:ci_predict self-test plant",\n', 1),
@@ -746,7 +764,9 @@ def plant_self_test(root: Path) -> int:
                      "push origin HEAD'\n"])         # split, or this line is a push site itself
     push = {"tools/audit/archscore/score.py": app(site)}
     readd, cite = f"LAYOUT placement: {old} re-adds a moved path", f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}"
-    # (label, [(edits, committed)], job, the predicted line's text or None for a null, rc)
+    shared = {"tests/wood_advisor.py": app(grammar), "tools/audit/archscore/score.py": app(grammar)}
+    # (label, [(edits, True: committed | False: staged | "tip": the --base, beside HEAD)], job,
+    #  the predicted line's text or None for a null, rc)
     cases = [("a file re-added at a path whose move landed is predicted red", [({old: app("")}, True)], "fast", readd, 1),
              ("the re-added path under a second commit is predicted red", [({old: app("")}, True),
               ({"tests/wood_advisor.py": app("# a comment\n")}, True)], "fast", readd, 1),
@@ -762,6 +782,9 @@ def plant_self_test(root: Path) -> int:
               [({old: app("")}, False)], "fast", None, 0),
              ("an unregistered push site is predicted red", [(push, True)], "instrument",
               "REF PRIVACY REFUSE tools/audit/archscore/score.py", 1),
+             ("a guarded pusher's guard dropped in HEAD and restored in the index is predicted red",
+              [({guarded: unguard}, True), ({guarded: reguard}, False)], "instrument",
+              f"REF PRIVACY REFUSE {guarded}: registered", 1),
              ("a line that pushes nothing and names the seat's home is predicted green (null control: "
               "CI judges with the runner's identity)",
               [({"tools/audit/archscore/score.py": app(f'_CI_PREDICT_PLANT = "{SEAT_HOME}/x"\n')}, True)],
@@ -770,6 +793,11 @@ def plant_self_test(root: Path) -> int:
               "instrument", None, 0),
              ("a grammar registered only in the head's copy is predicted red", [(register, True)], "wave-script",
               "AGREEMENT RESULT divergent=0 unregistered=1", 1),
+             ("a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted "
+              "green (CI merges HEAD into the tip)", [(register, "tip"), ({ag: app("// a comment\n")}, True)],
+              "wave-script", None, 0),
+             ("a grammar in two files the lane does not load, the lane untouched, is not run (null control: the "
+              "key; prepr step 3f4 refuses it under either copy)", [(shared, True)], "wave-script", None, 0),
              ("a comment in the lane is predicted green (null control)", [({ag: app("// a comment\n")}, True)],
               "wave-script", None, 0),
              ("a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's)",
@@ -800,6 +828,7 @@ def plant_self_test(root: Path) -> int:
         for label, steps, job, want, rc in cases:
             run("git", "checkout", "-q", "-f", "--detach", base)
             run("git", "clean", "-qfd")
+            tip = base
             for edits, commit in steps:
                 for p, edit in edits.items():
                     (r / p).parent.mkdir(parents=True, exist_ok=True)
@@ -807,7 +836,10 @@ def plant_self_test(root: Path) -> int:
                 run("git", "add", "-A")
                 if commit:
                     run("git", "commit", "-qm", label)
-            out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", base), cwd=r, env=penv,
+                if commit == "tip":
+                    tip = run("git", "rev-parse", "HEAD").stdout.strip()
+                    run("git", "checkout", "-q", "--detach", base)
+            out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", tip), cwd=r, env=penv,
                                  capture_output=True, text=True)
             lines = out.stdout.splitlines()
             tag = f"PREDICT {JOB[job]} {marker[job]}"
