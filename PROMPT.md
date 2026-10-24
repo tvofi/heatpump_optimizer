@@ -1,0 +1,20 @@
+CLOUD FIXER seat for PR #2697 of tvofi/heatpump_optimizer, at head 5d79db511e0f801cc17605e1f8e3d935b3a7980e. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 5d79db511e0f801cc17605e1f8e3d935b3a7980e for the base you were given.
+Output: push the code to refs/heads/handoff/r10-merge-subject-harden-r4, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-merge-subject-harden-r4 <body.md>`, which pushes refs/heads/handoff-body/r10-merge-subject-harden-r4; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+This is a REPAIR of open pull request #2697 (R10-MERGE-SUBJECT-HARDEN, fix/r10-merge-subject-harden), round 4 of review, which blocked at head 5d79db511e0f801cc17605e1f8e3d935b3a7980e. Fetch origin fix/r10-merge-subject-harden, cut your worktree from that head, and read the blocked verdict: git show origin/verdict/2697:VERDICT.md. Follow the fixer contract (dev/governance/roles/fixer.md) from step 2 on. Push refs only: handoff/r10-merge-subject-harden plus handoff-body/r10-merge-subject-harden (the topic is r10-merge-subject-harden even though this dispatch ref carries a -r4 suffix).
+
+fixer.md "Past three rounds, re-cut rather than repair": the body owes a RE-CUT. Replace it with the template's headings, only the figures re-taken in this pass, and no round history.
+
+Settle the verdict's three blocking items, by code and probes where possible, or by naming each member as dispositioned with its reason, the way the body already does for the argv seam:
+1. An option value with whitespace in a gap: a quoted multi-word value (gh pr --subject "x y" merge 9 --merge, and -t "x y") must be read, and the argv form too.
+2. Program spellings outside PROGRAM: ${GH:-gh} and $(command -v gh); gh.exe is minor.
+3. RV3 survives: GAP is used at three sites and each can be narrowed alone. Add a probe that combines a variable program with a non-", " gap so the quoted-arm mutant is killed.
+The three side findings (multi-line GraphQL in a triple-quoted string, a blank line inside a bracketed argv, X5/Y9/Y10 re-confirmed) are carried: fix the first two or name them as the cost of the design, in the body.
+
+Use the finder's harness (python3 -I tools/policy/agreement_py.py --run and dev/audit/harnesses/r10_merge_subject_*) and a null control for every quantified claim. Answer `## Red checks` for every red check.
+
+No host or home paths in anything you push. Do not end the turn while a background job runs.
