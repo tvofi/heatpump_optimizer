@@ -68473,6 +68473,12 @@ R.check(
     and _tp_fresh is not None and abs(_tp_fresh - 4.2) < 1e-9,
     f"{_tp_refused} fresh {_tp_fresh!r}",
 )
+_tp_zero = _fm.read_heat_output_kw(*_tp_reader({}, "0"))
+R.check(
+    "a heat meter reading zero is a measured 0 kW, not absent (the pump at rest)",
+    _tp_zero == 0.0,
+    f"{_tp_zero!r}",
+)
 R.check(
     "the one install probe reports the heat meter, and nothing else moves it",
     _pp_probe({_TP_KEY: "sensor.heat"}).measured_heat is True
@@ -68607,6 +68613,23 @@ R.check(
     and _tp_env(2.0, None) is None,
     f"{_tp_env(2.0, 6.5)} {_tp_env(2.0, 6.5, seed=[5.0, 7])} "
     f"{_tp_env(2.0, 3.0, seed=[5.0, 7])} {_tp_env(2.0, None)}",
+)
+_tp_edge = _tp_env(4.75, None, seed=[12.0, 3])
+R.check(
+    "a command at exactly 95 % of nameplate is still nameplate evidence, as before",
+    _tp_edge is not None and _tp_edge[1] == 4,
+    f"{_tp_edge}",
+)
+_tp_tiny = _t2_coord(capacity_curve_enabled=True)
+_tp_tiny._thermal_params.max_electrical_power = 0.1
+_tp_tiny._current_state.outdoor_temperature = -10.0
+_tp_tiny._current_action = {"power": 0.05}
+_tp_tiny._measured_power = 0.05
+_tp_tiny._fold_capacity_envelope(2.0, 3.0)
+R.check(
+    "a nameplate of 0.1 kW or less keeps the envelope empty, measured heat or not",
+    _tp_tiny._capacity_envelope == {},
+    f"{_tp_tiny._capacity_envelope}",
 )
 _tp_np_met = _tp_env(5.0, 11.0, seed=[12.0, 3])
 _tp_np_cmd = _tp_env(5.0, None, seed=[12.0, 3])
