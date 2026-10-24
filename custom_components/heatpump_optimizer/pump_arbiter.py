@@ -999,7 +999,13 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
 
 
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
-    """Fold this pass into the current step's ledger row; close the last one."""
+    """Fold this pass into the current step's ledger row; close the last one.
+
+    ``planned`` is re-frozen whenever a new plan is adopted inside the step:
+    the cycle's re-solve can move a slot onto the current step, and the
+    switch is written from that plan, so the step is scored against the
+    plan that actuated it, not the one in force at its first tick.
+    """
     held.last_duty = duty
     start = plan_step_start(now)
     tank = getattr(inp.state, "dhw_temperature", None)
@@ -1007,8 +1013,10 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     if row is None or row["start"] != start:
         if row is not None:
             held.log.append(_verdict(row, tank))
-        held.step = row = {"start": start, "planned": duty, "tank": tank,
+        held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
+    elif row["plan"] is not inp.plan:
+        row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
     if power is not None:
         row["measured"] = True
