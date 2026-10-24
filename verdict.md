@@ -1,0 +1,26 @@
+Fix review: merge 1fbc924ab96888b7eb371ebd789a4e6326294a0d
+
+bus-nonce: aaa2a420500efaac6c61fc3ffa6c23b9
+
+## Scope
+
+Round 2 review of #2688 (fix/r10-triage-s6-batch1). This PR is a ruling record: it adds `dev/programme/triage/s6-batch1.md` (P42-P44) and a delivery row. I measured head `1fbc924ab96888b7eb371ebd789a4e6326294a0d` from a detached worktree; the merge base is `50af6174f`. Round 1 (hpo-approver comment 6381850867) returned merge at `b451bde0`. That head then went red on instrument-self-tests. The only content change since then (`ev/delta_since_round1.txt`) is one line in the header, which replaces a host path with prose. `git ls-remote` showed the head unmoved before I wrote this verdict. `dev/governance/roles/` has no diff between the merge base and origin/main, so the contract I applied is current.
+
+## Findings
+
+- P43's ACCEPT routes a new carry to R10-FLY-CARRY-DISPOSITION, but that carry is not on the roster yet. The roster at origin/handoff/audit-r10-roster `717f7e582` holds no carry for that group that cites s6-batch1, and the file is not on the roster branch (`ev/roster_carry.txt`). `roster_edit.triage_refusal` admits the citation only once this file is on the roster branch or origin/main. So after the merge, the orchestrator still has to append the carry with `roster_edit.py`, citing `triage: dev/programme/triage/s6-batch1.md#P43` and stating both of its controls as preconditions: #2675's head refuses before the fix and passes after, and a body citing a carry file found in neither main nor the head still refuses. This is the same post-merge route `s5-batch2.md` took. Carry: R10-FLY-CARRY-DISPOSITION
+- The fix at `569da4ee` left a redundant header sentence: "Logs cited by file name are in the s5 orchestrator's scratch directory (the s5 orchestrator's scratch directory, out of tree)". The file's opening line also calls it the s5 orchestrator's batch, while the PR body calls it the s6 orchestrator's. Carry: dismissed: wording only; no ruling, figure or route depends on it, and a re-push would cost a CI cycle for no change in meaning.
+- P42 routes its observation to R10-FLOW-BODY-ONLY's fixer with "no new carry", which no mechanism delivers. Carry: dismissed: the observation is a DEFER's re-triage trigger, unmeasured, with no stale write recorded. finding-propagation.md owes no carry for it. The round-1 verdict reached the same conclusion.
+
+## Evidence
+
+- RESULT CI: on this head, the check-runs API lists 52 runs, all completed, with 0 failures. Both `pr-contract` runs are success, and the second started after every other run had concluded. `gate` and `instrument-self-tests` are success (`ev/ci.txt`).
+- RESULT red-check answer: `governance / instrument-self-tests` job 120821317365 at `b451bde0` concluded failure. The body names it, names the cause (a host path pushed outside `handoff_push.sh`), and names the cheaper detector: `ref_privacy.py guard`, which is at `handoff_push.sh:128` as cited. The trigger is answered. `ref_privacy.py --check` at this head prints `104 line(s) added since 50af6174f53c judged, 0 refused` (`ev/ref_privacy.txt`).
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` exits 0 (`ev/merge_tree.txt`). No claim file is touched, so the claim driver was not invoked.
+- RESULT version: VERSION, the manifest and RELEASE_NOTES.md have an empty three-dot diff (`ev/version_untouched.txt`). Commit messages carry no session trailer or footer (`ev/commits.txt`).
+- Mutation proof: n/a. No production code line changed, so the diff draws no mutant. I exercised the consumer instead (`ev/null_control.txt`). `ruling_verdict` gives P42 DEFER, P43 ACCEPT, P44 DEFER and P45 None. `triage_refusal` refuses #P42, #P44 and #P45 and admits #P43. As a perturbation, flipping P43 to DEFER makes the gate refuse it. The body's null control re-derives.
+- Figures, body: the verdicts per class are 1 ACCEPT and 2 DEFER. There are 3 entries. The P43 class-size command prints 1 (`carry-2674.json`). All re-derive.
+- Figures, P43/P42 citations: `queue_pre_flight.py:196` and `carry_audit.load_dests`, lines 329-338, use `ls-tree` at a single ref. The other cited lines are `cloud_relay.sh:390` (the `urc = 75` skip), `tick_loop.sh:76` (`HPO_TICK_RELAY`) and `brief_lint.mjs:987-988`. All re-derive at this head.
+- Figures, P44: the planted carry gives `TOTAL: 0 error(s)` for both the base and the planted copy (`ev/p44_brief_lint.txt`). The figure "557 carries in 125 of 171 groups" re-derives against roster `4c54758d7`, the SHA the header names; origin/main's roster holds 513 (`ev/p44_figures.txt`). The 4 missing paths re-derive in the same groups under my own rule (backticked, contains a slash, has an extension). The figure "62 backticked repo paths" does not re-derive: my rule gives 65 occurrences at `4c54758d7`, and the file states no rule. I built that instrument myself. The count does not bear on the DEFER.
+- Not re-derived: the out-of-tree logs `update-2675.log`, `dispatch-report.txt` and `merge-report.txt` are not reachable from this cloud seat. Their timestamps, pids and line numbers are unverified.
+- `tests/entities.py` could not run locally because `homeassistant` is not installed. Both added files are under `dev/programme/`, which is INERT, and CI's `tests / closures` and `tests / fast (3.14)` are success at this head.
