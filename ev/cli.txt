@@ -1,0 +1,4 @@
+the diff reaches the timed replay lane: tests/replay.py
+replay=true
+the diff reaches none of the timed replay lane's files
+replay=false
