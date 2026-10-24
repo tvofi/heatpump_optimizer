@@ -22,7 +22,8 @@ n/a: no code or check changes; the file is a ruling record. Its consumer is the 
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests` (job 120821317365, run 40076628415, PR head `b451bde0`): red in step 22, `ref_privacy.py --check`: `REFUSE dev/programme/triage/s6-batch1.md:12: host-path in an added line`. It is this pull request's own defect, not main's: the same job is `success` on main `50af6174`. The cause was a host path I wrote into the ruling's header, pushed with a plain `git push` instead of `handoff_push.sh`, whose `ref_privacy.py guard` (handoff_push.sh line 128) would have refused it. The cheaper detector exists and runs in 0.5 s (`ref_privacy.py --check`, measured with `time`); I bypassed it, so no new check is owed. Fixed at head `569da4ee`: the path is gone and `ref_privacy.py --check` prints `0 refused`. `gate` and `pr-contract` were red downstream of it.
+- Code scanning, read on 2026-10-24 (`gh api repos/<repo>/code-scanning/alerts?ref=refs/pull/2688/merge&state=open`): 0 open alerts; `codeql / Analyze (python)`, `(actions)` and `(javascript-typescript)` are `success` at `b451bde0`. The file is a markdown ruling record that no analyzer reads.
 
 ## Forward-carry
 
