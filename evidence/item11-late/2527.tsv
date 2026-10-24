@@ -1,0 +1,3 @@
+2026-10-21T12:07:52Z	Fix review: blocked d0cdac2ef92e5689358063830526539b795aa52a metric-gamed: structure_budgets class_excess_loc/max_class_loc: the -6 lines are _freq_view's two ternaries re-wrapped onto one line each; with the named mechanism kept and the wrapping restored the class reads 18303 > base 18299
+2026-10-21T00:01:11Z	Fix review: blocked de28f656ba17e2e381471d8d3a50dffdf2840cfc root-cause-unanswered: mutation went red, unanswered
+2026-10-21T14:13:42Z	Fix review: merge d809c1f30f02b417dfd2d29ac5a98b6dd2803a55

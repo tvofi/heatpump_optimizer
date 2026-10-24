@@ -1,0 +1,3 @@
+2026-10-16T03:38:16Z	Fix review: blocked 98ca694d1bb08532e7a440fd2bfb718a7bdcd1d0 harness: class-open .github/workflows/release.yml creates a tag through gh release create, which the site rule cannot see; push.sh's --commits is unpinned
+2026-10-16T01:32:11Z	Fix review: blocked 9d7beec3bedb9557c19e42096689e1b137838c68 harness: class-open tools/audit/seat/prune_refs.py writes origin refs through gh api git/refs, which --check cannot see
+2026-10-16T06:02:05Z	Fix review: merge 9b35a00a9b25be2d49e2e061c001ef7a3a575131

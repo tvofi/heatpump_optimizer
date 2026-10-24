@@ -1,0 +1,3 @@
+2026-10-18T19:18:54Z	Fix review: blocked 3aba8f1eb2865de9d00edb9321185f387e4322f2 vacuous-test: zeroing the coordinator feed's sun regressor fails no check in tests/features.py, but it moves the finder's harness P1 fix2.00 from 0.006/0.009/0.013 to 0.095/0.106/0.114
+2026-10-19T05:58:57Z	Fix review: blocked 4c1352f05aa6797e06a7af5fdc456039756f2bcc architecture-unsound: departs from the R10-VENT-DETECTOR architect note (Shape: a detector input independent of the replay residual), and no roster edit-brief amends it (handoff/audit-r10-roster 95d31034f)
+2026-10-19T06:21:59Z	Fix review: merge 4c1352f05aa6797e06a7af5fdc456039756f2bcc

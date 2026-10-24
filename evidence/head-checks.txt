@@ -1,15 +1,7 @@
-== head 859b74ba8ab4d0020025895b73a53b3833b5e74c
-
-FIXTURE ok: 93 error(s) hold 263 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
 tools/audit/briefs/fixer.md                      314  315     5215  5216 
 tools/audit/briefs/fix-review.md                 140  140     2445  2451 
 .claude/rules/finding-propagation.md             101  101     1332  1336 
-
+FIXTURE ok: 93 error(s) hold 263 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
 RULES-SYNC ok: every generated rule is the generated form of its source
-rc=0
-
 209 passed, 0 failed
-STRUCTURE RATCHET PASSED
-  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-  closure. The claim is re-checked by the FULL unscoped suite that runs
-  gate. Set GATE_SCOPE=full to run everything here and now.
+TOTAL: 0 error(s) across 50 policy file(s)

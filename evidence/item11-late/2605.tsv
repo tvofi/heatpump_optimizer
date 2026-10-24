@@ -1,0 +1,3 @@
+2026-10-22T10:31:13Z	Fix review: blocked 7651b942166e994a29d4b2178ba551ac43565b73 mutation-vacuous: the real lane's 5 s py-spy cut is unpinned, LoopHeartbeat spy_timeout default set to 30.0 passes all 2394 entity checks
+2026-10-22T12:21:35Z	Fix review: merge 4eed14bd8a6b0691235d2c9ce601aba465c93a1d
+2026-10-22T12:14:00Z	Fix review: merge 5a3c5d2395043b7ce9f82b383be350356c9d5864

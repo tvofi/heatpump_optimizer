@@ -1,34 +1,5 @@
-prelude completed success 2026-10-24T13:31:13Z 2026-10-24T13:31:31Z
-governance / delivery-status-publish completed skipped 2026-10-24T13:31:32Z 2026-10-24T13:31:31Z
-governance / record completed skipped 2026-10-24T13:31:32Z 2026-10-24T13:31:31Z
-kernel-points completed skipped 2026-10-24T13:31:32Z 2026-10-24T13:31:31Z
-refresh completed success 2026-10-24T13:31:44Z 2026-10-24T13:32:02Z
-cancel-superseded completed success 2026-10-24T13:31:44Z 2026-10-24T13:32:03Z
-tests / closure-scope completed success 2026-10-24T13:31:55Z 2026-10-24T13:32:15Z
-validate / validate-hacs completed success 2026-10-24T13:32:06Z 2026-10-24T13:32:53Z
-codeql / Analyze (actions) completed success 2026-10-24T13:32:08Z 2026-10-24T13:32:11Z
-governance / instrument-self-tests in_progress None 2026-10-24T13:32:15Z None
-tests / nightly-ha completed skipped 2026-10-24T13:32:16Z 2026-10-24T13:32:15Z
-hassfest / hassfest completed success 2026-10-24T13:32:16Z 2026-10-24T13:32:36Z
-tests / mutation completed success 2026-10-24T13:32:17Z 2026-10-24T13:32:54Z
-arch-score / arch-score completed success 2026-10-24T13:32:24Z 2026-10-24T13:33:15Z
-prelude in_progress None 2026-10-24T13:32:25Z None
-codeql / Analyze (javascript-typescript) completed success 2026-10-24T13:32:26Z 2026-10-24T13:32:28Z
-refresh completed success 2026-10-24T13:32:47Z 2026-10-24T13:33:07Z
-tests / mutation-autofix completed skipped 2026-10-24T13:32:54Z 2026-10-24T13:32:54Z
-tests / mutation-pins completed skipped 2026-10-24T13:32:54Z 2026-10-24T13:32:54Z
-governance / policy-docs completed success 2026-10-24T13:32:56Z 2026-10-24T13:33:48Z
-governance / env-matrix completed success 2026-10-24T13:33:02Z 2026-10-24T13:38:53Z
-budget-raise-gate / budget-raise-gate completed success 2026-10-24T13:33:05Z 2026-10-24T13:33:22Z
-cancel-superseded completed success 2026-10-24T13:33:09Z 2026-10-24T13:33:33Z
-governance / delivery-status completed success 2026-10-24T13:33:11Z 2026-10-24T13:33:31Z
-tests / nightly-status completed success 2026-10-24T13:33:18Z 2026-10-24T13:33:29Z
-codeql / Analyze (python) completed success 2026-10-24T13:33:24Z 2026-10-24T13:33:28Z
-tests / briefs completed success 2026-10-24T13:33:28Z 2026-10-24T13:33:55Z
-governance / wave-script completed success 2026-10-24T13:33:31Z 2026-10-24T13:34:00Z
-tests / typing completed success 2026-10-24T13:34:03Z 2026-10-24T13:35:34Z
-tests / closures in_progress None 2026-10-24T13:34:12Z None
-tests / browser completed success 2026-10-24T13:35:00Z 2026-10-24T13:39:01Z
-tests / arch-instrument completed success 2026-10-24T13:35:20Z 2026-10-24T13:36:08Z
-tests / fast (3.14) in_progress None 2026-10-24T13:35:53Z None
-tests / coverage in_progress None 2026-10-24T13:36:18Z None
+Head 859b74ba8ab4d0020025895b73a53b3833b5e74c, read from the PR check-runs API (65 runs, all completed).
+Red: gate 120903782777 (run 40098427045, KIND code, 14:58:10-14:58:34Z) and gate 120903766312 (run 40098427428, KIND edit, 14:58:09-14:58:32Z).
+Both logs: "FAIL run(s) [40104542321] at this head are still being judged; their gate decides".
+Run 40104542321: gate 120904460153 success (14:59:35-15:00:02Z); pr-contract 120904105145 success (started 14:58:37Z, after the last red concluded at 14:58:34Z).
+Every other run: success or skipped.

@@ -1,0 +1,2 @@
+2026-10-18T23:32:12Z	Fix review: blocked 63d4d2b2a16d8c04b982767a4c2c995f964ad7ed ci-red: instrument-self-tests is red at this head because of this PR — tests/throwaway_git.py --check refuses the raw `git init` the new self-test adds at tools/policy/agreement.mjs:441 (passes at base 89e33859); `## Red checks` does not name it and pr-contract refuses
+2026-10-18T23:54:37Z	Fix review: merge 8baf5eac34e3e9fa3c447f47ec898a6e588efab3
