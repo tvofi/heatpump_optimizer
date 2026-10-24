@@ -1,5 +1,0 @@
-RESULT ruling_verdict P65 = DEFER
-RESULT null ruling_verdict P99 = None
-RESULT triage_refusal(head) = dev/programme/triage/s6-batch7.md#P65 is not an ACCEPT ruling (DEFER)
-RESULT mutant DEFER->ACCEPT refusal = None
-RESULT mutant no-verdict-line = unreadable

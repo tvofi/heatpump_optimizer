@@ -1,0 +1,4 @@
+RESULT ruling_verdict P65: DEFER
+RESULT ruling_verdict P99 (null control): None
+RESULT mutant verdict-line-removed: unreadable
+RESULT triage_refusal on a P65 cite: dev/programme/triage/s6-batch7.md#P65 is not an ACCEPT ruling (DEFER)
