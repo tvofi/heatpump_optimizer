@@ -151,6 +151,28 @@ def digest(obj) -> str:
     return hashlib.sha256(canon(obj).encode()).hexdigest()
 
 
+def unordered(sixk: dict) -> dict:
+    """The six keys with the lists GitHub returns in its own order sorted: the rules,
+    the bypass actors and the required contexts (the 2026-10-23T23:54Z --enable read
+    `pull_request` first and refused a correct PUT). Only comparisons read it; the
+    saved copy and its digest stay byte-for-byte the GET."""
+    out = copy.deepcopy(sixk)
+    for r in out["rules"]:
+        if r.get("type") == RSC and RSC in r["parameters"]:      # without_checks takes the list out
+            r["parameters"][RSC].sort(key=canon)
+    out["rules"].sort(key=canon)
+    out["bypass_actors"].sort(key=canon)
+    return out
+
+
+def same(a: dict, b: dict) -> bool:
+    return unordered(a) == unordered(b)
+
+
+def requires_only_gate(sixk: dict) -> bool:
+    return sorted(contexts(sixk), key=canon) == sorted(NEW_CHECKS, key=canon)
+
+
 def assert_old(sixk: dict, what: str) -> None:
     n = len(contexts(sixk))
     if n != OLD_CONTEXTS:
@@ -173,7 +195,7 @@ def preconditions(gh, live: dict, staged: dict | None, head: str | None, pr: int
     if staged is None:
         out.append(("staged-hash", None, "not evaluated: no --staged"))
     else:
-        a, b = digest(six(live)), digest(six(staged))
+        a, b = digest(unordered(six(live))), digest(unordered(six(staged)))
         out.append(("staged-hash", a == b, f"live {a[:16]} staged {b[:16]}"))
     if head is None:
         out.append(("gate-at-head", None, "not evaluated: no --head"))
@@ -256,7 +278,7 @@ def window_off(sixk: dict) -> dict:
 def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
-    if six(live) != six(rollback):
+    if not same(six(live), six(rollback)):
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     if not print_preconditions(preconditions(gh, live, staged, head, pr)):
         raise Refuse("a precondition failed; nothing was written")
@@ -264,7 +286,7 @@ def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     rc, out = gh(["-X", "PUT", RULESET, "--input", "-"], json.dumps(want))
     if rc != 0:
         after = six(call(gh, [RULESET]))
-        state = ("is UNCHANGED (reads back equal to the rollback copy)" if after == six(rollback)
+        state = ("is UNCHANGED (reads back equal to the rollback copy)" if same(after, six(rollback))
                  else "DIFFERS from the rollback copy:\n" + diff(six(rollback), after, "rollback", "live"))
         raise Refuse(f"the PUT was refused ({out.strip()[:300]}); the ruleset {state}")
     try:
@@ -272,11 +294,11 @@ def apply(gh, rollback_file: str, staged: dict, head: str, pr: int) -> int:
     except ValueError:
         raise Refuse("the PUT returned no JSON") from None
     after = six(call(gh, [RULESET]))
-    if put != want or contexts(after) != NEW_CHECKS:
+    if not same(put, want) or not requires_only_gate(after):
         raise Refuse("READBACK half 1 FAILED: the PUT result is not the payload\n"
                      + diff(want, put, "payload", "put"))
     print("READBACK half 1 OK: the PUT result equals the payload; the GET requires only gate")
-    if without_checks(after) != without_checks(six(rollback)):
+    if not same(without_checks(after), without_checks(six(rollback))):
         raise Refuse("READBACK half 2 FAILED: the PUT changed more than required_status_checks\n"
                      + diff(without_checks(six(rollback)), without_checks(after), "rollback", "live"))
     print("READBACK half 2 OK: everything but required_status_checks equals the rollback copy")
@@ -290,7 +312,7 @@ def rollback(gh, path: str) -> int:
     if rc != 0:
         raise Refuse(f"the rollback PUT was refused: {out.strip()[:300]}")
     after = six(call(gh, [RULESET]))
-    if after != want:
+    if not same(after, want):
         raise Refuse("ROLLBACK READBACK FAILED\n" + diff(want, after, "rollback", "live"))
     print(f"ROLLBACK READBACK OK: all six keys equal {path}; now revert PR 2")
     return 0
@@ -304,9 +326,9 @@ def dry_run(gh, staged: dict | None, head: str | None, pr: int | None) -> int:
     print(canon(want), end="")
     print("DIFF (live six keys -> payload):")
     print(diff(six(live), want, "live", "payload"), end="")
-    same = without_checks(want) == without_checks(six(live))
-    print(f"OUTSIDE required_status_checks: {'IDENTICAL' if same else 'DIFFERS'}")
-    ok = print_preconditions(preconditions(gh, live, staged, head, pr)) and same
+    kept = without_checks(want) == without_checks(six(live))
+    print(f"OUTSIDE required_status_checks: {'IDENTICAL' if kept else 'DIFFERS'}")
+    ok = print_preconditions(preconditions(gh, live, staged, head, pr)) and kept
     print(f"DRY-RUN {'OK' if ok else 'REFUSED'}: nothing was written")
     return 0 if ok else 1
 
@@ -397,7 +419,7 @@ def main_ratchet_green(gh):
 def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=None) -> int:
     rollback = save_rollback(gh, rollback_file)
     live = call(gh, [RULESET])
-    if six(live) != six(rollback):
+    if not same(six(live), six(rollback)):
         raise Refuse("the ruleset changed between the rollback GET and the precondition read")
     rows = [r for r in preconditions(gh, live, staged, None, pr) if r[0] != "gate-at-head"]
     rows.insert(1, ("reds-at-head", *reds_at_head(gh, head, reaches)))
@@ -409,7 +431,7 @@ def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=No
     if rc != 0:
         raise Refuse(f"the disable PUT was refused ({out.strip()[:300]})")
     after = six(call(gh, [RULESET]))
-    if after != want:
+    if not same(after, want):
         raise Refuse("DISABLE READBACK FAILED\n" + diff(want, after, "payload", "live"))
     print("DISABLE READBACK OK: required_status_checks removed; enforcement and every other rule equal the rollback copy")
     print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
@@ -421,7 +443,7 @@ def disable(gh, rollback_file: str, staged: dict, head: str, pr: int, reaches=No
 def enable(gh, rollback_file: str, merged: str, head: str) -> int:
     rollback = read_copy(rollback_file, "--rollback-file")
     live = six(call(gh, [RULESET]))
-    if live != window_off(rollback):
+    if not same(live, window_off(rollback)):
         raise Refuse("the live ruleset is not the rollback copy less required_status_checks\n"
                      + diff(window_off(rollback), live, "expected", "live"))
     cmp = call(gh, [f"repos/{REPO}/compare/{merged}...main"]).get("status")
@@ -438,10 +460,10 @@ def enable(gh, rollback_file: str, merged: str, head: str) -> int:
     if rc != 0:
         raise Refuse(f"the enable PUT was refused ({out.strip()[:300]}); required_status_checks is still removed")
     after = six(call(gh, [RULESET]))
-    if after != want or contexts(after) != NEW_CHECKS:
+    if not same(after, want) or not requires_only_gate(after):
         raise Refuse("READBACK half 1 FAILED: the GET is not the payload\n" + diff(want, after, "payload", "live"))
     print("READBACK half 1 OK: the GET equals the payload; it requires only gate")
-    if without_checks(after) != without_checks(six(rollback)):
+    if not same(without_checks(after), without_checks(six(rollback))):
         raise Refuse("READBACK half 2 FAILED\n" + diff(without_checks(six(rollback)), without_checks(after), "rollback", "live"))
     print("READBACK half 2 OK: everything but required_status_checks equals the rollback copy, enforcement included")
     print(f"NEXT: watch main's push gate, then --verify --head <main sha>; on red: --rollback {rollback_file}, then revert")
