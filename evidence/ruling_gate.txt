@@ -1,0 +1,4 @@
+RESULT ruling P86 = ACCEPT ; P99 = None
+RESULT append-carry gate (as written): None
+RESULT mutant Verdict->DEFER: dev/programme/triage/s6-batch17.md#P86 is not an ACCEPT ruling (DEFER)
+RESULT mutant no verdict line: dev/programme/triage/s6-batch17.md#P86 is not an ACCEPT ruling (unreadable)

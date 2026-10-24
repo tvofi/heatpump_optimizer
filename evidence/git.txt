@@ -1,0 +1,18 @@
+head 71dac86f2b0255c0cad0f45eee47beebe093cf8f
+merge-tree --write-tree origin/main(0810d5b8f) head: d7a20a6224238f79ac55a057acb177d02def6433
+rc=0
+ed11cfab tree e5fac5d5e5130e4d5ec85badbf3ec5e59e738bda == auto merge of 1c49d77+0810d5b8f e5fac5d5e5130e4d5ec85badbf3ec5e59e738bda
+merge-base(1c49d77, main) = 1e5f91bc87a4db77f53d4520a4c17bfc481c6a88
+three-dot diff:
+ dev/programme/delivery/2761.md     |  1 +
+ dev/programme/triage/s6-batch17.md | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+)
+VERSION/manifest/notes/golden lines touched: 0
+#2710 head 7e5838a contains #2741 merge 593c4fb: no
+merge times (main): 
+6c25b26d6214c10ace9dd42046d6395d0c26edac 2026-10-24T21:16:55+02:00 Merge pull request #2709 from tvofi/fix/r10-fly-cloud-setup-toolchain
+593c4fb28d82212d2b2eb1907255f7ac576f7972 2026-10-24T22:30:32+02:00 Merge pull request #2741 from tvofi/triage/s6-batch7
+1e5f91bc87a4db77f53d4520a4c17bfc481c6a88 2026-10-24T22:33:38+02:00 Merge pull request #2710 from tvofi/fix/audit-r10-roster-pr5
+merge_train.py land: sleep(30) precedes guard() and every attempt:
+1479:        for k in range(1, self.merge_tries + 1):
+1480-            self.sleep(30)
