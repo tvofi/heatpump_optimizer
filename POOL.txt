@@ -12,8 +12,8 @@ dispatch/fixer-r10-merge-subject-harden
 dispatch/fixer-r10-sav-comfort
 dispatch/fixer-r10-ci-layout-p2b-v2
 dispatch/fixer-r10-roster-runq
-dispatch/fixer-r10-codeql-dependabot
 dispatch/fixer-r10-rca-codescan-wait
 dispatch/fixer-r10-policy-fixer-md
 dispatch/fixer-r10-fly-cipredict-layout
 dispatch/fixer-r10-fly-cloud-setup-toolchain
+dispatch/fixer-r10-codeql-dependabot
