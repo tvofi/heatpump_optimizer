@@ -1,0 +1,20 @@
+STRUCTURE RATCHET PASSED
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/plan_view.py  (closure: 86 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 40 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 84 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 84 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 90 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+Architecture score: dS +0.0000 NULL
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+      RUN   tests/entities.py
+tests/entities.py

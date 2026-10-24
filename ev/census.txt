@@ -1,0 +1,9 @@
+      1 tools/audit/seat/INSTRUMENTS.md
+      3 tools/audit/seat/flow_metrics.py
+      1 tools/audit/seat/handover_prompt.py
+      1 tools/audit/seat/plan_page.py
+      4 tools/audit/seat/pr_cap.py
+      2 tools/audit/seat/prune_refs.py
+      1 tools/audit/seat/r10_roster_sync_mutants.py
+      4 tools/audit/seat/roster_lib.py
+      9 tools/audit/seat/roster_sync.py

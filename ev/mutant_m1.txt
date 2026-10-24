@@ -1,0 +1,2 @@
+FAIL carries-open is classified protected and not derivable (a roster may carry it before the tree's does) (got: )
+roster_sync self-test: 55 checks, 1 failed
