@@ -438,6 +438,15 @@ sweep's standing-seat liveness step keep them alive.
   are removed before its closing line. Every `gh api` GET and `gh pr view`
   it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
   settle logged.
+  `queue <file>` writes the queue nobody had to assemble: every open
+  pull request but the record one whose approver-App verdict is newest, is
+  `verdict/<pr>`'s posted tip and is `merge` at its head or carries to it
+  (`app_approve.sh --carry`), oldest first, one `QUEUE`/`LEFT` line each;
+  budget and policy heads are queued for the batch's own serial route.
+  `pitch` holds while `train.pid` is live (and on a queue at heads that
+  already had its train), else builds that queue, runs `queue_pre_flight.py`
+  and starts one detached `train.sh --bot-prs --approval-carry --pre-flight`;
+  `tick_loop.sh --pitch` runs one per pass.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:

@@ -1,5 +1,5 @@
 #!/bin/bash
-# tick_loop.sh [--once] [--interval SECONDS] [--out FILE] [-- <orchestrator_tick.py args>]
+# tick_loop.sh [--once] [--interval SECONDS] [--out FILE] [--pitch] [-- <orchestrator_tick.py args>]
 # tick_loop.sh --self-test
 #
 # The tick's driver loop (the round-10 orchestrator, tvofi approved,
@@ -23,6 +23,18 @@
 #   TICK-RELAY <utc> relay=<ok|rc=N> started=<utc>
 # A failing relay pass is reported and the tick still runs; a failing tick is
 # reported and the loop goes on. The loop drives; the tick itself stays read-only.
+#   3. --pitch only (R10-FLOW-AUTOTRAIN; off by default, and the first live pitch runs
+#      with the orchestrator watching), on the hourly pitch: the first pass, then the
+#      first pass HPO_TICK_PITCH_EVERY seconds (default 3600) after the last pitch,
+#      stamped in <out>.pitch.at. `merge_train.py pitch --once` holds while a train's
+#      pidfile is live or the ledger holds an open train-stop, else writes the queue
+#      from the verdict bus, runs
+#      queue_pre_flight.py on it and starts one detached train.sh --bot-prs
+#      --approval-carry --pre-flight (merge_train.py's PITCH block says why each). Its
+#      output goes to <out>.pitch.log and one line follows the banner:
+#        TICK-PITCH <utc> rc=<rc> <the pitch's last line: PITCH HELD|EMPTY|STARTED|REFUSED ...>
+#      HPO_PITCH_MANDATE, when set, is passed as the train's --mandate; HPO_TICK_PITCH_CMD
+#      replaces the command (the self-test's stub).
 # Then one `heartbeat.sh --once` pushes heartbeat/orchestrator with the pass line
 # (no --out path), so a stop is visible off the host; a failed push prints
 # `HEARTBEAT NOT PUSHED: <reason>` and the loop goes on (HPO_TICK_HEARTBEAT replaces it).
@@ -71,6 +83,17 @@ relay_start() { # <r> <relay>: start the relay detached, wait for it at most the
   esac
 }
 
+pitch_pass() { # <out>: one merge pitch when one is due; prints its TICK-PITCH line
+  local log=$1.pitch.log at=$1.pitch.at prc last every=${HPO_TICK_PITCH_EVERY:-3600}
+  case $every in ''|*[!0-9]*) every=3600 ;; esac
+  last=$(cat "$at" 2>/dev/null); case $last in ''|*[!0-9]*) last=0 ;; esac
+  [ $(( $(date +%s) - last )) -ge "$every" ] || return 0  # mut:due
+  date +%s > "$at"
+  if [ -n "${HPO_TICK_PITCH_CMD:-}" ]; then $HPO_TICK_PITCH_CMD > "$log" 2>&1; prc=$?
+  else python3 "$HERE/merge_train.py" pitch --once ${HPO_PITCH_MANDATE:+--mandate "$HPO_PITCH_MANDATE"} > "$log" 2>&1; prc=$?; fi
+  printf 'TICK-PITCH %s rc=%s %s\n' "$(date -u +%FT%TZ)" "$prc" "$(tail -n 1 "$log")"
+}
+
 tick_pass() { # <out> [tick args...]: one pass; prints the banner
   local out=$1 relay rrc trc tmp now; shift
   relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
@@ -88,6 +111,7 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   mv -f "$tmp" "$out"
   now=$(date -u +%FT%TZ)
   printf 'TICK-PASS %s relay=%s tick=%s out=%s\n' "$now" "$rrc" "$trc" "$out"
+  [ -z "$pitch" ] || pitch_pass "$out"  # mut:pitch
   # The andon: one heartbeat push per pass, bounded, its failure printed and never fatal.
   timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat
   [ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"
@@ -146,6 +170,30 @@ done" ]
   out=$(HB_RC=1 HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt"); rc=$?
   [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT NOT PUSHED' && printf '%s\n' "$out" | grep -q 'tick=0'
   ck "a failing heartbeat is printed, never silent, and the loop still exits cleanly" $?
+  # --pitch (R10-FLOW-AUTOTRAIN): one pitch per pass, after the banner; never without the flag.
+  printf '#!/bin/bash\necho pitch >> "%s/order"; echo "  #7 PASS"; echo "PITCH ${PITCH_WORD:-STARTED}: x"; exit "${PITCH_RC:-0}"\n' "$t" > "$t/pitch.sh"
+  rm -f "$t/order"
+  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick 
+pitch" ] && printf '%s\n' "$out" | sed -n 2p | grep -Eq '^TICK-PITCH [0-9T:-]+Z rc=0 PITCH STARTED: x$' \
+    && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 2 ] && grep -q '#7 PASS' "$t/b.txt.pitch.log"
+  ck "--pitch: one pitch after the tick, its last line after the banner, its whole output in <out>.pitch.log" $?
+  rm -f "$t/order"
+  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-PITCH
+  ck "--pitch: the next pass inside the hour pitches nothing (the hourly pitch)" $?
+  rm -f "$t/order"
+  out=$(HPO_TICK_PITCH_EVERY=0 HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick 
+pitch" ] && printf '%s\n' "$out" | grep -q '^TICK-PITCH '
+  ck "null control: a pass once the interval has passed pitches again" $?
+  rm -f "$t/order"
+  out=$(HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+  [ "$(cat "$t/order")" = "tick " ] && ! printf '%s\n' "$out" | grep -q TICK-PITCH
+  ck "null control: without --pitch no pitch runs (the default loop starts no train)" $?
+  out=$(HPO_TICK_PITCH_EVERY=0 PITCH_WORD="REFUSED queue" PITCH_RC=2 HPO_TICK_PITCH_CMD="bash $t/pitch.sh" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --pitch --out "$t/b.txt"); rc=$?
+  [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^TICK-PITCH .* rc=2 PITCH REFUSED queue: x$' && printf '%s\n' "$out" | grep -q 'tick=0'
+  ck "a refused pitch is reported with its rc and the pass still completes" $?
   # The real script against a bare remote: a pass moves the ref.
   . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || return 1
   throwaway_git_init "$t/remote.git" -q --bare && throwaway_git_init "$t/w" -q -b main
@@ -164,11 +212,12 @@ done" ]
   [ "$f" = 0 ]
 )
 
-once=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
+once=; pitch=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
     --self-test) tick_loop_self_test; exit ;;
     --once) once=1; shift ;;
+    --pitch) pitch=1; shift ;;
     --interval) every=${2:-}; shift 2 || shift ;;
     --out) out=${2:-}; shift 2 || shift ;;
     --) shift; break ;;

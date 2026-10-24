@@ -7,9 +7,13 @@
     python3 tools/audit/seat/merge_train.py batch <queue.json> [run's options]
         [--base main|batch/<name>] [--tag TAG] [--skip-bad] [--overlap]
     python3 tools/audit/seat/merge_train.py wait-ci <40-hex sha> [--min-runs N]
+    python3 tools/audit/seat/merge_train.py queue <out.json | -> [--repo OWNER/REPO]
+    python3 tools/audit/seat/merge_train.py pitch [--mandate LABEL] [--state-dir DIR] [--repo OWNER/REPO]
     python3 tools/audit/seat/merge_train.py --self-test
 
-The queue is a JSON list, merged in order:
+The queue is a JSON list, merged in order. `queue` writes it (Train.build_queue:
+the open pull requests whose newest verdict is merge at the head or carries to it),
+and `pitch` -- THE PITCH block, above `_self_test` -- hands it to one train.sh:
 
     [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
       "verdict_comment": "<the verdict comment's id, quoted in a mandate approval; the comment itself must cite an absolute evidence path -- app_approve.sh's evidence gate reads the comment and refuses a verdict naming no qualifying absolute directory>",
@@ -675,6 +679,7 @@ class Train:
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
         self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
+        self.built_heads: dict = {}  # {pr: head} of the entries build_queue admitted
 
     @staticmethod
     def _run(argv: list[str], cwd: Path = ROOT, stdin: str | None = None) -> tuple[int, str]:
@@ -1631,6 +1636,105 @@ class Train:
         self.log(f"PRE-FLIGHT: {len(keep)} of {len(queue)} admitted")
         return keep
 
+    # ------------------------------------------------------ the queue builder
+    #: The verdict grammar, bus.sh's verdict_sha (app_comment.sh's two patterns;
+    #: orchestrator_tick.py's verdict levels read the same two).
+    VERDICT_MERGE = re.compile(r"^Fix review: merge ([0-9a-f]{40})$")
+    VERDICT_BLOCKED = re.compile(r"^Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+$")
+
+    def build_queue(self) -> list[dict]:
+        """`queue`: the train's queue, written from what is already machine-read
+        (R10-FLOW-AUTOTRAIN) instead of assembled by hand in an agent's turn.
+        Every open pull request, oldest (lowest number) first, is one line --
+        `QUEUE #<pr> ...` when `admit_verdict` admits it, else `LEFT #<pr>:
+        <why>`. Files are not read: a budget, policy or workflow head is
+        queued like any other and goes to the serial route the batch's own
+        admission applies (`file_class`, `raise_hold`, the policy gate), so
+        the builder holds no second copy of those rules. An unreadable pull
+        request list, approver identity or bus listing stops it: a queue built
+        on a read that failed is a queue nobody read."""
+        code, o = self.run(["gh", "pr", "list", "--repo", self.repo, "--state", "open", "--limit", "200",
+                            "--json", "number,headRefOid,headRefName"])
+        try:
+            prs = json.loads(o) if code == 0 else None
+        except ValueError:
+            prs = None
+        if not isinstance(prs, list):
+            raise Stop("queue", f"the open pull requests could not be read: {o.strip()[-160:]}")
+        sys.modules.setdefault("merge_train", sys.modules[__name__])  # proof_watch imports the train
+        import proof_watch
+        allow = proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh")
+        if allow is None:
+            raise Stop("queue", "no VERDICT_AUTHORS / VERDICT_AUTHOR_ID in tools/pr/app_approve.sh")
+        code, o = self.run(["git", "ls-remote", "origin", "refs/heads/verdict/*"])
+        if code:
+            raise Stop("queue", f"the verdict bus could not be listed: {o.strip()[-160:]}")
+        tips = {}
+        for ln in o.splitlines():
+            sha, _, ref = ln.partition("\t")
+            n = ref.strip().rpartition("/")[2]
+            if is_sha(sha) and n.isdigit():
+                tips[int(n)] = sha
+        queue = []
+        for pr in sorted(prs, key=lambda p: int(p.get("number") or 0)):
+            got = self.admit_verdict(pr, tips.get(int(pr.get("number") or 0)), allow)
+            if isinstance(got, str):
+                self.log(f"LEFT #{pr.get('number')}: {got}")
+                continue
+            self.log(f"QUEUE #{got['pr']} verdict {got['verdict'][:12]} comment {got['verdict_comment']}"
+                     + ("" if got["verdict"] == pr["headRefOid"] else f", carried to {pr['headRefOid'][:12]}"))
+            queue.append(got)
+            self.built_heads[got["pr"]] = pr["headRefOid"]
+        return queue
+
+    def admit_verdict(self, pr: dict, tip: "str | None", allow: "tuple[set, int]") -> "dict | str":
+        """The queue entry for one open pull request, or why it has none. In
+        order: not the record branch (`--bot-prs` merges that one, behind its
+        own guard); a confirmed verdict on the bus (`verdict/<pr>`); the
+        approver App's NEWEST `Fix review:` comment is that tip's posting --
+        its `bus: verdict/<pr> at <tip>,` line, which bus.sh's post writes,
+        so a confirmed-unposted or a superseded tip waits -- and is
+        `merge`; and its head is the verdict's, or `app_approve.sh --carry`
+        says the verdict carries to it. The comment id rides the entry: the
+        mandate approval quotes it and app_approve.sh's evidence gate reads it."""
+        import record_row  # the record branch's one spelling, as --bot-prs looks it up
+        n, h = int(pr.get("number") or 0), pr.get("headRefOid") or ""
+        if pr.get("headRefName") == record_row.RECORD_BRANCH:
+            return f"the record pull request ({record_row.RECORD_BRANCH}): --bot-prs merges it"
+        if not is_sha(h):
+            return f"its head could not be read: {h[:60]!r}"
+        if tip is None:
+            return f"no confirmed verdict on the bus (verdict/{n})"
+        authors, vid = allow
+        code, o = self.run(["gh", "api", "--paginate", "--slurp", f"repos/{self.repo}/issues/{n}/comments?per_page=100"])
+        try:
+            cs = [c for page in json.loads(o) for c in page] if code == 0 else None
+        except (ValueError, TypeError):
+            cs = None
+        if cs is None:
+            return f"its comments could not be read: {o.strip()[-120:]}"
+        vs = [c for c in cs if (c.get("user") or {}).get("login") in authors
+              and (c.get("user") or {}).get("id") == vid and (c.get("body") or "").startswith("Fix review:")]
+        if not vs:
+            return f"verdict/{n} at {tip} is confirmed and not posted"
+        v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
+        body = v.get("body") or ""
+        if f"\nbus: verdict/{n} at {tip}," not in body:
+            return f"the newest posted verdict (comment {v.get('id')}) is not verdict/{n}'s tip {tip}"
+        first = body.split("\n", 1)[0].rstrip("\r")
+        m = self.VERDICT_MERGE.match(first)
+        if not m:
+            return "the newest verdict is " + ("blocked" if self.VERDICT_BLOCKED.match(first) else "unparsed") \
+                + f": {first[:120]}"
+        verdict = m.group(1)
+        if verdict != h:
+            self.run(["git", "fetch", "-q", "origin", verdict, h])
+            o = self.run(["bash", tool("app_approve"), "--carry", verdict, h])[1]
+            if "CARRY: yes" not in o:
+                return f"the verdict {verdict[:12]} does not carry to head {h[:12]}: " \
+                    + (o.strip().splitlines() or ["(no output)"])[-1][:160]
+        return {"pr": n, "verdict": verdict, "verdict_comment": str(v.get("id"))}
+
     # ------------------------------------------------------------- the batch
     def git(self, *argv: str) -> str:
         code, o = self.run(["git", *argv])
@@ -2061,6 +2165,114 @@ class Train:
 
 
 # ----------------------------------------------------------------- self-test
+# THE PITCH (R10-FLOW-AUTOTRAIN). One per tick pass under `tick_loop.sh --pitch`:
+# the queue `build_queue` writes, queue_pre_flight.py's report on it, then ONE
+# detached train.sh with exactly these flags. Every merge stays the train's,
+# which approves before it merges (app_approve.sh, or the owner's review under
+# --mandate on a code-owned path): a posted merge verdict is not an approval.
+PITCH_FLAGS = ("--bot-prs", "--approval-carry", "--pre-flight")
+PITCH_QUEUE, PITCH_LAST = "pitch-queue.json", "pitch-last.json"
+PITCH_SETTLE_SECONDS = 5  # how long a launch waits to see train.sh take its pidfile
+PITCH_EVERY_SECONDS = 3600  # the hourly pitch (nudge.md step 3)
+
+
+def live_train(state: Path) -> "int | None":
+    """The pid in <state>/train.pid when that process is alive, train.sh's own
+    `kill -0` test; None when there is no pidfile, it is unreadable or stale."""
+    try:
+        pid = int((state / "train.pid").read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    except PermissionError:
+        return pid
+    return pid
+
+
+def launch_train(argv: list[str], state: Path) -> "tuple[int, str]":
+    """Start train.sh detached (its own session: the tick pass ends, the train
+    goes on) and wait up to PITCH_SETTLE_SECONDS for it to take its pidfile.
+    (pid, "") once it holds it; (0, <its output's tail>) when it exited first,
+    a refusal of train.sh's own (a live pidfile, no seat venv)."""
+    log = state / "pitch-launch.log"
+    with open(log, "w") as fh:
+        p = subprocess.Popen(argv, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=fh,
+                             stderr=subprocess.STDOUT, start_new_session=True)
+    end = time.monotonic() + PITCH_SETTLE_SECONDS
+    while time.monotonic() < end and p.poll() is None and live_train(state) != p.pid:
+        time.sleep(0.1)
+    if p.poll() is not None:
+        tail = (log.read_text(errors="replace").strip().splitlines() or ["(no output)"])[-1]
+        return 0, f"rc {p.returncode}: {tail[:200]}"
+    return p.pid, ""
+
+
+def pitch(t: Train, mandate: "str | None", launch=launch_train, ledger_log: "str | None" = None) -> int:
+    """One pitch; its last line is `PITCH HELD|EMPTY|STARTED|REFUSED ...`.
+    HELD: a live train holds the state dir's pidfile (no queue is built); the
+    obligations ledger holds an open `train-stop` (a stopped train is read
+    before its queue is reloaded: nudge.md step 3); or this same queue at
+    these same heads already had its train -- a stopped train is not
+    restarted every pass on what stopped it. EMPTY: nothing is admitted, and
+    no train starts. rc 2 only on REFUSED, an unreadable ledger included."""
+    held = live_train(t.state)
+    if held:
+        t.log(f"PITCH HELD: a live train holds {t.state / 'train.pid'} (pid {held}); no queue built")
+        return 0
+    sys.modules.setdefault("merge_train", sys.modules[__name__])  # ledger imports the train
+    import ledger
+    log = ledger_log or ledger.default_log()
+    try:
+        stops = [ob for ob in ledger.fold(ledger.events(Path(log).parent, log))[0] if ob[0] == "train-stop"]
+    except ledger.Unreadable as e:
+        t.log(f"PITCH REFUSED ledger: {e}")
+        return 2
+    if stops:
+        _, subj, sha, when, _ = stops[0]
+        t.log(f"PITCH HELD: the ledger holds an open train-stop ({subj} {sha[:12]}, {when}); read it, then "
+              f"`ledger.py close train-stop {subj} {sha}`")
+        return 0
+    try:
+        queue = t.build_queue()
+    except Stop as s:
+        t.log(f"PITCH REFUSED {s.step}: {s.why}")
+        return 2
+    t.state.mkdir(parents=True, exist_ok=True)
+    qf = t.state / PITCH_QUEUE
+    qf.write_text(json.dumps(queue, indent=2) + "\n")
+    if not queue:
+        t.log("PITCH EMPTY: no open pull request's newest verdict is merge at or carrying to its head; no train")
+        return 0
+    key = [[e["pr"], e["verdict"], e["verdict_comment"], t.built_heads.get(e["pr"])] for e in queue]
+    try:
+        last = json.loads((t.state / PITCH_LAST).read_text())
+    except (OSError, ValueError):
+        last = {}
+    if last.get("key") == key:
+        t.log(f"PITCH HELD: this queue at these heads already had its train (pid {last.get('pid')}); "
+              "nothing changed to retry")
+        return 0
+    code, o = t.run([sys.executable, str(ROOT / "tools/audit/seat/queue_pre_flight.py"), str(qf), "--repo", t.repo])
+    for ln in o.strip().splitlines():
+        t.log(f"  {ln}")
+    if not any(ln.startswith("PRE-FLIGHT: ") for ln in o.splitlines()):
+        t.log(f"PITCH REFUSED pre-flight: queue_pre_flight.py printed no summary (rc {code})")
+        return 2
+    argv = ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--queue", str(qf), "--repo", t.repo,
+            "--state-dir", str(t.state), *PITCH_FLAGS, *(["--mandate", mandate] if mandate else [])]
+    pid, why = launch(argv, t.state)
+    if not pid:
+        t.log(f"PITCH REFUSED train: train.sh did not start ({why})")
+        return 2
+    (t.state / PITCH_LAST).write_text(json.dumps({"key": key, "pid": pid}) + "\n")
+    t.log(f"PITCH STARTED: train.sh pid {pid} over {len(queue)} "
+          f"({' '.join('#' + str(e['pr']) for e in queue)}); its log is {t.state / 'train.log'}")
+    return 0
+
+
 def _self_test() -> int:
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
@@ -3048,8 +3260,224 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _batch_self_test(check)
+    _queue_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _queue_self_test(check) -> None:
+    """R10-FLOW-AUTOTRAIN: the queue builder over one fixture, and the pitch's
+    four outcomes. Every read is stubbed; the launch arms run a stub train."""
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    tmp = tempfile.TemporaryDirectory()  # every state dir below, removed at the end
+    import proof_watch
+    import record_row
+    login, vid = (lambda a: (sorted(a[0])[0], a[1]))(proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh"))
+    hx = lambda c: c * 40  # noqa: E731
+    T = {n: hx(c) for n, c in ((11, "1"), (12, "2"), (13, "3"), (14, "4"), (15, "5"), (16, "6"), (18, "8"), (19, "9"),
+                               (20, "a"))}
+
+    def posted(n, first, tip=None, cid=None, who=login, uid=vid, at="2026-10-20T10:00:00Z"):
+        return {"id": cid or 1000 + n, "created_at": at, "user": {"login": who, "id": uid},
+                "body": f"{first}\n\nevidence\n\nbus: verdict/{n} at {tip or T[n]}, confirmed from r; evidence: e\n"}
+
+    def world(**over):
+        w = {
+            # gh pr list answers newest first; the queue is oldest first.
+            "prs": [{"number": n, "headRefOid": h, "headRefName": b} for n, h, b in (
+                (20, hx("f"), "fix/r10-g20"), (19, hx("f"), "fix/r10-g19"), (18, hx("e"), "fix/r10-g18"), (17, hx("d"), "fix/r10-g17"),
+                (16, hx("c"), record_row.RECORD_BRANCH), (15, hx("b"), "fix/r10-budget"),
+                (14, hx("a"), "fix/r10-g14"), (13, hx("7"), "fix/r10-g13"), (12, hx("0"), "fix/r10-g12"),
+                (11, hx("f")[:-1] + "1", "fix/r10-g11"))],
+            "comments": {
+                11: [posted(11, f"Fix review: merge {hx('f')[:-1]}1")],                  # verdicted at the head
+                12: [posted(12, f"Fix review: merge {hx('2')}")],                        # carries to its head
+                13: [posted(13, f"Fix review: merge {hx('3')}")],                        # the carry refuses
+                14: [posted(14, f"Fix review: merge {hx('a')}", at="2026-10-19T09:00:00Z", cid=1),
+                     posted(14, f"Fix review: blocked {hx('a')} tests: red at the head")],  # newest is blocked
+                15: [posted(15, f"Fix review: merge {hx('b')}")],                        # a budget head
+                16: [posted(16, f"Fix review: merge {hx('c')}")],                        # the record PR
+                18: [posted(18, f"Fix review: merge {hx('e')}", tip=hx("7"))],           # tip not yet posted
+                19: [posted(19, f"Fix review: merge {hx('f')}", who="tvofi")],           # the App's id, not its login
+                20: [posted(20, f"Fix review: merge {hx('f')}", uid=1)],                 # its login, not its id
+            },
+            "files": {15: "tests/structure_budgets.json\n"},
+            "carry": {(hx("2"), hx("0")): "CARRY: yes " + hx("2") + " -> " + hx("0") + ": main merges only",
+                      (hx("3"), hx("7")): "app_approve: REFUSE: the branch's own diff differs"},
+        }
+        w["tips"] = {n: t for n, t in T.items()}
+        w.update(over)
+        return w
+
+    def fake(w):
+        calls = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            calls.append(argv)
+            a = " ".join(argv)
+            if argv[:3] == ["gh", "pr", "list"]:
+                return w.get("list", (0, json.dumps(w["prs"])))
+            if argv[:2] == ["git", "ls-remote"]:
+                return w.get("ls", (0, "".join(f"{t}\trefs/heads/verdict/{n}\n" for n, t in w["tips"].items())))
+            if argv[:2] == ["gh", "api"] and "/comments" in a:
+                n = int(a.split("/issues/")[1].split("/")[0])
+                return 0, json.dumps([w["comments"].get(n, [])])
+            if "--carry" in argv:
+                i = argv.index("--carry")
+                return 0, w["carry"].get((argv[i + 1], argv[i + 2]), "app_approve: REFUSE: unknown pair")
+            if argv[:2] == ["git", "diff"]:  # never asked: the builder reads no files
+                return 0, w["files"].get(15, "")
+            if "queue_pre_flight.py" in a:
+                return w.get("pre", (0, "#11 PASS\nPRE-FLIGHT: 1 entries: 1 PASS, 0 PARK, 0 FAIL"))
+            return 0, ""
+        return run, calls
+
+    def build(w):
+        run, calls = fake(w)
+        lines = []
+        t = Train("o/r", Path(tempfile.mkdtemp(dir=tmp.name)), None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
+        try:
+            return t.build_queue(), lines, calls, t
+        except Stop as s:
+            return s, lines, calls, t
+
+    want = [{"pr": 11, "verdict": hx("f")[:-1] + "1", "verdict_comment": "1011"},
+            {"pr": 12, "verdict": hx("2"), "verdict_comment": "1012"},
+            {"pr": 15, "verdict": hx("b"), "verdict_comment": "1015"}]
+    q, lines, calls, _ = build(world())
+    left = {int(ln.split()[1].strip("#:")): ln for ln in lines if ln.startswith("LEFT #")}
+    check("queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), "
+          "oldest first, each with its verdict comment's id", q == want)
+    check("queue: a head the carry refuses is left, with the carry's own line (#13)",
+          "does not carry" in left.get(13, "") and "branch's own diff differs" in left.get(13, ""))
+    check("queue: a newest verdict that is blocked is left, though an older one was merge (#14)",
+          "is blocked" in left.get(14, ""))
+    check("queue: the record pull request is left to --bot-prs (#16)", "--bot-prs merges it" in left.get(16, ""))
+    check("queue: no verdict/<pr> on the bus is left (#17)", "no confirmed verdict" in left.get(17, ""))
+    check("queue: a newest posted verdict that is not the bus tip waits (#18: confirmed, not posted)",
+          "not verdict/18's tip" in left.get(18, ""))
+    check("queue: a merge comment under another login is no verdict, though it carries the App's id (#19)",
+          "not posted" in left.get(19, ""))
+    check("queue: a merge comment under the App's login and another id is no verdict (#20)",
+          "not posted" in left.get(20, ""))
+    check("queue: the budget head is queued for the batch's serial route -- the builder reads no file",
+          not any(c[:2] == ["git", "diff"] for c in calls))
+    check("queue: the carry is asked only where the verdict is not the head (#12, #13)",
+          sorted(c[c.index("--carry") + 1][:1] for c in calls if "--carry" in c) == ["2", "3"])
+    for name, over in (("pull request list", {"list": (1, "HTTP 502")}),
+                       ("verdict bus listing", {"ls": (128, "fatal: unreachable")})):
+        got = build(world(**over))[0]
+        check(f"queue: an unreadable {name} stops the builder (no queue from a failed read)",
+              isinstance(got, Stop) and got.step == "queue")
+
+    def pitched(w, state, launch_rc=4242, pid_file=None, events=None):
+        run, calls = fake(w)
+        lines, launched = [], []
+
+        def launch(argv, st):
+            launched.append(argv)
+            return (launch_rc, "") if launch_rc else (0, "rc 2: train.sh: REFUSE: no seat venv")
+        t = Train("o/r", state, None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
+        if pid_file is not None:
+            (state / "train.pid").write_text(f"{pid_file}\n")
+        led = state / "ledger"
+        led.mkdir(exist_ok=True)
+        if events is not None:
+            (led / "events.tsv").write_text("".join("\t".join(r) + "\n" for r in events))
+        return pitch(t, None, launch=launch, ledger_log=str(led / "cloud-relay.log")), lines, calls, launched
+
+    st = Path(tempfile.mkdtemp(dir=tmp.name))
+    rc, lines, calls, launched = pitched(world(), st, pid_file=os.getpid())
+    check("pitch: a live train's pidfile holds the pitch -- no read, no queue, no train",
+          rc == 0 and lines[-1].startswith("PITCH HELD: a live train") and not calls and not launched)
+    dead = subprocess.Popen(["true"])
+    dead.wait()
+    rc, lines, calls, launched = pitched(world(), st, pid_file=dead.pid)
+    order = [("pre" if "queue_pre_flight.py" in " ".join(c) else "other") for c in calls]
+    check("pitch: a stale pidfile does not hold it; queue_pre_flight.py runs, then ONE train.sh with "
+          + " ".join(PITCH_FLAGS),
+          rc == 0 and lines[-1].startswith("PITCH STARTED: train.sh pid 4242 over 3 (#11 #12 #15)")
+          and order[-1] == "pre" and len(launched) == 1
+          and launched[0][1].endswith("tools/audit/seat/train.sh")
+          and all(f in launched[0] for f in ("--bot-prs", "--approval-carry", "--pre-flight"))
+          and "--mandate" not in launched[0]
+          and json.loads((st / PITCH_QUEUE).read_text()) == want
+          and launched[0][launched[0].index("--queue") + 1] == str(st / PITCH_QUEUE))
+    rc, lines, calls, launched = pitched(world(), st)
+    check("pitch: the same queue at the same heads starts no second train",
+          rc == 0 and lines[-1].startswith("PITCH HELD: this queue") and not launched)
+    moved = world(prs=[dict(p, headRefOid=hx("4")) if p["number"] == 11 else p for p in world()["prs"]],
+                  comments={**world()["comments"], 11: [posted(11, f"Fix review: merge {hx('4')}")]})
+    rc, lines, calls, launched = pitched(moved, st)
+    check("pitch: null control -- a new verdict at a moved head is a new queue, and it starts a train",
+          rc == 0 and lines[-1].startswith("PITCH STARTED") and len(launched) == 1)
+    st = Path(tempfile.mkdtemp(dir=tmp.name))
+    empty = world(prs=[p for p in world()["prs"] if p["number"] in (13, 14, 16, 17)])
+    rc, lines, calls, launched = pitched(empty, st)
+    check("pitch: an empty queue starts no train and runs no pre-flight",
+          rc == 0 and lines[-1].startswith("PITCH EMPTY") and not launched
+          and not any("queue_pre_flight.py" in " ".join(c) for c in calls)
+          and json.loads((st / PITCH_QUEUE).read_text()) == [])
+    sl = Path(tempfile.mkdtemp(dir=tmp.name))  # the ledger arms' own state dir
+    stop = ["open", "2026-10-24T01:00:00Z", "train-stop", "12", hx("2"), "TRAIN STOPPED #12 ci: red"]
+    rc, lines, calls, launched = pitched(world(), sl, events=[stop])
+    check("pitch: an open train-stop in the ledger holds the pitch -- no read, no train",
+          rc == 0 and lines[-1].startswith("PITCH HELD: the ledger holds an open train-stop (12 ")
+          and not calls and not launched)
+    rc, lines, calls, launched = pitched(world(), sl, events=[stop, ["close", "2026-10-24T02:00:00Z", "train-stop",
+                                                                   "12", hx("2"), "read"]])
+    check("pitch: null control -- a closed train-stop holds nothing (the pitch reaches its queue)",
+          not lines[-1].startswith("PITCH HELD: the ledger"))
+    rc, lines, calls, launched = pitched(world(), sl, events=[["open", "t", "train-stop", "12"]])
+    check("pitch: an unreadable ledger refuses (rc 2), never reads as no obligation",
+          rc == 2 and lines[-1].startswith("PITCH REFUSED ledger") and not launched)
+    rc, lines, calls, launched = pitched(world(pre=(1, "Traceback (most recent call last):")), st)
+    check("pitch: a pre-flight that prints no summary refuses, and no train starts",
+          rc == 2 and lines[-1].startswith("PITCH REFUSED pre-flight") and not launched)
+    rc, lines, calls, launched = pitched(world(), st, launch_rc=0)
+    check("pitch: a train.sh that exits before taking its pidfile is REFUSED with its reason, and recorded nowhere",
+          rc == 2 and "no seat venv" in lines[-1] and not (st / PITCH_LAST).exists())
+    rc, lines, _, _ = pitched(world(list=(1, "HTTP 502")), st)
+    check("pitch: an unreadable pull request list refuses (rc 2), no train", rc == 2 and "PITCH REFUSED queue" in lines[-1])
+    # The job's interface (the beat hosts it unchanged): --once is one pitch and its rc;
+    # without it, a pitch every --every seconds. `pitch` and the sleep are stubbed here.
+    g, ran, slept = globals(), [], []
+    real_pitch, real_sleep = g["pitch"], time.sleep
+
+    def nap(sec):
+        slept.append(sec)
+        if len(slept) >= 2:
+            raise KeyboardInterrupt
+    g["pitch"] = lambda t, mandate, **kw: ran.append(mandate) or 3
+    time.sleep = nap
+    try:
+        rc = main(["pitch", "--once", "--state-dir", tmp.name, "--mandate", "M"])
+        once = (rc, list(ran), list(slept))
+        ran.clear()
+        try:
+            main(["pitch", "--state-dir", tmp.name])
+        except KeyboardInterrupt:
+            pass
+    finally:
+        g["pitch"], time.sleep = real_pitch, real_sleep
+    check("pitch --once: one pitch, its rc, no sleep", once == (3, ["M"], []))
+    check(f"pitch without --once: a pitch every {PITCH_EVERY_SECONDS} s (the hourly pitch) until stopped",
+          ran == [None, None] and slept == [PITCH_EVERY_SECONDS, PITCH_EVERY_SECONDS])
+    # launch_train itself, over stub trains: one that takes the pidfile, one that refuses first.
+    st = Path(tempfile.mkdtemp(dir=tmp.name))
+    (st / "ok.sh").write_text('echo $$ > "$1/train.pid"; sleep 2\n')
+    (st / "no.sh").write_text('echo "train.sh: REFUSE: a live train holds it" >&2; exit 2\n')
+    pid, why = launch_train(["bash", str(st / "ok.sh"), str(st)], st)
+    alive = live_train(st) == pid
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+    check("launch: a detached train.sh that takes its pidfile returns its pid, alive past the call", pid > 0 and alive)
+    pid, why = launch_train(["bash", str(st / "no.sh")], st)
+    check("launch: a train.sh refusing first returns no pid and its own last line",
+          pid == 0 and why == "rc 2: train.sh: REFUSE: a live train holds it")
+    tmp.cleanup()
 
 
 def _read_retry_self_test(check) -> None:
@@ -4122,6 +4550,19 @@ def _parser() -> argparse.ArgumentParser:
                         "every serial entry up front so their pull_request runs fire concurrently; each "
                         "lands, in queue order, when its own required contexts conclude. "
                         "Default: recarry one, wait, merge, next.")
+    q = sub.add_parser("queue", parents=[common],
+                       help="write the queue: every open non-record pull request whose newest posted verdict, "
+                            "verdict/<pr>'s tip, is merge at its head or carries to it, oldest first")
+    q.add_argument("out", help="the queue file to write ('-': stdout)")
+    pt = sub.add_parser("pitch", parents=[common],
+                        help="unless a live train holds the state dir: build the queue, run queue_pre_flight.py, "
+                             "and start one detached train.sh " + " ".join(PITCH_FLAGS))
+    pt.add_argument("--mandate", help="passed to train.sh; omit to never approve a code-owned head")
+    pt.add_argument("--once", action="store_true", help="one pitch, then exit (the tick loop's and the beat's job)")
+    pt.add_argument("--every", type=int, default=PITCH_EVERY_SECONDS,
+                    help=f"without --once, pitch every this many seconds (default {PITCH_EVERY_SECONDS}: "
+                         "the hourly pitch); run detached under daemonize.py, never as an agent loop")
+    pt.add_argument("--state-dir", default=train_opts.get_default("state_dir"))
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
     # K15: the classifier for a caller outside the train -- merge_pr.sh's
@@ -4168,6 +4609,23 @@ def main(argv: list[str]) -> int:
             return 1 if a.cmd == "unstale" else 2
         print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
         return {"green": 0, "red": 1, "wait": 3}[state]
+    if a.cmd in ("queue", "pitch"):
+        to_stdout = a.cmd == "queue" and a.out == "-"  # the queue alone on stdout, its lines on stderr
+        t = Train(a.repo, Path(getattr(a, "state_dir", ".")), None, "", (), a.min_runs,
+                  log=(lambda m: print(m, file=sys.stderr)) if to_stdout else print)
+        while a.cmd == "pitch":
+            rc = pitch(t, a.mandate)
+            if a.once:
+                return rc
+            time.sleep(max(a.every, 60))
+        try:
+            queue = t.build_queue()
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 2
+        text = json.dumps(queue, indent=2) + "\n"
+        sys.stdout.write(text) if to_stdout else Path(a.out).write_text(text)
+        return 0
     queue = json.loads(Path(a.queue).read_text())
     ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
