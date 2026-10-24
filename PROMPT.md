@@ -1,0 +1,16 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-flow-autotrain-r2, at head b3dceb5cafc873698ab7e0967bfd624ff749b1ec. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch b3dceb5cafc873698ab7e0967bfd624ff749b1ec for the base you were given.
+Output: push the code to refs/heads/handoff/r10-flow-autotrain-r2, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-flow-autotrain-r2 <body.md>`, which pushes refs/heads/handoff-body/r10-flow-autotrain-r2; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+This is a CONTINUATION of R10-FLOW-AUTOTRAIN (group R10-FLOW-AUTOTRAIN, no pull request yet). Continue from handoff/r10-flow-autotrain b3dceb5cafc873698ab7e0967bfd624ff749b1ec (body at handoff-body/r10-flow-autotrain 2125adcf9b3d243156c482bbfb3890cadadb90cf). Cut your worktree from that head and merge origin/main. Follow the fixer contract (dev/governance/roles/fixer.md). Read the roster's R10-FLOW-AUTOTRAIN brief and carries on main (dev/programme/rosters/wave-r10-groups.json), including the R10-TRAIN-UPGRADE carry: R10-TRAIN-UPGRADE (#2772, in review) adds `train.sh add` and `Train.admit_add`; AUTOTRAIN's event-driven trigger is built on it, so check the current state of #2772 on origin before you design against it.
+
+The opener was refused by prepr's agreement lane: `python3 -I tools/policy/agreement_py.py --run` reports RESULT divergent=0 unregistered=2 dead=0. The two unregistered grammars are "Fix review: merge ([0-9a-f]{40})" and "Fix review: blocked ([0-9a-f]{40}) [a-z-]+: .+", written in BOTH tools/audit/seat/merge_train.py and tools/audit/seat/orchestrator_tick.py.
+
+Fix it soundly: one shared reader that both import, preferably the bus.sh grammar owner (find which module owns the verdict grammar; do not invent a third). Registering the duplicate is only for when sharing is impossible, and the body must say why. The result must leave agreement_py --run at divergent=0 unregistered=0 dead=0, pass tools/pr/prepr.sh (run it with BASH_ENV unset), and a mutant that re-inlines the regex in either file must be KILLED by a named test. Take a null control for every quantified claim.
+
+Push refs only: handoff/r10-flow-autotrain-r2 plus handoff-body/r10-flow-autotrain-r2 (this dispatch ref is fixer-r10-flow-autotrain-r2, and the topic is r10-flow-autotrain-r2). Answer `## Red checks` for every red check.
+
+No host or home paths in anything you push (cite repo-relative paths only). Do not end the turn while a background job runs.
