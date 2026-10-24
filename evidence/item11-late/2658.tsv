@@ -1,0 +1,1 @@
+2026-10-23T10:15:55Z	Fix review: blocked f8c05fbf7e1ddaf4d15652b88cd40b77372df0f6 class-open: tools/policy/agreement.mjs SHARED_GRAMMARS is base-pinned by wave-script and lacks the three grammars P2b registers, so wave-script stays red on P2b with this PR as its base (unregistered=3)

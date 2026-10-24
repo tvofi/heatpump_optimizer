@@ -1,0 +1,2 @@
+2026-10-22T10:35:58Z	Fix review: blocked 83d21ff832455462268f1d9ce9d75c17a1209d07 claim-refuted: the 1,000/hr bucket, the 83 % and the 3.2-4.6x are contradicted by Governance run 39745228063, where the record job read its whole window cleanly after two earlier pushes in the same minutes
+2026-10-22T12:14:07Z	Fix review: merge 4237ca684e89ff2be14054f41e790b4b671ec106

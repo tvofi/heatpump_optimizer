@@ -1,6 +1,0 @@
-== mb ac5788f2617755631f14e4d1a31efab0e47aa820
-TOTAL: 0 error(s) across 50 policy file(s)
-tools/audit/briefs/fixer.md                      312  315     5169  5216 
-tools/audit/briefs/fix-review.md                 139  140     2420  2451 
-.claude/rules/finding-propagation.md             100  101     1335  1336 
-209 passed, 0 failed

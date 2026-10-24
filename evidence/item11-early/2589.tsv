@@ -1,0 +1,2 @@
+2026-10-22T08:22:22Z	Fix review: blocked 53f24912dee67629b3bc383f91031627c995d520 body-stale: the code clears round 3's block (F13 now fails a behavioural row, sweep 128 mutants 0 survivors, carry on the roster and on main) but the body still describes 37cffb09 and never mentions the status-line change, its figures (43 rows, 119 mutants, 8 rules, 10 equivalents) are not the head's, and it names roster SHA 306a96d5f where the carry is absent
+2026-10-22T08:50:41Z	Fix review: merge 53f24912dee67629b3bc383f91031627c995d520
