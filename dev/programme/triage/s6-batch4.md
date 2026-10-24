@@ -1,6 +1,6 @@
 # Proposal triage, session s6, batch 4 (P54)
 
-Proposals S6-U (P54) and S6-V1 to V6 (P55 to P59) of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
+Proposals S6-U (P54) and S6-V1 to V7 (P55 to P59) of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
 ~12:58Z), ruled as P54 from `dev/governance/roles/proposal-triage.md`. Numbering
 continues after `s6-batch3.md` (P53). GitHub calls: 0.
 
@@ -38,10 +38,10 @@ in time or tokens, so the bar ("clearly") is not met. What would change the
 answer: a missed owner item traced to this line's constant noise, or the
 schema group landing a structured gate.
 
-## P55: pool claim hygiene in cloud_dispatch (S6-V1 stale claims, S6-V2 hidden push errors)
-Verdict: ACCEPT -> R10-FLY-CLOUD-SETUP-TOOLCHAIN (cloud_dispatch); carry: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch
+## P55: pool claim hygiene in cloud_dispatch (S6-V1 stale claims, S6-V2 hidden push errors, S6-V7 fire without a pool line)
+Verdict: ACCEPT -> R10-FLY-CLOUD-SETUP-TOOLCHAIN (cloud_dispatch); carry: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch; the fixer fire path refuses to fire without a pool line and prints "pool read back OK"
 Source: s6 proposals.md S6-V1, S6-V2 (2026-10-24 ~13:25Z).
-Instances: V1 3 (#2692, #2697, sav-comfort; each a POOL EMPTY run); V2 1, 2 lost runs (`2>/dev/null` on the POOL push). Source: orchestrator's account in proposals.md; not re-counted from logs.
+Instances: V1 3 (#2692, #2697, sav-comfort; each a POOL EMPTY run); V2 1, 2 lost runs (`2>/dev/null` on the POOL push); V7 1, a critical-path fixer fired with no pool line, caught by hand (marginal cost ~5 lines, reuses the V2 read-back). Source: orchestrator's account in proposals.md; not re-counted from logs.
 Cost: S, about 15 lines in one existing script, no new file, no API calls.
 Binding: the narrow form wins: an N-minute reclaim in the routine prompt is a timing heuristic that can race a live fixer, and a new pool_push.sh is a file for one call site. Null control: a claim whose handoff ref moved after the claim is left alone.
 
