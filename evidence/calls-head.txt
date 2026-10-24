@@ -1,4 +1,0 @@
-
-=== Stress and economics ===
-RESULT winter/1z/space/pin-off calls 84263 evals 42 simulate 131328 objective 60.1042784820211 {"optimizer.py": 18959, "thermal_model.py": 64169}
-RESULT summer/2z/dhw/pin-off calls 221027 evals 24 simulate 51832 objective 10599.640818573243 {"optimizer.py": 14850, "thermal_model.py": 194582}

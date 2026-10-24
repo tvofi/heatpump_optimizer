@@ -1,2 +1,0 @@
-gap: row {'month': '2026-10', 'baseline_sek': 115.2, 'actual_sek': 67.2, 'savings_sek': 48.0, 'savings_pct': 41.666666666666664, 'estimated': False, 'meter_calibration': 1.0}
-gap: volume +0.00  timing +48.00  metered 96.0 kWh
