@@ -7,6 +7,6 @@ dispatch/fixer-r10-fly-cipredict-layout
 dispatch/fixer-r10-fly-cloud-setup-toolchain
 dispatch/fixer-r10-structure-alias
 dispatch/fixer-r10-mutation-anchor
-dispatch/fixer-r10-codeql-dependabot
 dispatch/fixer-r10-fly-envmatrix-noremote
 dispatch/fixer-r10-mutant-skip
+dispatch/fixer-r10-codeql-dependabot
