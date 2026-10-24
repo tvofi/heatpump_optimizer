@@ -1277,19 +1277,74 @@ class Train:
             if carried is None:
                 raise Stop("approve", f"code-owned and {why}")
             return carried
-        paths = ", ".join(f"`{p}`" for p in owned.group(1).split())
-        body = (f"Agent approval for code-owned {paths}, given by {self.role} under {self.mandate}, at head {h}.\n\n"
+        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
+        return "mandate"
+
+    def _post_agent_approval(self, pr: int, h: str, item: dict, what: str, paths: "list[str]",
+                             under: str, name: str) -> None:
+        """THE one writer of an agent approval the train posts under a mandate
+        (the code-owned approval of step 6 and the policy approval of step 5,
+        R10-TRAIN-UPGRADE): its body names the paths, the role, the mandate it
+        is given under, the verdict and the head; the head is re-checked right
+        before the post, and a refused post is a Stop."""
+        listed = ", ".join(f"`{p}`" for p in paths)
+        body = (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
                 f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
                 f"by `app_approve.sh --carry` (automatic main merges only). CI at {h} is green"
                 + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
-        bf = self.state / f"approve{pr}.md"
+        bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
             raise Stop("approve", "head moved before the mandate approval")
         code, o = self.run(["gh", "pr", "review", str(pr), "--repo", self.repo, "--approve", "--body-file", str(bf)])
         if code:
             raise Stop("approve", "the mandate review was refused: " + o[-200:])
-        return "mandate"
+
+    def mandate_id(self) -> "int | None":
+        """The mandate comment --mandate names: a bare id, or a label the gate's
+        own MANDATE_CITE reads exactly one id from; None for a label naming
+        none (or two), which grants no policy approval."""
+        label = (self.mandate or "").strip()
+        if re.fullmatch(r"\d{6,}", label):
+            return int(label)
+        cited = {int(a or b) for a, b in _mandate_gate().MANDATE_CITE.findall(label)}
+        return cited.pop() if len(cited) == 1 else None
+
+    def policy_approve(self, pr: int, h: str, item: dict, files: list[str]) -> None:
+        """Step 5's approval, posted (R10-TRAIN-UPGRADE, triage P84): a head
+        changing policy paths lands only on the owner's APPROVED review at
+        exactly that head citing a mandate in force (`policy_gate`), and before
+        this nothing in the train posted one -- so a policy head left the train
+        for a hand-run merge loop. Under a --mandate naming one comment id that
+        `mandate_state` reads in force NOW for policy merging, with no owner
+        approval at <h> yet, the train posts one as the `gh` account, citing
+        `mandate comment <id>` (MANDATE_CITE's form). Every other case posts
+        nothing and `policy_gate` -- unchanged, the only judge, re-read at the
+        merge -- stops it exactly as before."""
+        cid = self.mandate_id()
+        pol = self.policy_paths(files) if cid else []
+        if not pol:
+            return
+        g = _mandate_gate()
+        if any(f.endswith(g.SUFFIX) for f in files):
+            # A budget file beside the policy: whether it raises is the owner's
+            # (0013, `raise_hold`), and this post must never stand in for that.
+            self.log(f"#{pr} no policy approval posted: the head changes a budget file, which stays the owner's")
+            return
+        if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
+               for r in self._reviews(pr, "the policy approval")):
+            return  # the owner's approval is at the head already: never re-posted
+        now = datetime.datetime.now(datetime.timezone.utc)
+        try:
+            live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                        "merge", g.MANDATE_COVERS_POLICY, "policy merging")
+        except Exception as e:  # fail closed: an unread mandate posts nothing, and policy_gate stops it
+            live, why = False, f"mandate {cid} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
+        if not live:
+            self.log(f"#{pr} no policy approval posted: {why}")
+            return
+        self._post_agent_approval(pr, h, item, "policy", pol, f"mandate comment {cid}", "policy")
+        self.log(f"#{pr} policy approval posted at {h[:8]} under {why}")
 
     def recarry(self, item: dict) -> str:
         """Step 1: the pull request's head, with `origin/main` merged in by
@@ -1465,6 +1520,7 @@ class Train:
         if self.head(pr) != h:
             raise Stop("approve", "head moved")
         if self.real:
+            self.policy_approve(pr, h, item, files)
             under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
             if under:
                 self.log(f"#{pr} policy head lands under {under}")
@@ -1695,6 +1751,7 @@ class Train:
                 raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff. "
                            "Remedy: add the row on-branch (moves the head: fresh verdict "
                            "owed) or a separate row PR (2158-pattern)", cls=ROW_MISSING)
+            self.policy_approve(pr, h, item, files)
             under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
             if under:
                 self.log(f"#{pr} policy head admitted under {under}")
@@ -2196,7 +2253,7 @@ def _self_test() -> int:
                 # returns it -- unless the read-back is meant to fail.
                 if "--approve" in argv and not world.get("drop_posted"):
                     world.setdefault("reviews", []).append(
-                        {"user": {"login": "orchestrator", "id": 1, "type": "User"},
+                        {"user": world.get("post_user", {"login": "orchestrator", "id": 1, "type": "User"}),
                          "state": "APPROVED", "commit_id": world.get("_last_head", H0),
                          "body": Path(argv[argv.index("--body-file") + 1]).read_text(), "id": 987654321})
                 return 0, "reviewed"
@@ -2556,6 +2613,45 @@ def _self_test() -> int:
     check("an approval not at this exact head is refused as that, when the policy blobs did not move",
           rc == 1 and "policy:" in lines[-1] and "not this head" in lines[-1]
           and not merged(calls) and no_app())
+    # STEP 5'S APPROVAL, POSTED (R10-TRAIN-UPGRADE, triage P84): under a --mandate
+    # naming one comment id in force for policy merging, a policy head with no
+    # owner approval at it gets one, citing that id; policy_gate, unchanged,
+    # then reads it. `post_user` is the account `gh` posts as: the owner's.
+    OWNER = {"login": _g.OWNER_LOGIN, "id": _g.OWNER_ID, "type": _g.OWNER_TYPE}
+    posts = lambda calls: sum(c[:3] == ["gh", "pr", "review"] for c in calls)  # noqa: E731
+    w = {**POL, "reviews": [], "mandate": mandate(NOW), "post_user": OWNER}
+    rc, lines, calls = go(w, mandate=str(MID))
+    pb = next((r["body"] for r in w["reviews"]), "")
+    check("policy post: a policy head with no owner approval at it, under --mandate <id> in force for policy "
+          "merging, gets ONE approval citing `mandate comment <id>`, and policy_gate lands it",
+          rc == 0 and merged(calls) and posts(calls) == 1 and f"under mandate comment {MID}," in pb
+          and "`dev/governance/roles/fixer.md`" in pb and f"at head {H0}" in pb
+          and {int(a or b) for a, b in _g.MANDATE_CITE.findall(pb)} == {MID} and bool(_g.AGENT_DECLARED.search(pb))
+          and any(ln.startswith("#7 policy approval posted at") for ln in lines))
+    for name, over, mand in (
+            ("no --mandate", {}, None),
+            ("a --mandate label naming no comment id", {}, "the orchestrator's mandate"),
+            ("a mandate out of its window", {"mandate": mandate(NOW, until_min=-1)}, str(MID)),
+            ("a mandate scoped code-owned, which does not cover policy merging",
+             {"mandate": mandate(NOW, scope="code-owned")}, str(MID)),
+            ("a budget file beside the policy (a raise stays the owner's)",
+             {"files": POL["files"] + ["tests/structure_budgets.json"]}, str(MID))):
+        rc, lines, calls = go({**POL, "reviews": [], "mandate": mandate(NOW), "post_user": OWNER, **over},
+                              mandate=mand)
+        check(f"policy post null: {name} posts nothing, and the policy stop is today's",
+              rc == 1 and posts(calls) == 0 and "policy:" in lines[-1] and "no decisive review" in lines[-1]
+              and not merged(calls))
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW), "post_user": OWNER},
+                          mandate=str(MID))
+    check("policy post: an owner approval already at the head is not re-posted, and it lands",
+          rc == 0 and merged(calls) and posts(calls) == 0)
+    rc, lines, calls = go({"reviews": [], "mandate": mandate(NOW), "post_user": OWNER}, mandate=str(MID))
+    check("policy post: a head changing no policy path posts nothing (the app approval path, as today)",
+          rc == 0 and merged(calls) and posts(calls) == 0)
+    check("mandate_id: a bare id and a label citing exactly one are read; two, or none, are no id",
+          [Train("o/r", Path("."), m, "", (), 1).mandate_id() for m in
+           (str(MID), f"mandate {MID} (tvofi, #201)", f"mandate {MID} and mandate {MID + 1}", "label", None)]
+          == [MID, MID, None, None, None])
     rc, lines, calls = go({"heads": [H0, H1]})
     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]
           and not approved(calls) and not merged(calls))
