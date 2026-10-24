@@ -68605,12 +68605,18 @@ from heatpump_optimizer import setpoint_check as _cn_sc  # noqa: E402
 _cn_hass = FakeHass()
 _cn = _cn_sc.ConfigNotices()
 _cn.report(_cn_hass, "grid_fee_sign", -1.0, {"rate": "-1.00"})
+_cn_first = list(getattr(_cn_hass, "issues", []))
 _cn.report(_cn_hass, "grid_fee_sign", -1.0, {"rate": "-1.00"})
-_cn_ids = [i[1] for i in getattr(_cn_hass, "issues", [])]
+# The stub replaces a re-created issue in place, so a count cannot see a
+# repeated create; the record's identity can (a re-create appends a new tuple).
 R.check(
-    "ConfigNotices: the same offending value is raised once, persistent WARNING",
-    _cn_ids == ["grid_fee_sign"],
-    f"{_cn_ids}",
+    "ConfigNotices: the same offending value is created once, persistent WARNING",
+    len(_cn_first) == 1
+    and getattr(_cn_hass, "issues", []) == _cn_first
+    and _cn_hass.issues[0] is _cn_first[0]
+    and _cn_first[0][2].get("is_persistent") is True
+    and _cn_first[0][2].get("severity") == "warning",
+    f"{getattr(_cn_hass, 'issues', None)}",
 )
 _cn_fresh = _cn_sc.ConfigNotices()
 _cn_fresh.report(_cn_hass, "grid_fee_sign", None)
@@ -68618,6 +68624,30 @@ R.check(
     "ConfigNotices: a fresh instance (entry reload) still clears the notice",
     [i[1] for i in getattr(_cn_hass, "issues", [])] == [],
     f"{getattr(_cn_hass, 'issues', None)}",
+)
+
+# The two fee audits' thresholds are strict: a fee exactly at the plausibility
+# bound is plausible, and a zero fee (no fee configured, or a free hour) is
+# not negative -- `>=`/`<=` there would warn every fee-less installation.
+from heatpump_optimizer.grid_fee import fee_bound as _cn_fee_bound  # noqa: E402
+
+_cn_edge = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(data={**_LC_DATA, "grid_fee_mode": "rules", "grid_fee_rules": "= 0"}),
+)
+_cn_edge._fee_series(_gf_steps)
+_cn_zero = [i[1] for i in getattr(_cn_edge.hass, "issues", []) if i[1].startswith("grid_fee")]
+_cn_bound = _cn_fee_bound(_cn_edge.currency)
+with_config(_cn_edge, {"grid_fee_rules": f"= {_cn_bound!r}"})
+_cn_edge._fee_series(_gf_steps)
+_cn_at = [i[1] for i in getattr(_cn_edge.hass, "issues", []) if i[1].startswith("grid_fee")]
+with_config(_cn_edge, {"grid_fee_rules": f"= {_cn_bound * 1.01!r}"})
+_cn_edge._fee_series(_gf_steps)
+_cn_above = [i[1] for i in getattr(_cn_edge.hass, "issues", []) if i[1].startswith("grid_fee")]
+R.check(
+    "fee audits: a zero fee and a fee exactly at the bound raise nothing; 1% above raises the magnitude notice",
+    _cn_zero == [] and _cn_at == [] and _cn_above == ["grid_fee_magnitude"],
+    f"zero={_cn_zero} at({_cn_bound})={_cn_at} above={_cn_above}",
 )
 
 
