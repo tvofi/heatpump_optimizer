@@ -4,7 +4,7 @@ P42 (relay vs update_pr race) is DEFER to R10-FLOW-BODY-ONLY; P43 (queue_pre_fli
 
 ## Head
 
-`8844c2e9fc105de6988302d1983e664461bd49e7`, on origin/main `50af6174f`; roster read at origin/handoff/audit-r10-roster `4c54758d7`.
+`569da4eed060ba229f548719237ba2c4545dec58`, on origin/main `50af6174f`; roster read at origin/handoff/audit-r10-roster `4c54758d7`.
 
 ## Mutation proof
 
