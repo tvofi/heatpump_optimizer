@@ -1,2 +1,0 @@
-  pair merge-subject-pr: 4 readers, 1056 items, 0 divergent
-RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=3.3

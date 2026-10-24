@@ -1,13 +1,13 @@
-M1 title arm end-anchor | SELF-TEST 35 of 36 probes held | FAIL a subject GitHub's title template never writes is refused
-M2 number \d+ | SELF-TEST 35 of 36 probes held | FAIL a subject GitHub's title template never writes is refused
-M3 extent ends every line | SELF-TEST 32 of 36 probes held | FAIL a --subject on a shell continuation line is refused, at the call line; FAIL a --subject in an argv list split over lines is refused; FAIL an argv list broken between "pr" and "merge" is still a merge call; FAIL a merge_pull_request call whose commit_title is on a later line is refused
-M4 backslash ignored | SELF-TEST 35 of 36 probes held | FAIL a --subject on a shell continuation line is refused, at the call line
-M5 depth ignored at line end | SELF-TEST 35 of 36 probes held | FAIL a merge_pull_request call whose commit_title is on a later line is refused
-M6 blank-line end deleted | SELF-TEST 35 of 36 probes held | FAIL null control: a split merge call with no subject passes, and a flag on the next command is not the call's
-M7 enclosing close not end | SELF-TEST 35 of 36 probes held | FAIL null control: a sibling argv in the call's own table is not the call's
-M8 start always line start | SELF-TEST 35 of 36 probes held | FAIL null control: a sibling argv in the call's own table is not the call's
-M9 MERGE_CALL literal spaces | SELF-TEST 35 of 36 probes held | FAIL an argv list broken between "pr" and "merge" is still a merge call
-M10 quotes not read | SELF-TEST 35 of 36 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
-M11 escapes not read | SELF-TEST 35 of 36 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
-M12 blank-line state reset removed | SELF-TEST 36 of 36 probes held | 
-M13 pop on close before at removed | SELF-TEST 36 of 36 probes held | 
+M1 title arm end-anchor | SELF-TEST 38 of 39 probes held | FAIL a subject GitHub's title template never writes is refused
+M2 number \d+ | SELF-TEST 38 of 39 probes held | FAIL a subject GitHub's title template never writes is refused
+M3 extent ends every line | SELF-TEST 35 of 39 probes held | FAIL a --subject on a shell continuation line is refused, at the call line; FAIL a --subject in an argv list split over lines is refused; FAIL an argv list broken between "pr" and "merge" is still a merge call; FAIL a merge_pull_request call whose commit_title is on a later line is refused
+M4 backslash ignored | SELF-TEST 38 of 39 probes held | FAIL a --subject on a shell continuation line is refused, at the call line
+M5 depth ignored at line end | SELF-TEST 38 of 39 probes held | FAIL a merge_pull_request call whose commit_title is on a later line is refused
+M6 blank-line end deleted | SELF-TEST 38 of 39 probes held | FAIL null control: a split merge call with no subject passes, and a flag on the next command is not the call's
+M7 enclosing close not end | SELF-TEST 37 of 39 probes held | FAIL null control: a sibling argv in the call's own table is not the call's; FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's
+M8 start always line start | SELF-TEST 37 of 39 probes held | FAIL null control: a sibling argv in the call's own table is not the call's; FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's
+M9 MERGE_CALL literal spaces | SELF-TEST 38 of 39 probes held | FAIL an argv list broken between "pr" and "merge" is still a merge call
+M10 quotes not read | SELF-TEST 38 of 39 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
+M11 escapes not read | SELF-TEST 38 of 39 probes held | FAIL null control: a bracket in a quote, past an escaped quote, opens no command
+M12 blank-line state reset removed | SELF-TEST 38 of 39 probes held | FAIL null control: a quote opened in a comment ends with its line, so the next statement's flag is not the call's
+M13 pop on close before at removed | SELF-TEST 38 of 39 probes held | FAIL a bracket closed before the call on its line opens nothing: a --subject after "(cd repo) &&" is refused

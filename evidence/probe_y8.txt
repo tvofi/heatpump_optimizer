@@ -1,0 +1,6 @@
+head {"calls":[],"bad":[]} "gh pr \\\n  merge 9 --merge --subject \"Merge pull request #9 (x)\"\n"
+head {"calls":["f"],"bad":["f:1"]} "gh  pr merge 9 --subject s\n"
+head {"calls":["f"],"bad":["f:1"]} "gh pr merge 9 --subject s\n"
+Y8 {"calls":[],"bad":[]} "gh pr \\\n  merge 9 --merge --subject \"Merge pull request #9 (x)\"\n"
+Y8 {"calls":[],"bad":[]} "gh  pr merge 9 --subject s\n"
+Y8 {"calls":["f"],"bad":["f:1"]} "gh pr merge 9 --subject s\n"
