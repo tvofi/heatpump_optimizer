@@ -9484,6 +9484,44 @@
     "branch": "handoff/r10-fly-pool-instrument"
    },
    "brief": "GROUP R10-FLY-POOL-INSTRUMENT (new, size S, triage: dev/programme/triage/s6-batch4.md#P55 and #P60). Owns the cloud seat pool as tracked code. New tools/audit/seat/pool.py (+ a self-test, an INSTRUMENTS.md entry; cloud_dispatch.py gains only a call into it): `append` writes a POOL line on dispatch/pool-<session> and READS THE REF BACK, refusing on mismatch and surfacing git's stderr (V2: the push error was discarded, 2 lost runs); `append` first deletes any claim/<session>/<topic> whose handoff ref has not moved since the claim (V1: stale claim -> POOL EMPTY, 3 runs); `fire` refuses when the topic's pool line is absent at the ref and otherwise prints \"pool read back OK\" (V7: a critical-path fixer was about to fire with no line). The routine prompt is unchanged. Controls: stale claim cleared (null: a claim whose handoff moved after it stays); forced push failure exits nonzero with the git error; fire with the line absent fires nothing (null: present fires once); one mutant per arm. Out of scope: prune_refs rule for claim/* (R10-FLY-PRUNE-REFS). Files: tools/audit/seat/pool.py, tools/audit/seat/cloud_dispatch.py, tools/audit/seat/INSTRUMENTS.md. Measure first: cloud_dispatch's current pool-line handling at main, if any."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "group": "R10-FLY-RECORD-BEAT",
+   "after": [],
+   "files": [
+    "tools/audit/seat/record_beat.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-record-beat"
+   },
+   "brief": "GROUP R10-FLY-RECORD-BEAT (new, size S, triage: dev/programme/triage/s6-batch4.md#P61). A new script, record_beat (taking <PR...>; the file does not exist yet): for each merged PR it resolves the FULL merge sha from git (never typed), posts the #201 record comment through gh_comment.py and reads it back, so the tick's search by full merge sha finds it (V8: 10 merges read unrecorded because comments cited short shas). The merge seat calls it after each merge. Controls: the comment carries the 40-char sha (null: a short-sha comment is what the tick misses; assert the tick's finder matches the new one and not the old); read-back mismatch exits nonzero; one mutant. NOT in this group: the HANDOVER updated-for refresh (deferred; measure first whether any check reads the field). Files: the new script under tools/audit/seat/ and tools/audit/seat/INSTRUMENTS.md."
   }
  ]
 }
