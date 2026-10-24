@@ -821,6 +821,16 @@ sweep's standing-seat liveness step keep them alive.
   `refused` and every stage outside `DERIVABLE_STAGES`) is never rewritten,
   and no pull request is no evidence. `--self-test` drives it offline over a
   recorded `--pr-state`; `r10_roster_sync_mutants.py` plants its predicates.
+- `roster_queue.py` — the standing roster seat's queue runner: `run FIRST LAST`
+  applies each queue line (`<op> <group> [arg] [--flag value]`, so `drop-carry G --match TEXT` works) through `roster_edit.py --push`,
+  linting from a clone it owns and detaches at `origin/main` before every
+  attempt (up to four, when main moved or a clean-lint push lost a race), and
+  never moving the orchestrator's checkout. `readback SHA GROUP FILE` prints
+  whether the roster at SHA holds the file's text as exactly one carry entry
+  (exit 1 when none). When: the roster seat works a queue file; run it alone
+  to replay a range. Refusal: a refused op is reported as `refused rc=N`, never
+  forced; `append-carry @file` reports FAILED when the read-back cannot find the
+  text. `--self-test` drives it offline over a stub editor and a scratch repo.
 - `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
