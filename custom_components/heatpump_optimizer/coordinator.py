@@ -3232,20 +3232,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
         self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
-        # The fee magnitude the standing "grid_fee_magnitude" repair issue
-        # was raised for; None = no issue. Re-raising every cycle would
-        # refresh the issue's timestamp and bury when the bad value first
-        # appeared — the same reason solve_failures raises exactly-at.
-        self._grid_fee_issue_value: float | None = None
-        # The sign notice's counterpart (audit D4-05, #169), same contract.
-        self._grid_fee_sign_issue_value: float | None = None
-        # Whether the standing "lower_floor_modelled" repair issue is up.
-        # Raised once, not per cycle, for the same reason the fee issue is:
-        # re-raising refreshes the timestamp and buries when it started.
-        self._lower_floor_issue_raised = False
-        # The contradiction the standing "comfort_band_contradiction" issue
-        # was raised for; None = no issue.
-        self._band_issue_problem: str | None = None
+        # The standing configuration warnings (fee magnitude and sign, the
+        # modelled lower zone, a contradictory band): raised once per
+        # offending value, cleared unconditionally (setpoint_check.ConfigNotices).
+        self._config_notices = setpoint_check.ConfigNotices()
         self._ledger = MonthlyLedger()
         self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
@@ -7301,55 +7291,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
         currency = self.currency
-        if worst > fee_bound(currency):
-            if self._grid_fee_issue_value != worst:
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "grid_fee_magnitude",
-                    is_fixable=False,
-                    # Persistent: the configuration survives a restart
-                    # unchanged, so the notice must too.
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="grid_fee_magnitude",
-                    translation_placeholders={
-                        "rate": f"{worst:.2f}",
-                        "source": source,
-                        "currency": currency,
-                    },
-                )
-                self._grid_fee_issue_value = worst
-        else:
-            # Unconditional for the reason spelled out in
-            # `_audit_lower_floor_sensor`: correcting the fee writes options,
-            # which reloads the entry, which resets this flag to None -- so
-            # gating the delete on it left a corrected installation showing a
-            # persistent warning about a value it no longer has.
-            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
-            self._grid_fee_issue_value = None
-
+        notices = self._config_notices
+        notices.report(self.hass, "grid_fee_magnitude", worst if worst > fee_bound(currency) else None, {
+            "rate": f"{worst:.2f}", "source": source, "currency": currency})
         lowest, sign_source = grid_fee_min_component(schedule, entity_value)
-        if lowest < 0.0:
-            if self._grid_fee_sign_issue_value != lowest:
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "grid_fee_sign",
-                    is_fixable=False,
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="grid_fee_sign",
-                    translation_placeholders={
-                        "rate": f"{lowest:.2f}",
-                        "source": sign_source,
-                        "currency": currency,
-                    },
-                )
-                self._grid_fee_sign_issue_value = lowest
-        else:
-            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_sign")
-            self._grid_fee_sign_issue_value = None
+        notices.report(self.hass, "grid_fee_sign", lowest if lowest < 0.0 else None, {
+            "rate": f"{lowest:.2f}", "source": sign_source, "currency": currency})
 
     def _audit_lower_floor_sensor(self) -> None:
         """Tell the user when the lower zone's temperature is not measured.
@@ -7370,33 +7317,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._thermal_params.two_zone_enabled
             and not ctx._config.lower_floor_temp_entity
         )
-        if wanted:
-            if not self._lower_floor_issue_raised:
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "lower_floor_modelled",
-                    is_fixable=False,
-                    # Persistent: the missing sensor survives a restart, so
-                    # the notice must too.
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="lower_floor_modelled",
-                )
-                self._lower_floor_issue_raised = True
-        else:
-            # UNCONDITIONAL, and that is the whole point. Assigning the sensor
-            # writes options, which reloads the entry, which builds a NEW
-            # coordinator whose flag starts at False -- so a delete gated on
-            # the flag can never run, and an `is_persistent` issue that says
-            # "this notice clears when you do" would stay up forever. The
-            # in-memory flag can only ever suppress a repeated CREATE; it must
-            # never guard the clear. (`freq_watchdog` deletes unconditionally
-            # for exactly this reason; `_audit_grid_fee` did not, and had the
-            # same defect until v5.1.7.) Deleting an issue that is not there
-            # is a no-op.
-            ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
-            self._lower_floor_issue_raised = False
+        self._config_notices.report(self.hass, "lower_floor_modelled", True if wanted else None)
     def _audit_comfort_band(self) -> None:
         """Say so when the STORED comfort band contradicts itself.
 
@@ -7414,29 +7335,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         violation, not a crash.
         """
         found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
-        if found:
-            problem = comfort_band.describe(found)
-            if self._band_issue_problem != problem:
-                _create_issue(
-                    self.hass,
-                    DOMAIN,
-                    "comfort_band_contradiction",
-                    is_fixable=False,
-                    # Persistent: stored configuration survives a restart.
-                    is_persistent=True,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="comfort_band_contradiction",
-                    translation_placeholders={"problem": problem},
-                )
-                self._band_issue_problem = problem
-        else:
-            # Unconditional, like the two audits above: correcting the band
-            # reloads the entry and resets this flag, so a guarded delete
-            # could never fire.
-            ir.async_delete_issue(
-                self.hass, DOMAIN, "comfort_band_contradiction"
-            )
-            self._band_issue_problem = None
+        problem = comfort_band.describe(found) if found else None
+        self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
+                                    {"problem": problem} if problem else None)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(

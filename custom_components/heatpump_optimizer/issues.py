@@ -32,6 +32,7 @@ def set_issue(
     raise_it: bool,
     *,
     fixable: bool = False,
+    persistent: bool = False,
     placeholders: dict[str, str] | None = None,
     data: dict[str, Any] | None = None,
 ) -> None:
@@ -50,6 +51,8 @@ def set_issue(
         "translation_key": issue_id,
         "translation_placeholders": placeholders or {},
     }
+    if persistent:
+        kwargs["is_persistent"] = True
     if data is not None:
         kwargs["data"] = data
     create_issue(hass, DOMAIN, issue_id, **kwargs)

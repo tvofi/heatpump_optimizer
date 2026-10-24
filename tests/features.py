@@ -68395,5 +68395,28 @@ R.check(
     f"seen={_ls_tiles_seen} specs={_ls_tiles_specs[:2]}",
 )
 
+# R10 ARCH2-s2 P1: the standing configuration notices have one owner
+# (setpoint_check.ConfigNotices): created once per offending value, cleared
+# unconditionally even by an instance whose memory is empty (the reload case).
+from heatpump_optimizer import setpoint_check as _cn_sc  # noqa: E402
+
+_cn_hass = FakeHass()
+_cn = _cn_sc.ConfigNotices()
+_cn.report(_cn_hass, "grid_fee_sign", -1.0, {"rate": "-1.00"})
+_cn.report(_cn_hass, "grid_fee_sign", -1.0, {"rate": "-1.00"})
+_cn_ids = [i[1] for i in getattr(_cn_hass, "issues", [])]
+R.check(
+    "ConfigNotices: the same offending value is raised once, persistent WARNING",
+    _cn_ids == ["grid_fee_sign"],
+    f"{_cn_ids}",
+)
+_cn_fresh = _cn_sc.ConfigNotices()
+_cn_fresh.report(_cn_hass, "grid_fee_sign", None)
+R.check(
+    "ConfigNotices: a fresh instance (entry reload) still clears the notice",
+    [i[1] for i in getattr(_cn_hass, "issues", [])] == [],
+    f"{getattr(_cn_hass, 'issues', None)}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

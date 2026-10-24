@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 from .const import MIXING_VALVE_WRITE_EPSILON
 from .entry_config import EntryConfig
-from .issues import set_issue
+from .issues import clear_issue, set_issue
 from .inputs import read_setpoint, setpoint_and_unit, temperature_from_c
 from .quiet_windows import silent_unenforceable
 
@@ -24,6 +24,44 @@ ISSUE_SPACE = "space_setpoint_unreadable"
 #: them. A warning, not a fix -- the remedy is an assignment only the
 #: setup diagram (or SW-4's Modbus schedule) can make.
 ISSUE_QUIET = "quiet_silent_not_enforced"
+
+
+class ConfigNotices:
+    """The standing warnings about stored configuration, one rule for all of them.
+
+    Each is a persistent WARNING whose translation key is its issue id: the
+    configuration survives a restart unchanged, so the notice must too.
+
+    * Raised once per offending value. Re-raising every cycle refreshes the
+      issue's timestamp and buries when the bad value first appeared, so
+      ``report`` creates only when the value it is told about changes.
+    * Cleared UNCONDITIONALLY. Correcting the configuration writes options,
+      which reloads the entry and builds a new instance whose memory starts
+      empty -- a delete gated on that memory can never run, and a persistent
+      notice saying "this clears when you fix it" would stay up forever (the
+      fee audit had exactly that defect until v5.1.7). The memory only ever
+      suppresses a repeated create; deleting an absent issue is a no-op.
+    """
+
+    def __init__(self) -> None:
+        self._raised: dict[str, object] = {}
+
+    def report(
+        self,
+        hass: Any,
+        issue_id: str,
+        offending: object | None,
+        placeholders: dict[str, str] | None = None,
+    ) -> None:
+        """``offending`` is what is wrong now, or ``None`` when nothing is."""
+        if offending is None:
+            clear_issue(hass, issue_id)
+            self._raised.pop(issue_id, None)
+            return
+        if self._raised.get(issue_id) == offending:
+            return
+        set_issue(hass, issue_id, True, persistent=True, placeholders=placeholders)
+        self._raised[issue_id] = offending
 
 
 def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
