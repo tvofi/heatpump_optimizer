@@ -1116,9 +1116,8 @@ class StateFlow:
             return self.carry(node.key) | self.carry(node.value)
         if isinstance(node, ast.Lambda):
             return set(self.carry(node.body))
-        return set().union(*(self.carry(c.value if isinstance(c, ast.keyword) else c)
-                             for c in ast.iter_child_nodes(node)
-                             if isinstance(c, (ast.expr, ast.keyword))))
+        return set().union(*(self.carry(c) for c in ast.iter_child_nodes(node)
+                             if isinstance(c, ast.expr)))
 
     def returned(self) -> frozenset[str]:
         """What may escape through the return value; a ``yield`` returns too."""
@@ -3145,6 +3144,7 @@ SEAM_SELF_CHECK_SPELLINGS = (
     "        return self._ctx.%(attr)s",
     '        ctx = getattr(self, "_ctx", self)\n        return ctx.%(attr)s',
     "        ctx = self._ctx\n        return ctx.%(attr)s",
+    "        ctx: Any = self._ctx\n        return ctx.%(attr)s",
 )
 SEAM_SELF_CHECK_FOREIGN = (
     "        ctx = elsewhere()\n        return ctx._depth",
