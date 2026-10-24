@@ -1,6 +1,6 @@
 # Proposal triage, session s6, batch 4 (P54)
 
-One proposal, S6-U of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
+Proposals S6-U (P54) and S6-V1 to V6 (P55 to P59) of the s6 orchestrator's out-of-tree `proposals.md` (2026-10-24
 ~12:58Z), ruled as P54 from `dev/governance/roles/proposal-triage.md`. Numbering
 continues after `s6-batch3.md` (P53). GitHub calls: 0.
 
@@ -37,3 +37,38 @@ line per tick that the orchestrator already reads past, and it is unmeasured
 in time or tokens, so the bar ("clearly") is not met. What would change the
 answer: a missed owner item traced to this line's constant noise, or the
 schema group landing a structured gate.
+
+## P55: pool claim hygiene in cloud_dispatch (S6-V1 stale claims, S6-V2 hidden push errors)
+Verdict: ACCEPT -> R10-FLY-CLOUD-SETUP-TOOLCHAIN (cloud_dispatch); carry: clear a claim ref whose handoff ref has not moved since the claim when appending the pool line; stop discarding stderr on the pool push, read back and refuse on mismatch
+Source: s6 proposals.md S6-V1, S6-V2 (2026-10-24 ~13:25Z).
+Instances: V1 3 (#2692, #2697, sav-comfort; each a POOL EMPTY run); V2 1, 2 lost runs (`2>/dev/null` on the POOL push). Source: orchestrator's account in proposals.md; not re-counted from logs.
+Cost: S, about 15 lines in one existing script, no new file, no API calls.
+Binding: the narrow form wins: an N-minute reclaim in the routine prompt is a timing heuristic that can race a live fixer, and a new pool_push.sh is a file for one call site. Null control: a claim whose handoff ref moved after the claim is left alone.
+
+## P56: seat-owned background jobs killed at rotation (S6-V3)
+Verdict: DEFER -> R10-FLY-DAEMONIZE-ARGV owns daemonize; re-triage on a second kill
+Source: s6 proposals.md S6-V3.
+Instances: 1 (roster app_push rc=143, one PR cycle).
+Cost: app_push self-detaching is process-management code in a hot instrument.
+Binding: one instance; the cheap form is one contract line, not worth a policy edit yet.
+
+## P57: two writers on one queue or branch across rotation (S6-V4)
+Verdict: DEFER; re-triage on a third instance
+Source: s6 proposals.md S6-V4.
+Instances: 2 (roster w5/w6; #2698 fixer vs update).
+Cost: a flock named in a brief is prose.
+Binding: rotated seats share no process, so the lock binds only a seat that remembers it. The enforceable form is atomic rename of the queue to an .inflight file in the queue readers; unmeasured benefit beyond one PR cycle.
+
+## P58: carries routed to done groups (S6-V5)
+Verdict: DEFER -> R10-ROUTING-INVARIANTS; judge the consumed-vs-pending marker design when it lands
+Source: s6 proposals.md S6-V5; owner note that V5 is already being built.
+Instances: 3 today plus 38 audit candidates, per the proposal; not re-counted.
+Cost: none here.
+Binding: the design is not yet in the tree.
+
+## P59: fake liveness from a detached toucher (S6-V6)
+Verdict: DEFER; re-triage on a second instance
+Source: s6 proposals.md S6-V6.
+Instances: 1; the toucher was killed.
+Cost: pulse.py change in R10-ORCH-BEATD.
+Binding: a log mtime is as forgeable and an idle polling seat writes no log; the stronger form (process CPU or children) is unmeasured.
