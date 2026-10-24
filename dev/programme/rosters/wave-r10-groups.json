@@ -9020,7 +9020,9 @@
    "class": "instrument",
    "severity": "medium",
    "size": "M",
-   "issues": [],
+   "issues": [
+    2728
+   ],
    "fixes": [],
    "findings": [],
    "wave": 5,
