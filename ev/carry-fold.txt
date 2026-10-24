@@ -1,0 +1,11 @@
+P66 ACCEPT R10-FLY-CARRY-DISPOSITION live stage=not-started carry->R10-FLY-CARRY-DISPOSITION cite=dev/programme/triage/s6-batch8.md#P66
+P67 ACCEPT R10-FLOW-JIDOKA live stage=in-progress carry->R10-FLOW-JIDOKA cite=dev/programme/triage/s6-batch8.md#P67
+P68 DEFER R10-FLOW-BODY-ONLY live stage=not-started carry->None cite=None
+P69 DEFER R10-FLOW-JIDOKA live stage=in-progress carry->None cite=None
+P70 ACCEPT R10-FLY-OPENPR-ATOMIC live stage=not-started carry->R10-FLY-OPENPR-ATOMIC cite=dev/programme/triage/s6-batch8.md#P70
+P71 ACCEPT R10-FLY-OPENPR-ATOMIC live stage=not-started carry->R10-FLY-OPENPR-ATOMIC cite=dev/programme/triage/s6-batch8.md#P71
+P72 ACCEPT R10-FLY-OPENPR-ATOMIC live stage=not-started carry->R10-FLY-OPENPR-ATOMIC cite=dev/programme/triage/s6-batch8.md#P72
+P73 REJECT None MISSING stage=None carry->None cite=None
+P74 REJECT None MISSING stage=None carry->None cite=None
+P75 ACCEPT R10-FLOW-JIDOKA live stage=in-progress carry->R10-FLOW-JIDOKA cite=dev/programme/triage/s6-batch8.md#P75
+P76 ACCEPT R10-FLY-CARRY-DISPOSITION live stage=not-started carry->R10-FLY-CARRY-DISPOSITION cite=dev/programme/triage/s6-batch8.md#P76
