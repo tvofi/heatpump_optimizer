@@ -73,11 +73,26 @@ logs; the `hb:` lines in CI logs are controls. Lower bound; unscanned runs may a
 
 ## 4. Class reach
 
-`rg O_EXCL` outside this file: none. Ticket files (`_enqueue`) are also written
-non-atomically, but a torn ticket only makes `_queue` drop it and its waiter
-re-enqueues on the next poll, no double hold. The single lease (`take`) reads a
-torn owner as None, then `create` fails and it retries: safe, but spins. The slot
-pool was the only path where an unreadable file is destroyed.
+The class: a write a concurrent reader can see torn, where that reader treats an
+unparseable file as garbage and deletes it. Rule that enumerates its seams, every
+content writer in the module (test cases excluded):
+`grep -nE "write_text\(|os\.open\(|\.touch\(|\.write\(" tests/gate_lock.py`.
+Each seam it returns, with its disposition:
+
+| writer | reader of a torn file | disposition |
+|---|---|---|
+| `Owner.create` (slot and single-lease create) | `_read_at`, `_free_slot` unlinks | closed here: staged file `os.link`ed in |
+| `Owner.write` (renew, refresh, take) | `_read_at`, `_free_slot` unlinks | closed here: `_write_whole` (staged, `os.replace`) |
+| `mark_unleased` (the unleased witness) | `_unleased` (`slots_status`) unlinks as unparseable | closed here: `_write_whole`; found by the fix review of round 1 |
+| `_ticket_tmp` / `_enqueue` (tickets) | `_queue` | already atomic: private temp, then `os.link` / `os.replace` |
+| `flock_context`'s `holding` marker | `.exists()` only, content never parsed | not in the class |
+| `_ensure_lock_dir`'s `flock` touch, `flock_context`'s `os.open` | no content | not in the class |
+
+`rg O_EXCL` outside this file: none, and no other file writes the lock
+directory's files (`git grep` for `unleased-` and the lock path returns only
+prose and `prepr.sh`'s call of the CLI). The single lease (`take`) reads a torn
+owner as None, then `create` fails and it retries: safe, but spins; with both
+owner writers whole it no longer sees one.
 
 ## 5. Cost test
 
@@ -89,41 +104,54 @@ pool was the only path where an unreadable file is destroyed.
   wait. Not counted: the production exposure, a fifth heavy run admitted past the
   4-slot cap.
 - P(recurrence): 3 in 2.4 days measured, so about 1.25 per day while the code stands.
-- Countermeasure standing cost: the two new cases take about 0.4 s of a
-  `gate_lock.py --accept` run that takes 8.6 s (wall, local); zero ongoing
-  maintenance. The fix is 17 changed production lines.
-- Verdict: 0.4 s per run against about 30 job-minutes times 1.25 per day: build.
+- Countermeasure standing cost: the four new cases take about 2.2 s of a
+  `gate_lock.py --accept` run (wall, local, three runs each: 9.2-9.6 s with
+  them, 7.0-7.2 s with their four `cases` entries removed); zero ongoing
+  maintenance. The production change is one shared writer and its three callers.
+- Verdict: about 2 s per run against about 30 job-minutes times 1.25 per day: build.
 
 ## 6. Countermeasure (built in this branch, `tests/gate_lock.py`)
 
-State (c) fix: two deterministic cases and the production repair.
+State (c) fix: deterministic or high-rate cases and the production repair.
 
 - `Owner.create` writes a sibling temp file and `os.link`s it into place: the file
   appears at the path complete, and `link` fails if it exists, as `O_EXCL` did.
-- `Owner.write` writes a sibling temp file and `os.replace`s it.
+- `_write_whole` writes a sibling temp file and `os.replace`s it; `Owner.write`
+  and `mark_unleased` both call it.
 - Case `torn_create`: a rival takes inside `Owner._text`, i.e. while "a"'s create is
   in flight. Asserts exactly one winner.
 - Case `torn_write`: a reader polls `_read_at` against 4000 rewrites; asserts it is
   never None.
+- Case `torn_marker`: a reader polls `_unleased` against 4000 `mark_unleased`
+  rewrites (1000: the reverted writer loses it thousands of times in that span); asserts the live marker is never missing.
+- Case `pool_contents`: after a take, a same-label re-take and a marker, the pool
+  directory holds exactly `flock`, `slot-000` and the marker: no staging file
+  outlives its write.
 
-Demonstrated on the defect and fixed (`python tests/gate_lock.py --accept`, venv-ha
-python 3.14, which has `homeassistant`):
+Demonstrated on the defect and fixed (`PYTHONPATH=tests/hastub python3
+tests/gate_lock.py --accept`); each mutant is one edit to the fixed tree, the
+counts of torn or missing polls are thread-timing counts, reproducible in order
+of magnitude only:
 
-| tree | `torn_create` | `torn_write` | total |
-|---|---|---|---|
-| fixed (create + write) | ok | ok | `ALL 31 ... PASSED`, three runs |
-| `create` reverted only | FAIL `winners=['rival', 'a']` | ok | 1 of 30 FAILED |
-| `write` reverted only | ok | FAIL `torn reads=3745/6067/5300 of 4000` (3 runs) | 1 of 31 FAILED |
+| tree | failing cases | total |
+|---|---|---|
+| fixed | none | `ALL 33 ... PASSED`, three runs |
+| `Owner.create` reverted to `O_EXCL`-then-write (round 1) | `torn_create` `winners=['rival', 'a']` | 1 FAILED |
+| `mark_unleased` back to `write_text` | `torn_marker` | 1 of 33 FAILED |
+| `Owner.create`'s `finally: tmp.unlink` removed (M4) | `pool_contents`, a `.create-*-slot-000` left | 1 of 33 FAILED |
+| `_write_whole` back to `path.write_text` | `torn_write`, `torn_marker` | 2 of 33 FAILED |
 
-Null control: the same two cases pass on the fixed tree three times; the
-pre-existing `one_winner` and the other 28 cases are unchanged and pass, so the
-pins keep their teeth (nothing loosened, no timing parameter touched).
-`tests/structure.py` passes.
+Null control: the fixed tree passes all 33 three times; the pre-existing
+`one_winner` and the other cases are unchanged and pass (nothing loosened, no
+timing parameter touched).
 
 ## 7. Not verified
 
 - The original natural-timing race (`one_winner`) was not re-triggered under load
   before and after; the deterministic cases stand in for it.
 - `tests/entities.py` cannot run in this seat (no `paho`); CI owns it.
-- A crash between temp write and link leaves a dot-file in the lock dir; nothing
-  globs it, and it is not cleaned.
+- A crash between a staged write and its `link` or `replace` leaves a dot-file
+  in the lock or pool directory; nothing globs it, and it is not cleaned.
+  `pool_contents` pins the no-crash path only.
+- `torn_write` and `torn_marker` are high-rate, not deterministic: they detect a
+  reverted writer by thousands of missed polls per run, but a zero is a sample.
