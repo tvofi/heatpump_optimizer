@@ -38,11 +38,17 @@ name: CodeQL
 #     push to main analyzes every leg in full, which is what the weekly cadence
 #     existed to guarantee on a quiet default branch.
 #
-# No paths-ignore or exclude: the default-setup configuration carried none
-# (the API response has no such fields -- it analyzed the whole repository),
-# and no other workflow in this repository filters paths, so adding one here
-# would silently narrow the finding set the other direction. A path filter
-# would also stop a required `Analyze` context from reporting at all. What
+# One paths-ignore entry, and it narrows no finding set: `.claude/workflows/*.js`
+# are Claude Code workflow scripts, function BODIES the Workflow tool wraps,
+# with a top-level `return` beside `export const meta` -- neither a script nor
+# a module, so the JS extractor cannot parse them, and they were the 8
+# unscanned files of the tool status page's 96/104, whose extraction errors
+# put a red mark on the CI setup (r10-codeql-dependabot, 2026-10-24). An
+# unparsed file yields no alert, so ignoring it loses none. tests/entities.py
+# refuses an ignored path that `node --check` parses, so the entry cannot
+# grow into a filter over analyzable code. Otherwise no exclude: the
+# default-setup configuration carried none, and a workflow-level path filter
+# would stop a required `Analyze` context from reporting at all. What
 # narrows instead is a pull request's leg whose diff that leg cannot read: the
 # umbrella's prelude (tools/ci/prelude.py, through tools/pr/codeql_scope.py,
 # O17) says `skip` in its `legs` output, the leg's steps skip and its context
@@ -133,6 +139,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          # Unparseable workflow scripts only (header); pinned by tests/entities.py.
+          config: |
+            paths-ignore:
+              - .claude/workflows/*.js
 
       - name: Perform CodeQL Analysis
         if: fromJSON(inputs.legs || '{}')[matrix.language] != 'skip'

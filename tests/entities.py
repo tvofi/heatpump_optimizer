@@ -21021,6 +21021,28 @@ R.check(
         if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
     f"d5 steps={len(_D5)}",
 )
+_REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
+# codeql.yml's one paths-ignore entry is admitted because the files it matches
+# cannot be parsed as JavaScript at all (Claude Code workflow scripts: a
+# top-level `return`), so ignoring them narrows no finding set. Pinned on the
+# registered artifact: every ignore pattern must match at least one tracked
+# file, and every file it matches must fail `node --check` -- a parseable file
+# under an ignore pattern is analyzable code being filtered out, refused.
+_CODEQL_INIT = [st for st in _CODEQL_STEPS
+                if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
+_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
+                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+_CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
+                               if p.is_file() and not p.is_symlink())
+                   for pat in _CODEQL_IGNORE}
+_CODEQL_PARSEABLE = [f for files in _CODEQL_IGNORED.values() for f in files
+                     if subprocess.run(["node", "--check", str(_REPO_ROOT_CQ / f)],
+                                       capture_output=True).returncode == 0]
+R.check(
+    "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
+    bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
+    f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
 R.check(
     "codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)",
     set(_CODEQL_JOBS) == {"analyze"},
