@@ -1,0 +1,3 @@
+FAIL a group only on the round's roster ref is a destination, and the note names that ref
+FAIL load_dests reads the round ref: a group only there passes, the note naming it
+carry_audit self-test: 196 checks, 2 failed
