@@ -1,0 +1,20 @@
+head 80a62d9a7bba087c216e5370c31efb216581bf92
+872226d1ef099dfadf861b2327223c774c1f896b
+merge-tree rc=0
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 281 line(s) added since 50af6174f53c judged, 0 refused
+ruling_verdict P45 ACCEPT
+ruling_verdict P46 ACCEPT
+ruling_verdict P47 DEFER
+ruling_verdict P48 DEFER
+ruling_verdict P49 ACCEPT
+ruling_verdict P50 REJECT
+ruling_verdict P51 ACCEPT
+ruling_verdict P52 REJECT
+ruling_verdict P53 None
+69a26d2a2 2026-10-23T07:29:46Z
+bd0d4d603 2026-10-23T07:31:44Z
+168365196 2026-10-23T07:53:28Z
+b927f431a 2026-10-23T23:53:31Z
+d5dc3e26a 2026-10-24T02:05:44Z
+INERT dev/programme/triage/s6-batch2.md ['dev/programme/']
+INERT dev/programme/delivery/2689.md ['dev/programme/']
