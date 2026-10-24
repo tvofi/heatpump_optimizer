@@ -1972,6 +1972,94 @@ R.check(
     "the 55 degC default must not be replaced by a plan that has not started",
 )
 
+# --- R10-DEMAND-OVERBOOK (#2499): the slab advances by the heat delivered ----
+R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#2499)")
+
+# The plan's trajectory advances the slab by the heat COMMANDED. A pump
+# drawing less leaves the difference in the slab estimate, the house learner
+# replays the next interval from it, finds the room colder than predicted and
+# books the gap as fabric loss: the learned scale climbs, and the plan books
+# more heat each day. With a power meter the slab advances by the metered
+# draw instead. The previous plan says 25 degC after 30 min of 4 kW; the
+# prior slab is 23 degC.
+from heatpump_optimizer import draw_range as _r10do_draw  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noqa: E402
+
+_r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
+
+
+def _r10do_slab(meter, drawn_kw, sampled=True):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 30.0,
+    }
+    if meter:
+        cfg["heat_pump_power_entity"] = "sensor.hp_power"
+    coord = Coord(FakeHass(), _r9f12_entry(data=cfg))
+    coord._snapshots_loaded = True
+    ctx = getattr(coord, "_ctx", coord)
+    ctx._thermal_params.dhw_enabled = False
+    ctx.publish(coord, _r10do_state(
+        room_temperature=21.0, outdoor_temperature=5.0, slab_temperature=23.0))
+    coord._last_house_sample_time = _r10do_t0 if sampled else None
+    now = _r10do_t0 + timedelta(minutes=30)
+    coord._optimization_result = _r9f12_ns(
+        slab_temp_trajectory=[25.0, 25.5, 26.0],
+        timestamps=[now + timedelta(minutes=30 * i) for i in range(3)],
+    )
+    coord._current_action = {"power": 4.0, "mode": "auto", "heat_pump_on": True}
+    _r9f12_dt.freeze(now)
+    try:
+        for entity, value in (
+            ("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0"),
+            ("sensor.hp_power", f"{drawn_kw}"),
+        ):
+            unit = "kW" if entity == "sensor.hp_power" else "°C"
+            coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
+        _r9f12_aio.run(coord._update_current_state())
+    finally:
+        _r9f12_dt.freeze(None)
+    return getattr(coord, "_ctx", coord)._current_state.slab_temperature
+
+
+_r10do_off, _r10do_standby = _r10do_slab(True, 0.0), _r10do_slab(True, 0.2)
+_r10do_low, _r10do_full = _r10do_slab(True, 1.0), _r10do_slab(True, 4.0)
+R.check(
+    "#2499: a metered pump that drew nothing leaves the slab cooling, not at "
+    "the plan's commanded 25 degC",
+    _r10do_off < 23.0,
+    "slab=%.3f" % _r10do_off,
+)
+R.check(
+    "#2499: the slab rises with the metered draw, below the commanded "
+    "trajectory while the pump draws less than 4 kW",
+    _r10do_off < _r10do_low < _r10do_full < 25.0,
+    "slab off/1kW/4kW=%.3f/%.3f/%.3f" % (_r10do_off, _r10do_low, _r10do_full),
+)
+R.check(
+    "#2499: a standby draw under the running floor heats nothing",
+    _r10do_standby == _r10do_off,
+    "slab standby=%.3f off=%.3f" % (_r10do_standby, _r10do_off),
+)
+R.check(
+    "#2499: without a power meter the slab follows the plan (null control)",
+    _r10do_slab(False, 0.0) == 25.0,
+)
+R.check(
+    "#2499: with no previous sample time the slab follows the plan",
+    _r10do_slab(True, 0.0, sampled=False) == 25.0,
+)
+R.check(
+    "#2499: a resistive element sharing the meter gives no space draw; a pump "
+    "not serving rooms gives 0 kW",
+    _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=True, space_served=True) is None
+    and _r10do_draw.space_draw_kw(None, 3.0, (3.0, 0.0), shared=False, space_served=False) == 0.0
+    and _r10do_draw.space_draw_kw(None, 3.0, (2.0, 1.0), shared=False, space_served=True) == 2.0,
+)
+
 # --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
 R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
 
