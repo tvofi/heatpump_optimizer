@@ -1,1 +1,39 @@
-{"job_config": {"ccr": {"environment_id": "env_01WRxrDVGyUChFCGzSXYJnaj", "session_context": {"allowed_tools": ["preset:default", "Bash", "Glob", "Grep", "Read", "Write", "BashOutput", "KillBash", "Monitor"], "model": "claude-sonnet-5-5", "sources": [{"git_repository": {"url": "https://github.com/tvofi/heatpump_optimizer"}}]}, "events": [{"data": {"type": "user", "message": {"role": "user", "content": "CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-config-notices, at head 50af6174f53c0f9bec3f705c3a4bb99615f71acc. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.\nSetup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.\nRole: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 50af6174f53c0f9bec3f705c3a4bb99615f71acc for the base you were given.\nOutput: push the code to refs/heads/handoff/r10-config-notices, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-config-notices <body.md>`, which pushes refs/heads/handoff-body/r10-config-notices; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.\nNever write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.\n\nBrief (snapshotted when this payload was rendered):\nARCH2-s2 P1: a config-notices owner in custom_components/heatpump_optimizer/setpoint_check.py instead of coordinator fields written from several places (`dev/audit/rounds/round10/D7/arch2-s2/P1_config_notices_owned.patch` at fabaf4664). Verified low hygiene; the revert arm reads 0.\n\nARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (seam-ordered; before you: none; after you: none). Owning seam in this group: the config-notice fields. Shape: move them behind the owner. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from main. Re-run fixer.md steps 2-8 after any rebase.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: none (the approver App approves). Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge.\n"}}}]}}}
+{
+ "job_config": {
+  "ccr": {
+   "environment_id": "env_01WRxrDVGyUChFCGzSXYJnaj",
+   "session_context": {
+    "allowed_tools": [
+     "preset:default",
+     "Bash",
+     "Glob",
+     "Grep",
+     "Read",
+     "Write",
+     "BashOutput",
+     "KillBash",
+     "Monitor"
+    ],
+    "model": "claude-opus-5-5",
+    "sources": [
+     {
+      "git_repository": {
+       "url": "https://github.com/tvofi/heatpump_optimizer"
+      }
+     }
+    ]
+   },
+   "events": [
+    {
+     "data": {
+      "type": "user",
+      "message": {
+       "role": "user",
+       "content": "CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-config-notices, at head 5b067738bd38010b0af9e54e78224b55234476e2. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.\nSetup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.\nRole: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 5b067738bd38010b0af9e54e78224b55234476e2 for the base you were given.\nOutput: push the code to refs/heads/handoff/r10-config-notices, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-config-notices <body.md>`, which pushes refs/heads/handoff-body/r10-config-notices; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.\nNever write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.\n\nBrief (snapshotted when this payload was rendered):\nContinue from handoff/r10-config-notices (tip 5b067738bd38); do not restart from main. Merge origin/main first. The opener refused the push; repair the body and code, then re-run prepr to a pass and push handoff/ and handoff-body/ refs as the fixer contract says. Opener refusal, verbatim:\nREFUSE pr-body ERROR [pr-body] body.md: `## Friction` line does not parse: \"The patch's `setpoint_check` hunk did not apply to\". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`.\nFix: make every Friction line either `none` or `<rule_id>: <class>: <evidence>`; the patch-hunk sentence is evidence, not a line of its own. Any other prose belongs under another heading.\nThe same prepr also predicted tests / mutation ADDED UNPINNED sites: coordinator.py:7293 CMP_BOUND, coordinator.py:7296 CMP_BOUND, issues.py:54 GUARD_OFF, setpoint_check.py:57 GUARD_OFF (and more; read the full list from prepr). Pin each with a killing test (run the mutation tool with --pin-killed) or triage it in `## Unpinned sites`; never hand-wave. Null control for each pin.\n"
+      }
+     }
+    }
+   ]
+  }
+ }
+}
