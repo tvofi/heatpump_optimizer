@@ -1,0 +1,82 @@
+s=1.567 r=1.922 n=310/147 edit=(1.567,3.011774) -> scale 1.0000 ratio 1.0000 zones 156.7/271.1 vs learned 156.7/271.1 law_err=7.78e-07
+s=1.567 r=1.922 n=310/147 edit=(1.0,2.0) -> scale 1.5592 ratio 0.9676 zones 155.9/271.6 vs learned 156.7/271.1 law_err=0.00e+00
+s=1.567 r=1.922 n=310/147 edit=(1.5,1.0) -> scale 1.1029 ratio 2.6419 zones 165.4/262.2 vs learned 156.7/271.1 law_err=0.00e+00
+s=1.567 r=1.922 n=310/147 edit=(0.6,0.5) -> scale 2.7298 ratio 2.1447 zones 163.8/263.5 vs learned 156.7/271.1 law_err=1.30e-16
+s=1.567 r=1.922 n=310/147 edit=(1.0,0.7) -> scale 1.6496 ratio 2.5258 zones 165.0/262.5 vs learned 156.7/271.1 law_err=2.05e-16
+s=1.567 r=1.922 n=20/10 edit=(1.567,3.011774) -> scale 1.0000 ratio 1.0000 zones 156.7/271.1 vs learned 156.7/271.1 law_err=2.59e-07
+s=1.567 r=1.922 n=20/10 edit=(1.0,2.0) -> scale 1.1581 ratio 1.0549 zones 115.8/219.9 vs learned 156.7/271.1 law_err=2.60e-16
+s=1.567 r=1.922 n=20/10 edit=(1.5,1.0) -> scale 1.2048 ratio 1.2744 zones 180.7/138.2 vs learned 156.7/271.1 law_err=0.00e+00
+s=1.567 r=1.922 n=20/10 edit=(0.6,0.5) -> scale 1.8132 ratio 1.4248 zones 108.8/116.3 vs learned 156.7/271.1 law_err=1.30e-16
+s=1.567 r=1.922 n=20/10 edit=(1.0,0.7) -> scale 1.4316 ratio 1.3669 zones 143.2/123.3 vs learned 156.7/271.1 law_err=0.00e+00
+s=1.567 r=1.922 n=5/200 edit=(1.567,3.011774) -> scale 1.0000 ratio 1.0000 zones 156.7/271.1 vs learned 156.7/271.1 law_err=7.49e-08
+s=1.567 r=1.922 n=5/200 edit=(1.0,2.0) -> scale 1.0165 ratio 1.4730 zones 101.6/269.5 vs learned 156.7/271.1 law_err=2.05e-16
+s=1.567 r=1.922 n=5/200 edit=(1.5,1.0) -> scale 1.0024 ratio 2.9692 zones 150.4/267.9 vs learned 156.7/271.1 law_err=0.00e+00
+s=1.567 r=1.922 n=5/200 edit=(0.6,0.5) -> scale 1.2953 ratio 1.0000 zones 77.7/58.3 vs learned 156.7/271.1 law_err=0.00e+00 RESET
+s=1.567 r=1.922 n=5/200 edit=(1.0,0.7) -> scale 1.1561 ratio 1.0000 zones 115.6/72.8 vs learned 156.7/271.1 law_err=6.49e-17 RESET
+s=1.567 r=1.922 n=200/3 edit=(1.567,3.011774) -> scale 1.0000 ratio 1.0000 zones 156.7/271.1 vs learned 156.7/271.1 law_err=7.66e-07
+s=1.567 r=1.922 n=200/3 edit=(1.0,2.0) -> scale 1.5189 ratio 0.9995 zones 151.9/273.3 vs learned 156.7/271.1 law_err=2.60e-16
+s=1.567 r=1.922 n=200/3 edit=(1.5,1.0) -> scale 1.7408 ratio 1.0429 zones 261.1/163.4 vs learned 156.7/271.1 law_err=1.30e-16
+s=1.567 r=1.922 n=200/3 edit=(0.6,0.5) -> scale 1.0000 ratio 1.0305 zones 60.0/46.4 vs learned 156.7/271.1 law_err=7.38e-01
+s=1.567 r=1.922 n=200/3 edit=(1.0,0.7) -> scale 2.5563 ratio 1.0402 zones 255.6/167.5 vs learned 156.7/271.1 law_err=1.30e-16
+s=0.7 r=0.6 n=310/147 edit=(0.7,0.42) -> scale 1.0000 ratio 1.0000 zones 70.0/37.8 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=310/147 edit=(1.0,2.0) -> scale 0.6595 ratio 0.3534 zones 66.0/42.0 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=310/147 edit=(1.5,1.0) -> scale 0.4668 ratio 0.9049 zones 70.0/38.0 vs learned 70.0/37.8 law_err=1.29e-16
+s=0.7 r=0.6 n=310/147 edit=(0.6,0.5) -> scale 1.1541 ratio 0.7418 zones 69.2/38.5 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=310/147 edit=(1.0,0.7) -> scale 0.6977 ratio 0.8671 zones 69.8/38.1 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=20/10 edit=(0.7,0.42) -> scale 1.0000 ratio 1.0000 zones 70.0/37.8 vs learned 70.0/37.8 law_err=1.29e-16
+s=0.7 r=0.6 n=20/10 edit=(1.0,2.0) -> scale 0.8078 ratio 0.8646 zones 80.8/125.7 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=20/10 edit=(1.5,1.0) -> scale 0.8221 ratio 0.9105 zones 123.3/67.4 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=20/10 edit=(0.6,0.5) -> scale 1.0135 ratio 0.9687 zones 60.8/44.2 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=20/10 edit=(1.0,0.7) -> scale 0.8927 ratio 0.9400 zones 89.3/52.9 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=5/200 edit=(0.7,0.42) -> scale 1.0000 ratio 1.0000 zones 70.0/37.8 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=5/200 edit=(1.0,2.0) -> scale 0.9409 ratio 1.0000 zones 94.1/169.4 vs learned 70.0/37.8 law_err=1.03e-15 RESET
+s=0.7 r=0.6 n=5/200 edit=(1.5,1.0) -> scale 0.9583 ratio 0.4481 zones 143.8/38.7 vs learned 70.0/37.8 law_err=5.15e-16
+s=0.7 r=0.6 n=5/200 edit=(0.6,0.5) -> scale 1.0101 ratio 0.8346 zones 60.6/37.9 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=5/200 edit=(1.0,0.7) -> scale 0.9784 ratio 0.6200 zones 97.8/38.2 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=200/3 edit=(0.7,0.42) -> scale 1.0000 ratio 1.0000 zones 70.0/37.8 vs learned 70.0/37.8 law_err=1.29e-16
+s=0.7 r=0.6 n=200/3 edit=(1.0,2.0) -> scale 0.4028 ratio 0.9719 zones 40.3/70.5 vs learned 70.0/37.8 law_err=0.00e+00
+s=0.7 r=0.6 n=200/3 edit=(1.5,1.0) -> scale 0.4597 ratio 0.9949 zones 69.0/41.2 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=200/3 edit=(0.6,0.5) -> scale 1.0309 ratio 0.9891 zones 61.9/45.9 vs learned 70.0/37.8 law_err=1.84e-16
+s=0.7 r=0.6 n=200/3 edit=(1.0,0.7) -> scale 0.6688 ratio 0.9939 zones 66.9/41.9 vs learned 70.0/37.8 law_err=0.00e+00
+s=1.2 r=0.8 n=310/147 edit=(1.2,0.96) -> scale 1.0000 ratio 1.0000 zones 120.0/86.4 vs learned 120.0/86.4 law_err=3.21e-16
+s=1.2 r=0.8 n=310/147 edit=(1.0,2.0) -> scale 1.1387 ratio 0.4512 zones 113.9/92.5 vs learned 120.0/86.4 law_err=0.00e+00
+s=1.2 r=0.8 n=310/147 edit=(1.5,1.0) -> scale 0.8054 ratio 1.1821 zones 120.8/85.7 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=310/147 edit=(0.6,0.5) -> scale 1.9939 ratio 0.9648 zones 119.6/86.6 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=310/147 edit=(1.0,0.7) -> scale 1.2047 ratio 1.1313 zones 120.5/85.9 vs learned 120.0/86.4 law_err=3.21e-16
+s=1.2 r=0.8 n=20/10 edit=(1.2,0.96) -> scale 1.0000 ratio 1.0000 zones 120.0/86.4 vs learned 120.0/86.4 law_err=0.00e+00
+s=1.2 r=0.8 n=20/10 edit=(1.0,2.0) -> scale 0.9274 ratio 0.9118 zones 92.7/152.2 vs learned 120.0/86.4 law_err=3.21e-16
+s=1.2 r=0.8 n=20/10 edit=(1.5,1.0) -> scale 0.9533 ratio 1.0013 zones 143.0/85.9 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=20/10 edit=(0.6,0.5) -> scale 1.2973 ratio 1.0878 zones 77.8/63.5 vs learned 120.0/86.4 law_err=1.34e-16
+s=1.2 r=0.8 n=20/10 edit=(1.0,0.7) -> scale 1.0806 ratio 1.0492 zones 108.1/71.4 vs learned 120.0/86.4 law_err=1.34e-16
+s=1.2 r=0.8 n=5/200 edit=(1.2,0.96) -> scale 1.0000 ratio 1.0000 zones 120.0/86.4 vs learned 120.0/86.4 law_err=0.00e+00
+s=1.2 r=0.8 n=5/200 edit=(1.0,2.0) -> scale 1.0098 ratio 0.4845 zones 101.0/88.1 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=5/200 edit=(1.5,1.0) -> scale 0.9874 ratio 0.9727 zones 148.1/86.4 vs learned 120.0/86.4 law_err=1.34e-16
+s=1.2 r=0.8 n=5/200 edit=(0.6,0.5) -> scale 1.0434 ratio 1.8253 zones 62.6/85.7 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=5/200 edit=(1.0,0.7) -> scale 1.0111 ratio 1.3501 zones 101.1/86.0 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=200/3 edit=(1.2,0.96) -> scale 1.0000 ratio 1.0000 zones 120.0/86.4 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=200/3 edit=(1.0,2.0) -> scale 0.7518 ratio 0.9787 zones 75.2/132.4 vs learned 120.0/86.4 law_err=3.21e-16
+s=1.2 r=0.8 n=200/3 edit=(1.5,1.0) -> scale 0.8603 ratio 1.0068 zones 129.0/78.0 vs learned 120.0/86.4 law_err=3.21e-16
+s=1.2 r=0.8 n=200/3 edit=(0.6,0.5) -> scale 1.9495 ratio 0.9991 zones 117.0/87.6 vs learned 120.0/86.4 law_err=1.61e-16
+s=1.2 r=0.8 n=200/3 edit=(1.0,0.7) -> scale 1.2591 ratio 1.0052 zones 125.9/79.7 vs learned 120.0/86.4 law_err=1.34e-16
+s=2.0 r=2.5 n=310/147 edit=(2.0,5.0) -> scale 1.0000 ratio 1.0000 zones 200.0/450.0 vs learned 200.0/450.0 law_err=3.42e-16
+s=2.0 r=2.5 n=310/147 edit=(1.0,2.0) -> scale 2.0365 ratio 1.2159 zones 203.7/445.7 vs learned 200.0/450.0 law_err=1.71e-16
+s=2.0 r=2.5 n=310/147 edit=(1.5,1.0) -> scale 2.7051 ratio 1.0000 zones 405.8/243.5 vs learned 200.0/450.0 law_err=1.71e-16 RESET
+s=2.0 r=2.5 n=310/147 edit=(0.6,0.5) -> scale 1.0000 ratio 2.7116 zones 60.0/122.0 vs learned 200.0/450.0 law_err=7.19e-01
+s=2.0 r=2.5 n=310/147 edit=(1.0,0.7) -> scale 1.0000 ratio 1.0000 zones 100.0/63.0 vs learned 200.0/450.0 law_err=7.48e-01 RESET
+s=2.0 r=2.5 n=20/10 edit=(2.0,5.0) -> scale 1.0000 ratio 1.0000 zones 200.0/450.0 vs learned 200.0/450.0 law_err=0.00e+00
+s=2.0 r=2.5 n=20/10 edit=(1.0,2.0) -> scale 1.3711 ratio 1.1506 zones 137.1/284.0 vs learned 200.0/450.0 law_err=2.56e-16
+s=2.0 r=2.5 n=20/10 edit=(1.5,1.0) -> scale 1.4370 ratio 1.4536 zones 215.5/188.0 vs learned 200.0/450.0 law_err=6.17e-17
+s=2.0 r=2.5 n=20/10 edit=(0.6,0.5) -> scale 2.2969 ratio 1.6135 zones 137.8/166.8 vs learned 200.0/450.0 law_err=6.17e-17
+s=2.0 r=2.5 n=20/10 edit=(1.0,0.7) -> scale 1.7570 ratio 1.5607 zones 175.7/172.8 vs learned 200.0/450.0 law_err=1.71e-16
+s=2.0 r=2.5 n=5/200 edit=(2.0,5.0) -> scale 1.0000 ratio 1.0000 zones 200.0/450.0 vs learned 200.0/450.0 law_err=0.00e+00
+s=2.0 r=2.5 n=5/200 edit=(1.0,2.0) -> scale 1.0203 ratio 2.4247 zones 102.0/445.3 vs learned 200.0/450.0 law_err=1.71e-16
+s=2.0 r=2.5 n=5/200 edit=(1.5,1.0) -> scale 1.1641 ratio 1.0000 zones 174.6/104.8 vs learned 200.0/450.0 law_err=8.54e-17 RESET
+s=2.0 r=2.5 n=5/200 edit=(0.6,0.5) -> scale 1.4987 ratio 1.0000 zones 89.9/67.4 vs learned 200.0/450.0 law_err=4.27e-17 RESET
+s=2.0 r=2.5 n=5/200 edit=(1.0,0.7) -> scale 1.2871 ratio 1.0000 zones 128.7/81.1 vs learned 200.0/450.0 law_err=0.00e+00 RESET
+s=2.0 r=2.5 n=200/3 edit=(2.0,5.0) -> scale 1.0000 ratio 1.0000 zones 200.0/450.0 vs learned 200.0/450.0 law_err=3.42e-16
+s=2.0 r=2.5 n=200/3 edit=(1.0,2.0) -> scale 2.2903 ratio 1.0054 zones 229.0/414.5 vs learned 200.0/450.0 law_err=1.71e-16
+s=2.0 r=2.5 n=200/3 edit=(1.5,1.0) -> scale 2.6263 ratio 1.0532 zones 393.9/248.9 vs learned 200.0/450.0 law_err=1.71e-16
+s=2.0 r=2.5 n=200/3 edit=(0.6,0.5) -> scale 1.0000 ratio 1.0392 zones 60.0/46.8 vs learned 200.0/450.0 law_err=8.21e-01
+s=2.0 r=2.5 n=200/3 edit=(1.0,0.7) -> scale 1.0000 ratio 1.0500 zones 100.0/66.1 vs learned 200.0/450.0 law_err=7.31e-01
+RESULT max law residual over split-moving edits: 8.21e-01
+RESULT path A->B->C zones [148.048, 240.514] A->C [156.7, 271.06]

@@ -1,0 +1,12 @@
+== base
+SEAM A store.py:0 DOMAINS.thermal_learning['house_heat_loss_scale'] anchored
+SEAM A store.py:0 DOMAINS.thermal_learning['lower_floor_loss_ratio'] NO-ANCHOR
+SEAM A store.py:0 DOMAINS.thermal_learning['cop_scale'] NO-ANCHOR
+SEAM A store.py:0 DOMAINS.thermal_learning['solar_aperture/scale'] NO-ANCHOR
+RESULT tree R=3 S=4 A=3 F=9 seams_total=31
+== head
+SEAM A store.py:0 DOMAINS.thermal_learning['house_heat_loss_scale'] anchored
+SEAM A store.py:0 DOMAINS.thermal_learning['lower_floor_loss_ratio'] anchored
+SEAM A store.py:0 DOMAINS.thermal_learning['cop_scale'] NO-ANCHOR
+SEAM A store.py:0 DOMAINS.thermal_learning['solar_aperture/scale'] NO-ANCHOR
+RESULT tree R=4 S=4 A=2 F=9 seams_total=32
