@@ -1,0 +1,6 @@
+e5ad7315184614c824690094bb77943bba947a0b
+DELIVERY STATUS OK — 75 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  every merge in the window carries a row
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+exit=0
