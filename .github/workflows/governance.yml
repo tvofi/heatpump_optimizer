@@ -15,24 +15,28 @@
 
 name: Governance
 
+# This file is a callee of ci.yml (DESIGN-P2 2.1, unit U4): `workflow_call` for
+# the umbrella's `governance` job, which passes no inputs and no secrets and
+# grants `contents: read`, `pull-requests: read` and `issues: write` (the most a
+# job here may hold; the floor below and each job's own block narrow it), and
+# the weekly schedule. The push, pull_request and merge_group triggers, the
+# dispatch (a dispatch is ci.yml's) and the workflow-level `concurrency` (the
+# umbrella's run group and its `cancel-superseded` own supersession) are gone.
+# Inside a called workflow `github.event_name` and `github.event` are the
+# caller's, so every job's `if:` and every `github.event.pull_request.*`
+# expression below reads the umbrella's event unchanged; the push guards on
+# `record` and `delivery-status-publish` are the same text they were.
+#
+# The umbrella's pull_request types carry no `edited`, which the header above
+# explained for this file's own list (#1514): a body edit starts nothing here.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    # NO `edited` (#1514). A body edit changes nothing a job here reads, and an
-    # event this file lists starts a run in which every job writes a check run
-    # at the head -- skipped or not. #1484 listed `edited` and skipped the jobs
-    # with an `if:`, so each body edit re-created `policy-docs`, `env-matrix`
-    # and `wave-script` as SKIPPED at an unchanged head, over the real verdict.
-    # The contract that does read the body is `pr-contract.yml`.
-    types: [opened, synchronize, reopened]
-  # The merge queue (round-9 process review item 2): `policy-docs`,
-  # `env-matrix` and `wave-script` run on the queue's merge commit, pinned to
-  # the queue's base as a pull request's are to its own; `record` and the
-  # delivery-status pair stay off it.
-  merge_group:
-    types: [checks_requested]
+  workflow_call:
+    inputs:
+      # A dispatch carries no base SHA: without this, a restore falls back to
+      # github.sha and the head grades itself.
+      base:
+        type: string
+        default: ""
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -41,16 +45,9 @@ on:
   # runs on every push to main and costs a runner-minute.
   schedule:
     - cron: "0 7 * * 1"
-  workflow_dispatch:
 
 permissions:
   contents: read
-
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   policy-docs:
@@ -126,7 +123,7 @@ jobs:
       # and not modules beside `policy_lint.mjs`.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -221,7 +218,7 @@ jobs:
       - name: Refuse a governance check input field no check reads
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
           SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -380,15 +377,6 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
-
-      # The contract's re-run follower (D13-s1-03): which completed run makes
-      # the newest `pr-contract` run stale, and the wait, re-run and refusal
-      # arms over a stubbed API. The tally line must say 0 failed, as above.
-      - name: Show the contract re-run deciding its own fixtures
-        run: |
-          set -o pipefail
-          if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
-          grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
 
       # Which CodeQL legs a pull request may skip (O17): every skip arm against
       # its analyze null control, and every non-pull_request event analyzing.
@@ -561,6 +549,16 @@ jobs:
           bash tools/audit/seat/cloud_relay.sh --self-test | tee "$RUNNER_TEMP/cloud-relay-self-test.txt"
           grep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"
 
+      # The obligations ledger (R10-ORCH-LEDGER) the relay and the tick write and
+      # read through: its stores, fold, level and exit codes over a throwaway
+      # origin and open_pr.sh's own attempt lines. No network.
+      - name: Show the obligations ledger refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
+          grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
+
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -706,6 +704,15 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
           grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
+      # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
+      # CI pins its plants' preconditions, never the sweep itself.
+      - name: Show the ledger mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
+          grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
 
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -888,6 +895,27 @@ jobs:
           python3 -I tools/audit/seat/ci_probe.py --self-test | tee "$RUNNER_TEMP/ci-probe-self-test.txt"
           grep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"
 
+      - name: Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/codescan_wait.py --self-test | tee "$RUNNER_TEMP/codescan-wait-self-test.txt"
+          grep -Eq '^codescan_wait self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/codescan-wait-self-test.txt"
+
+      - name: Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/ci_predict.py --self-test | tee "$RUNNER_TEMP/ci-predict-self-test.txt"
+          grep -Eq '^ci_predict self-test: 0 failed$' "$RUNNER_TEMP/ci-predict-self-test.txt"
+
+      - name: Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/local_alerts.py --self-test | tee "$RUNNER_TEMP/local-alerts-self-test.txt"
+          grep -Eq '^local_alerts self-test: 0 failed$' "$RUNNER_TEMP/local-alerts-self-test.txt"
+
       # alert_list.py's rules, each deleted in turn: the self-test must refuse every
       # mutant (the script takes no other mode; --self-test names the run).
       - name: Show the alert lister's mutants each refused by its self-test
@@ -938,7 +966,7 @@ jobs:
       # commit is local to this runner and never pushed.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1039,7 +1067,7 @@ jobs:
       # an owner: the checker evaluates them in its own process.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1116,7 +1144,7 @@ jobs:
       # is no verdict on either (the `field coverage` step's own rule).
       - name: Refuse two readers of one concept that disagree
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
@@ -1170,8 +1198,13 @@ jobs:
   # can clear would block every unrelated merge, the `nightly-status` precedent
   # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
   # merge.
+  #
+  # `github.ref == 'refs/heads/main'` (U4 resume): called from ci.yml, a dispatch
+  # at a PR branch (autofix, merge-main) carries `governance` in its workset and
+  # would run `issues: write` over the branch's code and walk the whole window
+  # on the token bucket. Push, schedule and a dispatch at main still reach it.
   record:
-    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # ONE RECORD RUN PER BURST (dev/audit/rca/install-ratelimit.md, M2). Every

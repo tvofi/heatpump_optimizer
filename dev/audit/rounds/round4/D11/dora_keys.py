@@ -15,7 +15,8 @@ closed at the baseline commit):
                          push-event workflow run of some workflow concluded
                          `failure`, over all distinct `main` head SHAs with a
                          push-event run in the window. Reported three ways --
-                         any workflow, Tests only, Governance only -- because a
+                         any workflow, Tests only (the `CI` workflow's push run after the layout
+                         cut-over, whose `gate` job it concludes), Governance only -- because a
                          single figure here hides which loop is failing.
   time to restore        per workflow, hours from the first failing push-event
                          run to the `updated_at` of the next succeeding one.
@@ -207,6 +208,9 @@ def cfr_by_name(merge_fail, head_fail, n):
             for name in names}
 
 
+TESTS_WORKFLOWS = ("Tests", "CI")   # a window before the cut-over reads Tests; after, CI (its `gate`)
+
+
 def t(ts):
     return datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
@@ -324,7 +328,7 @@ def main():
     L.result("unreleased_merges_at_baseline", unreleased)
     L.result("main_heads", len(heads))
     L.result("cfr_any", round(any_failed / nheads, 3))
-    L.result("cfr_tests", round(failed_by_wf.get("Tests", 0) / nheads, 3))
+    L.result("cfr_tests", round(sum(failed_by_wf.get(w, 0) for w in TESTS_WORKFLOWS) / nheads, 3))
     L.result("cfr_governance", round(failed_by_wf.get("Governance", 0) / nheads, 3))
     for wf, durs in ttr.items():
         if durs:
