@@ -8799,6 +8799,56 @@
     "note": "owner card 8, 2026-10-24"
    },
    "brief": "Reviewer reads a script-built review packet (owner ruling tvofi 2026-10-24, card 8). A fix reviewer spends much of its run gathering the same facts with gh reads, file reads, gate output and waits. Change: bus.sh dispatch renders, at the frozen head, a packet file (a new module beside bus.sh) holding: the three-dot diff against the merge base; a digest of the gate jobs as of the render time (see the carry on card 5); the carry_audit and figure_lint results at the head; the finder's harness output at the base and at the head (the finder's, never the fixer's); and the mutation-ledger diff. dispatch names the packet path in the reviewer's brief, and fix-review.md says to start from it. Measure first: what the reviewer's gather steps cost at the base, from the local transcripts of a sample of review seats (the token section of R10-FLOW-BOARD is the reader if landed); the saving claimed is the gather share the packet removes, with the packet's own size beside it. Controls: a packet at a head carries the harness output of that head, and at a moved head dispatch refuses to name a stale packet; the packet is byte-identical for the same head on a second render; a packet built from the fixer's harness fails the independence check; each rule has a mutant. A reviewer verdict still names its own evidence directory (app_approve needs an absolute Evidence path)."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 4,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "group": "R10-POLICY-ROLE-PACK",
+   "after": [
+    "R10-POLICY-FIXER-MD",
+    "R10-FLOW-DESIGN-STAGES"
+   ],
+   "files": [
+    ".claude/hooks/session-start.sh",
+    "tools/policy/role_pack.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [
+    "tvofi 2026-10-24 recommendation (b) (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): this group is the home of the per-role pack. After-edges: R10-POLICY-FIXER-MD, so the pack renders the final fixer.md and fix-review.md, and R10-FLOW-DESIGN-STAGES, which owns cloud_dispatch.py and so the place the role is named at dispatch.",
+    "Policy-adjacent: the pack is built verbatim from the policy files and never paraphrases them (a paraphrase made a seat read real policy as something else). Whether the hook change needs the owner's approving review is read from CODEOWNERS and policy_lint at the base, not assumed.",
+    "A new tracked file must be classified in a measured closure or on the INERT list in tests/closure.py, or tests/entities.py fails; classify that new module deliberately."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-policy-role-pack",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once every after group is done",
+    "note": "owner card 1 recommendation (b), 2026-10-24"
+   },
+   "brief": "Per-role policy pack from the SessionStart hook (owner ruling tvofi 2026-10-24, recommendation (b) of the token pre-study). Today every seat opens by re-reading CLAUDE.md, its role contract and tools/audit/seat/INSTRUMENTS.md with tool calls, which re-sends the same text in each seat's context. Change: a new module under tools/policy renders, for a named role (fixer, fix-review, designer, design-review, root-cause, verifier, judge, and the finder's COMMON.md), one pack made of the verbatim text of CLAUDE.md, that role's contract under dev/governance/roles/, the rules under dev/governance/rules/ whose paths: globs the role's files match, and only the INSTRUMENTS.md entries for the instruments the role's contract names. The in-tree SessionStart hook .claude/hooks/session-start.sh prints the pack when the role environment variable is set, after its existing clone-fact lines, and prints nothing extra when it is unset, so the main session and every other clone are unchanged. cloud_dispatch.py (R10-FLOW-DESIGN-STAGES) sets the variable in the cloud payload for each role it renders; a seat launched without it reads the files as today. Measure first: the tokens a fixer, a reviewer and a designer spend on the policy re-read at the base, from the local session transcripts (the token section of R10-FLOW-BOARD is the reader if it has landed; otherwise count the Read results of those files in a sample of seat transcripts); the change is justified by that number falling, with the pack's own size beside it. Controls: the pack for a role contains every line of its contract (byte-equal), and a file removed from the role's list fails the check; with the variable unset the hook output is byte-equal to today's; a pack never exceeds the policy files' current text (it is a subset); each rule has a mutant. Open point, not decided here: Agent-tool subagents launched inside a local session may not run SessionStart at all. Measure that at the base. If they do not, the local seat brief carries the pack path instead, and say so in the handoff rather than claiming the saving for local seats."
   }
  ]
 }
