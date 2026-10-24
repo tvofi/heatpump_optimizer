@@ -166,7 +166,7 @@ gantt
 | R10-REPLAY-LOOPNORM | RP | 1 | done | #2270 | sonnet/opus | - | The loop CPU ratio's spread comes from runner class (correlation -0.94 with the reference time): the loop measure is interpreter-bound and the reference is B... |  |
 | R10-DIAG-REPLAY | RP | 1 | done | #2271 | opus/opus | - | Owner (tvofi, 2026-10-14): wire the export into Download diagnostics. |  |
 | R10-REPLAY-LANE | RP | 1 | done | #2271, #2272 | opus/opus | yes: code-owned: .github/workflows/ | Land the replay lane fully (tvofi, 2026-10-14): a real recorded day from the owner's install, exported through the allowlist into a new fixture under tests/r... |  |
-| R10-REPLAY-SCOPED | RP | 1 | not-started | #2273 | opus/opus | yes: code-owned: .github/workflows/ | Owner (tvofi, 2026-10-15) on a per-PR timed replay: "Hard no, only when relevant." Run the timed replay lane on a pull request only when its diff reaches the... |  |
+| R10-REPLAY-SCOPED | RP | 1 | in-progress | #2273 | opus/opus | yes: code-owned: .github/workflows/ | Owner (tvofi, 2026-10-15) on a per-PR timed replay: "Hard no, only when relevant." Run the timed replay lane on a pull request only when its diff reaches the... |  |
 | R10-TRAIN-HOLD | IN | 1 | done | **#2302** | sonnet/opus | yes: code-owned: .github/workflows/ (workflow change, approved under mandate 6175172275) | The record beat in .github/workflows/tests.yml auto-merges record PRs on its own schedule, so a record PR can land while a merge train waits on CI and move m... |  |
 | R10-STALE-PATHS-2 | IN | 1 | done | **#2312** | sonnet/opus | - | Class N-move-stale-path (#2227), the sibling seams that the pull request for the stale-path arm (PR #2289) left open; the stale-path arm itself lives in test... |  |
 | R10-REF-PRIVACY | IN | 1 | done | **#2310** | opus/opus | yes: code-owned: governance.yml, closure.py and stamp.py, approved under mandate 6175172275 | Owner-reported (tvofi, 2026-10-16, issue #2310): tools/audit/seat/wt_sync.sh builds the remote sync ref name from the worktree's absolute path, stripping onl... |  |
@@ -180,8 +180,8 @@ State found: the RCA is DONE but unpublished. |  |
 | R10-RCA-HEADMOVED | RP | 1 | not-started | #2389 | opus/opus | - | ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). |  |
 | R10-RCA-STRUCTURE-BLIND | RP | 1 | done | #2235 | opus/opus | - | # O16 — round-10 RCA for the N-structure-blind class (#2235)
 Role: dev/governance/roles/root-cause.md. |  |
-| R10-SAV-COMFORT | SV | 1 | not-started | #2492 | opus/opus | - | Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. |  |
-| R10-MUTATION-ANCHOR | IN | 1 | not-started | #2493, #2660 | opus/opus | - | Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. |  |
+| R10-SAV-COMFORT | SV | 1 | in-progress | #2492 | opus/opus | - | Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. |  |
+| R10-MUTATION-ANCHOR | IN | 1 | in-progress | #2493, #2660 | opus/opus | - | Fix the vacuous kill in the entities.py `--anchor` mutation self-test soundly, and measure how many of the 123 `killed_by: tests/entities.py` pins are vacuous. |  |
 | R10-N-LOG-FLOOD | PS | 1 | done | **#2337** | opus/opus | - | RECORD OF A DELIVERED GROUP (PR #2351, merged at 42e6dedb27f36d180af04069ce652eca4b345378; issue #2337). |  |
 | R10-POLICY-LINT-FAMILY | IN | 1 | done | #2410 | opus/opus | yes: policy: tools/policy/ is in POLICY_GLOBS; tvofi approves under the mandate | Measure first, then fix `tools/policy/policy_lint.mjs`'s family count. |  |
 | R10-DEAD-RATE-LIMIT | LR | 1 | done | - | opus/opus | - | Found by the R10-TRUST-RELATIVE seat (no defer): after that group's relative trust region, the rate limit `HOUSE_LOSS_MAX_STEP` (the `max_step_fraction=HOUSE... |  |

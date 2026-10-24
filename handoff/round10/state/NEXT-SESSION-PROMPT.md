@@ -16,6 +16,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RATIO-ANCHOR (stage in-progress, branch `handoff/r10-ratio-anchor`): `git fetch origin handoff/r10-ratio-anchor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-INPUT-STALENESS (stage in-progress, branch `handoff/r10-input-staleness`): `git fetch origin handoff/r10-input-staleness && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LEARNER-ETA (stage in-progress, branch `handoff/r10-learner-eta`): `git fetch origin handoff/r10-learner-eta && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-REPLAY-SCOPED (stage in-progress, branch `handoff/r10-replay-scoped`): `git fetch origin handoff/r10-replay-scoped && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-SAV-COMFORT (stage in-progress, branch `handoff/r10-sav-comfort`): `git fetch origin handoff/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-MUTATION-ANCHOR (stage in-progress, branch `handoff/r10-mutation-anchor`): `git fetch origin handoff/r10-mutation-anchor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEMAND-OVERBOOK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-BUFFER-STORE (stage queued): no branch pushed yet, so nothing to fetch
 - R10-COP-PARTLOAD (stage queued): no branch pushed yet, so nothing to fetch
