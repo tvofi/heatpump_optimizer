@@ -407,6 +407,9 @@ def self_test() -> int:
         except TimeoutError as e:
             return f"UNBOUNDED: {e}"
     in_prelude = [{"name": "prelude", "status": "in_progress", "conclusion": None, "id": 1}]
+    check("R3-2: a run whose gate is listed but an owed job is not still adds a source",
+          busy(ctx, [{"id": 99, "title": title("code", "7", "main", "M"), "status": "in_progress",
+                      "jobs": {"gate": ("completed", "success")}}]), [99])
     get, naps, nap, now = scene([run(101, "edit", "in_progress", in_prelude), run(102, "review", "queued", [])],
                                 [run(101, "edit", "in_progress", owed("edit")),
                                  run(102, "review", "in_progress", owed("review"))])
