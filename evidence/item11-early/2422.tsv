@@ -1,2 +1,0 @@
-2026-10-19T03:52:25Z	Fix review: blocked 01e08685f4e454e17dc16c467a5e5e3c7ad8be5f regression: the automatic merge of origin/main dd27e7c1b (#2406 O17 removed roster_lib.DEFAULT_ROSTER_REF) breaks fold 7; orchestrator_tick.py --self-test crashes with AttributeError at carry_sweep line 1782, so the body's "142 checks, 0 failed" is false at this head
-2026-10-19T05:25:57Z	Fix review: merge c12b0562da080854e16e52448b7cdb4f1f242883

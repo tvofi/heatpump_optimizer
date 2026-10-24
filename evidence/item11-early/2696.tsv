@@ -1,2 +1,0 @@
-2026-10-24T12:10:54Z	Fix review: blocked b5cf12dfe83705acaf5726b8e018e84174ac8883 record-contradicts-diff: R10-RCA-CI-RATCHET-RUN-NAME.md section 5 says the 4 assembly defects are not registered in bugclasses.json, which this PR's 35a535f51 registers as N-p2b-assembly-reader
-2026-10-24T13:52:37Z	Fix review: merge 96b8dd7bf471fd979f8f8d3800941c1b1fe7f2e0

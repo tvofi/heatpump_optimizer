@@ -1,3 +1,0 @@
-2026-10-18T18:25:06Z	Fix review: blocked c3a25d2ae337d82a8401dcfc1ab0f0f7e34aa38b ci-red: fast (3.14) is red at this head on tests/optimality.py's ftol check (60.96 vs 60.96, -0.00% against a 2.5% bound); the ruling's step 2 (the kernel matrix and the ftol re-derivation) and step 4 (each re-planned scenario's solver work stated against the baseline) are still listed as pending in the body, and kernel-points has never run on this branch
-2026-10-18T21:44:57Z	Fix review: merge 86258e159d6e18b41aa0edafc79c6b8921d5c4dc
-2026-10-19T06:24:48Z	Fix review: merge 91a3f77c9f968341a578d46277c0ff0e08c20dcc

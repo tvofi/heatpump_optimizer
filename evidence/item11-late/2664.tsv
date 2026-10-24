@@ -1,2 +1,0 @@
-2026-10-23T13:37:47Z	Fix review: blocked 1270ba9b92e16143ddabab30c8ad89138a4b4cc5 root-cause-detectable: instrument-self-tests is red on this head because ref_privacy.py --check refuses the new git push in cloud_relay.sh's self-test stub, and the body says Red checks: none
-2026-10-23T17:52:34Z	Fix review: merge 5d5e49e6f29e90dd33dffebe3a07319c4965132f

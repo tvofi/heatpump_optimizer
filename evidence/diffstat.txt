@@ -1,0 +1,7 @@
+ .claude/rules/finding-propagation.md        |  9 +--
+ .cursor/rules/finding-propagation.mdc       |  9 +--
+ dev/governance/roles/fix-review.md          | 27 ++++-----
+ dev/governance/roles/fixer.md               | 90 +++++++++++++++--------------
+ dev/governance/rules/finding-propagation.md |  9 +--
+ dev/programme/delivery/2704.md              |  1 +
+ 6 files changed, 76 insertions(+), 69 deletions(-)
