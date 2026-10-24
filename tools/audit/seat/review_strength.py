@@ -1014,13 +1014,13 @@ def _self_test_guardrail(R: Path, verdict, check) -> None:
     check("REAL_EXTRA is the study record's nine words outside the list, word for word",
           nine is not None and set(re.findall(r"^- (\S+)", nine[1], re.M)) == set(REAL_EXTRA) and len(REAL_EXTRA) == 9)
     # One PR per word, each blocked under it in a real subject, so realness is load's rule, not this test's.
-    for i, w in enumerate([*words, "carry-missing", "typo-word"]):
+    for i, w in enumerate([*words, "carry-missing", "typo-word", "zz-word"]):
         verdict(f"refs/remotes/origin/review/{200 + i}", f"verdict: #{200 + i} Fix review: blocked {H} {w}: x",
                 f"{200 + i:08x}" + "c" * 24, f"2026-11-01T00:{i:02d}:00Z")
     bus = load(R, "origin", REAL_CATCH | REAL_EXTRA)[0]
     real = {v["cls"]: v["real"] for v in bus if v["pr"] >= 200}
     check("load reads every guardrail word real, a taught bookkeeping word and an untaught one not",
-          all(real[w] for w in words) and not real["carry-missing"] and not real["typo-word"])
+          all(real[w] for w in words) and not any(real[w] for w in ("carry-missing", "typo-word", "zz-word")))
     t0 = when("2026-12-01T00:00Z")
     end = when("2027-01-01T00:00Z")
 
@@ -1058,18 +1058,36 @@ def _self_test_guardrail(R: Path, verdict, check) -> None:
           and " incidence 2/20;" in guardrail([*win(20, 1, "harness"), dict(win(2, 2, "harness")[1], t=end - timedelta(minutes=1))],
                                               end, 20, P0)
           and " incidence 0/1;" in guardrail(tie, end, 1, P0) and " incidence 0/1;" in guardrail(tie[::-1], end, 1, P0))
-    check("unclassified: a blocked word neither real nor taught, once; a merge's word and a taught one are not",
-          unclassified(bus + [dict(win(1, 0, "x")[0], cls="merge-word")], end, ("carry-missing",)) == ["typo-word"])
+    late = [dict(win(1, 1, "harness")[0], pr=9001, t=t0 + timedelta(hours=2)), dict(win(1, 0, "harness")[0], pr=9002, t=t0 + timedelta(hours=1)),
+            dict(win(1, 0, "harness")[0], pr=9001, t=t0 + timedelta(hours=3))]
+    check("the latest N by FIRST verdict, not PR number and not a PR's later re-review (9002 before 9001)",
+          guardrail(late, end, 1, P0).startswith("GUARDRAIL all last 1 PRs (first verdict 12-01T02:00Z..12-01T02:00Z): incidence 1/1;")
+          and guardrail(late[1:], end, 1, P0).startswith("GUARDRAIL all last 1 PRs (first verdict 12-01T03:00Z"))
+    odd = [dict(win(1, 1, "harness")[0], cls=w, real=False) for w in "hgfedcba"]
+    check("unclassified: a blocked word neither real nor taught, once and sorted; a merge's word, a taught one "
+          "and one at until are not",
+          unclassified(bus + [dict(win(1, 0, "harness")[0], cls="merge-word"), dict(odd[0], cls="at-until", t=end)], end,
+                       ("carry-missing",)) == ["typo-word", "zz-word"]
+          and unclassified(odd, end, ()) == list("abcdefgh"))
     out = io.StringIO()
+    argv = ["--repo", str(R), "--tree", "main", "--window", "F=2026-09-01T00:00Z..2026-10-02T00:00Z", "--guardrail"]
     with contextlib.redirect_stdout(out):
-        rc = main(["--repo", str(R), "--tree", "main", "--window", "G=2026-11-01T00:00Z..2026-11-02T00:00Z", "--guardrail"])
+        rc = main([*argv, "--window", "G=2026-11-01T00:00Z..2026-11-02T00:00Z"])
     text = out.getvalue()
-    check("main --guardrail counts the extended list and prints one line per arm and the unclassified words",
+    check("main --guardrail counts the extended list and closes its output with one line per arm and the unclassified words",
           rc == 0 and "REAL = the study's list + " + ", ".join(sorted(REAL_EXTRA)) in text
-          and [ln.split(" ", 2)[1] for ln in text.splitlines() if ln.startswith("GUARDRAIL")]
-          == ["all", "cloud", "local", "unclassified"]
-          and "GUARDRAIL unclassified block words (neither real nor taught): typo-word\n" in text)
-
+          and text.splitlines()[-4:] == [
+              "GUARDRAIL all last 30 PRs (first verdict 10-05T09:53Z..11-01T00:27Z): incidence 25/30; "
+              "P(X<=25|30,0.28) = 1.0000 -> ok (report-only)",
+              "GUARDRAIL cloud insufficient: 11 reviewed PRs < N=20",
+              "GUARDRAIL local last 20 PRs (first verdict 11-01T00:08Z..11-01T00:27Z): incidence 17/20; "
+              "P(X<=17|20,0.28) = 1.0000 -> ok (report-only)",
+              "GUARDRAIL unclassified block words (neither real nor taught): typo-word, zz-word"])
+    with contextlib.redirect_stdout(io.StringIO()) as early:
+        main(argv)
+    check("main --guardrail cuts at the latest window's until, and prints '-' with no unclassified word",
+          early.getvalue().splitlines()[-1] == "GUARDRAIL unclassified block words (neither real nor taught): -"
+          and "GUARDRAIL all insufficient: " in early.getvalue())
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

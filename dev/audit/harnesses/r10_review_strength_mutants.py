@@ -123,6 +123,14 @@ SWAP_CALL = {"max": "min", "min": "max", "any": "all", "all": "any", "sorted": "
 # Survivors the self-test cannot see because they change nothing, keyed "<function> @ <statement>: <mutant>".
 # Every entry is an equivalent mutant and says why; one equivalent only on the bus's inputs names the input separating it.
 DISPOSED = {
+    "guardrail @ verdict = 'would-trip: audit the last reviews with a plan...: cdf < ALPHA [op 0: Lt -> LtE]":
+        "equivalent on the guardrail's inputs: main calls it only with ARMS' N (30 and 20) and P0 = 0.28, and no P(X<=k|30 or 20, 0.28) equals 0.05 (the nearest are 0.0495 and 0.0526); separated by an arm whose CDF lands on ALPHA exactly, which no arm in ARMS has",
+    "parser @ def parser() -> argparse.ArgumentParser:: swap ap.add_argument('--guardrai... with the next statement":
+        'equivalent: argparse registration order of optionals orders only the --help listing (human text)',
+    'main @ def main(argv: list[str]) -> int:: move first 1 statement(s) of if a.guardrail: before it':
+        'equivalent: `until` is a pure read of `wins`, which main has already refused to leave empty, so binding it without --guardrail prints nothing more',
+    'main @ def main(argv: list[str]) -> int:: move 1 statement(s) before into for family, n in ARMS:':
+        'equivalent: `until` is re-bound to the same max of the unchanged `wins` on each arm, and ARMS is non-empty, so the unclassified line after the loop reads the same value',
     "CLASSES_RE @ CLASSES_RE = re.compile('const VERDICT_CLASSES = \\\\[([^\\\\...: 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)\\\\]' -> 'const VERDICT_CLASSES = \\\\[([^]]*)\\\\]'":
         "equivalent: a ']' first in a class is literal, so [^]] is [^\\]]",
     "CLASSES_RE @ CLASSES_RE = re.compile('const VERDICT_CLASSES = \\\\[([^\\\\...: 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)\\\\]' -> 'const VERDICT_CLASSES = \\\\[([^\\\\]]*)]'":
