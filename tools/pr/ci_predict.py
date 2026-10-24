@@ -765,8 +765,21 @@ def plant_self_test(root: Path) -> int:
     push = {"tools/audit/archscore/score.py": app(site)}
     readd, cite = f"LAYOUT placement: {old} re-adds a moved path", f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}"
     shared = {"tests/wood_advisor.py": app(grammar), "tools/audit/archscore/score.py": app(grammar)}
+
+    def side_merge(run):
+        """A branch merge whose subject is no template, then a main already past it: what a
+        live origin/main shows the merge-subject walk once the PR has merged (the RCA's refused=3)."""
+        h = run("git", "rev-parse", "HEAD").stdout.strip()
+        run("git", "checkout", "-q", "--detach", base)
+        (r / "tests" / "wood_advisor.py").write_text((r / "tests" / "wood_advisor.py").read_text() + "# side\n")
+        run("git", "commit", "-qam", "side")
+        side = run("git", "rev-parse", "HEAD").stdout.strip()
+        run("git", "checkout", "-q", "--detach", h)
+        run("git", "merge", "-q", "--no-ff", "-m", "Merge branch 'side' into plant", side)
+        past = run("git", "commit-tree", "HEAD^{tree}", "-p", "HEAD", "-m", "past").stdout.strip()
+        run("git", "update-ref", "refs/heads/main", past)
     # (label, [(edits, True: committed | False: staged | "tip": the --base, beside HEAD)], job,
-    #  the predicted line's text or None for a null, rc)
+    #  the predicted line's text or None for a null, rc); a callable step runs git itself
     cases = [("a file re-added at a path whose move landed is predicted red", [({old: app("")}, True)], "fast", readd, 1),
              ("the re-added path under a second commit is predicted red", [({old: app("")}, True),
               ({"tests/wood_advisor.py": app("# a comment\n")}, True)], "fast", readd, 1),
@@ -798,6 +811,8 @@ def plant_self_test(root: Path) -> int:
               "wave-script", None, 0),
              ("a grammar in two files the lane does not load, the lane untouched, is not run (null control: the "
               "key; prepr step 3f4 refuses it under either copy)", [(shared, True)], "wave-script", None, 0),
+             ("a lane edit under a branch merge, main already past it, is predicted green (null control: CI's "
+              "origin/main is the base)", [({ag: app("// a comment\n")}, True), side_merge], "wave-script", None, 0),
              ("a comment in the lane is predicted green (null control)", [({ag: app("// a comment\n")}, True)],
               "wave-script", None, 0),
              ("a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's)",
@@ -829,7 +844,12 @@ def plant_self_test(root: Path) -> int:
             run("git", "checkout", "-q", "-f", "--detach", base)
             run("git", "clean", "-qfd")
             tip = base
-            for edits, commit in steps:
+            run("git", "update-ref", "refs/heads/main", base)
+            for step in steps:
+                if callable(step):
+                    step(run)
+                    continue
+                edits, commit = step
                 for p, edit in edits.items():
                     (r / p).parent.mkdir(parents=True, exist_ok=True)
                     (r / p).write_text(edit((r / p).read_text() if (r / p).exists() else ""))
