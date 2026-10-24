@@ -3573,6 +3573,7 @@
    "dev/audit/harnesses/r10_field_coverage_paths.sh",
    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
+   "dev/audit/harnesses/r10_gate_defer_race.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
    "dev/audit/harnesses/r10_gh_read_retry_mutants.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
