@@ -3062,7 +3062,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "cloud pool fixer dispatched 2026-10-24T07:52Z (routine trig_01HTe5p4m5CVecKJSreRhK2M, claim ref claim/s6/<topic>)",
-    "note": null
+    "note": null,
+    "pr": 2692
    },
    "brief": "Owner (tvofi, 2026-10-15) on a per-PR timed replay: \"Hard no, only when relevant.\" Run the timed replay lane on a pull request only when its diff reaches the replay cost files (`COST_FILES`, the optimizer, tests/replay.py), selected by the closure mechanism. Nightly stays the full run.\n\nForward-carried (finding-propagation.md): (1) A blanket per-PR lane is refused permanently; do not offer it as an option.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: .github/workflows/. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
   },
