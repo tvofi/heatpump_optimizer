@@ -1615,6 +1615,10 @@ class OptimizationResult:
     # window) but charged against the savings so borrowed heat is not counted
     # as a saving.
     deferred_energy_cost: float = 0.0
+    # The thermostat at the comfort schedule itself, before the savings
+    # reference matches it to the comfort delivered (#2492): the advisor's
+    # degree price (price_tiles) differences it across what-ifs.
+    held_cost: float = float("nan")
 
     # Outdoor temperature actually used for each step, so consumers can plot
     # the plan against the weather it was made for.
@@ -2757,6 +2761,7 @@ class HeatPumpOptimizer:
         status: str,
         predicted_cost: float,
         baseline_cost: float,
+        held_cost: float,
         savings: float,
         deferred_cost: float,
         dhw_power: np.ndarray | None = None,
@@ -2772,12 +2777,9 @@ class HeatPumpOptimizer:
         dhw_legionella_step: int | None = None,
         dhw_floors: np.ndarray | None = None,
     ) -> OptimizationResult:
-        """Assemble the result both solve paths return.
-
-        Roughly thirty field assignments that were previously written out twice
-        and had already begun to diverge — the DHW path was carrying fields the
-        space-only path had quietly stopped setting. Anything genuinely
-        specific to hot water arrives through the optional arguments.
+        """Assemble the result both solve paths return, once, so the two cannot
+        diverge; what is specific to hot water arrives through the optional
+        arguments.
         """
         import time
 
@@ -2785,11 +2787,8 @@ class HeatPumpOptimizer:
         total_power = (
             space_power if dhw_power is None else space_power + dhw_power
         )
-        # Only the start-time-independent baseline array is wanted here; the
-        # previous ``_grid_terms(h.n_steps, h.dt)`` call built offset-0
-        # cycling/capacity closures just to discard them, and read as if the
-        # published grid figures were folded without the anchor. They are
-        # not: ``_grid_report`` below gets ``h.start_time``.
+        # The published grid figures are folded at ``h.start_time``
+        # (``_grid_report``); only the baseline load array is wanted here.
         baseline_load = self.config.baseline_load_array(h.n_steps)
         grid = self._grid_report(total_power, baseline_load, h.dt, h.start_time)
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
@@ -2822,6 +2821,7 @@ class HeatPumpOptimizer:
             outdoor_temps=h.outdoor_temps.tolist(),
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
+            held_cost=held_cost,
             predicted_savings=savings,
             savings_percentage=_savings_percentage(savings, baseline_cost),
             deferred_energy_cost=deferred_cost,
@@ -4595,6 +4595,7 @@ class HeatPumpOptimizer:
         achieved_objective = float(objective(optimal_power))
 
         # The savings reference holds the comfort the plan delivered (#2492).
+        held_cost = float(energy_cost_of(baseline_power))
         reference_targets = _comfort_matched_targets(comfort_targets, room_temps[1:])
         if reference_targets is not comfort_targets:
             baseline_power, baseline_end = self._compute_baseline_power(
@@ -4634,6 +4635,7 @@ class HeatPumpOptimizer:
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
+            held_cost=held_cost,
             savings=savings,
             deferred_cost=deferred_cost,
             baseline_power=baseline_power,
@@ -4880,6 +4882,12 @@ class HeatPumpOptimizer:
                 energy_cost_of, baseline_power, optimal_space, optimal_dhw, h.humidity,
             )
         )
+        held_cost = baseline_cost if reference_targets is comfort_targets else float(
+            energy_cost_of(self._compute_baseline_power(
+                weather, initial_state, dt, comfort_targets,
+                coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
+            )[0] + baseline_dhw)
+        )
 
         # Settle up the heat the optimized plan left unstored at the horizon end.
         # The baseline reference ends with a tank at setpoint, so compare against
@@ -4921,6 +4929,7 @@ class HeatPumpOptimizer:
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
+            held_cost=held_cost,
             savings=savings,
             deferred_cost=deferred_cost,
             baseline_power=baseline_power + baseline_dhw,
@@ -5216,10 +5225,7 @@ class HeatPumpOptimizer:
         The thermostat starts from the state it would have kept, not from
         ``initial_state`` (``_thermostat_held_state``, #2255): a thermostat
         running all along never inherits the optimiser's coasted or
-        pre-heated house. Started from that state, its first step was the
-        recovery transient -- the clip whenever the house sat below target,
-        0 kW above it -- and the settlement books the first step of every
-        plan, so the month's baseline was the transient's.
+        pre-heated house, whose recovery transient the settlement booked.
 
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
@@ -5312,10 +5318,7 @@ class HeatPumpOptimizer:
             cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
-            # power is what determines energy use. Forcing the baseline up to
-            # the minimum modulation power made it burn a constant
-            # min_electrical_power * 24 h per day even when the house needed no heat at
-            # all, which inflated both the baseline and the savings.
+            # power is what determines energy use; a clamp burnt it all day.
             power = float(
                 np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
             )

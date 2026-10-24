@@ -39008,6 +39008,36 @@ R.check(
     f"published {sum(_cm_res.baseline_power_schedule):.2f} kW-steps vs at schedule {float(np.sum(_cm_full)):.2f}",
 )
 
+# The advisor's degree price differences ``held_cost`` across what-ifs
+# (price_tiles), so it stays the thermostat at the schedule itself: the same
+# solve with the matching switched off books it as its baseline_cost. Both
+# paths, the hot-water one on the house above.
+import heatpump_optimizer.optimizer as _cm_mod
+
+_cm_hd_in = dict(
+    initial_state=_HbState(
+        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(_hb_out[0]),
+        dhw_temperature=50.0, dhw_hours_since_legionella=20.0,
+    ),
+    prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out, wind_speeds=_hb_wind,
+    precipitation=_hb_rain, solar_radiation=_hb_sol, start_time=_hb_t0,
+)
+_cm_hd = _hd_opt.optimize(inputs=solve_inputs(**_cm_hd_in))
+with _hs_mock.patch.object(_cm_mod, "_comfort_matched_targets", lambda t, d: t):
+    _cm_off = _hb_opt_single.optimize(inputs=solve_inputs(
+        initial_state=_cm_state, prices=_hb_prices("flat", _hb_t0), outdoor_temps=_hb_out,
+        wind_speeds=_hb_wind, precipitation=_hb_rain, solar_radiation=_hb_sol, start_time=_hb_t0,
+    ))
+    _cm_hd_off = _hd_opt.optimize(inputs=solve_inputs(**_cm_hd_in))
+R.check(
+    "held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched",
+    _cm_res.held_cost == _cm_off.baseline_cost and _cm_hd.held_cost == _cm_hd_off.baseline_cost
+    and _cm_res.baseline_cost < _cm_res.held_cost - 0.5 and _cm_hd.baseline_cost < _cm_hd.held_cost - 0.5
+    and _cm_off.power_schedule == _cm_res.power_schedule,
+    f"space held {_cm_res.held_cost!r} vs off {_cm_off.baseline_cost!r} (matched {_cm_res.baseline_cost!r}); "
+    f"hot water held {_cm_hd.held_cost!r} vs off {_cm_hd_off.baseline_cost!r} (matched {_cm_hd.baseline_cost!r})",
+)
+
 # #2492 (2): a summer house that starts above its comfort and ends above its
 # caps saves on hot water and spends nothing on space; its warm start
 # displaced at most what the thermostat bought for space, so the predicted

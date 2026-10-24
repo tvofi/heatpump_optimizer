@@ -3,9 +3,11 @@
 
 The checks are the "3L-G7 -- monthly savings history" section of tests/features.py (which holds
 the #2255 and #2492 checks), extracted and run alone so a mutant costs a minute, not the full
-script. Each mutant replaces one predicate of the fix with its pre-fix or degenerate form; a mutant
-no check fails is printed with failing=0. M0 is the unmutated null run. Run it on a scratch copy
-of the tree: it rewrites optimizer.py per mutant and restores it in a `finally`.
+script; a mutant of the coordinator's read of ``held_cost`` runs the whole of tests/features.py,
+because its check (#2257's advisor degree) solves through a coordinator. Each mutant replaces one
+predicate of the fix with its pre-fix or degenerate form; a mutant no check fails is printed with
+failing=0. M0 is the unmutated null run. Run it on a scratch copy of the tree: it rewrites a
+production file per mutant and restores it in a `finally`.
 
     python3 dev/audit/harnesses/r10_sav_comfort_mutants.py <repo> [M1 M2 ...]
 """
@@ -14,7 +16,8 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
-OPT = ROOT / "custom_components/heatpump_optimizer/optimizer.py"
+PKG = ROOT / "custom_components/heatpump_optimizer"
+FULL = ["tests/features.py"]
 SECTION = """
 import sys
 sys.path.insert(0, 'tests')
@@ -61,21 +64,33 @@ M = [
   "            h, weather, comfort_targets, baseline_end, optimized_end, baseline_cost,\n"),
  ("M13 a cold start credited uncapped",
   "        return max(min(capped, uncapped), -displaced)\n", "        return max(uncapped, -displaced)\n"),
+ ("M14 space-path held_cost read after the matching",
+  "        held_cost = float(energy_cost_of(baseline_power))\n        reference_targets = _comfort_matched_targets(comfort_targets, room_temps[1:])\n        if reference_targets is not comfort_targets:\n            baseline_power, baseline_end = self._compute_baseline_power(\n                weather, initial_state, dt, reference_targets,\n            )\n",
+  "        reference_targets = _comfort_matched_targets(comfort_targets, room_temps[1:])\n        if reference_targets is not comfort_targets:\n            baseline_power, baseline_end = self._compute_baseline_power(\n                weather, initial_state, dt, reference_targets,\n            )\n        held_cost = float(energy_cost_of(baseline_power))\n"),
+ ("M15 hot-water held_cost is the matched baseline_cost",
+  "        held_cost = baseline_cost if reference_targets is comfort_targets else float(\n",
+  "        held_cost = baseline_cost if True else float(\n"),
+ ("M16 the advisor's degree reads baseline_cost again (whole features.py)",
+  "                simulated.held_cost - result.held_cost, horizon_hours), 2),\n",
+  "                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),\n",
+  "coordinator.py"),
 ]
 
 only = sys.argv[2:]
-for name, old, new in [("M0 unmutated", "", "")] + M:
+for name, old, new, *where in [("M0 unmutated", "", "")] + M:
     if only and name.split()[0] not in only:
         continue
-    orig = OPT.read_text()
+    path = PKG / (where[0] if where else "optimizer.py")
+    orig = path.read_text()
     if old:
         assert orig.count(old) == 1, name
-        OPT.write_text(orig.replace(old, new))
+        path.write_text(orig.replace(old, new))
     try:
-        out = subprocess.run([sys.executable, "-c", SECTION], cwd=ROOT, capture_output=True, text=True,
+        out = subprocess.run([sys.executable, *(FULL if where else ["-c", SECTION])], cwd=ROOT,
+                             capture_output=True, text=True,
                              env={"PYTHONPATH": "tests/hastub:tests:custom_components", "PATH": "/usr/bin:/bin"})
     finally:
-        OPT.write_text(orig)
+        path.write_text(orig)
     fails = [l.strip() for l in out.stdout.splitlines() if l.strip().startswith("FAIL")]
     print(f"{name}: rc={out.returncode} failing={len(fails)}", flush=True)
     for l in fails:

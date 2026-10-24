@@ -11253,7 +11253,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The same choice held from a steady start (the price tiles'
             # degree, price_tiles.py): no one-off coast or heat-up in it.
             "monthly_held_cost_delta": round(price_tiles.per_month(
-                simulated.baseline_cost - result.baseline_cost, horizon_hours), 2),
+                simulated.held_cost - result.held_cost, horizon_hours), 2),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(
