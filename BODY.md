@@ -11,16 +11,23 @@ Closes #1955
 2. *House heat-loss learner.* It already replays a measured heat for a space-only interval (#2016's `_interval_measured_heat_kw`); the heat meter now feeds that same path, on any install. On a switch-plus-setpoint install without electrical metering the (c) unmetered-power freeze lifts for an interval the heat meter measured (`flow_meter.replay_freeze`), because the commanded-kW assumption it guards against is no longer in the replay; every other freeze reason stands, an interval without a reading stays frozen, and a flow-meter figure keeps today's freeze. The lower-floor learner replays through the same `_replay_interval`, so it takes the same rule rather than diverging from its sibling about what the interval delivered.
 3. *Capacity envelope.* A measured heat is sampled at every load, as a floor: delivered heat is a lower bound on capacity, so at partial load it may raise (or seed) its bucket, but it never decays the bucket and never counts towards `CAPACITY_MIN_SAMPLES`. At or above 95 % of nameplate a measured heat replaces the modelled `observed_cop x measured_power` and is forgotten and counted as before. Design choice, stated: counting partial-load samples would re-open the self-censoring ratchet `_fold_capacity_envelope`'s docstring describes (caps limit the plan, the plan limits the samples), so "samples at all loads" is taken as a raise-only floor rather than a full sample.
 
+**The heat meter's age limit.** It is read with the electrical meter it is divided by, so it shares that meter's polling limit (30 min, `INPUT_MAX_AGE_MINUTES`) and, since #2234's on-change table reached this branch through its merge of main, that meter's on-change limit too: `INPUT_ON_CHANGE_MAX_AGE_MINUTES[CONF_THERMAL_POWER_ENTITY] = math.inf`, because a meter reporting only on change holds 0 kW through an idle spell exactly as the electrical one holds 0 W. A polling heat meter that goes silent is still stale at 30 min, which is what freezes the COP fold and the replay (the fold-e checks plant their stale readings as polling sources for that reason).
+
 **Not built, and why.** `thermal_model._FEEDBACK_CLASSES` (#1956's card recommendation) does not offer the heat meter: adding a class adds a row to every unmetered install's recommendation and so moves published state, which this fold's byte-identical contract rules out; a heat meter without an electrical one also makes no COP observable.
 
 **Alternatives considered (fixer step 17).** (i) Lifting the unmetered freeze in `learner_unmetered` for any install with a heat meter: rejected, it would lift it for every learner and for hot-water intervals the meter cannot attribute, where the replay falls back to commanded kW. (ii) A second reference COP method on `ThermalModel`: rejected, `compute_cop_dhw` already is the one law at a known water temperature, and a method would grow a class already past its size limit. (iii) Keeping the reference choice and the two inferences inline in the coordinator: rejected, `coordinator.py` orchestrates and does not compute; they moved to `flow_meter.py`, which owns measured heat, and the coordinator class got 7 lines smaller.
 
 ## Head
 
-`1e04be57142ea615b82aaaf618d0ff2fbed6e5b5`, merge base `50af6174f53c0f9bec3f705c3a4bb99615f71acc` (origin/main at the time of measuring; `git merge-base origin/main HEAD`).
+`4da869ec58f2eb952974750f654e378484122774`, merge base `73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec` (origin/main's tip when measured, 2026-10-24 15:54 UTC; `git merge-base origin/main HEAD`). Since the refused handoff (`7882a1427`) this head adds one fix commit, one ledger commit and two merges of `origin/main` that carry no production file.
 
 ## Mutation proof
 
+**This pass, at the head.** The fix for main's on-change table: `const.py`'s `CONF_THERMAL_POWER_ENTITY: math.inf,` deleted from `INPUT_ON_CHANGE_MAX_AGE_MINUTES` in a detached worktree of `5ee6e130f` (the fix commit) and `PYTHONPATH=tests/hastub python3 tests/features.py` run in full -- 2 of 4374 failing: "every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason", "all 27 age-limited keys: a quiet on-change source is stale only on a key named equal; ...". Restored: ALL 4374 FEATURE CHECKS PASSED.
+
+Every site `ci_predict.py` lists for this diff was re-driven at the head by `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 4`: `PIN KILLED: 17 pinned, 0 left unpinned`, each "killed by tests/features.py", with the tool's own null control (`coordinator.py:511 NULL_COMMENT`, a comment-only edit) surviving every driver in play and every baseline green (features.py rc=0 failed=0, env_drift.py, structure.py, config_flow_steps.py, typing_ruler.py). The 17 ledger rows are committed in `cfc50cdd8`.
+
+**Earlier pass, at `1e04be571`** (named failing checks per one-line mutant, `tests/features.py` in full; the production lines are unchanged since, and the pinner above re-measured each kill at this head):
 Each mutant applied to a detached worktree of the head and `PYTHONPATH=tests/hastub python3 tests/features.py` run in full (a one-off driver, not kept: each mutant is the one-line edit named); every one goes red:
 - `flow_meter.read_heat_output_kw`'s `if cap.measured_heat:` to `if False:` -- 5 failing: "a configured heat meter answers in kW, and outranks the flow meter's estimate ...", "a power and a frequency signal do not switch the heat meter off ...", "an unusable heat reading is absent, and the flow meter is not consulted in its place ...", "on an unmetered switch-plus-setpoint install both interval learners replay the measured heat ...", "where the learner already runs it replays the measured heat, and a stale heat reading freezes it ...".
 - `_fold_measured_cop`'s `if heat_kw is None and (refusal := ...)` to `if (refusal := ...)` -- 1 failing: "a measured heat is not judged by the commanded-ratio gates ...".
@@ -33,18 +40,17 @@ Each mutant applied to a detached worktree of the head and `PYTHONPATH=tests/has
 
 ## Null control
 
-The unmodified tree (merge base) ignores a heat reading entirely: the harness below feeds both trees the same heat-metered direct plant, and the base's `cop_scale` walks with the weather exactly as its commanded inference does. An install without the key: every coord_* golden capture is byte-identical to the merge base (`env_drift.py --all`, below), which includes the fully metered `coord_all_features`; the harness's `commanded` arm prints bitwise-identical scales at both trees.
+The unmodified tree (merge base) ignores a heat reading entirely: the harness below feeds both trees the same heat-metered direct plant, and the base's `cop_scale` walks with the weather exactly as its commanded inference does. An install without the key: every coord_* golden capture is byte-identical to the merge base (`env_drift.py`, below), which includes the fully metered `coord_all_features`; the harness's `commanded` arm is bitwise identical at both trees. For the on-change limit, the census check is its own null control: it drives every age-limited key alike, and a polling source silent past 30 min stays stale on every key, the heat meter included.
 
 ## Figures
 
-- `python3 dev/audit/harnesses/r10_thermal_power_option.py 50af6174f53c0f9bec3f705c3a4bb99615f71acc` -- a direct plant at 0.9 x the model's law at a weather-curve supply, 400 folds at each of 7 outdoor points: head `metered` spread 0.0000 with every scale within 6e-7 of 0.9; base `metered` spread 0.1321 (0.6356 at -15 degC to 0.7677 at 12 degC), the defect; `commanded` spread 0.1321 and bitwise identical at both trees (null control: had the commanded path moved, the reprs would differ). Both ends of the input range: `first_fold` (zero evidence, one fold per point) moves the scale by at most `COP_LEARNING_MAX_STEP` per fold (0.997 after the first); `clamp` (a meter reading 4 x the law) stops at `COP_SCALE_MAX` 1.6 at every point, at both trees.
-- `PYTHONPATH=tests/hastub python3 tests/features.py` -- ALL 4368 FEATURE CHECKS PASSED at the head; the new block's checks each assert a null control in their own predicate.
-- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 50af6174f53c0f9bec3f705c3a4bb99615f71acc` -- NO UNCLAIMED DRIFT over 56 scenarios, NO STALE FIXTURE; the one moved fixture is the float-free `config_flow` (3 leaves, the new field's keys), re-recorded with `tests/golden.py --record --only config_flow` and claimed in `tests/golden/claimed_drift.txt`.
-- `python3 tests/structure.py` -- STRUCTURE RATCHET PASSED after recording `class_excess_loc` 18217 -> 18210 and `max_class_loc` 8457 -> 8450 (the coordinator class shrank; reason in the recording commit's message). No budget raised.
-- `python3 tests/closure.py select --diff 50af6174f53c0f9bec3f705c3a4bb99615f71acc --workdir <tmp>` -- `MODE: SCOPED -- 30 script(s) run, 3 scoped out`; the scoped run (`GATE_SCOPE=auto GOLDEN_MODE=drift tests/run.sh`) went red on three scripts, all repaired on this branch and re-run green: `tests/typing_ruler.py` (two no-any-return in `flow_meter.py`, now rc=0), `tests/env_drift.py --all` (config_flow, above) and `tests/entities.py` (two ledger rows pinning lines this branch rewrote, deleted; the two checks still red, "gate-sweep.yml: on CI's completion ..." and "graders-head-copy's delivery_status step ...", fail identically at the merge base on this box, 2 of 2425 at both trees).
-- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` -- ALL 112 HARNESS HEADER CHECKS PASSED; `option_doc_coverage.py`'s header moved 200 -> 201 and 233 -> 234 for the new options field and its `docs/configuration.md` row.
-- `python3 tools/audit/archscore/score.py --diff 50af6174f53c0f9bec3f705c3a4bb99615f71acc HEAD` -- `Architecture score: dS +0.0000 NULL`.
-- Seams (fixer step 8): the instrument is `tools/pr/ci_predict.py --base origin/main` for the mutation sites (17, each dispositioned below) and the R8-P3 humidity barrier in `tests/features.py`, whose file set this diff widens to `flow_meter.py` so the two COP calls that moved there stay under the rule (both entries are live-condition calls at the current outdoor temperature, as the coordinator entry they replace was).
+- `python3 dev/audit/harnesses/r10_thermal_power_option.py 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec` (sha1 `0b5efb16ff79624cdb42d9e7b370b4fa57e7f851`, at the head) -- a direct plant at 0.9 x the model's law at a weather-curve supply, 400 folds at each of 7 outdoor points: head `metered` spread 0.0000 with every scale within 6e-7 of 0.9; base `metered` spread 0.1321 (0.6356 at -15 degC to 0.7677 at 12 degC), the defect; `commanded` spread 0.1321 at both trees, and `diff <(head line) <(base line) && echo COMMANDED-IDENTICAL` printed COMMANDED-IDENTICAL. Both ends of the input range: `first_fold` (zero evidence, one fold per point) moves the head's scale by at most `COP_LEARNING_MAX_STEP` per fold (0.997 after the first); `clamp` (a meter reading 4 x the law) stops at `COP_SCALE_MAX` 1.6 at every point, at both trees.
+- `python3 tests/closure.py select --diff 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec --workdir <tmp>` -- `MODE: SCOPED -- 30 script(s) run, 3 scoped out`.
+- `env -u BASH_ENV PYTHONPATH=tests/hastub GATE_SCOPE=auto GATE_SCOPE_BASE=73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec GOLDEN_MODE=drift bash tests/run.sh` -- rc=0, mode line `MODE: SCOPED -- 30 script(s) run, 3 scoped out`; among its lines ALL 4374 FEATURE CHECKS PASSED, ALL 2425 ENTITY CHECKS PASSED, STRUCTURE RATCHET PASSED, NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main, ALL 113 STRESS CHECKS PASSED, ALL 112 HARNESS HEADER CHECKS PASSED, ALL 9 typing-ruler checks PASSED. The one moved fixture stays the float-free `config_flow` (the new field's keys), claimed in `tests/golden/claimed_drift.txt`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` -- after the ledger commit: `CI PREDICT: no closures or fast red predicted against 73b69fe0a9fa`, and no unpinned site listed (before it, the same command listed the 17 sites below).
+- `python3 tests/structure.py` -- STRUCTURE RATCHET PASSED; the branch's recording of `class_excess_loc` 18217 -> 18210 and `max_class_loc` 8457 -> 8450 (the coordinator class shrank) stands. No budget raised.
+- `python3 tools/audit/archscore/score.py --diff 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec HEAD` -- `Architecture score: dS +0.0000 NULL`.
+- Seams (fixer step 8): `tools/pr/ci_predict.py --base origin/main` enumerates the mutation sites (17, each dispositioned below); the R10 N-staleness census in `tests/features.py` enumerates every key of `INPUT_MAX_AGE_MINUTES` (27 at this head) and drives each alike, so the new key is judged with its siblings rather than by name; the R8-P3 humidity barrier in `tests/features.py`, whose file set this diff widens to `flow_meter.py`, keeps the two COP calls that moved there under its rule.
 
 ## Architecture score
 
@@ -52,27 +58,27 @@ Architecture score: dS +0.0000
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/coordinator.py:4878 GUARD_OFF: pinned by mutation-autofix (the freeze guard's earlier pin was killed by tests/features.py)
-- custom_components/heatpump_optimizer/coordinator.py:4927 BOOLOP: pinned by mutation-autofix (an `or` leaves `refusal` unbound on the commanded path)
-- custom_components/heatpump_optimizer/coordinator.py:4927 GUARD_OFF: pinned by mutation-autofix (the tracking-gate check refuses a mutant that never refuses)
-- custom_components/heatpump_optimizer/coordinator.py:9113 CMP_BOUND: pinned by mutation-autofix; value check "a command at exactly 95 % of nameplate is still nameplate evidence, as before"
-- custom_components/heatpump_optimizer/coordinator.py:9114 CMP_BOUND: pinned by mutation-autofix; value check "a nameplate of 0.1 kW or less keeps the envelope empty, measured heat or not"
-- custom_components/heatpump_optimizer/coordinator.py:9114 GUARD_OFF: pinned by mutation-autofix (the partial-load censoring check)
-- custom_components/heatpump_optimizer/coordinator.py:9123 CLAMP_DROP: pinned by mutation-autofix; value check: a lower measured heat leaves a seeded bucket at [5.0, 7]
-- custom_components/heatpump_optimizer/flow_meter.py:61 GUARD_OFF: pinned by mutation-autofix (killed in the mutation proof above)
-- custom_components/heatpump_optimizer/flow_meter.py:64 BOOLOP: pinned by mutation-autofix (a negative reading is then returned; the unusable-reading check)
-- custom_components/heatpump_optimizer/flow_meter.py:64 CMP_BOUND: pinned by mutation-autofix; value check "a heat meter reading zero is a measured 0 kW, not absent"
-- custom_components/heatpump_optimizer/flow_meter.py:64 RETURN_DEL: pinned by mutation-autofix (every reading checks a value)
-- custom_components/heatpump_optimizer/flow_meter.py:97 RETURN_DEL: pinned by mutation-autofix (every reason then lifts; the replay_freeze check)
-- custom_components/heatpump_optimizer/flow_meter.py:115 GUARD_OFF: pinned by mutation-autofix (killed in the mutation proof above)
-- custom_components/heatpump_optimizer/flow_meter.py:117 RETURN_DEL: pinned by mutation-autofix (the evidence check unpacks it)
-- custom_components/heatpump_optimizer/flow_meter.py:119 RETURN_DEL: pinned by mutation-autofix (the evidence check unpacks it)
-- custom_components/heatpump_optimizer/flow_meter.py:136 GUARD_OFF: pinned by mutation-autofix (killed in the mutation proof above)
-- custom_components/heatpump_optimizer/flow_meter.py:138 RETURN_DEL: pinned by mutation-autofix (the reference check compares its value)
+- custom_components/heatpump_optimizer/coordinator.py:4876 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:4925 BOOLOP: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:4925 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:9103 CMP_BOUND: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:9104 CMP_BOUND: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:9104 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/coordinator.py:9113 CLAMP_DROP: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:61 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:64 BOOLOP: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:64 CMP_BOUND: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:64 RETURN_DEL: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:97 RETURN_DEL: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:115 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:117 RETURN_DEL: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:119 RETURN_DEL: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:136 GUARD_OFF: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
+- custom_components/heatpump_optimizer/flow_meter.py:138 RETURN_DEL: pinned, killed by tests/features.py (`--pin-killed`, ledger row in cfc50cdd8)
 
 ## Red checks
 
-none
+- `mutation`: red on the refused handoff because its 17 new sites carried no ledger row: the earlier body dispositioned them "pinned by mutation-autofix", but no autofix job runs before a pull request exists, and the merge of main had also moved the seven coordinator sites' lines. Answered on this head by running `--pin-killed` locally (17 pinned, 0 left; ledger rows in cfc50cdd8). The cheaper detector already exists and is the one that caught it: `ci_predict.py` (body_push.sh's handoff gate and prepr step 6d/7d) lists every unpinned site in seconds, and `ci-autofix.md` already says a red predicted before the PR is repaired before the handoff. The gap was the disposition text, which accepted "pinned by mutation-autofix" for a head with no pull request; the standing cost of the proper repair is the pinner's run, about 67 minutes wall-clock on this 4-core seat for 17 sites. No new detector is proposed here; whether step 7d should refuse a `mutation-autofix` disposition on a handoff with no PR is `root-cause.md`'s seat to weigh.
 
 ## Forward-carry
 
@@ -80,4 +86,4 @@ none
 
 ## Friction
 
-none
+- gate-sweep-step-under-bash-env: cost: on this cloud seat `BASH_ENV=/etc/profile.d/hpo-toolchain.sh` re-prepends the venv to `PATH` in every `bash -c`, so `tests/entities.py`'s gate-sweep and graders-head-copy checks (which plant a stand-in `python3` on `PATH`) fail at the head and the merge base alike, and `mutation_table.py --pin-killed` refused the whole run as INCONCLUSIVE on that red baseline; with `env -u BASH_ENV` the same script reads ALL 2425 ENTITY CHECKS PASSED. Carry: dismissed: a cloud-seat environment setting outside the tree, reported to the orchestrator in this seat's result
