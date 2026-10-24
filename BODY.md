@@ -19,7 +19,7 @@ Alternatives considered:
 
 ## Head
 
-`aa44f4bcc8261cc3fa170b6a47e85e6ce4cde7ca`, two commits on `50af6174f53c0f9bec3f705c3a4bb99615f71acc` (origin/main's tip, fetched 2026-10-24 UTC). Every figure below was taken at this head. The base figures come from the same merge base.
+`aa44f4bcc8261cc3fa170b6a47e85e6ce4cde7ca`, two commits on `50af6174f53c0f9bec3f705c3a4bb99615f71acc`. origin/main's tip is `145bfe197b9e7c09eb90bedadec44c6bc19d679d` (fetched 2026-10-24 UTC), 11 commits on, none touching this diff's four files. Every figure below was taken at this head merged with that tip. The base figures come from `145bfe197`.
 
 ## Mutation proof
 
@@ -42,11 +42,11 @@ Alternatives considered:
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok: every generated rule is the generated form of its source`.
 - `node tools/policy/brief_lint.mjs`: rc 0.
 - `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `92 checks, 0 failed`.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against 50af6174f53c`.
-- `PYTHONPATH=tests/hastub python3 tests/closure.py select --diff 50af6174f53c0f9bec3f705c3a4bb99615f71acc`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, the one being `tests/entities.py`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `2 of 2425 ENTITY CHECKS FAILED` at this head, and `2 of 2425 ENTITY CHECKS FAILED` at the base `50af6174f` in a detached worktree. They are the same two checks at both ends, `gate-sweep.yml: on CI's completion, ...` and `graders-head-copy's delivery_status step is red only when ...`. Both drive a workflow step's shell, every case reads `step rc 1` on this container, and neither reads a file this diff changes. They are this seat's environment and not this diff's, left to CI. For the same reason `prepr.sh` step 6b refuses `failed while being recorded: tests/entities.py (exit 1)` here. That is exactly the exit-code-only refusal the new 6b sentence describes: the direct run names the cause, which the refusal does not
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against 145bfe197b9e`.
+- `PYTHONPATH=tests/hastub python3 tests/closure.py select --diff 145bfe197b9e7c09eb90bedadec44c6bc19d679d`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, the one being `tests/entities.py`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`, at this head merged with `145bfe197`: no `FAILED` or `FAIL` line in the output (the run took about 21 minutes on a loaded box). The earlier measurement at the previous tip read two environment-bound workflow-shell checks failing; they do not fail here, so `prepr.sh` step 6b has no such refusal to explain. The new 6b sentence stands as the rule for the case where it does.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, rc 0.
-- `python3 tools/audit/archscore/score.py --diff 50af6174f53c0f9bec3f705c3a4bb99615f71acc`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tools/audit/archscore/score.py --diff 145bfe197b9e7c09eb90bedadec44c6bc19d679d`: `Architecture score: dS +0.0000 NULL`.
 - **The friction census (step 8's rule).** `node tools/policy/policy_lint.mjs --stats --since v7.0.0` reads `friction rule id at 8 in this window`, not the issue's 4. The eight PRs come from reading every merged body in `git log --first-parent v7.0.0..origin/main` (368 PRs) and keeping `## Friction` lines naming `gate-scoping`. Each one's disposition:
   - #2341 (cost, cap with no headroom): closed in this diff. The sentences are back, and paid for.
   - #2366 (contradiction, agreement lane): stated in this diff. The mechanism is carried (Forward-carry).
