@@ -1,0 +1,7 @@
+RESULT ruling_verdict P63 = ACCEPT
+RESULT null P99 = None
+RESULT mutant(no verdict line) P63 = unreadable
+RESULT mutant(DEFER) P63 = DEFER
+RESULT triage_refusal cite = None
+RESULT triage_refusal mutant = dev/programme/triage/s6-batch5.md#P63 is not an ACCEPT ruling (DEFER)
+VERDICT_LINE_RE ^Verdict:\s*(ACCEPT|REJECT|DEFER)\b
