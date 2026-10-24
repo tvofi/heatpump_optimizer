@@ -1,9 +1,0 @@
-R0: 
-R0 none: cloud_setup self-test: 13 checks, 0 failed
-R2: FAIL check is OK in a shell that sourced the profile;cloud_setup self-test: 13 checks, 1 failed;
-R3: cloud_setup self-test: 13 checks, 0 failed;
-R8a: cloud_setup self-test: 13 checks, 0 failed;
-R8b: cloud_setup self-test: 13 checks, 0 failed;
-R9: cloud_setup self-test: 13 checks, 0 failed;
-R10: FAIL check refuses without them, naming each variable;cloud_setup self-test: 13 checks, 1 failed;
-R11: cloud_setup self-test: 13 checks, 0 failed;

@@ -14,4 +14,3 @@ M12 --check's refusal exit: KILLED 3/3 runs red; cloud-setup.sh --check exits 1 
 M12b --check's OK exit: KILLED 3/3 runs red; cloud-setup.sh --check exits 0 under the printed variables
 M13 check's OPENBLAS_CORETYPE half: KILLED 3/3 runs red; check refuses without OPENBLAS_CORETYPE
 RESULT survivors=0
-rc=0
