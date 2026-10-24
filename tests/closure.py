@@ -714,6 +714,9 @@ INERT_EXCEPT = (
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/render_md.mjs",
+    # r10-codeql-dependabot: policy_lint.mjs imports it and tests/entities.py
+    # imports it directly (the dependabot.yml agreement check).
+    "tools/policy/dependabot_contract.mjs",
     # tests/entities.py opens these. Left on the tools/policy/ prefix they
     # are declared unread while being read: the recording files them under
     # inert_reads and also in the closure, and merge refuses that pair.
