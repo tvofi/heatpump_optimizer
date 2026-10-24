@@ -1,0 +1,53 @@
+is_inert dev/programme/triage/s6-batch1.md True gate_file False
+is_inert dev/programme/delivery/2688.md True gate_file False
+in closures.json: []
+--- P43 queue_pre_flight
+196:                self.dests = ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state)
+329:def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
+330-               issue_state=None) -> Dests:
+331-    # A carry file's destination issue is its own `issue` field (brief_lint.mjs
+332-    # owns the file-name grammar and refuses a name that disagrees with it).
+333-    if ref:
+334-        roster = roster_lib.show_roster(str(repo), ref)
+335-        r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
+336-                           capture_output=True, text=True)
+337-        texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
+338-                                text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
+339-    else:
+340-        roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
+341-        texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
+--- P42
+390:    if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
+7:  relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
+11:#      HPO_TICK_RELAY_WAIT seconds (default 30). A relay still in flight then is
+30:# (daemonize.py): a background task dies at two hours. HPO_TICK_RELAY and
+61:  local r=$1 relay=$2 hp hrc k=0 wait=${HPO_TICK_RELAY_WAIT:-30}
+76:  relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
+105:  out=$(HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt" -- --only PRS)
+111:  out=$(HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+115:  out=$(RELAY_RC=3 TICK_RC=1 HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+121:  out=$(RELAY_SLEEP=6 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval 3 --out "$t/b.txt")
+124:  out=$(RELAY_SLEEP=6 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+132:  out=$(HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+138:  HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval x --out "$t/b.txt" > "$t/e" 2>&1
+142:  out=$(HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+146:  out=$(HB_RC=1 HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt"); rc=$?
+154:  out=$(HPO_TICK_HEARTBEAT=$t/w/seat/heartbeat.sh HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+159:  out=$(HPO_TICK_HEARTBEAT=$t/w/seat/heartbeat.sh HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
+13:# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass). A stopped (TERM/INT/HUP) run
+--- P44
+    return findings
+  }
+  if (shape) checkShape(data.groups, findings)
+  lintAfterEdges(data.groups, findings)
+  for (const g of data.groups) {
+    if (!g || typeof g !== 'object') continue
+    if (g.resume?.stage === STAGE_SKIP) continue // merged work; brief will not be read again
+    if (typeof g.brief !== 'string' || !g.brief.trim()) continue // absence already reported
+    lintBrief(typeof g.group === 'string' ? g.group : '(unnamed)', g.brief, findings)
+  }
+  return findings
+}
+
+--- carries added
+1
